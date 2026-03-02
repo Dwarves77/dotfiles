@@ -57,7 +57,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
         </button>
       </div>
       {open && (
-        <div className="px-4 pb-2 divide-y divide-border-subtle">
+        <div className="px-4 pb-4 space-y-2">
           {supersessions.map((s, i) => {
             const oldR = resourceMap.get(s.old);
             const newR = resourceMap.get(s.new);
@@ -65,7 +65,12 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             return (
               <div
                 key={i}
-                className="py-3 px-1 space-y-2"
+                className="border border-border-subtle rounded-[2px] bg-surface-subtle hover:border-border-light transition-all duration-200 p-4 space-y-2"
+                style={{
+                  borderLeftWidth: 3,
+                  borderLeftColor: sevColor,
+                  transitionTimingFunction: "var(--ease-out-expo)",
+                }}
               >
                 <div className="flex items-center gap-2">
                   <span
