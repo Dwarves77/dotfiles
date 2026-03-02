@@ -1,0 +1,976 @@
+{
+  "o1": {
+    "m": [
+      "ocean"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "o2": {
+    "m": [
+      "ocean"
+    ],
+    "t": "fuels",
+    "j": "eu"
+  },
+  "o3": {
+    "m": [
+      "ocean"
+    ],
+    "t": "emissions",
+    "j": "eu"
+  },
+  "o4": {
+    "m": [
+      "ocean"
+    ],
+    "t": "transport",
+    "j": "global"
+  },
+  "o5": {
+    "m": [
+      "ocean"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "o6": {
+    "m": [
+      "ocean"
+    ],
+    "t": "reporting",
+    "j": "eu"
+  },
+  "o7": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "global"
+  },
+  "o8": {
+    "m": [
+      "ocean"
+    ],
+    "t": "fuels",
+    "j": "global"
+  },
+  "o9": {
+    "m": [
+      "ocean"
+    ],
+    "t": "emissions",
+    "j": "eu"
+  },
+  "o10": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "eu"
+  },
+  "o11": {
+    "m": [
+      "ocean"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "o12": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "global"
+  },
+  "o13": {
+    "m": [
+      "ocean"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "a1": {
+    "m": [
+      "air"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "a2": {
+    "m": [
+      "air"
+    ],
+    "t": "emissions",
+    "j": "eu"
+  },
+  "a3": {
+    "m": [
+      "air"
+    ],
+    "t": "fuels",
+    "j": "eu"
+  },
+  "a4": {
+    "m": [
+      "air"
+    ],
+    "t": "fuels",
+    "j": "uk"
+  },
+  "a5": {
+    "m": [
+      "air"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "a6": {
+    "m": [
+      "air"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "a7": {
+    "m": [
+      "air"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "a8": {
+    "m": [
+      "air"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "l1": {
+    "m": [
+      "road"
+    ],
+    "t": "transport",
+    "j": "eu"
+  },
+  "l2": {
+    "m": [
+      "road"
+    ],
+    "t": "transport",
+    "j": "eu"
+  },
+  "l3": {
+    "m": [
+      "road"
+    ],
+    "t": "corridors",
+    "j": "eu"
+  },
+  "l4": {
+    "m": [
+      "road"
+    ],
+    "t": "corridors",
+    "j": "eu"
+  },
+  "l5": {
+    "m": [
+      "road"
+    ],
+    "t": "transport",
+    "j": "eu"
+  },
+  "l6": {
+    "m": [
+      "road"
+    ],
+    "t": "transport",
+    "j": "us"
+  },
+  "l7": {
+    "m": [
+      "road"
+    ],
+    "t": "transport",
+    "j": "us"
+  },
+  "l8": {
+    "m": [
+      "road"
+    ],
+    "t": "fuels",
+    "j": "us"
+  },
+  "l9": {
+    "m": [
+      "road"
+    ],
+    "t": "research",
+    "j": "us"
+  },
+  "l10": {
+    "m": [
+      "road"
+    ],
+    "t": "corridors",
+    "j": "us"
+  },
+  "t1": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "eu"
+  },
+  "t2": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "t3": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "t4": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "t5": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "t6": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "t7": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "c1": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "eu"
+  },
+  "c2": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "eu"
+  },
+  "c3": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c4": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c5": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c6": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c7": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c8": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c9": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c10": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "c11": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "g1": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "eu"
+  },
+  "g2": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "packaging",
+    "j": "eu"
+  },
+  "g3": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "eu"
+  },
+  "g4": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "eu"
+  },
+  "g5": {
+    "m": [
+      "road"
+    ],
+    "t": "transport",
+    "j": "eu"
+  },
+  "g6": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "transport",
+    "j": "uk"
+  },
+  "g7": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "transport",
+    "j": "eu"
+  },
+  "g8": {
+    "m": [
+      "road"
+    ],
+    "t": "reporting",
+    "j": "us"
+  },
+  "g9": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "packaging",
+    "j": "global"
+  },
+  "g10": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "us"
+  },
+  "g11": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "us"
+  },
+  "g12": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "latam"
+  },
+  "g13": {
+    "m": [
+      "ocean",
+      "road"
+    ],
+    "t": "packaging",
+    "j": "latam"
+  },
+  "g14": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "latam"
+  },
+  "g15": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "transport",
+    "j": "latam"
+  },
+  "g16": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "latam"
+  },
+  "g17": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "asia"
+  },
+  "g18": {
+    "m": [
+      "ocean",
+      "road"
+    ],
+    "t": "transport",
+    "j": "asia"
+  },
+  "g19": {
+    "m": [
+      "ocean"
+    ],
+    "t": "emissions",
+    "j": "asia"
+  },
+  "g20": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "asia"
+  },
+  "g21": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "asia"
+  },
+  "g22": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "asia"
+  },
+  "g23": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "asia"
+  },
+  "g24": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "transport",
+    "j": "asia"
+  },
+  "g25": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "meaf"
+  },
+  "g26": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "fuels",
+    "j": "meaf"
+  },
+  "g27": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "global"
+  },
+  "g28": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "g29": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "g30": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "g31": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "g32": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "corridors",
+    "j": "eu"
+  },
+  "g33": {
+    "m": [
+      "ocean",
+      "road"
+    ],
+    "t": "packaging",
+    "j": "eu"
+  },
+  "g34": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "reporting",
+    "j": "eu"
+  },
+  "r1": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "us"
+  },
+  "r2": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r3": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "eu"
+  },
+  "r4": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r5": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "eu"
+  },
+  "r6": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "eu"
+  },
+  "r7": {
+    "m": [
+      "ocean"
+    ],
+    "t": "research",
+    "j": "eu"
+  },
+  "r8": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "uk"
+  },
+  "r9": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r10": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r11": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r12": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r13": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r14": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r15": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r16": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "uk"
+  },
+  "r17": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r18": {
+    "m": [
+      "ocean"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r19": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r20": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r21": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r22": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "us"
+  },
+  "r23": {
+    "m": [
+      "ocean"
+    ],
+    "t": "fuels",
+    "j": "global"
+  },
+  "r24": {
+    "m": [
+      "ocean"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "r25": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "emissions",
+    "j": "global"
+  },
+  "r26": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "fuels",
+    "j": "eu"
+  },
+  "r27": {
+    "m": [
+      "ocean"
+    ],
+    "t": "fuels",
+    "j": "global"
+  },
+  "r28": {
+    "m": [
+      "road"
+    ],
+    "t": "fuels",
+    "j": "eu"
+  },
+  "r29": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "us"
+  },
+  "r30": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "global"
+  },
+  "r31": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "us"
+  },
+  "r32": {
+    "m": [
+      "ocean"
+    ],
+    "t": "corridors",
+    "j": "eu"
+  },
+  "r33": {
+    "m": [
+      "ocean"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r34": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r35": {
+    "m": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "t": "research",
+    "j": "global"
+  },
+  "r36": {
+    "m": [
+      "ocean"
+    ],
+    "t": "research",
+    "j": "global"
+  }
+}

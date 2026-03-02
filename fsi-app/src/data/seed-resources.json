@@ -1,0 +1,4285 @@
+[
+  {
+    "id": "o1",
+    "cat": "ocean",
+    "sub": "IMO Regulations",
+    "title": "IMO GHG Strategy 2023",
+    "url": "https://www.imo.org/en/MediaCentre/HotTopics/Pages/HotTopics.aspx",
+    "note": "Net-zero by ~2050. Checkpoints: 20% by 2030, 70% by 2040. Replaces 2018 strategy.",
+    "type": "framework",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Sets the global trajectory for carrier fleet investment and green fuel adoption — every ocean freight contract is shaped by this.",
+    "tags": [
+      "IMO",
+      "net-zero",
+      "2050",
+      "global"
+    ],
+    "whatIsIt": "IMO's revised strategy committing global shipping to net-zero GHG emissions by around 2050 with interim checkpoints.",
+    "whyMatters": "This strategy determines carrier fleet investment direction over the next 25 years. Live events freight forwarders must understand which carriers are investing ahead of the curve to negotiate favorable long-term contracts. Green fuel surcharges will be directly linked to these targets.",
+    "keyData": [
+      "Net-zero by or around 2050",
+      "20% reduction by 2030 (striving 30%)",
+      "70% by 2040 (striving 80%)",
+      "Pricing mechanism under negotiation",
+      "Replaces 2018 50%-by-2050 strategy"
+    ],
+    "timeline": [
+      {
+        "date": "2023-07",
+        "label": "Strategy adopted"
+      },
+      {
+        "date": "2025-04",
+        "label": "MEPC 83: NZF approved"
+      },
+      {
+        "date": "2025-10",
+        "label": "MEPC ES.2 adoption"
+      },
+      {
+        "date": "2027-03",
+        "label": "NZF entry into force"
+      },
+      {
+        "date": "2030-01",
+        "label": "20% checkpoint"
+      },
+      {
+        "date": "2040-01",
+        "label": "70% checkpoint"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "o2",
+    "cat": "ocean",
+    "sub": "IMO Regulations",
+    "title": "FuelEU Maritime",
+    "url": "https://transport.ec.europa.eu/transport-modes/maritime/fueleu-maritime_en",
+    "note": "GHG intensity limits: 2% by 2025, 80% by 2050. Penalty €2,400/tonne VLSFO shortfall.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Mandatory GHG intensity limits with €2,400/tonne penalties — direct fuel surcharge driver.",
+    "tags": [
+      "FuelEU",
+      "GHG intensity",
+      "EU ports",
+      "penalty"
+    ],
+    "whatIsIt": "EU mandate requiring GHG intensity of energy used onboard ships at EU ports to decrease progressively.",
+    "whyMatters": "Carriers will pass through fuel compliance costs on every EU port call. High-value cargo operators must budget for escalating surcharges and compare green corridor premiums against conventional routing costs.",
+    "keyData": [
+      "Penalty: €2,400/tonne VLSFO shortfall",
+      "2% GHG reduction by 2025",
+      "6% by 2030, 80% by 2050",
+      "Shore power mandate from 2030",
+      "Applies to all EU port calls"
+    ],
+    "timeline": [
+      {
+        "date": "2025-01",
+        "label": "2% reduction"
+      },
+      {
+        "date": "2030-01",
+        "label": "6% + shore power"
+      },
+      {
+        "date": "2050-01",
+        "label": "80% reduction"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "o3",
+    "cat": "ocean",
+    "sub": "IMO Regulations",
+    "title": "EU ETS for Shipping",
+    "url": "https://climate.ec.europa.eu/eu-action/transport/reducing-emissions-shipping-sector_en",
+    "note": "Ships >5,000GT surrender ETS allowances: 40%(2024), 70%(2025), 100%(2026).",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Directly binding ETS obligation with financial penalties. Immediate cost pass-through on every EU shipment.",
+    "tags": [
+      "ETS",
+      "ocean",
+      "allowances",
+      "2024"
+    ],
+    "whatIsIt": "EU regulation extending the Emissions Trading System to maritime shipping for vessels over 5,000 gross tonnage.",
+    "whyMatters": "Every ocean shipment via EU ports faces ETS surcharges passed through by carriers. Event logistics specialists must budget for escalating costs (40%→100%) and factor ETS into lane comparisons when routing equipment and staging materials.",
+    "keyData": [
+      "Surrender: 40% (2024), 70% (2025), 100% (2026)",
+      "CH4 and N2O included from 2026",
+      "5,000+ vessels on THETIS-MRV",
+      "Applies to vessels >5,000 GT calling EU ports"
+    ],
+    "timeline": [
+      {
+        "date": "2024-01",
+        "label": "40% phase-in"
+      },
+      {
+        "date": "2025-01",
+        "label": "70%"
+      },
+      {
+        "date": "2025-09",
+        "label": "First surrendering"
+      },
+      {
+        "date": "2026-01",
+        "label": "100% + CH4/N2O"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "o4",
+    "cat": "ocean",
+    "sub": "IMO Regulations",
+    "title": "CII (Carbon Intensity Indicator)",
+    "url": "https://www.imo.org/en/OurWork/Environment/Pages/Carbon-Intensity-Code-rating.aspx",
+    "note": "Annual A-E rating; D for 3yrs or E for 1yr triggers corrective action. MEPC 83 completed Phase 1 review; Z-factors set for 2027-2030.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Annual vessel ratings directly affect carrier fleet viability and charter market pricing. Phase 1 review complete — thresholds confirmed tightening.",
+    "tags": [
+      "CII",
+      "rating",
+      "vessel",
+      "annual"
+    ],
+    "whatIsIt": "IMO's operational carbon intensity rating system assigning annual A-E grades to individual vessels. MEPC 83 completed Phase 1 review and set CII reduction (Z) factors for 2027-2030.",
+    "whyMatters": "Vessels rated D or E face operational restrictions and corrective action requirements. Freight forwarders should verify carrier vessel CII ratings when booking — poorly rated vessels may face speed restrictions that affect transit times for time-sensitive event cargo. Z-factors for 2027-2030 now confirmed means predictable tightening schedule.",
+    "keyData": [
+      "Annual rating A-E per vessel",
+      "D for 3 years or E for 1 year → corrective action plan",
+      "MEPC 83: Phase 1 review completed Apr 2025",
+      "Z-factors for 2027-2030 formally adopted",
+      "Phase 2 review: Jan 2026 → Spring 2027",
+      "Affects charter market vessel valuations"
+    ],
+    "timeline": [
+      {
+        "date": "2023-01",
+        "label": "CII ratings start"
+      },
+      {
+        "date": "2025-04",
+        "label": "Phase 1 complete"
+      },
+      {
+        "date": "2026-01",
+        "label": "Phase 2 starts"
+      },
+      {
+        "date": "2027-01",
+        "label": "Z-factors apply"
+      },
+      {
+        "date": "2030-01",
+        "label": "Z-factors end"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "transport",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "o5",
+    "cat": "ocean",
+    "sub": "IMO Regulations",
+    "title": "IMO MARPOL Annex VI",
+    "url": "https://www.imo.org/en/OurWork/Environment/Pages/Air-Pollution.aspx",
+    "note": "Sulphur cap 0.5% global, 0.1% ECA zones. NOx Tier III.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Sulphur and NOx limits drive fuel choices and scrubber surcharges across all ocean routes.",
+    "tags": [
+      "MARPOL",
+      "sulphur",
+      "ECA",
+      "NOx"
+    ],
+    "whatIsIt": "International maritime air pollution rules setting limits on sulphur oxides, nitrogen oxides, and particulate matter from ships.",
+    "whyMatters": "Sulphur compliance costs are embedded in every ocean freight rate. ECA zone surcharges apply on Northern European and North American routes frequently used for event equipment shipping.",
+    "keyData": [
+      "Global sulphur cap: 0.5% (since 2020)",
+      "ECA zones: 0.1% limit",
+      "NOx Tier III for new engines",
+      "Compliance via low-sulphur fuel or scrubbers"
+    ],
+    "timeline": [
+      {
+        "date": "2020-01",
+        "label": "0.5% global cap"
+      },
+      {
+        "date": "2021-01",
+        "label": "NOx Tier III"
+      },
+      {
+        "date": "2025-01",
+        "label": "ECA review"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "o6",
+    "cat": "ocean",
+    "sub": "IMO Regulations",
+    "title": "EU MRV Regulation",
+    "url": "https://mrv.emsa.europa.eu/",
+    "note": "Mandatory CO2 monitoring/reporting/verification for ships >5,000GT at EU ports.",
+    "type": "tool",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Mandatory compliance portal — all EU ETS maritime data flows through THETIS-MRV.",
+    "tags": [
+      "MRV",
+      "EMSA",
+      "reporting",
+      "compliance"
+    ],
+    "whatIsIt": "EU regulation requiring monitoring, reporting and verification of CO2 emissions for large ships calling at EU ports.",
+    "whyMatters": "Vessel-level emissions data determines carrier ETS exposure and surcharge legitimacy. Freight forwarders can verify carrier environmental claims and identify lowest-emission vessels for client sustainability reports.",
+    "keyData": [
+      "5,000+ companies registered",
+      "Covers all EU port calls",
+      "Public company-level data",
+      "Required for ETS allowance calculations"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "o7",
+    "cat": "ocean",
+    "sub": "Fuels & Technology",
+    "title": "Getting to Zero Coalition",
+    "url": "https://www.getzerocoalition.org/",
+    "note": "Industry alliance targeting zero-emission vessels by 2030.",
+    "type": "initiative",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Green corridor pilots on major trade lanes inform surcharge viability by route.",
+    "tags": [
+      "green corridors",
+      "zero-emission",
+      "2030"
+    ],
+    "whatIsIt": "Industry coalition of 200+ companies working to deploy commercially viable zero-emission vessels by 2030.",
+    "whyMatters": "Corridor pilots on routes like EU-Asia and transatlantic directly affect lane options for live events freight. Understanding pilot timelines helps price green shipping premiums for clients requesting low-carbon logistics.",
+    "keyData": [
+      "200+ member companies",
+      "Target: commercially viable ZEV by 2030",
+      "6+ active corridor projects",
+      "Focus: ammonia, methanol, hydrogen"
+    ],
+    "timeline": [
+      {
+        "date": "2019-09",
+        "label": "Coalition formed"
+      },
+      {
+        "date": "2025-01",
+        "label": "Pilot corridors"
+      },
+      {
+        "date": "2030-01",
+        "label": "Viable ZEV target"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "o8",
+    "cat": "ocean",
+    "sub": "Fuels & Technology",
+    "title": "Alternative Fuels Insight (IRENA/IMO)",
+    "url": "https://www.irena.org/Energy-Transition/Technology/Maritime-transport",
+    "note": "Tracks LNG, methanol, ammonia, hydrogen adoption across global fleet.",
+    "type": "data",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Fuel transition data essential for understanding which carriers are future-proofing fleets.",
+    "tags": [
+      "alternative fuels",
+      "LNG",
+      "methanol",
+      "ammonia"
+    ],
+    "whatIsIt": "IRENA's tracking of alternative fuel adoption rates and technology readiness across the global shipping fleet.",
+    "whyMatters": "Fuel transition rates indicate which carriers are investing in compliance. Event logistics specialists can identify forward-looking carrier partners and avoid those facing stranded asset risk.",
+    "keyData": [
+      "LNG fleet growth tracking",
+      "Methanol-ready vessel orders",
+      "Ammonia engine development status",
+      "Hydrogen pilot projects"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "o9",
+    "cat": "ocean",
+    "sub": "Fuels & Technology",
+    "title": "Norway Zero-Emission Shipping",
+    "url": "https://www.regjeringen.no/en/topics/transport-and-communications/innsiktsartikler-samferdsel/zero-emission-shipping/id2857855/",
+    "note": "World's first zero-emission fjord requirements by 2026.",
+    "type": "regulation",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Norway leads with mandatory zero-emission requirements — signals direction for other jurisdictions.",
+    "tags": [
+      "Norway",
+      "fjords",
+      "zero-emission",
+      "2026"
+    ],
+    "whatIsIt": "Norway's pioneering regulations requiring zero-emission vessel operations in Norwegian fjords from 2026.",
+    "whyMatters": "Norway's requirements signal the direction for other jurisdictions. Freight forwarders routing through Scandinavian ports should monitor for compliance implications on vessel selection.",
+    "keyData": [
+      "Zero-emission fjord requirements by 2026",
+      "World's first mandatory ZEV shipping zone",
+      "Applies to domestic ferry and cargo routes"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "o10",
+    "cat": "ocean",
+    "sub": "Fuels & Technology",
+    "title": "ESPO (European Sea Ports Organisation)",
+    "url": "https://www.espo.be/",
+    "note": "EU port sustainability standards, shore power, cold ironing.",
+    "type": "industry",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Port sustainability standards affect dwell costs and operational requirements at EU hubs.",
+    "tags": [
+      "ports",
+      "shore power",
+      "cold ironing",
+      "EU"
+    ],
+    "whatIsIt": "European port industry body setting sustainability standards and tracking shore power deployment.",
+    "whyMatters": "Port-level requirements (shore power mandates, emission zones) affect vessel selection and dwell costs at major European hubs used for event equipment import/export.",
+    "keyData": [
+      "Shore power deployment tracking",
+      "Environmental Ship Index (ESI)",
+      "Port sustainability report",
+      "Cold ironing mandates"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "o11",
+    "cat": "ocean",
+    "sub": "Fuels & Technology",
+    "title": "Lloyd's Register Decarbonisation Hub",
+    "url": "https://www.lr.org/en/sustainability/decarbonisation/",
+    "note": "Technical guidance on fleet decarbonisation pathways.",
+    "type": "guidance",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Classification society guidance shapes carrier fleet investment decisions and fuel transition timelines.",
+    "tags": [
+      "Lloyd's Register",
+      "fleet",
+      "decarbonisation",
+      "technical"
+    ],
+    "whatIsIt": "Lloyd's Register's technical advisory platform for maritime fleet decarbonisation pathways and fuel transition.",
+    "whyMatters": "Classification society guidance directly influences carrier fleet decisions. Understanding LR's recommended pathways helps freight forwarders assess carrier readiness and negotiate informed contracts.",
+    "keyData": [
+      "Fleet decarbonisation pathway modelling",
+      "Fuel transition technical guidance",
+      "Vessel retrofit advisory",
+      "Regulatory compliance support"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "o12",
+    "cat": "ocean",
+    "sub": "Fuels & Technology",
+    "title": "Blue Visby Solution",
+    "url": "https://www.bluevisby.com/",
+    "note": "Speed optimisation reducing voyage emissions 10-15%.",
+    "type": "tool",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Operational efficiency tool — immediate emissions reduction without hardware changes.",
+    "tags": [
+      "speed optimisation",
+      "emissions",
+      "voyage",
+      "software"
+    ],
+    "whatIsIt": "Digital platform optimising vessel speed profiles to reduce voyage emissions by 10-15% without hardware modifications.",
+    "whyMatters": "Speed optimisation tools offer immediate emissions reductions for ocean freight. Forwarders can ask carriers about Blue Visby or similar tools when clients request lower-carbon shipping options.",
+    "keyData": [
+      "10-15% emission reduction per voyage",
+      "No hardware changes required",
+      "AI-driven speed profile optimisation"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "a1",
+    "cat": "air",
+    "sub": "CORSIA & International",
+    "title": "CORSIA (ICAO)",
+    "url": "https://www.icao.int/environmental-protection/CORSIA/Pages/default.aspx",
+    "note": "Carbon offsetting for international aviation. Mandatory from 2027.",
+    "type": "framework",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Global offsetting costs embedded in air cargo rates from 2027 mandatory phase.",
+    "tags": [
+      "CORSIA",
+      "offsetting",
+      "ICAO",
+      "2027"
+    ],
+    "whatIsIt": "ICAO's Carbon Offsetting and Reduction Scheme for International Aviation — a global market-based measure for international flights.",
+    "whyMatters": "CORSIA offset costs flow through to air cargo rates on international routes. Live events freight forwarders must factor offset costs into air freight quotes, especially for time-critical show equipment and high-value touring cargo.",
+    "keyData": [
+      "Pilot phase 2021-2023",
+      "First phase 2024-2026, mandatory from 2027",
+      "Airlines offset growth above 2019 baseline",
+      "~$5-15/tonne CO2 offset price",
+      "Covers ~85% of international aviation emissions"
+    ],
+    "timeline": [
+      {
+        "date": "2024-01",
+        "label": "First phase"
+      },
+      {
+        "date": "2027-01",
+        "label": "Mandatory"
+      },
+      {
+        "date": "2035-01",
+        "label": "Full scope"
+      }
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "a2",
+    "cat": "air",
+    "sub": "CORSIA & International",
+    "title": "EU Aviation ETS",
+    "url": "https://climate.ec.europa.eu/eu-action/transport/reducing-emissions-aviation_en",
+    "note": "Aviation in EU ETS since 2012. Free allowances out by 2026. Scope expanding.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Intra-EEA carbon costs already in rates; scope expansion would transform transatlantic air cargo pricing.",
+    "tags": [
+      "ETS",
+      "aviation",
+      "intra-EEA",
+      "2027"
+    ],
+    "whatIsIt": "EU Emissions Trading System applied to aviation — currently intra-EEA flights, expanding to 50% of international flights from 2027.",
+    "whyMatters": "All intra-European air freight already carries ETS carbon cost. Scope expansion to international flights would significantly increase transatlantic and EU-Asia air cargo rates used for live events touring equipment.",
+    "keyData": [
+      "Aviation in EU ETS since 2012",
+      "Free allowances phased out by 2026",
+      "Intra-EEA + 50% international from 2027",
+      "Full auctioning from 2026"
+    ],
+    "timeline": [
+      {
+        "date": "2026-01",
+        "label": "Full auctioning"
+      },
+      {
+        "date": "2027-01",
+        "label": "Scope expansion"
+      }
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "a3",
+    "cat": "air",
+    "sub": "CORSIA & International",
+    "title": "ReFuelEU Aviation",
+    "url": "https://transport.ec.europa.eu/transport-modes/air/fuel/refueleu-aviation_en",
+    "note": "SAF blending: 2% by 2025, 6% by 2030, 70% by 2050. All EU airports.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Mandatory SAF blend directly increases air cargo fuel surcharges at all EU airports.",
+    "tags": [
+      "SAF",
+      "EU airports",
+      "blending",
+      "fuel cost"
+    ],
+    "whatIsIt": "EU regulation mandating minimum Sustainable Aviation Fuel blending percentages for all fuel uplifted at EU airports.",
+    "whyMatters": "Every air cargo uplift at EU airports carries a SAF cost premium. Event logistics operators must pass through SAF surcharges and compare EU vs non-EU routing costs for time-sensitive show freight.",
+    "keyData": [
+      "2% SAF mandate from Jan 2025",
+      "6% by 2030, 20% by 2035, 70% by 2050",
+      "Applies to ALL fuel uplifted at EU airports",
+      "Includes 0.7% synthetic fuel requirement"
+    ],
+    "timeline": [
+      {
+        "date": "2025-01",
+        "label": "2% SAF"
+      },
+      {
+        "date": "2030-01",
+        "label": "6%"
+      },
+      {
+        "date": "2035-01",
+        "label": "20%"
+      },
+      {
+        "date": "2050-01",
+        "label": "70%"
+      }
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "a4",
+    "cat": "air",
+    "sub": "CORSIA & International",
+    "title": "UK SAF Mandate",
+    "url": "https://www.gov.uk/government/publications/sustainable-aviation-fuel-mandate",
+    "note": "UK: 2% SAF from 2025, 10% by 2030, 22% by 2040.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Independent UK mandate means separate SAF surcharge layer for UK-departing event freight.",
+    "tags": [
+      "UK",
+      "SAF",
+      "mandate",
+      "2025"
+    ],
+    "whatIsIt": "UK's independent Sustainable Aviation Fuel mandate applying to all UK-departing flights.",
+    "whyMatters": "Post-Brexit UK has its own SAF mandate with different targets than the EU. Freight forwarders routing through UK airports face a separate surcharge structure — important for London-based event logistics.",
+    "keyData": [
+      "2% SAF blend from 2025",
+      "10% by 2030, 22% by 2040",
+      "Applies to UK-departing flights",
+      "Separate from EU ReFuelEU"
+    ],
+    "timeline": [
+      {
+        "date": "2025-01",
+        "label": "2% SAF"
+      },
+      {
+        "date": "2030-01",
+        "label": "10%"
+      },
+      {
+        "date": "2040-01",
+        "label": "22%"
+      }
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "uk"
+  },
+  {
+    "id": "a5",
+    "cat": "air",
+    "sub": "CORSIA & International",
+    "title": "SAFA (Sustainable Air Freight Alliance)",
+    "url": "https://www.safa.aero/",
+    "note": "Industry body promoting SAF adoption for air cargo.",
+    "type": "initiative",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Industry coalition driving SAF procurement — member commitments affect tender requirements.",
+    "tags": [
+      "SAFA",
+      "SAF",
+      "air cargo",
+      "industry"
+    ],
+    "whatIsIt": "Industry alliance promoting SAF adoption specifically for air cargo operations and Scope 3 accounting.",
+    "whyMatters": "SAFA member companies increasingly require SAF usage in cargo tenders. Understanding alliance commitments helps freight forwarders anticipate client requirements for sustainable air logistics.",
+    "keyData": [
+      "SAF procurement coalition",
+      "Scope 3 air cargo accounting",
+      "Member shipper commitments",
+      "Book-and-claim mechanisms"
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "a6",
+    "cat": "air",
+    "sub": "Emissions Accounting",
+    "title": "ICAO Carbon Calculator",
+    "url": "https://www.icao.int/environmental-protection/CarbonOffset/Pages/default.aspx",
+    "note": "Official methodology for aviation CO2 per cargo tonne.",
+    "type": "tool",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Standard calculator for air freight emissions — baseline for client reporting.",
+    "tags": [
+      "ICAO",
+      "calculator",
+      "CO2",
+      "methodology"
+    ],
+    "whatIsIt": "ICAO's official methodology and calculator for quantifying aviation CO2 emissions per passenger or cargo tonne-kilometre.",
+    "whyMatters": "Standard reference for air freight emissions calculations. Freight forwarders use this as baseline methodology when responding to client emissions data requests for air cargo shipments.",
+    "keyData": [
+      "Official ICAO methodology",
+      "Per-tonne-km emission factors",
+      "Route-specific calculations",
+      "Accepted by CORSIA"
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "a7",
+    "cat": "air",
+    "sub": "Emissions Accounting",
+    "title": "GLEC Framework (Air Freight)",
+    "url": "https://www.smartfreightcentre.org/en/how-to-implement-glec-framework/",
+    "note": "ISO 14083-aligned air freight emissions accounting.",
+    "type": "standard",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Industry standard methodology for logistics emissions — required in client tenders.",
+    "tags": [
+      "GLEC",
+      "ISO 14083",
+      "air freight",
+      "emissions"
+    ],
+    "whatIsIt": "Smart Freight Centre's Global Logistics Emissions Council framework for calculating air freight emissions, aligned with ISO 14083.",
+    "whyMatters": "GLEC is the methodology event logistics specialists actually use for shipment-level air freight emissions. Clients increasingly specify GLEC-compliant reporting in RFPs and tenders.",
+    "keyData": [
+      "Aligned with ISO 14083",
+      "Default emission factors provided",
+      "Covers all transport modes",
+      "Accreditation programme available"
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "a8",
+    "cat": "air",
+    "sub": "Emissions Accounting",
+    "title": "Aviation Week: Sustainability",
+    "url": "https://aviationweek.com/",
+    "note": "Industry news on SAF, fleet transitions, carrier sustainability.",
+    "type": "news",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Industry intelligence on carrier sustainability moves — informs carrier selection.",
+    "tags": [
+      "aviation news",
+      "SAF deals",
+      "fleet",
+      "sustainability"
+    ],
+    "whatIsIt": "Leading aviation industry publication covering SAF developments, fleet transitions, and carrier sustainability programmes.",
+    "whyMatters": "Trade press intelligence on which carriers are investing in SAF, ordering efficient aircraft, and setting sustainability targets — useful for carrier selection and client advisory.",
+    "keyData": [
+      "SAF deal tracking",
+      "Fleet transition news",
+      "Carrier sustainability programmes",
+      "Regulatory analysis"
+    ],
+    "modes": [
+      "air"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "l1",
+    "cat": "land",
+    "sub": "EU & European Standards",
+    "title": "EU CO2 Standards for Heavy Trucks",
+    "url": "https://climate.ec.europa.eu/eu-action/transport/road-transport-reducing-co2-emissions-vehicles/co2-emission-performance-standards-heavy-duty-vehicles_en",
+    "note": "45% CO2 cut by 2030, 65% by 2035, 90% by 2040 vs 2019.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Aggressive truck CO2 targets will reshape European road freight fleet composition and costs.",
+    "tags": [
+      "CO2 trucks",
+      "EU",
+      "2030",
+      "2040"
+    ],
+    "whatIsIt": "EU regulation setting CO2 emission performance standards for new heavy-duty vehicles with declining targets to 2040.",
+    "whyMatters": "These targets determine when diesel trucks are phased out of European fleets. Live events freight forwarders relying on road transport for last-mile delivery and drayage must plan for fleet transition costs from subcontractors.",
+    "keyData": [
+      "45% CO2 reduction by 2030 vs 2019",
+      "65% by 2035, 90% by 2040",
+      "Applies to new truck registrations",
+      "Affects all EU road freight subcontractors"
+    ],
+    "timeline": [
+      {
+        "date": "2030-01",
+        "label": "45% cut"
+      },
+      {
+        "date": "2035-01",
+        "label": "65%"
+      },
+      {
+        "date": "2040-01",
+        "label": "90%"
+      }
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "l2",
+    "cat": "land",
+    "sub": "EU & European Standards",
+    "title": "Euro 7 Standard",
+    "url": "https://ec.europa.eu/commission/presscorner/detail/en/ip_22_6495",
+    "note": "New emission limits for trucks. Lower NOx/particulate thresholds.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "New pollutant limits affect drayage fleet procurement and LEZ access across EU.",
+    "tags": [
+      "Euro 7",
+      "NOx",
+      "particulates",
+      "trucks"
+    ],
+    "whatIsIt": "EU regulation setting new pollutant emission limits for vehicles including heavy-duty trucks, tightening NOx and particulate standards.",
+    "whyMatters": "Non-compliant vehicles face Low Emission Zone restrictions across European cities — critical for last-mile event freight delivery. Subcontractor fleet compliance must be verified.",
+    "keyData": [
+      "Tightens NOx by ~56% vs Euro VI",
+      "Includes brake and tyre particle emissions",
+      "Battery durability requirements",
+      "Applies to new vehicles from 2027"
+    ],
+    "timeline": [
+      {
+        "date": "2025-04",
+        "label": "Final text"
+      },
+      {
+        "date": "2027-07",
+        "label": "New trucks"
+      },
+      {
+        "date": "2029-07",
+        "label": "All vehicles"
+      }
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "l3",
+    "cat": "land",
+    "sub": "EU & European Standards",
+    "title": "EU AFIR (Alt Fuels Infrastructure)",
+    "url": "https://transport.ec.europa.eu/transport-modes/road/infrastructure/alternative-fuels-infrastructure_en",
+    "note": "Mandatory EV charging + H2 refuelling every 60km on TEN-T by 2025-2027.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Infrastructure rollout determines ZEV fleet feasibility for European road freight.",
+    "tags": [
+      "AFIR",
+      "EV charging",
+      "hydrogen",
+      "TEN-T"
+    ],
+    "whatIsIt": "EU regulation mandating deployment of EV charging and hydrogen refuelling infrastructure along the trans-European transport network.",
+    "whyMatters": "Infrastructure availability determines whether zero-emission road freight is viable on specific corridors. Forwarders must track rollout to assess which routes can support electric trucks.",
+    "keyData": [
+      "EV charging every 60km on TEN-T core by 2025",
+      "H2 refuelling every 200km by 2030",
+      "Minimum 350kW per charging station"
+    ],
+    "timeline": [
+      {
+        "date": "2025-01",
+        "label": "Core EV charging"
+      },
+      {
+        "date": "2027-01",
+        "label": "Extended network"
+      },
+      {
+        "date": "2030-01",
+        "label": "H2 refuelling"
+      }
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "l4",
+    "cat": "land",
+    "sub": "EU & European Standards",
+    "title": "CER (European Railways)",
+    "url": "https://www.cer.be/",
+    "note": "EU rail decarbonisation, electrification targets, modal shift.",
+    "type": "industry",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Rail modal shift economics directly relevant when clients ask for lower-carbon alternatives.",
+    "tags": [
+      "rail",
+      "modal shift",
+      "electrification",
+      "EU"
+    ],
+    "whatIsIt": "Community of European Railways promoting rail decarbonisation and modal shift from road to rail.",
+    "whyMatters": "Rail offers significantly lower emissions per tonne-km than road. When clients request green logistics options, rail alternatives for event equipment can reduce carbon footprint by 60-80%.",
+    "keyData": [
+      "Rail produces ~75% less CO2 than road per tkm",
+      "EU electrification targets",
+      "Modal shift incentive programmes"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "l5",
+    "cat": "land",
+    "sub": "EU & European Standards",
+    "title": "European Clean Trucking Alliance",
+    "url": "https://cleantruckingalliance.org/",
+    "note": "Advocacy for rapid ZEV truck adoption in Europe.",
+    "type": "initiative",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Tracks EU legislative progress on heavy-duty vehicle standards.",
+    "tags": [
+      "ZEV trucks",
+      "advocacy",
+      "Europe"
+    ],
+    "whatIsIt": "Advocacy coalition pushing for accelerated zero-emission truck adoption across Europe.",
+    "whyMatters": "Policy signals from this alliance indicate direction of EU truck regulations. Useful for anticipating fleet transition timelines.",
+    "keyData": [
+      "EU ZEV truck advocacy",
+      "Legislative progress tracking",
+      "Industry position papers"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "l6",
+    "cat": "land",
+    "sub": "US Standards",
+    "title": "EPA Heavy-Duty Phase 3 Rule",
+    "url": "https://www.epa.gov/regulations-emissions-vehicles-and-engines/heavy-duty-vehicle-greenhouse-gas-phase-3-standards",
+    "note": "GHG standards for MY2027-2032; ~60% new sleeper cabs ZEV by 2032.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Stringent US truck standards under political uncertainty — affects drayage and interstate fleet planning.",
+    "tags": [
+      "EPA",
+      "Phase 3",
+      "GHG",
+      "trucks"
+    ],
+    "whatIsIt": "EPA's stringent GHG performance standards for heavy-duty trucks covering model years 2027-2032.",
+    "whyMatters": "These standards determine the US truck fleet transition timeline. Freight forwarders with US operations must plan for drayage fleet changes, especially at West Coast ports handling event equipment imports.",
+    "keyData": [
+      "~60% of new sleeper cabs ZEV by 2032",
+      "Model years 2027-2032",
+      "Under political review — regulatory uncertainty",
+      "Affects Class 7-8 trucks"
+    ],
+    "timeline": [
+      {
+        "date": "2027-01",
+        "label": "MY2027 starts"
+      },
+      {
+        "date": "2030-01",
+        "label": "Ramp-up"
+      },
+      {
+        "date": "2032-01",
+        "label": "60% ZEV target"
+      }
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "l7",
+    "cat": "land",
+    "sub": "US Standards",
+    "title": "CARB Advanced Clean Trucks",
+    "url": "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-trucks",
+    "note": "California: 55% Class 4-8 ZEV sales by 2035. 12 states following.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "CARB rules control US West Coast port drayage — non-compliance means no port access.",
+    "tags": [
+      "CARB",
+      "ZEV",
+      "California",
+      "drayage"
+    ],
+    "whatIsIt": "California Air Resources Board mandate requiring increasing percentages of new truck sales to be zero-emission.",
+    "whyMatters": "All drayage at LA/Long Beach — the primary US gateway for event equipment — must comply. Non-compliant trucks face port access restrictions. 12+ states follow California's rules.",
+    "keyData": [
+      "55% of Class 4-8 sales ZEV by 2035",
+      "12+ Section 177 states following CA",
+      "Federal waiver disputes ongoing"
+    ],
+    "timeline": [
+      {
+        "date": "2024-01",
+        "label": "Phase-in starts"
+      },
+      {
+        "date": "2027-01",
+        "label": "40% ZEV"
+      },
+      {
+        "date": "2035-01",
+        "label": "55% ZEV"
+      }
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "l8",
+    "cat": "land",
+    "sub": "US Standards",
+    "title": "Drive Electric: Zero-Emission Freight",
+    "url": "https://driveelectric.gov/",
+    "note": "US federal ZEV infrastructure funding and grant programmes.",
+    "type": "tool",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Federal funding programmes for fleet electrification — relevant for US subcontractor readiness.",
+    "tags": [
+      "federal",
+      "grants",
+      "electrification",
+      "US"
+    ],
+    "whatIsIt": "US federal government portal for zero-emission vehicle infrastructure funding and fleet electrification grants.",
+    "whyMatters": "Federal grants can offset fleet transition costs for US road freight subcontractors. Understanding available programmes helps evaluate subcontractor investment timelines.",
+    "keyData": [
+      "Federal ZEV infrastructure funding",
+      "Fleet electrification grants",
+      "National charging network plans"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "l9",
+    "cat": "land",
+    "sub": "US Standards",
+    "title": "American Trucking Associations",
+    "url": "https://www.trucking.org/environment",
+    "note": "Industry positions on EPA rules, clean truck programmes.",
+    "type": "industry",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Industry body positions signal how US trucking will respond to ZEV mandates.",
+    "tags": [
+      "ATA",
+      "industry",
+      "EPA",
+      "clean trucks"
+    ],
+    "whatIsIt": "American Trucking Associations' environment programme covering industry response to EPA regulations and clean truck programmes.",
+    "whyMatters": "ATA positions indicate how the US trucking industry will respond to regulations — important context for freight forwarders managing US subcontractor relationships.",
+    "keyData": [
+      "Industry positions on EPA rules",
+      "Clean truck programme advocacy",
+      "Fuel efficiency standards input"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "l10",
+    "cat": "land",
+    "sub": "US Standards",
+    "title": "DOT National Freight Strategic Plan",
+    "url": "https://www.transportation.gov/freight/",
+    "note": "US multimodal freight policy including sustainability.",
+    "type": "framework",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Federal freight strategy sets priorities for infrastructure investment affecting routing decisions.",
+    "tags": [
+      "DOT",
+      "multimodal",
+      "freight",
+      "strategy"
+    ],
+    "whatIsIt": "US Department of Transportation's national strategic plan for multimodal freight including sustainability components.",
+    "whyMatters": "Federal freight strategy influences infrastructure investment that affects routing options. Useful background for US freight planning.",
+    "keyData": [
+      "Multimodal freight policy",
+      "Sustainability components",
+      "Infrastructure investment priorities"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "t1",
+    "cat": "cbam",
+    "sub": "EU CBAM",
+    "title": "EU CBAM",
+    "url": "https://taxation-customs.ec.europa.eu/carbon-border-adjustment-mechanism_en",
+    "note": "Carbon price on imported cement, steel, aluminium, fertilisers, electricity, hydrogen. Definitive phase from Jan 2026. Omnibus simplified: 50t de minimis, certificates from Feb 2027.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "CBAM definitive phase NOW — customs documentation and carbon costs on all covered EU imports. Direct operational impact for staging equipment containing steel/aluminium.",
+    "tags": [
+      "CBAM",
+      "EU imports",
+      "customs",
+      "carbon border",
+      "2026",
+      "de minimis"
+    ],
+    "whatIsIt": "EU's Carbon Border Adjustment Mechanism imposing carbon costs on imports of carbon-intensive goods entering the EU. Omnibus simplification adopted Oct 2025.",
+    "whyMatters": "CBAM creates new customs documentation for EU-bound freight. Event staging with steel/aluminium, film production rigs, automotive components, and humanitarian equipment using covered materials all affected. Only authorised CBAM declarants can import from Jan 2026. Freight forwarders must verify CBAM registration numbers before customs clearance.",
+    "keyData": [
+      "Definitive phase: Jan 2026",
+      "Certificates purchase: from Feb 2027",
+      "50-tonne de minimis exemption (Omnibus)",
+      "Annual declaration by 30 Sep (was 31 May)",
+      "Downstream products expansion proposed for 2028",
+      "Delegated acts on 3rd-country carbon price still pending"
+    ],
+    "timeline": [
+      {
+        "date": "2023-10",
+        "label": "Transitional"
+      },
+      {
+        "date": "2025-10",
+        "label": "Omnibus simplification"
+      },
+      {
+        "date": "2026-01",
+        "label": "Definitive phase"
+      },
+      {
+        "date": "2026-03",
+        "label": "Auth deadline"
+      },
+      {
+        "date": "2027-02",
+        "label": "Certificate sales"
+      },
+      {
+        "date": "2027-09",
+        "label": "First declaration"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "t2",
+    "cat": "cbam",
+    "sub": "EU CBAM",
+    "title": "WTO Environment & Trade",
+    "url": "https://www.wto.org/english/tratop_e/envir_e/envir_e.htm",
+    "note": "WTO compatibility of carbon border measures; trade dispute monitoring.",
+    "type": "framework",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "WTO challenges to CBAM could reshape global trade-linked climate rules.",
+    "tags": [
+      "WTO",
+      "trade",
+      "environment",
+      "disputes"
+    ],
+    "whatIsIt": "WTO's framework governing the intersection of trade rules and environmental measures like carbon border adjustments.",
+    "whyMatters": "If CBAM faces WTO challenges, outcomes affect long-term trade flows. Freight forwarders need background intelligence on dispute trajectories affecting cross-border carbon pricing.",
+    "keyData": [
+      "GATT Article XX exceptions",
+      "CBAM WTO compatibility under scrutiny",
+      "Trade facilitation and environment"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "t3",
+    "cat": "cbam",
+    "sub": "EU CBAM",
+    "title": "OECD Environment",
+    "url": "https://www.oecd.org/environment/",
+    "note": "Carbon pricing tracker across 70+ jurisdictions.",
+    "type": "data",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Cross-jurisdictional carbon pricing comparison essential for route cost modelling.",
+    "tags": [
+      "OECD",
+      "carbon pricing",
+      "effective rates"
+    ],
+    "whatIsIt": "OECD's environmental division tracking carbon pricing instruments and effective carbon rates across 70+ jurisdictions.",
+    "whyMatters": "Effective carbon rates vary dramatically by jurisdiction. This data helps freight forwarders compare routing options based on carbon cost exposure.",
+    "keyData": [
+      "70+ jurisdictions tracked",
+      "Effective Carbon Rates database",
+      "Policy implementation analysis"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "t4",
+    "cat": "cbam",
+    "sub": "EU CBAM",
+    "title": "UNCTAD Sustainable Transport",
+    "url": "https://unctad.org/topic/transport-and-trade-logistics/sustainable-freight-transport",
+    "note": "How carbon pricing affects trade competitiveness and shipping costs.",
+    "type": "analysis",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "UN analysis of carbon pricing impacts on freight trade competitiveness.",
+    "tags": [
+      "UNCTAD",
+      "trade",
+      "carbon",
+      "shipping costs"
+    ],
+    "whatIsIt": "UN Conference on Trade and Development tracking how carbon pricing affects trade competitiveness and shipping cost structures.",
+    "whyMatters": "UNCTAD analysis shows how carbon pricing differentials between jurisdictions create trade distortions that affect routing economics.",
+    "keyData": [
+      "Carbon pricing trade impact analysis",
+      "Shipping cost structure changes",
+      "Developing country vulnerability",
+      "Trade competitiveness effects"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "t5",
+    "cat": "cbam",
+    "sub": "Carbon Pricing",
+    "title": "World Bank Carbon Pricing Dashboard",
+    "url": "https://carbonpricingdashboard.worldbank.org/",
+    "note": "Live tracker of 73 carbon pricing instruments, 23% of global GHG.",
+    "type": "data",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Global carbon price intelligence essential for forward pricing across all trade lanes.",
+    "tags": [
+      "carbon pricing",
+      "ETS",
+      "global",
+      "dashboard"
+    ],
+    "whatIsIt": "World Bank dashboard tracking all operational carbon pricing instruments worldwide — ETS markets and carbon taxes.",
+    "whyMatters": "Carbon prices affect freight costs differently by jurisdiction. This is the essential tool for comparing carbon cost exposure across routing options and building forward pricing models.",
+    "keyData": [
+      "73+ instruments tracked",
+      "Covers 23% of global GHG emissions",
+      "ETS price data updated regularly",
+      "Revenue tracking by jurisdiction"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "t6",
+    "cat": "cbam",
+    "sub": "Carbon Pricing",
+    "title": "ICAP ETS Map",
+    "url": "https://icapcarbonaction.com/en/ets",
+    "note": "International Carbon Action Partnership — comprehensive ETS tracker.",
+    "type": "tracker",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Most detailed ETS status tracker globally — covers all operational and planned schemes.",
+    "tags": [
+      "ICAP",
+      "ETS",
+      "global",
+      "carbon market"
+    ],
+    "whatIsIt": "International Carbon Action Partnership providing comprehensive status tracking of emissions trading systems worldwide.",
+    "whyMatters": "Detailed ETS status information for every jurisdiction helps freight forwarders understand where carbon costs are rising and plan accordingly.",
+    "keyData": [
+      "All operational ETS mapped",
+      "Planned and under-development schemes",
+      "Price tracking and comparison",
+      "Policy design features"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "t7",
+    "cat": "cbam",
+    "sub": "Carbon Pricing",
+    "title": "GEF (Global Environment Facility)",
+    "url": "https://www.thegef.org/",
+    "note": "Environmental financing for developing markets.",
+    "type": "finance",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Financing for developing-market carbon commitments affects long-term trade lane carbon costs.",
+    "tags": [
+      "GEF",
+      "financing",
+      "developing markets"
+    ],
+    "whatIsIt": "Multilateral financing mechanism for environmental projects in developing countries.",
+    "whyMatters": "GEF-funded programmes in developing markets can create new environmental requirements on trade lanes used for event logistics.",
+    "keyData": [
+      "Environmental project financing",
+      "Developing market focus",
+      "Carbon market capacity building"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c1",
+    "cat": "compliance",
+    "sub": "EU Mandatory Reporting",
+    "title": "CSRD",
+    "url": "https://finance.ec.europa.eu/capital-markets-union-and-financial-markets/company-reporting-and-auditing/company-reporting/corporate-sustainability-reporting_en",
+    "note": "Mandatory ESG reporting. Post-Omnibus: 1,000+ employees mandatory, 250-1,000 voluntary opt-in. Scope 1/2/3 required. Assurance shifted from reasonable to limited.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "CSRD drives client data requests — even if forwarders are below threshold, clients in scope demand Scope 3 transport data.",
+    "tags": [
+      "CSRD",
+      "reporting",
+      "EU",
+      "Scope 3",
+      "Omnibus"
+    ],
+    "whatIsIt": "EU Corporate Sustainability Reporting Directive requiring comprehensive sustainability disclosure including value chain emissions. Omnibus simplification adopted Feb 2026.",
+    "whyMatters": "Even if a freight forwarder falls below the 1,000-employee Omnibus threshold, major clients subject to CSRD will require Scope 3 transport emissions data from logistics partners. The voluntary opt-in for 250-1,000 employee companies means some mid-size clients may CHOOSE to report, creating data requests even from below-threshold companies.",
+    "keyData": [
+      "Post-Omnibus threshold: 1,000 employees mandatory",
+      "Voluntary opt-in: 250-1,000 employees",
+      "~5,000 companies in mandatory scope (was ~50,000)",
+      "ESRS standards require Scope 1, 2, 3",
+      "Assurance: limited (was moving to reasonable)",
+      "Wave 2 delayed by 2 years",
+      "Value chain (logistics) data still mandatory"
+    ],
+    "timeline": [
+      {
+        "date": "2024-01",
+        "label": "Wave 1 PIEs"
+      },
+      {
+        "date": "2026-02",
+        "label": "Omnibus adopted"
+      },
+      {
+        "date": "2028-01",
+        "label": "Wave 2 (delayed)"
+      },
+      {
+        "date": "2029-01",
+        "label": "Wave 3"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "c2",
+    "cat": "compliance",
+    "sub": "EU Mandatory Reporting",
+    "title": "EU Taxonomy",
+    "url": "https://finance.ec.europa.eu/sustainable-finance/tools-and-standards/eu-taxonomy-sustainable-activities_en",
+    "note": "Classification of 'green' economic activities. Transport categories defined.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Taxonomy alignment unlocks green financing and client sustainable supply chain claims.",
+    "tags": [
+      "taxonomy",
+      "green finance",
+      "EU",
+      "classification"
+    ],
+    "whatIsIt": "EU classification system defining which economic activities qualify as environmentally sustainable for investment and disclosure.",
+    "whyMatters": "If freight operations qualify as taxonomy-aligned, this unlocks green financing and allows clients to count logistics services toward their sustainable supply chain targets.",
+    "keyData": [
+      "6 environmental objectives",
+      "Transport-specific technical criteria",
+      "Links to CSRD/ESRS reporting",
+      "Investor disclosure requirements"
+    ],
+    "timeline": [
+      {
+        "date": "2022-01",
+        "label": "Climate objectives"
+      },
+      {
+        "date": "2024-01",
+        "label": "Env objectives"
+      },
+      {
+        "date": "2025-01",
+        "label": "Transport criteria"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "c3",
+    "cat": "compliance",
+    "sub": "EU Mandatory Reporting",
+    "title": "GRI Standards",
+    "url": "https://www.globalreporting.org/",
+    "note": "Most widely used voluntary ESG framework globally.",
+    "type": "standard",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Baseline for CSRD-aligned reporting — many clients already report using GRI.",
+    "tags": [
+      "GRI",
+      "ESG",
+      "voluntary",
+      "reporting"
+    ],
+    "whatIsIt": "Global Reporting Initiative standards — the most widely adopted voluntary sustainability reporting framework worldwide.",
+    "whyMatters": "Many clients already use GRI for sustainability reporting. Understanding GRI indicators helps freight forwarders prepare data in formats clients need.",
+    "keyData": [
+      "Most widely used ESG framework globally",
+      "Baseline for CSRD-aligned reporting",
+      "Transport-specific disclosure indicators"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c4",
+    "cat": "compliance",
+    "sub": "Emissions Accounting Standards",
+    "title": "ISO 14083",
+    "url": "https://www.iso.org/standard/78864.html",
+    "note": "International standard for transport chain GHG emissions. Effective 2023.",
+    "type": "standard",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "ISO 14083 is becoming the mandatory calculation methodology referenced by regulation and tenders.",
+    "tags": [
+      "ISO 14083",
+      "calculation",
+      "transport",
+      "GHG"
+    ],
+    "whatIsIt": "International standard providing methodology for calculating and reporting GHG emissions from transport chain operations.",
+    "whyMatters": "ISO 14083 is the calculation methodology behind GLEC Framework and increasingly referenced in EU regulation. Freight forwarders must ensure emissions calculations are compliant for client reporting and regulatory requirements.",
+    "keyData": [
+      "Published March 2023, replaces EN 16258",
+      "Covers all transport modes",
+      "Referenced by EU CountEmissions regulation",
+      "GLEC Framework v3 aligned"
+    ],
+    "timeline": [
+      {
+        "date": "2023-03",
+        "label": "ISO 14083 published"
+      },
+      {
+        "date": "2025-01",
+        "label": "EU CountEmissions ref"
+      },
+      {
+        "date": "2026-01",
+        "label": "Widespread adoption"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c5",
+    "cat": "compliance",
+    "sub": "Emissions Accounting Standards",
+    "title": "GLEC Framework v3",
+    "url": "https://www.smartfreightcentre.org/en/how-to-implement-glec-framework/",
+    "note": "Industry standard for logistics emissions. Used for Scope 3 Cat 4 reporting.",
+    "type": "standard",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "The practical methodology freight forwarders actually use for shipment-level emissions calculations.",
+    "tags": [
+      "GLEC",
+      "emissions",
+      "Scope 3",
+      "RFQ"
+    ],
+    "whatIsIt": "Smart Freight Centre's Global Logistics Emissions Council framework — the industry standard calculation methodology for logistics emissions.",
+    "whyMatters": "GLEC is the tool event logistics specialists actually use to calculate shipment-level emissions. Clients increasingly specify GLEC-compliant reporting in tenders and RFPs. Essential for competitive positioning.",
+    "keyData": [
+      "Version 3.2 (October 2025)",
+      "Aligned with ISO 14083",
+      "Default emission factors provided",
+      "Required in major shipper RFPs"
+    ],
+    "timeline": [
+      {
+        "date": "2023-03",
+        "label": "v3 launched"
+      },
+      {
+        "date": "2025-10",
+        "label": "v3.2 update"
+      },
+      {
+        "date": "2026-01",
+        "label": "RFP standard"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c6",
+    "cat": "compliance",
+    "sub": "Emissions Accounting Standards",
+    "title": "GHG Protocol",
+    "url": "https://ghgprotocol.org/",
+    "note": "Foundation for all corporate carbon accounting. Scope 1/2/3.",
+    "type": "standard",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Category 4 (upstream transport) makes freight forwarders a Scope 3 source for virtually all clients.",
+    "tags": [
+      "GHG Protocol",
+      "Scope 3",
+      "Category 4"
+    ],
+    "whatIsIt": "WRI/WBCSD standard defining Scope 1, 2, and 3 emissions categories — the foundation for all corporate carbon accounting.",
+    "whyMatters": "GHG Protocol Category 4 (Upstream transportation) is exactly what freight forwarders provide. Every client doing Scope 3 reporting needs logistics partners to supply emissions data in GHG Protocol format.",
+    "keyData": [
+      "Category 4: Upstream transportation",
+      "Category 9: Downstream transportation",
+      "Under revision (2024-2025)",
+      "Foundation for CSRD/ISSB reporting"
+    ],
+    "timeline": [
+      {
+        "date": "2004-01",
+        "label": "Scope 3 published"
+      },
+      {
+        "date": "2024-01",
+        "label": "Revision starts"
+      },
+      {
+        "date": "2025-01",
+        "label": "Draft update"
+      },
+      {
+        "date": "2026-01",
+        "label": "Final revision"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c7",
+    "cat": "compliance",
+    "sub": "Emissions Accounting Standards",
+    "title": "SBTi",
+    "url": "https://sciencebasedtargets.org/",
+    "note": "Corporate net-zero target validation. Transport sector guidance.",
+    "type": "guidance",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "SBTi targets appear in client tenders — forwarders must understand methodology to respond credibly.",
+    "tags": [
+      "SBTi",
+      "targets",
+      "net-zero",
+      "tenders"
+    ],
+    "whatIsIt": "Science Based Targets initiative validating corporate emissions reduction targets aligned with climate science.",
+    "whyMatters": "Client RFPs increasingly require logistics partners to hold or be working toward SBTi-validated targets. Understanding the methodology is essential for credible tender responses.",
+    "keyData": [
+      "Near-term (5-10 year) targets",
+      "Long-term (2050) targets",
+      "Transport sector pathway defined",
+      "Increasingly required in freight tenders"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c8",
+    "cat": "compliance",
+    "sub": "Emissions Accounting Standards",
+    "title": "ISSB IFRS S2",
+    "url": "https://www.ifrs.org/groups/international-sustainability-standards-board/",
+    "note": "Global climate disclosure baseline. 20+ jurisdictions mandating.",
+    "type": "standard",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "ISSB adoption globally means converging disclosure demands from clients in all jurisdictions.",
+    "tags": [
+      "ISSB",
+      "IFRS S2",
+      "global",
+      "climate"
+    ],
+    "whatIsIt": "IFRS Sustainability Standards Board's climate disclosure standard being adopted by 20+ jurisdictions as mandatory reporting baseline.",
+    "whyMatters": "As jurisdictions worldwide adopt ISSB, freight forwarders face converging data requests from clients globally — not just in the EU. Data systems must be globally interoperable.",
+    "keyData": [
+      "S2: Climate-related disclosures",
+      "20+ jurisdictions mandating",
+      "Scope 3 including freight required",
+      "Singapore adoption FY2026"
+    ],
+    "timeline": [
+      {
+        "date": "2024-01",
+        "label": "S2 effective"
+      },
+      {
+        "date": "2025-01",
+        "label": "Early adopters"
+      },
+      {
+        "date": "2026-01",
+        "label": "Singapore mandatory"
+      },
+      {
+        "date": "2027-01",
+        "label": "Broad adoption"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c9",
+    "cat": "compliance",
+    "sub": "Supply Chain Data",
+    "title": "CDP Supply Chain",
+    "url": "https://www.cdp.net/en/supply-chain",
+    "note": "700+ purchasing orgs requesting supplier emissions data. Forwarders scored.",
+    "type": "tool",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "CDP is the primary channel through which clients formally request emissions data from logistics suppliers.",
+    "tags": [
+      "CDP",
+      "supply chain",
+      "data requests"
+    ],
+    "whatIsIt": "CDP's programme through which purchasing organisations formally request environmental performance data from their suppliers.",
+    "whyMatters": "Over 700 purchasing organisations use CDP to request data from suppliers. Freight forwarders increasingly receive direct CDP questionnaires or must provide data that clients report through CDP.",
+    "keyData": [
+      "700+ purchasing organisations requesting",
+      "26,000+ companies disclosing",
+      "Annual questionnaire cycle (Feb-July)",
+      "Scoring A to D-"
+    ],
+    "timeline": [
+      {
+        "date": "2025-02",
+        "label": "Questionnaire opens"
+      },
+      {
+        "date": "2025-07",
+        "label": "Submission deadline"
+      },
+      {
+        "date": "2025-11",
+        "label": "Scores published"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c10",
+    "cat": "compliance",
+    "sub": "Supply Chain Data",
+    "title": "EcoVadis",
+    "url": "https://ecovadis.com/",
+    "note": "Supplier sustainability scorecards. Freight forwarder ratings affect contracts.",
+    "type": "tool",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "EcoVadis scores directly gate contract eligibility with major shippers and event companies.",
+    "tags": [
+      "EcoVadis",
+      "ratings",
+      "supplier",
+      "contracts"
+    ],
+    "whatIsIt": "Sustainability rating platform used by global brands to assess and score supplier ESG performance.",
+    "whyMatters": "EcoVadis scores directly affect contract eligibility. Major event companies and brands require minimum scores from logistics suppliers. A poor rating can mean losing business.",
+    "keyData": [
+      "Supplier sustainability scorecards",
+      "Scores affect contract eligibility",
+      "Global brands require minimum ratings",
+      "Annual assessment cycle"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "c11",
+    "cat": "compliance",
+    "sub": "Supply Chain Data",
+    "title": "EcoVadis Blog",
+    "url": "https://ecovadis.com/blog/",
+    "note": "Methodology changes, regulatory impacts on supply chain ESG.",
+    "type": "news",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Tracks methodology updates that change how freight forwarders are scored.",
+    "tags": [
+      "EcoVadis",
+      "methodology",
+      "trends"
+    ],
+    "whatIsIt": "Updates on supplier sustainability rating trends, methodology changes, and regulatory impacts.",
+    "whyMatters": "Methodology changes can shift scoring criteria. Staying current helps freight forwarders maintain or improve their rating.",
+    "keyData": [
+      "Rating methodology updates",
+      "Regulatory impact analysis",
+      "Best practice guidance"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "g1",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "EU Fit for 55 Package",
+    "url": "https://www.consilium.europa.eu/en/policies/green-deal/fit-for-55-the-eu-plan-for-a-green-transition/",
+    "note": "Umbrella of 13 laws: ETS, CBAM, ReFuelEU, FuelEU, truck CO2 standards.",
+    "type": "package",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Parent package of every major EU climate regulation affecting freight — the single reference point.",
+    "tags": [
+      "Fit for 55",
+      "EU",
+      "Green Deal",
+      "umbrella"
+    ],
+    "whatIsIt": "EU's umbrella legislative package of 13 interconnected measures targeting 55% GHG reduction by 2030.",
+    "whyMatters": "This is the parent package containing ETS expansion, CBAM, ReFuelEU Aviation, FuelEU Maritime, and truck CO2 standards. Every major EU regulation affecting freight traces back here.",
+    "keyData": [
+      "13 interconnected legislative measures",
+      "55% GHG reduction target by 2030",
+      "Parent of ETS, CBAM, FuelEU, ReFuelEU",
+      "CO2 truck standards, AFIR included"
+    ],
+    "timeline": [
+      {
+        "date": "2021-07",
+        "label": "Package proposed"
+      },
+      {
+        "date": "2023-01",
+        "label": "Laws adopted"
+      },
+      {
+        "date": "2025-01",
+        "label": "Phase-ins begin"
+      },
+      {
+        "date": "2030-01",
+        "label": "55% target"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g2",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "EU PPWR 2025/40",
+    "url": "https://environment.ec.europa.eu/topics/waste-and-recycling/packaging-and-packaging-waste_en",
+    "note": "Replaces 1994 Directive. All packaging recyclable by 2030. Single-use restrictions.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "Affects ALL EU shipment packaging — every carton, pallet wrap, protective material from Aug 2026.",
+    "tags": [
+      "PPWR",
+      "packaging",
+      "circular economy",
+      "2026"
+    ],
+    "whatIsIt": "EU regulation replacing the 1994 Packaging Directive with directly applicable rules on recyclability, reuse, and material restrictions.",
+    "whyMatters": "Every piece of packaging on every EU-bound shipment must comply — cartons, pallet wrap, protective materials, exhibition crating. Non-compliant packaging may be rejected at EU borders. Critical for event staging, exhibition freight, and merchandise logistics.",
+    "keyData": [
+      "In force: 11 Feb 2025, applies: 12 Aug 2026",
+      "All packaging recyclable by 2030",
+      "PFAS restrictions in food-contact packaging",
+      "Single-use restrictions",
+      "Reuse targets for transport packaging"
+    ],
+    "timeline": [
+      {
+        "date": "2025-02",
+        "label": "In force"
+      },
+      {
+        "date": "2026-08",
+        "label": "Applies"
+      },
+      {
+        "date": "2030-01",
+        "label": "All recyclable"
+      },
+      {
+        "date": "2035-01",
+        "label": "Reuse targets"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "packaging",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g3",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "EEA (European Environment Agency)",
+    "url": "https://www.eea.europa.eu/",
+    "note": "EU environmental data portal; transport emission trends.",
+    "type": "data",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Official EU environmental data — policy progress tracking for transport sector.",
+    "tags": [
+      "EEA",
+      "data",
+      "EU",
+      "transport emissions"
+    ],
+    "whatIsIt": "EU agency providing environmental data, transport emission trends, and policy implementation tracking.",
+    "whyMatters": "Official data source for EU transport emission trends and policy progress — useful for client briefings and benchmarking.",
+    "keyData": [
+      "Transport emission trend data",
+      "Policy progress tracking",
+      "Indicator-based assessments"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g4",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "EUR-Lex",
+    "url": "https://eur-lex.europa.eu/",
+    "note": "Official EU legislation database — primary source for all regulations.",
+    "type": "legal",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Daily EU law publication catches new delegated acts before industry sources.",
+    "tags": [
+      "EUR-Lex",
+      "EU law",
+      "legislation",
+      "primary"
+    ],
+    "whatIsIt": "Official Journal of the European Union and full legislation database — the authoritative source for all EU law.",
+    "whyMatters": "Fastest official source for new EU environmental regulations. RSS monitoring catches delegated acts, implementing measures, and amendments as they publish.",
+    "keyData": [
+      "Published daily",
+      "RSS feed available",
+      "All EU legislation searchable",
+      "Free public access"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g5",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "European Clean Trucking Alliance",
+    "url": "https://cleantruckingalliance.org/",
+    "note": "EU ZEV truck advocacy; legislative progress tracking.",
+    "type": "initiative",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Tracks EU legislative progress on heavy-duty vehicle standards.",
+    "tags": [
+      "ZEV trucks",
+      "EU",
+      "advocacy"
+    ],
+    "whatIsIt": "Coalition advocating for zero-emission truck standards in the EU; tracks legislative progress.",
+    "whyMatters": "Useful for monitoring EU truck regulation development and policy signals.",
+    "keyData": [
+      "EU ZEV truck legislative tracking",
+      "Industry coalition positions"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g6",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "UK DfT Decarbonisation",
+    "url": "https://www.gov.uk/government/organisations/department-for-transport",
+    "note": "UK post-Brexit transport decarbonisation; independent SAF mandate, ZEV targets.",
+    "type": "regulator",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Independent UK regulatory path post-Brexit means separate compliance requirements.",
+    "tags": [
+      "UK",
+      "DfT",
+      "post-Brexit",
+      "transport"
+    ],
+    "whatIsIt": "UK Department for Transport's decarbonisation policy including independent SAF mandate and ZEV targets post-Brexit.",
+    "whyMatters": "Post-Brexit UK has its own transport decarbonisation path. Freight forwarders serving UK events face separate compliance requirements from the EU.",
+    "keyData": [
+      "Independent SAF mandate",
+      "ZEV targets",
+      "Port strategies",
+      "Separate from EU regulation"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "uk"
+  },
+  {
+    "id": "g7",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "Germany BMDV",
+    "url": "https://www.bmdv.bund.de/EN/Home/home.html",
+    "note": "German federal transport; hydrogen corridors, LNG/NH3 shipping.",
+    "type": "regulator",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Germany leads EU on hydrogen corridors — signals infrastructure investment.",
+    "tags": [
+      "Germany",
+      "BMDV",
+      "hydrogen",
+      "transport"
+    ],
+    "whatIsIt": "German federal transport ministry leading on hydrogen corridor development and alternative maritime fuel infrastructure.",
+    "whyMatters": "Germany's hydrogen corridor investments affect infrastructure availability for green freight across Central Europe.",
+    "keyData": [
+      "Hydrogen corridor development",
+      "LNG/NH3 shipping infrastructure",
+      "TEN-T investment"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g8",
+    "cat": "global",
+    "sub": "US Regulatory",
+    "title": "EPA SmartWay",
+    "url": "https://www.epa.gov/smartway",
+    "note": "US freight carrier certification. Required by major shippers. 3,500+ carriers.",
+    "type": "certification",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Required by many US shippers for carrier qualification — effectively mandatory for US freight contracts.",
+    "tags": [
+      "SmartWay",
+      "EPA",
+      "US",
+      "certification"
+    ],
+    "whatIsIt": "EPA's voluntary freight carrier environmental certification programme used by major US shippers for carrier selection.",
+    "whyMatters": "SmartWay certification is effectively mandatory for major US freight contracts. Over 3,500 carriers enrolled. Event logistics operators need certification to serve US shippers requiring it.",
+    "keyData": [
+      "3,500+ carriers enrolled",
+      "Required by major US shippers",
+      "Scope 3 reporting support",
+      "Annual reporting requirement"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "g9",
+    "cat": "global",
+    "sub": "US Regulatory",
+    "title": "Sustainable Packaging Coalition",
+    "url": "https://sustainablepackaging.org/",
+    "note": "US packaging sustainability standards; How2Recycle label.",
+    "type": "standard",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "US packaging standards for event merchandise and goods — How2Recycle label increasingly required.",
+    "tags": [
+      "SPC",
+      "packaging",
+      "How2Recycle",
+      "US"
+    ],
+    "whatIsIt": "US-led industry coalition setting packaging sustainability standards including the How2Recycle labelling system.",
+    "whyMatters": "How2Recycle labels are increasingly required on event merchandise and goods packaging entering the US market.",
+    "keyData": [
+      "How2Recycle label system",
+      "US packaging sustainability standards",
+      "Material circularity guidelines"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "packaging",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "g10",
+    "cat": "global",
+    "sub": "US Regulatory",
+    "title": "NREL Transportation",
+    "url": "https://www.nrel.gov/transportation/",
+    "note": "US DOE lab: ZEV trucks, hydrogen, SAF, freight electrification R&D.",
+    "type": "research",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "National lab R&D signals which green freight technologies will become commercially viable.",
+    "tags": [
+      "NREL",
+      "DOE",
+      "R&D",
+      "ZEV"
+    ],
+    "whatIsIt": "US National Renewable Energy Laboratory's transportation research covering zero-emission trucks, hydrogen, SAF, and freight electrification.",
+    "whyMatters": "NREL research signals which green freight technologies will reach commercial viability and when — essential for infrastructure planning.",
+    "keyData": [
+      "ZEV truck testing and validation",
+      "Hydrogen fuel cell research",
+      "SAF technology pathways",
+      "Fleet electrification analysis"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "g11",
+    "cat": "global",
+    "sub": "US Regulatory",
+    "title": "CEC North American Env Policy",
+    "url": "https://www.cec.org/",
+    "note": "Canada-Mexico-US trilateral environmental cooperation.",
+    "type": "framework",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Trilateral cooperation affects cross-border freight environmental standards.",
+    "tags": [
+      "CEC",
+      "NAFTA",
+      "trilateral",
+      "environment"
+    ],
+    "whatIsIt": "Commission for Environmental Cooperation — Canada-Mexico-US trilateral body for environmental policy coordination.",
+    "whyMatters": "Cross-border environmental standards affect USMCA freight operations.",
+    "keyData": [
+      "Trilateral environmental cooperation",
+      "Cross-border freight standards"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "g12",
+    "cat": "global",
+    "sub": "US Regulatory",
+    "title": "ECLAC (UN Latin America)",
+    "url": "https://www.cepal.org/en",
+    "note": "UN ECLAC transport logistics data for Latin America.",
+    "type": "data",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "LatAm logistics data for event freight routing through Brazil, Chile, Mexico.",
+    "tags": [
+      "ECLAC",
+      "LatAm",
+      "logistics",
+      "UN"
+    ],
+    "whatIsIt": "UN Economic Commission for Latin America tracking transport logistics data across the region.",
+    "whyMatters": "Critical data source for event freight routing through Latin American markets.",
+    "keyData": [
+      "LatAm transport logistics data",
+      "Infrastructure analysis",
+      "Trade facilitation tracking"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "latam"
+  },
+  {
+    "id": "g13",
+    "cat": "global",
+    "sub": "Latin America",
+    "title": "Brazil Logística Reversa",
+    "url": "https://www.gov.br/mma/pt-br/assuntos/agendaambientalurbana/logistica-reversa",
+    "note": "Mandatory take-back for packaging, electronics, event materials.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Brazil reverse logistics law directly affects event freight packaging and equipment entering Brazil.",
+    "tags": [
+      "Brazil",
+      "reverse logistics",
+      "packaging",
+      "take-back"
+    ],
+    "whatIsIt": "Brazil's reverse logistics law requiring mandatory take-back programmes for packaging, electronics, and specified materials.",
+    "whyMatters": "Mandatory take-back applies to event staging materials, packaging, and electronics entering Brazil — a key market for live events and touring. Freight forwarders must ensure compliance documentation.",
+    "keyData": [
+      "Mandatory take-back for packaging",
+      "Electronics recycling requirements",
+      "Event materials included",
+      "Compliance documentation required"
+    ],
+    "modes": [
+      "ocean",
+      "road"
+    ],
+    "topic": "packaging",
+    "jurisdiction": "latam"
+  },
+  {
+    "id": "g14",
+    "cat": "global",
+    "sub": "Latin America",
+    "title": "Mexico SEMARNAT",
+    "url": "https://www.gob.mx/semarnat",
+    "note": "Mexico environment ministry; packaging, carbon market, transport.",
+    "type": "regulator",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Mexico environmental requirements affect cross-border event freight packaging and customs.",
+    "tags": [
+      "Mexico",
+      "SEMARNAT",
+      "environment",
+      "packaging"
+    ],
+    "whatIsIt": "Mexico's environmental ministry overseeing packaging regulations, carbon market development, and transport emissions rules.",
+    "whyMatters": "Mexican environmental requirements affect packaging and customs compliance for cross-border event freight.",
+    "keyData": [
+      "Packaging regulations",
+      "Carbon market development",
+      "Transport emissions rules"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "latam"
+  },
+  {
+    "id": "g15",
+    "cat": "global",
+    "sub": "Latin America",
+    "title": "Colombian Ministry of Transport",
+    "url": "https://www.mintransporte.gov.co/",
+    "note": "Colombia transport policy for Andean event freight.",
+    "type": "regulator",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Relevant for Andean event freight routing and last-mile compliance.",
+    "tags": [
+      "Colombia",
+      "transport",
+      "Andean"
+    ],
+    "whatIsIt": "Colombian ministry overseeing transport policy including sustainability requirements.",
+    "whyMatters": "Relevant for event freight routing through Colombia and the Andean region.",
+    "keyData": [
+      "Transport sustainability policy",
+      "Last-mile compliance requirements"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "latam"
+  },
+  {
+    "id": "g16",
+    "cat": "global",
+    "sub": "Latin America",
+    "title": "IDB Sustainable LatAm Transport",
+    "url": "https://www.iadb.org/en/sectors/transport/overview",
+    "note": "IDB green freight corridor funding in Latin America.",
+    "type": "finance",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Development bank financing for green freight corridors in LatAm event markets.",
+    "tags": [
+      "IDB",
+      "LatAm",
+      "green corridors",
+      "financing"
+    ],
+    "whatIsIt": "Inter-American Development Bank sustainable transport financing including green freight corridor development.",
+    "whyMatters": "IDB-financed green corridors in LatAm can improve infrastructure for event freight operations.",
+    "keyData": [
+      "Green freight corridor funding",
+      "Infrastructure development",
+      "Sustainable transport financing"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "latam"
+  },
+  {
+    "id": "g17",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "MPA Singapore Green Shipping",
+    "url": "https://www.mpa.gov.sg/maritime-singapore/sustainability",
+    "note": "Singapore green fuel bunkering, port incentives. World's largest bunkering hub.",
+    "type": "regulator",
+    "priority": "CRITICAL",
+    "added": "2026-02-28",
+    "reasoning": "World's largest bunkering hub — green shipping programme sets standards for Asia-Pacific routing.",
+    "tags": [
+      "Singapore",
+      "MPA",
+      "green shipping",
+      "bunkering"
+    ],
+    "whatIsIt": "Singapore Maritime and Port Authority's Green Shipping Programme offering incentives for clean fuel bunkering at the world's largest bunkering hub.",
+    "whyMatters": "Singapore is the primary Asia-Pacific routing hub for ocean freight. MPA's green shipping incentives and bunkering availability directly affect vessel selection and routing decisions for event cargo to/from Asia.",
+    "keyData": [
+      "World's largest bunkering hub",
+      "Green fuel availability (LNG, methanol)",
+      "Port incentive programmes",
+      "Green corridor anchor point"
+    ],
+    "timeline": [
+      {
+        "date": "2024-01",
+        "label": "Green incentives"
+      },
+      {
+        "date": "2026-01",
+        "label": "LNG bunkering"
+      },
+      {
+        "date": "2030-01",
+        "label": "Green hub target"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g18",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "Japan MLIT",
+    "url": "https://www.mlit.go.jp/en/",
+    "note": "Japan transport: shipping decarbonisation, hydrogen port strategy.",
+    "type": "regulator",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Japan's hydrogen port strategy affects event logistics for Tokyo/Osaka destinations.",
+    "tags": [
+      "Japan",
+      "MLIT",
+      "hydrogen",
+      "shipping"
+    ],
+    "whatIsIt": "Japan Ministry of Land, Infrastructure, Transport and Tourism — shipping decarbonisation and hydrogen port strategy.",
+    "whyMatters": "Japan's hydrogen port investments and shipping decarbonisation policies affect event logistics for major touring destinations.",
+    "keyData": [
+      "Hydrogen port strategy",
+      "Shipping decarbonisation policy",
+      "Green freight programmes"
+    ],
+    "modes": [
+      "ocean",
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g19",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "South Korea MOF",
+    "url": "https://www.mof.go.kr/eng/index.do",
+    "note": "K-ETS includes shipping; ammonia/hydrogen vessel development.",
+    "type": "regulator",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "K-ETS carbon costs affect freight operations for Korean touring destinations.",
+    "tags": [
+      "Korea",
+      "K-ETS",
+      "ammonia",
+      "shipping"
+    ],
+    "whatIsIt": "South Korea Ministry of Oceans and Fisheries — K-ETS shipping inclusion and zero-emission vessel development.",
+    "whyMatters": "South Korea's carbon market includes shipping, and their vessel development programme signals future fuel availability.",
+    "keyData": [
+      "K-ETS includes shipping",
+      "Ammonia vessel programme",
+      "Hydrogen development",
+      "Green port investments"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g20",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "Singapore Green Plan 2030",
+    "url": "https://www.greenplan.gov.sg/",
+    "note": "Singapore whole-of-government sustainability: maritime, aviation, packaging.",
+    "type": "framework",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Comprehensive sustainability roadmap covering all transport modes through Singapore hub.",
+    "tags": [
+      "Singapore",
+      "Green Plan",
+      "sustainability",
+      "2030"
+    ],
+    "whatIsIt": "Singapore's comprehensive government sustainability roadmap covering maritime, aviation, packaging, and green buildings.",
+    "whyMatters": "Covers sustainability requirements across all transport modes used by freight forwarders routing through Singapore.",
+    "keyData": [
+      "Maritime sustainability targets",
+      "Aviation decarbonisation",
+      "Sustainable packaging rules",
+      "Green building standards for event venues"
+    ],
+    "timeline": [
+      {
+        "date": "2021-02",
+        "label": "Plan launched"
+      },
+      {
+        "date": "2025-01",
+        "label": "Mid-term review"
+      },
+      {
+        "date": "2030-01",
+        "label": "2030 targets"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g21",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "ADB Sustainable Transport",
+    "url": "https://www.adb.org/sectors/transport/overview",
+    "note": "ADB green transport financing across Southeast Asia.",
+    "type": "finance",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Development bank financing affects infrastructure quality for event freight in SE Asia.",
+    "tags": [
+      "ADB",
+      "Southeast Asia",
+      "transport",
+      "financing"
+    ],
+    "whatIsIt": "Asian Development Bank financing green transport infrastructure across Southeast Asia.",
+    "whyMatters": "ADB-financed transport infrastructure improves freight capacity and sustainability in SE Asian event markets.",
+    "keyData": [
+      "Green transport financing",
+      "SE Asian infrastructure",
+      "Sustainable logistics investment"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g22",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "China CCICED",
+    "url": "https://www.cciced.net/",
+    "note": "Tracks China's carbon policy trajectory.",
+    "type": "advisory",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "China's carbon policy evolution affects global shipping and manufacturing supply chains.",
+    "tags": [
+      "China",
+      "carbon",
+      "policy",
+      "CCICED"
+    ],
+    "whatIsIt": "China Council for International Cooperation on Environment and Development — advisory body tracking China's environmental policy.",
+    "whyMatters": "China's carbon policy trajectory affects global shipping patterns and manufacturing supply chains relevant to event equipment sourcing.",
+    "keyData": [
+      "China carbon market development",
+      "Environmental policy trajectory",
+      "Trade policy implications"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g23",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "Australia Climate Change Authority",
+    "url": "https://www.climatechangeauthority.gov.au/",
+    "note": "Australian climate policy; Pacific event routing.",
+    "type": "regulator",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Relevant for Pacific event routing and Australia/NZ freight compliance.",
+    "tags": [
+      "Australia",
+      "climate",
+      "Pacific"
+    ],
+    "whatIsIt": "Australian government advisory body on climate change policy.",
+    "whyMatters": "Relevant for freight compliance when routing through Australia and the Pacific for events.",
+    "keyData": [
+      "Australian climate targets",
+      "Transport emissions policy"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g24",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "ASEAN Transport Strategic Plan",
+    "url": "https://asean.org/our-communities/asean-economic-community/transport/",
+    "note": "ASEAN sustainable transport across 10 member states.",
+    "type": "framework",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Framework for sustainable transport across SE Asian event markets.",
+    "tags": [
+      "ASEAN",
+      "transport",
+      "Southeast Asia"
+    ],
+    "whatIsIt": "ASEAN sustainable transport framework covering 10 member states.",
+    "whyMatters": "Provides context for transport sustainability requirements across SE Asian markets used for event logistics.",
+    "keyData": [
+      "10 member states",
+      "Sustainable transport framework",
+      "Cross-border coordination"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "transport",
+    "jurisdiction": "asia"
+  },
+  {
+    "id": "g25",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "DP World Sustainability",
+    "url": "https://www.dpworld.com/sustainability/",
+    "note": "Major port/logistics operator sustainability standards.",
+    "type": "industry",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Major port operator sustainability requirements affect carrier and forwarder operations.",
+    "tags": [
+      "DP World",
+      "ports",
+      "sustainability"
+    ],
+    "whatIsIt": "Global port and logistics operator setting sustainability standards across its network.",
+    "whyMatters": "DP World's sustainability requirements at its ports affect operational standards for freight forwarders using their facilities.",
+    "keyData": [
+      "Port sustainability standards",
+      "Carbon reduction targets",
+      "Clean energy at terminals"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "meaf"
+  },
+  {
+    "id": "g26",
+    "cat": "global",
+    "sub": "Asia-Pacific",
+    "title": "IRENA Abu Dhabi",
+    "url": "https://www.irena.org/",
+    "note": "Renewable energy in transport; Middle East event freight hubs.",
+    "type": "research",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Renewable energy transition data relevant for Middle East freight hub operations.",
+    "tags": [
+      "IRENA",
+      "renewable",
+      "transport",
+      "Middle East"
+    ],
+    "whatIsIt": "International Renewable Energy Agency tracking renewable energy adoption in transport.",
+    "whyMatters": "IRENA data on renewable energy in transport is relevant for Middle East hub operations and green fuel availability.",
+    "keyData": [
+      "Renewable energy in transport",
+      "Maritime fuel transition data",
+      "Middle East hub energy"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "meaf"
+  },
+  {
+    "id": "g27",
+    "cat": "global",
+    "sub": "Packaging & Waste",
+    "title": "UN SDGs 9 & 13",
+    "url": "https://sdgs.un.org/goals",
+    "note": "Framework underpinning all national sustainability legislation.",
+    "type": "framework",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "SDGs provide the global context that drives all national sustainability regulation.",
+    "tags": [
+      "SDGs",
+      "UN",
+      "sustainability",
+      "global"
+    ],
+    "whatIsIt": "UN Sustainable Development Goals 9 (Industry/Infrastructure) and 13 (Climate Action) underpinning national legislation.",
+    "whyMatters": "SDGs provide the overarching framework that national governments reference when creating sustainability regulations affecting freight.",
+    "keyData": [
+      "Goal 9: Industry, Innovation, Infrastructure",
+      "Goal 13: Climate Action",
+      "Referenced in national legislation worldwide"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "g28",
+    "cat": "global",
+    "sub": "Packaging & Waste",
+    "title": "IPCC Climate Reports",
+    "url": "https://www.ipcc.ch/",
+    "note": "Scientific basis for all climate policy worldwide.",
+    "type": "science",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "IPCC assessments are the scientific foundation for every climate regulation affecting freight.",
+    "tags": [
+      "IPCC",
+      "science",
+      "climate",
+      "authoritative"
+    ],
+    "whatIsIt": "Intergovernmental Panel on Climate Change providing the authoritative scientific basis for climate policy globally.",
+    "whyMatters": "IPCC assessment reports determine the ambition level of all climate regulations worldwide. When regulators tighten targets, they cite IPCC science.",
+    "keyData": [
+      "AR6 synthesis: 1.5°C requires 43% reduction by 2030",
+      "Transport sector pathways defined",
+      "Scientific basis for all regulation",
+      "Next assessment cycle ongoing"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "g29",
+    "cat": "global",
+    "sub": "Packaging & Waste",
+    "title": "IEA Policies & Measures",
+    "url": "https://www.iea.org/policies/about",
+    "note": "Energy/transport policy implementation across 150+ countries.",
+    "type": "tracker",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Tracks policy implementation across 150+ countries — essential for multi-jurisdiction compliance.",
+    "tags": [
+      "IEA",
+      "policies",
+      "energy",
+      "150+ countries"
+    ],
+    "whatIsIt": "International Energy Agency tracking energy and transport policy implementation across 150+ countries.",
+    "whyMatters": "When freight forwarders operate across multiple jurisdictions, IEA's database shows what environmental compliance requirements exist in each.",
+    "keyData": [
+      "150+ countries tracked",
+      "Transport policy database",
+      "Implementation status",
+      "Energy transition monitoring"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "g30",
+    "cat": "global",
+    "sub": "Packaging & Waste",
+    "title": "World Bank Transport",
+    "url": "https://www.worldbank.org/en/topic/transport",
+    "note": "Development financing for transport infrastructure globally.",
+    "type": "finance",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Infrastructure investment in emerging markets affects freight capacity for event logistics.",
+    "tags": [
+      "World Bank",
+      "transport",
+      "infrastructure"
+    ],
+    "whatIsIt": "World Bank transport division financing infrastructure development globally.",
+    "whyMatters": "Development financing affects freight capacity and infrastructure quality in emerging markets used for events.",
+    "keyData": [
+      "Transport infrastructure financing",
+      "Emerging market development",
+      "Sustainability criteria"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "g31",
+    "cat": "global",
+    "sub": "Packaging & Waste",
+    "title": "ITF International Transport Forum",
+    "url": "https://www.itf-oecd.org/",
+    "note": "OECD transport think-tank; freight decarbonisation outlook.",
+    "type": "analysis",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Annual outlook on freight decarbonisation, modal shift data, and volume projections.",
+    "tags": [
+      "ITF",
+      "OECD",
+      "outlook",
+      "modal shift"
+    ],
+    "whatIsIt": "OECD International Transport Forum providing annual outlook on freight decarbonisation, modal economics, and volume projections.",
+    "whyMatters": "ITF's annual Transport Outlook and freight decarbonisation reports provide essential context for long-range business planning in event logistics.",
+    "keyData": [
+      "Annual Transport Outlook",
+      "Modal shift economics",
+      "Freight volume projections",
+      "Decarbonisation scenario modelling"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r1",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "MIT Center for Transportation & Logistics",
+    "url": "https://ctl.mit.edu/",
+    "note": "Supply chain decarbonisation, freight futures, zero-emission logistics.",
+    "type": "academic",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Leading academic source for freight decarbonisation technology readiness.",
+    "tags": [
+      "MIT",
+      "supply chain",
+      "decarbonisation"
+    ],
+    "whatIsIt": "MIT's centre for transportation and logistics research covering supply chain sustainability and zero-emission freight futures.",
+    "whyMatters": "MIT research provides technology readiness assessments that determine when zero-emission logistics options become commercially viable.",
+    "keyData": [
+      "Supply chain decarbonisation research",
+      "Zero-emission logistics modelling",
+      "Technology readiness assessments"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "r2",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "Kuehne Climate Center",
+    "url": "https://kuehneclimatecenter.org/",
+    "note": "Applied maritime/logistics climate research and decarbonisation pathways.",
+    "type": "academic",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Applied logistics decarbonisation research directly applicable to freight operations.",
+    "tags": [
+      "Kuehne",
+      "maritime",
+      "logistics",
+      "climate"
+    ],
+    "whatIsIt": "Applied climate research centre focused on maritime and logistics decarbonisation pathways.",
+    "whyMatters": "Directly applicable research on logistics decarbonisation pathways including green fuel economics and fleet transition scenarios.",
+    "keyData": [
+      "Maritime decarbonisation pathways",
+      "Logistics climate research",
+      "Green fuel economics"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r3",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "Fraunhofer IML",
+    "url": "https://www.iml.fraunhofer.de/en.html",
+    "note": "Logistics automation, green warehouse, EV freight, digital twins.",
+    "type": "academic",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "German applied research on logistics technology directly relevant to operational efficiency.",
+    "tags": [
+      "Fraunhofer",
+      "logistics",
+      "automation",
+      "EV"
+    ],
+    "whatIsIt": "Germany's leading applied research institute for logistics covering automation, green warehousing, and electric freight.",
+    "whyMatters": "Fraunhofer research signals which logistics technologies will become standard — useful for infrastructure planning and client advisory.",
+    "keyData": [
+      "Green warehouse technology",
+      "EV freight testing",
+      "Digital twin applications",
+      "Logistics automation research"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r4",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "World Resources Institute",
+    "url": "https://www.wri.org/",
+    "note": "Transport decarbonisation, freight emissions, EV transition research.",
+    "type": "research",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "WRI research underpins GHG Protocol and major policy frameworks affecting freight.",
+    "tags": [
+      "WRI",
+      "transport",
+      "emissions",
+      "EV"
+    ],
+    "whatIsIt": "World Resources Institute conducting research on transport decarbonisation, freight emissions, and clean energy transition.",
+    "whyMatters": "WRI is the co-convener of GHG Protocol. Their transport research directly shapes the emissions accounting standards freight forwarders must use.",
+    "keyData": [
+      "Co-convener of GHG Protocol",
+      "Transport decarbonisation pathways",
+      "City logistics research",
+      "EV transition analysis"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r5",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "Stockholm Environment Institute",
+    "url": "https://www.sei.org/",
+    "note": "Carbon markets, transport equity, freight fuel lifecycle analysis.",
+    "type": "academic",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Policy research on carbon markets and lifecycle analysis of freight fuels.",
+    "tags": [
+      "SEI",
+      "carbon markets",
+      "lifecycle",
+      "equity"
+    ],
+    "whatIsIt": "Research institute covering carbon markets, transport equity, and lifecycle analysis of freight fuels.",
+    "whyMatters": "SEI's lifecycle analysis of alternative fuels helps evaluate true environmental impact of green logistics options.",
+    "keyData": [
+      "Carbon market analysis",
+      "Fuel lifecycle assessment",
+      "Transport equity research"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r6",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "TNO Mobility & Logistics",
+    "url": "https://www.tno.nl/en/",
+    "note": "Zero-emission trucks, smart freight, hydrogen logistics.",
+    "type": "research",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Dutch applied research on ZEV trucks and hydrogen logistics technology.",
+    "tags": [
+      "TNO",
+      "ZEV trucks",
+      "hydrogen",
+      "smart freight"
+    ],
+    "whatIsIt": "Netherlands applied research on zero-emission trucks, smart freight systems, and hydrogen logistics.",
+    "whyMatters": "TNO testing data on ZEV trucks provides independent performance assessments relevant for fleet transition planning.",
+    "keyData": [
+      "Zero-emission truck testing",
+      "Hydrogen logistics research",
+      "Smart freight systems"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r7",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "Erasmus Smart Port",
+    "url": "https://www.eur.nl/en/ese/research/smart-port",
+    "note": "Port digitalisation and sustainability; smart cargo handling.",
+    "type": "academic",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Port digitalisation research relevant to efficient cargo handling at green ports.",
+    "tags": [
+      "Erasmus",
+      "smart port",
+      "digitalisation"
+    ],
+    "whatIsIt": "Erasmus University research on port digitalisation and sustainability.",
+    "whyMatters": "Smart port research signals operational improvements that can reduce both costs and emissions at major cargo ports.",
+    "keyData": [
+      "Port digitalisation research",
+      "Sustainable cargo handling",
+      "Digital twin port operations"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "research",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r8",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "Cranfield Sustainable Logistics",
+    "url": "https://www.cranfield.ac.uk/",
+    "note": "UK hub for sustainable supply chains, aviation SAF, last-mile ZEV.",
+    "type": "academic",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "UK logistics research directly applicable to sustainable event freight operations.",
+    "tags": [
+      "Cranfield",
+      "logistics",
+      "SAF",
+      "last-mile"
+    ],
+    "whatIsIt": "UK's leading logistics research hub covering sustainable supply chains and zero-emission last-mile delivery.",
+    "whyMatters": "Cranfield research on last-mile zero-emission delivery is directly relevant for event venue logistics.",
+    "keyData": [
+      "Sustainable supply chain research",
+      "Aviation SAF research",
+      "Last-mile zero-emission"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "uk"
+  },
+  {
+    "id": "r9",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "Transportation Research Part E",
+    "url": "https://www.sciencedirect.com/journal/transportation-research-part-e-logistics-and-transportation-review",
+    "note": "Peer-reviewed logistics and supply chain sustainability journal.",
+    "type": "journal",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Leading peer-reviewed journal for logistics sustainability research.",
+    "tags": [
+      "journal",
+      "logistics",
+      "peer-reviewed"
+    ],
+    "whatIsIt": "Peer-reviewed academic journal covering logistics, transportation review, and supply chain sustainability.",
+    "whyMatters": "Research here informs methodology updates that affect emissions calculation standards.",
+    "keyData": [
+      "Peer-reviewed logistics research",
+      "Supply chain sustainability",
+      "Methodology development"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r10",
+    "cat": "research",
+    "sub": "Academic Institutions",
+    "title": "Journal of Sustainable Transport",
+    "url": "https://www.scdtl.com/",
+    "note": "Academic journal on sustainable freight and transport systems.",
+    "type": "journal",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Focused academic coverage of sustainable freight transport systems.",
+    "tags": [
+      "journal",
+      "sustainable transport",
+      "academic"
+    ],
+    "whatIsIt": "Academic journal focused specifically on sustainable freight and transport systems.",
+    "whyMatters": "Emerging research on sustainable freight systems informing future industry standards.",
+    "keyData": [
+      "Sustainable freight research",
+      "Transport system analysis"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r11",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "The Loadstar: Green Tech",
+    "url": "https://theloadstar.com/section/green-tech/",
+    "note": "Freight industry news on sustainable tech and policy.",
+    "type": "news",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Essential freight industry news source for sustainability developments.",
+    "tags": [
+      "Loadstar",
+      "freight news",
+      "green tech"
+    ],
+    "whatIsIt": "Leading freight industry publication covering sustainable technology, policy analysis, and carrier decarbonisation developments.",
+    "whyMatters": "Real-time intelligence on carrier sustainability investments, SAF deals, and regulatory developments directly affecting freight operations.",
+    "keyData": [
+      "Carrier decarbonisation moves",
+      "SAF deal tracking",
+      "Policy analysis",
+      "Technology adoption reporting"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r12",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "FreightWaves Sustainability",
+    "url": "https://www.freightwaves.com/news/category/sustainability",
+    "note": "Real-time freight data and sustainability reporting.",
+    "type": "news",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Real-time freight market data including SAF pricing and EV adoption rates.",
+    "tags": [
+      "FreightWaves",
+      "data",
+      "sustainability",
+      "SAF prices"
+    ],
+    "whatIsIt": "Real-time freight market data platform with dedicated sustainability coverage including SAF pricing and EV adoption tracking.",
+    "whyMatters": "Market data on green freight pricing helps build forward-looking cost models for sustainable logistics offerings.",
+    "keyData": [
+      "Real-time freight data",
+      "SAF price tracking",
+      "EV adoption rates",
+      "Sustainability market intelligence"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r13",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "GreenBiz Supply Chain",
+    "url": "https://www.greenbiz.com/topic/supply-chain",
+    "note": "Corporate supply chain decarbonisation case studies.",
+    "type": "analysis",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Corporate sustainability practice including Scope 3 solutions relevant to freight.",
+    "tags": [
+      "GreenBiz",
+      "supply chain",
+      "Scope 3",
+      "case studies"
+    ],
+    "whatIsIt": "Corporate sustainability publication covering supply chain decarbonisation case studies and Scope 3 solutions.",
+    "whyMatters": "Case studies of how major brands are decarbonising their supply chains — directly relevant for understanding client expectations.",
+    "keyData": [
+      "Supply chain decarbonisation cases",
+      "Scope 3 solution reporting",
+      "Corporate sustainability trends"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r14",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Reuters Sustainable Business",
+    "url": "https://www.reuters.com/sustainability/",
+    "note": "Breaking news on climate policy, carbon markets, shipping regulation.",
+    "type": "news",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Breaking news on climate regulation that affects freight markets.",
+    "tags": [
+      "Reuters",
+      "climate",
+      "carbon markets",
+      "breaking news"
+    ],
+    "whatIsIt": "Reuters' sustainability desk covering breaking news on climate policy, carbon markets, and transport regulation.",
+    "whyMatters": "First to report major regulatory changes affecting freight markets — essential for time-sensitive intelligence.",
+    "keyData": [
+      "Breaking regulatory news",
+      "Carbon market reporting",
+      "Shipping regulation coverage"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r15",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Environmental Finance",
+    "url": "https://www.environmental-finance.com/",
+    "note": "Carbon markets, green bonds, sustainable finance.",
+    "type": "analysis",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Carbon market and green bond intelligence relevant to freight decarbonisation financing.",
+    "tags": [
+      "carbon markets",
+      "green bonds",
+      "finance"
+    ],
+    "whatIsIt": "Specialist publication on carbon markets, green bonds, and sustainable finance mechanisms.",
+    "whyMatters": "Carbon market price intelligence and green financing developments directly affect freight decarbonisation economics.",
+    "keyData": [
+      "Carbon market price analysis",
+      "Green bond issuance tracking",
+      "Sustainable finance regulation"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r16",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Carbon Trust",
+    "url": "https://www.carbontrust.com/news-and-events",
+    "note": "Carbon measurement, freight sector decarbonisation advisory.",
+    "type": "advisory",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Advisory updates on carbon measurement methodologies affecting freight.",
+    "tags": [
+      "Carbon Trust",
+      "measurement",
+      "advisory"
+    ],
+    "whatIsIt": "Carbon Trust updates on carbon measurement methodologies and freight sector decarbonisation programmes.",
+    "whyMatters": "Methodology updates can change how freight emissions are calculated and reported.",
+    "keyData": [
+      "Carbon measurement updates",
+      "Freight decarbonisation programmes",
+      "Methodology changes"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "uk"
+  },
+  {
+    "id": "r17",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Project Drawdown",
+    "url": "https://drawdown.org/solutions",
+    "note": "Ranked climate solutions: shipping, aviation, land transport with quantified impact.",
+    "type": "research",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Quantified impact data for climate solutions across all freight transport modes.",
+    "tags": [
+      "Drawdown",
+      "solutions",
+      "quantified",
+      "impact"
+    ],
+    "whatIsIt": "Compendium of ranked climate solutions with quantified emission reduction potential across sectors including transport.",
+    "whyMatters": "Drawdown's quantified impact data helps prioritise which decarbonisation actions deliver the most benefit for freight operations.",
+    "keyData": [
+      "Shipping solutions ranked",
+      "Aviation decarbonisation options",
+      "Land transport alternatives",
+      "Quantified CO2 reduction potential"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r18",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Splash247 Green",
+    "url": "https://splash247.com/category/green/",
+    "note": "Maritime green tech news; alternative fuels, vessel technology.",
+    "type": "news",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Maritime-specific green technology and alternative fuel news.",
+    "tags": [
+      "Splash247",
+      "maritime",
+      "green tech",
+      "fuels"
+    ],
+    "whatIsIt": "Maritime industry publication covering green technology, alternative fuels, and vessel sustainability developments.",
+    "whyMatters": "Maritime-specific intelligence on alternative fuel trials and green vessel technology.",
+    "keyData": [
+      "Alternative fuel trials",
+      "Green vessel technology",
+      "Port sustainability news"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r19",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Supply Chain Digital",
+    "url": "https://supplychaindigital.com/",
+    "note": "Digital transformation and sustainability in supply chains.",
+    "type": "news",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Supply chain technology and sustainability convergence reporting.",
+    "tags": [
+      "digital",
+      "supply chain",
+      "technology"
+    ],
+    "whatIsIt": "Publication covering digital transformation and sustainability convergence in supply chains.",
+    "whyMatters": "Technology adoption trends affecting sustainable supply chain management.",
+    "keyData": [
+      "Digital transformation trends",
+      "Sustainability technology",
+      "Supply chain innovation"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r20",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "JOC (Journal of Commerce)",
+    "url": "https://www.joc.com/",
+    "note": "Container shipping, logistics news, trade lane analysis.",
+    "type": "news",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Industry standard for container shipping news and trade lane analysis.",
+    "tags": [
+      "JOC",
+      "container",
+      "shipping",
+      "trade lanes"
+    ],
+    "whatIsIt": "Leading container shipping and logistics publication covering trade lane analysis and carrier sustainability initiatives.",
+    "whyMatters": "Standard industry reference for container shipping markets, carrier sustainability moves, and trade lane dynamics.",
+    "keyData": [
+      "Container shipping markets",
+      "Trade lane analysis",
+      "Carrier sustainability initiatives"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r21",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Sustainability Magazine",
+    "url": "https://sustainabilitymag.com/",
+    "note": "Cross-sector sustainability including logistics and events.",
+    "type": "news",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Cross-sector sustainability coverage relevant to event logistics.",
+    "tags": [
+      "sustainability",
+      "events",
+      "cross-sector"
+    ],
+    "whatIsIt": "Cross-sector sustainability publication covering logistics, packaging, and events industry.",
+    "whyMatters": "Coverage of sustainability trends across sectors relevant to event freight operations.",
+    "keyData": [
+      "Logistics sustainability",
+      "Packaging innovation",
+      "Events industry coverage"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r22",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "EcoEnclose Blog",
+    "url": "https://www.ecoenclose.com/blog/",
+    "note": "Sustainable packaging innovations for goods and merchandise.",
+    "type": "blog",
+    "priority": "LOW",
+    "added": "2026-02-28",
+    "reasoning": "Practical sustainable packaging innovations for event merchandise and high-value goods.",
+    "tags": [
+      "packaging",
+      "sustainable",
+      "merchandise",
+      "innovation"
+    ],
+    "whatIsIt": "Blog covering sustainable packaging innovations relevant for merchandise and high-value product packaging.",
+    "whyMatters": "Practical packaging innovation insights relevant for event merchandise, branded goods, and high-value product protection.",
+    "keyData": [
+      "Sustainable packaging innovations",
+      "Eco-friendly materials",
+      "Merchandise packaging solutions"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "r23",
+    "cat": "research",
+    "sub": "Innovation Trackers",
+    "title": "Mission Innovation Clean Shipping",
+    "url": "https://mission-innovation.net/our-work/innovation-challenges/clean-shipping/",
+    "note": "23-country R&D initiative for zero-emission shipping fuels.",
+    "type": "initiative",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Government-backed R&D accelerating zero-emission shipping fuels and vessels.",
+    "tags": [
+      "Mission Innovation",
+      "R&D",
+      "23 countries",
+      "clean shipping"
+    ],
+    "whatIsIt": "Multi-government R&D initiative with 23 countries collaborating to develop zero-emission shipping fuels and vessel technologies.",
+    "whyMatters": "Government-backed research signals which technologies will receive policy support and public investment.",
+    "keyData": [
+      "23-country R&D collaboration",
+      "Zero-emission fuel development",
+      "Vessel technology innovation"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r24",
+    "cat": "research",
+    "sub": "Innovation Trackers",
+    "title": "ZEMBA Maritime Buyers Alliance",
+    "url": "https://www.zerocarbonshipping.com/zemba/",
+    "note": "Zero-emission buyer coalition driving demand for green shipping.",
+    "type": "initiative",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Buyer coalition creating demand pull for green shipping — affects carrier offerings.",
+    "tags": [
+      "ZEMBA",
+      "zero-emission",
+      "buyers",
+      "demand"
+    ],
+    "whatIsIt": "Zero-emission maritime buyer coalition driving demand signals for green shipping services.",
+    "whyMatters": "ZEMBA member commitments create demand pull that accelerates carrier investment in green vessels — affecting which shipping options become available.",
+    "keyData": [
+      "Buyer coalition for green shipping",
+      "Demand signal aggregation",
+      "Carrier investment catalyst"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r25",
+    "cat": "research",
+    "sub": "Innovation Trackers",
+    "title": "First Movers Coalition",
+    "url": "https://www.weforum.org/first-movers-coalition/",
+    "note": "WEF: corporate commitments to near-zero emission shipping, aviation, trucking.",
+    "type": "initiative",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Major corporate purchasers committing to near-zero emission freight — signals future client requirements.",
+    "tags": [
+      "WEF",
+      "First Movers",
+      "corporate",
+      "commitments"
+    ],
+    "whatIsIt": "WEF initiative where major corporations commit to purchasing near-zero emission shipping, aviation, and trucking services.",
+    "whyMatters": "First Movers Coalition members are likely clients for event logistics. Their commitments signal what sustainability requirements will appear in future freight tenders.",
+    "keyData": [
+      "Corporate purchase commitments",
+      "Near-zero shipping, aviation, trucking",
+      "Demand signal for green logistics",
+      "WEF-backed initiative"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r26",
+    "cat": "research",
+    "sub": "Innovation Trackers",
+    "title": "E-Fuel Alliance",
+    "url": "https://www.efuel-alliance.eu/",
+    "note": "European e-fuels industry: e-methanol, e-ammonia, e-kerosene.",
+    "type": "industry",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "E-fuel technology tracking for maritime and aviation applications.",
+    "tags": [
+      "e-fuels",
+      "e-methanol",
+      "e-kerosene",
+      "EU"
+    ],
+    "whatIsIt": "European e-fuels industry alliance tracking synthetic fuel development for maritime and aviation applications.",
+    "whyMatters": "E-fuel availability timelines determine when carriers can offer genuinely zero-carbon shipping and aviation fuel options.",
+    "keyData": [
+      "E-methanol development",
+      "E-ammonia status",
+      "E-kerosene for aviation",
+      "Cost trajectory tracking"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r27",
+    "cat": "research",
+    "sub": "Innovation Trackers",
+    "title": "Yara Clean Ammonia",
+    "url": "https://www.yara.com/chemical-and-fertilizer-sourcing/yara-clean-ammonia/",
+    "note": "Green ammonia for vessel bunkering trials and supply chain.",
+    "type": "innovation",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Leading green ammonia producer — bunkering trials signal fuel availability.",
+    "tags": [
+      "Yara",
+      "ammonia",
+      "bunkering",
+      "green"
+    ],
+    "whatIsIt": "Leading green ammonia producer conducting vessel bunkering trials and developing maritime fuel supply chains.",
+    "whyMatters": "Yara's ammonia bunkering trials signal when this fuel will be commercially available for ocean shipping.",
+    "keyData": [
+      "Green ammonia production",
+      "Vessel bunkering trials",
+      "Supply chain development"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r28",
+    "cat": "research",
+    "sub": "Innovation Trackers",
+    "title": "H2 Accelerate",
+    "url": "https://h2accelerate.eu/",
+    "note": "Hydrogen truck deployment across Europe; OEM+energy consortium.",
+    "type": "initiative",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "Hydrogen truck technology consortium signals deployment timelines.",
+    "tags": [
+      "H2",
+      "hydrogen trucks",
+      "Europe",
+      "OEM"
+    ],
+    "whatIsIt": "European consortium of truck OEMs and energy companies deploying hydrogen trucks across the continent.",
+    "whyMatters": "H2 Accelerate trials signal when hydrogen trucks will be commercially available for road freight operations.",
+    "keyData": [
+      "OEM and energy company consortium",
+      "European hydrogen truck trials",
+      "Infrastructure development",
+      "Deployment timeline signals"
+    ],
+    "modes": [
+      "road"
+    ],
+    "topic": "fuels",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r29",
+    "cat": "research",
+    "sub": "Innovation Trackers",
+    "title": "NREL Transportation R&D",
+    "url": "https://www.nrel.gov/transportation/",
+    "note": "US DOE lab: ZEV technology, hydrogen, SAF research.",
+    "type": "research",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "National lab R&D on zero-emission freight technology.",
+    "tags": [
+      "NREL",
+      "DOE",
+      "technology",
+      "R&D"
+    ],
+    "whatIsIt": "US National Renewable Energy Laboratory's transportation research division.",
+    "whyMatters": "NREL research provides independent technology validation for ZEV freight solutions.",
+    "keyData": [
+      "ZEV technology validation",
+      "Hydrogen fuel cell research",
+      "SAF pathways",
+      "Independent testing"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "r30",
+    "cat": "research",
+    "sub": "Green Corridors & Ports",
+    "title": "Getting to Zero: Green Corridors",
+    "url": "https://www.getzerocoalition.org/green-shipping-corridors",
+    "note": "Directory of 62+ established green shipping corridors globally.",
+    "type": "tracker",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Comprehensive directory of active green shipping corridors — directly affects lane options.",
+    "tags": [
+      "green corridors",
+      "directory",
+      "62+",
+      "global"
+    ],
+    "whatIsIt": "Global directory of 62+ established green shipping corridors across major trade routes.",
+    "whyMatters": "Green corridor directory shows which trade routes have zero-emission vessel options or are developing them — directly affects routing decisions for event logistics.",
+    "keyData": [
+      "62+ corridors established",
+      "Major trade routes covered",
+      "Zero-emission vessel availability",
+      "Bunkering infrastructure status"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r31",
+    "cat": "research",
+    "sub": "Green Corridors & Ports",
+    "title": "Port of Los Angeles Green",
+    "url": "https://www.portoflosangeles.org/environment",
+    "note": "World's busiest port for event equipment; Clean Air Action Plan.",
+    "type": "regulator",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Primary US gateway for event equipment — zero-emission cargo handling targets directly affect operations.",
+    "tags": [
+      "LA port",
+      "Clean Air",
+      "zero-emission",
+      "drayage"
+    ],
+    "whatIsIt": "Port of Los Angeles environmental programmes including Clean Air Action Plan and zero-emission cargo handling targets.",
+    "whyMatters": "As the busiest US port for event equipment imports, LA's Clean Air Action Plan and zero-emission targets directly affect drayage and cargo handling operations.",
+    "keyData": [
+      "Clean Air Action Plan",
+      "Zero-emission cargo handling targets",
+      "Truck clean-up requirements",
+      "Alternative fuel infrastructure"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "us"
+  },
+  {
+    "id": "r32",
+    "cat": "research",
+    "sub": "Green Corridors & Ports",
+    "title": "ESPO Green Ports",
+    "url": "https://www.espo.be/",
+    "note": "European port sustainability index and best practices.",
+    "type": "industry",
+    "priority": "MODERATE",
+    "added": "2026-02-28",
+    "reasoning": "European port sustainability standards — cross-referenced from Ocean Shipping.",
+    "tags": [
+      "ESPO",
+      "ports",
+      "sustainability",
+      "EU"
+    ],
+    "whatIsIt": "European Sea Ports Organisation sustainability index and best practice guidelines.",
+    "whyMatters": "European port sustainability requirements affect operations at all major EU cargo ports.",
+    "keyData": [
+      "Port sustainability index",
+      "Shore power deployment",
+      "Environmental best practices"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r33",
+    "cat": "research",
+    "sub": "Green Corridors & Ports",
+    "title": "Lloyd's Register Fleet Analytics",
+    "url": "https://www.lr.org/en/sustainability/decarbonisation/",
+    "note": "Technical fleet transition pathways — cross-referenced from Ocean.",
+    "type": "guidance",
+    "priority": "HIGH",
+    "added": "2026-02-28",
+    "reasoning": "Fleet transition data helping evaluate carrier decarbonisation readiness.",
+    "tags": [
+      "Lloyd's Register",
+      "fleet",
+      "pathways",
+      "data"
+    ],
+    "whatIsIt": "Lloyd's Register fleet analytics providing technical pathway data for fleet operators transitioning fuels.",
+    "whyMatters": "Classification society data on fleet transition pathways helps assess carrier readiness when selecting shipping partners.",
+    "keyData": [
+      "Fleet transition pathway data",
+      "Fuel technology assessment",
+      "Carrier readiness scoring"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "o13",
+    "cat": "ocean",
+    "sub": "IMO Regulations",
+    "title": "IMO Net-Zero Framework",
+    "url": "https://www.imo.org/en/mediacentre/pressbriefings/pages/imo-approves-netzero-regulations.aspx",
+    "note": "Global fuel standard + GHG pricing for ships >5,000 GT. Approved MEPC 83 (63-16-24). Adoption Oct 2025, entry into force Mar 2027, enforcement 2028. US opposes.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-03-01",
+    "reasoning": "The single most consequential maritime regulation since MARPOL. Mandatory fuel standard + carbon pricing on every ocean shipment. US actively opposing — creates enforcement fragmentation risk.",
+    "tags": [
+      "IMO",
+      "NZF",
+      "carbon pricing",
+      "fuel standard",
+      "MEPC 83",
+      "2027",
+      "2028"
+    ],
+    "whatIsIt": "First binding framework combining mandatory GHG fuel intensity limits and a global carbon pricing mechanism for international shipping. Approved by majority vote at MEPC 83 in April 2025.",
+    "whyMatters": "Every ocean shipment for live events, artwork, luxury goods, film sets, and automotive will face fuel standard compliance costs passed through by carriers. The pricing mechanism creates a new cost layer separate from ETS. US opposition means carriers on US-origin routes may face different enforcement, creating pricing divergence clients must understand.",
+    "keyData": [
+      "Approved MEPC 83: 63 yes, 16 no, 24 abstained",
+      "US walked out, formally opposes as 'global carbon tax'",
+      "Entry into force: March 2027",
+      "Enforcement with penalties: 2028",
+      "Ships >5,000 GT (85% of global emissions)",
+      "IMO Net-Zero Fund for revenue disbursement",
+      "Well-to-wake lifecycle assessment basis"
+    ],
+    "timeline": [
+      {
+        "date": "2025-04",
+        "label": "MEPC 83 approved"
+      },
+      {
+        "date": "2025-10",
+        "label": "MEPC ES.2 adoption"
+      },
+      {
+        "date": "2027-03",
+        "label": "Entry into force"
+      },
+      {
+        "date": "2028-01",
+        "label": "Enforcement begins"
+      }
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "emissions",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "g32",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "EU ICS2 (Import Control System 2)",
+    "url": "https://taxation-customs.ec.europa.eu/online-services/online-services-and-databases-customs/import-control-system-2-ics2_en",
+    "note": "Mandatory advance cargo data (ENS) for all EU-bound shipments. Operational now. All carriers and forwarders must submit Electronic Entry Summary before goods arrive.",
+    "type": "regulation",
+    "priority": "CRITICAL",
+    "added": "2026-03-01",
+    "reasoning": "Operational NOW. Every EU-bound shipment requires advance ENS submission. Directly changes your daily customs workflow for every client.",
+    "tags": [
+      "ICS2",
+      "customs",
+      "ENS",
+      "advance data",
+      "EU",
+      "operational"
+    ],
+    "whatIsIt": "EU Import Control System requiring all carriers and freight forwarders to submit detailed Electronic Entry Summary Declarations before goods arrive at EU borders.",
+    "whyMatters": "Every shipment to EU — event staging, artwork, luxury goods, film equipment, automotive, humanitarian — requires compliant ENS data BEFORE arrival. Errors detected upstream cause delays. Freight forwarders are now information managers, not just transport organisers. Data quality is operationally critical.",
+    "keyData": [
+      "Mandatory ENS for ALL EU-bound cargo",
+      "Pre-arrival data submission required",
+      "Errors detected upstream → delays",
+      "All carriers and forwarders must comply",
+      "Links to CBAM registration number from Jan 2026"
+    ],
+    "timeline": [
+      {
+        "date": "2024-03",
+        "label": "Air cargo phase"
+      },
+      {
+        "date": "2025-01",
+        "label": "Maritime/road phase"
+      },
+      {
+        "date": "2026-01",
+        "label": "CBAM integration"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "corridors",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g33",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "EUDR (EU Deforestation Regulation)",
+    "url": "https://environment.ec.europa.eu/topics/forests/deforestation/regulation-deforestation-free-products_en",
+    "note": "Due diligence on 7 commodities (timber, rubber, cocoa, coffee, palm oil, soy, cattle). Large operators from Dec 2026. Geolocation traceability required.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-03-01",
+    "reasoning": "Affects any client shipping timber, rubber, leather, or palm-oil-derived packaging into/within EU. Freight forwarders verify documentation compliance.",
+    "tags": [
+      "EUDR",
+      "deforestation",
+      "timber",
+      "rubber",
+      "traceability",
+      "2026"
+    ],
+    "whatIsIt": "EU regulation requiring companies to prove products entering the EU market are not linked to deforestation. Covers timber, rubber, cocoa, coffee, palm oil, soy, and cattle derivatives.",
+    "whyMatters": "Directly affects freight forwarders handling: timber crating for artwork/automotive, rubber components, leather goods (luxury, automotive interiors), palm-oil-derived packaging materials, and wooden pallets/staging for events and film sets. Forwarders must verify Due Diligence Statements accompany shipments. Penalties up to 4% of EU-wide turnover.",
+    "keyData": [
+      "Large operators: Dec 30, 2026",
+      "SMEs: Jun 30, 2027",
+      "7 commodities + derivatives",
+      "Geolocation of production sites required",
+      "Fines up to 4% EU turnover",
+      "Simplification review by Apr 2026"
+    ],
+    "timeline": [
+      {
+        "date": "2023-06",
+        "label": "In force"
+      },
+      {
+        "date": "2026-04",
+        "label": "Simplification review"
+      },
+      {
+        "date": "2026-12",
+        "label": "Large operators apply"
+      },
+      {
+        "date": "2027-06",
+        "label": "SME apply"
+      }
+    ],
+    "modes": [
+      "ocean",
+      "road"
+    ],
+    "topic": "packaging",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "g34",
+    "cat": "global",
+    "sub": "EU Policy",
+    "title": "CountEmissions EU",
+    "url": "https://transport.ec.europa.eu/transport-modes/countingeurope_en",
+    "note": "EU harmonised methodology for measuring transport GHG emissions. Built on ISO 14083. Will make emissions accounting legally referenced across EU.",
+    "type": "regulation",
+    "priority": "HIGH",
+    "added": "2026-03-01",
+    "reasoning": "The regulation that makes ISO 14083/GLEC legally binding in the EU. Every freight quote will eventually need emissions calculation using this methodology.",
+    "tags": [
+      "CountEmissions",
+      "ISO 14083",
+      "GLEC",
+      "emissions accounting",
+      "EU"
+    ],
+    "whatIsIt": "Proposed EU regulation establishing a harmonised methodology for GHG accounting of transport services, built on ISO 14083.",
+    "whyMatters": "This regulation transforms emissions accounting from voluntary to legally referenced across all EU transport. Every freight quotation for live events, film logistics, artwork, luxury goods, and automotive will need compliant emissions figures. Freight forwarders offering GLEC/ISO 14083 calculations now have a competitive advantage.",
+    "keyData": [
+      "Built on ISO 14083",
+      "Well-to-wheel approach",
+      "Council position: Dec 2023",
+      "SME exemption from verification",
+      "Applies 42 months after entry into force"
+    ],
+    "timeline": [
+      {
+        "date": "2023-07",
+        "label": "Proposed"
+      },
+      {
+        "date": "2023-12",
+        "label": "Council position"
+      },
+      {
+        "date": "2026-01",
+        "label": "Parliament vote expected"
+      },
+      {
+        "date": "2029-01",
+        "label": "~Application date"
+      }
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "reporting",
+    "jurisdiction": "eu"
+  },
+  {
+    "id": "r34",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "FIATA",
+    "url": "https://fiata.org/",
+    "note": "Global federation of freight forwarders. CBAM compliance resources, CO₂ calculators, regulatory alerts for the forwarding industry.",
+    "type": "industry",
+    "priority": "HIGH",
+    "added": "2026-03-01",
+    "reasoning": "Your industry's peak body. FIATA provides CBAM compliance tools, CO₂ calculators, and regulatory interpretation specifically for freight forwarders.",
+    "tags": [
+      "FIATA",
+      "freight forwarding",
+      "industry body",
+      "CBAM",
+      "CO2 calculator"
+    ],
+    "whatIsIt": "International Federation of Freight Forwarders Associations — the global peak body representing the freight forwarding and logistics industry.",
+    "whyMatters": "FIATA provides compliance resources built specifically for freight forwarders, not general industry. Their CBAM guidance, CO₂ calculator repository, and regulatory alerts are tailored to forwarding operations across live events, high-value, and general cargo.",
+    "keyData": [
+      "Global freight forwarding federation",
+      "CBAM compliance resources",
+      "CO₂ calculator repository",
+      "Regulatory alerts for forwarders"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r35",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "ICCT",
+    "url": "https://theicct.org/",
+    "note": "Independent research on vehicle, marine, and aviation emissions. Most-cited source in EU regulatory impact assessments.",
+    "type": "research",
+    "priority": "HIGH",
+    "added": "2026-03-01",
+    "reasoning": "The most-cited independent research organisation in freight emissions policy. Referenced by virtually every EU regulatory impact assessment.",
+    "tags": [
+      "ICCT",
+      "independent",
+      "emissions",
+      "research",
+      "policy"
+    ],
+    "whatIsIt": "International Council on Clean Transportation providing independent research and analysis on vehicle, marine, and aviation emissions to regulators worldwide.",
+    "whyMatters": "ICCT research underpins the data behind EU truck standards, maritime regulations, and aviation rules. Their projections inform the timeline expectations for every transport regulation in this dashboard.",
+    "keyData": [
+      "Independent nonprofit research",
+      "Referenced in EU, US, China policy",
+      "Vehicle, marine, aviation coverage",
+      "Regulatory impact assessments"
+    ],
+    "modes": [
+      "air",
+      "ocean",
+      "road"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  },
+  {
+    "id": "r36",
+    "cat": "research",
+    "sub": "Think-Tanks & Policy Analysis",
+    "title": "Maritime Carbon Intelligence",
+    "url": "https://maritimecarbonintelligence.com/",
+    "note": "Weekly briefing on maritime carbon economy: IMO, EU ETS, FuelEU, green fuels, carbon pricing.",
+    "type": "news",
+    "priority": "HIGH",
+    "added": "2026-03-01",
+    "reasoning": "Specialized weekly briefing focused specifically on maritime carbon economy. Highest signal-to-noise for ocean shipping ESG.",
+    "tags": [
+      "maritime",
+      "carbon economy",
+      "weekly",
+      "IMO",
+      "ETS"
+    ],
+    "whatIsIt": "Specialized weekly intelligence briefing covering the maritime carbon economy including IMO regulations, EU ETS shipping, FuelEU Maritime, and green fuel markets.",
+    "whyMatters": "Purpose-built for tracking the financial and regulatory dimensions of maritime decarbonisation. Directly relevant for pricing ocean freight surcharges on event equipment, artwork, automotive, and humanitarian cargo.",
+    "keyData": [
+      "Weekly Thursday briefing",
+      "IMO/EU ETS/FuelEU focus",
+      "Carbon pricing analysis",
+      "Green fuel market intelligence"
+    ],
+    "modes": [
+      "ocean"
+    ],
+    "topic": "research",
+    "jurisdiction": "global"
+  }
+]

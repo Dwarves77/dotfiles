@@ -1,0 +1,142 @@
+"use client";
+
+import { cn } from "@/lib/cn";
+import { Badge } from "@/components/ui/Badge";
+import { ModeBadge } from "@/components/ui/ModeBadge";
+import { Tag } from "@/components/ui/Tag";
+import { useResourceStore } from "@/stores/resourceStore";
+import { useNavigationStore } from "@/stores/navigationStore";
+import { PRIORITY_COLORS, TOPIC_COLORS } from "@/lib/constants";
+import { ChevronDown, Share2 } from "lucide-react";
+import type { Resource } from "@/types/resource";
+
+interface ResourceCardProps {
+  resource: Resource;
+  why?: string;
+  onShareClick?: (e: React.MouseEvent) => void;
+}
+
+export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardProps) {
+  const { expandedId, setExpanded } = useResourceStore();
+  const { toggleFilter } = useResourceStore();
+  const { pushFocusView } = useNavigationStore();
+  const isExpanded = expandedId === r.id;
+  const modes = r.modes || [r.cat];
+  const topicColor = TOPIC_COLORS[r.topic || ""] || undefined;
+
+  return (
+    <div
+      id={`resource-${r.id}`}
+      className={cn(
+        "border rounded-[2px] card-expand",
+        "hover:border-white/10",
+        isExpanded
+          ? "border-white/10 bg-white/[0.03]"
+          : "border-white/6 bg-white/[0.01]"
+      )}
+      style={{
+        borderLeftWidth: 3,
+        borderLeftColor: topicColor || "var(--border-subtle)",
+        transitionTimingFunction: "var(--ease-out-expo)",
+      }}
+    >
+      {/* Collapsed Row */}
+      <div
+        className="flex items-start gap-3 p-4 cursor-pointer"
+        onClick={() => setExpanded(isExpanded ? null : r.id)}
+      >
+        <div className="flex-1 min-w-0">
+          {/* Mode badges + priority */}
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              {modes.map((m) =>
+                m === "air" || m === "road" || m === "ocean" ? (
+                  <ModeBadge
+                    key={m}
+                    mode={m as "air" | "road" | "ocean"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFilter("modes", m);
+                    }}
+                  />
+                ) : null
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge
+                label={r.priority}
+                color={PRIORITY_COLORS[r.priority]}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFilter("priorities", r.priority);
+                }}
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onShareClick) {
+                    onShareClick(e);
+                  } else {
+                    // Expand card to access share menu
+                    setExpanded(r.id);
+                  }
+                }}
+                className="p-1 text-[var(--sage)] hover:text-white transition-colors duration-200"
+              >
+                <Share2 size={12} strokeWidth={2} />
+              </button>
+              <ChevronDown
+                size={14}
+                strokeWidth={2}
+                className={cn(
+                  "text-[var(--sage)] transition-transform duration-300",
+                  isExpanded && "rotate-180"
+                )}
+                style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
+              />
+            </div>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-sm font-semibold text-white leading-tight mb-1">
+            {r.title}
+          </h3>
+
+          {/* Note */}
+          <p className="text-xs text-[var(--sage)] leading-relaxed line-clamp-2 mb-1">
+            {r.note}
+          </p>
+
+          {/* Reasoning — why this priority */}
+          {r.reasoning && (
+            <p className="text-xs text-[var(--cyan)]/80 leading-relaxed line-clamp-2 mb-2 italic">
+              {r.reasoning}
+            </p>
+          )}
+
+          {/* Why (from focus view) */}
+          {why && (
+            <p className="text-xs text-[var(--cyan)] italic mb-2">
+              {why}
+            </p>
+          )}
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-1">
+            {r.tags?.slice(0, 5).map((tag) => (
+              <Tag
+                key={tag}
+                label={tag}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Filter by tag text (search)
+                  useResourceStore.getState().setSearch(tag);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
