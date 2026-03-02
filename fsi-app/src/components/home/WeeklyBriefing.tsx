@@ -54,24 +54,24 @@ export function WeeklyBriefing({
   };
 
   return (
-    <div className="border border-white/6 rounded-[2px] bg-white/[0.02]">
+    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-4 cursor-pointer"
       >
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-white">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-primary">
             Weekly Briefing
           </span>
-          <span className="ml-2 text-xs text-[var(--sage)]">
+          <span className="ml-2 text-xs text-text-secondary">
             {date}
           </span>
         </div>
         <ChevronDown
           size={14}
           className={cn(
-            "text-[var(--sage)] transition-transform duration-300",
+            "text-text-secondary transition-transform duration-300",
             expanded && "rotate-180"
           )}
           style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
@@ -83,7 +83,7 @@ export function WeeklyBriefing({
         <div className="px-4 pb-4 space-y-4">
           {/* Executive Summary */}
           <div>
-            <p className="text-xs text-white/80 leading-relaxed">
+            <p className="text-xs text-text-primary/80 leading-relaxed">
               Tracking {resources.length} regulatory resources across{" "}
               {new Set(resources.map((r) => r.jurisdiction || "global")).size} jurisdictions.
               {briefing.newR.length > 0 && ` ${briefing.newR.length} new this week.`}
@@ -102,14 +102,14 @@ export function WeeklyBriefing({
                 <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-medium text-white">{r.title}</p>
+                    <p className="text-xs font-medium text-text-primary">{r.title}</p>
                     {r.added && (
-                      <span className="text-xs text-[var(--sage)] tabular-nums shrink-0">
+                      <span className="text-xs text-text-secondary tabular-nums shrink-0">
                         {r.added}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-[var(--sage)] line-clamp-2">
+                  <p className="text-xs text-text-secondary line-clamp-2">
                     {r.whyMatters || r.note}
                   </p>
                   <div className="flex items-center gap-3 mt-1">
@@ -119,7 +119,7 @@ export function WeeklyBriefing({
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-xs text-[var(--cyan)] hover:underline"
+                        className="text-xs text-text-accent hover:underline"
                       >
                         Source
                       </a>
@@ -129,7 +129,7 @@ export function WeeklyBriefing({
                         e.stopPropagation();
                         navigateToResource(r.id);
                       }}
-                      className="flex items-center gap-1 text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+                      className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
                       <ArrowRight size={10} strokeWidth={2} />
                       View in dashboard
@@ -148,8 +148,8 @@ export function WeeklyBriefing({
               </span>
               {briefing.disputedEntries.map((x) => (
                 <div key={x.id} className="border-l-2 border-[#FF9500] pl-2 mb-2">
-                  <p className="text-xs font-medium text-white">{x.r!.title}</p>
-                  <p className="text-xs text-[var(--sage)] line-clamp-2">
+                  <p className="text-xs font-medium text-text-primary">{x.r!.title}</p>
+                  <p className="text-xs text-text-secondary line-clamp-2">
                     {x.note.slice(0, 150)}
                   </p>
                   {x.sources?.length > 0 && (
@@ -185,7 +185,7 @@ export function WeeklyBriefing({
           )}
 
           {/* Download buttons */}
-          <div className="flex gap-2 pt-2 border-t border-white/6">
+          <div className="flex gap-2 pt-2 border-t border-border-subtle">
             <button
               onClick={(e) => {
                 e.stopPropagation();

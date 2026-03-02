@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════
+   DARK THEME (default when data-theme="dark")
+   ═══════════════════════════════════════════════════════════ */
 :root {
   /* ── Core palette ── */
   --navy: #171e19;
@@ -34,22 +37,88 @@
   --impact-client: #00C7BE;
   --impact-operational: #64D2FF;
 
-  /* ── Borders ── */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.10);
-  --border-medium: rgba(255, 255, 255, 0.15);
-
   /* ── Transitions ── */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* ── Semantic ── */
-  --background: var(--navy);
-  --foreground: var(--white);
-  --muted: var(--sage);
-  --muted-foreground: var(--taupe);
-  --card: var(--charcoal);
-  --card-hover: var(--charcoal-light);
-  --accent: var(--cyan);
+  /* ── Semantic tokens ── */
+  --text-primary: #ffffff;
+  --text-secondary: #b7c6c2;
+  --text-muted: #9f8d8b;
+  --text-accent: #d5f4f9;
+
+  --surface-base: #171e19;
+  --surface-raised: #302b2f;
+  --surface-raised-hover: #3a3438;
+  --surface-subtle: rgba(255, 255, 255, 0.02);
+  --surface-subtle-hover: rgba(255, 255, 255, 0.04);
+  --surface-overlay: rgba(255, 255, 255, 0.05);
+  --surface-input: rgba(255, 255, 255, 0.05);
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.10);
+  --border-medium: rgba(255, 255, 255, 0.15);
+  --border-strong: rgba(255, 255, 255, 0.20);
+
+  --active-bg: rgba(255, 255, 255, 0.08);
+  --active-border: rgba(255, 255, 255, 0.15);
+
+  --invert-bg: #ffffff;
+  --invert-text: #171e19;
+
+  --scrollbar-thumb: rgba(183, 198, 194, 0.2);
+  --scrollbar-thumb-hover: rgba(183, 198, 194, 0.35);
+
+  /* ── Legacy semantic (for backward compat) ── */
+  --background: var(--surface-base);
+  --foreground: var(--text-primary);
+  --muted: var(--text-secondary);
+  --muted-foreground: var(--text-muted);
+  --card: var(--surface-raised);
+  --card-hover: var(--surface-raised-hover);
+  --accent: var(--text-accent);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIGHT THEME (default)
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  --navy: #FAFAF8;
+  --navy-light: #F0EDE8;
+  --sage: #6B7C78;
+  --white: #1A1A1A;
+  --taupe: #7A6E6C;
+  --beige: #8B7A6E;
+  --cyan: #0891B2;
+  --soft-blue: #0E7490;
+  --charcoal: #FFFFFF;
+  --charcoal-light: #F5F2EE;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #5A6B67;
+  --text-muted: #7A6E6C;
+  --text-accent: #0891B2;
+
+  --surface-base: #FAFAF8;
+  --surface-raised: #FFFFFF;
+  --surface-raised-hover: #F5F2EE;
+  --surface-subtle: rgba(0, 0, 0, 0.02);
+  --surface-subtle-hover: rgba(0, 0, 0, 0.04);
+  --surface-overlay: rgba(0, 0, 0, 0.03);
+  --surface-input: rgba(0, 0, 0, 0.04);
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.12);
+  --border-medium: rgba(0, 0, 0, 0.18);
+  --border-strong: rgba(0, 0, 0, 0.25);
+
+  --active-bg: rgba(0, 0, 0, 0.06);
+  --active-border: rgba(0, 0, 0, 0.18);
+
+  --invert-bg: #1A1A1A;
+  --invert-text: #FFFFFF;
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
 }
 
 @theme inline {
@@ -73,14 +142,36 @@
   --color-high: var(--high);
   --color-moderate: var(--moderate);
   --color-low: var(--low);
+
+  /* ── Semantic color tokens for Tailwind ── */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-accent: var(--text-accent);
+  --color-surface-base: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-raised-hover: var(--surface-raised-hover);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-subtle-hover: var(--surface-subtle-hover);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-input: var(--surface-input);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-light: var(--border-light);
+  --color-border-medium: var(--border-medium);
+  --color-border-strong: var(--border-strong);
+  --color-active-bg: var(--active-bg);
+  --color-active-border: var(--active-border);
+  --color-invert-bg: var(--invert-bg);
+  --color-invert-text: var(--invert-text);
+
   --font-sans: var(--font-jakarta);
   --font-display: var(--font-anton);
 }
 
 /* ── Base styles ── */
 body {
-  background: var(--navy);
-  color: var(--white);
+  background: var(--surface-base);
+  color: var(--text-primary);
   font-family: var(--font-jakarta), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -95,24 +186,24 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(183, 198, 194, 0.2);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(183, 198, 194, 0.35);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* ── Button hover inversion ── */
 .btn-invert {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: white;
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
   background: transparent;
   transition: all 400ms var(--ease-out-expo);
 }
 .btn-invert:hover {
-  background: white;
-  color: var(--navy);
-  border-color: white;
+  background: var(--invert-bg);
+  color: var(--invert-text);
+  border-color: var(--invert-bg);
 }
 
 /* ── Card expansion ── */
@@ -175,6 +266,10 @@ body {
   will-change: transform;
 }
 
+[data-theme="light"] .orb {
+  opacity: 0.06;
+}
+
 .orb-1 {
   width: 400px;
   height: 400px;
@@ -198,12 +293,12 @@ body {
 
 /* ── Text outline variant ── */
 .text-outline {
-  -webkit-text-stroke: 1px var(--sage);
+  -webkit-text-stroke: 1px var(--text-secondary);
   color: transparent;
 }
 
 /* ── Selection ── */
 ::selection {
-  background: rgba(213, 244, 249, 0.25);
-  color: var(--white);
+  background: rgba(13, 148, 178, 0.25);
+  color: var(--text-primary);
 }

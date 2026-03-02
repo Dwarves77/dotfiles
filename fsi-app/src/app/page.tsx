@@ -1,17 +1,17 @@
-"use client";
-
 import { Dashboard } from "@/components/Dashboard";
-import {
-  resources,
-  archived,
-  changelog,
-  disputes,
-  xrefPairs,
-  supersessions,
-  AUDIT_DATE,
-} from "@/data";
+import { fetchDashboardData } from "@/lib/supabase-server";
 
-export default function Home() {
+export default async function Home() {
+  const {
+    resources,
+    archived,
+    changelog,
+    disputes,
+    xrefPairs,
+    supersessions,
+    auditDate,
+  } = await fetchDashboardData();
+
   return (
     <Dashboard
       initialResources={resources}
@@ -20,7 +20,7 @@ export default function Home() {
       disputes={disputes}
       xrefPairs={xrefPairs}
       supersessions={supersessions}
-      auditDate={AUDIT_DATE}
+      auditDate={auditDate}
     />
   );
 }

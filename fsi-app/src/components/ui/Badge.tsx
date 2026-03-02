@@ -25,7 +25,7 @@ export function Badge({ label, color, onClick, className }: BadgeProps) {
       style={{
         color: color || "var(--sage)",
         borderColor: color ? `${color}33` : "var(--border-light)",
-        backgroundColor: color ? `${color}10` : "rgba(255,255,255,0.03)",
+        backgroundColor: color ? `${color}10` : "var(--surface-input)",
         transitionTimingFunction: "var(--ease-out-expo)",
       }}
     >

@@ -29,8 +29,8 @@ export function Pill({
         "transition-all duration-300 cursor-pointer",
         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--cyan)]/50",
         active
-          ? "border-white/20 bg-white/10 text-white"
-          : "border-white/6 bg-transparent text-[var(--sage)] hover:border-white/15 hover:text-white",
+          ? "border-border-strong bg-active-bg text-text-primary"
+          : "border-border-subtle bg-transparent text-text-secondary hover:border-border-medium hover:text-text-primary",
         className
       )}
       style={{

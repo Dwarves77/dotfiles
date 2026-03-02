@@ -15,7 +15,7 @@ export function TabBar() {
   const { tab, setTab } = useNavigationStore();
 
   return (
-    <nav className="sticky top-0 z-30 flex items-center gap-1 border-b border-white/6 bg-[var(--navy)]/95 backdrop-blur-sm">
+    <nav className="sticky top-0 z-30 flex items-center gap-1 border-b border-border-subtle bg-surface-base/95 backdrop-blur-sm">
       {TABS.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
@@ -25,15 +25,15 @@ export function TabBar() {
             "text-xs font-semibold tracking-wider uppercase",
             "transition-all duration-300 cursor-pointer",
             tab === id
-              ? "text-white"
-              : "text-[var(--sage)] hover:text-white"
+              ? "text-text-primary"
+              : "text-text-secondary hover:text-text-primary"
           )}
           style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
         >
           <Icon size={14} strokeWidth={2} />
           {label}
           {tab === id && (
-            <span className="absolute bottom-0 left-0 right-0 h-px bg-white" />
+            <span className="absolute bottom-0 left-0 right-0 h-px bg-text-primary" />
           )}
         </button>
       ))}

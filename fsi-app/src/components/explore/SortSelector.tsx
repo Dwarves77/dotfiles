@@ -16,7 +16,7 @@ export function SortSelector() {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] mr-1">
+      <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary mr-1">
         Sort
       </span>
       {SORT_OPTIONS.map(({ key, label }) => (
@@ -27,8 +27,8 @@ export function SortSelector() {
             "px-2.5 py-1 text-xs font-medium rounded-[2px] border",
             "transition-all duration-200 cursor-pointer",
             sort === key
-              ? "border-white/15 bg-white/8 text-white"
-              : "border-transparent text-[var(--sage)] hover:text-white"
+              ? "border-border-medium bg-active-bg text-text-primary"
+              : "border-transparent text-text-secondary hover:text-text-primary"
           )}
         >
           {label}

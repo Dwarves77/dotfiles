@@ -15,7 +15,8 @@ interface SettingsState {
   defaultSort: "urgency" | "priority" | "alpha" | "added" | "modified";
   exportFormat: "html" | "slack";
   briefingDay: "monday" | "tuesday" | "wednesday" | "thursday" | "friday";
-  alertPriorities: string[]; // which priorities trigger alerts
+  alertPriorities: string[];
+  theme: "light" | "dark";
 
   // Actions
   toggleSection: (section: string) => void;
@@ -23,6 +24,7 @@ interface SettingsState {
   setExportFormat: (format: SettingsState["exportFormat"]) => void;
   setBriefingDay: (day: SettingsState["briefingDay"]) => void;
   setAlertPriorities: (priorities: string[]) => void;
+  setTheme: (theme: "light" | "dark") => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -37,6 +39,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   exportFormat: "html",
   briefingDay: "monday",
   alertPriorities: ["CRITICAL", "HIGH"],
+  theme: ((typeof window !== "undefined" ? localStorage.getItem("fsi-theme") : null) || "light") as "light" | "dark",
 
   toggleSection: (section) =>
     set((state) => {
@@ -51,4 +54,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setExportFormat: (exportFormat) => set({ exportFormat }),
   setBriefingDay: (briefingDay) => set({ briefingDay }),
   setAlertPriorities: (alertPriorities) => set({ alertPriorities }),
+  setTheme: (theme) => {
+    set({ theme });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fsi-theme", theme);
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  },
 }));

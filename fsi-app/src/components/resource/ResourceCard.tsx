@@ -29,10 +29,10 @@ export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardPro
       id={`resource-${r.id}`}
       className={cn(
         "border rounded-[2px] card-expand",
-        "hover:border-white/10",
+        "hover:border-border-light",
         isExpanded
-          ? "border-white/10 bg-white/[0.03]"
-          : "border-white/6 bg-white/[0.01]"
+          ? "border-border-light bg-surface-input"
+          : "border-border-subtle bg-surface-subtle"
       )}
       style={{
         borderLeftWidth: 3,
@@ -81,7 +81,7 @@ export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardPro
                     setExpanded(r.id);
                   }
                 }}
-                className="p-1 text-[var(--sage)] hover:text-white transition-colors duration-200"
+                className="p-1 text-text-secondary hover:text-text-primary transition-colors duration-200"
               >
                 <Share2 size={12} strokeWidth={2} />
               </button>
@@ -89,7 +89,7 @@ export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardPro
                 size={14}
                 strokeWidth={2}
                 className={cn(
-                  "text-[var(--sage)] transition-transform duration-300",
+                  "text-text-secondary transition-transform duration-300",
                   isExpanded && "rotate-180"
                 )}
                 style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
@@ -98,25 +98,25 @@ export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardPro
           </div>
 
           {/* Title */}
-          <h3 className="text-sm font-semibold text-white leading-tight mb-1">
+          <h3 className="text-sm font-semibold text-text-primary leading-tight mb-1">
             {r.title}
           </h3>
 
           {/* Note */}
-          <p className="text-xs text-[var(--sage)] leading-relaxed line-clamp-2 mb-1">
+          <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mb-1">
             {r.note}
           </p>
 
           {/* Reasoning — why this priority */}
           {r.reasoning && (
-            <p className="text-xs text-[var(--cyan)]/80 leading-relaxed line-clamp-2 mb-2 italic">
+            <p className="text-xs text-text-accent/80 leading-relaxed line-clamp-2 mb-2 italic">
               {r.reasoning}
             </p>
           )}
 
           {/* Why (from focus view) */}
           {why && (
-            <p className="text-xs text-[var(--cyan)] italic mb-2">
+            <p className="text-xs text-text-accent italic mb-2">
               {why}
             </p>
           )}

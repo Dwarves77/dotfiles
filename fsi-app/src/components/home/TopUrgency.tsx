@@ -27,7 +27,7 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
   if (top5.length === 0) return null;
 
   return (
-    <div className="border border-white/6 rounded-[2px] bg-white/[0.01]">
+    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -37,12 +37,12 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
             size={14}
             strokeWidth={2}
             className={cn(
-              "text-[var(--sage)] transition-transform duration-300",
+              "text-text-secondary transition-transform duration-300",
               !open && "-rotate-90"
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] group-hover:text-white transition-colors">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             Top Urgency
           </span>
         </button>
@@ -56,7 +56,7 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
               ),
             })
           }
-          className="text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+          className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           View all &rarr;
         </button>
@@ -69,7 +69,7 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
               <button
                 key={r.id}
                 onClick={() => navigateToResource(r.id)}
-                className="w-full text-left flex items-start gap-3 p-3 border border-white/6 rounded-[2px] bg-white/[0.01] hover:border-white/10 cursor-pointer transition-all duration-200"
+                className="w-full text-left flex items-start gap-3 p-3 border border-border-subtle rounded-[2px] bg-surface-subtle hover:border-border-light cursor-pointer transition-all duration-200"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -80,8 +80,8 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
                     )}
                     <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
                   </div>
-                  <p className="text-xs font-medium text-white truncate">{r.title}</p>
-                  <p className="text-xs text-[var(--sage)] line-clamp-1 mt-0.5">
+                  <p className="text-xs font-medium text-text-primary truncate">{r.title}</p>
+                  <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">
                     {r.whyMatters || r.note}
                   </p>
                 </div>

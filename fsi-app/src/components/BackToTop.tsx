@@ -19,8 +19,8 @@ export function BackToTop() {
       className={cn(
         "fixed bottom-6 right-6 z-40",
         "flex items-center justify-center w-10 h-10",
-        "rounded-[2px] border border-white/10 bg-[var(--charcoal)]",
-        "text-[var(--sage)] hover:text-white hover:border-white/20",
+        "rounded-[2px] border border-border-light bg-surface-raised",
+        "text-text-secondary hover:text-text-primary hover:border-border-strong",
         "transition-all duration-300 cursor-pointer",
         show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
       )}

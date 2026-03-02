@@ -16,7 +16,7 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-white/6 rounded-[2px] bg-white/[0.01]">
+    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -26,22 +26,22 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
             size={14}
             strokeWidth={2}
             className={cn(
-              "text-[var(--sage)] transition-transform duration-300",
+              "text-text-secondary transition-transform duration-300",
               !open && "-rotate-90"
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] group-hover:text-white transition-colors">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             {title}
           </span>
           {count !== undefined && (
-            <span className="text-xs tabular-nums text-[var(--sage)]/60">({count})</span>
+            <span className="text-xs tabular-nums text-text-secondary/60">({count})</span>
           )}
         </button>
         {onViewAll && (
           <button
             onClick={onViewAll}
-            className="text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+            className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
           >
             View all &rarr;
           </button>

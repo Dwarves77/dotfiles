@@ -40,7 +40,7 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
   if (due.length === 0) return null;
 
   return (
-    <div className="border border-white/6 rounded-[2px] bg-white/[0.01]">
+    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -50,12 +50,12 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
             size={14}
             strokeWidth={2}
             className={cn(
-              "text-[var(--sage)] transition-transform duration-300",
+              "text-text-secondary transition-transform duration-300",
               !open && "-rotate-90"
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] group-hover:text-white transition-colors">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             Due This Quarter ({due.length})
           </span>
         </button>
@@ -69,7 +69,7 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
               ),
             })
           }
-          className="text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+          className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           View all &rarr;
         </button>
@@ -80,7 +80,7 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
             <button
               key={r.id}
               onClick={() => navigateToResource(r.id)}
-              className="w-full text-left flex items-center gap-3 px-3 py-2 border border-white/6 rounded-[2px] hover:border-white/10 cursor-pointer transition-colors"
+              className="w-full text-left flex items-center gap-3 px-3 py-2 border border-border-subtle rounded-[2px] hover:border-border-light cursor-pointer transition-colors"
             >
               <span
                 className="text-xs font-semibold tabular-nums w-10 shrink-0"
@@ -96,8 +96,8 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
                 {days}d
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-white truncate">{r.title}</p>
-                <p className="text-xs text-[var(--sage)] truncate">
+                <p className="text-xs text-text-primary truncate">{r.title}</p>
+                <p className="text-xs text-text-secondary truncate">
                   {next.label}
                 </p>
               </div>

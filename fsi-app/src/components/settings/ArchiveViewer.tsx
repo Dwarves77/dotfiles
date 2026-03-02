@@ -32,7 +32,7 @@ export function ArchiveViewer() {
 
   if (archived.length === 0) {
     return (
-      <div className="text-xs text-[var(--sage)] py-4">
+      <div className="text-xs text-text-secondary py-4">
         No archived resources.
       </div>
     );
@@ -40,26 +40,26 @@ export function ArchiveViewer() {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold tracking-wider uppercase text-white">
+      <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
         Archive ({archived.length})
       </h3>
 
       {/* Search + Filter */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--sage)]" />
+          <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-secondary" />
           <input
             type="text"
             placeholder="Search archive..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-7 pr-2 py-1.5 text-xs bg-white/[0.03] border border-white/6 rounded-[2px] text-white placeholder:text-[var(--sage)]/50 outline-none"
+            className="w-full pl-7 pr-2 py-1.5 text-xs bg-surface-input border border-border-subtle rounded-[2px] text-text-primary placeholder:text-text-secondary/50 outline-none"
           />
         </div>
         <select
           value={filterReason}
           onChange={(e) => setFilterReason(e.target.value)}
-          className="text-xs p-1.5 bg-white/5 border border-white/10 rounded-[2px] text-white"
+          className="text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary"
         >
           <option value="">All reasons</option>
           {reasons.map((r) => (
@@ -73,17 +73,17 @@ export function ArchiveViewer() {
         {filtered.map((r) => (
           <div
             key={r.id}
-            className="flex items-center gap-3 px-3 py-2 border border-white/6 rounded-[2px] hover:border-white/10 transition-colors"
+            className="flex items-center gap-3 px-3 py-2 border border-border-subtle rounded-[2px] hover:border-border-light transition-colors"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-white truncate">{r.title}</p>
+              <p className="text-xs text-text-primary truncate">{r.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-[var(--sage)]">{r.archiveReason}</span>
-                <span className="text-xs text-[var(--sage)]">{r.archivedDate}</span>
+                <span className="text-xs text-text-secondary">{r.archiveReason}</span>
+                <span className="text-xs text-text-secondary">{r.archivedDate}</span>
                 {r.replacedBy && (
                   <button
                     onClick={() => navigateToResource(r.replacedBy!)}
-                    className="text-xs text-[var(--cyan)] hover:underline cursor-pointer"
+                    className="text-xs text-text-accent hover:underline cursor-pointer"
                   >
                     Replacement
                   </button>
@@ -92,7 +92,7 @@ export function ArchiveViewer() {
             </div>
             <button
               onClick={() => restoreResource(r.id)}
-              className="flex items-center gap-1 text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+              className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
             >
               <RotateCcw size={10} strokeWidth={2} />
               Restore

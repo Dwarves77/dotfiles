@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Anton, Plus_Jakarta_Sans } from "next/font/google";
+import { ThemeInitializer } from "@/components/ThemeInitializer";
 import "./globals.css";
 
 const anton = Anton({
@@ -28,8 +29,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${anton.variable} ${jakarta.variable}`}>
-      <body className="antialiased">{children}</body>
+    <html
+      lang="en"
+      className={`${anton.variable} ${jakarta.variable}`}
+      data-theme="light"
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{document.documentElement.setAttribute('data-theme',localStorage.getItem('fsi-theme')||'light')}catch(e){}`,
+          }}
+        />
+      </head>
+      <body className="antialiased">
+        <ThemeInitializer />
+        {children}
+      </body>
     </html>
   );
 }

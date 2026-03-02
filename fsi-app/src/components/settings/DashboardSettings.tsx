@@ -16,11 +16,13 @@ export function DashboardSettings() {
     exportFormat,
     briefingDay,
     alertPriorities,
+    theme,
     toggleSection,
     setDefaultSort,
     setExportFormat,
     setBriefingDay,
     setAlertPriorities,
+    setTheme,
   } = useSettingsStore();
 
   const sections = [
@@ -34,13 +36,36 @@ export function DashboardSettings() {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xs font-semibold tracking-wider uppercase text-white">
+      <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
         Dashboard Settings
       </h3>
 
+      {/* Appearance */}
+      <div className="space-y-2">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+          Appearance
+        </span>
+        <div className="flex gap-1.5">
+          {(["light", "dark"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTheme(t)}
+              className={cn(
+                "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
+                theme === t
+                  ? "border-active-border bg-active-bg text-text-primary"
+                  : "border-border-subtle text-text-secondary"
+              )}
+            >
+              {t === "light" ? "Light" : "Dark"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Home Section Visibility */}
       <div className="space-y-3">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)]">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
           Home Sections
         </span>
         {sections.map(({ key, label, value }) => (
@@ -55,7 +80,7 @@ export function DashboardSettings() {
 
       {/* Default Sort */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)]">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
           Default Sort
         </span>
         <div className="flex gap-1.5">
@@ -66,8 +91,8 @@ export function DashboardSettings() {
               className={cn(
                 "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
                 defaultSort === s
-                  ? "border-white/15 bg-white/8 text-white"
-                  : "border-white/6 text-[var(--sage)]"
+                  ? "border-border-medium bg-active-bg text-text-primary"
+                  : "border-border-subtle text-text-secondary"
               )}
             >
               {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -78,7 +103,7 @@ export function DashboardSettings() {
 
       {/* Export Format */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)]">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
           Default Export Format
         </span>
         <div className="flex gap-1.5">
@@ -89,8 +114,8 @@ export function DashboardSettings() {
               className={cn(
                 "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
                 exportFormat === f
-                  ? "border-white/15 bg-white/8 text-white"
-                  : "border-white/6 text-[var(--sage)]"
+                  ? "border-border-medium bg-active-bg text-text-primary"
+                  : "border-border-subtle text-text-secondary"
               )}
             >
               {f.toUpperCase()}
@@ -101,13 +126,13 @@ export function DashboardSettings() {
 
       {/* Briefing Day */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)]">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
           Briefing Day
         </span>
         <select
           value={briefingDay}
           onChange={(e) => setBriefingDay(e.target.value as any)}
-          className="text-xs p-1.5 bg-white/5 border border-white/10 rounded-[2px] text-white"
+          className="text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary"
         >
           {["monday", "tuesday", "wednesday", "thursday", "friday"].map((d) => (
             <option key={d} value={d}>
@@ -119,7 +144,7 @@ export function DashboardSettings() {
 
       {/* Alert Priorities */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)]">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
           Alert Priorities
         </span>
         <div className="flex gap-1.5">
@@ -135,8 +160,8 @@ export function DashboardSettings() {
               className={cn(
                 "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
                 alertPriorities.includes(p)
-                  ? "border-white/15 bg-white/8 text-white"
-                  : "border-white/6 text-[var(--sage)]"
+                  ? "border-border-medium bg-active-bg text-text-primary"
+                  : "border-border-subtle text-text-secondary"
               )}
             >
               {p}

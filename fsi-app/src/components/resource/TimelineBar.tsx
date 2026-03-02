@@ -25,7 +25,7 @@ export function TimelineBar({ items, color = "#34C759" }: TimelineBarProps) {
   return (
     <div className="relative py-4">
       {/* Track */}
-      <div className="absolute top-[22px] left-5 right-5 h-0.5 bg-white/10" />
+      <div className="absolute top-[22px] left-5 right-5 h-0.5 bg-active-bg" />
 
       {/* Milestones */}
       <div className="flex justify-between relative">
@@ -48,7 +48,7 @@ export function TimelineBar({ items, color = "#34C759" }: TimelineBarProps) {
                 )}
                 style={{
                   background: m.isPast ? color : isNextUp ? `${color}88` : "var(--sage)",
-                  borderColor: isNextUp ? "white" : "var(--navy)",
+                  borderColor: isNextUp ? "var(--text-primary)" : "var(--surface-base)",
                   boxShadow: isNextUp ? `0 0 8px ${color}66` : "none",
                 }}
               />
@@ -63,7 +63,7 @@ export function TimelineBar({ items, color = "#34C759" }: TimelineBarProps) {
               >
                 {m.date}
               </span>
-              <span className="text-xs text-[var(--sage)] text-center leading-tight px-1 truncate max-w-full">
+              <span className="text-xs text-text-secondary text-center leading-tight px-1 truncate max-w-full">
                 {m.label}
               </span>
 

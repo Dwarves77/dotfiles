@@ -27,12 +27,12 @@ export function Toggle({
       {(label || description) && (
         <div className="flex flex-col gap-0.5">
           {label && (
-            <span className="text-sm font-medium text-white group-hover:text-[var(--cyan)] transition-colors duration-300">
+            <span className="text-sm font-medium text-text-primary group-hover:text-text-accent transition-colors duration-300">
               {label}
             </span>
           )}
           {description && (
-            <span className="text-xs text-[var(--sage)]">{description}</span>
+            <span className="text-xs text-text-secondary">{description}</span>
           )}
         </div>
       )}
@@ -47,7 +47,7 @@ export function Toggle({
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--cyan)]/50",
           checked
             ? "border-[var(--cyan)]/30 bg-[var(--cyan)]/20"
-            : "border-white/10 bg-white/5"
+            : "border-border-light bg-surface-overlay"
         )}
         style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
       >

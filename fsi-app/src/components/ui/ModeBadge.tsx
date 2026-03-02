@@ -30,9 +30,9 @@ export function ModeBadge({ mode, onClick, className }: ModeBadgeProps) {
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5",
         "text-xs font-semibold tracking-wider uppercase",
-        "rounded-[2px] border border-white/10 bg-white/5 text-[var(--sage)]",
+        "rounded-[2px] border border-border-light bg-surface-overlay text-text-secondary",
         "transition-all duration-300",
-        onClick && "cursor-pointer hover:border-white/20 hover:text-white",
+        onClick && "cursor-pointer hover:border-border-strong hover:text-text-primary",
         className
       )}
       style={{ transitionTimingFunction: "var(--ease-out-expo)" }}

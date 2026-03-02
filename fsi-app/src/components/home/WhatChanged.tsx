@@ -29,7 +29,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   const allIds = [...new Set([...newResources.map((r) => r.id), ...changed.map((r) => r.id)])];
 
   return (
-    <div className="border border-white/6 rounded-[2px] bg-white/[0.01]">
+    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -39,12 +39,12 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
             size={14}
             strokeWidth={2}
             className={cn(
-              "text-[var(--sage)] transition-transform duration-300",
+              "text-text-secondary transition-transform duration-300",
               !open && "-rotate-90"
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] group-hover:text-white transition-colors">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             What Changed ({allIds.length})
           </span>
         </button>
@@ -55,7 +55,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               resourceIds: allIds,
             })
           }
-          className="text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+          className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           View all &rarr;
         </button>
@@ -77,8 +77,8 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                   >
                     <span className="text-xs font-semibold text-[#34C759] shrink-0">NEW</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-white truncate">{r.title}</p>
-                      <p className="text-xs text-[var(--sage)] truncate">{r.note}</p>
+                      <p className="text-xs font-medium text-text-primary truncate">{r.title}</p>
+                      <p className="text-xs text-text-secondary truncate">{r.note}</p>
                     </div>
                     <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
                   </button>
@@ -100,10 +100,10 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                     <button
                       key={r.id}
                       onClick={() => navigateToResource(r.id)}
-                      className="w-full text-left border border-white/6 rounded-[2px] p-3 hover:border-white/10 cursor-pointer transition-colors"
+                      className="w-full text-left border border-border-subtle rounded-[2px] p-3 hover:border-border-light cursor-pointer transition-colors"
                     >
                       <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-xs font-medium text-white truncate flex-1">
+                        <p className="text-xs font-medium text-text-primary truncate flex-1">
                           {r.title}
                         </p>
                         <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
@@ -114,12 +114,12 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                             {ch.fields?.join(", ")}
                           </span>
                           {ch.prev && (
-                            <p className="text-xs text-[var(--sage)] line-through">
+                            <p className="text-xs text-text-secondary line-through">
                               {ch.prev.slice(0, 120)}
                             </p>
                           )}
                           {ch.now && (
-                            <p className="text-xs text-white font-medium">
+                            <p className="text-xs text-text-primary font-medium">
                               {ch.now.slice(0, 120)}
                             </p>
                           )}

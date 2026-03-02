@@ -69,7 +69,7 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
       {!isOpen && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-[2px] border border-white/15 bg-[var(--charcoal)] text-white text-xs font-medium hover:bg-[var(--charcoal-light)] cursor-pointer transition-colors shadow-lg"
+          className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-[2px] border border-border-medium bg-surface-raised text-text-primary text-xs font-medium hover:bg-[var(--charcoal-light)] cursor-pointer transition-colors shadow-lg"
         >
           <FileText size={14} strokeWidth={2} />
           Export ({selectedIds.length})
@@ -78,22 +78,22 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
 
       {/* Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 left-6 z-50 w-80 border border-white/10 rounded-[2px] bg-[var(--charcoal)] shadow-2xl">
+        <div className="fixed bottom-6 left-6 z-50 w-80 border border-border-light rounded-[2px] bg-surface-raised shadow-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/6">
-            <span className="text-xs font-semibold tracking-wider uppercase text-white">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+            <span className="text-xs font-semibold tracking-wider uppercase text-text-primary">
               Export ({orderedItems.length})
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={clearSelection}
-                className="text-[var(--sage)] hover:text-[var(--critical)] cursor-pointer"
+                className="text-text-secondary hover:text-[var(--critical)] cursor-pointer"
               >
                 <Trash2 size={12} strokeWidth={2} />
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="text-[var(--sage)] hover:text-white cursor-pointer"
+                className="text-text-secondary hover:text-text-primary cursor-pointer"
               >
                 <X size={14} strokeWidth={2} />
               </button>
@@ -108,10 +108,10 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
                 draggable
                 onDragStart={() => handleDragStart(idx)}
                 onDragOver={(e) => handleDragOver(e, idx)}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-[2px] hover:bg-white/5 cursor-grab active:cursor-grabbing"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-[2px] hover:bg-surface-overlay cursor-grab active:cursor-grabbing"
               >
-                <GripVertical size={12} className="text-[var(--sage)] shrink-0" />
-                <span className="text-xs text-white truncate flex-1">
+                <GripVertical size={12} className="text-text-secondary shrink-0" />
+                <span className="text-xs text-text-primary truncate flex-1">
                   {r.title}
                 </span>
               </div>
@@ -119,15 +119,15 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
           </div>
 
           {/* Format + Download */}
-          <div className="px-4 py-3 border-t border-white/6 space-y-2">
+          <div className="px-4 py-3 border-t border-border-subtle space-y-2">
             <div className="flex gap-2">
               <button
                 onClick={() => setFormat("html")}
                 className={cn(
                   "flex-1 px-2 py-1.5 text-xs font-medium rounded-[2px] border cursor-pointer transition-colors",
                   format === "html"
-                    ? "border-white/15 bg-white/8 text-white"
-                    : "border-white/6 text-[var(--sage)]"
+                    ? "border-border-medium bg-active-bg text-text-primary"
+                    : "border-border-subtle text-text-secondary"
                 )}
               >
                 HTML
@@ -137,8 +137,8 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
                 className={cn(
                   "flex-1 px-2 py-1.5 text-xs font-medium rounded-[2px] border cursor-pointer transition-colors",
                   format === "slack"
-                    ? "border-white/15 bg-white/8 text-white"
-                    : "border-white/6 text-[var(--sage)]"
+                    ? "border-border-medium bg-active-bg text-text-primary"
+                    : "border-border-subtle text-text-secondary"
                 )}
               >
                 Slack
@@ -146,7 +146,7 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
             </div>
             <button
               onClick={handleDownload}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[2px] border border-white/15 text-white hover:bg-white hover:text-[var(--navy)] cursor-pointer transition-all duration-300"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[2px] border border-border-medium text-text-primary hover:bg-invert-bg hover:text-invert-text cursor-pointer transition-all duration-300"
               style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
             >
               {format === "html" ? <FileText size={12} /> : <Hash size={12} />}

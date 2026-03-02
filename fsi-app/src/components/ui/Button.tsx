@@ -13,13 +13,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   default:
-    "border-white/15 text-white hover:bg-white hover:text-[var(--navy)] active:bg-white/90",
+    "border-border-medium text-text-primary hover:bg-invert-bg hover:text-invert-text active:opacity-90",
   outline:
-    "border-[var(--sage)]/30 text-[var(--sage)] hover:border-[var(--sage)] hover:text-white",
+    "border-[var(--sage)]/30 text-text-secondary hover:border-[var(--sage)] hover:text-text-primary",
   ghost:
-    "border-transparent text-[var(--sage)] hover:bg-white/5 hover:text-white",
+    "border-transparent text-text-secondary hover:bg-surface-overlay hover:text-text-primary",
   danger:
-    "border-[var(--critical)]/30 text-[var(--critical)] hover:bg-[var(--critical)] hover:text-white",
+    "border-[var(--critical)]/30 text-[var(--critical)] hover:bg-[var(--critical)] hover:text-text-primary",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

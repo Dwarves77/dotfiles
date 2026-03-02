@@ -24,7 +24,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
   if (supersessions.length === 0) return null;
 
   return (
-    <div className="border border-white/6 rounded-[2px] bg-white/[0.01]">
+    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -34,13 +34,13 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             size={14}
             strokeWidth={2}
             className={cn(
-              "text-[var(--sage)] transition-transform duration-300",
+              "text-text-secondary transition-transform duration-300",
               !open && "-rotate-90"
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <GitBranch size={14} strokeWidth={2} className="text-[var(--sage)]" />
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] group-hover:text-white transition-colors">
+          <GitBranch size={14} strokeWidth={2} className="text-text-secondary" />
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             Supersessions ({supersessions.length})
           </span>
         </button>
@@ -51,7 +51,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
               resourceIds: [...new Set(supersessions.flatMap((s) => [s.old, s.new]))],
             })
           }
-          className="text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+          className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           View all &rarr;
         </button>
@@ -65,7 +65,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             return (
               <div
                 key={i}
-                className="border border-white/6 rounded-[2px] p-3 space-y-2"
+                className="border border-border-subtle rounded-[2px] p-3 space-y-2"
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -74,24 +74,24 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
                   >
                     {s.severity}
                   </span>
-                  <span className="text-xs text-[var(--sage)] tabular-nums">{s.date}</span>
+                  <span className="text-xs text-text-secondary tabular-nums">{s.date}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => navigateToResource(s.old)}
-                    className="text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors line-through"
+                    className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors line-through"
                   >
                     {oldR?.title?.slice(0, 50) || s.old}
                   </button>
-                  <span className="text-xs text-[var(--sage)]">&rarr;</span>
+                  <span className="text-xs text-text-secondary">&rarr;</span>
                   <button
                     onClick={() => navigateToResource(s.new)}
-                    className="text-xs text-white hover:text-[var(--cyan)] cursor-pointer transition-colors font-medium"
+                    className="text-xs text-text-primary hover:text-text-accent cursor-pointer transition-colors font-medium"
                   >
                     {newR?.title?.slice(0, 50) || s.new}
                   </button>
                 </div>
-                <p className="text-xs text-[var(--sage)] leading-relaxed">{s.note}</p>
+                <p className="text-xs text-text-secondary leading-relaxed">{s.note}</p>
               </div>
             );
           })}

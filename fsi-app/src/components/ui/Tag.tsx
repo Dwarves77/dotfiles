@@ -25,7 +25,7 @@ export function Tag({ label, color, onClick, className }: TagProps) {
       style={{
         color: color || "var(--sage)",
         borderColor: color ? `${color}25` : "var(--border-subtle)",
-        backgroundColor: color ? `${color}08` : "rgba(255,255,255,0.02)",
+        backgroundColor: color ? `${color}08` : "var(--surface-subtle)",
         transitionTimingFunction: "var(--ease-out-expo)",
       }}
     >

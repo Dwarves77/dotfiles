@@ -32,36 +32,36 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xs font-semibold tracking-wider uppercase text-white">
+      <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
         Data Summary
       </h3>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="text-center">
-          <span className="text-2xl font-display text-white">{resources.length}</span>
-          <span className="block text-xs text-[var(--sage)] uppercase tracking-wider">Active</span>
+          <span className="text-2xl font-display text-text-primary">{resources.length}</span>
+          <span className="block text-xs text-text-secondary uppercase tracking-wider">Active</span>
         </div>
         <div className="text-center">
-          <span className="text-2xl font-display text-white">{archived.length}</span>
-          <span className="block text-xs text-[var(--sage)] uppercase tracking-wider">Archived</span>
+          <span className="text-2xl font-display text-text-primary">{archived.length}</span>
+          <span className="block text-xs text-text-secondary uppercase tracking-wider">Archived</span>
         </div>
         <div className="text-center">
-          <span className="text-2xl font-display text-white">
+          <span className="text-2xl font-display text-text-primary">
             {Object.keys(stats.byJur).length}
           </span>
-          <span className="block text-xs text-[var(--sage)] uppercase tracking-wider">Jurisdictions</span>
+          <span className="block text-xs text-text-secondary uppercase tracking-wider">Jurisdictions</span>
         </div>
         <div className="text-center">
-          <span className="text-2xl font-display text-white">
+          <span className="text-2xl font-display text-text-primary">
             {Object.keys(stats.byTopic).length}
           </span>
-          <span className="block text-xs text-[var(--sage)] uppercase tracking-wider">Topics</span>
+          <span className="block text-xs text-text-secondary uppercase tracking-wider">Topics</span>
         </div>
       </div>
 
       {/* Jurisdiction Coverage */}
       <div>
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] block mb-2">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-2">
           Jurisdiction Coverage
         </span>
         <div className="space-y-1">
@@ -72,14 +72,14 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
               const pct = (count / resources.length) * 100;
               return (
                 <div key={jur} className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--sage)] w-20 shrink-0">{label}</span>
-                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <span className="text-xs text-text-secondary w-20 shrink-0">{label}</span>
+                  <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[var(--cyan)] rounded-full"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-xs text-[var(--sage)] tabular-nums w-6 text-right">
+                  <span className="text-xs text-text-secondary tabular-nums w-6 text-right">
                     {count}
                   </span>
                 </div>

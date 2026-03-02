@@ -37,7 +37,7 @@ export function FilterBar() {
       {hasActiveFilters && (
         <button
           onClick={clearFilters}
-          className="flex items-center gap-1 text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+          className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           <X size={12} strokeWidth={2} />
           Clear all filters
@@ -45,7 +45,7 @@ export function FilterBar() {
       )}
       {/* Modes */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] mr-1 w-12">Mode</span>
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary mr-1 w-12">Mode</span>
         {MODES.map(({ id, label }) => (
           <Pill
             key={id}
@@ -59,7 +59,7 @@ export function FilterBar() {
 
       {/* Topics */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] mr-1 w-12">Topic</span>
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary mr-1 w-12">Topic</span>
         {TOPICS.map(({ id, label }) => (
           <Pill
             key={id}
@@ -74,7 +74,7 @@ export function FilterBar() {
 
       {/* Jurisdictions — grouped by region */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] mr-1 w-12">Region</span>
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary mr-1 w-12">Region</span>
         {JURISDICTIONS.filter(({ id }) => counts.jurCounts[id]).map(({ id, label }) => (
           <Pill
             key={id}
@@ -88,7 +88,7 @@ export function FilterBar() {
 
       {/* Priorities */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] mr-1 w-12">Priority</span>
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary mr-1 w-12">Priority</span>
         {PRIORITIES.map((pri) => (
           <Pill
             key={pri}

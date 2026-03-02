@@ -23,14 +23,14 @@ export function FocusView({ resources }: FocusViewProps) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-white">{focusView.title}</h2>
-          <span className="text-xs text-[var(--sage)]">
+          <h2 className="text-sm font-semibold text-text-primary">{focusView.title}</h2>
+          <span className="text-xs text-text-secondary">
             {items.length} item{items.length !== 1 ? "s" : ""}
           </span>
         </div>
         <button
           onClick={clearNav}
-          className="p-1 text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+          className="p-1 text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           <X size={14} strokeWidth={2} />
         </button>

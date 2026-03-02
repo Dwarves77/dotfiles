@@ -47,8 +47,8 @@ export function Toast({
           ? "translate-y-0 opacity-100"
           : "translate-y-2 opacity-0",
         variant === "success"
-          ? "border-white/10 bg-[var(--charcoal)] text-white"
-          : "border-[var(--critical)]/30 bg-[var(--charcoal)] text-[var(--critical)]"
+          ? "border-border-light bg-surface-raised text-text-primary"
+          : "border-[var(--critical)]/30 bg-surface-raised text-[var(--critical)]"
       )}
       style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
     >

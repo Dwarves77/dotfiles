@@ -57,7 +57,7 @@ export function ResourceDetail({
   const dispute = disputes[r.id];
 
   return (
-    <div className="border-t border-white/6 px-4 pb-4 space-y-5 stagger-enter">
+    <div className="border-t border-border-subtle px-4 pb-4 space-y-5 stagger-enter">
       {/* Share Menu */}
       {showShare && (
         <ShareMenu
@@ -85,12 +85,12 @@ export function ResourceDetail({
             <span className="opacity-60">({verification.xrefCount} links)</span>
           )}
         </div>
-        <span className="text-xs tabular-nums text-[var(--sage)]">
+        <span className="text-xs tabular-nums text-text-secondary">
           Urgency: {urgency}
         </span>
         <button
           onClick={() => setShowShare(!showShare)}
-          className="ml-auto flex items-center gap-1 text-xs text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+          className="ml-auto flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           <Share2 size={11} strokeWidth={2} />
           Share
@@ -100,10 +100,10 @@ export function ResourceDetail({
       {/* Priority Reasoning */}
       {r.reasoning && (
         <div className="border-l-2 border-[var(--cyan)] pl-3 py-1">
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--cyan)] block mb-1">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-accent block mb-1">
             Why {r.priority}
           </span>
-          <p className="text-xs text-white/80 leading-relaxed">{r.reasoning}</p>
+          <p className="text-xs text-text-primary/80 leading-relaxed">{r.reasoning}</p>
         </div>
       )}
 
@@ -115,14 +115,14 @@ export function ResourceDetail({
           </span>
           {changes.map((ch, i) => (
             <div key={i} className="space-y-0.5">
-              <span className="text-xs font-semibold text-white">
+              <span className="text-xs font-semibold text-text-primary">
                 {ch.fields?.join(", ")}
               </span>
               {ch.prev && (
-                <p className="text-xs text-[var(--sage)] line-through">{ch.prev}</p>
+                <p className="text-xs text-text-secondary line-through">{ch.prev}</p>
               )}
               {ch.now && (
-                <p className="text-xs text-white font-medium">{ch.now}</p>
+                <p className="text-xs text-text-primary font-medium">{ch.now}</p>
               )}
               {ch.impact && (
                 <p className="text-xs text-[#C77700]">Impact: {ch.impact}</p>
@@ -135,10 +135,10 @@ export function ResourceDetail({
       {/* What This Is */}
       {r.whatIsIt && (
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] block mb-1">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
             What This Is
           </span>
-          <p className="text-xs text-white/80 leading-relaxed">{r.whatIsIt}</p>
+          <p className="text-xs text-text-primary/80 leading-relaxed">{r.whatIsIt}</p>
         </div>
       )}
 
@@ -148,19 +148,19 @@ export function ResourceDetail({
           <span className="text-xs font-semibold tracking-wider uppercase text-[#059669] block mb-1">
             Why It Matters
           </span>
-          <p className="text-xs text-white leading-relaxed">{r.whyMatters}</p>
+          <p className="text-xs text-text-primary leading-relaxed">{r.whyMatters}</p>
         </div>
       )}
 
       {/* Key Data */}
       {r.keyData?.length > 0 && (
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] block mb-1">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
             Key Data
           </span>
           <ul className="space-y-0.5">
             {r.keyData.map((d, i) => (
-              <li key={i} className="text-xs text-white/70 leading-relaxed pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[7px] before:w-1 before:h-1 before:rounded-full before:bg-white/30">
+              <li key={i} className="text-xs text-text-primary/70 leading-relaxed pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[7px] before:w-1 before:h-1 before:rounded-full before:bg-text-primary/30">
                 {d}
               </li>
             ))}
@@ -180,7 +180,7 @@ export function ResourceDetail({
               Disputed
             </span>
           </div>
-          <p className="text-xs text-white/70 leading-relaxed">{dispute.note}</p>
+          <p className="text-xs text-text-primary/70 leading-relaxed">{dispute.note}</p>
           {dispute.sources?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {dispute.sources.map((s: any, i: number) => {
@@ -214,7 +214,7 @@ export function ResourceDetail({
       {/* Timeline */}
       {r.timeline && r.timeline.length > 0 && (
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] block mb-1">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
             Timeline
           </span>
           <TimelineBar items={r.timeline} color={topicColor} />
@@ -224,7 +224,7 @@ export function ResourceDetail({
       {/* Regulatory Lineage */}
       {lineage.length > 1 && (
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] block mb-1.5">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1.5">
             <GitBranch size={10} className="inline mr-1" />
             Regulatory Lineage
           </span>
@@ -236,14 +236,14 @@ export function ResourceDetail({
                   className={cn(
                     "text-xs px-1.5 py-0.5 rounded-[2px] border",
                     node.isCurrent
-                      ? "border-white/15 bg-white/8 text-white font-medium"
-                      : "border-white/6 text-[var(--sage)] hover:text-white cursor-pointer"
+                      ? "border-border-medium bg-active-bg text-text-primary font-medium"
+                      : "border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer"
                   )}
                 >
                   {node.title.slice(0, 40)}
                 </button>
                 {i < lineage.length - 1 && (
-                  <span className="text-[var(--sage)] text-xs">&rarr;</span>
+                  <span className="text-text-secondary text-xs">&rarr;</span>
                 )}
               </span>
             ))}
@@ -254,13 +254,13 @@ export function ResourceDetail({
       {/* Cross-References */}
       {(refs.length > 0 || refBy.length > 0) && (
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-[var(--sage)] block mb-1.5">
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1.5">
             <Link2 size={10} className="inline mr-1" />
             Cross-References
           </span>
           {refs.length > 0 && (
             <div className="mb-1">
-              <span className="text-xs text-[var(--sage)]">References:</span>
+              <span className="text-xs text-text-secondary">References:</span>
               <div className="flex flex-wrap gap-1 mt-0.5">
                 {refs.map((id) => {
                   const ref = resourceMap.get(id);
@@ -268,7 +268,7 @@ export function ResourceDetail({
                     <button
                       key={id}
                       onClick={() => navigateToResource(id)}
-                      className="text-xs px-1.5 py-0.5 rounded-[2px] border border-white/6 text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+                      className="text-xs px-1.5 py-0.5 rounded-[2px] border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
                       {ref?.title?.slice(0, 35) || id}
                     </button>
@@ -279,7 +279,7 @@ export function ResourceDetail({
           )}
           {refBy.length > 0 && (
             <div>
-              <span className="text-xs text-[var(--sage)]">Referenced by:</span>
+              <span className="text-xs text-text-secondary">Referenced by:</span>
               <div className="flex flex-wrap gap-1 mt-0.5">
                 {refBy.map((id) => {
                   const ref = resourceMap.get(id);
@@ -287,7 +287,7 @@ export function ResourceDetail({
                     <button
                       key={id}
                       onClick={() => navigateToResource(id)}
-                      className="text-xs px-1.5 py-0.5 rounded-[2px] border border-white/6 text-[var(--sage)] hover:text-white cursor-pointer transition-colors"
+                      className="text-xs px-1.5 py-0.5 rounded-[2px] border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
                       {ref?.title?.slice(0, 35) || id}
                     </button>
@@ -306,7 +306,7 @@ export function ResourceDetail({
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="inline-flex items-center gap-1.5 text-xs text-[var(--cyan)] hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-text-accent hover:text-text-primary transition-colors"
         >
           <ExternalLink size={10} strokeWidth={2} />
           Source
@@ -315,7 +315,7 @@ export function ResourceDetail({
 
       {/* Priority Override */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-[var(--sage)]">Priority:</span>
+        <span className="text-xs text-text-secondary">Priority:</span>
         {(["CRITICAL", "HIGH", "MODERATE", "LOW"] as const).map((pri) => (
           <button
             key={pri}
@@ -324,7 +324,7 @@ export function ResourceDetail({
               "text-xs px-1.5 py-0.5 rounded-[2px] border cursor-pointer transition-colors",
               r.priority === pri
                 ? "border-current font-medium"
-                : "border-white/6 opacity-40 hover:opacity-70"
+                : "border-border-subtle opacity-40 hover:opacity-70"
             )}
             style={{ color: PRIORITY_COLORS[pri] }}
           >
@@ -337,18 +337,18 @@ export function ResourceDetail({
       {!archiveMode ? (
         <button
           onClick={() => setArchiveMode(true)}
-          className="flex items-center gap-1 text-xs text-[var(--sage)] hover:text-[var(--critical)] cursor-pointer transition-colors"
+          className="flex items-center gap-1 text-xs text-text-secondary hover:text-[var(--critical)] cursor-pointer transition-colors"
         >
           <Archive size={10} strokeWidth={2} />
           Archive
         </button>
       ) : (
-        <div className="border border-white/6 rounded-[2px] p-3 space-y-2">
-          <span className="text-xs font-semibold text-white">Archive Resource</span>
+        <div className="border border-border-subtle rounded-[2px] p-3 space-y-2">
+          <span className="text-xs font-semibold text-text-primary">Archive Resource</span>
           <select
             value={archiveReason}
             onChange={(e) => setArchiveReason(e.target.value)}
-            className="w-full text-xs p-1.5 bg-white/5 border border-white/10 rounded-[2px] text-white"
+            className="w-full text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary"
           >
             <option value="">Select reason...</option>
             {ARCHIVE_REASONS.map((reason) => (
@@ -360,7 +360,7 @@ export function ResourceDetail({
             placeholder="Optional note..."
             value={archiveNote}
             onChange={(e) => setArchiveNote(e.target.value)}
-            className="w-full text-xs p-1.5 bg-white/5 border border-white/10 rounded-[2px] text-white placeholder:text-[var(--sage)]/50"
+            className="w-full text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary placeholder:text-text-secondary/50"
           />
           <div className="flex gap-2">
             <button
@@ -372,13 +372,13 @@ export function ResourceDetail({
                 }
               }}
               disabled={!archiveReason}
-              className="text-xs px-3 py-1 rounded-[2px] border border-[var(--critical)]/30 text-[var(--critical)] hover:bg-[var(--critical)] hover:text-white disabled:opacity-30 cursor-pointer transition-colors"
+              className="text-xs px-3 py-1 rounded-[2px] border border-[var(--critical)]/30 text-[var(--critical)] hover:bg-[var(--critical)] hover:text-text-primary disabled:opacity-30 cursor-pointer transition-colors"
             >
               Confirm
             </button>
             <button
               onClick={() => setArchiveMode(false)}
-              className="text-xs px-3 py-1 text-[var(--sage)] hover:text-white cursor-pointer"
+              className="text-xs px-3 py-1 text-text-secondary hover:text-text-primary cursor-pointer"
             >
               Cancel
             </button>
@@ -389,7 +389,7 @@ export function ResourceDetail({
       {/* Collapse Bar */}
       <button
         onClick={() => setExpanded(null)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 mt-2 border border-white/6 rounded-[2px] text-xs text-[var(--sage)] hover:text-white hover:border-white/10 cursor-pointer transition-all duration-200"
+        className="w-full flex items-center justify-center gap-1.5 py-2 mt-2 border border-border-subtle rounded-[2px] text-xs text-text-secondary hover:text-text-primary hover:border-border-light cursor-pointer transition-all duration-200"
       >
         <ChevronUp size={12} strokeWidth={2} />
         Collapse

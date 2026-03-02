@@ -89,14 +89,14 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
           onClick={onClick}
           className={cn(
             "flex flex-col items-center gap-1.5 p-4",
-            "border border-white/6 rounded-[2px] bg-white/[0.02]",
-            "hover:border-white/10 hover:bg-white/[0.04]",
+            "border border-border-subtle rounded-[2px] bg-surface-subtle",
+            "hover:border-border-light hover:bg-surface-subtle-hover",
             "transition-all duration-300 cursor-pointer"
           )}
           style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
         >
           <Icon size={16} strokeWidth={2} style={{ color }} />
-          <span className="text-2xl font-display tabular-nums text-white">
+          <span className="text-2xl font-display tabular-nums text-text-primary">
             {count}
           </span>
           <span className="text-xs font-semibold tracking-wider uppercase" style={{ color }}>

@@ -115,19 +115,19 @@ export function Dashboard({
   useScrollToResource(expandedId);
 
   return (
-    <div className="relative min-h-screen bg-[var(--navy)]">
+    <div className="relative min-h-screen bg-surface-base">
       <AmbientOrbs />
 
       <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 py-6">
         {/* Header */}
         <header className="mb-6">
-          <h1 className="font-display text-3xl sm:text-4xl uppercase tracking-tight text-white">
+          <h1 className="font-display text-3xl sm:text-4xl uppercase tracking-tight text-text-primary">
             {APP_NAME}
           </h1>
-          <p className="text-xs font-light tracking-[0.2em] uppercase text-[var(--sage)] mt-1">
+          <p className="text-xs font-light tracking-[0.2em] uppercase text-text-secondary mt-1">
             {APP_TAGLINE}
           </p>
-          <div className="mt-3 h-px bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
+          <div className="mt-3 h-px bg-gradient-to-r from-border-medium via-surface-overlay to-transparent" />
         </header>
 
         {/* Tab Bar */}
@@ -177,7 +177,7 @@ export function Dashboard({
                 <FilterBar />
                 <div className="flex items-center justify-between">
                   <SortSelector />
-                  <span className="text-xs text-[var(--sage)] tabular-nums">
+                  <span className="text-xs text-text-secondary tabular-nums">
                     {displayResources.length} resource{displayResources.length !== 1 ? "s" : ""}
                   </span>
                 </div>
@@ -224,11 +224,11 @@ export function Dashboard({
         {tab === "settings" && !focusView && (
           <div className="space-y-8 mt-4">
             <DashboardSettings />
-            <div className="h-px bg-white/6" />
+            <div className="h-px bg-border-subtle" />
             <DataSummary resources={resources} archived={archived} />
-            <div className="h-px bg-white/6" />
+            <div className="h-px bg-border-subtle" />
             <SupersessionHistory supersessions={supersessions} resourceMap={resourceMap} />
-            <div className="h-px bg-white/6" />
+            <div className="h-px bg-border-subtle" />
             <ArchiveViewer />
           </div>
         )}
