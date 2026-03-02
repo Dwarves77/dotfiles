@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 
 // Static seed data fallback
@@ -20,28 +21,10 @@ function isSupabaseConfigured(): boolean {
   );
 }
 
-async function getSupabase() {
-  const { createServerClient } = await import("@supabase/ssr");
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-
-  return createServerClient(
+function getSupabase() {
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // setAll may fail in Server Components — safe to ignore
-          }
-        },
-      },
-    }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
 
@@ -82,7 +65,7 @@ function mapResource(row: any, timelines?: any[]): Resource {
 // ── Fetch Functions ──────────────────────────────────────────
 
 async function fetchResources(): Promise<Resource[]> {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
 
   const [{ data: rows }, { data: timelineRows }] = await Promise.all([
     supabase.from("resources").select("*").eq("is_archived", false),
@@ -102,7 +85,7 @@ async function fetchResources(): Promise<Resource[]> {
 }
 
 async function fetchArchived(): Promise<Resource[]> {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const { data: rows } = await supabase
     .from("resources")
     .select("*")
@@ -112,7 +95,7 @@ async function fetchArchived(): Promise<Resource[]> {
 }
 
 async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const { data: rows } = await supabase
     .from("changelog")
     .select("*")
@@ -137,7 +120,7 @@ async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
 }
 
 async function fetchDisputes(): Promise<Record<string, Dispute>> {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const { data: rows } = await supabase
     .from("disputes")
     .select("*")
@@ -164,14 +147,14 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
 }
 
 async function fetchXrefPairs(): Promise<[string, string][]> {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const { data: rows } = await supabase.from("cross_references").select("*");
 
   return (rows || []).map((row: any) => [row.source_id, row.target_id]);
 }
 
 async function fetchSupersessions(): Promise<Supersession[]> {
-  const supabase = await getSupabase();
+  const supabase = getSupabase();
   const { data: rows } = await supabase
     .from("supersessions")
     .select("*")

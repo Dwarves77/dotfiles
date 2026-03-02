@@ -46,7 +46,7 @@ export const supersessions: Supersession[] = SUPERSESSIONS.map((s) => ({
   old: s.id,
   new: s.newId,
   date: s.date,
-  severity: s.severity.toLowerCase() as "major" | "minor" | "replacement",
+  severity: s.severity,
   note: s.what,
 }));
 

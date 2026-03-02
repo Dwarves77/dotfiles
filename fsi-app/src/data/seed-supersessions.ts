@@ -14,7 +14,7 @@ export interface Supersession {
   oldUrl: string;
   newTitle: string;
   newId: string;
-  severity: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+  severity: "major" | "minor" | "replacement";
   date: string;
   what: string;
   timeline: TimelineMilestone[];
@@ -27,7 +27,7 @@ export const SUPERSESSIONS: Supersession[] = [
     oldUrl: "",
     newTitle: "EU PPWR 2025/40",
     newId: "g2",
-    severity: "CRITICAL",
+    severity: "major",
     date: "2025-02",
     what: "Directive replaced by directly applicable Regulation. No national transposition needed. All packaging recyclable by 2030, PFAS restrictions, single-use limits. Dramatically expands scope for transport and event packaging.",
     timeline: [
@@ -43,7 +43,7 @@ export const SUPERSESSIONS: Supersession[] = [
     oldUrl: "",
     newTitle: "EU Omnibus CSRD 1,000+ employees",
     newId: "c1",
-    severity: "CRITICAL",
+    severity: "major",
     date: "2026-02",
     what: "Omnibus raised company size threshold from 250 to 1,000 employees. Companies in scope dropped from ~50,000 to ~5,000. Wave 2 delayed by 2 years. Remaining companies face stricter data granularity requirements including supply chain logistics emissions.",
     timeline: [
@@ -58,7 +58,7 @@ export const SUPERSESSIONS: Supersession[] = [
     oldUrl: "",
     newTitle: "EPA GHG Rescission (2025)",
     newId: "g8",
-    severity: "HIGH",
+    severity: "minor",
     date: "2025-12",
     what: "Federal legal basis for ALL vehicle GHG regulation removed. Creates patchwork: California + 12 Section 177 states maintain independent standards. Federal rules collapse. Court challenges pending. Freight forwarders face divergent state-by-state compliance.",
     timeline: [
@@ -74,7 +74,7 @@ export const SUPERSESSIONS: Supersession[] = [
     oldUrl: "",
     newTitle: "IMO 2023 Revised Strategy (Net-zero ~2050)",
     newId: "o1",
-    severity: "CRITICAL",
+    severity: "major",
     date: "2023-07",
     what: "Ambition doubled from 50% reduction to net-zero by ~2050. New interim checkpoints: 20% by 2030, 70% by 2040. GHG fuel intensity code and pricing mechanism under negotiation. Fundamentally reshapes carrier fleet investment timelines.",
     timeline: [
@@ -91,7 +91,7 @@ export const SUPERSESSIONS: Supersession[] = [
     oldUrl: "",
     newTitle: "IMO Net-Zero Framework (binding fuel standard + pricing)",
     newId: "o13",
-    severity: "CRITICAL",
+    severity: "major",
     date: "2025-04",
     what: "First binding market-based measure for shipping: mandatory fuel GHG intensity standard + global carbon pricing mechanism. Approved MEPC 83 by 63-16-24 vote. US walked out and formally opposes. Adoption at MEPC ES.2 Oct 2025, entry into force Mar 2027, enforcement 2028. Creates new carrier cost layer on every ocean shipment.",
     timeline: [

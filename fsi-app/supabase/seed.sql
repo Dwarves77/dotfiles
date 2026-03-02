@@ -1293,27 +1293,27 @@ INSERT INTO cross_references (source_id, target_id) VALUES ('r36', 'o3') ON CONF
 -- ═══ Supersessions (5) ═══
 INSERT INTO supersessions (old_id, old_title, old_url, new_id, new_title, severity, date, note, timeline) VALUES (
   'ss1', 'EU PPWD 94/62/EC', '', 'g2', 'EU PPWR 2025/40',
-  'critical', '2025-02', 'Directive replaced by directly applicable Regulation. No national transposition needed. All packaging recyclable by 2030, PFAS restrictions, single-use limits. Dramatically expands scope for transport and event packaging.', '[{"date":"1994-12","label":"PPWD adopted"},{"date":"2025-02","label":"PPWR in force"},{"date":"2026-08","label":"PPWR applies"},{"date":"2030-01","label":"All recyclable"}]'::jsonb
+  'major', '2025-02', 'Directive replaced by directly applicable Regulation. No national transposition needed. All packaging recyclable by 2030, PFAS restrictions, single-use limits. Dramatically expands scope for transport and event packaging.', '[{"date":"1994-12","label":"PPWD adopted"},{"date":"2025-02","label":"PPWR in force"},{"date":"2026-08","label":"PPWR applies"},{"date":"2030-01","label":"All recyclable"}]'::jsonb
 );
 
 INSERT INTO supersessions (old_id, old_title, old_url, new_id, new_title, severity, date, note, timeline) VALUES (
   'ss2', 'CSRD 250+ employees threshold', '', 'c1', 'EU Omnibus CSRD 1,000+ employees',
-  'critical', '2026-02', 'Omnibus raised company size threshold from 250 to 1,000 employees. Companies in scope dropped from ~50,000 to ~5,000. Wave 2 delayed by 2 years. Remaining companies face stricter data granularity requirements including supply chain logistics emissions.', '[{"date":"2024-01","label":"Wave 1 PIEs"},{"date":"2026-02","label":"Omnibus adopted"},{"date":"2028-01","label":"Wave 2 delayed"}]'::jsonb
+  'major', '2026-02', 'Omnibus raised company size threshold from 250 to 1,000 employees. Companies in scope dropped from ~50,000 to ~5,000. Wave 2 delayed by 2 years. Remaining companies face stricter data granularity requirements including supply chain logistics emissions.', '[{"date":"2024-01","label":"Wave 1 PIEs"},{"date":"2026-02","label":"Omnibus adopted"},{"date":"2028-01","label":"Wave 2 delayed"}]'::jsonb
 );
 
 INSERT INTO supersessions (old_id, old_title, old_url, new_id, new_title, severity, date, note, timeline) VALUES (
   'ss3', 'EPA 2009 Endangerment Finding', '', 'g8', 'EPA GHG Rescission (2025)',
-  'high', '2025-12', 'Federal legal basis for ALL vehicle GHG regulation removed. Creates patchwork: California + 12 Section 177 states maintain independent standards. Federal rules collapse. Court challenges pending. Freight forwarders face divergent state-by-state compliance.', '[{"date":"2009-12","label":"Finding issued"},{"date":"2025-06","label":"Rescission proposed"},{"date":"2025-12","label":"Final rule"},{"date":"2026-06","label":"Court challenges"}]'::jsonb
+  'minor', '2025-12', 'Federal legal basis for ALL vehicle GHG regulation removed. Creates patchwork: California + 12 Section 177 states maintain independent standards. Federal rules collapse. Court challenges pending. Freight forwarders face divergent state-by-state compliance.', '[{"date":"2009-12","label":"Finding issued"},{"date":"2025-06","label":"Rescission proposed"},{"date":"2025-12","label":"Final rule"},{"date":"2026-06","label":"Court challenges"}]'::jsonb
 );
 
 INSERT INTO supersessions (old_id, old_title, old_url, new_id, new_title, severity, date, note, timeline) VALUES (
   'ss4', 'IMO 2018 GHG Strategy (50% by 2050)', '', 'o1', 'IMO 2023 Revised Strategy (Net-zero ~2050)',
-  'critical', '2023-07', 'Ambition doubled from 50% reduction to net-zero by ~2050. New interim checkpoints: 20% by 2030, 70% by 2040. GHG fuel intensity code and pricing mechanism under negotiation. Fundamentally reshapes carrier fleet investment timelines.', '[{"date":"2018-04","label":"Initial strategy"},{"date":"2023-07","label":"Revised adopted"},{"date":"2025-04","label":"MEPC 83"},{"date":"2030-01","label":"20% checkpoint"},{"date":"2040-01","label":"70% checkpoint"}]'::jsonb
+  'major', '2023-07', 'Ambition doubled from 50% reduction to net-zero by ~2050. New interim checkpoints: 20% by 2030, 70% by 2040. GHG fuel intensity code and pricing mechanism under negotiation. Fundamentally reshapes carrier fleet investment timelines.', '[{"date":"2018-04","label":"Initial strategy"},{"date":"2023-07","label":"Revised adopted"},{"date":"2025-04","label":"MEPC 83"},{"date":"2030-01","label":"20% checkpoint"},{"date":"2040-01","label":"70% checkpoint"}]'::jsonb
 );
 
 INSERT INTO supersessions (old_id, old_title, old_url, new_id, new_title, severity, date, note, timeline) VALUES (
   'ss5', 'Voluntary IMO GHG measures only', '', 'o13', 'IMO Net-Zero Framework (binding fuel standard + pricing)',
-  'critical', '2025-04', 'First binding market-based measure for shipping: mandatory fuel GHG intensity standard + global carbon pricing mechanism. Approved MEPC 83 by 63-16-24 vote. US walked out and formally opposes. Adoption at MEPC ES.2 Oct 2025, entry into force Mar 2027, enforcement 2028. Creates new carrier cost layer on every ocean shipment.', '[{"date":"2025-04","label":"MEPC 83 approved"},{"date":"2025-10","label":"Adoption vote"},{"date":"2027-03","label":"Entry into force"},{"date":"2028-01","label":"Enforcement"}]'::jsonb
+  'major', '2025-04', 'First binding market-based measure for shipping: mandatory fuel GHG intensity standard + global carbon pricing mechanism. Approved MEPC 83 by 63-16-24 vote. US walked out and formally opposes. Adoption at MEPC ES.2 Oct 2025, entry into force Mar 2027, enforcement 2028. Creates new carrier cost layer on every ocean shipment.', '[{"date":"2025-04","label":"MEPC 83 approved"},{"date":"2025-10","label":"Adoption vote"},{"date":"2027-03","label":"Entry into force"},{"date":"2028-01","label":"Enforcement"}]'::jsonb
 );
 
 COMMIT;

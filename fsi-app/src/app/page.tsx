@@ -1,6 +1,8 @@
 import { Dashboard } from "@/components/Dashboard";
 import { fetchDashboardData } from "@/lib/supabase-server";
 
+export const revalidate = 300;
+
 export default async function Home() {
   const {
     resources,
