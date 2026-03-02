@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Anton, Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
+import "./theme.css";
 import "./globals.css";
 
 const anton = Anton({

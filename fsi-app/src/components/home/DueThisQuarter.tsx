@@ -75,12 +75,12 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
         </button>
       </div>
       {open && (
-        <div className="px-4 pb-4 space-y-1.5">
+        <div className="px-4 pb-2 divide-y divide-border-subtle">
           {due.slice(0, 8).map(({ resource: r, next, days }) => (
             <button
               key={r.id}
               onClick={() => navigateToResource(r.id)}
-              className="w-full text-left flex items-center gap-3 px-3 py-2 border border-border-subtle rounded-[2px] hover:border-border-light cursor-pointer transition-colors"
+              className="w-full text-left flex items-center gap-3 px-1 py-2.5 hover:bg-surface-overlay cursor-pointer transition-colors"
             >
               <span
                 className="text-xs font-semibold tabular-nums w-10 shrink-0"

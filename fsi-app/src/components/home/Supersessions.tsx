@@ -57,7 +57,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
         </button>
       </div>
       {open && (
-        <div className="px-4 pb-4 space-y-3">
+        <div className="px-4 pb-2 divide-y divide-border-subtle">
           {supersessions.map((s, i) => {
             const oldR = resourceMap.get(s.old);
             const newR = resourceMap.get(s.new);
@@ -65,7 +65,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             return (
               <div
                 key={i}
-                className="border border-border-subtle rounded-[2px] p-3 space-y-2"
+                className="py-3 px-1 space-y-2"
               >
                 <div className="flex items-center gap-2">
                   <span

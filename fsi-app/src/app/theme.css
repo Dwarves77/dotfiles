@@ -1,0 +1,121 @@
+/* ═══════════════════════════════════════════════════════════
+   Theme CSS custom properties — kept separate from Tailwind
+   processing so @theme inline doesn't consume/strip them.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── DARK THEME (default when data-theme="dark") ── */
+:root {
+  /* Core palette */
+  --navy: #171e19;
+  --navy-light: #1e2722;
+  --sage: #b7c6c2;
+  --white: #ffffff;
+  --taupe: #9f8d8b;
+  --beige: #d7c5b2;
+  --cyan: #d5f4f9;
+  --soft-blue: #bbe2f5;
+  --charcoal: #302b2f;
+  --charcoal-light: #3a3438;
+
+  /* Priority colors */
+  --critical: #FF3B30;
+  --high: #FF9500;
+  --moderate: #8e8e93;
+  --low: #aeaeb2;
+
+  /* Topic colors */
+  --topic-emissions: #5856D6;
+  --topic-fuels: #A2845E;
+  --topic-transport: #34C759;
+  --topic-reporting: #AF52DE;
+  --topic-packaging: #FF2D55;
+  --topic-corridors: #007AFF;
+  --topic-research: #5AC8FA;
+
+  /* Impact dimension colors */
+  --impact-cost: #FFD60A;
+  --impact-compliance: #E040FB;
+  --impact-client: #00C7BE;
+  --impact-operational: #64D2FF;
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Semantic tokens */
+  --text-primary: #ffffff;
+  --text-secondary: #b7c6c2;
+  --text-muted: #9f8d8b;
+  --text-accent: #d5f4f9;
+
+  --surface-base: #171e19;
+  --surface-raised: #302b2f;
+  --surface-raised-hover: #3a3438;
+  --surface-subtle: rgba(255, 255, 255, 0.02);
+  --surface-subtle-hover: rgba(255, 255, 255, 0.04);
+  --surface-overlay: rgba(255, 255, 255, 0.05);
+  --surface-input: rgba(255, 255, 255, 0.05);
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.10);
+  --border-medium: rgba(255, 255, 255, 0.15);
+  --border-strong: rgba(255, 255, 255, 0.20);
+
+  --active-bg: rgba(255, 255, 255, 0.08);
+  --active-border: rgba(255, 255, 255, 0.15);
+
+  --invert-bg: #ffffff;
+  --invert-text: #171e19;
+
+  --scrollbar-thumb: rgba(183, 198, 194, 0.2);
+  --scrollbar-thumb-hover: rgba(183, 198, 194, 0.35);
+
+  /* Legacy semantic (for backward compat) */
+  --background: var(--surface-base);
+  --foreground: var(--text-primary);
+  --muted: var(--text-secondary);
+  --muted-foreground: var(--text-muted);
+  --card: var(--surface-raised);
+  --card-hover: var(--surface-raised-hover);
+  --accent: var(--text-accent);
+}
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --navy: #FAFAF8;
+  --navy-light: #F0EDE8;
+  --sage: #6B7C78;
+  --white: #1A1A1A;
+  --taupe: #7A6E6C;
+  --beige: #8B7A6E;
+  --cyan: #0891B2;
+  --soft-blue: #0E7490;
+  --charcoal: #FFFFFF;
+  --charcoal-light: #F5F2EE;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #5A6B67;
+  --text-muted: #7A6E6C;
+  --text-accent: #0891B2;
+
+  --surface-base: #FAFAF8;
+  --surface-raised: #FFFFFF;
+  --surface-raised-hover: #F5F2EE;
+  --surface-subtle: rgba(0, 0, 0, 0.02);
+  --surface-subtle-hover: rgba(0, 0, 0, 0.04);
+  --surface-overlay: rgba(0, 0, 0, 0.03);
+  --surface-input: rgba(0, 0, 0, 0.04);
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.12);
+  --border-medium: rgba(0, 0, 0, 0.18);
+  --border-strong: rgba(0, 0, 0, 0.25);
+
+  --active-bg: rgba(0, 0, 0, 0.06);
+  --active-border: rgba(0, 0, 0, 0.18);
+
+  --invert-bg: #1A1A1A;
+  --invert-text: #FFFFFF;
+
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+}

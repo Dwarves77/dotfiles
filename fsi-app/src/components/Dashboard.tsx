@@ -39,7 +39,8 @@ import { useExportStore } from "@/stores/exportStore";
 // Logic
 import { urgencyScore, scoreResource, filterResources, sortResources } from "@/lib/scoring";
 import { useScrollToResource } from "@/hooks/useScrollToResource";
-import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
+import { APP_NAME, APP_TAGLINE, TOPIC_COLORS } from "@/lib/constants";
+import { cn } from "@/lib/cn";
 
 // Data
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
@@ -188,33 +189,49 @@ export function Dashboard({
 
             {!focusView && (
               <div className="space-y-2">
-                {displayResources.map((r) => (
-                  <div key={r.id}>
-                    <div className="flex items-center gap-2">
+                {displayResources.map((r) => {
+                  const isExpanded = expandedId === r.id;
+                  const topicColor = TOPIC_COLORS[r.topic || ""] || undefined;
+                  return (
+                    <div key={r.id} className="flex items-start gap-2">
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(r.id)}
                         onChange={() => toggleSelection(r.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-3 h-3 accent-[var(--cyan)] cursor-pointer shrink-0"
+                        className="w-3 h-3 mt-4 accent-[var(--cyan)] cursor-pointer shrink-0"
                       />
-                      <div className="flex-1 min-w-0">
-                        <ResourceCard resource={r} />
+                      <div
+                        id={`resource-${r.id}`}
+                        className={cn(
+                          "flex-1 min-w-0 border rounded-[2px] card-expand",
+                          "hover:border-border-light",
+                          isExpanded
+                            ? "border-border-light bg-surface-input"
+                            : "border-border-subtle bg-surface-subtle"
+                        )}
+                        style={{
+                          borderLeftWidth: 3,
+                          borderLeftColor: topicColor || "var(--border-subtle)",
+                          transitionTimingFunction: "var(--ease-out-expo)",
+                        }}
+                      >
+                        <ResourceCard resource={r} embedded />
+                        {isExpanded && (
+                          <ResourceDetail
+                            resource={r}
+                            changelog={changelog}
+                            disputes={disputes}
+                            xrefPairs={xrefPairs}
+                            supersessions={supersessions}
+                            resourceMap={resourceMap}
+                            onToast={showToast}
+                          />
+                        )}
                       </div>
                     </div>
-                    {expandedId === r.id && (
-                      <ResourceDetail
-                        resource={r}
-                        changelog={changelog}
-                        disputes={disputes}
-                        xrefPairs={xrefPairs}
-                        supersessions={supersessions}
-                        resourceMap={resourceMap}
-                        onToast={showToast}
-                      />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

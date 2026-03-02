@@ -68,12 +68,12 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               <span className="text-xs font-semibold tracking-wider uppercase text-[#34C759] block mb-2">
                 New ({newResources.length})
               </span>
-              <div className="space-y-2">
+              <div className="divide-y divide-border-subtle">
                 {newResources.map((r) => (
                   <button
                     key={r.id}
                     onClick={() => navigateToResource(r.id)}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2 border border-[#34C759]/20 rounded-[2px] bg-[#34C759]/5 hover:border-[#34C759]/30 cursor-pointer transition-colors"
+                    className="w-full text-left flex items-center gap-3 px-1 py-2.5 hover:bg-surface-overlay cursor-pointer transition-colors"
                   >
                     <span className="text-xs font-semibold text-[#34C759] shrink-0">NEW</span>
                     <div className="flex-1 min-w-0">
@@ -93,14 +93,14 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               <span className="text-xs font-semibold tracking-wider uppercase text-[#C77700] block mb-2">
                 Updated ({changed.length})
               </span>
-              <div className="space-y-3">
+              <div className="divide-y divide-border-subtle">
                 {changed.map((r) => {
                   const changes = changelog[r.id] || [];
                   return (
                     <button
                       key={r.id}
                       onClick={() => navigateToResource(r.id)}
-                      className="w-full text-left border border-border-subtle rounded-[2px] p-3 hover:border-border-light cursor-pointer transition-colors"
+                      className="w-full text-left px-1 py-3 hover:bg-surface-overlay cursor-pointer transition-colors"
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-xs font-medium text-text-primary truncate flex-1">

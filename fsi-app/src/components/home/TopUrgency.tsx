@@ -62,14 +62,14 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
         </button>
       </div>
       {open && (
-        <div className="px-4 pb-4 space-y-2">
+        <div className="px-4 pb-2 divide-y divide-border-subtle">
           {top5.map((r) => {
             const modes = r.modes || [r.cat];
             return (
               <button
                 key={r.id}
                 onClick={() => navigateToResource(r.id)}
-                className="w-full text-left flex items-start gap-3 p-3 border border-border-subtle rounded-[2px] bg-surface-subtle hover:border-border-light cursor-pointer transition-all duration-200"
+                className="w-full text-left flex items-start gap-3 py-2.5 px-1 hover:bg-surface-overlay cursor-pointer transition-all duration-200"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1">

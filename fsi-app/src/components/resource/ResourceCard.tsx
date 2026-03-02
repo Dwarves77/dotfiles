@@ -14,9 +14,10 @@ interface ResourceCardProps {
   resource: Resource;
   why?: string;
   onShareClick?: (e: React.MouseEvent) => void;
+  embedded?: boolean;
 }
 
-export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardProps) {
+export function ResourceCard({ resource: r, why, onShareClick, embedded }: ResourceCardProps) {
   const { expandedId, setExpanded } = useResourceStore();
   const { toggleFilter } = useResourceStore();
   const { pushFocusView } = useNavigationStore();
@@ -24,27 +25,11 @@ export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardPro
   const modes = r.modes || [r.cat];
   const topicColor = TOPIC_COLORS[r.topic || ""] || undefined;
 
-  return (
+  const content = (
     <div
-      id={`resource-${r.id}`}
-      className={cn(
-        "border rounded-[2px] card-expand",
-        "hover:border-border-light",
-        isExpanded
-          ? "border-border-light bg-surface-input"
-          : "border-border-subtle bg-surface-subtle"
-      )}
-      style={{
-        borderLeftWidth: 3,
-        borderLeftColor: topicColor || "var(--border-subtle)",
-        transitionTimingFunction: "var(--ease-out-expo)",
-      }}
+      className="flex items-start gap-3 p-4 cursor-pointer"
+      onClick={() => setExpanded(isExpanded ? null : r.id)}
     >
-      {/* Collapsed Row */}
-      <div
-        className="flex items-start gap-3 p-4 cursor-pointer"
-        onClick={() => setExpanded(isExpanded ? null : r.id)}
-      >
         <div className="flex-1 min-w-0">
           {/* Mode badges + priority */}
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -137,6 +122,27 @@ export function ResourceCard({ resource: r, why, onShareClick }: ResourceCardPro
           </div>
         </div>
       </div>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div
+      id={`resource-${r.id}`}
+      className={cn(
+        "border rounded-[2px] card-expand",
+        "hover:border-border-light",
+        isExpanded
+          ? "border-border-light bg-surface-input"
+          : "border-border-subtle bg-surface-subtle"
+      )}
+      style={{
+        borderLeftWidth: 3,
+        borderLeftColor: topicColor || "var(--border-subtle)",
+        transitionTimingFunction: "var(--ease-out-expo)",
+      }}
+    >
+      {content}
     </div>
   );
 }
