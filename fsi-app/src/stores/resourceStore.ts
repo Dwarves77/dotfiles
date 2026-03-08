@@ -50,6 +50,17 @@ const emptyFilters: Filters = {
   search: "",
 };
 
+// Fire-and-forget API call (optimistic UI — state updates immediately, API syncs in background)
+function apiCall(url: string, options?: RequestInit) {
+  const token = typeof window !== "undefined" ? localStorage.getItem("fsi-token") : null;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  fetch(url, { ...options, headers }).catch(() => {
+    // API not available (dev mode / no Supabase) — silently ignore
+  });
+}
+
 export const useResourceStore = create<ResourceState>((set) => ({
   resources: [],
   archived: [],
@@ -64,6 +75,13 @@ export const useResourceStore = create<ResourceState>((set) => ({
     set((state) => {
       const resource = state.resources.find((r) => r.id === id);
       if (!resource) return state;
+
+      // Sync to API
+      apiCall(`/api/resources/${id}/archive`, {
+        method: "POST",
+        body: JSON.stringify({ reason, note, replacement: replacedBy }),
+      });
+
       return {
         resources: state.resources.filter((r) => r.id !== id),
         archived: [
@@ -84,6 +102,10 @@ export const useResourceStore = create<ResourceState>((set) => ({
     set((state) => {
       const resource = state.archived.find((r) => r.id === id);
       if (!resource) return state;
+
+      // Sync to API
+      apiCall(`/api/resources/${id}/restore`, { method: "POST" });
+
       const { isArchived, archiveReason, archiveNote, archivedDate, replacedBy, ...clean } = resource;
       return {
         archived: state.archived.filter((r) => r.id !== id),
@@ -92,11 +114,19 @@ export const useResourceStore = create<ResourceState>((set) => ({
     }),
 
   updatePriority: (id, priority) =>
-    set((state) => ({
-      resources: state.resources.map((r) =>
-        r.id === id ? { ...r, priority } : r
-      ),
-    })),
+    set((state) => {
+      // Sync to API
+      apiCall(`/api/resources/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ priority }),
+      });
+
+      return {
+        resources: state.resources.map((r) =>
+          r.id === id ? { ...r, priority } : r
+        ),
+      };
+    }),
 
   toggleFilter: (dimension, value) =>
     set((state) => {

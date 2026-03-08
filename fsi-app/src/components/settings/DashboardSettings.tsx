@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { cn } from "@/lib/cn";
+import { Shield } from "lucide-react";
 
 export function DashboardSettings() {
   const {
@@ -168,6 +170,16 @@ export function DashboardSettings() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Admin Panel Link */}
+      <div className="pt-2 border-t border-border-subtle">
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider border border-border-subtle text-text-secondary rounded-[1px] hover:border-border-light hover:text-text-primary transition-all"
+        >
+          <Shield size={13} /> Admin Panel
+        </Link>
       </div>
     </div>
   );
