@@ -1,5 +1,5 @@
 import type { Resource, ImpactScores } from "@/types/resource";
-import { JURISDICTION_WEIGHTS } from "./constants";
+import { JURISDICTION_WEIGHTS, VERTICALS } from "./constants";
 
 // ── Jurisdiction Detection ──
 // Detects jurisdiction from resource content via keyword matching
@@ -137,6 +137,7 @@ export function filterResources(
     topics: string[];
     jurisdictions: string[];
     priorities: string[];
+    verticals: string[];
     search: string;
   }
 ): Resource[] {
@@ -162,6 +163,16 @@ export function filterResources(
     // Priority filter
     if (filters.priorities.length > 0) {
       if (!filters.priorities.includes(r.priority)) return false;
+    }
+
+    // Cargo vertical filter
+    if (filters.verticals.length > 0) {
+      const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
+      const matchesVertical = filters.verticals.some((vId) => {
+        const vertical = VERTICALS.find((v) => v.id === vId);
+        return vertical?.keywords.some((kw) => text.includes(kw));
+      });
+      if (!matchesVertical) return false;
     }
 
     // Search

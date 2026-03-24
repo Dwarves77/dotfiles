@@ -10,6 +10,7 @@ interface Filters {
   topics: string[];
   jurisdictions: string[];
   priorities: string[];
+  verticals: string[];
   search: string;
 }
 
@@ -47,6 +48,7 @@ const emptyFilters: Filters = {
   topics: [],
   jurisdictions: [],
   priorities: [],
+  verticals: [],
   search: "",
 };
 

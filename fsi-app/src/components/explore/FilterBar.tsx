@@ -2,14 +2,14 @@
 
 import { Pill } from "@/components/ui/Pill";
 import { useResourceStore } from "@/stores/resourceStore";
-import { MODES, TOPICS, JURISDICTIONS, PRIORITIES, PRIORITY_COLORS, TOPIC_COLORS } from "@/lib/constants";
+import { MODES, TOPICS, JURISDICTIONS, PRIORITIES, VERTICALS, PRIORITY_COLORS, TOPIC_COLORS } from "@/lib/constants";
 import { useMemo } from "react";
 import { X } from "lucide-react";
 
 export function FilterBar() {
   const { filters, toggleFilter, clearFilters, resources } = useResourceStore();
   const hasActiveFilters = filters.modes.length > 0 || filters.topics.length > 0 ||
-    filters.jurisdictions.length > 0 || filters.priorities.length > 0;
+    filters.jurisdictions.length > 0 || filters.priorities.length > 0 || filters.verticals.length > 0;
 
   // Compute counts for each filter value
   const counts = useMemo(() => {
@@ -17,6 +17,7 @@ export function FilterBar() {
     const topicCounts: Record<string, number> = {};
     const jurCounts: Record<string, number> = {};
     const priCounts: Record<string, number> = {};
+    const vertCounts: Record<string, number> = {};
 
     resources.forEach((r) => {
       const modes = r.modes || [r.cat];
@@ -26,9 +27,17 @@ export function FilterBar() {
       const jur = r.jurisdiction || "";
       jurCounts[jur] = (jurCounts[jur] || 0) + 1;
       priCounts[r.priority] = (priCounts[r.priority] || 0) + 1;
+
+      // Cargo verticals — match keywords against resource text
+      const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
+      VERTICALS.forEach(({ id, keywords }) => {
+        if (keywords.some((kw) => text.includes(kw))) {
+          vertCounts[id] = (vertCounts[id] || 0) + 1;
+        }
+      });
     });
 
-    return { modeCounts, topicCounts, jurCounts, priCounts };
+    return { modeCounts, topicCounts, jurCounts, priCounts, vertCounts };
   }, [resources]);
 
   return (
@@ -97,6 +106,20 @@ export function FilterBar() {
             count={counts.priCounts[pri]}
             color={PRIORITY_COLORS[pri]}
             onClick={() => toggleFilter("priorities", pri)}
+          />
+        ))}
+      </div>
+
+      {/* Cargo Verticals */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary mr-1 w-12">Cargo</span>
+        {VERTICALS.filter(({ id }) => counts.vertCounts[id]).map(({ id, label }) => (
+          <Pill
+            key={id}
+            label={label}
+            active={filters.verticals.includes(id)}
+            count={counts.vertCounts[id]}
+            onClick={() => toggleFilter("verticals", id)}
           />
         ))}
       </div>

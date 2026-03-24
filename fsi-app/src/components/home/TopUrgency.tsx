@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { ResourceCard } from "@/components/resource/ResourceCard";
+import { Badge } from "@/components/ui/Badge";
+import { ModeBadge } from "@/components/ui/ModeBadge";
 import { urgencyScore } from "@/lib/scoring";
+import { PRIORITY_COLORS } from "@/lib/constants";
 import type { Resource } from "@/types/resource";
 import { ChevronDown } from "lucide-react";
 
@@ -13,7 +15,7 @@ interface TopUrgencyProps {
 }
 
 export function TopUrgency({ resources }: TopUrgencyProps) {
-  const { pushFocusView } = useNavigationStore();
+  const { pushFocusView, navigateToResource } = useNavigationStore();
   const [open, setOpen] = useState(true);
 
   const top5 = useMemo(() => {
@@ -60,14 +62,35 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
         </button>
       </div>
       {open && (
-        <div className="px-4 pb-4 space-y-2">
-          {top5.map((r) => (
-            <ResourceCard
-              key={r.id}
-              resource={r}
-              why={`Urgency score: ${urgencyScore(r)}`}
-            />
-          ))}
+        <div className="px-4 pb-2 divide-y divide-border-subtle">
+          {top5.map((r) => {
+            const modes = r.modes || [r.cat];
+            return (
+              <button
+                key={r.id}
+                onClick={() => navigateToResource(r.id)}
+                className="w-full text-left flex items-start gap-3 py-2.5 px-1 hover:bg-surface-overlay cursor-pointer transition-all duration-200"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {modes.map((m) =>
+                      m === "air" || m === "road" || m === "ocean" ? (
+                        <ModeBadge key={m} mode={m as "air" | "road" | "ocean"} />
+                      ) : null
+                    )}
+                    <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
+                  </div>
+                  <p className="text-xs font-medium text-text-primary truncate">{r.title}</p>
+                  <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">
+                    {r.whyMatters || r.note}
+                  </p>
+                </div>
+                <span className="text-xs font-semibold tabular-nums text-[var(--critical)]">
+                  {urgencyScore(r)}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

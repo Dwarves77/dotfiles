@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { ResourceCard } from "@/components/resource/ResourceCard";
 import type { Resource } from "@/types/resource";
 import { ChevronDown } from "lucide-react";
 
@@ -12,7 +11,7 @@ interface DueThisQuarterProps {
 }
 
 export function DueThisQuarter({ resources }: DueThisQuarterProps) {
-  const { pushFocusView } = useNavigationStore();
+  const { pushFocusView, navigateToResource } = useNavigationStore();
   const [open, setOpen] = useState(true);
 
   const due = useMemo(() => {
@@ -76,13 +75,33 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
         </button>
       </div>
       {open && (
-        <div className="px-4 pb-4 space-y-2">
+        <div className="px-4 pb-2 divide-y divide-border-subtle">
           {due.slice(0, 8).map(({ resource: r, next, days }) => (
-            <ResourceCard
+            <button
               key={r.id}
-              resource={r}
-              why={`${days}d — ${next.label}`}
-            />
+              onClick={() => navigateToResource(r.id)}
+              className="w-full text-left flex items-center gap-3 px-1 py-2.5 hover:bg-surface-overlay cursor-pointer transition-colors"
+            >
+              <span
+                className="text-xs font-semibold tabular-nums w-10 shrink-0"
+                style={{
+                  color:
+                    days <= 30
+                      ? "var(--critical)"
+                      : days <= 60
+                      ? "#C77700"
+                      : "var(--sage)",
+                }}
+              >
+                {days}d
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-text-primary truncate">{r.title}</p>
+                <p className="text-xs text-text-secondary truncate">
+                  {next.label}
+                </p>
+              </div>
+            </button>
           ))}
         </div>
       )}

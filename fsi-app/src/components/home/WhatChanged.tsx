@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { ResourceCard } from "@/components/resource/ResourceCard";
+import { Badge } from "@/components/ui/Badge";
+import { PRIORITY_COLORS } from "@/lib/constants";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
 import { ChevronDown } from "lucide-react";
 
@@ -14,7 +15,7 @@ interface WhatChangedProps {
 }
 
 export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
-  const { pushFocusView } = useNavigationStore();
+  const { pushFocusView, navigateToResource } = useNavigationStore();
   const [open, setOpen] = useState(true);
 
   const changedIds = Object.keys(changelog);
@@ -67,9 +68,20 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               <span className="text-xs font-semibold tracking-wider uppercase text-[#34C759] block mb-2">
                 New ({newResources.length})
               </span>
-              <div className="space-y-2">
+              <div className="divide-y divide-border-subtle">
                 {newResources.map((r) => (
-                  <ResourceCard key={r.id} resource={r} why="New resource" />
+                  <button
+                    key={r.id}
+                    onClick={() => navigateToResource(r.id)}
+                    className="w-full text-left flex items-center gap-3 px-1 py-2.5 hover:bg-surface-overlay cursor-pointer transition-colors"
+                  >
+                    <span className="text-xs font-semibold text-[#34C759] shrink-0">NEW</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-text-primary truncate">{r.title}</p>
+                      <p className="text-xs text-text-secondary truncate">{r.note}</p>
+                    </div>
+                    <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
+                  </button>
                 ))}
               </div>
             </div>
@@ -81,41 +93,42 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               <span className="text-xs font-semibold tracking-wider uppercase text-[#C77700] block mb-2">
                 Updated ({changed.length})
               </span>
-              <div className="space-y-2">
+              <div className="divide-y divide-border-subtle">
                 {changed.map((r) => {
                   const changes = changelog[r.id] || [];
-                  const summary = changes
-                    .map((ch) => {
-                      const parts: string[] = [];
-                      if (ch.fields?.length) parts.push(ch.fields.join(", "));
-                      if (ch.impact) parts.push(ch.impact);
-                      return parts.join(" — ");
-                    })
-                    .filter(Boolean)
-                    .join("; ");
                   return (
-                    <div key={r.id}>
-                      <ResourceCard resource={r} why={summary || "Updated"} />
-                      {/* Change details below card */}
-                      {changes.some((ch) => ch.prev || ch.now) && (
-                        <div className="mt-1 ml-4 space-y-1">
-                          {changes.map((ch, i) => (
-                            <div key={i} className="text-xs">
-                              {ch.prev && (
-                                <p className="text-text-secondary line-through">
-                                  {ch.prev.slice(0, 120)}
-                                </p>
-                              )}
-                              {ch.now && (
-                                <p className="text-text-primary font-medium">
-                                  {ch.now.slice(0, 120)}
-                                </p>
-                              )}
-                            </div>
-                          ))}
+                    <button
+                      key={r.id}
+                      onClick={() => navigateToResource(r.id)}
+                      className="w-full text-left px-1 py-3 hover:bg-surface-overlay cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-xs font-medium text-text-primary truncate flex-1">
+                          {r.title}
+                        </p>
+                        <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
+                      </div>
+                      {changes.map((ch, i) => (
+                        <div key={i} className="mb-1.5 last:mb-0">
+                          <span className="text-xs font-semibold text-[#C77700]">
+                            {ch.fields?.join(", ")}
+                          </span>
+                          {ch.prev && (
+                            <p className="text-xs text-text-secondary line-through">
+                              {ch.prev.slice(0, 120)}
+                            </p>
+                          )}
+                          {ch.now && (
+                            <p className="text-xs text-text-primary font-medium">
+                              {ch.now.slice(0, 120)}
+                            </p>
+                          )}
+                          {ch.impact && (
+                            <p className="text-xs text-[#C77700]">{ch.impact}</p>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      ))}
+                    </button>
                   );
                 })}
               </div>

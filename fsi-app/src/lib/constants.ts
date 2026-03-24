@@ -57,6 +57,16 @@ export const JURISDICTIONS = [
   { id: "icao", label: "ICAO", region: "Global" },
 ] as const;
 
+// ── Cargo Verticals ──
+export const VERTICALS = [
+  { id: "live-events", label: "Live Events", keywords: ["live event", "events", "concert", "exhibition", "trade show"] },
+  { id: "artwork", label: "Artwork", keywords: ["artwork", "art ", "art,", "gallery", "museum", "fine art"] },
+  { id: "luxury-goods", label: "Luxury Goods", keywords: ["luxury", "high-value", "premium"] },
+  { id: "film-tv", label: "Film / TV", keywords: ["film", "tv", "production", "broadcast", "media"] },
+  { id: "automotive", label: "Automotive", keywords: ["automotive", "vehicle", "car ", "cars ", "oem"] },
+  { id: "humanitarian", label: "Humanitarian", keywords: ["humanitarian", "aid", "relief", "disaster"] },
+] as const;
+
 // ── Priority Levels ──
 export const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
 
