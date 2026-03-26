@@ -19,7 +19,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Caro's Ledge — Freight Sustainability Intelligence",
+  title: "Caros Ledge — Freight Sustainability Intelligence",
   description:
     "Regulatory intelligence for international freight forwarding. Track ESG regulations, sustainability standards, and compliance across air, road, and ocean transport.",
 };
