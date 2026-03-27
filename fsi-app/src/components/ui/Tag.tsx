@@ -17,15 +17,15 @@ export function Tag({ label, color, onClick, className }: TagProps) {
         onClick?.(e);
       }}
       className={cn(
-        "inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-[2px]",
+        "inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded",
         "border transition-all duration-300",
         onClick && "cursor-pointer hover:opacity-80",
         className
       )}
       style={{
-        color: color || "var(--sage)",
-        borderColor: color ? `${color}25` : "var(--border-subtle)",
-        backgroundColor: color ? `${color}08` : "var(--surface-subtle)",
+        color: color || "var(--text-secondary)",
+        borderColor: color ? `${color}25` : "rgba(255,255,255,0.12)",
+        backgroundColor: color ? `${color}08` : "rgba(255,255,255,0.06)",
         transitionTimingFunction: "var(--ease-out-expo)",
       }}
     >

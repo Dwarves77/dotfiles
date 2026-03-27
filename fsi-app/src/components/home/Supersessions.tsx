@@ -24,7 +24,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
   if (supersessions.length === 0) return null;
 
   return (
-    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
+    <div className="border border-white/[0.08] rounded-[10px] bg-surface-card">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -65,7 +65,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             return (
               <div
                 key={i}
-                className="border border-border-subtle rounded-[2px] bg-surface-subtle hover:border-border-light transition-all duration-200 p-4 space-y-2"
+                className="border border-border-subtle rounded-lg bg-surface-card hover:border-border-light transition-all duration-200 p-4 space-y-2"
                 style={{
                   borderLeftWidth: 3,
                   borderLeftColor: sevColor,
@@ -74,7 +74,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className="text-xs font-semibold uppercase px-1.5 py-0.5 rounded-[2px] border"
+                    className="text-xs font-semibold uppercase px-1.5 py-0.5 rounded border"
                     style={{ color: sevColor, borderColor: `${sevColor}30` }}
                   >
                     {s.severity}

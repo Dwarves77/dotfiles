@@ -88,18 +88,21 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
           key={label}
           onClick={onClick}
           className={cn(
-            "flex flex-col items-center gap-1.5 p-4",
-            "border border-border-subtle rounded-[2px] bg-surface-subtle",
-            "hover:border-border-light hover:bg-surface-subtle-hover",
+            "flex flex-col items-center gap-1.5 px-6 py-5",
+            "border border-white/[0.08] rounded-[10px] bg-surface-card",
+            "hover:border-border-light hover:bg-surface-card-hover",
             "transition-all duration-300 cursor-pointer"
           )}
-          style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
+          style={{
+            transitionTimingFunction: "var(--ease-out-expo)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          }}
         >
           <Icon size={16} strokeWidth={2} style={{ color }} />
-          <span className="text-2xl font-display tabular-nums text-text-primary">
+          <span className="text-2xl font-display font-bold tabular-nums text-text-primary">
             {count}
           </span>
-          <span className="text-xs font-semibold tracking-wider uppercase" style={{ color }}>
+          <span className="text-xs font-semibold tracking-wider uppercase text-text-muted" style={{ color }}>
             {label}
           </span>
         </button>

@@ -24,7 +24,7 @@ export function SortSelector() {
           key={key}
           onClick={() => setSort(key)}
           className={cn(
-            "px-2.5 py-1 text-xs font-medium rounded-[2px] border",
+            "px-2.5 py-1 text-xs font-medium rounded-[6px] border",
             "transition-all duration-200 cursor-pointer",
             sort === key
               ? "border-border-medium bg-active-bg text-text-primary"

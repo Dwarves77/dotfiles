@@ -17,15 +17,15 @@ export function Badge({ label, color, onClick, className }: BadgeProps) {
         onClick?.(e);
       }}
       className={cn(
-        "inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-[2px]",
+        "inline-flex items-center px-2.5 py-0.5 text-[11px] font-bold rounded",
         "border transition-all duration-300",
         onClick && "cursor-pointer hover:opacity-80",
         className
       )}
       style={{
         color: color || "var(--sage)",
-        borderColor: color ? `${color}33` : "var(--border-light)",
-        backgroundColor: color ? `${color}10` : "var(--surface-input)",
+        borderColor: color ? `${color}66` : "var(--border-light)",
+        backgroundColor: color ? `${color}26` : "var(--surface-input)",
         transitionTimingFunction: "var(--ease-out-expo)",
       }}
     >

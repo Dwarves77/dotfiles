@@ -32,7 +32,7 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
+      <h3 className="text-[11px] font-semibold uppercase text-text-primary" style={{ letterSpacing: "1.5px" }}>
         Data Summary
       </h3>
 
@@ -61,7 +61,7 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
 
       {/* Jurisdiction Coverage */}
       <div>
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-2">
+        <span className="text-[11px] font-semibold uppercase text-text-secondary block mb-2" style={{ letterSpacing: "1.5px" }}>
           Jurisdiction Coverage
         </span>
         <div className="space-y-1">
@@ -75,7 +75,7 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
                   <span className="text-xs text-text-secondary w-20 shrink-0">{label}</span>
                   <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[var(--cyan)] rounded-full"
+                      className="h-full bg-[var(--cyan)] rounded-sm"
                       style={{ width: `${pct}%` }}
                     />
                   </div>

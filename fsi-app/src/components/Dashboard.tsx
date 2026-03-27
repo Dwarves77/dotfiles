@@ -24,6 +24,13 @@ import { SortSelector } from "@/components/explore/SortSelector";
 import { ResourceCard } from "@/components/resource/ResourceCard";
 import { ResourceDetail } from "@/components/resource/ResourceDetail";
 
+// Map
+import dynamic from "next/dynamic";
+const MapView = dynamic(() => import("@/components/map/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-[calc(100vh-200px)] text-text-secondary text-sm">Loading map...</div>,
+});
+
 // Settings
 import { DashboardSettings } from "@/components/settings/DashboardSettings";
 import { ArchiveViewer } from "@/components/settings/ArchiveViewer";
@@ -176,9 +183,9 @@ export function Dashboard({
               <>
                 <SearchBar />
                 <FilterBar />
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
                   <SortSelector />
-                  <span className="text-xs text-text-secondary tabular-nums">
+                  <span className="text-xs text-text-muted tabular-nums text-right">
                     {displayResources.length} resource{displayResources.length !== 1 ? "s" : ""}
                   </span>
                 </div>
@@ -188,7 +195,7 @@ export function Dashboard({
             {focusView && <FocusView resources={resources} />}
 
             {!focusView && (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {displayResources.map((r) => {
                   const isExpanded = expandedId === r.id;
                   const topicColor = TOPIC_COLORS[r.topic || ""] || undefined;
@@ -199,21 +206,26 @@ export function Dashboard({
                         checked={selectedIds.includes(r.id)}
                         onChange={() => toggleSelection(r.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-3 h-3 mt-4 accent-[var(--cyan)] cursor-pointer shrink-0"
+                        className={cn(
+                          "w-3 h-3 mt-4 accent-[var(--cyan)] cursor-pointer shrink-0 transition-opacity",
+                          !selectedIds.includes(r.id) && "opacity-40 hover:opacity-100"
+                        )}
                       />
                       <div
                         id={`resource-${r.id}`}
                         className={cn(
-                          "flex-1 min-w-0 border rounded-[2px] card-expand",
+                          "flex-1 min-w-0 border rounded-lg card-expand",
                           "hover:border-border-light",
                           isExpanded
-                            ? "border-border-light bg-surface-input"
-                            : "border-border-subtle bg-surface-subtle"
+                            ? "border-border-light bg-surface-card"
+                            : "border-border-subtle bg-surface-card hover:bg-surface-card-hover hover:-translate-y-px"
                         )}
                         style={{
-                          borderLeftWidth: 3,
+                          borderLeftWidth: 4,
                           borderLeftColor: topicColor || "var(--border-subtle)",
                           transitionTimingFunction: "var(--ease-out-expo)",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18)",
+                          transition: "all 150ms ease",
                         }}
                       >
                         <ResourceCard resource={r} embedded />
@@ -234,6 +246,13 @@ export function Dashboard({
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── MAP TAB ── */}
+        {tab === "map" && !focusView && (
+          <div className="mt-4" style={{ marginLeft: "-1rem", marginRight: "-1rem" }}>
+            <MapView resources={resources} />
           </div>
         )}
 

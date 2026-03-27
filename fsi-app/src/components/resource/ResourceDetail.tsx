@@ -57,7 +57,7 @@ export function ResourceDetail({
   const dispute = disputes[r.id];
 
   return (
-    <div className="border-t border-border-subtle px-4 pb-4 space-y-5 stagger-enter">
+    <div className="border-t border-border-subtle px-4 pb-[18px] space-y-5 stagger-enter">
       {/* Share Menu */}
       {showShare && (
         <ShareMenu

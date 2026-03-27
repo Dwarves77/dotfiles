@@ -27,7 +27,7 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
 
   const content = (
     <div
-      className="flex items-start gap-3 p-4 cursor-pointer"
+      className="flex items-start gap-3 px-4 py-3.5 cursor-pointer"
       onClick={() => setExpanded(isExpanded ? null : r.id)}
     >
         <div className="flex-1 min-w-0">
@@ -83,25 +83,25 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
           </div>
 
           {/* Title */}
-          <h3 className="text-sm font-semibold text-text-primary leading-tight mb-1">
+          <h3 className="text-[15px] font-semibold text-text-primary leading-tight mb-1" style={{ letterSpacing: "-0.1px" }}>
             {r.title}
           </h3>
 
           {/* Note */}
-          <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mb-1">
+          <p className="text-[13px] leading-[20px] text-text-secondary line-clamp-2 mb-1">
             {r.note}
           </p>
 
           {/* Reasoning — why this priority */}
           {r.reasoning && (
-            <p className="text-xs text-text-accent/80 leading-relaxed line-clamp-2 mb-2 italic">
+            <p className="text-[13px] leading-[20px] text-text-accent/80 line-clamp-2 mb-2 italic">
               {r.reasoning}
             </p>
           )}
 
           {/* Why (from focus view) */}
           {why && (
-            <p className="text-xs text-text-accent italic mb-2">
+            <p className="text-[13px] text-text-accent italic mb-2">
               {why}
             </p>
           )}
@@ -130,16 +130,18 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
     <div
       id={`resource-${r.id}`}
       className={cn(
-        "border rounded-[2px] card-expand",
+        "border rounded-lg card-expand",
         "hover:border-border-light",
         isExpanded
-          ? "border-border-light bg-surface-input"
-          : "border-border-subtle bg-surface-subtle"
+          ? "border-border-light bg-surface-card"
+          : "border-border-subtle bg-surface-card hover:bg-surface-card-hover hover:-translate-y-px"
       )}
       style={{
-        borderLeftWidth: 3,
+        borderLeftWidth: 4,
         borderLeftColor: topicColor || "var(--border-subtle)",
         transitionTimingFunction: "var(--ease-out-expo)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18)",
+        transition: "all 150ms ease",
       }}
     >
       {content}

@@ -54,7 +54,7 @@ export function WeeklyBriefing({
   };
 
   return (
-    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
+    <div className="border border-white/[0.08] rounded-lg bg-surface-card">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}

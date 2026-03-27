@@ -36,13 +36,13 @@ export function DashboardSettings() {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
+      <h3 className="text-[11px] font-semibold uppercase text-text-primary" style={{ letterSpacing: "1.5px" }}>
         Dashboard Settings
       </h3>
 
       {/* Appearance */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+        <span className="text-[11px] font-semibold uppercase text-text-secondary" style={{ letterSpacing: "1.5px" }}>
           Appearance
         </span>
         <div className="flex gap-1.5">
@@ -51,7 +51,7 @@ export function DashboardSettings() {
               key={t}
               onClick={() => setTheme(t)}
               className={cn(
-                "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
+                "px-2.5 py-1 text-xs rounded-[6px] border cursor-pointer transition-colors",
                 theme === t
                   ? "border-active-border bg-active-bg text-text-primary"
                   : "border-border-subtle text-text-secondary"
@@ -65,7 +65,7 @@ export function DashboardSettings() {
 
       {/* Home Section Visibility */}
       <div className="space-y-3">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+        <span className="text-[11px] font-semibold uppercase text-text-secondary" style={{ letterSpacing: "1.5px" }}>
           Home Sections
         </span>
         {sections.map(({ key, label, value }) => (
@@ -80,7 +80,7 @@ export function DashboardSettings() {
 
       {/* Default Sort */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+        <span className="text-[11px] font-semibold uppercase text-text-secondary" style={{ letterSpacing: "1.5px" }}>
           Default Sort
         </span>
         <div className="flex gap-1.5">
@@ -89,7 +89,7 @@ export function DashboardSettings() {
               key={s}
               onClick={() => setDefaultSort(s)}
               className={cn(
-                "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
+                "px-2.5 py-1 text-xs rounded-[6px] border cursor-pointer transition-colors",
                 defaultSort === s
                   ? "border-border-medium bg-active-bg text-text-primary"
                   : "border-border-subtle text-text-secondary"
@@ -103,7 +103,7 @@ export function DashboardSettings() {
 
       {/* Export Format */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+        <span className="text-[11px] font-semibold uppercase text-text-secondary" style={{ letterSpacing: "1.5px" }}>
           Default Export Format
         </span>
         <div className="flex gap-1.5">
@@ -112,7 +112,7 @@ export function DashboardSettings() {
               key={f}
               onClick={() => setExportFormat(f)}
               className={cn(
-                "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
+                "px-2.5 py-1 text-xs rounded-[6px] border cursor-pointer transition-colors",
                 exportFormat === f
                   ? "border-border-medium bg-active-bg text-text-primary"
                   : "border-border-subtle text-text-secondary"
@@ -126,13 +126,13 @@ export function DashboardSettings() {
 
       {/* Briefing Day */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+        <span className="text-[11px] font-semibold uppercase text-text-secondary" style={{ letterSpacing: "1.5px" }}>
           Briefing Day
         </span>
         <select
           value={briefingDay}
           onChange={(e) => setBriefingDay(e.target.value as any)}
-          className="text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary"
+          className="text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[6px] text-text-primary"
         >
           {["monday", "tuesday", "wednesday", "thursday", "friday"].map((d) => (
             <option key={d} value={d}>
@@ -144,7 +144,7 @@ export function DashboardSettings() {
 
       {/* Alert Priorities */}
       <div className="space-y-2">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+        <span className="text-[11px] font-semibold uppercase text-text-secondary" style={{ letterSpacing: "1.5px" }}>
           Alert Priorities
         </span>
         <div className="flex gap-1.5">
@@ -158,7 +158,7 @@ export function DashboardSettings() {
                 setAlertPriorities(next);
               }}
               className={cn(
-                "px-2.5 py-1 text-xs rounded-[2px] border cursor-pointer transition-colors",
+                "px-2.5 py-1 text-xs rounded-[6px] border cursor-pointer transition-colors",
                 alertPriorities.includes(p)
                   ? "border-border-medium bg-active-bg text-text-primary"
                   : "border-border-subtle text-text-secondary"

@@ -36,7 +36,7 @@ export function SearchBar() {
         placeholder="Search title, tags, jurisdiction..."
         defaultValue={filters.search}
         onChange={(e) => handleChange(e.target.value)}
-        className="w-full pl-9 pr-8 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 bg-surface-input border border-border-subtle rounded-[2px] outline-none focus:border-border-medium transition-colors duration-200"
+        className="w-full pl-9 pr-8 h-[42px] text-sm text-text-primary placeholder:text-text-muted bg-white/[0.05] border border-white/[0.12] rounded-lg outline-none focus:border-border-medium transition-colors duration-200"
       />
       {filters.search && (
         <button

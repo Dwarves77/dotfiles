@@ -25,12 +25,12 @@ export function Pill({
       onClick={onClick}
       className={cn(
         "inline-flex items-center gap-1.5 px-3 py-1",
-        "text-xs font-medium rounded-[2px] border",
+        "text-xs font-medium rounded-[6px] border",
         "transition-all duration-300 cursor-pointer",
-        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--cyan)]/50",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
         active
-          ? "border-border-strong bg-active-bg text-text-primary"
-          : "border-border-subtle bg-transparent text-text-secondary hover:border-border-medium hover:text-text-primary",
+          ? "border-white/25 bg-white/10 text-text-primary font-bold"
+          : "border-white/[0.08] bg-transparent text-text-secondary hover:border-border-medium hover:text-text-primary",
         className
       )}
       style={{

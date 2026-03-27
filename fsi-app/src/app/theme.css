@@ -44,7 +44,7 @@
   /* Semantic tokens */
   --text-primary: #ffffff;
   --text-secondary: #b7c6c2;
-  --text-muted: #9f8d8b;
+  --text-muted: #b9aca9;
   --text-accent: #d5f4f9;
 
   --surface-base: #171e19;
@@ -57,7 +57,11 @@
 
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-light: rgba(255, 255, 255, 0.10);
-  --border-medium: rgba(255, 255, 255, 0.15);
+  --border-medium: rgba(255, 255, 255, 0.14);
+
+  /* Card surface tokens */
+  --surface-card: #1f2820;
+  --surface-card-hover: #272e28;
   --border-strong: rgba(255, 255, 255, 0.20);
 
   --active-bg: rgba(255, 255, 255, 0.08);
@@ -77,6 +81,14 @@
   --card: var(--surface-raised);
   --card-hover: var(--surface-raised-hover);
   --accent: var(--text-accent);
+
+  /* Map tokens */
+  --map-pin-bg: #d5f4f9;
+  --map-pin-border: rgba(213, 244, 249, 0.4);
+  --map-popup-bg: #1f2820;
+  --map-cluster-bg: #302b2f;
+  --map-cluster-border: rgba(213, 244, 249, 0.5);
+  --map-cluster-text: #d5f4f9;
 }
 
 /* ── LIGHT THEME ── */
@@ -116,6 +128,17 @@
   --invert-bg: #1A1A1A;
   --invert-text: #FFFFFF;
 
+  --surface-card: #FFFFFF;
+  --surface-card-hover: #F5F2EE;
+
   --scrollbar-thumb: rgba(0, 0, 0, 0.15);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+
+  /* Map tokens (light) */
+  --map-pin-bg: #0891B2;
+  --map-pin-border: rgba(8, 145, 178, 0.4);
+  --map-popup-bg: #FFFFFF;
+  --map-cluster-bg: #F5F2EE;
+  --map-cluster-border: rgba(8, 145, 178, 0.5);
+  --map-cluster-text: #0891B2;
 }

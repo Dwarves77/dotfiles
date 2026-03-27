@@ -29,7 +29,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   const allIds = [...new Set([...newResources.map((r) => r.id), ...changed.map((r) => r.id)])];
 
   return (
-    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
+    <div className="border border-white/[0.08] rounded-[10px] bg-surface-card">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -44,7 +44,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+          <span className="text-[13px] font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             What Changed ({allIds.length})
           </span>
         </button>
@@ -65,7 +65,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
           {/* NEW Resources */}
           {newResources.length > 0 && (
             <div>
-              <span className="text-xs font-semibold tracking-wider uppercase text-[#34C759] block mb-2">
+              <span className="text-xs font-bold tracking-wider uppercase text-[#34C759] block mb-2">
                 New ({newResources.length})
               </span>
               <div className="divide-y divide-border-subtle">

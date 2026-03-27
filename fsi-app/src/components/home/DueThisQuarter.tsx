@@ -40,7 +40,7 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
   if (due.length === 0) return null;
 
   return (
-    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
+    <div className="border border-white/[0.08] rounded-[10px] bg-surface-card">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}

@@ -34,6 +34,8 @@
   --color-surface-subtle-hover: var(--surface-subtle-hover);
   --color-surface-overlay: var(--surface-overlay);
   --color-surface-input: var(--surface-input);
+  --color-surface-card: var(--surface-card);
+  --color-surface-card-hover: var(--surface-card-hover);
   --color-border-subtle: var(--border-subtle);
   --color-border-light: var(--border-light);
   --color-border-medium: var(--border-medium);

@@ -119,7 +119,7 @@ export interface SharePackage {
 
 // ── Navigation ──
 
-export type TabId = "home" | "explore" | "settings";
+export type TabId = "home" | "explore" | "map" | "settings";
 
 export interface FocusView {
   title: string;
