@@ -81,23 +81,9 @@ export const SUB_JURISDICTION_CENTROIDS: Record<string, [number, number]> = {
   "eu-poland": [52, 20],
   "eu-greece": [39, 22],
 
-  // Latin America
-  "latam-brazil": [-14, -51],
+  // Latin America (future sub-national, e.g. specific states in Brazil)
   "latam-mexico": [23.6, -102.5],
   "latam-colombia": [4.6, -74.1],
-  "latam-chile": [-33.4, -70.7],
-  "latam-argentina": [-34.6, -58.4],
-
-  // Asia sub-regions
-  "asia-singapore": [1.3, 103.8],
-  "asia-japan": [36, 138],
-  "asia-korea": [36, 128],
-  "asia-china": [34, 100],
-  "asia-australia": [-25, 134],
-  "asia-asean": [5, 105],
-
-  // Middle East & Africa
-  "meaf-uae": [24, 54],
 };
 
 // ── Display labels ──
@@ -161,18 +147,8 @@ export const JURISDICTION_PIN_CODES: Record<string, string> = {
   "eu-belgium": "BE",
   "eu-poland": "PL",
   "eu-greece": "GR",
-  "latam-brazil": "BR",
   "latam-mexico": "MX",
   "latam-colombia": "CO",
-  "latam-chile": "CL",
-  "latam-argentina": "AR",
-  "asia-singapore": "SG",
-  "asia-japan": "JP",
-  "asia-korea": "KR",
-  "asia-china": "CN",
-  "asia-australia": "AU",
-  "asia-asean": "AS",
-  "meaf-uae": "AE",
 };
 
 // ── Labels for sub-jurisdictions ──
@@ -203,16 +179,6 @@ export const SUB_JURISDICTION_LABELS: Record<string, string> = {
   "eu-belgium": "Belgium",
   "eu-poland": "Poland",
   "eu-greece": "Greece",
-  "latam-brazil": "Brazil",
   "latam-mexico": "Mexico",
   "latam-colombia": "Colombia",
-  "latam-chile": "Chile",
-  "latam-argentina": "Argentina",
-  "asia-singapore": "Singapore",
-  "asia-japan": "Japan",
-  "asia-korea": "South Korea",
-  "asia-china": "China",
-  "asia-australia": "Australia",
-  "asia-asean": "ASEAN",
-  "meaf-uae": "UAE",
 };

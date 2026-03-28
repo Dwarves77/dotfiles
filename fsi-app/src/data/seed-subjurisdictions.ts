@@ -6,6 +6,10 @@ export interface SubJurisdictionTag {
   subJurisdictionLabel: string;
 }
 
+export interface JurisdictionOverride {
+  jurisdiction: string;  // Override the parent jurisdiction entirely
+}
+
 export interface RegulatoryConflictTag {
   type: "federal-state" | "international" | "trade" | "supersession" | "divergence";
   summary: string;
@@ -14,36 +18,43 @@ export interface RegulatoryConflictTag {
 }
 
 // ── Sub-jurisdiction assignments ──
-// Key = resource ID, value = sub-jurisdiction info
+// ONLY for states/regions within a country (e.g. California within US, Germany within EU)
+// Countries that are their own jurisdiction should use JURISDICTION_OVERRIDES instead
 
 export const SUB_JURISDICTION_TAGS: Record<string, SubJurisdictionTag> = {
-  // US sub-jurisdictions
+  // US states — sub-national entities within US
   l7:  { subJurisdiction: "us-ca", subJurisdictionLabel: "California" },
   r31: { subJurisdiction: "us-ca", subJurisdictionLabel: "California" },
-  r1:  { subJurisdiction: "us-ca", subJurisdictionLabel: "California" },  // Port of LA data
+  r1:  { subJurisdiction: "us-ca", subJurisdictionLabel: "California" },
 
-  // EU sub-jurisdictions
+  // EU member states — sub-national entities within EU
   o9:  { subJurisdiction: "eu-norway", subJurisdictionLabel: "Norway" },
   g7:  { subJurisdiction: "eu-germany", subJurisdictionLabel: "Germany" },
+};
 
-  // Latin America sub-jurisdictions
-  g13: { subJurisdiction: "latam-brazil", subJurisdictionLabel: "Brazil" },
-  g14: { subJurisdiction: "latam-mexico", subJurisdictionLabel: "Mexico" },
-  g15: { subJurisdiction: "latam-colombia", subJurisdictionLabel: "Colombia" },
+// ── Jurisdiction overrides ──
+// For resources tagged with a regional bucket (e.g. "asia") that should be
+// pinned to their actual country. The country must exist in JURISDICTIONS constant.
 
-  // Asia sub-jurisdictions
-  g17: { subJurisdiction: "asia-singapore", subJurisdictionLabel: "Singapore" },
-  g18: { subJurisdiction: "asia-japan", subJurisdictionLabel: "Japan" },
-  g19: { subJurisdiction: "asia-korea", subJurisdictionLabel: "South Korea" },
-  g20: { subJurisdiction: "asia-singapore", subJurisdictionLabel: "Singapore" },
-  g22: { subJurisdiction: "asia-china", subJurisdictionLabel: "China" },
-  g23: { subJurisdiction: "asia-australia", subJurisdictionLabel: "Australia" },
-  g21: { subJurisdiction: "asia-asean", subJurisdictionLabel: "ASEAN" },
-  g24: { subJurisdiction: "asia-asean", subJurisdictionLabel: "ASEAN" },
+export const JURISDICTION_OVERRIDES: Record<string, JurisdictionOverride> = {
+  // Asia resources → specific countries
+  g17: { jurisdiction: "singapore" },   // MPA Singapore
+  g18: { jurisdiction: "japan" },        // Japan MLIT
+  g19: { jurisdiction: "korea" },        // South Korea MOF
+  g20: { jurisdiction: "singapore" },    // Singapore Green Plan 2030
+  g21: { jurisdiction: "asean" },        // ADB Southeast Asia
+  g22: { jurisdiction: "china" },        // China CCICED
+  g23: { jurisdiction: "australia" },    // Australia Climate Change Authority
+  g24: { jurisdiction: "asean" },        // ASEAN Transport Strategic Plan
 
-  // MEAF sub-jurisdictions
-  g25: { subJurisdiction: "meaf-uae", subJurisdictionLabel: "UAE" },
-  g26: { subJurisdiction: "meaf-uae", subJurisdictionLabel: "UAE" },
+  // MEAF resources → specific countries
+  g25: { jurisdiction: "uae" },          // DP World Sustainability
+  g26: { jurisdiction: "uae" },          // IRENA Abu Dhabi
+
+  // LatAm resources → specific countries
+  g13: { jurisdiction: "brazil" },       // Brazil Logística Reversa
+  g14: { jurisdiction: "latam" },        // Mexico SEMARNAT (no "mexico" in constants, keep latam)
+  g15: { jurisdiction: "latam" },        // Colombia Transport (no "colombia" in constants, keep latam)
 };
 
 // ── Regulatory conflict assignments ──
