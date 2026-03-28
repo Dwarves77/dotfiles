@@ -180,7 +180,7 @@ export function Dashboard({
         {(tab === "explore" || focusView) && (
           <div className="space-y-4 mt-4">
             {!focusView && (
-              <>
+              <div className="sticky top-[49px] z-20 bg-surface-base/95 backdrop-blur-sm pb-3 space-y-3">
                 <SearchBar />
                 <FilterBar />
                 <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
@@ -189,7 +189,7 @@ export function Dashboard({
                     {displayResources.length} resource{displayResources.length !== 1 ? "s" : ""}
                   </span>
                 </div>
-              </>
+              </div>
             )}
 
             {focusView && <FocusView resources={resources} />}
@@ -251,8 +251,16 @@ export function Dashboard({
 
         {/* ── MAP TAB ── */}
         {tab === "map" && !focusView && (
-          <div className="mt-4" style={{ marginLeft: "-1rem", marginRight: "-1rem" }}>
-            <MapView resources={resources} />
+          <div className="mt-4" style={{ marginLeft: "calc(-50vw + 50%)", marginRight: "calc(-50vw + 50%)", width: "100vw" }}>
+            <MapView
+              resources={resources}
+              changelog={changelog}
+              disputes={disputes}
+              xrefPairs={xrefPairs}
+              supersessions={supersessions}
+              resourceMap={resourceMap}
+              onToast={showToast}
+            />
           </div>
         )}
 

@@ -16,7 +16,7 @@ interface WhatChangedProps {
 
 export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
   const { pushFocusView, navigateToResource } = useNavigationStore();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const changedIds = Object.keys(changelog);
   const changed = resources.filter((r) => changedIds.includes(r.id));

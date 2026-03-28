@@ -6,12 +6,16 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { cn } from "@/lib/cn";
-import { JURISDICTIONS, PRIORITY_COLORS, PRIORITIES } from "@/lib/constants";
-import { getJurisdiction } from "@/lib/scoring";
+import { JURISDICTIONS, PRIORITY_COLORS, TOPIC_COLORS } from "@/lib/constants";
+import { getJurisdiction, urgencyScore } from "@/lib/scoring";
 import { useNavigationStore } from "@/stores/navigationStore";
 import { useResourceStore } from "@/stores/resourceStore";
-import { Search, X, Columns2, Map, List, ChevronRight, MapPin } from "lucide-react";
-import type { Resource } from "@/types/resource";
+import { ResourceCard } from "@/components/resource/ResourceCard";
+import { ResourceDetail } from "@/components/resource/ResourceDetail";
+import {
+  Search, X, Columns2, Map, List, ChevronRight, ChevronLeft, MapPin,
+} from "lucide-react";
+import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import {
   JURISDICTION_CENTROIDS,
   JURISDICTION_PIN_CODES,
@@ -36,6 +40,12 @@ type ViewMode = "split" | "map" | "list";
 
 interface MapViewProps {
   resources: Resource[];
+  changelog: Record<string, ChangeLogEntry[]>;
+  disputes: Record<string, Dispute>;
+  xrefPairs: [string, string][];
+  supersessions: Supersession[];
+  resourceMap: Map<string, Resource>;
+  onToast: (msg: string) => void;
 }
 
 // ── Custom marker icon builder ──
@@ -123,16 +133,25 @@ function FlyToSelected({ lat, lng }: { lat: number; lng: number }) {
 
 // ── Main Component ──
 
-export function MapView({ resources }: MapViewProps) {
-  const { setTab } = useNavigationStore();
-  const { toggleFilter } = useResourceStore();
+export function MapView({
+  resources,
+  changelog,
+  disputes,
+  xrefPairs,
+  supersessions,
+  resourceMap,
+  onToast,
+}: MapViewProps) {
+  const { pushFocusView } = useNavigationStore();
+  const { expandedId, setExpanded } = useResourceStore();
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [regionFilter, setRegionFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"name" | "count" | "critical">("count");
   const [selectedJurId, setSelectedJurId] = useState<string | null>(null);
-  const [hoveredJurId, setHoveredJurId] = useState<string | null>(null);
+  const [drillJurId, setDrillJurId] = useState<string | null>(null);
+  const [, setHoveredJurId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
 
@@ -167,7 +186,7 @@ export function MapView({ resources }: MapViewProps) {
           lat: coords[0],
           lng: coords[1],
           pinCode: JURISDICTION_PIN_CODES[id] || id.slice(0, 2).toUpperCase(),
-          resources: res,
+          resources: [...res].sort((a, b) => urgencyScore(b) - urgencyScore(a)),
           criticalCount,
           highCount,
           topPriority,
@@ -201,7 +220,6 @@ export function MapView({ resources }: MapViewProps) {
       items = items.filter((j) => regionFilter.includes(j.id));
     }
 
-    // Sort
     if (sortBy === "name") {
       items = [...items].sort((a, b) => a.label.localeCompare(b.label));
     } else if (sortBy === "count") {
@@ -240,28 +258,46 @@ export function MapView({ resources }: MapViewProps) {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  // Drill into a jurisdiction — show its regulations in the list panel
+  const drillInto = useCallback((jurId: string) => {
+    setDrillJurId(jurId);
+    setSelectedJurId(jurId);
+    setExpanded(null);
+  }, [setExpanded]);
+
+  // Back to jurisdiction list from drill-down
+  const drillBack = useCallback(() => {
+    setDrillJurId(null);
+    setExpanded(null);
+  }, [setExpanded]);
+
   const handlePinClick = useCallback(
     (jurId: string) => {
-      setSelectedJurId(jurId);
+      drillInto(jurId);
       scrollToListItem(jurId);
     },
-    [scrollToListItem]
+    [drillInto, scrollToListItem]
   );
 
   const handleCardClick = useCallback((jur: JurisdictionData) => {
-    setSelectedJurId(jur.id);
-    // Map will fly to this pin via FlyToSelected
-  }, []);
+    drillInto(jur.id);
+  }, [drillInto]);
 
+  // "View all" now uses pushFocusView — preserves nav stack, user can get back
   const handleViewAll = useCallback(
     (jurId: string) => {
-      toggleFilter("jurisdictions", jurId);
-      setTab("explore");
+      const jur = allJurisdictions.find((j) => j.id === jurId);
+      if (!jur) return;
+      pushFocusView({
+        title: `${jur.label} Regulations`,
+        resourceIds: jur.resources.map((r) => r.id),
+      });
     },
-    [toggleFilter, setTab]
+    [allJurisdictions, pushFocusView]
   );
 
   const selectedJur = filteredJurisdictions.find((j) => j.id === selectedJurId);
+  const drillJur = allJurisdictions.find((j) => j.id === drillJurId);
 
   // Unique regions for filter pills
   const availableRegions = useMemo(() => {
@@ -275,7 +311,7 @@ export function MapView({ resources }: MapViewProps) {
   const showList = viewMode === "split" || viewMode === "list";
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 180px)" }}>
+    <div className="flex flex-col" style={{ height: "calc(100vh - 140px)" }}>
       {/* View toggle */}
       <div className="flex items-center justify-end gap-1 px-4 pb-3">
         {([
@@ -320,7 +356,7 @@ export function MapView({ resources }: MapViewProps) {
               />
               <ZoomControl position="bottomleft" />
 
-              {hasFilters && <FitBoundsHelper jurisdictions={filteredJurisdictions} />}
+              {hasFilters && !drillJurId && <FitBoundsHelper jurisdictions={filteredJurisdictions} />}
               {selectedJur && <FlyToSelected lat={selectedJur.lat} lng={selectedJur.lng} />}
 
               <MarkerClusterGroup
@@ -427,7 +463,7 @@ export function MapView({ resources }: MapViewProps) {
                           )}
                         </div>
                         <button
-                          onClick={() => handleViewAll(jur.id)}
+                          onClick={() => drillInto(jur.id)}
                           style={{
                             fontSize: 13,
                             color: "var(--text-accent)",
@@ -440,7 +476,7 @@ export function MapView({ resources }: MapViewProps) {
                             gap: 4,
                           }}
                         >
-                          View all <ChevronRight size={12} />
+                          View regulations <ChevronRight size={12} />
                         </button>
                       </div>
                     </Popup>
@@ -506,230 +542,345 @@ export function MapView({ resources }: MapViewProps) {
               showMap ? "w-1/2" : "w-full"
             )}
           >
-            {/* Search */}
-            <div className="px-4 pt-3 pb-2">
-              <div className="relative">
-                <Search
-                  size={14}
-                  strokeWidth={2}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-                />
-                <input
-                  type="text"
-                  placeholder="Search jurisdictions, regions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-8 h-[42px] text-sm text-text-primary placeholder:text-text-muted bg-white/[0.05] border border-white/[0.12] rounded-lg outline-none focus:border-border-medium transition-colors duration-200"
-                />
-                {searchQuery && (
+            {/* ── DRILL-DOWN: Jurisdiction Regulations ── */}
+            {drillJur ? (
+              <>
+                {/* Drill-down header */}
+                <div className="px-4 pt-3 pb-2 border-b border-border-subtle">
                   <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary cursor-pointer"
+                    onClick={drillBack}
+                    className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors mb-2"
                   >
-                    <X size={14} strokeWidth={2} />
+                    <ChevronLeft size={14} strokeWidth={2} />
+                    Back to regions
                   </button>
-                )}
-              </div>
-            </div>
-
-            {/* Filters */}
-            <div className="px-4 pb-2 space-y-2">
-              {/* Priority */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
-                  Priority
-                </span>
-                {(["CRITICAL", "HIGH", "MODERATE"] as const).map((pri) => (
-                  <button
-                    key={pri}
-                    onClick={() => togglePriorityFilter(pri)}
-                    className={cn(
-                      "px-3 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
-                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
-                      priorityFilter.includes(pri)
-                        ? "border-white/25 bg-white/10 text-text-primary font-bold"
-                        : "border-white/[0.08] text-text-secondary hover:border-border-medium"
-                    )}
-                    style={
-                      priorityFilter.includes(pri)
-                        ? {
-                            borderColor: `${PRIORITY_COLORS[pri]}40`,
-                            backgroundColor: `${PRIORITY_COLORS[pri]}15`,
-                            color: PRIORITY_COLORS[pri],
-                          }
-                        : {}
-                    }
-                  >
-                    {pri}
-                  </button>
-                ))}
-              </div>
-
-              {/* Region */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
-                  Region
-                </span>
-                {availableRegions.map(({ id, label }) => (
-                  <button
-                    key={id}
-                    onClick={() => toggleRegionFilter(id)}
-                    className={cn(
-                      "px-3 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
-                      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
-                      regionFilter.includes(id)
-                        ? "border-white/25 bg-white/10 text-text-primary font-bold"
-                        : "border-white/[0.08] text-text-secondary hover:border-border-medium"
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sort + count */}
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
-                    Sort
-                  </span>
-                  {([
-                    { key: "name" as const, label: "A-Z" },
-                    { key: "count" as const, label: "Most Regs" },
-                    { key: "critical" as const, label: "Most Critical" },
-                  ] as const).map(({ key, label }) => (
-                    <button
-                      key={key}
-                      onClick={() => setSortBy(key)}
-                      className={cn(
-                        "px-2.5 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
-                        sortBy === key
-                          ? "border-border-medium bg-active-bg text-text-primary"
-                          : "border-transparent text-text-secondary hover:text-text-primary"
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-xs text-text-muted tabular-nums">
-                  {filteredJurisdictions.length} jurisdiction
-                  {filteredJurisdictions.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-
-              {hasFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-                >
-                  <X size={12} strokeWidth={2} />
-                  Clear filters
-                </button>
-              )}
-            </div>
-
-            {/* List */}
-            <div ref={listRef} className="flex-1 overflow-y-auto px-4 pb-4">
-              {filteredJurisdictions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <MapPin size={32} className="text-text-secondary mb-3 opacity-40" />
-                  <p className="text-sm text-text-secondary mb-2">
-                    No jurisdictions match
-                  </p>
-                  <button
-                    onClick={clearFilters}
-                    className="text-xs text-text-accent hover:underline cursor-pointer"
-                  >
-                    Clear filters
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {filteredJurisdictions.map((jur) => (
-                    <button
-                      key={jur.id}
-                      data-jur={jur.id}
-                      onClick={() => handleCardClick(jur)}
-                      onMouseEnter={() => setHoveredJurId(jur.id)}
-                      onMouseLeave={() => setHoveredJurId(null)}
-                      className={cn(
-                        "w-full text-left rounded-lg border bg-surface-card p-3.5",
-                        "transition-all duration-150 cursor-pointer",
-                        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
-                        "hover:bg-surface-card-hover hover:-translate-y-px",
-                        selectedJurId === jur.id
-                          ? "border-text-accent/30 ring-1 ring-text-accent/20"
-                          : "border-border-subtle"
-                      )}
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded"
                       style={{
-                        borderLeftWidth: 4,
-                        borderLeftColor:
-                          PRIORITY_COLORS[jur.topPriority] || "var(--border-subtle)",
-                        boxShadow:
-                          "0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18)",
+                        background: "var(--map-pin-bg)",
+                        color: "#171e19",
+                        fontFamily: "monospace",
                       }}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            {/* Region code badge */}
-                            <span
-                              className="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded"
-                              style={{
-                                background: "var(--map-pin-bg)",
-                                color: "#171e19",
-                                fontFamily: "monospace",
-                              }}
-                            >
-                              {jur.pinCode}
-                            </span>
-                            <span className="text-[15px] font-semibold text-text-primary" style={{ letterSpacing: "-0.1px" }}>
-                              {jur.label}
-                            </span>
-                          </div>
-                          <p className="text-[13px] text-text-secondary mb-2">
-                            {jur.region}
-                          </p>
-                          {/* Priority count pills */}
-                          <div className="flex items-center gap-1.5">
-                            {jur.criticalCount > 0 && (
-                              <span
-                                className="text-[11px] font-bold px-2 py-0.5 rounded"
-                                style={{
-                                  background: "rgba(255,59,48,0.15)",
-                                  border: "1px solid rgba(255,59,48,0.4)",
-                                  color: "#ff3b30",
-                                }}
-                              >
-                                {jur.criticalCount} CRITICAL
-                              </span>
-                            )}
-                            {jur.highCount > 0 && (
-                              <span
-                                className="text-[11px] font-bold px-2 py-0.5 rounded"
-                                style={{
-                                  background: "rgba(255,149,0,0.15)",
-                                  border: "1px solid rgba(255,149,0,0.4)",
-                                  color: "#ff9500",
-                                }}
-                              >
-                                {jur.highCount} HIGH
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {/* Count */}
-                        <span className="text-xs text-text-muted tabular-nums shrink-0">
-                          {jur.resources.length} reg
-                          {jur.resources.length !== 1 ? "s" : ""}
+                      {drillJur.pinCode}
+                    </span>
+                    <h3 className="text-[15px] font-semibold text-text-primary" style={{ letterSpacing: "-0.1px" }}>
+                      {drillJur.label}
+                    </h3>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      {drillJur.criticalCount > 0 && (
+                        <span
+                          className="text-[11px] font-bold px-2 py-0.5 rounded"
+                          style={{
+                            background: "rgba(255,59,48,0.15)",
+                            border: "1px solid rgba(255,59,48,0.4)",
+                            color: "#ff3b30",
+                          }}
+                        >
+                          {drillJur.criticalCount} CRITICAL
                         </span>
-                      </div>
-                    </button>
-                  ))}
+                      )}
+                      {drillJur.highCount > 0 && (
+                        <span
+                          className="text-[11px] font-bold px-2 py-0.5 rounded"
+                          style={{
+                            background: "rgba(255,149,0,0.15)",
+                            border: "1px solid rgba(255,149,0,0.4)",
+                            color: "#ff9500",
+                          }}
+                        >
+                          {drillJur.highCount} HIGH
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-text-muted tabular-nums">
+                        {drillJur.resources.length} regulation{drillJur.resources.length !== 1 ? "s" : ""}
+                      </span>
+                      <button
+                        onClick={() => handleViewAll(drillJur.id)}
+                        className="text-xs text-text-accent hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        Open in Explore <ChevronRight size={10} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Regulation list */}
+                <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3">
+                  <div className="flex flex-col gap-2">
+                    {drillJur.resources.map((r) => {
+                      const isExpanded = expandedId === r.id;
+                      const topicColor = TOPIC_COLORS[r.topic || ""] || undefined;
+                      return (
+                        <div
+                          key={r.id}
+                          id={`resource-${r.id}`}
+                          className={cn(
+                            "border rounded-lg card-expand",
+                            "hover:border-border-light",
+                            isExpanded
+                              ? "border-border-light bg-surface-card"
+                              : "border-border-subtle bg-surface-card hover:bg-surface-card-hover hover:-translate-y-px"
+                          )}
+                          style={{
+                            borderLeftWidth: 4,
+                            borderLeftColor: topicColor || "var(--border-subtle)",
+                            transitionTimingFunction: "var(--ease-out-expo)",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18)",
+                            transition: "all 150ms ease",
+                          }}
+                        >
+                          <ResourceCard resource={r} embedded />
+                          {isExpanded && (
+                            <ResourceDetail
+                              resource={r}
+                              changelog={changelog}
+                              disputes={disputes}
+                              xrefPairs={xrefPairs}
+                              supersessions={supersessions}
+                              resourceMap={resourceMap}
+                              onToast={onToast}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* ── LEVEL 1: Jurisdiction List ── */}
+                {/* Search */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="relative">
+                    <Search
+                      size={14}
+                      strokeWidth={2}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search jurisdictions, regions..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 h-[42px] text-sm text-text-primary placeholder:text-text-muted bg-white/[0.05] border border-white/[0.12] rounded-lg outline-none focus:border-border-medium transition-colors duration-200"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary cursor-pointer"
+                      >
+                        <X size={14} strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="px-4 pb-2 space-y-2">
+                  {/* Priority */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
+                      Priority
+                    </span>
+                    {(["CRITICAL", "HIGH", "MODERATE"] as const).map((pri) => (
+                      <button
+                        key={pri}
+                        onClick={() => togglePriorityFilter(pri)}
+                        className={cn(
+                          "px-3 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
+                          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+                          priorityFilter.includes(pri)
+                            ? "border-white/25 bg-white/10 text-text-primary font-bold"
+                            : "border-white/[0.08] text-text-secondary hover:border-border-medium"
+                        )}
+                        style={
+                          priorityFilter.includes(pri)
+                            ? {
+                                borderColor: `${PRIORITY_COLORS[pri]}40`,
+                                backgroundColor: `${PRIORITY_COLORS[pri]}15`,
+                                color: PRIORITY_COLORS[pri],
+                              }
+                            : {}
+                        }
+                      >
+                        {pri}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Region */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
+                      Region
+                    </span>
+                    {availableRegions.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        onClick={() => toggleRegionFilter(id)}
+                        className={cn(
+                          "px-3 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
+                          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+                          regionFilter.includes(id)
+                            ? "border-white/25 bg-white/10 text-text-primary font-bold"
+                            : "border-white/[0.08] text-text-secondary hover:border-border-medium"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Sort + count */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
+                        Sort
+                      </span>
+                      {([
+                        { key: "name" as const, label: "A-Z" },
+                        { key: "count" as const, label: "Most Regs" },
+                        { key: "critical" as const, label: "Most Critical" },
+                      ] as const).map(({ key, label }) => (
+                        <button
+                          key={key}
+                          onClick={() => setSortBy(key)}
+                          className={cn(
+                            "px-2.5 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
+                            sortBy === key
+                              ? "border-border-medium bg-active-bg text-text-primary"
+                              : "border-transparent text-text-secondary hover:text-text-primary"
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs text-text-muted tabular-nums">
+                      {filteredJurisdictions.length} jurisdiction
+                      {filteredJurisdictions.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  {hasFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+                    >
+                      <X size={12} strokeWidth={2} />
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+
+                {/* List */}
+                <div ref={listRef} className="flex-1 overflow-y-auto px-4 pb-4">
+                  {filteredJurisdictions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <MapPin size={32} className="text-text-secondary mb-3 opacity-40" />
+                      <p className="text-sm text-text-secondary mb-2">
+                        No jurisdictions match
+                      </p>
+                      <button
+                        onClick={clearFilters}
+                        className="text-xs text-text-accent hover:underline cursor-pointer"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {filteredJurisdictions.map((jur) => (
+                        <button
+                          key={jur.id}
+                          data-jur={jur.id}
+                          onClick={() => handleCardClick(jur)}
+                          onMouseEnter={() => setHoveredJurId(jur.id)}
+                          onMouseLeave={() => setHoveredJurId(null)}
+                          className={cn(
+                            "w-full text-left rounded-lg border bg-surface-card p-3.5",
+                            "transition-all duration-150 cursor-pointer",
+                            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+                            "hover:bg-surface-card-hover hover:-translate-y-px",
+                            selectedJurId === jur.id
+                              ? "border-text-accent/30 ring-1 ring-text-accent/20"
+                              : "border-border-subtle"
+                          )}
+                          style={{
+                            borderLeftWidth: 4,
+                            borderLeftColor:
+                              PRIORITY_COLORS[jur.topPriority] || "var(--border-subtle)",
+                            boxShadow:
+                              "0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18)",
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span
+                                  className="inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded"
+                                  style={{
+                                    background: "var(--map-pin-bg)",
+                                    color: "#171e19",
+                                    fontFamily: "monospace",
+                                  }}
+                                >
+                                  {jur.pinCode}
+                                </span>
+                                <span className="text-[15px] font-semibold text-text-primary" style={{ letterSpacing: "-0.1px" }}>
+                                  {jur.label}
+                                </span>
+                              </div>
+                              <p className="text-[13px] text-text-secondary mb-2">
+                                {jur.region}
+                              </p>
+                              <div className="flex items-center gap-1.5">
+                                {jur.criticalCount > 0 && (
+                                  <span
+                                    className="text-[11px] font-bold px-2 py-0.5 rounded"
+                                    style={{
+                                      background: "rgba(255,59,48,0.15)",
+                                      border: "1px solid rgba(255,59,48,0.4)",
+                                      color: "#ff3b30",
+                                    }}
+                                  >
+                                    {jur.criticalCount} CRITICAL
+                                  </span>
+                                )}
+                                {jur.highCount > 0 && (
+                                  <span
+                                    className="text-[11px] font-bold px-2 py-0.5 rounded"
+                                    style={{
+                                      background: "rgba(255,149,0,0.15)",
+                                      border: "1px solid rgba(255,149,0,0.4)",
+                                      color: "#ff9500",
+                                    }}
+                                  >
+                                    {jur.highCount} HIGH
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-text-muted">
+                              <span className="text-xs tabular-nums shrink-0">
+                                {jur.resources.length} reg{jur.resources.length !== 1 ? "s" : ""}
+                              </span>
+                              <ChevronRight size={14} />
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
