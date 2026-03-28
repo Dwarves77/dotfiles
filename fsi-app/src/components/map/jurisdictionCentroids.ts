@@ -39,7 +39,7 @@ export const JURISDICTION_CENTROIDS: Record<string, [number, number]> = {
   eafrica: [0, 35],
   nafrica: [30, 10],
   // Cross-regional
-  global: [20, 0],
+  global: [30, -30],  // Mid-Atlantic — not tied to any continent
   imo: [51.5, -0.1], // London HQ
   icao: [45.5, -73.6], // Montreal HQ
 };

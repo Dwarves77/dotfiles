@@ -152,6 +152,74 @@ function FlyToSelected({ lat, lng }: { lat: number; lng: number }) {
   return null;
 }
 
+// ── Popup content with native DOM click handler ──
+
+function PopupContent({ jur, onDrill }: { jur: JurisdictionData; onDrill: (id: string) => void }) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const handler = () => onDrill(jur.id);
+    btn.addEventListener("click", handler);
+    return () => btn.removeEventListener("click", handler);
+  }, [jur.id, onDrill]);
+
+  return (
+    <Popup className="custom-popup" closeButton maxWidth={320} minWidth={260}>
+      <div
+        style={{
+          background: "var(--map-popup-bg)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 10,
+          padding: 16,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          color: "var(--text-primary)",
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+        }}
+      >
+        <h4 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: "var(--text-primary)" }}>
+          {jur.label}
+        </h4>
+        <span
+          style={{
+            display: "inline-block", fontSize: 11, fontWeight: 500, padding: "2px 8px",
+            borderRadius: 4, border: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(255,255,255,0.06)", color: "var(--text-secondary)", marginBottom: 8,
+          }}
+        >
+          {jur.pinCode}
+        </span>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "8px 0" }}>
+          {jur.resources.length} active regulation{jur.resources.length !== 1 ? "s" : ""}
+        </p>
+        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+          {jur.criticalCount > 0 && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "rgba(255,59,48,0.15)", border: "1px solid rgba(255,59,48,0.4)", color: "#ff3b30" }}>
+              {jur.criticalCount} CRITICAL
+            </span>
+          )}
+          {jur.highCount > 0 && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "rgba(255,149,0,0.15)", border: "1px solid rgba(255,149,0,0.4)", color: "#ff9500" }}>
+              {jur.highCount} HIGH
+            </span>
+          )}
+        </div>
+        <button
+          ref={btnRef}
+          style={{
+            fontSize: 13, color: "var(--text-accent)", background: "none",
+            border: "none", cursor: "pointer", padding: 0,
+            display: "flex", alignItems: "center", gap: 4,
+          }}
+        >
+          View regulations &rsaquo;
+        </button>
+      </div>
+    </Popup>
+  );
+}
+
 // ── Main Component ──
 
 export function MapView({
@@ -400,108 +468,7 @@ export function MapView({
                       click: () => handlePinClick(jur.id),
                     }}
                   >
-                    <Popup
-                      className="custom-popup"
-                      closeButton={true}
-                      maxWidth={320}
-                      minWidth={260}
-                    >
-                      <div
-                        style={{
-                          background: "var(--map-popup-bg)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          borderRadius: 10,
-                          padding: 16,
-                          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                          color: "var(--text-primary)",
-                          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-                        }}
-                      >
-                        <h4
-                          style={{
-                            fontSize: 15,
-                            fontWeight: 600,
-                            marginBottom: 6,
-                            color: "var(--text-primary)",
-                          }}
-                        >
-                          {jur.label}
-                        </h4>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            fontSize: 11,
-                            fontWeight: 500,
-                            padding: "2px 8px",
-                            borderRadius: 4,
-                            border: "1px solid rgba(255,255,255,0.12)",
-                            background: "rgba(255,255,255,0.06)",
-                            color: "var(--text-secondary)",
-                            marginBottom: 8,
-                          }}
-                        >
-                          {jur.pinCode}
-                        </span>
-                        <p
-                          style={{
-                            fontSize: 13,
-                            color: "var(--text-secondary)",
-                            margin: "8px 0",
-                          }}
-                        >
-                          {jur.resources.length} active regulation
-                          {jur.resources.length !== 1 ? "s" : ""}
-                        </p>
-                        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                          {jur.criticalCount > 0 && (
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: "2px 8px",
-                                borderRadius: 4,
-                                background: "rgba(255,59,48,0.15)",
-                                border: "1px solid rgba(255,59,48,0.4)",
-                                color: "#ff3b30",
-                              }}
-                            >
-                              {jur.criticalCount} CRITICAL
-                            </span>
-                          )}
-                          {jur.highCount > 0 && (
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: "2px 8px",
-                                borderRadius: 4,
-                                background: "rgba(255,149,0,0.15)",
-                                border: "1px solid rgba(255,149,0,0.4)",
-                                color: "#ff9500",
-                              }}
-                            >
-                              {jur.highCount} HIGH
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => drillInto(jur.id)}
-                          style={{
-                            fontSize: 13,
-                            color: "var(--text-accent)",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          View regulations <ChevronRight size={12} />
-                        </button>
-                      </div>
-                    </Popup>
+                    <PopupContent jur={jur} onDrill={drillInto} />
                   </Marker>
                 ))}
               </MarkerClusterGroup>
