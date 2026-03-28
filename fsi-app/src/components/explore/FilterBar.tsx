@@ -53,7 +53,7 @@ export function FilterBar() {
                             >
                             <X size={12} strokeWidth={2} />
                             Clear all filters
-                  </button>button>
+                  </button>
               )}
         
           {/* Modes */}
@@ -67,7 +67,7 @@ export function FilterBar() {
                                   onClick={() => toggleFilter("modes", id)}
                                 />
                   ))}
-              </FilterRow>FilterRow>
+              </FilterRow>
         
           {/* Topics */}
               <FilterRow label="Topic">
@@ -81,7 +81,7 @@ export function FilterBar() {
                                   onClick={() => toggleFilter("topics", id)}
                                 />
                   ))}
-              </FilterRow>FilterRow>
+              </FilterRow>
         
           {/* Jurisdictions */}
               <FilterRow label="Region">
@@ -94,7 +94,7 @@ export function FilterBar() {
                                   onClick={() => toggleFilter("jurisdictions", id)}
                                 />
                   ))}
-              </FilterRow>FilterRow>
+              </FilterRow>
         
           {/* Priorities */}
               <FilterRow label="Priority">
@@ -108,7 +108,7 @@ export function FilterBar() {
                                   onClick={() => toggleFilter("priorities", pri)}
                                 />
                   ))}
-              </FilterRow>FilterRow>
+              </FilterRow>
         
           {/* Cargo Verticals */}
               <FilterRow label="Cargo">
@@ -121,8 +121,8 @@ export function FilterBar() {
                                   onClick={() => toggleFilter("verticals", id)}
                                 />
                   ))}
-              </FilterRow>FilterRow>
-        </div>div>
+              </FilterRow>
+        </div>
       );
 }
 
@@ -134,12 +134,13 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
                 <div className="shrink-0 w-[72px] pt-1 mr-3">
                         <span className="text-[9px] font-black tracking-[0.18em] uppercase text-text-muted/70 block">
                           {label}
-                        </span>span>
-                </div>div>
+                        </span>
+                </div>
             {/* Options — always left-justified */}
                 <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
                   {children}
-                </div>div>
-          </div>div>
+                </div>
+          </div>
         );
-}</div>
+
+      }
