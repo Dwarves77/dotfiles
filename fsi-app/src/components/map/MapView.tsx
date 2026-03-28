@@ -115,54 +115,7 @@ function createClusterIcon(cluster: any): L.DivIcon {
   });
 }
 
-// ── Initial fit: zoom to show all pins on mount ──
-
-function InitialFit({ jurisdictions }: { jurisdictions: JurisdictionData[] }) {
-  const map = useMap();
-  const fitted = useRef(false);
-
-  useEffect(() => {
-    if (fitted.current || jurisdictions.length === 0) return;
-    fitted.current = true;
-    const bounds = L.latLngBounds(
-      jurisdictions.map((j) => [j.lat, j.lng] as [number, number])
-    );
-    // Use setTimeout to let the map container settle first
-    setTimeout(() => {
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 4 });
-    }, 200);
-  }, [jurisdictions, map]);
-
-  return null;
-}
-
-// ── FitBounds on filter change ──
-
-function FitBoundsHelper({ jurisdictions }: { jurisdictions: JurisdictionData[] }) {
-  const map = useMap();
-  const NON_GEO = ["global", "imo", "icao"];
-
-  useEffect(() => {
-    if (jurisdictions.length === 0) return;
-    // Filter out non-geographic jurisdictions for map bounds
-    const geoJurs = jurisdictions.filter((j) => !NON_GEO.includes(j.id));
-    if (geoJurs.length === 0) {
-      // Only non-geo jurisdictions selected — show whole world
-      map.flyTo([20, 0], 2, { duration: 0.8 });
-      return;
-    }
-    if (geoJurs.length === 1) {
-      map.flyTo([geoJurs[0].lat, geoJurs[0].lng], 5, { duration: 0.8 });
-      return;
-    }
-    const bounds = L.latLngBounds(
-      geoJurs.map((j) => [j.lat, j.lng] as [number, number])
-    );
-    map.flyToBounds(bounds, { padding: [40, 40], duration: 0.8 });
-  }, [jurisdictions, map]);
-
-  return null;
-}
+// No auto-zoom components — map starts at world view, only moves on user action
 
 // ── FlyTo on select ──
 
@@ -391,7 +344,7 @@ export function MapView({
     drillInto(jur.id);
   }, [drillInto]);
 
-  const selectedJur = filteredJurisdictions.find((j) => j.id === selectedJurId);
+  // selectedJurId used for list highlighting
   const drillJur = allJurisdictions.find((j) => j.id === drillJurId);
 
   // Build sub-groups for the drilled jurisdiction
@@ -496,8 +449,9 @@ export function MapView({
             style={{ minHeight: 400 }}
           >
             <MapContainer
-              center={[20, 0]}
+              center={[25, 20]}
               zoom={2}
+              minZoom={2}
               zoomControl={false}
               className="h-full w-full"
               style={{ background: "#171e19" }}
@@ -508,14 +462,13 @@ export function MapView({
               />
               <ZoomControl position="bottomleft" />
 
-              <InitialFit jurisdictions={allJurisdictions} />
-              {hasFilters && !drillJurId && <FitBoundsHelper jurisdictions={filteredJurisdictions} />}
-              {selectedJur && !["global", "imo", "icao"].includes(selectedJur.id) && <FlyToSelected lat={selectedJur.lat} lng={selectedJur.lng} />}
+              {/* No auto-zoom — map starts at world view */}
+              {drillJur && !["global", "imo", "icao"].includes(drillJur.id) && <FlyToSelected lat={drillJur.lat} lng={drillJur.lng} />}
 
               <MarkerClusterGroup
                 chunkedLoading
                 iconCreateFunction={createClusterIcon}
-                maxClusterRadius={50}
+                maxClusterRadius={30}
                 spiderfyOnMaxZoom
                 showCoverageOnHover={false}
               >
