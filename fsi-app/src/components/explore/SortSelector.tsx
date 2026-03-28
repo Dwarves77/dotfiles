@@ -20,8 +20,8 @@ export function SortSelector() {
               <div className="shrink-0 w-[72px] mr-3">
                       <span className="text-[9px] font-black tracking-[0.18em] uppercase text-text-muted/70">
                                 Sort
-                      </span>span>
-              </div>div>
+                      </span>
+              </div>
         
           {/* Segmented-style sort buttons */}
               <div className="flex items-center gap-1">
@@ -38,9 +38,9 @@ export function SortSelector() {
                                                 )}
                                 >
                       {label}
-                    </button>button>
+                    </button>
                   ))}
-              </div>div>
-        </div>div>
+              </div>
+        </div>
       );
-}</div>
+}
