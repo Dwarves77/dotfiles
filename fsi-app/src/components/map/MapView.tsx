@@ -18,7 +18,9 @@ import {
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import {
   JURISDICTION_CENTROIDS,
+  SUB_JURISDICTION_CENTROIDS,
   JURISDICTION_PIN_CODES,
+  SUB_JURISDICTION_LABELS,
 } from "./jurisdictionCentroids";
 
 // ── Types ──
@@ -33,7 +35,10 @@ interface JurisdictionData {
   resources: Resource[];
   criticalCount: number;
   highCount: number;
+  conflictCount: number;
   topPriority: string;
+  isSubJurisdiction: boolean;
+  parentJurisdiction?: string;
 }
 
 type ViewMode = "split" | "map" | "list";
@@ -50,17 +55,21 @@ interface MapViewProps {
 
 // ── Custom marker icon builder ──
 
-function createPinIcon(code: string, hasCritical: boolean): L.DivIcon {
+function createPinIcon(code: string, hasCritical: boolean, hasConflict: boolean, isSub: boolean): L.DivIcon {
+  const size = isSub ? 28 : 32;
+  const fontSize = isSub ? 9 : 10;
+  const bg = isSub ? "#bbe2f5" : "var(--map-pin-bg)";
+  const border = isSub ? "rgba(187,226,245,0.5)" : "var(--map-pin-border)";
   return L.divIcon({
     className: "custom-pin",
     html: `
       <div style="
-        width:32px;height:32px;
-        background:var(--map-pin-bg);
-        border:2px solid var(--map-pin-border);
+        width:${size}px;height:${size}px;
+        background:${bg};
+        border:2px solid ${border};
         border-radius:6px;
         display:flex;align-items:center;justify-content:center;
-        font-size:10px;font-weight:700;font-family:monospace;
+        font-size:${fontSize}px;font-weight:700;font-family:monospace;
         color:#171e19;
         position:relative;
       ">
@@ -70,11 +79,16 @@ function createPinIcon(code: string, hasCritical: boolean): L.DivIcon {
           width:8px;height:8px;border-radius:50%;
           background:#ff3b30;
         "></span>` : ""}
+        ${hasConflict ? `<span style="
+          position:absolute;bottom:-3px;right:-3px;
+          width:8px;height:8px;border-radius:50%;
+          background:#ff9500;
+        "></span>` : ""}
       </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
   });
 }
 
@@ -190,9 +204,23 @@ function PopupContent({ jur, onDrill }: { jur: JurisdictionData; onDrill: (id: s
         >
           {jur.pinCode}
         </span>
+        {jur.isSubJurisdiction && jur.parentJurisdiction && (
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0" }}>
+            Part of {jur.region}
+          </p>
+        )}
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "8px 0" }}>
           {jur.resources.length} active regulation{jur.resources.length !== 1 ? "s" : ""}
         </p>
+        {jur.conflictCount > 0 && (
+          <div style={{
+            fontSize: 11, fontWeight: 600, padding: "4px 8px", borderRadius: 4,
+            background: "rgba(255,149,0,0.12)", border: "1px solid rgba(255,149,0,0.3)",
+            color: "#ff9500", marginBottom: 8, display: "flex", alignItems: "center", gap: 4,
+          }}>
+            {jur.conflictCount} regulatory conflict{jur.conflictCount !== 1 ? "s" : ""}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
           {jur.criticalCount > 0 && (
             <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "rgba(255,59,48,0.15)", border: "1px solid rgba(255,59,48,0.4)", color: "#ff3b30" }}>
@@ -244,44 +272,94 @@ export function MapView({
   const listRef = useRef<HTMLDivElement>(null);
   const markerRefs = useRef<Record<string, L.Marker>>({});
 
-  // Build jurisdiction data from resources
+  // Build jurisdiction data — split sub-jurisdictions into their own pins
   const allJurisdictions = useMemo(() => {
-    const jurMap: Record<string, Resource[]> = {};
+    // Group resources: sub-jurisdiction resources get their own bucket,
+    // remaining resources stay in the parent jurisdiction bucket
+    const parentMap: Record<string, Resource[]> = {};
+    const subMap: Record<string, Resource[]> = {};
+
     resources.forEach((r) => {
       const jur = r.jurisdiction || getJurisdiction(r);
-      if (!jurMap[jur]) jurMap[jur] = [];
-      jurMap[jur].push(r);
+      if (r.subJurisdiction) {
+        const key = r.subJurisdiction;
+        if (!subMap[key]) subMap[key] = [];
+        subMap[key].push(r);
+      } else {
+        if (!parentMap[jur]) parentMap[jur] = [];
+        parentMap[jur].push(r);
+      }
     });
 
-    return Object.entries(jurMap)
-      .map(([id, res]) => {
-        const coords = JURISDICTION_CENTROIDS[id];
-        if (!coords) return null;
-        const jurDef = JURISDICTIONS.find((j) => j.id === id);
-        const criticalCount = res.filter((r) => r.priority === "CRITICAL").length;
-        const highCount = res.filter((r) => r.priority === "HIGH").length;
-        const topPriority = criticalCount > 0
-          ? "CRITICAL"
-          : highCount > 0
-          ? "HIGH"
-          : res.some((r) => r.priority === "MODERATE")
-          ? "MODERATE"
-          : "LOW";
+    function buildEntry(
+      id: string,
+      res: Resource[],
+      coords: [number, number],
+      label: string,
+      region: string,
+      isSub: boolean,
+      parentJur?: string,
+    ): JurisdictionData {
+      const criticalCount = res.filter((r) => r.priority === "CRITICAL").length;
+      const highCount = res.filter((r) => r.priority === "HIGH").length;
+      const conflictCount = res.filter((r) => r.regulatoryConflict).length;
+      const topPriority = criticalCount > 0
+        ? "CRITICAL"
+        : highCount > 0
+        ? "HIGH"
+        : res.some((r) => r.priority === "MODERATE")
+        ? "MODERATE"
+        : "LOW";
 
-        return {
-          id,
-          label: jurDef?.label || id.toUpperCase(),
-          region: jurDef?.region || "Global",
-          lat: coords[0],
-          lng: coords[1],
-          pinCode: JURISDICTION_PIN_CODES[id] || id.slice(0, 2).toUpperCase(),
-          resources: [...res].sort((a, b) => urgencyScore(b) - urgencyScore(a)),
-          criticalCount,
-          highCount,
-          topPriority,
-        } as JurisdictionData;
-      })
-      .filter(Boolean) as JurisdictionData[];
+      return {
+        id,
+        label,
+        region,
+        lat: coords[0],
+        lng: coords[1],
+        pinCode: JURISDICTION_PIN_CODES[id] || id.slice(0, 2).toUpperCase(),
+        resources: [...res].sort((a, b) => urgencyScore(b) - urgencyScore(a)),
+        criticalCount,
+        highCount,
+        conflictCount,
+        topPriority,
+        isSubJurisdiction: isSub,
+        parentJurisdiction: parentJur,
+      };
+    }
+
+    const results: JurisdictionData[] = [];
+
+    // Parent jurisdictions
+    for (const [id, res] of Object.entries(parentMap)) {
+      const coords = JURISDICTION_CENTROIDS[id];
+      if (!coords) continue;
+      const jurDef = JURISDICTIONS.find((j) => j.id === id);
+      results.push(buildEntry(
+        id, res, coords,
+        jurDef?.label || id.toUpperCase(),
+        jurDef?.region || "Global",
+        false,
+      ));
+    }
+
+    // Sub-jurisdictions as separate pins
+    for (const [subId, res] of Object.entries(subMap)) {
+      const coords = SUB_JURISDICTION_CENTROIDS[subId];
+      if (!coords) continue;
+      const label = SUB_JURISDICTION_LABELS[subId] || subId;
+      const parentId = subId.split("-")[0]; // e.g. "us" from "us-ca"
+      const parentDef = JURISDICTIONS.find((j) => j.id === parentId);
+      results.push(buildEntry(
+        subId, res, coords,
+        label,
+        parentDef?.label || parentId.toUpperCase(),
+        true,
+        parentId,
+      ));
+    }
+
+    return results;
   }, [resources]);
 
   // Apply filters
@@ -460,7 +538,7 @@ export function MapView({
                   <Marker
                     key={jur.id}
                     position={[jur.lat, jur.lng]}
-                    icon={createPinIcon(jur.pinCode, jur.criticalCount > 0)}
+                    icon={createPinIcon(jur.pinCode, jur.criticalCount > 0, jur.conflictCount > 0, jur.isSubJurisdiction)}
                     ref={(ref) => {
                       if (ref) markerRefs.current[jur.id] = ref;
                     }}
@@ -827,9 +905,9 @@ export function MapView({
                                 </span>
                               </div>
                               <p className="text-[13px] text-text-secondary mb-2">
-                                {jur.region}
+                                {jur.isSubJurisdiction ? `${jur.region} — sub-region` : jur.region}
                               </p>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 {jur.criticalCount > 0 && (
                                   <span
                                     className="text-[11px] font-bold px-2 py-0.5 rounded"
@@ -852,6 +930,18 @@ export function MapView({
                                     }}
                                   >
                                     {jur.highCount} HIGH
+                                  </span>
+                                )}
+                                {jur.conflictCount > 0 && (
+                                  <span
+                                    className="text-[11px] font-bold px-2 py-0.5 rounded"
+                                    style={{
+                                      background: "rgba(255,149,0,0.12)",
+                                      border: "1px solid rgba(255,149,0,0.3)",
+                                      color: "#ff9500",
+                                    }}
+                                  >
+                                    {jur.conflictCount} CONFLICT{jur.conflictCount !== 1 ? "S" : ""}
                                   </span>
                                 )}
                               </div>

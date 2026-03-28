@@ -78,6 +78,18 @@ export interface Resource {
   topic?: string;
   jurisdiction?: string;
 
+  // Sub-jurisdiction (state, country within region, etc.)
+  subJurisdiction?: string;        // e.g. "us-ca", "eu-norway", "asia-singapore"
+  subJurisdictionLabel?: string;   // e.g. "California", "Norway", "Singapore"
+
+  // Regulatory conflict tracking
+  regulatoryConflict?: {
+    type: "federal-state" | "international" | "trade" | "supersession" | "divergence";
+    summary: string;               // e.g. "California mandate conflicts with EPA Phase 3"
+    parties: string[];             // e.g. ["California CARB", "US EPA"]
+    status: "active" | "pending" | "resolved";
+  };
+
   // Taxonomy (Phase 2+)
   category?: string;
   lifecycleStage?: string;

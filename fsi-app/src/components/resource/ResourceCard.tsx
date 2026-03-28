@@ -106,6 +106,20 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
             </p>
           )}
 
+          {/* Sub-jurisdiction + conflict indicators */}
+          <div className="flex flex-wrap gap-1 mb-1">
+            {r.subJurisdictionLabel && (
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded border border-text-accent/20 bg-text-accent/10 text-text-accent">
+                {r.subJurisdictionLabel}
+              </span>
+            )}
+            {r.regulatoryConflict && (
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded border border-[#FF9500]/30 bg-[#FF9500]/10 text-[#FF9500]">
+                {r.regulatoryConflict.type.replace("-", " ")} conflict
+              </span>
+            )}
+          </div>
+
           {/* Tags */}
           <div className="flex flex-wrap gap-1">
             {r.tags?.slice(0, 5).map((tag) => (

@@ -107,6 +107,39 @@ export function ResourceDetail({
         </div>
       )}
 
+      {/* Regulatory Conflict */}
+      {r.regulatoryConflict && (
+        <div className="border border-[#FF9500]/25 rounded-lg bg-[#FF9500]/5 p-3 space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <AlertTriangle size={12} strokeWidth={2.5} className="text-[#FF9500]" />
+            <span className="text-xs font-bold tracking-wider uppercase text-[#FF9500]">
+              Regulatory Conflict — {r.regulatoryConflict.type.replace("-", " ")}
+            </span>
+            <span className={cn(
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded ml-auto",
+              r.regulatoryConflict.status === "active"
+                ? "bg-[#FF3B30]/15 text-[#FF3B30] border border-[#FF3B30]/30"
+                : "bg-[#FF9500]/15 text-[#FF9500] border border-[#FF9500]/30"
+            )}>
+              {r.regulatoryConflict.status.toUpperCase()}
+            </span>
+          </div>
+          <p className="text-xs text-text-primary/80 leading-relaxed">{r.regulatoryConflict.summary}</p>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {r.regulatoryConflict.parties.map((party, i) => (
+              <span key={i} className="text-[11px] px-2 py-0.5 rounded border border-[#FF9500]/20 text-[#FF9500]">
+                {party}
+              </span>
+            ))}
+          </div>
+          {r.subJurisdictionLabel && (
+            <p className="text-[11px] text-text-muted mt-1">
+              Jurisdiction: {r.subJurisdictionLabel}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* What Changed */}
       {changes?.length > 0 && (
         <div className="border border-[#C77700]/20 rounded-[2px] bg-[#C77700]/5 p-3 space-y-2">
