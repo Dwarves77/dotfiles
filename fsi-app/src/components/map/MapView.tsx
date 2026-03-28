@@ -101,7 +101,28 @@ function createClusterIcon(cluster: any): L.DivIcon {
   });
 }
 
-// ── FitBounds helper component ──
+// ── Initial fit: zoom to show all pins on mount ──
+
+function InitialFit({ jurisdictions }: { jurisdictions: JurisdictionData[] }) {
+  const map = useMap();
+  const fitted = useRef(false);
+
+  useEffect(() => {
+    if (fitted.current || jurisdictions.length === 0) return;
+    fitted.current = true;
+    const bounds = L.latLngBounds(
+      jurisdictions.map((j) => [j.lat, j.lng] as [number, number])
+    );
+    // Use setTimeout to let the map container settle first
+    setTimeout(() => {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 4 });
+    }, 200);
+  }, [jurisdictions, map]);
+
+  return null;
+}
+
+// ── FitBounds on filter change ──
 
 function FitBoundsHelper({ jurisdictions }: { jurisdictions: JurisdictionData[] }) {
   const map = useMap();
@@ -340,7 +361,7 @@ export function MapView({
         {/* ── Map Panel ── */}
         {showMap && (
           <div
-            className={cn("relative", showList ? "w-1/2" : "w-full")}
+            className={cn("relative border border-border-subtle rounded-lg overflow-hidden", showList ? "w-1/2" : "w-full")}
             style={{ minHeight: 400 }}
           >
             <MapContainer
@@ -356,6 +377,7 @@ export function MapView({
               />
               <ZoomControl position="bottomleft" />
 
+              <InitialFit jurisdictions={allJurisdictions} />
               {hasFilters && !drillJurId && <FitBoundsHelper jurisdictions={filteredJurisdictions} />}
               {selectedJur && <FlyToSelected lat={selectedJur.lat} lng={selectedJur.lng} />}
 
