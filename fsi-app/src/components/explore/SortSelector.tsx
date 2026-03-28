@@ -16,7 +16,7 @@ export function SortSelector() {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary mr-1">
+      <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block w-[80px] text-right pr-4 shrink-0 border-r border-border-subtle mr-2">
         Sort
       </span>
       {SORT_OPTIONS.map(({ key, label }) => (

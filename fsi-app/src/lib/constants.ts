@@ -35,6 +35,7 @@ export const JURISDICTIONS = [
   { id: "switzerland", label: "Switzerland", region: "Europe" },
   { id: "turkey", label: "Turkey", region: "Europe" },
   // Asia-Pacific
+  { id: "asia", label: "Asia", region: "Asia-Pacific" },
   { id: "china", label: "China", region: "Asia-Pacific" },
   { id: "japan", label: "Japan", region: "Asia-Pacific" },
   { id: "korea", label: "South Korea", region: "Asia-Pacific" },
@@ -45,6 +46,7 @@ export const JURISDICTIONS = [
   { id: "australia", label: "Australia/NZ", region: "Asia-Pacific" },
   { id: "pacific", label: "Pacific Islands", region: "Asia-Pacific" },
   // Middle East & Africa
+  { id: "meaf", label: "ME & Africa", region: "Middle East & Africa" },
   { id: "gcc", label: "GCC", region: "Middle East & Africa" },
   { id: "uae", label: "UAE", region: "Middle East & Africa" },
   { id: "safrica", label: "South Africa", region: "Middle East & Africa" },
@@ -113,7 +115,7 @@ export const JURISDICTION_WEIGHTS: Record<string, number> = {
   japan: 0.7, korea: 0.7, canada: 0.7, india: 0.7,
   singapore: 0.7, australia: 0.7,
   // Medium — regional influence
-  asean: 0.6, hk: 0.6, nordic: 0.6, switzerland: 0.6,
+  asia: 0.7, asean: 0.6, hk: 0.6, nordic: 0.6, switzerland: 0.6, meaf: 0.5,
   brazil: 0.6, gcc: 0.6, uae: 0.6, turkey: 0.6,
   // Standard — emerging/regional
   latam: 0.5, safrica: 0.5, wafrica: 0.4, eafrica: 0.4,

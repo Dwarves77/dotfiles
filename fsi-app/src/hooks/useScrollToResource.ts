@@ -11,9 +11,11 @@ export function useScrollToResource(resourceId: string | null) {
       setTimeout(() => {
         const el = document.getElementById(`resource-${resourceId}`);
         if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          // Account for sticky header + filter bar (~160px)
+          const y = el.getBoundingClientRect().top + window.scrollY - 160;
+          window.scrollTo({ top: y, behavior: "smooth" });
         }
-      }, 80);
+      }, 100);
     } else if (!resourceId) {
       prevId.current = null;
     }

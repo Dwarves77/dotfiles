@@ -44,9 +44,14 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-[13px] font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
-            What Changed ({allIds.length})
-          </span>
+          <div>
+            <span className="text-[13px] font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+              What Changed ({allIds.length})
+            </span>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Since last audit — {auditDate || "recent"}
+            </p>
+          </div>
         </button>
         <button
           onClick={() =>

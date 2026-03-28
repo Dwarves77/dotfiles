@@ -19,7 +19,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 export function Supersessions({ supersessions, resourceMap }: SupersessionsProps) {
   const { navigateToResource, pushFocusView } = useNavigationStore();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   if (supersessions.length === 0) return null;
 
@@ -40,9 +40,14 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
           <GitBranch size={14} strokeWidth={2} className="text-text-secondary" />
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
-            Supersessions ({supersessions.length})
-          </span>
+          <div>
+            <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+              Replaced Regulations ({supersessions.length})
+            </span>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Regulations that have been replaced by newer versions
+            </p>
+          </div>
         </button>
         <button
           onClick={() =>

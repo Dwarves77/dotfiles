@@ -54,7 +54,7 @@ export function FilterBar() {
       )}
       {/* Modes */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[80px] text-right pr-4 shrink-0">Mode</span>
+        <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block w-[80px] text-right pr-4 shrink-0 border-r border-border-subtle mr-2">Mode</span>
         {MODES.map(({ id, label }) => (
           <Pill
             key={id}
@@ -68,7 +68,7 @@ export function FilterBar() {
 
       {/* Topics */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[80px] text-right pr-4 shrink-0">Topic</span>
+        <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block w-[80px] text-right pr-4 shrink-0 border-r border-border-subtle mr-2">Topic</span>
         {TOPICS.map(({ id, label }) => (
           <Pill
             key={id}
@@ -83,7 +83,7 @@ export function FilterBar() {
 
       {/* Jurisdictions — grouped by region */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[80px] text-right pr-4 shrink-0">Region</span>
+        <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block w-[80px] text-right pr-4 shrink-0 border-r border-border-subtle mr-2">Region</span>
         {JURISDICTIONS.filter(({ id }) => counts.jurCounts[id]).map(({ id, label }) => (
           <Pill
             key={id}
@@ -97,7 +97,7 @@ export function FilterBar() {
 
       {/* Priorities */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[80px] text-right pr-4 shrink-0">Priority</span>
+        <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block w-[80px] text-right pr-4 shrink-0 border-r border-border-subtle mr-2">Priority</span>
         {PRIORITIES.map((pri) => (
           <Pill
             key={pri}
@@ -112,7 +112,7 @@ export function FilterBar() {
 
       {/* Cargo Verticals */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[80px] text-right pr-4 shrink-0">Cargo</span>
+        <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block w-[80px] text-right pr-4 shrink-0 border-r border-border-subtle mr-2">Cargo</span>
         {VERTICALS.filter(({ id }) => counts.vertCounts[id]).map(({ id, label }) => (
           <Pill
             key={id}
