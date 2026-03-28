@@ -392,7 +392,10 @@ export function MapView({
     }
 
     if (regionFilter.length > 0) {
-      items = items.filter((j) => regionFilter.includes(j.id));
+      // "global" filter means show everything (world overview), don't filter pins
+      if (!regionFilter.includes("global")) {
+        items = items.filter((j) => regionFilter.includes(j.id) || regionFilter.includes(j.parentJurisdiction || ""));
+      }
     }
 
     if (sortBy === "name") {
@@ -515,7 +518,7 @@ export function MapView({
         {/* ── Map Panel ── */}
         {showMap && (
           <div
-            className={cn("relative border border-border-light rounded-lg overflow-hidden", showList ? "w-1/2" : "w-full")}
+            className={cn("relative overflow-hidden", showList ? "w-1/2" : "w-full")}
             style={{ minHeight: 400 }}
           >
             <MapContainer
