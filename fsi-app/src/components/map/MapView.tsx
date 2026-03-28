@@ -140,15 +140,23 @@ function InitialFit({ jurisdictions }: { jurisdictions: JurisdictionData[] }) {
 
 function FitBoundsHelper({ jurisdictions }: { jurisdictions: JurisdictionData[] }) {
   const map = useMap();
+  const NON_GEO = ["global", "imo", "icao"];
 
   useEffect(() => {
     if (jurisdictions.length === 0) return;
-    if (jurisdictions.length === 1) {
-      map.flyTo([jurisdictions[0].lat, jurisdictions[0].lng], 5, { duration: 0.8 });
+    // Filter out non-geographic jurisdictions for map bounds
+    const geoJurs = jurisdictions.filter((j) => !NON_GEO.includes(j.id));
+    if (geoJurs.length === 0) {
+      // Only non-geo jurisdictions selected — show whole world
+      map.flyTo([20, 0], 2, { duration: 0.8 });
+      return;
+    }
+    if (geoJurs.length === 1) {
+      map.flyTo([geoJurs[0].lat, geoJurs[0].lng], 5, { duration: 0.8 });
       return;
     }
     const bounds = L.latLngBounds(
-      jurisdictions.map((j) => [j.lat, j.lng] as [number, number])
+      geoJurs.map((j) => [j.lat, j.lng] as [number, number])
     );
     map.flyToBounds(bounds, { padding: [40, 40], duration: 0.8 });
   }, [jurisdictions, map]);
@@ -507,7 +515,7 @@ export function MapView({
         {/* ── Map Panel ── */}
         {showMap && (
           <div
-            className={cn("relative border border-border-subtle rounded-lg overflow-hidden", showList ? "w-1/2" : "w-full")}
+            className={cn("relative border border-border-light rounded-lg overflow-hidden", showList ? "w-1/2" : "w-full")}
             style={{ minHeight: 400 }}
           >
             <MapContainer
@@ -525,7 +533,7 @@ export function MapView({
 
               <InitialFit jurisdictions={allJurisdictions} />
               {hasFilters && !drillJurId && <FitBoundsHelper jurisdictions={filteredJurisdictions} />}
-              {selectedJur && <FlyToSelected lat={selectedJur.lat} lng={selectedJur.lng} />}
+              {selectedJur && !["global", "imo", "icao"].includes(selectedJur.id) && <FlyToSelected lat={selectedJur.lat} lng={selectedJur.lng} />}
 
               <MarkerClusterGroup
                 chunkedLoading
@@ -534,7 +542,9 @@ export function MapView({
                 spiderfyOnMaxZoom
                 showCoverageOnHover={false}
               >
-                {filteredJurisdictions.map((jur) => (
+                {filteredJurisdictions
+                  .filter((jur) => !["global", "imo", "icao"].includes(jur.id))
+                  .map((jur) => (
                   <Marker
                     key={jur.id}
                     position={[jur.lat, jur.lng]}
@@ -750,10 +760,10 @@ export function MapView({
                 </div>
 
                 {/* Filters */}
-                <div className="px-4 pb-2 space-y-2">
+                <div className="px-4 pb-3 space-y-2.5 border-b border-border-subtle">
                   {/* Priority */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
+                    <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block min-w-[70px] text-right pr-3 shrink-0">
                       Priority
                     </span>
                     {(["CRITICAL", "HIGH", "MODERATE"] as const).map((pri) => (
@@ -784,7 +794,7 @@ export function MapView({
 
                   {/* Region */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
+                    <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block min-w-[70px] text-right pr-3 shrink-0">
                       Region
                     </span>
                     {availableRegions.map(({ id, label }) => (
@@ -807,7 +817,7 @@ export function MapView({
                   {/* Sort + count */}
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary inline-block min-w-[60px] text-right pr-3 shrink-0">
+                      <span className="text-[11px] font-bold tracking-widest uppercase text-text-primary inline-block min-w-[70px] text-right pr-3 shrink-0">
                         Sort
                       </span>
                       {([
