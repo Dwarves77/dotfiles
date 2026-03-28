@@ -251,7 +251,7 @@ export function Dashboard({
 
         {/* ── MAP TAB ── */}
         {tab === "map" && !focusView && (
-          <div className="mt-4 border border-border-light rounded-lg overflow-hidden" style={{ marginLeft: "calc(-50vw + 50% + 8px)", marginRight: "calc(-50vw + 50% + 8px)", width: "calc(100vw - 16px)" }}>
+          <div className="mt-4 border border-border-light rounded-lg overflow-hidden" style={{ position: "relative", left: "50%", right: "50%", marginLeft: "-48vw", marginRight: "-48vw", width: "96vw" }}>
             <MapView
               resources={resources}
               changelog={changelog}
