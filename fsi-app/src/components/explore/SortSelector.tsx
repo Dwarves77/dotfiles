@@ -5,7 +5,6 @@ import { cn } from "@/lib/cn";
 
 const SORT_OPTIONS = [
   { key: "urgency" as const, label: "Urgency" },
-  { key: "priority" as const, label: "Priority" },
   { key: "alpha" as const, label: "A–Z" },
   { key: "added" as const, label: "Newest" },
   { key: "modified" as const, label: "Modified" },

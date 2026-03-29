@@ -140,7 +140,10 @@ export function MapView({
 }: MapViewProps) {
   useNavigationStore();
   const { expandedId, setExpanded } = useResourceStore();
-  const [viewMode, setViewMode] = useState<ViewMode>("split");
+  // Default to list on mobile, split on desktop
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    typeof window !== "undefined" && window.innerWidth < 768 ? "list" : "split"
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [regionFilter, setRegionFilter] = useState<string[]>([]);
@@ -441,12 +444,12 @@ export function MapView({
         ))}
       </div>
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0">
         {/* ── Map Panel ── */}
         {showMap && (
           <div
-            className={cn("relative overflow-hidden", showList ? "w-1/2" : "w-full")}
-            style={{ minHeight: 400 }}
+            className={cn("relative overflow-hidden", showList ? "w-full md:w-1/2" : "w-full")}
+            style={{ minHeight: 300 }}
           >
             <MapContainer
               center={[25, 20]}
@@ -544,7 +547,7 @@ export function MapView({
           <div
             className={cn(
               "flex flex-col min-h-0",
-              showMap ? "w-1/2" : "w-full"
+              showMap ? "w-full md:w-1/2" : "w-full"
             )}
           >
             {/* ── DRILL-DOWN ── */}

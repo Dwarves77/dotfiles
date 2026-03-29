@@ -16,7 +16,7 @@ export function TabBar() {
   const { tab, setTab } = useNavigationStore();
 
   return (
-    <nav className="sticky top-0 z-30 flex items-center gap-1 border-b border-border-subtle bg-surface-base/95 backdrop-blur-sm">
+    <nav className="sticky top-0 z-30 flex items-center gap-0.5 sm:gap-1 border-b border-border-subtle bg-surface-base/95 backdrop-blur-sm overflow-x-auto">
       {TABS.map(({ id, label, icon: Icon }) => (
         <button
           key={id}

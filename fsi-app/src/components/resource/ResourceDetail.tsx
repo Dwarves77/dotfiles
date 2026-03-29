@@ -245,14 +245,18 @@ export function ResourceDetail({
       )}
 
       {/* Timeline */}
-      {r.timeline && r.timeline.length > 0 && (
-        <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
-            Timeline
-          </span>
+      <div>
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
+          Timeline
+        </span>
+        {r.timeline && r.timeline.length > 0 ? (
           <TimelineBar items={r.timeline} color={topicColor} />
-        </div>
-      )}
+        ) : (
+          <p className="text-[11px] text-text-muted italic">
+            No timeline milestones recorded yet — pending data enrichment
+          </p>
+        )}
+      </div>
 
       {/* Regulatory Lineage */}
       {lineage.length > 1 && (
