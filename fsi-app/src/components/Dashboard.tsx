@@ -192,7 +192,17 @@ export function Dashboard({
               </div>
             )}
 
-            {focusView && <FocusView resources={resources} />}
+            {focusView && (
+              <FocusView
+                resources={resources}
+                changelog={changelog}
+                disputes={disputes}
+                xrefPairs={xrefPairs}
+                supersessions={supersessions}
+                resourceMap={resourceMap}
+                onToast={showToast}
+              />
+            )}
 
             {!focusView && (
               <div className="flex flex-col gap-2">
