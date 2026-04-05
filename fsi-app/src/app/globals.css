@@ -88,6 +88,10 @@ body {
   }
 }
 
+/* ── Hide scrollbar on nav tabs ── */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ── Selection ── */
 ::selection {
   background: rgba(8, 145, 178, 0.15);

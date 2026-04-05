@@ -29,8 +29,8 @@ export function TabBar() {
 
   return (
     <nav
-      className="sticky top-0 z-30 flex items-center border-b bg-[var(--color-background)] overflow-x-auto"
-      style={{ borderColor: "var(--color-border-subtle)" }}
+      className="sticky top-0 z-30 flex items-center border-b bg-[var(--color-background)] overflow-x-auto scrollbar-none"
+      style={{ borderColor: "var(--color-border-subtle)", WebkitOverflowScrolling: "touch" }}
     >
       {/* Primary tabs */}
       <div className="flex items-center">

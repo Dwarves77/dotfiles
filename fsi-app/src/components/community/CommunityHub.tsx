@@ -30,6 +30,7 @@ export function CommunityHub({ sections, recentThreads, caseStudies, userId }: C
   const [activeView, setActiveView] = useState<"forums" | "vendors" | "case-studies">("forums");
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [showNewThread, setShowNewThread] = useState(false);
+  const [forumSearch, setForumSearch] = useState("");
   const [showNewCaseStudy, setShowNewCaseStudy] = useState(false);
   const [showPeerInfo, setShowPeerInfo] = useState(false);
 
@@ -90,8 +91,18 @@ export function CommunityHub({ sections, recentThreads, caseStudies, userId }: C
         {/* ══════ FORUMS VIEW ══════ */}
         {activeView === "forums" && !activeSection && (
           <div className="space-y-6">
-            {/* New Thread button */}
-            <div className="flex justify-end">
+            {/* Search + New Thread */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search forums by keyword, regulation, or topic..."
+                  value={forumSearch}
+                  onChange={(e) => setForumSearch(e.target.value)}
+                  className="w-full pl-3 pr-3 py-2 text-sm rounded-md border outline-none"
+                  style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text-primary)" }}
+                />
+              </div>
               <Button variant="primary" size="sm" onClick={() => setShowNewThread(true)}>
                 <Plus size={14} /> Start a Discussion
               </Button>
