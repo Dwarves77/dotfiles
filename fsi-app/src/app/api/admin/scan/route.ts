@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
+        // Fallback: "claude-3-5-sonnet-20241022" if the above model is unavailable
         max_tokens: 3000,
         system: `You are a regulatory intelligence researcher for the global freight forwarding industry. Search for current and upcoming regulations, standards, and policy developments that affect freight logistics sustainability.
 
@@ -76,7 +77,9 @@ Return ONLY the JSON array, no other text.`,
     });
 
     if (!response.ok) {
-      return NextResponse.json({ error: `AI search failed: ${response.status}` }, { status: 502 });
+      const errBody = await response.text();
+      console.error("Anthropic API error:", response.status, errBody);
+      return NextResponse.json({ error: `AI search failed: ${response.status} — ${errBody.slice(0, 200)}` }, { status: 502 });
     }
 
     const data = await response.json();

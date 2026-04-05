@@ -406,8 +406,9 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
               Regulatory Scan
             </h2>
             <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              Search for new regulations using AI. Results are staged for your review — nothing is published automatically.
-              Automated scans run Monday/Wednesday/Friday at 07:00 UTC aligned with government publication schedules.
+              Search for new regulations using AI. Leave fields empty to scan all freight sustainability topics globally.
+              Results are staged for your review — nothing is published automatically.
+              Automated scans run Monday/Wednesday/Friday at 07:00 UTC.
             </p>
 
             <div className="flex gap-2">
