@@ -34,43 +34,106 @@ export const TOPICS = [
   { id: "research", label: "Research & Intelligence" },
 ] as const;
 
-// ── Jurisdictions (worldwide) ──
+// ── Jurisdictions (global coverage) ──
 export const JURISDICTIONS = [
-  // Americas
-  { id: "us", label: "US", region: "Americas" },
+  // Americas — North
+  { id: "us", label: "United States", region: "Americas" },
   { id: "canada", label: "Canada", region: "Americas" },
-  { id: "latam", label: "LatAm", region: "Americas" },
+  { id: "mexico", label: "Mexico", region: "Americas" },
+  // Americas — South & Central
   { id: "brazil", label: "Brazil", region: "Americas" },
+  { id: "argentina", label: "Argentina", region: "Americas" },
+  { id: "chile", label: "Chile", region: "Americas" },
+  { id: "colombia", label: "Colombia", region: "Americas" },
+  { id: "peru", label: "Peru", region: "Americas" },
+  { id: "latam", label: "Latin America (other)", region: "Americas" },
   { id: "caribbean", label: "Caribbean", region: "Americas" },
-  // Europe
+  { id: "central-america", label: "Central America", region: "Americas" },
+  // Europe — EU
   { id: "eu", label: "EU", region: "Europe" },
-  { id: "uk", label: "UK", region: "Europe" },
+  { id: "germany", label: "Germany", region: "Europe" },
+  { id: "france", label: "France", region: "Europe" },
+  { id: "netherlands", label: "Netherlands", region: "Europe" },
+  { id: "belgium", label: "Belgium", region: "Europe" },
+  { id: "italy", label: "Italy", region: "Europe" },
+  { id: "spain", label: "Spain", region: "Europe" },
+  { id: "poland", label: "Poland", region: "Europe" },
+  { id: "ireland", label: "Ireland", region: "Europe" },
+  { id: "greece", label: "Greece", region: "Europe" },
+  { id: "portugal", label: "Portugal", region: "Europe" },
+  { id: "romania", label: "Romania", region: "Europe" },
+  // Europe — Non-EU
+  { id: "uk", label: "United Kingdom", region: "Europe" },
   { id: "nordic", label: "Nordic", region: "Europe" },
   { id: "switzerland", label: "Switzerland", region: "Europe" },
   { id: "turkey", label: "Turkey", region: "Europe" },
-  // Asia-Pacific
-  { id: "asia", label: "Asia", region: "Asia-Pacific" },
+  { id: "ukraine", label: "Ukraine", region: "Europe" },
+  { id: "balkans", label: "Balkans", region: "Europe" },
+  // Asia — East
   { id: "china", label: "China", region: "Asia-Pacific" },
   { id: "japan", label: "Japan", region: "Asia-Pacific" },
   { id: "korea", label: "South Korea", region: "Asia-Pacific" },
-  { id: "india", label: "India", region: "Asia-Pacific" },
-  { id: "asean", label: "ASEAN", region: "Asia-Pacific" },
+  { id: "taiwan", label: "Taiwan", region: "Asia-Pacific" },
   { id: "hk", label: "Hong Kong", region: "Asia-Pacific" },
+  // Asia — South
+  { id: "india", label: "India", region: "Asia-Pacific" },
+  { id: "bangladesh", label: "Bangladesh", region: "Asia-Pacific" },
+  { id: "pakistan", label: "Pakistan", region: "Asia-Pacific" },
+  { id: "sri-lanka", label: "Sri Lanka", region: "Asia-Pacific" },
+  // Asia — Southeast
   { id: "singapore", label: "Singapore", region: "Asia-Pacific" },
-  { id: "australia", label: "Australia/NZ", region: "Asia-Pacific" },
-  { id: "pacific", label: "Pacific Islands", region: "Asia-Pacific" },
-  // Middle East & Africa
-  { id: "meaf", label: "ME & Africa", region: "Middle East & Africa" },
-  { id: "gcc", label: "GCC", region: "Middle East & Africa" },
-  { id: "uae", label: "UAE", region: "Middle East & Africa" },
-  { id: "safrica", label: "South Africa", region: "Middle East & Africa" },
-  { id: "wafrica", label: "West Africa", region: "Middle East & Africa" },
-  { id: "eafrica", label: "East Africa", region: "Middle East & Africa" },
-  { id: "nafrica", label: "North Africa", region: "Middle East & Africa" },
-  // Cross-regional
-  { id: "global", label: "Global", region: "Global" },
-  { id: "imo", label: "IMO", region: "Global" },
-  { id: "icao", label: "ICAO", region: "Global" },
+  { id: "malaysia", label: "Malaysia", region: "Asia-Pacific" },
+  { id: "indonesia", label: "Indonesia", region: "Asia-Pacific" },
+  { id: "thailand", label: "Thailand", region: "Asia-Pacific" },
+  { id: "vietnam", label: "Vietnam", region: "Asia-Pacific" },
+  { id: "philippines", label: "Philippines", region: "Asia-Pacific" },
+  { id: "asean", label: "ASEAN (other)", region: "Asia-Pacific" },
+  // Asia — Central & Other
+  { id: "asia", label: "Asia (other)", region: "Asia-Pacific" },
+  // Oceania
+  { id: "australia", label: "Australia", region: "Oceania" },
+  { id: "new-zealand", label: "New Zealand", region: "Oceania" },
+  { id: "pacific", label: "Pacific Islands", region: "Oceania" },
+  // Middle East
+  { id: "uae", label: "UAE", region: "Middle East" },
+  { id: "saudi", label: "Saudi Arabia", region: "Middle East" },
+  { id: "qatar", label: "Qatar", region: "Middle East" },
+  { id: "kuwait", label: "Kuwait", region: "Middle East" },
+  { id: "bahrain", label: "Bahrain", region: "Middle East" },
+  { id: "oman", label: "Oman", region: "Middle East" },
+  { id: "gcc", label: "GCC (other)", region: "Middle East" },
+  { id: "israel", label: "Israel", region: "Middle East" },
+  { id: "jordan", label: "Jordan", region: "Middle East" },
+  { id: "iraq", label: "Iraq", region: "Middle East" },
+  { id: "iran", label: "Iran", region: "Middle East" },
+  { id: "meaf", label: "Middle East (other)", region: "Middle East" },
+  // Africa — North
+  { id: "egypt", label: "Egypt", region: "Africa" },
+  { id: "morocco", label: "Morocco", region: "Africa" },
+  { id: "tunisia", label: "Tunisia", region: "Africa" },
+  { id: "algeria", label: "Algeria", region: "Africa" },
+  { id: "nafrica", label: "North Africa (other)", region: "Africa" },
+  // Africa — Sub-Saharan
+  { id: "safrica", label: "South Africa", region: "Africa" },
+  { id: "nigeria", label: "Nigeria", region: "Africa" },
+  { id: "kenya", label: "Kenya", region: "Africa" },
+  { id: "ethiopia", label: "Ethiopia", region: "Africa" },
+  { id: "ghana", label: "Ghana", region: "Africa" },
+  { id: "tanzania", label: "Tanzania", region: "Africa" },
+  { id: "wafrica", label: "West Africa (other)", region: "Africa" },
+  { id: "eafrica", label: "East Africa (other)", region: "Africa" },
+  { id: "cafrica", label: "Central Africa", region: "Africa" },
+  { id: "safrica-region", label: "Southern Africa (other)", region: "Africa" },
+  // Russia & CIS
+  { id: "russia", label: "Russia", region: "Russia & CIS" },
+  { id: "cis", label: "CIS (other)", region: "Russia & CIS" },
+  { id: "kazakhstan", label: "Kazakhstan", region: "Russia & CIS" },
+  // Cross-regional / International bodies
+  { id: "global", label: "Global", region: "International" },
+  { id: "imo", label: "IMO", region: "International" },
+  { id: "icao", label: "ICAO", region: "International" },
+  { id: "wto", label: "WTO", region: "International" },
+  { id: "un", label: "United Nations", region: "International" },
 ] as const;
 
 // ── Freight Sectors ──
@@ -159,16 +222,37 @@ export const DOMAIN_COLORS: Record<number, string> = {
   7: "var(--topic-research)",     // Research
 };
 
-// ── Jurisdiction Weights (for urgency scoring) ──
+// ── Jurisdiction Weights (platform defaults for urgency scoring) ──
+// These are the global defaults. Workspaces can override via workspace_settings.jurisdiction_weights.
 export const JURISDICTION_WEIGHTS: Record<string, number> = {
-  global: 1.0, imo: 1.0, icao: 1.0, eu: 1.0,
+  // International bodies — highest
+  global: 1.0, imo: 1.0, icao: 1.0, wto: 1.0, un: 1.0,
+  // Major trade blocs
+  eu: 1.0,
+  // Major economies
   us: 0.9, china: 0.9, uk: 0.8,
   japan: 0.7, korea: 0.7, canada: 0.7, india: 0.7,
-  singapore: 0.7, australia: 0.7,
-  asia: 0.7, asean: 0.6, hk: 0.6, nordic: 0.6, switzerland: 0.6, meaf: 0.5,
-  brazil: 0.6, gcc: 0.6, uae: 0.6, turkey: 0.6,
-  latam: 0.5, safrica: 0.5, wafrica: 0.4, eafrica: 0.4,
-  nafrica: 0.4, caribbean: 0.4, pacific: 0.3,
+  germany: 0.8, france: 0.7, netherlands: 0.7, italy: 0.7, spain: 0.6,
+  belgium: 0.6, ireland: 0.6, poland: 0.6, greece: 0.5, portugal: 0.5, romania: 0.5,
+  // Asia-Pacific
+  singapore: 0.7, australia: 0.7, "new-zealand": 0.5, taiwan: 0.7, hk: 0.6,
+  malaysia: 0.6, indonesia: 0.6, thailand: 0.6, vietnam: 0.6, philippines: 0.5,
+  bangladesh: 0.5, pakistan: 0.5, "sri-lanka": 0.4,
+  asia: 0.6, asean: 0.6, pacific: 0.3,
+  // Europe non-EU
+  nordic: 0.6, switzerland: 0.6, turkey: 0.6, ukraine: 0.4, balkans: 0.4,
+  // Americas
+  mexico: 0.6, brazil: 0.6, argentina: 0.5, chile: 0.5, colombia: 0.5, peru: 0.5,
+  latam: 0.5, caribbean: 0.4, "central-america": 0.4,
+  // Middle East
+  uae: 0.6, saudi: 0.6, qatar: 0.5, kuwait: 0.5, bahrain: 0.5, oman: 0.5,
+  gcc: 0.6, israel: 0.5, jordan: 0.4, iraq: 0.4, iran: 0.4, meaf: 0.5,
+  // Africa
+  egypt: 0.5, morocco: 0.5, tunisia: 0.4, algeria: 0.4, nafrica: 0.4,
+  safrica: 0.5, nigeria: 0.5, kenya: 0.5, ethiopia: 0.4, ghana: 0.4, tanzania: 0.4,
+  wafrica: 0.4, eafrica: 0.4, cafrica: 0.3, "safrica-region": 0.4,
+  // Russia & CIS
+  russia: 0.5, cis: 0.3, kazakhstan: 0.4,
 };
 
 // ── Resource Categories (taxonomy) ──

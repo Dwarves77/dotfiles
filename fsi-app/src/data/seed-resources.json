@@ -17,7 +17,7 @@
       "global"
     ],
     "whatIsIt": "IMO's revised strategy committing global shipping to net-zero GHG emissions by around 2050 with interim checkpoints.",
-    "whyMatters": "This strategy determines carrier fleet investment direction over the next 25 years. Live events freight forwarders must understand which carriers are investing ahead of the curve to negotiate favorable long-term contracts. Green fuel surcharges will be directly linked to these targets.",
+    "whyMatters": "This strategy determines carrier fleet investment direction over the next 25 years. Freight forwarders must understand which carriers are investing ahead of the curve to negotiate favorable long-term contracts. Green fuel surcharges will be directly linked to these targets.",
     "keyData": [
       "Net-zero by or around 2050",
       "20% reduction by 2030 (striving 30%)",
@@ -300,7 +300,7 @@
       "2030"
     ],
     "whatIsIt": "Industry coalition of 200+ companies working to deploy commercially viable zero-emission vessels by 2030.",
-    "whyMatters": "Corridor pilots on routes like EU-Asia and transatlantic directly affect lane options for live events freight. Understanding pilot timelines helps price green shipping premiums for clients requesting low-carbon logistics.",
+    "whyMatters": "Corridor pilots on routes like EU-Asia and transatlantic directly affect lane options for all freight sectors. Understanding pilot timelines helps price green shipping premiums for clients requesting low-carbon logistics.",
     "keyData": [
       "200+ member companies",
       "Target: commercially viable ZEV by 2030",
@@ -498,7 +498,7 @@
       "2027"
     ],
     "whatIsIt": "ICAO's Carbon Offsetting and Reduction Scheme for International Aviation — a global market-based measure for international flights.",
-    "whyMatters": "CORSIA offset costs flow through to air cargo rates on international routes. Live events freight forwarders must factor offset costs into air freight quotes, especially for time-critical show equipment and high-value touring cargo.",
+    "whyMatters": "CORSIA offset costs flow through to air cargo rates on international routes. Freight forwarders must factor offset costs into air freight quotes, especially for time-critical and high-value cargo.",
     "keyData": [
       "Pilot phase 2021-2023",
       "First phase 2024-2026, mandatory from 2027",
@@ -544,7 +544,7 @@
       "2027"
     ],
     "whatIsIt": "EU Emissions Trading System applied to aviation — currently intra-EEA flights, expanding to 50% of international flights from 2027.",
-    "whyMatters": "All intra-European air freight already carries ETS carbon cost. Scope expansion to international flights would significantly increase transatlantic and EU-Asia air cargo rates used for live events touring equipment.",
+    "whyMatters": "All intra-European air freight already carries ETS carbon cost. Scope expansion to international flights would significantly increase transatlantic and EU-Asia air cargo rates across all sectors.",
     "keyData": [
       "Aviation in EU ETS since 2012",
       "Free allowances phased out by 2026",
@@ -803,7 +803,7 @@
       "2040"
     ],
     "whatIsIt": "EU regulation setting CO2 emission performance standards for new heavy-duty vehicles with declining targets to 2040.",
-    "whyMatters": "These targets determine when diesel trucks are phased out of European fleets. Live events freight forwarders relying on road transport for last-mile delivery and drayage must plan for fleet transition costs from subcontractors.",
+    "whyMatters": "These targets determine when diesel trucks are phased out of European fleets. Freight forwarders relying on road transport for last-mile delivery and drayage must plan for fleet transition costs from subcontractors.",
     "keyData": [
       "45% CO2 reduction by 2030 vs 2019",
       "65% by 2035, 90% by 2040",
@@ -1177,7 +1177,7 @@
       "de minimis"
     ],
     "whatIsIt": "EU's Carbon Border Adjustment Mechanism imposing carbon costs on imports of carbon-intensive goods entering the EU. Omnibus simplification adopted Oct 2025.",
-    "whyMatters": "CBAM creates new customs documentation for EU-bound freight. Event staging with steel/aluminium, film production rigs, automotive components, and humanitarian equipment using covered materials all affected. Only authorised CBAM declarants can import from Jan 2026. Freight forwarders must verify CBAM registration numbers before customs clearance.",
+    "whyMatters": "CBAM creates new customs documentation for EU-bound freight. Any shipment containing steel, aluminium, iron, cement, fertilisers, hydrogen, or electricity is affected. Only authorised CBAM declarants can import from Jan 2026. Freight forwarders must verify CBAM registration numbers before customs clearance.",
     "keyData": [
       "Definitive phase: Jan 2026",
       "Certificates purchase: from Feb 2027",
@@ -1954,7 +1954,7 @@
       "2026"
     ],
     "whatIsIt": "EU regulation replacing the 1994 Packaging Directive with directly applicable rules on recyclability, reuse, and material restrictions.",
-    "whyMatters": "Every piece of packaging on every EU-bound shipment must comply — cartons, pallet wrap, protective materials, exhibition crating. Non-compliant packaging may be rejected at EU borders. Critical for event staging, exhibition freight, and merchandise logistics.",
+    "whyMatters": "Every piece of packaging on every EU-bound shipment must comply — cartons, pallet wrap, protective materials, crating. Non-compliant packaging may be rejected at EU borders. Critical for all freight sectors importing to the EU.",
     "keyData": [
       "In force: 11 Feb 2025, applies: 12 Aug 2026",
       "All packaging recyclable by 2030",
@@ -2323,7 +2323,7 @@
       "take-back"
     ],
     "whatIsIt": "Brazil's reverse logistics law requiring mandatory take-back programmes for packaging, electronics, and specified materials.",
-    "whyMatters": "Mandatory take-back applies to event staging materials, packaging, and electronics entering Brazil — a key market for live events and touring. Freight forwarders must ensure compliance documentation.",
+    "whyMatters": "Mandatory take-back applies to packaging, electronics, and industrial materials entering Brazil. Freight forwarders must ensure compliance documentation for all sectors importing to the Brazilian market.",
     "keyData": [
       "Mandatory take-back for packaging",
       "Electronics recycling requirements",
@@ -2494,7 +2494,7 @@
       "shipping"
     ],
     "whatIsIt": "Japan Ministry of Land, Infrastructure, Transport and Tourism — shipping decarbonisation and hydrogen port strategy.",
-    "whyMatters": "Japan's hydrogen port investments and shipping decarbonisation policies affect event logistics for major touring destinations.",
+    "whyMatters": "Japan's hydrogen port investments and shipping decarbonisation policies affect freight logistics for one of Asia's largest trade destinations.",
     "keyData": [
       "Hydrogen port strategy",
       "Shipping decarbonisation policy",
@@ -2517,7 +2517,7 @@
     "type": "regulator",
     "priority": "HIGH",
     "added": "2026-02-28",
-    "reasoning": "K-ETS carbon costs affect freight operations for Korean touring destinations.",
+    "reasoning": "K-ETS carbon costs affect freight operations for Korean trade destinations.",
     "tags": [
       "Korea",
       "K-ETS",
@@ -3991,7 +3991,7 @@
       "2028"
     ],
     "whatIsIt": "First binding framework combining mandatory GHG fuel intensity limits and a global carbon pricing mechanism for international shipping. Approved by majority vote at MEPC 83 in April 2025.",
-    "whyMatters": "Every ocean shipment for live events, artwork, luxury goods, film sets, and automotive will face fuel standard compliance costs passed through by carriers. The pricing mechanism creates a new cost layer separate from ETS. US opposition means carriers on US-origin routes may face different enforcement, creating pricing divergence clients must understand.",
+    "whyMatters": "Every ocean shipment will face fuel standard compliance costs passed through by carriers. The pricing mechanism creates a new cost layer separate from ETS. US opposition means carriers on US-origin routes may face different enforcement, creating pricing divergence clients must understand.",
     "keyData": [
       "Approved MEPC 83: 63 yes, 16 no, 24 abstained",
       "US walked out, formally opposes as 'global carbon tax'",
@@ -4045,7 +4045,7 @@
       "operational"
     ],
     "whatIsIt": "EU Import Control System requiring all carriers and freight forwarders to submit detailed Electronic Entry Summary Declarations before goods arrive at EU borders.",
-    "whyMatters": "Every shipment to EU — event staging, artwork, luxury goods, film equipment, automotive, humanitarian — requires compliant ENS data BEFORE arrival. Errors detected upstream cause delays. Freight forwarders are now information managers, not just transport organisers. Data quality is operationally critical.",
+    "whyMatters": "Every shipment to the EU requires compliant ENS data BEFORE arrival. Errors detected upstream cause delays across all cargo types. Freight forwarders are now information managers, not just transport organisers. Data quality is operationally critical.",
     "keyData": [
       "Mandatory ENS for ALL EU-bound cargo",
       "Pre-arrival data submission required",
@@ -4095,7 +4095,7 @@
       "2026"
     ],
     "whatIsIt": "EU regulation requiring companies to prove products entering the EU market are not linked to deforestation. Covers timber, rubber, cocoa, coffee, palm oil, soy, and cattle derivatives.",
-    "whyMatters": "Directly affects freight forwarders handling: timber crating for artwork/automotive, rubber components, leather goods (luxury, automotive interiors), palm-oil-derived packaging materials, and wooden pallets/staging for events and film sets. Forwarders must verify Due Diligence Statements accompany shipments. Penalties up to 4% of EU-wide turnover.",
+    "whyMatters": "Directly affects freight forwarders handling: timber crating, rubber components, leather goods, palm-oil-derived packaging materials, and wooden pallets. Forwarders must verify Due Diligence Statements accompany shipments containing covered commodities. Penalties up to 4% of EU-wide turnover.",
     "keyData": [
       "Large operators: Dec 30, 2026",
       "SMEs: Jun 30, 2027",
@@ -4148,7 +4148,7 @@
       "EU"
     ],
     "whatIsIt": "Proposed EU regulation establishing a harmonised methodology for GHG accounting of transport services, built on ISO 14083.",
-    "whyMatters": "This regulation transforms emissions accounting from voluntary to legally referenced across all EU transport. Every freight quotation for live events, film logistics, artwork, luxury goods, and automotive will need compliant emissions figures. Freight forwarders offering GLEC/ISO 14083 calculations now have a competitive advantage.",
+    "whyMatters": "This regulation transforms emissions accounting from voluntary to legally referenced across all EU transport. Every freight quotation will need compliant emissions figures. Freight forwarders offering GLEC/ISO 14083 calculations now have a competitive advantage.",
     "keyData": [
       "Built on ISO 14083",
       "Well-to-wheel approach",
@@ -4201,7 +4201,7 @@
       "CO2 calculator"
     ],
     "whatIsIt": "International Federation of Freight Forwarders Associations — the global peak body representing the freight forwarding and logistics industry.",
-    "whyMatters": "FIATA provides compliance resources built specifically for freight forwarders, not general industry. Their CBAM guidance, CO₂ calculator repository, and regulatory alerts are tailored to forwarding operations across live events, high-value, and general cargo.",
+    "whyMatters": "FIATA provides compliance resources built specifically for freight forwarders, not general industry. Their CBAM guidance, CO₂ calculator repository, and regulatory alerts are tailored to forwarding operations across all cargo sectors.",
     "keyData": [
       "Global freight forwarding federation",
       "CBAM compliance resources",
@@ -4269,7 +4269,7 @@
       "ETS"
     ],
     "whatIsIt": "Specialized weekly intelligence briefing covering the maritime carbon economy including IMO regulations, EU ETS shipping, FuelEU Maritime, and green fuel markets.",
-    "whyMatters": "Purpose-built for tracking the financial and regulatory dimensions of maritime decarbonisation. Directly relevant for pricing ocean freight surcharges on event equipment, artwork, automotive, and humanitarian cargo.",
+    "whyMatters": "Purpose-built for tracking the financial and regulatory dimensions of maritime decarbonisation. Directly relevant for pricing ocean freight surcharges across all cargo sectors.",
     "keyData": [
       "Weekly Thursday briefing",
       "IMO/EU ETS/FuelEU focus",
