@@ -31,13 +31,16 @@ export async function POST(request: NextRequest) {
   try {
     const { topic, jurisdiction } = await request.json();
 
-    // Get existing items to avoid duplicates
-    const { data: existing } = await supabase
-      .from("intelligence_items")
-      .select("title")
-      .limit(200);
+    // Get ALL existing items + ALL pending staged updates to avoid duplicates
+    const [{ data: existing }, { data: staged }] = await Promise.all([
+      supabase.from("intelligence_items").select("title"),
+      supabase.from("staged_updates").select("proposed_changes").in("status", ["pending", "approved"]),
+    ]);
 
-    const existingTitles = (existing || []).map((e: any) => e.title.toLowerCase());
+    const existingTitles = new Set([
+      ...(existing || []).map((e: any) => e.title.toLowerCase()),
+      ...(staged || []).map((s: any) => (s.proposed_changes?.title || "").toLowerCase()).filter(Boolean),
+    ]);
 
     // Call Claude to search for new regulations
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -82,7 +85,7 @@ Return a JSON object with two arrays:
 Return ONLY the JSON object, no other text.`,
         messages: [{
           role: "user",
-          content: `Search for new freight sustainability regulations${topic ? ` related to "${topic}"` : ""}${jurisdiction ? ` in ${jurisdiction}` : " globally"}. Find regulations not in this existing list: ${existingTitles.slice(0, 50).join(", ")}`,
+          content: `Search for new freight sustainability regulations${topic ? ` related to "${topic}"` : ""}${jurisdiction ? ` in ${jurisdiction}` : " globally"}. Do NOT return any regulation that matches or is similar to these existing titles:\n${[...existingTitles].join("\n")}`,
         }],
       }),
     });
@@ -119,7 +122,7 @@ Return ONLY the JSON object, no other text.`,
 
     // Filter out duplicate regulations
     const newItems = regulations.filter(
-      (d: any) => !existingTitles.includes(d.title?.toLowerCase())
+      (d: any) => d.title && !existingTitles.has(d.title.toLowerCase())
     );
 
     // Stage new sources as provisional
