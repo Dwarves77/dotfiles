@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "crons": [
+    {
+      "path": "/api/worker/check-sources",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/worker/check-sources",
+      "schedule": "0 7 * * 3"
+    },
+    {
+      "path": "/api/worker/check-sources",
+      "schedule": "0 7 * * 5"
+    }
+  ]
+}

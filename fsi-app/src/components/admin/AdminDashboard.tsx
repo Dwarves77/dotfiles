@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import {
   Users, Building, FileCheck, Plus, Trash2,
   CheckCircle, XCircle, RefreshCw, Shield, ArrowLeft,
+  Search, Radar,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { APP_NAME } from "@/lib/constants";
@@ -15,7 +16,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<"users" | "orgs" | "updates">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "orgs" | "updates" | "scan">("users");
   const [members, setMembers] = useState<any[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [stagedUpdates, setStagedUpdates] = useState<any[]>([]);
@@ -87,10 +88,39 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
     }
   };
 
+  const [scanTopic, setScanTopic] = useState("");
+  const [scanJurisdiction, setScanJurisdiction] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any>(null);
+
+  const handleScan = async () => {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const supabaseClient = createSupabaseBrowserClient();
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const resp = await fetch("/api/admin/scan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ topic: scanTopic, jurisdiction: scanJurisdiction }),
+      });
+      const data = await resp.json();
+      setScanResult(data);
+      if (data.staged > 0) loadData(); // Refresh staged updates
+    } catch (e: any) {
+      setScanResult({ error: e.message });
+    }
+    setScanning(false);
+  };
+
   const tabs = [
     { id: "users" as const, label: "Users", icon: Users, count: members.length },
     { id: "orgs" as const, label: "Organizations", icon: Building, count: orgs.length },
     { id: "updates" as const, label: "Staged Updates", icon: FileCheck, count: stagedUpdates.length },
+    { id: "scan" as const, label: "Regulatory Scan", icon: Radar, count: 0 },
   ];
 
   return (
@@ -361,6 +391,75 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Regulatory Scan Tab */}
+        {activeTab === "scan" && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+              Regulatory Scan
+            </h2>
+            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+              Search for new regulations using AI. Results are staged for your review — nothing is published automatically.
+              Automated scans run Monday/Wednesday/Friday at 07:00 UTC aligned with government publication schedules.
+            </p>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Topic (e.g., carbon pricing, packaging, SAF)"
+                value={scanTopic}
+                onChange={(e) => setScanTopic(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm rounded-md border"
+                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }}
+              />
+              <input
+                type="text"
+                placeholder="Jurisdiction (e.g., EU, US, UK)"
+                value={scanJurisdiction}
+                onChange={(e) => setScanJurisdiction(e.target.value)}
+                className="w-40 px-3 py-2 text-sm rounded-md border"
+                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }}
+              />
+              <Button variant="primary" onClick={handleScan} disabled={scanning}>
+                <Search size={14} />
+                {scanning ? "Scanning..." : "Scan Now"}
+              </Button>
+            </div>
+
+            {scanResult && (
+              <div
+                className="p-4 rounded-lg border"
+                style={{
+                  borderColor: scanResult.error ? "var(--color-error)" : "var(--color-success)",
+                  backgroundColor: scanResult.error ? "rgba(220,38,38,0.04)" : "rgba(22,163,74,0.04)",
+                }}
+              >
+                {scanResult.error ? (
+                  <p className="text-sm" style={{ color: "var(--color-error)" }}>{scanResult.error}</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+                      Scan complete: {scanResult.discovered} regulations found, {scanResult.new_items} new, {scanResult.staged} staged for review
+                    </p>
+                    {scanResult.staged_titles?.length > 0 && (
+                      <ul className="space-y-1">
+                        {scanResult.staged_titles.map((title: string, i: number) => (
+                          <li key={i} className="text-xs flex items-center gap-1.5" style={{ color: "var(--color-text-secondary)" }}>
+                            <CheckCircle size={10} style={{ color: "var(--color-success)" }} />
+                            {title}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      Review staged items in the Staged Updates tab to approve or reject.
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
