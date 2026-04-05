@@ -30,15 +30,19 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
   const loadData = useCallback(async () => {
     setLoading(true);
 
-    const [{ data: orgData }, { data: memberData }, { data: updateData }] = await Promise.all([
-      supabase.from("organizations").select("*"),
-      supabase.from("org_memberships").select("*, profiles(email, display_name)"),
-      supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }),
-    ]);
+    try {
+      const [orgRes, memberRes, updateRes] = await Promise.all([
+        supabase.from("organizations").select("*"),
+        supabase.from("org_memberships").select("*"),
+        supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }),
+      ]);
 
-    setOrgs(orgData || []);
-    setMembers(memberData || []);
-    setStagedUpdates(updateData || []);
+      setOrgs(orgRes.data || []);
+      setMembers(memberRes.data || []);
+      setStagedUpdates(updateRes.data || []);
+    } catch {
+      // RLS may block some queries — still show the UI
+    }
     setLoading(false);
   }, [supabase]);
 
