@@ -27,12 +27,12 @@ export function Toggle({
       {(label || description) && (
         <div className="flex flex-col gap-0.5">
           {label && (
-            <span className="text-sm font-medium text-text-primary group-hover:text-text-accent transition-colors duration-300">
+            <span className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors duration-200">
               {label}
             </span>
           )}
           {description && (
-            <span className="text-xs text-text-secondary">{description}</span>
+            <span className="text-xs text-[var(--color-text-secondary)]">{description}</span>
           )}
         </div>
       )}
@@ -43,22 +43,20 @@ export function Toggle({
         onClick={() => onChange(!checked)}
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 items-center",
-          "rounded-full border transition-all duration-300",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--cyan)]/50",
+          "rounded-full border transition-all duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
           checked
-            ? "border-[var(--cyan)]/30 bg-[var(--cyan)]/20"
-            : "border-border-light bg-surface-overlay"
+            ? "border-[var(--color-primary)]/30 bg-[var(--color-primary)]/15"
+            : "border-[var(--color-border)] bg-[var(--color-surface-overlay)]"
         )}
-        style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
       >
         <span
           className={cn(
-            "inline-block h-3.5 w-3.5 rounded-full transition-all duration-300",
+            "inline-block h-3.5 w-3.5 rounded-full transition-all duration-200",
             checked
-              ? "translate-x-[18px] bg-[var(--cyan)]"
-              : "translate-x-[3px] bg-[var(--sage)]/50"
+              ? "translate-x-[18px] bg-[var(--color-primary)]"
+              : "translate-x-[3px] bg-[var(--color-text-disabled)]"
           )}
-          style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
         />
       </button>
     </label>

@@ -72,7 +72,7 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
       label: "Resources",
       count: stats.total,
       icon: Database,
-      color: "var(--sage)",
+      color: "var(--color-text-secondary)",
       onClick: () =>
         pushFocusView({
           title: "All Resources",
@@ -90,17 +90,18 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
             onClick={onClick}
             className={cn(
               "flex flex-col items-center gap-1.5 px-6 py-5",
-              "border border-white/[0.08] rounded-[10px] bg-surface-card",
-              "hover:border-border-light hover:bg-surface-card-hover",
-              "transition-all duration-300 cursor-pointer"
+              "border rounded-lg",
+              "hover:bg-[var(--color-surface-raised)]",
+              "transition-all duration-200 cursor-pointer"
             )}
             style={{
-              transitionTimingFunction: "var(--ease-out-expo)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              borderColor: "var(--color-border)",
+              backgroundColor: "var(--color-surface)",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             }}
           >
             <Icon size={16} strokeWidth={2} style={{ color }} />
-            <span className="text-2xl font-display font-bold tabular-nums text-text-primary">
+            <span className="text-2xl font-bold tabular-nums text-text-primary">
               {count}
             </span>
             <span className="text-xs font-semibold tracking-wider uppercase text-text-muted" style={{ color }}>

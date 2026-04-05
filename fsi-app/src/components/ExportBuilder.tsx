@@ -69,7 +69,13 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
       {!isOpen && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-[2px] border border-border-medium bg-surface-raised text-text-primary text-xs font-medium hover:bg-[var(--charcoal-light)] cursor-pointer transition-colors shadow-lg"
+          className="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors"
+          style={{
+            borderColor: "var(--color-border)",
+            backgroundColor: "var(--color-surface)",
+            color: "var(--color-text-primary)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          }}
         >
           <FileText size={14} strokeWidth={2} />
           Export ({selectedIds.length})
@@ -78,22 +84,37 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
 
       {/* Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 left-6 z-50 w-80 border border-border-light rounded-[2px] bg-surface-raised shadow-2xl">
+        <div
+          className="fixed bottom-6 left-6 z-50 w-80 border rounded-lg"
+          style={{
+            borderColor: "var(--color-border)",
+            backgroundColor: "var(--color-surface)",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-            <span className="text-xs font-semibold tracking-wider uppercase text-text-primary">
+          <div
+            className="flex items-center justify-between px-4 py-3 border-b"
+            style={{ borderColor: "var(--color-border-subtle)" }}
+          >
+            <h3 className="text-xs font-semibold tracking-wider uppercase"
+              style={{ color: "var(--color-text-primary)" }}>
               Export ({orderedItems.length})
-            </span>
+            </h3>
             <div className="flex items-center gap-2">
               <button
                 onClick={clearSelection}
-                className="text-text-secondary hover:text-[var(--critical)] cursor-pointer"
+                aria-label="Clear export selection"
+                className="cursor-pointer transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 <Trash2 size={12} strokeWidth={2} />
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="text-text-secondary hover:text-text-primary cursor-pointer"
+                aria-label="Close export panel"
+                className="cursor-pointer transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 <X size={14} strokeWidth={2} />
               </button>
@@ -108,10 +129,13 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
                 draggable
                 onDragStart={() => handleDragStart(idx)}
                 onDragOver={(e) => handleDragOver(e, idx)}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-[2px] hover:bg-surface-overlay cursor-grab active:cursor-grabbing"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-grab active:cursor-grabbing transition-colors"
+                style={{ backgroundColor: "transparent" }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
-                <GripVertical size={12} className="text-text-secondary shrink-0" />
-                <span className="text-xs text-text-primary truncate flex-1">
+                <GripVertical size={12} style={{ color: "var(--color-text-muted)" }} className="shrink-0" />
+                <span className="text-xs truncate flex-1" style={{ color: "var(--color-text-primary)" }}>
                   {r.title}
                 </span>
               </div>
@@ -119,35 +143,34 @@ export function ExportBuilder({ resources, changelog, disputes, onToast }: Expor
           </div>
 
           {/* Format + Download */}
-          <div className="px-4 py-3 border-t border-border-subtle space-y-2">
+          <div
+            className="px-4 py-3 border-t space-y-2"
+            style={{ borderColor: "var(--color-border-subtle)" }}
+          >
             <div className="flex gap-2">
-              <button
-                onClick={() => setFormat("html")}
-                className={cn(
-                  "flex-1 px-2 py-1.5 text-xs font-medium rounded-[2px] border cursor-pointer transition-colors",
-                  format === "html"
-                    ? "border-border-medium bg-active-bg text-text-primary"
-                    : "border-border-subtle text-text-secondary"
-                )}
-              >
-                HTML
-              </button>
-              <button
-                onClick={() => setFormat("slack")}
-                className={cn(
-                  "flex-1 px-2 py-1.5 text-xs font-medium rounded-[2px] border cursor-pointer transition-colors",
-                  format === "slack"
-                    ? "border-border-medium bg-active-bg text-text-primary"
-                    : "border-border-subtle text-text-secondary"
-                )}
-              >
-                Slack
-              </button>
+              {(["html", "slack"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFormat(f)}
+                  className="flex-1 px-2 py-1.5 text-xs font-medium rounded-md border cursor-pointer transition-colors"
+                  style={{
+                    borderColor: format === f ? "var(--color-active-border)" : "var(--color-border)",
+                    backgroundColor: format === f ? "var(--color-active-bg)" : "transparent",
+                    color: format === f ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                  }}
+                >
+                  {f.toUpperCase()}
+                </button>
+              ))}
             </div>
             <button
               onClick={handleDownload}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[2px] border border-border-medium text-text-primary hover:bg-invert-bg hover:text-invert-text cursor-pointer transition-all duration-300"
-              style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border cursor-pointer transition-all duration-200"
+              style={{
+                borderColor: "transparent",
+                backgroundColor: "var(--color-invert-bg)",
+                color: "var(--color-invert-text)",
+              }}
             >
               {format === "html" ? <FileText size={12} /> : <Hash size={12} />}
               Download {format.toUpperCase()}

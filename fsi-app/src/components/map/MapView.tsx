@@ -433,9 +433,9 @@ export function MapView({
             title={label}
             className={cn(
               "p-1.5 rounded transition-colors",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
               viewMode === mode
-                ? "bg-white/10 text-text-primary"
+                ? "bg-[var(--color-active-bg)] text-text-primary"
                 : "text-text-secondary hover:text-text-primary"
             )}
           >
@@ -587,7 +587,7 @@ export function MapView({
                             "w-full text-left rounded-lg border border-border-subtle bg-surface-card p-3.5",
                             "transition-all duration-150 cursor-pointer",
                             "hover:bg-surface-card-hover hover:-translate-y-px",
-                            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
                           )}
                           style={{
                             borderLeftWidth: 4,
@@ -688,11 +688,12 @@ export function MapView({
                       placeholder="Search jurisdictions, regions..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-8 h-[42px] text-sm text-text-primary placeholder:text-text-muted bg-white/[0.05] border border-white/[0.12] rounded-lg outline-none focus:border-border-medium transition-colors duration-200"
+                      className="w-full pl-9 pr-8 h-[42px] text-sm text-text-primary placeholder:text-text-muted bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg outline-none focus:border-border-medium transition-colors duration-200"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery("")}
+                        aria-label="Clear search"
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary cursor-pointer"
                       >
                         <X size={14} strokeWidth={2} />
@@ -714,10 +715,10 @@ export function MapView({
                         onClick={() => togglePriorityFilter(pri)}
                         className={cn(
                           "px-3 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
-                          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
                           priorityFilter.includes(pri)
-                            ? "border-white/25 bg-white/10 text-text-primary font-bold"
-                            : "border-white/[0.08] text-text-secondary hover:border-border-medium"
+                            ? "border-[var(--color-active-border)] bg-[var(--color-active-bg)] text-text-primary font-semibold"
+                            : "border-[var(--color-border)] text-text-secondary hover:border-border-medium"
                         )}
                         style={
                           priorityFilter.includes(pri)
@@ -745,10 +746,10 @@ export function MapView({
                         onClick={() => toggleRegionFilter(id)}
                         className={cn(
                           "px-3 py-1 text-xs font-medium rounded-[6px] border transition-all duration-200 cursor-pointer",
-                          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
                           regionFilter.includes(id)
-                            ? "border-white/25 bg-white/10 text-text-primary font-bold"
-                            : "border-white/[0.08] text-text-secondary hover:border-border-medium"
+                            ? "border-[var(--color-active-border)] bg-[var(--color-active-bg)] text-text-primary font-semibold"
+                            : "border-[var(--color-border)] text-text-secondary hover:border-border-medium"
                         )}
                       >
                         {label}
@@ -825,7 +826,7 @@ export function MapView({
                           className={cn(
                             "w-full text-left rounded-lg border bg-surface-card p-3.5",
                             "transition-all duration-150 cursor-pointer",
-                            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-accent)]/50",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
                             "hover:bg-surface-card-hover hover:-translate-y-px",
                             selectedJurId === jur.id
                               ? "border-text-accent/30 ring-1 ring-text-accent/20"

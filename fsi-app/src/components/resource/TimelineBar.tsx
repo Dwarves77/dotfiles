@@ -47,8 +47,8 @@ export function TimelineBar({ items, color = "#34C759" }: TimelineBarProps) {
                   isNextUp ? "w-3.5 h-3.5" : "w-2.5 h-2.5"
                 )}
                 style={{
-                  background: m.isPast ? color : isNextUp ? `${color}88` : "var(--sage)",
-                  borderColor: isNextUp ? "var(--text-primary)" : "var(--surface-base)",
+                  background: m.isPast ? color : isNextUp ? `${color}88` : "var(--color-text-secondary)",
+                  borderColor: isNextUp ? "var(--color-text-primary)" : "var(--color-background)",
                   boxShadow: isNextUp ? `0 0 8px ${color}66` : "none",
                 }}
               />
@@ -59,7 +59,7 @@ export function TimelineBar({ items, color = "#34C759" }: TimelineBarProps) {
                   "mt-2 text-center leading-tight",
                   isNextUp ? "text-xs font-semibold" : "text-xs"
                 )}
-                style={{ color: m.isPast ? color : "var(--sage)" }}
+                style={{ color: m.isPast ? color : "var(--color-text-secondary)" }}
               >
                 {m.date}
               </span>
@@ -72,7 +72,7 @@ export function TimelineBar({ items, color = "#34C759" }: TimelineBarProps) {
                 <span
                   className="text-xs font-semibold mt-0.5"
                   style={{
-                    color: days <= 30 ? "#FF3B30" : days <= 90 ? "#FF9500" : "var(--sage)",
+                    color: days <= 30 ? "#FF3B30" : days <= 90 ? "#FF9500" : "var(--color-text-secondary)",
                   }}
                 >
                   {days}d

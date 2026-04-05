@@ -40,7 +40,7 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
   if (due.length === 0) return null;
 
   return (
-    <div className="border border-white/[0.08] rounded-[10px] bg-surface-card">
+    <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -55,9 +55,9 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+          <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             Due This Quarter ({due.length})
-          </span>
+          </h3>
         </button>
         <button
           onClick={() =>
@@ -90,7 +90,7 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
                       ? "var(--critical)"
                       : days <= 60
                       ? "#C77700"
-                      : "var(--sage)",
+                      : "var(--color-text-secondary)",
                 }}
               >
                 {days}d

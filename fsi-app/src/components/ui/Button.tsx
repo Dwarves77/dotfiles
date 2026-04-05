@@ -3,7 +3,7 @@
 import { cn } from "@/lib/cn";
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 
-type ButtonVariant = "default" | "outline" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,38 +12,37 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  default:
-    "border-border-medium text-text-primary hover:bg-invert-bg hover:text-invert-text active:opacity-90",
-  outline:
-    "border-[var(--sage)]/30 text-text-secondary hover:border-[var(--sage)] hover:text-text-primary",
+  primary:
+    "bg-[var(--color-invert-bg)] text-[var(--color-invert-text)] border-transparent hover:opacity-90 active:opacity-80",
+  secondary:
+    "border-[var(--color-border)] text-[var(--color-text-primary)] bg-transparent hover:bg-[var(--color-surface-raised)]",
   ghost:
-    "border-transparent text-text-secondary hover:bg-surface-overlay hover:text-text-primary",
+    "border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-overlay)] hover:text-[var(--color-text-primary)]",
   danger:
-    "border-[var(--critical)]/30 text-[var(--critical)] hover:bg-[var(--critical)] hover:text-text-primary",
+    "border-[var(--color-error)]/30 text-[var(--color-error)] hover:bg-[var(--color-error)] hover:text-white",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "px-3 py-1 text-xs",
+  sm: "px-3 py-1.5 text-xs",
   md: "px-4 py-2 text-sm",
   lg: "px-6 py-3 text-base",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "md", ...props }, ref) => {
+  ({ className, variant = "secondary", size = "md", ...props }, ref) => {
     return (
       <button
         ref={ref}
         className={cn(
           "inline-flex items-center justify-center gap-2",
-          "rounded-[2px] border font-medium",
-          "transition-all duration-400",
-          "cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--cyan)]/50",
+          "rounded-md border font-medium",
+          "transition-all duration-200",
+          "cursor-pointer disabled:cursor-not-allowed disabled:opacity-40",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] focus-visible:ring-offset-2",
           variantStyles[variant],
           sizeStyles[size],
           className
         )}
-        style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
         {...props}
       />
     );

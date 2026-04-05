@@ -29,7 +29,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   const allIds = [...new Set([...newResources.map((r) => r.id), ...changed.map((r) => r.id)])];
 
   return (
-    <div className="border border-white/[0.08] rounded-[10px] bg-surface-card">
+    <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -45,9 +45,9 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
           <div>
-            <span className="text-[13px] font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+            <h3 className="text-[13px] font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
               What Changed ({allIds.length})
-            </span>
+            </h3>
             <p className="text-[11px] text-text-muted mt-0.5">
               Since last audit — {auditDate || "recent"}
             </p>

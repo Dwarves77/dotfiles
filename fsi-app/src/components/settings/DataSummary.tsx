@@ -38,21 +38,21 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="text-center">
-          <span className="text-2xl font-display text-text-primary">{resources.length}</span>
+          <span className="text-2xl font-bold text-text-primary">{resources.length}</span>
           <span className="block text-xs text-text-secondary uppercase tracking-wider">Active</span>
         </div>
         <div className="text-center">
-          <span className="text-2xl font-display text-text-primary">{archived.length}</span>
+          <span className="text-2xl font-bold text-text-primary">{archived.length}</span>
           <span className="block text-xs text-text-secondary uppercase tracking-wider">Archived</span>
         </div>
         <div className="text-center">
-          <span className="text-2xl font-display text-text-primary">
+          <span className="text-2xl font-bold text-text-primary">
             {Object.keys(stats.byJur).length}
           </span>
           <span className="block text-xs text-text-secondary uppercase tracking-wider">Jurisdictions</span>
         </div>
         <div className="text-center">
-          <span className="text-2xl font-display text-text-primary">
+          <span className="text-2xl font-bold text-text-primary">
             {Object.keys(stats.byTopic).length}
           </span>
           <span className="block text-xs text-text-secondary uppercase tracking-wider">Topics</span>
@@ -75,7 +75,7 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
                   <span className="text-xs text-text-secondary w-20 shrink-0">{label}</span>
                   <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[var(--cyan)] rounded-sm"
+                      className="h-full bg-[var(--color-primary)] rounded-sm"
                       style={{ width: `${pct}%` }}
                     />
                   </div>

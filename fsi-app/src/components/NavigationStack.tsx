@@ -29,6 +29,7 @@ export function NavigationStack() {
           </span>
           <button
             onClick={clearNav}
+            aria-label="Close focus view"
             className="ml-2 p-0.5 text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer"
           >
             <X size={12} strokeWidth={2.5} />

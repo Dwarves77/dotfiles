@@ -72,7 +72,7 @@ export function ResourceDetail({
       {/* Verification Badge */}
       <div className="flex items-center gap-3 pt-3">
         <div
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] border text-xs font-medium"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-xs font-medium"
           style={{
             color: verification.color,
             borderColor: `${verification.color}30`,
@@ -99,7 +99,7 @@ export function ResourceDetail({
 
       {/* Priority Reasoning */}
       {r.reasoning && (
-        <div className="border-l-2 border-[var(--cyan)] pl-3 py-1">
+        <div className="border-l-2 border-[var(--color-primary)] pl-3 py-1">
           <span className="text-xs font-semibold tracking-wider uppercase text-text-accent block mb-1">
             Why {r.priority}
           </span>
@@ -142,7 +142,7 @@ export function ResourceDetail({
 
       {/* What Changed */}
       {changes?.length > 0 && (
-        <div className="border border-[#C77700]/20 rounded-[2px] bg-[#C77700]/5 p-3 space-y-2">
+        <div className="border border-[#C77700]/20 rounded-md bg-[#C77700]/5 p-3 space-y-2">
           <span className="text-xs font-semibold tracking-wider uppercase text-[#C77700]">
             What Changed
           </span>
@@ -206,7 +206,7 @@ export function ResourceDetail({
 
       {/* Disputes */}
       {dispute?.note && (
-        <div className="border border-[#FF9500]/20 rounded-[2px] bg-[#FF9500]/5 p-3">
+        <div className="border border-[#FF9500]/20 rounded-md bg-[#FF9500]/5 p-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <AlertTriangle size={12} strokeWidth={2.5} className="text-[#FF9500]" />
             <span className="text-xs font-semibold tracking-wider uppercase text-[#FF9500]">
@@ -226,14 +226,14 @@ export function ResourceDetail({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-xs px-1.5 py-0.5 rounded-[2px] border border-[#FF9500]/20 text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors"
+                    className="text-xs px-1.5 py-0.5 rounded-md border border-[#FF9500]/20 text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors"
                   >
                     {name}
                   </a>
                 ) : (
                   <span
                     key={i}
-                    className="text-xs px-1.5 py-0.5 rounded-[2px] border border-[#FF9500]/20 text-[#FF9500]"
+                    className="text-xs px-1.5 py-0.5 rounded-md border border-[#FF9500]/20 text-[#FF9500]"
                   >
                     {name}
                   </span>
@@ -271,7 +271,7 @@ export function ResourceDetail({
                 <button
                   onClick={() => !node.isCurrent && navigateToResource(node.id)}
                   className={cn(
-                    "text-xs px-1.5 py-0.5 rounded-[2px] border",
+                    "text-xs px-1.5 py-0.5 rounded-md border",
                     node.isCurrent
                       ? "border-border-medium bg-active-bg text-text-primary font-medium"
                       : "border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer"
@@ -305,7 +305,7 @@ export function ResourceDetail({
                     <button
                       key={id}
                       onClick={() => navigateToResource(id)}
-                      className="text-xs px-1.5 py-0.5 rounded-[2px] border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+                      className="text-xs px-1.5 py-0.5 rounded-md border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
                       {ref?.title?.slice(0, 35) || id}
                     </button>
@@ -324,7 +324,7 @@ export function ResourceDetail({
                     <button
                       key={id}
                       onClick={() => navigateToResource(id)}
-                      className="text-xs px-1.5 py-0.5 rounded-[2px] border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+                      className="text-xs px-1.5 py-0.5 rounded-md border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
                       {ref?.title?.slice(0, 35) || id}
                     </button>
@@ -358,7 +358,7 @@ export function ResourceDetail({
             key={pri}
             onClick={() => updatePriority(r.id, pri)}
             className={cn(
-              "text-xs px-1.5 py-0.5 rounded-[2px] border cursor-pointer transition-colors",
+              "text-xs px-1.5 py-0.5 rounded-md border cursor-pointer transition-colors",
               r.priority === pri
                 ? "border-current font-medium"
                 : "border-border-subtle opacity-40 hover:opacity-70"
@@ -380,12 +380,12 @@ export function ResourceDetail({
           Archive
         </button>
       ) : (
-        <div className="border border-border-subtle rounded-[2px] p-3 space-y-2">
+        <div className="border border-border-subtle rounded-md p-3 space-y-2">
           <span className="text-xs font-semibold text-text-primary">Archive Resource</span>
           <select
             value={archiveReason}
             onChange={(e) => setArchiveReason(e.target.value)}
-            className="w-full text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary"
+            className="w-full text-xs p-1.5 bg-surface-overlay border border-border-light rounded-md text-text-primary"
           >
             <option value="">Select reason...</option>
             {ARCHIVE_REASONS.map((reason) => (
@@ -397,7 +397,7 @@ export function ResourceDetail({
             placeholder="Optional note..."
             value={archiveNote}
             onChange={(e) => setArchiveNote(e.target.value)}
-            className="w-full text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary placeholder:text-text-secondary/50"
+            className="w-full text-xs p-1.5 bg-surface-overlay border border-border-light rounded-md text-text-primary placeholder:text-text-secondary/50"
           />
           <div className="flex gap-2">
             <button
@@ -409,7 +409,7 @@ export function ResourceDetail({
                 }
               }}
               disabled={!archiveReason}
-              className="text-xs px-3 py-1 rounded-[2px] border border-[var(--critical)]/30 text-[var(--critical)] hover:bg-[var(--critical)] hover:text-text-primary disabled:opacity-30 cursor-pointer transition-colors"
+              className="text-xs px-3 py-1 rounded-md border border-[var(--critical)]/30 text-[var(--critical)] hover:bg-[var(--critical)] hover:text-text-primary disabled:opacity-30 cursor-pointer transition-colors"
             >
               Confirm
             </button>
@@ -426,7 +426,7 @@ export function ResourceDetail({
       {/* Collapse Bar */}
       <button
         onClick={() => setExpanded(null)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 mt-2 border border-border-subtle rounded-[2px] text-xs text-text-secondary hover:text-text-primary hover:border-border-light cursor-pointer transition-all duration-200"
+        className="w-full flex items-center justify-center gap-1.5 py-2 mt-2 border border-border-subtle rounded-md text-xs text-text-secondary hover:text-text-primary hover:border-border-light cursor-pointer transition-all duration-200"
       >
         <ChevronUp size={12} strokeWidth={2} />
         Collapse

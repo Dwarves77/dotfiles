@@ -48,12 +48,21 @@ export function FocusView({
         </div>
         <button
           onClick={clearNav}
+          aria-label="Close focus view"
           className="p-1 text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
         >
           <X size={14} strokeWidth={2} />
         </button>
       </div>
 
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-sm font-medium text-text-primary">No matching resources</p>
+          <p className="text-xs mt-1 text-text-secondary">
+            The resources in this view may have been archived or removed.
+          </p>
+        </div>
+      ) : (
       <div className="flex flex-col gap-2">
         {items.map((r) => {
           const isExpanded = expandedId === r.id;
@@ -64,17 +73,16 @@ export function FocusView({
               id={`resource-${r.id}`}
               className={cn(
                 "border rounded-lg card-expand",
-                "hover:border-border-light",
                 isExpanded
-                  ? "border-border-light bg-surface-card"
-                  : "border-border-subtle bg-surface-card hover:bg-surface-card-hover hover:-translate-y-px"
+                  ? "border-[var(--color-border-strong)]"
+                  : "border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:-translate-y-px"
               )}
               style={{
-                borderLeftWidth: 4,
-                borderLeftColor: topicColor || "var(--border-subtle)",
-                transitionTimingFunction: "var(--ease-out-expo)",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18)",
-                transition: "all 150ms ease",
+                borderLeftWidth: 3,
+                borderLeftColor: topicColor || "var(--color-border)",
+                backgroundColor: "var(--surface-card)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+                transition: "all 200ms ease",
               }}
             >
               <ResourceCard
@@ -97,6 +105,7 @@ export function FocusView({
           );
         })}
       </div>
+      )}
     </div>
   );
 }

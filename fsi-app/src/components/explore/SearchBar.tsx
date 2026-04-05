@@ -28,7 +28,8 @@ export function SearchBar() {
       <Search
         size={14}
         strokeWidth={2}
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+        className="absolute left-3 top-1/2 -translate-y-1/2"
+        style={{ color: "var(--color-text-secondary)" }}
       />
       <input
         ref={inputRef}
@@ -36,12 +37,19 @@ export function SearchBar() {
         placeholder="Search title, tags, jurisdiction..."
         defaultValue={filters.search}
         onChange={(e) => handleChange(e.target.value)}
-        className="w-full pl-9 pr-8 h-[42px] text-sm text-text-primary placeholder:text-text-muted bg-white/[0.05] border border-white/[0.12] rounded-lg outline-none focus:border-border-medium transition-colors duration-200"
+        className="w-full pl-9 pr-8 h-[42px] text-sm rounded-lg border outline-none transition-colors duration-200"
+        style={{
+          color: "var(--color-text-primary)",
+          backgroundColor: "var(--color-surface)",
+          borderColor: "var(--color-border)",
+        }}
       />
       {filters.search && (
         <button
           onClick={handleClear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary cursor-pointer"
+          aria-label="Clear search"
+          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-colors duration-150"
+          style={{ color: "var(--color-text-secondary)" }}
         >
           <X size={14} strokeWidth={2} />
         </button>

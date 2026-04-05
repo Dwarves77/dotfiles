@@ -7,23 +7,23 @@ const MODE_CONFIG = {
   air: {
     icon: Plane,
     label: "AIR",
-    bg: "rgba(100,210,255,0.10)",
-    border: "rgba(100,210,255,0.25)",
-    color: "#64d2ff",
+    color: "#2563EB",
+    bg: "rgba(37,99,235,0.08)",
+    border: "rgba(37,99,235,0.20)",
   },
   road: {
     icon: Truck,
     label: "ROAD",
-    bg: "rgba(52,199,89,0.10)",
-    border: "rgba(52,199,89,0.25)",
-    color: "#34c759",
+    color: "#16A34A",
+    bg: "rgba(22,163,74,0.08)",
+    border: "rgba(22,163,74,0.20)",
   },
   ocean: {
     icon: Ship,
     label: "OCEAN",
-    bg: "rgba(0,199,190,0.10)",
-    border: "rgba(0,199,190,0.25)",
-    color: "#00c7be",
+    color: "#0D9488",
+    bg: "rgba(13,148,136,0.08)",
+    border: "rgba(13,148,136,0.20)",
   },
 } as const;
 
@@ -48,8 +48,8 @@ export function ModeBadge({ mode, onClick, className }: ModeBadgeProps) {
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5",
         "text-[11px] font-semibold tracking-wider uppercase",
-        "rounded transition-all duration-300",
-        onClick && "cursor-pointer hover:brightness-125",
+        "rounded-md transition-all duration-200",
+        onClick && "cursor-pointer hover:opacity-80",
         className
       )}
       style={{
@@ -58,7 +58,6 @@ export function ModeBadge({ mode, onClick, className }: ModeBadgeProps) {
         borderStyle: "solid",
         borderColor: config.border,
         color: config.color,
-        transitionTimingFunction: "var(--ease-out-expo)",
       }}
     >
       <Icon size={10} strokeWidth={2} />

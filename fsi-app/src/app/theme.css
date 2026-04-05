@@ -1,144 +1,168 @@
 /* ═══════════════════════════════════════════════════════════
-   Theme CSS custom properties — kept separate from Tailwind
-   processing so @theme inline doesn't consume/strip them.
+   Caro's Ledge — Theme System
+   Light-first. Apple HIG principles. Semantic tokens only.
    ═══════════════════════════════════════════════════════════ */
 
-/* ── DARK THEME (default when data-theme="dark") ── */
+/* ── LIGHT THEME (default) ── */
 :root {
-  /* Core palette */
-  --navy: #171e19;
-  --navy-light: #1e2722;
-  --sage: #b7c6c2;
-  --white: #ffffff;
-  --taupe: #9f8d8b;
-  --beige: #d7c5b2;
-  --cyan: #d5f4f9;
-  --soft-blue: #bbe2f5;
-  --charcoal: #302b2f;
-  --charcoal-light: #3a3438;
+  /* Semantic surface tokens */
+  --color-background: #FAFAF8;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #F5F2EE;
+  --color-surface-raised-hover: #EFEBE5;
+  --color-surface-overlay: rgba(0, 0, 0, 0.03);
+  --color-surface-input: rgba(0, 0, 0, 0.04);
+
+  /* Text */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #5A6B67;
+  --color-text-muted: #7A6E6C;
+  --color-text-disabled: #9CA3AF;
+
+  /* Primary action */
+  --color-primary: #0891B2;
+  --color-primary-hover: #0E7490;
+
+  /* Borders */
+  --color-border: rgba(0, 0, 0, 0.12);
+  --color-border-subtle: rgba(0, 0, 0, 0.06);
+  --color-border-strong: rgba(0, 0, 0, 0.20);
+
+  /* State */
+  --color-error: #DC2626;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-focus-ring: #0891B2;
+
+  /* Interactive */
+  --color-active-bg: rgba(8, 145, 178, 0.08);
+  --color-active-border: rgba(8, 145, 178, 0.25);
+
+  /* Inversion (for buttons) */
+  --color-invert-bg: #1A1A1A;
+  --color-invert-text: #FFFFFF;
 
   /* Priority colors */
-  --critical: #FF3B30;
-  --high: #FF9500;
-  --moderate: #8e8e93;
-  --low: #aeaeb2;
+  --critical: #DC2626;
+  --high: #D97706;
+  --moderate: #6B7280;
+  --low: #9CA3AF;
 
   /* Topic colors */
   --topic-emissions: #5856D6;
   --topic-fuels: #A2845E;
-  --topic-transport: #34C759;
-  --topic-reporting: #AF52DE;
-  --topic-packaging: #FF2D55;
-  --topic-corridors: #007AFF;
-  --topic-research: #5AC8FA;
+  --topic-transport: #16A34A;
+  --topic-reporting: #9333EA;
+  --topic-packaging: #E11D48;
+  --topic-corridors: #2563EB;
+  --topic-research: #0891B2;
 
   /* Impact dimension colors */
-  --impact-cost: #FFD60A;
-  --impact-compliance: #E040FB;
-  --impact-client: #00C7BE;
-  --impact-operational: #64D2FF;
+  --impact-cost: #CA8A04;
+  --impact-compliance: #9333EA;
+  --impact-client: #0D9488;
+  --impact-operational: #2563EB;
+
+  /* Card surface */
+  --surface-card: #FFFFFF;
+  --surface-card-hover: #F9F7F4;
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.20);
 
   /* Transitions */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Semantic tokens */
-  --text-primary: #ffffff;
-  --text-secondary: #b7c6c2;
-  --text-muted: #b9aca9;
-  --text-accent: #d5f4f9;
+  /* Legacy compat tokens (mapped to new system) */
+  --navy: var(--color-background);
+  --sage: var(--color-text-secondary);
+  --white: var(--color-text-primary);
+  --taupe: var(--color-text-muted);
+  --beige: var(--color-text-muted);
+  --cyan: var(--color-primary);
+  --soft-blue: var(--color-primary-hover);
+  --charcoal: var(--color-surface);
+  --charcoal-light: var(--color-surface-raised);
 
-  --surface-base: #171e19;
-  --surface-raised: #302b2f;
-  --surface-raised-hover: #3a3438;
-  --surface-subtle: rgba(255, 255, 255, 0.02);
-  --surface-subtle-hover: rgba(255, 255, 255, 0.04);
-  --surface-overlay: rgba(255, 255, 255, 0.05);
-  --surface-input: rgba(255, 255, 255, 0.05);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --text-accent: var(--color-primary);
 
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.10);
-  --border-medium: rgba(255, 255, 255, 0.14);
+  --surface-base: var(--color-background);
+  --surface-raised: var(--color-surface-raised);
+  --surface-raised-hover: var(--color-surface-raised-hover);
+  --surface-subtle: rgba(0, 0, 0, 0.02);
+  --surface-subtle-hover: rgba(0, 0, 0, 0.04);
+  --surface-overlay: var(--color-surface-overlay);
+  --surface-input: var(--color-surface-input);
 
-  /* Card surface tokens */
+  --border-subtle: var(--color-border-subtle);
+  --border-light: var(--color-border);
+  --border-medium: rgba(0, 0, 0, 0.16);
+  --border-strong: var(--color-border-strong);
+
+  --active-bg: var(--color-active-bg);
+  --active-border: var(--color-active-border);
+
+  --invert-bg: var(--color-invert-bg);
+  --invert-text: var(--color-invert-text);
+
+  --background: var(--color-background);
+  --foreground: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --muted-foreground: var(--color-text-muted);
+  --card: var(--color-surface);
+  --card-hover: var(--color-surface-raised);
+  --accent: var(--color-primary);
+}
+
+/* ── DARK THEME (opt-in) ── */
+[data-theme="dark"] {
+  --color-background: #171e19;
+  --color-surface: #1f2820;
+  --color-surface-raised: #272e28;
+  --color-surface-raised-hover: #303830;
+  --color-surface-overlay: rgba(255, 255, 255, 0.05);
+  --color-surface-input: rgba(255, 255, 255, 0.06);
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #b7c6c2;
+  --color-text-muted: #9f8d8b;
+  --color-text-disabled: #6B7280;
+
+  --color-primary: #5eead4;
+  --color-primary-hover: #2dd4bf;
+
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.20);
+
+  --color-error: #EF4444;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-focus-ring: #5eead4;
+
+  --color-active-bg: rgba(94, 234, 212, 0.08);
+  --color-active-border: rgba(94, 234, 212, 0.25);
+
+  --color-invert-bg: #FFFFFF;
+  --color-invert-text: #171e19;
+
+  --critical: #EF4444;
+  --high: #F59E0B;
+  --moderate: #9CA3AF;
+  --low: #6B7280;
+
+  --impact-cost: #FACC15;
+  --impact-compliance: #A855F7;
+  --impact-client: #14B8A6;
+  --impact-operational: #3B82F6;
+
   --surface-card: #1f2820;
   --surface-card-hover: #272e28;
-  --border-strong: rgba(255, 255, 255, 0.20);
-
-  --active-bg: rgba(255, 255, 255, 0.08);
-  --active-border: rgba(255, 255, 255, 0.15);
-
-  --invert-bg: #ffffff;
-  --invert-text: #171e19;
 
   --scrollbar-thumb: rgba(183, 198, 194, 0.2);
   --scrollbar-thumb-hover: rgba(183, 198, 194, 0.35);
-
-  /* Legacy semantic (for backward compat) */
-  --background: var(--surface-base);
-  --foreground: var(--text-primary);
-  --muted: var(--text-secondary);
-  --muted-foreground: var(--text-muted);
-  --card: var(--surface-raised);
-  --card-hover: var(--surface-raised-hover);
-  --accent: var(--text-accent);
-
-  /* Map tokens */
-  --map-pin-bg: #d5f4f9;
-  --map-pin-border: rgba(213, 244, 249, 0.4);
-  --map-popup-bg: #1f2820;
-  --map-cluster-bg: #302b2f;
-  --map-cluster-border: rgba(213, 244, 249, 0.5);
-  --map-cluster-text: #d5f4f9;
-}
-
-/* ── LIGHT THEME ── */
-[data-theme="light"] {
-  --navy: #FAFAF8;
-  --navy-light: #F0EDE8;
-  --sage: #6B7C78;
-  --white: #1A1A1A;
-  --taupe: #7A6E6C;
-  --beige: #8B7A6E;
-  --cyan: #0891B2;
-  --soft-blue: #0E7490;
-  --charcoal: #FFFFFF;
-  --charcoal-light: #F5F2EE;
-
-  --text-primary: #1A1A1A;
-  --text-secondary: #5A6B67;
-  --text-muted: #7A6E6C;
-  --text-accent: #0891B2;
-
-  --surface-base: #FAFAF8;
-  --surface-raised: #FFFFFF;
-  --surface-raised-hover: #F5F2EE;
-  --surface-subtle: rgba(0, 0, 0, 0.02);
-  --surface-subtle-hover: rgba(0, 0, 0, 0.04);
-  --surface-overlay: rgba(0, 0, 0, 0.03);
-  --surface-input: rgba(0, 0, 0, 0.04);
-
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-light: rgba(0, 0, 0, 0.12);
-  --border-medium: rgba(0, 0, 0, 0.18);
-  --border-strong: rgba(0, 0, 0, 0.25);
-
-  --active-bg: rgba(0, 0, 0, 0.06);
-  --active-border: rgba(0, 0, 0, 0.18);
-
-  --invert-bg: #1A1A1A;
-  --invert-text: #FFFFFF;
-
-  --surface-card: #FFFFFF;
-  --surface-card-hover: #F5F2EE;
-
-  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
-
-  /* Map tokens (light) */
-  --map-pin-bg: #0891B2;
-  --map-pin-border: rgba(8, 145, 178, 0.4);
-  --map-popup-bg: #FFFFFF;
-  --map-cluster-bg: #F5F2EE;
-  --map-cluster-border: rgba(8, 145, 178, 0.5);
-  --map-cluster-text: #0891B2;
 }

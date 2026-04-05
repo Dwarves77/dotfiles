@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
+import type { Source, ProvisionalSource, SourceConflict, TrustMetrics, TrustScore } from "@/types/source";
+import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 
 // Static seed data fallback
 import {
@@ -167,6 +169,163 @@ async function fetchSupersessions(): Promise<Supersession[]> {
     severity: row.severity as "major" | "minor" | "replacement",
     note: row.note || "",
   }));
+}
+
+// ── Source Fetch Functions ───────────────────────────────────
+
+function mapSourceRow(row: any): Source {
+  const metrics: TrustMetrics = {
+    confirmation_count: row.confirmation_count || 0,
+    conflict_count: row.conflict_count || 0,
+    conflict_total: row.conflict_total || 0,
+    accuracy_rate: parseFloat(row.accuracy_rate) || 0.5,
+    avg_lead_time_days: parseFloat(row.avg_lead_time_days) || 0,
+    lead_time_samples: row.lead_time_samples || 0,
+    consecutive_accessible: row.consecutive_accessible || 0,
+    total_checks: row.total_checks || 0,
+    successful_checks: row.successful_checks || 0,
+    accessibility_rate: parseFloat(row.accessibility_rate) || 1.0,
+    last_accessible: row.last_accessible || null,
+    last_inaccessible: row.last_inaccessible || null,
+    independent_citers: row.independent_citers || 0,
+    total_citations: row.total_citations || 0,
+    highest_citing_tier: row.highest_citing_tier || null,
+    self_citation_count: row.self_citation_count || 0,
+  };
+
+  const score: TrustScore = {
+    overall: row.trust_score_overall || 50,
+    accuracy_component: parseFloat(row.trust_score_accuracy) || 20,
+    timeliness_component: parseFloat(row.trust_score_timeliness) || 10,
+    reliability_component: parseFloat(row.trust_score_reliability) || 10,
+    citation_component: parseFloat(row.trust_score_citation) || 10,
+    computed_at: row.trust_score_computed_at || new Date().toISOString(),
+  };
+
+  return {
+    id: row.id,
+    name: row.name,
+    url: row.url,
+    description: row.description || "",
+    tier: row.tier,
+    tier_at_creation: row.tier_at_creation,
+    intelligence_types: row.intelligence_types || [],
+    domains: row.domains || [],
+    jurisdictions: row.jurisdictions || [],
+    transport_modes: row.transport_modes || [],
+    update_frequency: row.update_frequency || "weekly",
+    last_checked: row.last_checked || null,
+    last_substantive_change: row.last_substantive_change || null,
+    next_scheduled_check: row.next_scheduled_check || null,
+    status: row.status || "active",
+    paywalled: row.paywalled || false,
+    access_method: row.access_method || "manual",
+    api_endpoint: row.api_endpoint || undefined,
+    rss_feed_url: row.rss_feed_url || undefined,
+    trust_metrics: metrics,
+    trust_score: score,
+    tier_history: row.tier_history || [],
+    cited_by: row.cited_by || null,
+    notes: row.notes || "",
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+async function fetchSources(): Promise<Source[]> {
+  const supabase = getSupabase();
+  const { data: rows } = await supabase
+    .from("sources")
+    .select("*")
+    .order("tier", { ascending: true });
+
+  return (rows || []).map(mapSourceRow);
+}
+
+async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
+  const supabase = getSupabase();
+  const { data: rows } = await supabase
+    .from("provisional_sources")
+    .select("*")
+    .in("status", ["pending_review", "needs_more_data"])
+    .order("independent_citers", { ascending: false });
+
+  return (rows || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    url: row.url,
+    domain: row.domain,
+    description: row.description || "",
+    discovered_via: row.discovered_via,
+    cited_by_source_id: row.cited_by_source_id,
+    cited_by_source_tier: row.cited_by_source_tier,
+    citation_count: row.citation_count || 0,
+    independent_citers: row.independent_citers || 0,
+    citing_source_ids: row.citing_source_ids || [],
+    highest_citing_tier: row.highest_citing_tier,
+    provisional_tier: row.provisional_tier || 7,
+    recommended_tier: row.recommended_tier,
+    accessibility_verified: row.accessibility_verified || false,
+    publishes_structured_content: row.publishes_structured_content || false,
+    entity_identified: row.entity_identified || false,
+    status: row.status,
+    reviewer_notes: row.reviewer_notes || "",
+    created_at: row.created_at,
+    reviewed_at: row.reviewed_at,
+  }));
+}
+
+async function fetchOpenConflicts(): Promise<SourceConflict[]> {
+  const supabase = getSupabase();
+  const { data: rows } = await supabase
+    .from("source_conflicts")
+    .select("*")
+    .eq("status", "open")
+    .order("opened_at", { ascending: false });
+
+  return (rows || []).map((row: any) => ({
+    id: row.id,
+    item_id: row.item_id,
+    source_a_id: row.source_a_id,
+    source_b_id: row.source_b_id,
+    source_a_tier: row.source_a_tier,
+    source_b_tier: row.source_b_tier,
+    source_a_claim: row.source_a_claim,
+    source_b_claim: row.source_b_claim,
+    field_in_dispute: row.field_in_dispute,
+    status: row.status,
+    resolution: row.resolution || undefined,
+    resolution_note: row.resolution_note || undefined,
+    resolved_by_source_id: row.resolved_by_source_id || undefined,
+    resolved_by_human: row.resolved_by_human || undefined,
+    opened_at: row.opened_at,
+    resolved_at: row.resolved_at || undefined,
+  }));
+}
+
+export interface SourceData {
+  sources: Source[];
+  provisionalSources: ProvisionalSource[];
+  openConflicts: SourceConflict[];
+}
+
+export async function fetchSourceData(): Promise<SourceData> {
+  if (!isSupabaseConfigured()) {
+    // Return empty source data when no Supabase — sources only live in the database
+    return {
+      sources: [],
+      provisionalSources: [],
+      openConflicts: [],
+    };
+  }
+
+  const [sources, provisionalSources, openConflicts] = await Promise.all([
+    fetchSources(),
+    fetchProvisionalSources(),
+    fetchOpenConflicts(),
+  ]);
+
+  return { sources, provisionalSources, openConflicts };
 }
 
 // ── Master Fetch ─────────────────────────────────────────────

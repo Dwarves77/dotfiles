@@ -62,10 +62,10 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
                   if (onShareClick) {
                     onShareClick(e);
                   } else {
-                    // Expand card to access share menu
                     setExpanded(r.id);
                   }
                 }}
+                aria-label={`Share ${r.title}`}
                 className="p-1 text-text-secondary hover:text-text-primary transition-colors duration-200"
               >
                 <Share2 size={12} strokeWidth={2} />

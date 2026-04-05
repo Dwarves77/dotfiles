@@ -1,5 +1,5 @@
 import type { Resource, ImpactScores } from "@/types/resource";
-import { JURISDICTION_WEIGHTS, VERTICALS } from "./constants";
+import { JURISDICTION_WEIGHTS, ALL_SECTORS } from "./constants";
 
 // ── Jurisdiction Detection ──
 // Detects jurisdiction from resource content via keyword matching
@@ -80,13 +80,18 @@ export function scoreResource(r: Resource): ImpactScores {
 }
 
 // ── Urgency Score (composite) ──
-export function urgencyScore(r: Resource): number {
+// Accepts optional workspace jurisdiction weights. If not provided, uses platform defaults.
+export function urgencyScore(
+  r: Resource,
+  workspaceWeights?: Record<string, number> | null
+): number {
   const sc = scoreResource(r);
   const total = sc.cost + sc.compliance + sc.client + sc.operational;
   const priW = { CRITICAL: 4, HIGH: 3, MODERATE: 2, LOW: 1 }[r.priority] || 1;
 
+  const weights = workspaceWeights || JURISDICTION_WEIGHTS;
   const jur = r.jurisdiction || getJurisdiction(r);
-  const jurW = (JURISDICTION_WEIGHTS[jur] || 0.5) / 1.0; // already normalized 0-1
+  const jurW = (weights[jur] || 0.5) / 1.0;
 
   // Time weight: days to next future milestone
   let timeW = 1;
@@ -138,6 +143,7 @@ export function filterResources(
     jurisdictions: string[];
     priorities: string[];
     verticals: string[];
+    confidence: string[];
     search: string;
   }
 ): Resource[] {
@@ -169,7 +175,7 @@ export function filterResources(
     if (filters.verticals.length > 0) {
       const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
       const matchesVertical = filters.verticals.some((vId) => {
-        const vertical = VERTICALS.find((v) => v.id === vId);
+        const vertical = ALL_SECTORS.find((v) => v.id === vId);
         return vertical?.keywords.some((kw) => text.includes(kw));
       });
       if (!matchesVertical) return false;

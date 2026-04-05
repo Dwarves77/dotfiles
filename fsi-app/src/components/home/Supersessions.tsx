@@ -24,7 +24,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
   if (supersessions.length === 0) return null;
 
   return (
-    <div className="border border-white/[0.08] rounded-[10px] bg-surface-card">
+    <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -41,9 +41,9 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
           />
           <GitBranch size={14} strokeWidth={2} className="text-text-secondary" />
           <div>
-            <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+            <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
               Replaced Regulations ({supersessions.length})
-            </span>
+            </h3>
             <p className="text-[11px] text-text-muted mt-0.5">
               Regulations that have been replaced by newer versions
             </p>
@@ -66,7 +66,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
           {supersessions.map((s, i) => {
             const oldR = resourceMap.get(s.old);
             const newR = resourceMap.get(s.new);
-            const sevColor = SEVERITY_COLORS[s.severity] || "var(--sage)";
+            const sevColor = SEVERITY_COLORS[s.severity] || "var(--color-text-secondary)";
             return (
               <div
                 key={i}

@@ -38,14 +38,14 @@ export function ShareMenu({ resource, changelog, disputes, onClose, onToast }: S
 
   return (
     <div
-      className="border border-border-light rounded-[2px] bg-surface-raised p-4 space-y-3"
+      className="border border-border-light rounded-md bg-surface-raised p-4 space-y-3"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold tracking-wider uppercase text-text-primary">
           Share
         </span>
-        <button onClick={onClose} className="text-text-secondary hover:text-text-primary cursor-pointer">
+        <button onClick={onClose} aria-label="Close share menu" className="text-text-secondary hover:text-text-primary cursor-pointer">
           <X size={12} strokeWidth={2.5} />
         </button>
       </div>
@@ -58,7 +58,7 @@ export function ShareMenu({ resource, changelog, disputes, onClose, onToast }: S
               key={key}
               onClick={() => setLevel(key)}
               className={cn(
-                "w-full text-left px-3 py-2 rounded-[2px] border text-xs transition-all duration-200 cursor-pointer",
+                "w-full text-left px-3 py-2 rounded-md border text-xs transition-all duration-200 cursor-pointer",
                 level === key
                   ? "border-border-medium bg-active-bg text-text-primary"
                   : "border-border-subtle text-text-secondary hover:border-border-light"
@@ -75,14 +75,14 @@ export function ShareMenu({ resource, changelog, disputes, onClose, onToast }: S
       <div className="flex gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); handleDownload("html"); }}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[2px] border border-border-light text-text-primary hover:bg-surface-overlay cursor-pointer transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-border-light text-text-primary hover:bg-surface-overlay cursor-pointer transition-colors"
         >
           <FileText size={12} strokeWidth={2} />
           HTML
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); handleDownload("slack"); }}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[2px] border border-border-light text-text-primary hover:bg-surface-overlay cursor-pointer transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md border border-border-light text-text-primary hover:bg-surface-overlay cursor-pointer transition-colors"
         >
           <Hash size={12} strokeWidth={2} />
           Slack

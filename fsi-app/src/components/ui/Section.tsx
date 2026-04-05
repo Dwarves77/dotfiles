@@ -16,7 +16,13 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-white/[0.08] rounded-[10px] bg-surface-card">
+    <div
+      className="border rounded-lg"
+      style={{
+        borderColor: "var(--color-border)",
+        backgroundColor: "var(--color-surface)",
+      }}
+    >
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -26,22 +32,25 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
             size={14}
             strokeWidth={2}
             className={cn(
-              "text-text-secondary transition-transform duration-300",
+              "transition-transform duration-200",
               !open && "-rotate-90"
             )}
-            style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
+            style={{ color: "var(--color-text-secondary)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+          <h3 className="text-xs font-semibold tracking-wide uppercase text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
             {title}
-          </span>
+          </h3>
           {count !== undefined && (
-            <span className="text-xs tabular-nums text-text-secondary/60">({count})</span>
+            <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
+              ({count})
+            </span>
           )}
         </button>
         {onViewAll && (
           <button
             onClick={onViewAll}
-            className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+            className="text-xs cursor-pointer transition-colors hover:underline"
+            style={{ color: "var(--color-primary)" }}
           >
             View all &rarr;
           </button>

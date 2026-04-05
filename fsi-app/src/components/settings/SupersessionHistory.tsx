@@ -34,15 +34,15 @@ export function SupersessionHistory({ supersessions, resourceMap }: Supersession
         {supersessions.map((s, i) => {
           const oldR = resourceMap.get(s.old);
           const newR = resourceMap.get(s.new);
-          const sevColor = SEVERITY_COLORS[s.severity] || "var(--sage)";
+          const sevColor = SEVERITY_COLORS[s.severity] || "var(--color-text-secondary)";
           return (
             <div
               key={i}
-              className="border border-border-subtle rounded-[2px] p-3 hover:border-border-light transition-colors"
+              className="border border-border-subtle rounded-md p-3 hover:border-border-light transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className="text-xs font-semibold uppercase px-1.5 py-0.5 rounded-[2px] border"
+                  className="text-xs font-semibold uppercase px-1.5 py-0.5 rounded-md border"
                   style={{ color: sevColor, borderColor: `${sevColor}30` }}
                 >
                   {s.severity}

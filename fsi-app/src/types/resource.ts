@@ -131,7 +131,19 @@ export interface SharePackage {
 
 // ── Navigation ──
 
-export type TabId = "home" | "explore" | "map" | "settings";
+export type TabId =
+  | "home"
+  | "regulations"
+  | "technology"
+  | "regional"
+  | "geopolitical"
+  | "sources"
+  | "facilities"
+  | "research"
+  | "settings"
+  // Legacy (mapped to domain tabs)
+  | "explore"
+  | "map";
 
 export interface FocusView {
   title: string;

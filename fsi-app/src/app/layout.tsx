@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import { Anton, Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./theme.css";
 import "./globals.css";
-
-const anton = Anton({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-anton",
-  display: "swap",
-});
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -19,9 +13,9 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Caros Ledge — Freight Sustainability Intelligence",
+  title: "Caro's Ledge — Freight Sustainability Intelligence",
   description:
-    "Regulatory intelligence for international freight forwarding. Track ESG regulations, sustainability standards, and compliance across air, road, and ocean transport.",
+    "Sustainability intelligence platform for international freight forwarding. Monitors regulatory, technology, and market developments across air, road, and ocean transport.",
 };
 
 export default function RootLayout({
@@ -32,11 +26,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${anton.variable} ${jakarta.variable}`}
+      className={jakarta.variable}
       data-theme="light"
       suppressHydrationWarning
     >
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{document.documentElement.setAttribute('data-theme',localStorage.getItem('fsi-theme')||'light')}catch(e){}`,
@@ -44,8 +39,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <ThemeInitializer />
-        {children}
+        <AuthProvider>
+          <ThemeInitializer />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

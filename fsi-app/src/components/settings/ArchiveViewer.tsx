@@ -32,8 +32,16 @@ export function ArchiveViewer() {
 
   if (archived.length === 0) {
     return (
-      <div className="text-xs text-text-secondary py-4">
-        No archived resources.
+      <div className="space-y-3">
+        <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
+          Archive
+        </h3>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <p className="text-sm font-medium text-text-primary">No archived resources</p>
+          <p className="text-xs mt-1 text-text-secondary max-w-sm">
+            When resources are superseded, expired, or archived from the Regulations tab, they appear here for review and restoration.
+          </p>
+        </div>
       </div>
     );
   }
@@ -53,13 +61,13 @@ export function ArchiveViewer() {
             placeholder="Search archive..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-7 pr-2 py-1.5 text-xs bg-surface-input border border-border-subtle rounded-[2px] text-text-primary placeholder:text-text-secondary/50 outline-none"
+            className="w-full pl-7 pr-2 py-1.5 text-xs bg-surface-input border border-border-subtle rounded-md text-text-primary placeholder:text-text-secondary/50 outline-none"
           />
         </div>
         <select
           value={filterReason}
           onChange={(e) => setFilterReason(e.target.value)}
-          className="text-xs p-1.5 bg-surface-overlay border border-border-light rounded-[2px] text-text-primary"
+          className="text-xs p-1.5 bg-surface-overlay border border-border-light rounded-md text-text-primary"
         >
           <option value="">All reasons</option>
           {reasons.map((r) => (
@@ -69,11 +77,19 @@ export function ArchiveViewer() {
       </div>
 
       {/* List */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <p className="text-sm font-medium text-text-primary">No matching archived resources</p>
+          <p className="text-xs mt-1 text-text-secondary">
+            Try adjusting your search or filter criteria.
+          </p>
+        </div>
+      ) : (
       <div className="space-y-1.5">
         {filtered.map((r) => (
           <div
             key={r.id}
-            className="flex items-center gap-3 px-3 py-2 border border-border-subtle rounded-[2px] hover:border-border-light transition-colors"
+            className="flex items-center gap-3 px-3 py-2 border border-border-subtle rounded-md hover:border-border-light transition-colors"
           >
             <div className="flex-1 min-w-0">
               <p className="text-xs text-text-primary truncate">{r.title}</p>
@@ -100,6 +116,7 @@ export function ArchiveViewer() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

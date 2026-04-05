@@ -54,16 +54,16 @@ export function WeeklyBriefing({
   };
 
   return (
-    <div className="border border-white/[0.08] rounded-lg bg-surface-card">
+    <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-4 cursor-pointer"
       >
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-primary">
+          <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
             Weekly Briefing
-          </span>
+          </h3>
           <span className="ml-2 text-xs text-text-secondary">
             {date}
           </span>
@@ -164,14 +164,14 @@ export function WeeklyBriefing({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-xs px-1.5 py-0.5 rounded-[2px] border border-[#FF9500]/20 text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors"
+                            className="text-xs px-1.5 py-0.5 rounded-md border border-[#FF9500]/20 text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors"
                           >
                             {name}
                           </a>
                         ) : (
                           <span
                             key={i}
-                            className="text-xs px-1.5 py-0.5 rounded-[2px] border border-[#FF9500]/20 text-[#FF9500]"
+                            className="text-xs px-1.5 py-0.5 rounded-md border border-[#FF9500]/20 text-[#FF9500]"
                           >
                             {name}
                           </span>
@@ -191,7 +191,7 @@ export function WeeklyBriefing({
                 e.stopPropagation();
                 handleDownload("html");
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[2px] btn-invert cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
             >
               <FileText size={11} strokeWidth={2} />
               Download HTML
@@ -201,7 +201,7 @@ export function WeeklyBriefing({
                 e.stopPropagation();
                 handleDownload("slack");
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[2px] btn-invert cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
             >
               <Hash size={11} strokeWidth={2} />
               Download Slack

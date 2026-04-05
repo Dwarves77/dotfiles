@@ -30,7 +30,7 @@ export function toEmailHTML(
   disputes: Record<string, Dispute>
 ): string {
   let h = `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#1f2937">`;
-  h += `<div style="background:#171e19;color:#ffffff;padding:24px 28px;border-radius:8px 8px 0 0"><h1 style="margin:0;font-size:20px;letter-spacing:1px">${title || APP_NAME}</h1><p style="margin:6px 0 0;font-size:13px;color:#b7c6c2">${date} · ${items.length} item${items.length !== 1 ? "s" : ""}</p></div>`;
+  h += `<div style="background:#1A1A1A;color:#ffffff;padding:24px 28px;border-radius:8px 8px 0 0"><h1 style="margin:0;font-size:20px;letter-spacing:1px">${title || APP_NAME}</h1><p style="margin:6px 0 0;font-size:13px;color:#9CA3AF">${date} · ${items.length} item${items.length !== 1 ? "s" : ""}</p></div>`;
   h += `<div style="padding:4px 0">`;
 
   items.forEach((r) => {
@@ -121,7 +121,7 @@ export function toBriefingEmail(
     .filter((x) => x.r);
 
   let h = `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#1f2937">`;
-  h += `<div style="background:#171e19;color:#ffffff;padding:24px 28px;border-radius:8px 8px 0 0"><h1 style="margin:0;font-size:22px;letter-spacing:1px">Weekly Briefing</h1><p style="margin:6px 0 0;font-size:13px;color:#b7c6c2">${date} · ${resources.length} resources tracked · ${APP_NAME}</p></div>`;
+  h += `<div style="background:#1A1A1A;color:#ffffff;padding:24px 28px;border-radius:8px 8px 0 0"><h1 style="margin:0;font-size:22px;letter-spacing:1px">Weekly Briefing</h1><p style="margin:6px 0 0;font-size:13px;color:#9CA3AF">${date} · ${resources.length} resources tracked · ${APP_NAME}</p></div>`;
   h += `<div style="padding:20px 28px">`;
 
   // New items

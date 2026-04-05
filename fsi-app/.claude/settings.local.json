@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/jason/.claude/skills/frontend-design/**)",
+      "Read(//c/Users/jason/.claude/skills/environmental-policy-and-innovation/**)",
+      "Bash(npx tsc:*)",
+      "Bash(npx tsx -e ':*)",
+      "Bash(node -e ':*)",
+      "Read(//c/Users/jason/.claude/skills/**)",
+      "Read(//c/Users/jason/.claude/**)",
+      "Bash(supabase --version)",
+      "Bash(psql --version)",
+      "Bash(npx supabase:*)",
+      "Bash(node supabase/seed/run-migration.mjs)"
+    ]
+  }
+}

@@ -32,7 +32,7 @@ export function buildShareHTML(
   const modes = modeText(r.modes || [r.cat]);
 
   let h = `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#1f2937">`;
-  h += `<div style="background:#171e19;color:#ffffff;padding:24px 28px;border-radius:8px 8px 0 0"><h1 style="margin:0;font-size:20px;letter-spacing:0.5px">${r.title}</h1><p style="margin:6px 0 0;font-size:13px;color:#b7c6c2">${date} · ${APP_NAME}</p></div>`;
+  h += `<div style="background:#1A1A1A;color:#ffffff;padding:24px 28px;border-radius:8px 8px 0 0"><h1 style="margin:0;font-size:20px;letter-spacing:0.5px">${r.title}</h1><p style="margin:6px 0 0;font-size:13px;color:#9CA3AF">${date} · ${APP_NAME}</p></div>`;
   h += `<div style="padding:18px 28px;border-left:4px solid ${tc}">`;
   h += `<p style="margin:0 0 8px;font-size:14px"><span style="font-size:11px;letter-spacing:1px;color:#6b7280">${modes}</span> · <span style="color:${PRI_COLOR[r.priority] || "#6b7280"};font-weight:700">${r.priority}</span></p>`;
 

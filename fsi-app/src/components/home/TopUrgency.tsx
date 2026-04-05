@@ -27,7 +27,7 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
   if (top5.length === 0) return null;
 
   return (
-    <div className="border border-border-subtle rounded-[2px] bg-surface-subtle">
+    <div className="border border-border-subtle rounded-md bg-surface-subtle">
       <div className="flex items-center justify-between p-4">
         <button
           onClick={() => setOpen(!open)}
@@ -42,9 +42,9 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+          <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
             Top Urgency
-          </span>
+          </h3>
         </button>
         <button
           onClick={() =>
