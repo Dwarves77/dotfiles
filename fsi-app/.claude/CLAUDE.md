@@ -165,8 +165,36 @@ None. No unauthenticated API routes exist.
 - **Phase 5 — Workspace jurisdiction weights**: urgencyScore() accepts optional workspace weights parameter. Dashboard passes workspace weights from workspaceStore. Platform defaults used when no workspace override.
 - **API Security**: Auth guard + rate limiting (60/min/user) on all API routes. robots.txt blocking AI crawlers.
 
+### 2026-04-04 (session 4) — Source Attribution + Auth + Profiles
+
+#### Accomplished
+- **Source attribution on ALL data points** across all 4 domain views: Geopolitical (22 indicators), Technology (24 metrics + 24 policy signals), Regional (12 jurisdictions), Facilities (27 data points). Every metric shows: what it measures, unit, source name (clickable URL), update frequency, and why it matters.
+- **Regional Intelligence expanded**: Added China, India, Japan, Australia, Brazil, Germany profiles. Region filter navigation. 12 jurisdictions across 4 regions.
+- **Regulatory topics expanded**: 7 → 21 categories covering all freight sectors (customs, trade, sanctions, dangerous goods, food safety, pharma, security, cabotage, labor, infrastructure, digital, insurance, standards).
+- **Global jurisdictions**: 30 → 84 covering all continents, major countries, and international bodies.
+- **Auth flow**: Login page, Next.js middleware, AuthProvider, UserMenu with dropdown.
+- **Admin panel**: User management, org view, staged updates approval/rejection.
+- **Workspace profile page**: Sector selection from 16 freight sectors, persists to Supabase.
+- **Monitoring worker**: POST /api/worker/check-sources with accessibility checks and trust events.
+- **Admin user created**: jasonlosh@hotmail.com as owner of Dietl/Rockit workspace.
+- **Seed content neutralized**: All 17 biased whyMatters entries rewritten to be sector-neutral.
+- **Map tab restored**.
+- **View in dashboard bug fixed** (was routing to defunct 'explore' tab).
+
+#### Routes
+| Route | Type | Auth |
+|---|---|---|
+| `/` | Dashboard | Required (middleware) |
+| `/login` | Login page | Public |
+| `/admin` | Admin panel | Required |
+| `/profile` | Workspace sector config | Required |
+| `/auth/callback` | OAuth callback | Public |
+| `/api/sources` | Source registry | JWT required |
+| `/api/staged-updates` | Update approval | JWT required |
+| `/api/admin/users` | User management | JWT required |
+| `/api/worker/check-sources` | Monitoring worker | Worker secret required |
+
 #### Flagged for Future
-- seed-resources.json whyMatters text still written from Dietl/Rockit perspective — needs sector-neutral rewrite (content task, not structural)
 - MapView still has #171e19 references (map tile styling) — cosmetic, not blocking
 
 #### Next Steps
