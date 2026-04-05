@@ -13,7 +13,8 @@
       "Bash(npx supabase:*)",
       "Bash(node supabase/seed/run-migration.mjs)",
       "Bash(node -e \"const c = require\\('./src/lib/constants'\\); console.log\\('Jurisdictions:', c.JURISDICTIONS.length\\); const regions = {}; c.JURISDICTIONS.forEach\\(j => { regions[j.region] = \\(regions[j.region] || 0\\) + 1; }\\); Object.entries\\(regions\\).sort\\(\\(a,b\\) => b[1]-a[1]\\).forEach\\(\\([r,c]\\) => console.log\\('  ' + r + ': ' + c\\)\\);\")",
-      "Bash(kill %1)"
+      "Bash(kill %1)",
+      "Read(//c/Users/jason/AppData/Local/Temp/claude/c--Users-jason-dotfiles-fsi-app/7d34eed2-99b4-4141-9597-6b039b1cda37/tasks/**)"
     ]
   }
 }

@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Anton, Plus_Jakarta_Sans } from "next/font/google";
+
+const anton = Anton({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-anton",
+  display: "swap",
+});
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./theme.css";
@@ -26,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={jakarta.variable}
+      className={`${anton.variable} ${jakarta.variable}`}
       data-theme="light"
       suppressHydrationWarning
     >

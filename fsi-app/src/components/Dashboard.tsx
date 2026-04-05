@@ -210,8 +210,8 @@ export function Dashboard({
         <header className="mb-4 flex items-start justify-between">
           <div>
             <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
-              style={{ color: "var(--color-text-primary)" }}
+              className="text-2xl sm:text-3xl uppercase tracking-tight"
+              style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-display)" }}
             >
               {APP_NAME}
             </h1>
@@ -222,7 +222,16 @@ export function Dashboard({
               {APP_TAGLINE}
             </p>
           </div>
-          <UserMenu />
+          <div className="flex items-center gap-3">
+            <a
+              href="/community"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}
+            >
+              Community
+            </a>
+            <UserMenu />
+          </div>
         </header>
 
         {/* Tab Bar */}

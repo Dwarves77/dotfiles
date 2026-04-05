@@ -12,7 +12,7 @@ interface DueThisQuarterProps {
 
 export function DueThisQuarter({ resources }: DueThisQuarterProps) {
   const { pushFocusView, navigateToResource } = useNavigationStore();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const due = useMemo(() => {
     const now = new Date();

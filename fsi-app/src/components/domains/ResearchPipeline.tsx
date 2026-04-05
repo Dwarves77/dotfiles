@@ -162,15 +162,19 @@ const MIT_BASELINES = {
   title: "MIT ClimateMachine Phase 1 — Verified Baselines",
   citation: "Climate Machine (2025). Assessment Report of the Media and Entertainment Industry and Climate Change — Phase 1: Live Music, UK and US. Environmental Solutions Initiative, Massachusetts Institute of Technology.",
   note: "Verified benchmark data from the MIT Environmental Solutions Initiative.",
+  sectors: ["Live Events & Touring", "Air Freight", "Ocean Freight", "Road Freight"],
+  source_url: "https://climatemachine.mit.edu",
+  published: "December 11, 2025",
+  update_frequency: "Phase 2 forthcoming",
   data: [
-    { metric: "UK live music total emissions (2023)", value: "4.0 MtCO2e", confidence: "confirmed" },
-    { metric: "US live music total emissions (2023)", value: "14.3 MtCO2e", confidence: "confirmed" },
-    { metric: "Air freight share — UK non-fan emissions", value: "35.4% (331,084 tCO2e)", confidence: "confirmed" },
-    { metric: "Air freight share — US non-fan emissions", value: "6.1%", confidence: "confirmed" },
-    { metric: "Trucking share — UK", value: "3.0%", confidence: "confirmed" },
-    { metric: "Trucking share — US", value: "14.1%", confidence: "confirmed" },
-    { metric: "Modal shift potential (air → ocean)", value: "50-95% reduction", confidence: "confirmed" },
-    { metric: "Generator utilization at festivals", value: "3-8% of capacity", confidence: "confirmed" },
+    { metric: "UK live music total emissions (2023)", value: "4.0 MtCO2e", confidence: "confirmed", context: "Total carbon footprint of the UK live music industry including fan travel, artist travel, venue energy, and freight logistics. This is the baseline against which all UK live events decarbonization is measured.", relevance: "Live events freight forwarders moving equipment, staging, and merchandise contribute to this total. Understanding the baseline helps scope reduction targets." },
+    { metric: "US live music total emissions (2023)", value: "14.3 MtCO2e", confidence: "confirmed", context: "Total carbon footprint of the US live music industry — 3.5x the UK figure reflecting larger geographic distances, more events, and higher per-event freight volumes.", relevance: "US live events logistics has a larger absolute footprint but freight's share is proportionally smaller due to dominant fan travel emissions. Still a significant decarbonization opportunity." },
+    { metric: "Air freight share — UK non-fan emissions", value: "35.4% (331,084 tCO2e)", confidence: "confirmed", context: "Over a third of all non-audience emissions in UK live music come from air freight — equipment, staging, instruments, and merchandise flown between venues and across borders.", relevance: "This is the single largest freight-related emissions source in UK live events. Modal shift from air to ocean/road where timelines allow could cut this by 50-95%. Direct implications for freight forwarder route planning and client sustainability reporting." },
+    { metric: "Air freight share — US non-fan emissions", value: "6.1%", confidence: "confirmed", context: "In the US, air freight is a smaller share because domestic touring relies heavily on trucking. International touring equipment still moves by air.", relevance: "US live events freight decarbonization should focus on trucking fleet electrification rather than modal shift. Different strategy than UK." },
+    { metric: "Trucking share — UK", value: "3.0%", confidence: "confirmed", context: "Road freight is a small share of UK live events emissions because distances are shorter and venues are closer together.", relevance: "UK road freight electrification for live events is achievable with current EV range. Short distances favor battery-electric trucks." },
+    { metric: "Trucking share — US", value: "14.1%", confidence: "confirmed", context: "US touring relies heavily on long-haul trucking across continental distances. Truck fleet is the primary emissions source after fan travel.", relevance: "US live events freight decarbonization requires long-haul solutions: hydrogen, biodiesel, or intermodal rail where feasible. Current EV truck range is insufficient for cross-country touring." },
+    { metric: "Modal shift potential (air → ocean)", value: "50-95% reduction", confidence: "confirmed", context: "Switching international equipment shipments from air freight to ocean freight reduces per-shipment emissions by 50-95%, depending on route and vessel type.", relevance: "Applicable to any freight sector shipping internationally. Requires 4-6 weeks additional lead time. Freight forwarders can offer this as a green logistics option with quantified savings." },
+    { metric: "Generator utilization at festivals", value: "3-8% of capacity", confidence: "confirmed", context: "Festival generators typically run at 3-8% of their rated capacity — massively oversized for actual load. This wastes fuel and produces unnecessary emissions.", relevance: "Right-sizing generators or replacing with battery energy storage systems (BESS) could cut on-site energy emissions dramatically. Relevant to facility optimization and temporary power logistics." },
   ],
 };
 
@@ -266,6 +270,50 @@ function PartnerCard({ partner }: { partner: ResearchPartner }) {
   );
 }
 
+// ── Baseline Data Point with context ──
+
+function BaselineDataPoint({ data }: { data: typeof MIT_BASELINES.data[0] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div
+      className="p-3 rounded-lg cursor-pointer"
+      style={{ backgroundColor: "var(--color-surface)" }}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+        {data.metric}
+      </span>
+      <div className="text-lg font-bold tabular-nums mt-0.5" style={{ color: "var(--color-text-primary)" }}>
+        {data.value}
+      </div>
+      {expanded && (
+        <div className="mt-2 space-y-2 border-t pt-2" style={{ borderColor: "var(--color-border-subtle)" }}>
+          <div>
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+              What this measures
+            </span>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+              {data.context}
+            </p>
+          </div>
+          <div
+            className="p-2 rounded border-l-2"
+            style={{ borderLeftColor: "var(--color-primary)", backgroundColor: "var(--color-active-bg)" }}
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-primary)" }}>
+              Why this matters to freight
+            </span>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text-primary)" }}>
+              {data.relevance}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Component ──
 
 export function ResearchPipeline() {
@@ -309,22 +357,31 @@ export function ResearchPipeline() {
           />
         </button>
         {showBaselines && (
-          <div className="px-4 pb-4 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {MIT_BASELINES.data.map((d, i) => (
-                <div
-                  key={i}
-                  className="p-2.5 rounded-lg"
-                  style={{ backgroundColor: "var(--color-surface)" }}
-                >
-                  <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-                    {d.metric}
-                  </span>
-                  <div className="text-sm font-semibold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
-                    {d.value}
-                  </div>
-                </div>
+          <div className="px-4 pb-4 space-y-4">
+            {/* Sectors + Source info */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[10px] font-semibold uppercase" style={{ color: "var(--color-text-muted)" }}>Sectors:</span>
+              {MIT_BASELINES.sectors.map((s) => (
+                <span key={s} className="text-[10px] px-1.5 py-0.5 rounded-md" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>{s}</span>
               ))}
+              <span className="ml-auto text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+                Published: {MIT_BASELINES.published}
+              </span>
+            </div>
+
+            {/* Data points with context */}
+            <div className="space-y-3">
+              {MIT_BASELINES.data.map((d, i) => (
+                <BaselineDataPoint key={i} data={d} />
+              ))}
+            </div>
+
+            {/* Source */}
+            <div className="flex items-center justify-between text-[11px] pt-2 border-t" style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)" }}>
+              <a href={MIT_BASELINES.source_url} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: "var(--color-primary)" }}>
+                {MIT_BASELINES.source_url}
+              </a>
+              <span>{MIT_BASELINES.update_frequency}</span>
             </div>
             <p className="text-[11px] italic" style={{ color: "var(--color-text-muted)" }}>
               {MIT_BASELINES.citation}

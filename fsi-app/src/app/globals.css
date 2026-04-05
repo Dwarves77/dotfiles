@@ -33,6 +33,7 @@
   --color-invert-text: var(--invert-text);
 
   --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-display: var(--font-anton), system-ui, sans-serif;
 }
 
 /* ── Base styles ── */

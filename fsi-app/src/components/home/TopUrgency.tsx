@@ -16,7 +16,7 @@ interface TopUrgencyProps {
 
 export function TopUrgency({ resources }: TopUrgencyProps) {
   const { pushFocusView, navigateToResource } = useNavigationStore();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const top5 = useMemo(() => {
     return [...resources]
