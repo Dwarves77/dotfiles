@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-3-5-20241022",  // Haiku for scanning — 12x cheaper than Sonnet, fast structured extraction
+        model: "claude-3-5-haiku-20241022",  // Haiku for scanning — 12x cheaper than Sonnet, fast structured extraction
         max_tokens: 3000,
         system: `You are a regulatory intelligence researcher for the global freight forwarding industry. Search for current and upcoming regulations, standards, and policy developments that affect freight logistics sustainability.
 
