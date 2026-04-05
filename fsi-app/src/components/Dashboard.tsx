@@ -54,6 +54,7 @@ import { useExportStore } from "@/stores/exportStore";
 import { useSourceStore } from "@/stores/sourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { UserMenu } from "@/components/auth/UserMenu";
+import { AskAssistant } from "@/components/AskAssistant";
 
 // Logic
 import { urgencyScore, scoreResource, filterResources, sortResources } from "@/lib/scoring";
@@ -436,6 +437,9 @@ export function Dashboard({
         disputes={disputes}
         onToast={showToast}
       />
+
+      {/* AI Assistant */}
+      <AskAssistant />
 
       {/* Back to Top */}
       <BackToTop />
