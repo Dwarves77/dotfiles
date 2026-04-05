@@ -23,14 +23,34 @@ export const MODES = [
   { id: "rail", label: "Rail", short: "RAIL" },
 ] as const;
 
-// ── Sustainability Topics (Domain 1 sub-categories) ──
+// ── Regulatory Topics (Domain 1 sub-categories) ──
+// Covers all freight regulatory categories globally, not just sustainability.
 export const TOPICS = [
+  // Sustainability & environment
   { id: "emissions", label: "Emissions & Carbon Pricing" },
   { id: "fuels", label: "Sustainable Fuels & Energy" },
   { id: "transport", label: "Green Transport Standards" },
   { id: "reporting", label: "ESG Reporting & Methodology" },
   { id: "packaging", label: "Packaging & Circular Economy" },
   { id: "corridors", label: "Green Corridors & Infrastructure" },
+  // Trade & customs
+  { id: "customs", label: "Customs & Border Control" },
+  { id: "trade", label: "Trade Policy & Tariffs" },
+  { id: "sanctions", label: "Sanctions & Export Controls" },
+  { id: "origin", label: "Rules of Origin" },
+  // Safety & compliance
+  { id: "dangerous-goods", label: "Dangerous Goods & Hazmat" },
+  { id: "food-safety", label: "Food Safety & Cold Chain" },
+  { id: "pharma", label: "Pharmaceutical & GDP" },
+  { id: "security", label: "Cargo Security & Screening" },
+  // Operations
+  { id: "cabotage", label: "Cabotage & Market Access" },
+  { id: "labor", label: "Labor & Driver Regulations" },
+  { id: "infrastructure", label: "Port & Airport Regulations" },
+  { id: "digital", label: "Digital & Data Compliance" },
+  { id: "insurance", label: "Insurance & Liability" },
+  // Industry standards
+  { id: "standards", label: "Industry Standards (ISO, IATA)" },
   { id: "research", label: "Research & Intelligence" },
 ] as const;
 
@@ -188,12 +208,31 @@ export const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export const TOPIC_COLORS: Record<string, string> = {
+  // Sustainability
   emissions: "var(--topic-emissions)",
   fuels: "var(--topic-fuels)",
   transport: "var(--topic-transport)",
   reporting: "var(--topic-reporting)",
   packaging: "var(--topic-packaging)",
   corridors: "var(--topic-corridors)",
+  // Trade & customs
+  customs: "#0369A1",
+  trade: "#0E7490",
+  sanctions: "#B91C1C",
+  origin: "#0D9488",
+  // Safety & compliance
+  "dangerous-goods": "#DC2626",
+  "food-safety": "#16A34A",
+  pharma: "#7C3AED",
+  security: "#475569",
+  // Operations
+  cabotage: "#EA580C",
+  labor: "#CA8A04",
+  infrastructure: "#2563EB",
+  digital: "#6366F1",
+  insurance: "#64748B",
+  // Standards & research
+  standards: "#0891B2",
   research: "var(--topic-research)",
 };
 
