@@ -14,7 +14,7 @@ interface FacilityCategory {
   label: string;
   icon: typeof Sun;
   description: string;
-  data_points: { label: string; value: string; source: string; source_url: string; update_frequency: string; note?: string }[];
+  data_points: { label: string; value: string; data_provider: string; data_url: string; update_frequency: string; note?: string }[];
   tools: { name: string; url: string; description: string }[];
 }
 
@@ -25,14 +25,14 @@ const FACILITY_CATEGORIES: FacilityCategory[] = [
     icon: Zap,
     description: "Commercial and industrial electricity tariffs by country and zone. Free zone vs mainland tariffs may differ significantly.",
     data_points: [
-      { label: "US (average)", value: "$0.08-0.20/kWh", source: "US EIA Electric Power Monthly", source_url: "https://www.eia.gov/electricity/monthly/", update_frequency: "Monthly", note: "California highest (~$0.20), Texas/Southeast lowest (~$0.08)" },
-      { label: "UK", value: "£0.25-0.35/kWh", source: "Ofgem / DESNZ", source_url: "https://www.gov.uk/government/statistical-data-sets/industrial-energy-prices", update_frequency: "Quarterly", note: "Elevated post-energy crisis" },
-      { label: "Germany", value: "€0.28-0.35/kWh", source: "IEA Energy Prices Database", source_url: "https://www.iea.org/data-and-statistics/data-product/energy-prices", update_frequency: "Quarterly", note: "Highest in EU; network charges ~50% of total" },
-      { label: "Netherlands", value: "€0.18-0.25/kWh", source: "IEA Energy Prices Database", source_url: "https://www.iea.org/data-and-statistics/data-product/energy-prices", update_frequency: "Quarterly" },
-      { label: "France", value: "€0.18-0.22/kWh", source: "IEA Energy Prices Database", source_url: "https://www.iea.org/data-and-statistics/data-product/energy-prices", update_frequency: "Quarterly", note: "Nuclear base keeps costs lower" },
-      { label: "Dubai/UAE", value: "AED 0.23-0.38/kWh", source: "DEWA Tariff Schedule", source_url: "https://www.dewa.gov.ae/en/consumer/billing/slab-tariff", update_frequency: "Annual", note: "Slab-based; free zone tariffs may differ" },
-      { label: "Singapore", value: "S$0.25-0.30/kWh", source: "SP Group / EMA", source_url: "https://www.spgroup.com.sg/our-services/utilities/tariff-information", update_frequency: "Quarterly", note: "Open market; carbon tax adds S$25/tCO2e" },
-      { label: "Hong Kong", value: "HK$1.0-1.3/kWh", source: "CLP / HK Electric", source_url: "https://www.clp.com.hk/en/customer-service/tariff", update_frequency: "Annual" },
+      { label: "US (average)", value: "$0.08-0.20/kWh", data_provider: "US EIA Electric Power Monthly", data_url: "https://www.eia.gov/electricity/monthly/", update_frequency: "Monthly", note: "California highest (~$0.20), Texas/Southeast lowest (~$0.08)" },
+      { label: "UK", value: "£0.25-0.35/kWh", data_provider: "Ofgem / DESNZ", data_url: "https://www.gov.uk/government/statistical-data-sets/industrial-energy-prices", update_frequency: "Quarterly", note: "Elevated post-energy crisis" },
+      { label: "Germany", value: "€0.28-0.35/kWh", data_provider: "IEA Energy Prices Database", data_url: "https://www.iea.org/data-and-statistics/data-product/energy-prices", update_frequency: "Quarterly", note: "Highest in EU; network charges ~50% of total" },
+      { label: "Netherlands", value: "€0.18-0.25/kWh", data_provider: "IEA Energy Prices Database", data_url: "https://www.iea.org/data-and-statistics/data-product/energy-prices", update_frequency: "Quarterly" },
+      { label: "France", value: "€0.18-0.22/kWh", data_provider: "IEA Energy Prices Database", data_url: "https://www.iea.org/data-and-statistics/data-product/energy-prices", update_frequency: "Quarterly", note: "Nuclear base keeps costs lower" },
+      { label: "Dubai/UAE", value: "AED 0.23-0.38/kWh", data_provider: "DEWA Tariff Schedule", data_url: "https://www.dewa.gov.ae/en/consumer/billing/slab-tariff", update_frequency: "Annual", note: "Slab-based; free zone tariffs may differ" },
+      { label: "Singapore", value: "S$0.25-0.30/kWh", data_provider: "SP Group / EMA", data_url: "https://www.spgroup.com.sg/our-services/utilities/tariff-information", update_frequency: "Quarterly", note: "Open market; carbon tax adds S$25/tCO2e" },
+      { label: "Hong Kong", value: "HK$1.0-1.3/kWh", data_provider: "CLP / HK Electric", data_url: "https://www.clp.com.hk/en/customer-service/tariff", update_frequency: "Annual" },
     ],
     tools: [
       { name: "IEA Energy Prices Database", url: "https://www.iea.org/data-and-statistics/data-product/energy-prices", description: "Industrial tariffs for 130 countries" },
@@ -44,12 +44,12 @@ const FACILITY_CATEGORIES: FacilityCategory[] = [
     icon: Sun,
     description: "Solar irradiance data, permitting status, and ROI calculation inputs by jurisdiction. Commercial/industrial rooftop solar is permitted in most jurisdictions with varying incentive structures.",
     data_points: [
-      { label: "Utility-scale solar LCOE", value: "$0.03-0.05/kWh", source: "IRENA Renewable Power Generation Costs", source_url: "https://www.irena.org/Energy-Transition/Technology/Power-generation-costs", update_frequency: "Annual (July)", note: "Historic lows in 2024" },
-      { label: "Commercial rooftop ROI", value: "4-7 years typical", source: "NREL / IRENA", source_url: "https://pvwatts.nrel.gov", update_frequency: "Continuous (model updates)", note: "Varies by tariff, irradiance, incentives" },
-      { label: "US IRA ITC", value: "30% tax credit", source: "US DOE / IRS", source_url: "https://www.energy.gov/eere/solar/federal-solar-tax-credits-businesses", update_frequency: "Annual IRS guidance", note: "Available for commercial solar" },
-      { label: "Dubai (DEWA Shams)", value: "Net metering permitted", source: "DEWA", source_url: "https://www.dewa.gov.ae/en/consumers/innovation/shams-dubai", update_frequency: "Ad hoc", note: "PROVISIONAL — verify current terms" },
-      { label: "UK (SEG)", value: "Smart Export Guarantee", source: "Ofgem", source_url: "https://www.ofgem.gov.uk/environmental-and-social-schemes/smart-export-guarantee-seg", update_frequency: "Annual", note: "Replaced feed-in tariff" },
-      { label: "Singapore", value: "Solar leasing models available", source: "EMA Singapore", source_url: "https://www.ema.gov.sg/our-energy-story/energy-supply/solar", update_frequency: "Annual" },
+      { label: "Utility-scale solar LCOE", value: "$0.03-0.05/kWh", data_provider: "IRENA Renewable Power Generation Costs", data_url: "https://www.irena.org/Energy-Transition/Technology/Power-generation-costs", update_frequency: "Annual (July)", note: "Historic lows in 2024" },
+      { label: "Commercial rooftop ROI", value: "4-7 years typical", data_provider: "NREL / IRENA", data_url: "https://pvwatts.nrel.gov", update_frequency: "Continuous (model updates)", note: "Varies by tariff, irradiance, incentives" },
+      { label: "US IRA ITC", value: "30% tax credit", data_provider: "US DOE / IRS", data_url: "https://www.energy.gov/eere/solar/federal-solar-tax-credits-businesses", update_frequency: "Annual IRS guidance", note: "Available for commercial solar" },
+      { label: "Dubai (DEWA Shams)", value: "Net metering permitted", data_provider: "DEWA", data_url: "https://www.dewa.gov.ae/en/consumers/innovation/shams-dubai", update_frequency: "Ad hoc", note: "PROVISIONAL — verify current terms" },
+      { label: "UK (SEG)", value: "Smart Export Guarantee", data_provider: "Ofgem", data_url: "https://www.ofgem.gov.uk/environmental-and-social-schemes/smart-export-guarantee-seg", update_frequency: "Annual", note: "Replaced feed-in tariff" },
+      { label: "Singapore", value: "Solar leasing models available", data_provider: "EMA Singapore", data_url: "https://www.ema.gov.sg/our-energy-story/energy-supply/solar", update_frequency: "Annual" },
     ],
     tools: [
       { name: "NREL PVWatts", url: "https://pvwatts.nrel.gov", description: "Solar energy production and cost estimates by location" },
@@ -64,10 +64,10 @@ const FACILITY_CATEGORIES: FacilityCategory[] = [
     icon: Battery,
     description: "Commercial battery energy storage system pricing, technology trajectories, and warehouse application economics.",
     data_points: [
-      { label: "Li-ion BESS cost (2024)", value: "$150-200/kWh", source: "BloombergNEF", source_url: "https://about.bnef.com/energy-storage/", update_frequency: "Annual (December)", note: "Declining 10-15% annually" },
-      { label: "LFP pack cost", value: "~$100/kWh", source: "BloombergNEF", source_url: "https://about.bnef.com/energy-storage/", update_frequency: "Annual", note: "Approaching grid parity for peak shaving" },
-      { label: "Commercial BESS payback", value: "5-8 years", source: "NREL SAM", source_url: "https://sam.nrel.gov", update_frequency: "Continuous (model)", note: "Depends on demand charges and tariff structure" },
-      { label: "Na-ion emergence", value: "2025-2027 commercial", source: "IRENA Publications", source_url: "https://www.irena.org/Publications", update_frequency: "Annual reports", note: "Cheaper but lower energy density" },
+      { label: "Li-ion BESS cost (2024)", value: "$150-200/kWh", data_provider: "BloombergNEF", data_url: "https://about.bnef.com/energy-storage/", update_frequency: "Annual (December)", note: "Declining 10-15% annually" },
+      { label: "LFP pack cost", value: "~$100/kWh", data_provider: "BloombergNEF", data_url: "https://about.bnef.com/energy-storage/", update_frequency: "Annual", note: "Approaching grid parity for peak shaving" },
+      { label: "Commercial BESS payback", value: "5-8 years", data_provider: "NREL SAM", data_url: "https://sam.nrel.gov", update_frequency: "Continuous (model)", note: "Depends on demand charges and tariff structure" },
+      { label: "Na-ion emergence", value: "2025-2027 commercial", data_provider: "IRENA Publications", data_url: "https://www.irena.org/Publications", update_frequency: "Annual reports", note: "Cheaper but lower energy density" },
     ],
     tools: [
       { name: "NREL SAM", url: "https://sam.nrel.gov", description: "BESS sizing and economics modeling" },
@@ -80,12 +80,12 @@ const FACILITY_CATEGORIES: FacilityCategory[] = [
     icon: Users,
     description: "Warehouse and logistics role labor costs by country. Monitoring and facility management roles.",
     data_points: [
-      { label: "US (warehouse)", value: "$35,000-55,000/year", source: "US Bureau of Labor Statistics", source_url: "https://www.bls.gov/oes/current/oes_nat.htm", update_frequency: "Annual (May survey)", note: "CA/NY significantly higher" },
-      { label: "UK (warehouse)", value: "£25,000-35,000/year", source: "ONS Annual Survey of Hours and Earnings", source_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours", update_frequency: "Annual (November)", note: "London premium ~15-20%" },
-      { label: "EU (warehouse)", value: "€30,000-45,000/year", source: "Eurostat Labour Cost Index", source_url: "https://ec.europa.eu/eurostat/web/labour-market/labour-costs", update_frequency: "Quarterly", note: "Germany/NL highest" },
-      { label: "Dubai/UAE", value: "AED 3,000-5,000/month", source: "UAE MOHRE", source_url: "https://www.mohre.gov.ae", update_frequency: "Annual", note: "Subject to visa/labor law" },
-      { label: "Singapore", value: "S$2,500-4,000/month", source: "Singapore MOM", source_url: "https://www.mom.gov.sg/employment-practices/salary", update_frequency: "Annual", note: "Foreign worker levy applies" },
-      { label: "Hong Kong", value: "HK$15,000-25,000/month", source: "HK Census & Statistics", source_url: "https://www.censtatd.gov.hk/en/scode200.html", update_frequency: "Annual", note: "Statutory minimum HK$40/hr" },
+      { label: "US (warehouse)", value: "$35,000-55,000/year", data_provider: "US Bureau of Labor Statistics", data_url: "https://www.bls.gov/oes/current/oes_nat.htm", update_frequency: "Annual (May survey)", note: "CA/NY significantly higher" },
+      { label: "UK (warehouse)", value: "£25,000-35,000/year", data_provider: "ONS Annual Survey of Hours and Earnings", data_url: "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours", update_frequency: "Annual (November)", note: "London premium ~15-20%" },
+      { label: "EU (warehouse)", value: "€30,000-45,000/year", data_provider: "Eurostat Labour Cost Index", data_url: "https://ec.europa.eu/eurostat/web/labour-market/labour-costs", update_frequency: "Quarterly", note: "Germany/NL highest" },
+      { label: "Dubai/UAE", value: "AED 3,000-5,000/month", data_provider: "UAE MOHRE", data_url: "https://www.mohre.gov.ae", update_frequency: "Annual", note: "Subject to visa/labor law" },
+      { label: "Singapore", value: "S$2,500-4,000/month", data_provider: "Singapore MOM", data_url: "https://www.mom.gov.sg/employment-practices/salary", update_frequency: "Annual", note: "Foreign worker levy applies" },
+      { label: "Hong Kong", value: "HK$15,000-25,000/month", data_provider: "HK Census & Statistics", data_url: "https://www.censtatd.gov.hk/en/scode200.html", update_frequency: "Annual", note: "Statutory minimum HK$40/hr" },
     ],
     tools: [
       { name: "ILOSTAT", url: "https://ilostat.ilo.org/", description: "Global labor statistics across 200 countries" },
@@ -98,13 +98,13 @@ const FACILITY_CATEGORIES: FacilityCategory[] = [
     icon: Award,
     description: "Green building certification requirements by jurisdiction. Increasingly required for institutional investment and large-tenant warehouse leases.",
     data_points: [
-      { label: "LEED (US/Global)", value: "Voluntary (dominant US standard)", source: "USGBC", source_url: "https://www.usgbc.org/projects", update_frequency: "Continuous project database" },
-      { label: "BREEAM (UK/EU)", value: "Voluntary (dominant UK/EU standard)", source: "BRE Global", source_url: "https://www.breeam.com", update_frequency: "Ad hoc standard updates" },
-      { label: "DGNB (Germany)", value: "Voluntary (dominant DE standard)", source: "DGNB", source_url: "https://www.dgnb.de/en", update_frequency: "Ad hoc" },
-      { label: "Estidama Pearl (Abu Dhabi)", value: "Mandatory for government buildings", source: "Abu Dhabi UPC", source_url: "https://www.abudhabi.ae/en/infrastructure-environment/environment/estidama", update_frequency: "Ad hoc" },
-      { label: "BCA Green Mark (Singapore)", value: "Mandatory >5,000 sqm", source: "BCA Singapore", source_url: "https://www1.bca.gov.sg/buildsg/sustainability/green-mark-certification-scheme", update_frequency: "Ad hoc" },
-      { label: "BEAM Plus (Hong Kong)", value: "Voluntary (growing adoption)", source: "HKGBC", source_url: "https://www.hkgbc.org.hk/eng/beam-plus/", update_frequency: "Ad hoc" },
-      { label: "HQE (France)", value: "Voluntary (dominant FR standard)", source: "Cerway", source_url: "https://www.certivea.fr/", update_frequency: "Ad hoc" },
+      { label: "LEED (US/Global)", value: "Voluntary (dominant US standard)", data_provider: "USGBC", data_url: "https://www.usgbc.org/projects", update_frequency: "Continuous project database" },
+      { label: "BREEAM (UK/EU)", value: "Voluntary (dominant UK/EU standard)", data_provider: "BRE Global", data_url: "https://www.breeam.com", update_frequency: "Ad hoc standard updates" },
+      { label: "DGNB (Germany)", value: "Voluntary (dominant DE standard)", data_provider: "DGNB", data_url: "https://www.dgnb.de/en", update_frequency: "Ad hoc" },
+      { label: "Estidama Pearl (Abu Dhabi)", value: "Mandatory for government buildings", data_provider: "Abu Dhabi UPC", data_url: "https://www.abudhabi.ae/en/infrastructure-environment/environment/estidama", update_frequency: "Ad hoc" },
+      { label: "BCA Green Mark (Singapore)", value: "Mandatory >5,000 sqm", data_provider: "BCA Singapore", data_url: "https://www1.bca.gov.sg/buildsg/sustainability/green-mark-certification-scheme", update_frequency: "Ad hoc" },
+      { label: "BEAM Plus (Hong Kong)", value: "Voluntary (growing adoption)", data_provider: "HKGBC", data_url: "https://www.hkgbc.org.hk/eng/beam-plus/", update_frequency: "Ad hoc" },
+      { label: "HQE (France)", value: "Voluntary (dominant FR standard)", data_provider: "Cerway", data_url: "https://www.certivea.fr/", update_frequency: "Ad hoc" },
     ],
     tools: [
       { name: "USGBC Project Database", url: "https://www.usgbc.org/projects", description: "LEED projects by country and type" },
@@ -178,13 +178,13 @@ function FacilityCategoryCard({ category }: { category: FacilityCategory }) {
                   )}
                   <div className="flex items-center justify-between mt-1 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
                     <a
-                      href={dp.source_url}
+                      href={dp.data_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:underline"
                       style={{ color: "var(--color-primary)" }}
                     >
-                      {dp.source}
+                      {dp.data_provider}
                     </a>
                     <span>{dp.update_frequency}</span>
                   </div>
