@@ -32,7 +32,7 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
 
   pushFocusView: (focusView) =>
     set((state) => ({
-      tab: "explore",
+      tab: "regulations",
       focusView,
       navStack: [
         ...state.navStack,
@@ -54,9 +54,9 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
   clearNav: () => set({ navStack: [], focusView: null }),
 
   navigateToResource: (resourceId) => {
-    // Push current state onto nav stack, switch to explore, expand + scroll
+    // Push current state onto nav stack, switch to regulations, expand + scroll
     set((state) => ({
-      tab: "explore",
+      tab: "regulations",
       focusView: null,
       navStack: [
         ...state.navStack,
