@@ -129,9 +129,13 @@ async function applyUpdate(
   try {
     switch (update.update_type) {
       case "new_item": {
+        // Strip fields that don't exist on intelligence_items table
+        const { key_deadlines, source_name, why_matters, ...insertData } = update.proposed_changes;
+        // Map why_matters to the correct column name
+        if (why_matters) insertData.why_matters = why_matters;
         const { error } = await supabase
           .from("intelligence_items")
-          .insert(update.proposed_changes);
+          .insert(insertData);
         if (error) return { success: false, error: error.message };
         break;
       }
