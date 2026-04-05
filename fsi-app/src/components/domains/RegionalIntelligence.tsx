@@ -39,7 +39,7 @@ const REGIONAL_PROFILES: RegionalProfile[] = [
   {
     id: "uae-dubai",
     jurisdiction: "Dubai / UAE",
-    region: "Middle East & Africa",
+    region: "Middle East",
     priority: "high",
     data: {
       solar: {
@@ -419,6 +419,149 @@ const REGIONAL_PROFILES: RegionalProfile[] = [
       "Cross-border trucking EV feasibility (HK-Shenzhen)",
     ],
   },
+  {
+    id: "china",
+    jurisdiction: "China (PRC)",
+    region: "Asia-Pacific",
+    priority: "high",
+    data: {
+      solar: { status: "World's largest solar market", details: "China installed ~217 GW of solar in 2023 alone — more than the rest of the world combined. Commercial/industrial rooftop solar widely available with provincial feed-in tariffs.", confidence: "confirmed", source: "National Energy Administration (NEA)", source_url: "http://www.nea.gov.cn/", last_updated: "2024", update_frequency: "Monthly capacity statistics" },
+      electricity: { status: "¥0.4-0.8/kWh commercial (varies by province)", details: "Industrial rates lower in western provinces (Xinjiang, Inner Mongolia). Eastern seaboard provinces higher. Cross-subsidisation between industrial and residential rates.", confidence: "confirmed", source: "National Development and Reform Commission", source_url: "https://www.ndrc.gov.cn/", last_updated: "2024", update_frequency: "Annual (provincial tariff adjustments)" },
+      labor: { status: "¥4,000-8,000/month (logistics roles)", details: "Significant regional variation: Shanghai/Shenzhen highest, inland provinces lower. Social insurance contributions add ~30-40% to base wage. Minimum wages set by province.", confidence: "confirmed", source: "National Bureau of Statistics", source_url: "https://www.stats.gov.cn/english/", last_updated: "2024", update_frequency: "Annual" },
+      ev_charging: { status: "World's largest EV charging network", details: "China has 8.6M+ public charging points (2024). NEV mandate requires 25% of new vehicle sales to be electric. Commercial EV adoption fastest globally.", confidence: "confirmed", source: "China EV Charging Alliance (EVCIPA)", source_url: "https://www.evcipa.org.cn/", last_updated: "2024", update_frequency: "Monthly deployment statistics" },
+      green_building: { status: "China Green Building Label (3-star system)", details: "Mandatory for government buildings. GB/T 50378 standard. Increasingly required for Class A logistics parks. Green building area exceeded 10 billion sqm by 2023.", confidence: "confirmed", source: "Ministry of Housing and Urban-Rural Development", source_url: "https://www.mohurd.gov.cn/", last_updated: "2024", update_frequency: "Annual standard reviews" },
+      active_regulations: [
+        "China National ETS (power sector, expanding to transport)",
+        "NEV mandate (25% of new sales)",
+        "Dual Carbon Goals: peak emissions by 2030, carbon neutral by 2060",
+        "GB/T 14083 national transport emissions standard (aligned with ISO 14083)",
+        "Plastic pollution control regulations (phased single-use plastic bans)",
+      ],
+    },
+    open_questions: [
+      "Timeline for China national ETS expansion to transport sector",
+      "Cross-border trucking electrification on HK-Shenzhen-Guangzhou corridor",
+      "Free trade zone vs mainland electricity tariff differentials for logistics hubs",
+    ],
+  },
+  {
+    id: "india",
+    jurisdiction: "India",
+    region: "Asia-Pacific",
+    priority: "high",
+    data: {
+      solar: { status: "Permitted — National Solar Mission", details: "India targets 500 GW renewable energy by 2030. PM-KUSUM scheme for commercial/industrial rooftop. State-level net metering policies vary significantly. Gujarat, Rajasthan, and Karnataka lead deployment.", confidence: "confirmed", source: "Ministry of New and Renewable Energy", source_url: "https://mnre.gov.in/", last_updated: "2024", update_frequency: "Monthly capacity updates" },
+      electricity: { status: "₹6-10/kWh commercial (varies by state)", details: "State electricity regulatory commissions set tariffs independently. Industrial rates often lower through open access and power exchanges. Cross-subsidy surcharges apply.", confidence: "confirmed", source: "Central Electricity Authority", source_url: "https://cea.nic.in/", last_updated: "2024", update_frequency: "Annual (state-level tariff orders)" },
+      labor: { status: "₹15,000-30,000/month (logistics roles)", details: "Minimum wages vary by state and skill category. New Labour Codes consolidate 29 laws into 4 codes. Social security contributions ~12% EPF + ESI.", confidence: "confirmed", source: "Ministry of Labour and Employment", source_url: "https://labour.gov.in/", last_updated: "2024", update_frequency: "Biannual minimum wage revisions" },
+      ev_charging: { status: "FAME-II scheme driving adoption", details: "Faster Adoption and Manufacturing of EVs (FAME-II) scheme provides subsidies. National target: 30% EV sales by 2030. State EV policies vary — Delhi, Maharashtra, and Karnataka most aggressive.", confidence: "confirmed", source: "Ministry of Heavy Industries", source_url: "https://heavyindustries.gov.in/", last_updated: "2024", update_frequency: "Quarterly scheme updates" },
+      green_building: { status: "GRIHA / IGBC Green Rating", details: "GRIHA (government-backed) and IGBC (industry-backed) are the two main systems. Not mandatory nationally but required in some states for government buildings.", confidence: "confirmed", source: "IGBC / TERI", source_url: "https://igbc.in/", last_updated: "2024", update_frequency: "Ad hoc standard updates" },
+      active_regulations: [
+        "Carbon Credit Trading Scheme (notified 2023, operational 2025)",
+        "Extended Producer Responsibility for packaging waste",
+        "Bharat Stage VI emission standards (equivalent to Euro 6)",
+        "National Green Hydrogen Mission (5 MMT by 2030)",
+        "Plastic Waste Management Rules (single-use plastic ban)",
+      ],
+    },
+    open_questions: [
+      "India Carbon Credit Trading Scheme — timeline for transport sector inclusion",
+      "Cross-state variation in EV infrastructure for logistics corridors",
+      "GST implications for carbon credit trading on freight operations",
+    ],
+  },
+  {
+    id: "japan",
+    jurisdiction: "Japan",
+    region: "Asia-Pacific",
+    priority: "medium",
+    data: {
+      solar: { status: "Permitted — FIT programme active", details: "Feed-in tariff for commercial solar at ¥10-12/kWh (declining annually). FIP (Feed-in Premium) replacing FIT for larger installations. Rooftop solar on logistics facilities growing.", confidence: "confirmed", source: "Agency for Natural Resources and Energy", source_url: "https://www.enecho.meti.go.jp/en/", last_updated: "2024", update_frequency: "Annual FIT/FIP rate review" },
+      electricity: { status: "¥15-25/kWh commercial", details: "Electricity market liberalised since 2016. Regional variation between 10 EPCO areas. Post-Fukushima nuclear restart reducing prices in some areas.", confidence: "confirmed", source: "METI", source_url: "https://www.meti.go.jp/english/", last_updated: "2024", update_frequency: "Quarterly" },
+      labor: { status: "¥250,000-350,000/month (logistics roles)", details: "National minimum wage ¥1,004/hr (2024). Labor shortage acute in logistics — '2024 problem' from driver working hours cap. Social insurance adds ~15% to costs.", confidence: "confirmed", source: "Ministry of Health, Labour and Welfare", source_url: "https://www.mhlw.go.jp/english/", last_updated: "2024", update_frequency: "Annual wage survey" },
+      ev_charging: { status: "Green Growth Strategy — hydrogen + EV focus", details: "Japan pursuing both BEV and FCEV pathways. CHAdeMO fast charging network extensive (30,000+ points). Government subsidies for commercial EV purchase.", confidence: "confirmed", source: "MLIT / METI", source_url: "https://www.mlit.go.jp/en/", last_updated: "2024", update_frequency: "Annual Green Growth Strategy updates" },
+      green_building: { status: "CASBEE", details: "Comprehensive Assessment System for Built Environment Efficiency. Mandatory energy reporting for large buildings (>2,000 sqm). ZEB (Zero Energy Building) target for new public buildings by 2030.", confidence: "confirmed", source: "Ministry of Land, Infrastructure, Transport and Tourism", source_url: "https://www.mlit.go.jp/en/", last_updated: "2024", update_frequency: "Ad hoc" },
+      active_regulations: [
+        "Japan GX (Green Transformation) carbon pricing — GX-ETS from 2026",
+        "GX surcharge on fossil fuels from 2028",
+        "Hydrogen port investments (Kobe, Yokohama)",
+        "2024 logistics driver working hours cap",
+      ],
+    },
+    open_questions: [
+      "GX-ETS impact on maritime operations at Japanese ports",
+      "Hydrogen bunkering infrastructure timeline at major ports",
+    ],
+  },
+  {
+    id: "australia",
+    jurisdiction: "Australia",
+    region: "Asia-Pacific",
+    priority: "medium",
+    data: {
+      solar: { status: "Highest per-capita solar adoption globally", details: "Rooftop solar on 33%+ of homes. Commercial solar booming with PPAs. State-level feed-in tariffs and renewable energy certificates (STCs/LGCs).", confidence: "confirmed", source: "Clean Energy Regulator", source_url: "https://www.cleanenergyregulator.gov.au/", last_updated: "2024", update_frequency: "Monthly STC/LGC data" },
+      electricity: { status: "A$0.15-0.35/kWh commercial (varies by state)", details: "National Electricity Market covers eastern states. WA has separate market. Industrial rates via PPAs significantly lower. Renewable energy zones reducing costs.", confidence: "confirmed", source: "Australian Energy Regulator", source_url: "https://www.aer.gov.au/", last_updated: "2024", update_frequency: "Quarterly" },
+      labor: { status: "A$55,000-75,000/year (logistics roles)", details: "National minimum wage A$24.10/hr (2024). Superannuation adds 11.5% to base wage. Award rates for transport workers set by Fair Work Commission.", confidence: "confirmed", source: "Fair Work Commission", source_url: "https://www.fwc.gov.au/", last_updated: "July 2024", update_frequency: "Annual (July wage review)" },
+      ev_charging: { status: "National EV Strategy launched 2023", details: "Federal New Vehicle Efficiency Standard from 2025. State-level EV incentives vary — Victoria, NSW, and QLD most active. NRMA and others building highway charging.", confidence: "confirmed", source: "Department of Climate Change, Energy, the Environment and Water", source_url: "https://www.dcceew.gov.au/", last_updated: "2024", update_frequency: "Quarterly" },
+      green_building: { status: "Green Star (GBCA) / NABERS", details: "Green Star voluntary certification by GBCA. NABERS energy ratings mandatory for commercial office buildings >1,000 sqm for sale/lease. Warehouse sector increasingly adopting Green Star.", confidence: "confirmed", source: "Green Building Council of Australia", source_url: "https://new.gbca.org.au/", last_updated: "2024", update_frequency: "Ad hoc" },
+      active_regulations: [
+        "Safeguard Mechanism (facility-level emissions caps, 215 facilities)",
+        "New Vehicle Efficiency Standard (CO2 g/km targets from 2025)",
+        "National Reconstruction Fund — green manufacturing investment",
+        "Renewable Energy Target (33,000 GWh by 2020, met)",
+      ],
+    },
+    open_questions: [
+      "Safeguard Mechanism expansion to transport sector",
+      "Port electrification timelines for Sydney, Melbourne, Brisbane",
+    ],
+  },
+  {
+    id: "brazil",
+    jurisdiction: "Brazil",
+    region: "Americas",
+    priority: "medium",
+    data: {
+      solar: { status: "Permitted — Net metering (Lei 14.300/2022)", details: "Marco Legal da Geração Distribuída established net metering framework. Commercial solar growing 40%+ annually. High irradiance nationwide. Transition to new tariff structure by 2045.", confidence: "confirmed", source: "ANEEL", source_url: "https://www.gov.br/aneel/", last_updated: "2024", update_frequency: "Annual regulatory review" },
+      electricity: { status: "R$0.50-0.90/kWh commercial (varies by state)", details: "Electricity tariffs set by ANEEL with state-level distribution charges. Tariff flag system (green/yellow/red) adjusts monthly based on hydrological conditions.", confidence: "confirmed", source: "ANEEL", source_url: "https://www.gov.br/aneel/", last_updated: "2024", update_frequency: "Monthly (flag system), annual (base tariff)" },
+      labor: { status: "R$2,500-5,000/month (logistics roles)", details: "National minimum wage R$1,412/month (2024). CLT employment regime with 13th salary, FGTS (8%), INSS contributions. Regional variation significant.", confidence: "confirmed", source: "IBGE / Ministry of Labour", source_url: "https://www.ibge.gov.br/", last_updated: "2024", update_frequency: "Annual minimum wage adjustment (January)" },
+      ev_charging: { status: "Emerging — ROTA 2030 programme", details: "ROTA 2030 automotive innovation programme includes EV incentives. Ethanol and flex-fuel vehicles dominate. EV infrastructure concentrated in São Paulo and Rio de Janeiro.", confidence: "confirmed", source: "Ministry of Development, Industry and Trade", source_url: "https://www.gov.br/mdic/", last_updated: "2024", update_frequency: "Annual programme updates" },
+      green_building: { status: "LEED / AQUA-HQE / Selo Casa Azul", details: "LEED widely adopted for commercial buildings. AQUA-HQE (adapted from French HQE). Selo Casa Azul (CAIXA) for residential. No mandatory national standard.", confidence: "confirmed", source: "GBC Brasil", source_url: "https://www.gbcbrasil.org.br/", last_updated: "2024", update_frequency: "Ad hoc" },
+      active_regulations: [
+        "Política Nacional de Resíduos Sólidos (reverse logistics mandate)",
+        "RenovaBio (biofuels decarbonisation credit — CBio)",
+        "PROCONVE L8 vehicle emissions standards",
+        "National Climate Plan update (COP30 host country 2025)",
+      ],
+    },
+    open_questions: [
+      "COP30 Belém — impact on Brazilian freight sustainability requirements",
+      "Ethanol vs EV transition timeline for commercial fleets",
+    ],
+  },
+  {
+    id: "germany",
+    jurisdiction: "Germany",
+    region: "Europe",
+    priority: "high",
+    data: {
+      solar: { status: "Permitted — EEG feed-in + direct marketing", details: "Energiewende driving massive solar deployment. EEG (Renewable Energy Sources Act) provides feed-in tariffs for installations <100 kW, direct marketing above. Commercial rooftop solar eligible for investment subsidies.", confidence: "confirmed", source: "Bundesnetzagentur", source_url: "https://www.bundesnetzagentur.de/EN/", last_updated: "2024", update_frequency: "Monthly installation statistics" },
+      electricity: { status: "€0.25-0.35/kWh commercial", details: "Among the highest in Europe. Network charges, EEG surcharge (now tax-funded), and electricity tax make up ~50% of total cost. Industrial exemptions available for energy-intensive users.", confidence: "confirmed", source: "BDEW / Bundesnetzagentur", source_url: "https://www.bdew.de/english/", last_updated: "2024", update_frequency: "Quarterly" },
+      labor: { status: "€35,000-50,000/year (logistics roles)", details: "Minimum wage €12.82/hr (2025). Strong collective bargaining (Tarifvertrag) in logistics sector. Social insurance contributions ~20% employer side. Driver shortage acute.", confidence: "confirmed", source: "Statistisches Bundesamt (Destatis)", source_url: "https://www.destatis.de/EN/", last_updated: "2024", update_frequency: "Annual earnings survey" },
+      ev_charging: { status: "Deutschlandnetz building 1,000+ fast charging hubs", details: "Federal government building national fast charging network. Masterplan Ladeinfrastruktur II targets 1M public charging points by 2030. Commercial fleet electrification incentives available.", confidence: "confirmed", source: "BMDV", source_url: "https://www.bmdv.bund.de/EN/", last_updated: "2024", update_frequency: "Quarterly deployment stats" },
+      green_building: { status: "DGNB (German Sustainable Building Council)", details: "DGNB certification dominant. GEG (Building Energy Act) sets minimum energy standards. EU Energy Performance of Buildings Directive transposition driving stricter requirements.", confidence: "confirmed", source: "DGNB", source_url: "https://www.dgnb.de/en", last_updated: "2024", update_frequency: "Ad hoc standard updates" },
+      active_regulations: [
+        "EU ETS (Germany's largest compliance market)",
+        "National ETS for heating and transport (nEHS) — €45/tCO2 (2024)",
+        "GEG Building Energy Act (Gebäudeenergiegesetz)",
+        "Lieferkettensorgfaltspflichtengesetz (Supply Chain Due Diligence Act)",
+        "Packaging Act (VerpackG) — extended producer responsibility",
+      ],
+    },
+    open_questions: [
+      "nEHS carbon price trajectory — impact on German road freight costs",
+      "Supply Chain Act enforcement — freight forwarder obligations",
+    ],
+  },
 ];
 
 // ── Regional Profile Card ──
@@ -591,9 +734,31 @@ function DataCell({
   );
 }
 
+// ── Region Groups ──
+
+const REGION_GROUPS = [
+  { id: "all", label: "All Regions" },
+  { id: "Americas", label: "Americas" },
+  { id: "Europe", label: "Europe" },
+  { id: "Asia-Pacific", label: "Asia-Pacific" },
+  { id: "Middle East", label: "Middle East" },
+  { id: "Africa", label: "Africa" },
+] as const;
+
 // ── Main Component ──
 
 export function RegionalIntelligence() {
+  const [activeRegion, setActiveRegion] = useState<string>("all");
+
+  const filteredProfiles = activeRegion === "all"
+    ? REGIONAL_PROFILES
+    : REGIONAL_PROFILES.filter((p) => p.region === activeRegion);
+
+  const profilesByRegion = REGION_GROUPS.filter((g) => g.id !== "all").map((g) => ({
+    region: g.label,
+    count: REGIONAL_PROFILES.filter((p) => p.region === g.label).length,
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -602,11 +767,46 @@ export function RegionalIntelligence() {
         </h2>
         <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
           Energy tariffs, labor costs, solar permitting, EV infrastructure, and green building requirements by jurisdiction.
+          Each data point includes source, update frequency, and verification status.
         </p>
       </div>
 
+      {/* Region filter */}
+      <div className="flex flex-wrap gap-1.5">
+        {REGION_GROUPS.map((g) => {
+          const count = g.id === "all" ? REGIONAL_PROFILES.length : REGIONAL_PROFILES.filter((p) => p.region === g.label).length;
+          return (
+            <button
+              key={g.id}
+              onClick={() => setActiveRegion(g.id)}
+              className="px-3 py-1.5 text-xs font-medium rounded-md border cursor-pointer transition-colors"
+              style={{
+                borderColor: activeRegion === g.id ? "var(--color-active-border)" : "var(--color-border)",
+                backgroundColor: activeRegion === g.id ? "var(--color-active-bg)" : "transparent",
+                color: activeRegion === g.id ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+              }}
+            >
+              {g.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Coverage note */}
+      {filteredProfiles.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+            No regional profiles for this region yet
+          </p>
+          <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
+            Regional intelligence profiles are added as the source monitoring system expands coverage.
+            The monitoring worker scans sources and populates regional data automatically.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-3">
-        {REGIONAL_PROFILES.map((profile) => (
+        {filteredProfiles.map((profile) => (
           <RegionalProfileCard key={profile.id} profile={profile} />
         ))}
       </div>
