@@ -5,7 +5,7 @@ import { useNavigationStore } from "@/stores/navigationStore";
 import type { TabId } from "@/types/resource";
 import {
   Home, Scale, Zap, Globe, TrendingUp, Database,
-  Building, GraduationCap, Settings,
+  Building, GraduationCap, MapPin, Settings,
 } from "lucide-react";
 
 const TABS: { id: TabId; label: string; shortLabel?: string; icon: typeof Home }[] = [
@@ -13,10 +13,11 @@ const TABS: { id: TabId; label: string; shortLabel?: string; icon: typeof Home }
   { id: "regulations", label: "Regulations", shortLabel: "Regs", icon: Scale },
   { id: "technology", label: "Technology", shortLabel: "Tech", icon: Zap },
   { id: "regional", label: "Regional", icon: Globe },
-  { id: "geopolitical", label: "Geopolitical", shortLabel: "Geopolitical", icon: TrendingUp },
+  { id: "geopolitical", label: "Geopolitical", shortLabel: "Geo", icon: TrendingUp },
   { id: "sources", label: "Sources", icon: Database },
   { id: "facilities", label: "Facilities", icon: Building },
   { id: "research", label: "Research", icon: GraduationCap },
+  { id: "map", label: "Map", icon: MapPin },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 

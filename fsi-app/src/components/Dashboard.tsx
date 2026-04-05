@@ -33,6 +33,13 @@ import { GeopoliticalSignals } from "@/components/domains/GeopoliticalSignals";
 import { ResearchPipeline } from "@/components/domains/ResearchPipeline";
 import { FacilityOptimization } from "@/components/domains/FacilityOptimization";
 
+// Map
+import dynamic from "next/dynamic";
+const MapView = dynamic(() => import("@/components/map/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-[calc(100vh-200px)] text-sm" style={{ color: "var(--color-text-secondary)" }}>Loading map...</div>,
+});
+
 // Settings
 import { DashboardSettings } from "@/components/settings/DashboardSettings";
 import { ArchiveViewer } from "@/components/settings/ArchiveViewer";
@@ -380,6 +387,21 @@ export function Dashboard({
         {tab === "research" && !focusView && (
           <div className="mt-4">
             <ResearchPipeline />
+          </div>
+        )}
+
+        {/* ── MAP TAB ── */}
+        {tab === "map" && !focusView && (
+          <div className="mt-4 border rounded-lg overflow-hidden -mx-4 sm:mx-0" style={{ borderColor: "var(--color-border)" }}>
+            <MapView
+              resources={resources}
+              changelog={changelog}
+              disputes={disputes}
+              xrefPairs={xrefPairs}
+              supersessions={supersessions}
+              resourceMap={resourceMap}
+              onToast={showToast}
+            />
           </div>
         )}
 
