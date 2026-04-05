@@ -85,7 +85,7 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
                     {r.whyMatters || r.note}
                   </p>
                 </div>
-                <span className="text-xs font-semibold tabular-nums text-[var(--critical)]">
+                <span className="text-xs font-semibold tabular-nums text-[var(--critical)] cursor-help" title="Urgency Score = enforcement proximity × priority weight × jurisdiction impact × compliance breadth. Higher = more urgent action needed.">
                   {urgencyScore(r)}
                 </span>
               </button>
