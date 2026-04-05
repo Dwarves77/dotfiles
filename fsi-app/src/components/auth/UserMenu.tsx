@@ -74,6 +74,16 @@ export function UserMenu() {
 
             {/* Actions */}
             <div className="py-1">
+              <a
+                href="/profile"
+                className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              >
+                <User size={14} />
+                Workspace Profile
+              </a>
               {isAdmin && (
                 <a
                   href="/admin"
