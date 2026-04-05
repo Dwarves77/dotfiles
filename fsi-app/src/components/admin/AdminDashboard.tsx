@@ -75,20 +75,26 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
 
   // Approve/reject staged update
   const handleUpdate = async (id: string, action: "approve" | "reject") => {
-    const { error } = await supabase
-      .from("staged_updates")
-      .update({
-        status: action === "approve" ? "approved" : "rejected",
-        reviewed_by: userId,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-
-    if (error) {
-      showToast("Error: " + error.message);
-    } else {
-      showToast(`Update ${action}d`);
-      loadData();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch("/api/staged-updates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ id, action }),
+      });
+      const result = await resp.json();
+      if (result.error) {
+        showToast("Error: " + result.error);
+      } else {
+        showToast(`Update ${action}d`);
+        // Remove from local list immediately
+        setStagedUpdates((prev) => prev.filter((u) => u.id !== id));
+      }
+    } catch (e: any) {
+      showToast("Error: " + e.message);
     }
   };
 
@@ -372,9 +378,59 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
                       {new Date(update.created_at).toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                    {update.reason || JSON.stringify(update.proposed_changes).slice(0, 200)}
-                  </p>
+                  {/* Show full proposed item details */}
+                  {update.proposed_changes && (
+                    <div className="space-y-1.5">
+                      {update.proposed_changes.title && (
+                        <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                          {update.proposed_changes.title}
+                        </p>
+                      )}
+                      {update.proposed_changes.summary && (
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                          {update.proposed_changes.summary}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-1.5 text-[10px]">
+                        {update.proposed_changes.priority && (
+                          <span className="px-1.5 py-0.5 rounded font-semibold" style={{ color: "var(--color-warning)", backgroundColor: "rgba(217,119,6,0.08)" }}>
+                            {update.proposed_changes.priority}
+                          </span>
+                        )}
+                        {update.proposed_changes.status && (
+                          <span className="px-1.5 py-0.5 rounded" style={{ color: "var(--color-text-secondary)", backgroundColor: "var(--color-surface-raised)" }}>
+                            {update.proposed_changes.status}
+                          </span>
+                        )}
+                        {update.proposed_changes.jurisdictions?.map((j: string) => (
+                          <span key={j} className="px-1.5 py-0.5 rounded" style={{ color: "var(--color-text-secondary)", backgroundColor: "var(--color-surface-raised)" }}>
+                            {j.toUpperCase()}
+                          </span>
+                        ))}
+                        {update.proposed_changes.transport_modes?.map((m: string) => (
+                          <span key={m} className="px-1.5 py-0.5 rounded" style={{ color: "var(--color-primary)", backgroundColor: "var(--color-active-bg)" }}>
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                      {update.proposed_changes.source_url && (
+                        <a href={update.proposed_changes.source_url} target="_blank" rel="noopener noreferrer"
+                          className="text-[11px] hover:underline" style={{ color: "var(--color-primary)" }}>
+                          {update.proposed_changes.source_url}
+                        </a>
+                      )}
+                      {update.proposed_changes.entry_into_force && (
+                        <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+                          Effective: {update.proposed_changes.entry_into_force}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {!update.proposed_changes?.title && (
+                    <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                      {update.reason || JSON.stringify(update.proposed_changes).slice(0, 300)}
+                    </p>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       variant="primary"
@@ -448,6 +504,7 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
                   <div className="space-y-2">
                     <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
                       Scan complete: {scanResult.discovered} regulations found, {scanResult.new_items} new, {scanResult.staged} staged for review
+                      {scanResult.new_sources_discovered > 0 && ` · ${scanResult.new_sources_discovered} new sources discovered`}
                     </p>
                     {scanResult.staged_titles?.length > 0 && (
                       <ul className="space-y-1">
@@ -459,7 +516,17 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
                         ))}
                       </ul>
                     )}
-                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                    {scanResult.new_source_names?.length > 0 && (
+                      <div className="mt-2">
+                        <span className="text-xs font-medium" style={{ color: "var(--color-primary)" }}>New sources added to registry:</span>
+                        <ul className="mt-1 space-y-0.5">
+                          {scanResult.new_source_names.map((name: string, i: number) => (
+                            <li key={i} className="text-xs" style={{ color: "var(--color-text-secondary)" }}>+ {name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>
                       Review staged items in the Staged Updates tab to approve or reject.
                     </p>
                   </div>

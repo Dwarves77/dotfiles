@@ -52,22 +52,34 @@ export async function POST(request: NextRequest) {
         max_tokens: 3000,
         system: `You are a regulatory intelligence researcher for the global freight forwarding industry. Search for current and upcoming regulations, standards, and policy developments that affect freight logistics sustainability.
 
-Return results as a JSON array of objects with these fields:
+For each regulation you find, provide:
 - title: Official name of the regulation
-- summary: One paragraph explaining what it is
-- jurisdiction: Where it applies (EU, US, UK, Global, etc.)
+- summary: One detailed paragraph explaining what it is, what it requires, and what changed recently
+- why_matters: One paragraph explaining the operational impact on freight forwarders — how it affects costs, compliance, routing, or client relationships
+- jurisdiction: Where it applies (EU, US, UK, Global, China, India, etc.)
 - transport_modes: Array of affected modes (air, road, ocean, rail)
-- priority: CRITICAL, HIGH, MODERATE, or LOW
+- priority: CRITICAL (action needed now), HIGH (action within 6 months), MODERATE (monitor), or LOW (awareness)
 - status: proposed, adopted, in_force, monitoring
 - source_url: Direct URL to the official text or announcement
+- source_name: Name of the publishing body (e.g., "EUR-Lex", "Federal Register", "IMO")
 - effective_date: When it takes effect (if known)
+- key_deadlines: Array of upcoming deadline dates and what they require
 
 Focus on regulations that are:
 1. New or recently updated (last 6 months)
 2. Directly relevant to freight forwarding operations
 3. Not already in our database
+4. Published by authoritative government or intergovernmental sources
 
-Return ONLY the JSON array, no other text.`,
+Also identify any NEW sources (government portals, regulatory bodies) that publish these regulations which should be added to our monitoring registry.
+
+Return a JSON object with two arrays:
+{
+  "regulations": [...],
+  "new_sources": [{ "name": "...", "url": "...", "jurisdiction": "...", "publishes": "..." }]
+}
+
+Return ONLY the JSON object, no other text.`,
         messages: [{
           role: "user",
           content: `Search for new freight sustainability regulations${topic ? ` related to "${topic}"` : ""}${jurisdiction ? ` in ${jurisdiction}` : " globally"}. Find regulations not in this existing list: ${existingTitles.slice(0, 50).join(", ")}`,
@@ -82,15 +94,21 @@ Return ONLY the JSON array, no other text.`,
     }
 
     const data = await response.json();
-    const text = data.content?.[0]?.text || "[]";
+    const text = data.content?.[0]?.text || "{}";
 
-    // Parse the JSON response
-    let discoveries: any[] = [];
+    // Parse the JSON response — expects { regulations: [...], new_sources: [...] }
+    let regulations: any[] = [];
+    let newSources: any[] = [];
     try {
-      // Extract JSON array from the response (might have markdown wrapping)
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        discoveries = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        regulations = parsed.regulations || [];
+        newSources = parsed.new_sources || [];
+      } else {
+        // Fallback: try parsing as array (old format)
+        const arrMatch = text.match(/\[[\s\S]*\]/);
+        if (arrMatch) regulations = JSON.parse(arrMatch[0]);
       }
     } catch {
       return NextResponse.json({
@@ -99,19 +117,42 @@ Return ONLY the JSON array, no other text.`,
       }, { status: 500 });
     }
 
-    // Filter out duplicates
-    const newItems = discoveries.filter(
+    // Filter out duplicate regulations
+    const newItems = regulations.filter(
       (d: any) => !existingTitles.includes(d.title?.toLowerCase())
     );
 
-    // Stage as proposed updates for admin review
+    // Stage new sources as provisional
+    const sourcesAdded = [];
+    for (const src of newSources.slice(0, 5)) {
+      // Check if source URL already exists
+      const { data: existingSource } = await supabase
+        .from("sources")
+        .select("id")
+        .eq("url", src.url)
+        .single();
+
+      if (!existingSource && src.url) {
+        await supabase.from("provisional_sources").upsert({
+          name: src.name,
+          url: src.url,
+          description: src.publishes || "",
+          discovered_via: "worker_search",
+          status: "pending_review",
+        }, { onConflict: "url" });
+        sourcesAdded.push(src.name);
+      }
+    }
+
+    // Stage regulations as proposed updates for admin review
     const staged = [];
-    for (const item of newItems.slice(0, 10)) { // Max 10 per scan
+    for (const item of newItems.slice(0, 10)) {
       const { error } = await supabase.from("staged_updates").insert({
         update_type: "new_item",
         proposed_changes: {
           title: item.title,
           summary: item.summary,
+          why_matters: item.why_matters || "",
           domain: 1,
           item_type: "regulation",
           jurisdictions: item.jurisdiction ? [item.jurisdiction.toLowerCase()] : ["global"],
@@ -119,7 +160,9 @@ Return ONLY the JSON array, no other text.`,
           priority: item.priority || "MODERATE",
           status: item.status || "monitoring",
           source_url: item.source_url || "",
+          source_name: item.source_name || "",
           entry_into_force: item.effective_date || null,
+          key_deadlines: item.key_deadlines || [],
         },
         reason: `AI scan: ${topic || "general"} ${jurisdiction || "global"}`,
         source_url: item.source_url || "",
@@ -131,10 +174,12 @@ Return ONLY the JSON array, no other text.`,
 
     return NextResponse.json({
       success: true,
-      discovered: discoveries.length,
+      discovered: regulations.length,
       new_items: newItems.length,
       staged: staged.length,
       staged_titles: staged,
+      new_sources_discovered: sourcesAdded.length,
+      new_source_names: sourcesAdded,
     }, { headers: rateLimitHeaders(auth.userId) });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
