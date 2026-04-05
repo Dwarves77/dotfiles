@@ -22,7 +22,6 @@ const PRIMARY_TABS: { id: TabId; label: string; icon: typeof Scale }[] = [
 const UTILITY_TABS: { id: string; label: string; icon: typeof MapPin; href?: string }[] = [
   { id: "community", label: "Community", icon: MessageSquare, href: "/community" },
   { id: "map", label: "Map", icon: MapPin },
-  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function TabBar() {

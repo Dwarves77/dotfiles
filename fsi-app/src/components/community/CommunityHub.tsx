@@ -515,14 +515,7 @@ function VendorDirectory() {
           <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
             Submit a vendor recommendation for review. Vendors require 3 peer endorsements from verified members to achieve Peer Validated status.
           </p>
-          <input type="text" placeholder="Vendor name *" className="w-full px-3 py-2 text-sm rounded-md border" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
-          <input type="text" placeholder="Website URL" className="w-full px-3 py-2 text-sm rounded-md border" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
-          <input type="text" placeholder="Region (e.g., UK, Europe, Global)" className="w-full px-3 py-2 text-sm rounded-md border" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
-          <textarea placeholder="What sustainable products or services do they offer?" rows={3} className="w-full px-3 py-2 text-sm rounded-md border resize-none" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
-          <div className="flex gap-2">
-            <Button variant="primary" size="sm"><Send size={12} /> Submit for Review</Button>
-            <Button variant="secondary" size="sm" onClick={() => setShowSubmitForm(false)}>Cancel</Button>
-          </div>
+          <VendorSubmitForm onClose={() => setShowSubmitForm(false)} />
         </div>
       )}
 
@@ -578,6 +571,47 @@ function VendorDirectory() {
         ))}
       </div>
     </div>
+  );
+}
+
+function VendorSubmitForm({ onClose }: { onClose: () => void }) {
+  const [name, setName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [region, setRegion] = useState("");
+  const [products, setProducts] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!name) return;
+    setSaving(true);
+    const supabase = createSupabaseBrowserClient();
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    await supabase.from("vendors").insert({
+      name,
+      slug,
+      company_website: website || null,
+      hq_region: region || null,
+      description: products || null,
+      service_regions: region ? [region] : [],
+    });
+    setSaving(false);
+    onClose();
+    window.location.reload();
+  };
+
+  return (
+    <>
+      <input type="text" placeholder="Vendor name *" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 text-sm rounded-md border" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
+      <input type="text" placeholder="Website URL" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full px-3 py-2 text-sm rounded-md border" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
+      <input type="text" placeholder="Region (e.g., UK, Europe, Global)" value={region} onChange={(e) => setRegion(e.target.value)} className="w-full px-3 py-2 text-sm rounded-md border" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
+      <textarea placeholder="What sustainable products or services do they offer?" value={products} onChange={(e) => setProducts(e.target.value)} rows={3} className="w-full px-3 py-2 text-sm rounded-md border resize-none" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }} />
+      <div className="flex gap-2">
+        <Button variant="primary" size="sm" onClick={handleSubmit} disabled={saving || !name}>
+          <Send size={12} /> {saving ? "Submitting..." : "Submit for Review"}
+        </Button>
+        <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+      </div>
+    </>
   );
 }
 

@@ -9,6 +9,7 @@ import { useNavigationStore } from "@/stores/navigationStore";
 import { PRIORITY_COLORS, TOPIC_COLORS } from "@/lib/constants";
 import { ChevronDown, Share2 } from "lucide-react";
 import type { Resource } from "@/types/resource";
+import { AcronymText } from "@/components/ui/AcronymText";
 
 interface ResourceCardProps {
   resource: Resource;
@@ -84,7 +85,7 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
 
           {/* Title */}
           <h3 className="text-[15px] font-semibold text-text-primary leading-tight mb-1" style={{ letterSpacing: "-0.1px" }}>
-            {r.title}
+            <AcronymText text={r.title} />
           </h3>
 
           {/* Note */}

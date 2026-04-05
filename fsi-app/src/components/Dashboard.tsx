@@ -20,6 +20,7 @@ import { Supersessions } from "@/components/home/Supersessions";
 import { FilterBar } from "@/components/explore/FilterBar";
 import { SearchBar } from "@/components/explore/SearchBar";
 import { SortSelector } from "@/components/explore/SortSelector";
+import { TimelineView } from "@/components/explore/TimelineView";
 import { ResourceCard } from "@/components/resource/ResourceCard";
 import { ResourceDetail } from "@/components/resource/ResourceDetail";
 
@@ -115,6 +116,7 @@ export function Dashboard({
   const { setSources, setProvisionalSources, setOpenConflicts } = useSourceStore();
   const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
 
+  const [regView, setRegView] = useState<"list" | "timeline">("list");
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
     message: "",
     visible: false,
@@ -284,7 +286,25 @@ export function Dashboard({
                   className="flex items-center justify-between pb-3 border-b"
                   style={{ borderColor: "var(--color-border-subtle)" }}
                 >
-                  <SortSelector />
+                  <div className="flex items-center gap-3">
+                    <SortSelector />
+                    <div className="flex gap-1">
+                      {(["list", "timeline"] as const).map((v) => (
+                        <button
+                          key={v}
+                          onClick={() => setRegView(v)}
+                          className="px-2 py-1 text-[11px] font-medium rounded-md border cursor-pointer transition-colors"
+                          style={{
+                            borderColor: regView === v ? "var(--color-active-border)" : "var(--color-border)",
+                            backgroundColor: regView === v ? "var(--color-active-bg)" : "transparent",
+                            color: regView === v ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                          }}
+                        >
+                          {v === "list" ? "List" : "Timeline"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <span
                     className="text-xs tabular-nums text-right"
                     style={{ color: "var(--color-text-muted)" }}
@@ -307,7 +327,13 @@ export function Dashboard({
               />
             )}
 
-            {!focusView && (
+            {/* Timeline View */}
+            {!focusView && regView === "timeline" && (
+              <TimelineView resources={displayResources} />
+            )}
+
+            {/* List View */}
+            {!focusView && regView === "list" && (
               <div className="flex flex-col gap-2">
                 {displayResources.length === 0 ? (
                   <DomainEmptyState domain={currentDomain} hasFilters={filters.search !== "" || filters.modes.length > 0 || filters.topics.length > 0 || filters.jurisdictions.length > 0 || filters.priorities.length > 0} />
