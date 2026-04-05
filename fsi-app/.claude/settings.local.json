@@ -12,7 +12,8 @@
       "Bash(psql --version)",
       "Bash(npx supabase:*)",
       "Bash(node supabase/seed/run-migration.mjs)",
-      "Bash(node -e \"const c = require\\('./src/lib/constants'\\); console.log\\('Jurisdictions:', c.JURISDICTIONS.length\\); const regions = {}; c.JURISDICTIONS.forEach\\(j => { regions[j.region] = \\(regions[j.region] || 0\\) + 1; }\\); Object.entries\\(regions\\).sort\\(\\(a,b\\) => b[1]-a[1]\\).forEach\\(\\([r,c]\\) => console.log\\('  ' + r + ': ' + c\\)\\);\")"
+      "Bash(node -e \"const c = require\\('./src/lib/constants'\\); console.log\\('Jurisdictions:', c.JURISDICTIONS.length\\); const regions = {}; c.JURISDICTIONS.forEach\\(j => { regions[j.region] = \\(regions[j.region] || 0\\) + 1; }\\); Object.entries\\(regions\\).sort\\(\\(a,b\\) => b[1]-a[1]\\).forEach\\(\\([r,c]\\) => console.log\\('  ' + r + ': ' + c\\)\\);\")",
+      "Bash(kill %1)"
     ]
   }
 }

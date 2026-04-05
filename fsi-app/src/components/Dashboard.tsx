@@ -108,6 +108,8 @@ export function Dashboard({
     useResourceStore();
   const { tab, focusView } = useNavigationStore();
   const settings = useSettingsStore();
+  const loadSettings = useSettingsStore((s) => s.loadFromWorkspace);
+  const settingsLoaded = useSettingsStore((s) => s.loaded);
   const { toggleSelection, selectedIds } = useExportStore();
   const { setSources, setProvisionalSources, setOpenConflicts } = useSourceStore();
   const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
@@ -149,6 +151,14 @@ export function Dashboard({
     setProvisionalSources(initialProvisionalSources);
     setOpenConflicts(initialOpenConflicts);
   }, [initialSources, initialProvisionalSources, initialOpenConflicts, setSources, setProvisionalSources, setOpenConflicts]);
+
+  // Load workspace settings from Supabase on mount
+  useEffect(() => {
+    if (!settingsLoaded) {
+      // Use the dev workspace org ID — will be dynamic once auth context provides org
+      loadSettings("a0000000-0000-0000-0000-000000000001");
+    }
+  }, [settingsLoaded, loadSettings]);
 
   // Build resource map for lookups
   const resourceMap = useMemo(() => {
