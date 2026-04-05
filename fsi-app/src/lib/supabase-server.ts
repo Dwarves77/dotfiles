@@ -328,6 +328,78 @@ export async function fetchSourceData(): Promise<SourceData> {
   return { sources, provisionalSources, openConflicts };
 }
 
+// ── Workspace Intelligence Fetch ────────────────────────────
+// Uses get_workspace_intelligence() to get items with workspace overrides
+
+async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resource[]; archived: Resource[] }> {
+  const supabase = getSupabase();
+
+  // Fetch via workspace function
+  const { data: items, error } = await supabase.rpc("get_workspace_intelligence", { p_org_id: orgId });
+
+  if (error || !items?.length) {
+    // Fallback to legacy resources if workspace function fails
+    const legacy = await fetchResources();
+    const legacyArchived = await fetchArchived();
+    return { active: legacy, archived: legacyArchived };
+  }
+
+  // Fetch timelines for these items
+  const itemIds = items.map((i: any) => i.legacy_id).filter(Boolean);
+  const { data: timelineRows } = await supabase
+    .from("timelines")
+    .select("*")
+    .in("resource_id", itemIds)
+    .order("sort_order");
+
+  const timelineMap = new Map<string, any[]>();
+  (timelineRows || []).forEach((t: any) => {
+    const arr = timelineMap.get(t.resource_id) || [];
+    arr.push(t);
+    timelineMap.set(t.resource_id, arr);
+  });
+
+  const active: Resource[] = [];
+  const archived: Resource[] = [];
+
+  for (const row of items) {
+    const timelines = row.legacy_id ? timelineMap.get(row.legacy_id) : undefined;
+    const resource: Resource = {
+      id: row.legacy_id || row.id,
+      cat: (row.transport_modes?.[0]) || "global",
+      sub: row.category || "",
+      title: row.title,
+      url: row.source_url || "",
+      note: row.summary || "",
+      type: row.item_type || "regulation",
+      priority: (row.effective_priority || row.priority) as Resource["priority"],
+      added: row.added_date,
+      reasoning: row.reasoning || "",
+      tags: row.tags || [],
+      whatIsIt: row.what_is_it || "",
+      whyMatters: row.why_matters || "",
+      keyData: row.key_data || [],
+      timeline: (timelines || []).map((t: any) => ({
+        date: t.date,
+        label: t.label,
+        status: t.status || undefined,
+      })),
+      modes: row.transport_modes || [],
+      topic: row.category || undefined,
+      jurisdiction: row.jurisdictions?.[0] || undefined,
+      isArchived: row.effective_archived || false,
+    };
+
+    if (resource.isArchived) {
+      archived.push(resource);
+    } else {
+      active.push(resource);
+    }
+  }
+
+  return { active, archived };
+}
+
 // ── Master Fetch ─────────────────────────────────────────────
 
 export interface DashboardData {
@@ -353,10 +425,11 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     };
   }
 
-  const [resources, archived, changelog, disputes, xrefPairs, supersessions] =
+  // Use workspace intelligence function for resources (includes overrides)
+  const orgId = "a0000000-0000-0000-0000-000000000001"; // Default dev workspace
+  const [{ active: resources, archived }, changelog, disputes, xrefPairs, supersessions] =
     await Promise.all([
-      fetchResources(),
-      fetchArchived(),
+      fetchWorkspaceResources(orgId),
       fetchChangelog(),
       fetchDisputes(),
       fetchXrefPairs(),
