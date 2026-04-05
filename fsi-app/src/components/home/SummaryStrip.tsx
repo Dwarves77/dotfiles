@@ -28,18 +28,31 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
     return { critical, changed, disputed, total: resources.length };
   }, [resources, changelog, disputes]);
 
+  // Action Required = Critical priority OR due within 90 days
+  const now = new Date();
+  const q = new Date(now.getTime() + 90 * 864e5);
+  const dueIds = new Set(
+    resources.filter((r) => r.timeline?.some((m) => { const d = new Date(m.date); return d >= now && d <= q; })).map((r) => r.id)
+  );
+  const actionRequired = resources.filter((r) => r.priority === "CRITICAL" || dueIds.has(r.id));
+
   const cards = [
     {
-      label: "Critical",
-      count: stats.critical.length,
+      label: "Action Required",
+      count: actionRequired.length,
       icon: AlertTriangle,
       color: "var(--critical)",
       onClick: () =>
         pushFocusView({
-          title: "Critical Resources",
-          resourceIds: stats.critical.map((r) => r.id),
+          title: "Action Required",
+          resourceIds: actionRequired.map((r) => r.id),
           why: Object.fromEntries(
-            stats.critical.map((r) => [r.id, r.reasoning || "Critical priority"])
+            actionRequired.map((r) => [
+              r.id,
+              r.priority === "CRITICAL"
+                ? r.reasoning || "Critical priority"
+                : `Milestone due within 90 days`,
+            ])
           ),
         }),
     },
@@ -68,40 +81,11 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
           ),
         }),
     },
-    {
-      label: "Due in 90 Days",
-      count: (() => {
-        const now = new Date();
-        const q = new Date(now.getTime() + 90 * 864e5);
-        return resources.filter((r) =>
-          r.timeline?.some((m) => {
-            const d = new Date(m.date);
-            return d >= now && d <= q;
-          })
-        ).length;
-      })(),
-      icon: Database,
-      color: "#0891B2",
-      onClick: () => {
-        const now = new Date();
-        const q = new Date(now.getTime() + 90 * 864e5);
-        const due = resources.filter((r) =>
-          r.timeline?.some((m) => {
-            const d = new Date(m.date);
-            return d >= now && d <= q;
-          })
-        );
-        pushFocusView({
-          title: "Due in 90 Days",
-          resourceIds: due.map((r) => r.id),
-        });
-      },
-    },
   ];
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3">
         {cards.map(({ label, count, icon: Icon, color, onClick }) => (
           <button
             key={label}
