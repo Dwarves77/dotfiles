@@ -69,15 +69,33 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
         }),
     },
     {
-      label: "Resources",
-      count: stats.total,
+      label: "Due in 90 Days",
+      count: (() => {
+        const now = new Date();
+        const q = new Date(now.getTime() + 90 * 864e5);
+        return resources.filter((r) =>
+          r.timeline?.some((m) => {
+            const d = new Date(m.date);
+            return d >= now && d <= q;
+          })
+        ).length;
+      })(),
       icon: Database,
-      color: "var(--color-text-secondary)",
-      onClick: () =>
+      color: "#0891B2",
+      onClick: () => {
+        const now = new Date();
+        const q = new Date(now.getTime() + 90 * 864e5);
+        const due = resources.filter((r) =>
+          r.timeline?.some((m) => {
+            const d = new Date(m.date);
+            return d >= now && d <= q;
+          })
+        );
         pushFocusView({
-          title: "All Resources",
-          resourceIds: resources.map((r) => r.id),
-        }),
+          title: "Due in 90 Days",
+          resourceIds: due.map((r) => r.id),
+        });
+      },
     },
   ];
 
