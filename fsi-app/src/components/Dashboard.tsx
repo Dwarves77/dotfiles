@@ -209,18 +209,24 @@ export function Dashboard({
         {/* Header */}
         <header className="mb-4 flex items-start justify-between">
           <div>
-            <h1
-              className="text-2xl sm:text-3xl uppercase tracking-tight"
-              style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-display)" }}
-            >
-              {APP_NAME}
-            </h1>
-            <p
-              className="text-xs font-medium tracking-wide uppercase mt-0.5"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              {APP_TAGLINE}
-            </p>
+            <div className="text-center">
+              <h1
+                className="text-4xl sm:text-5xl uppercase"
+                style={{
+                  color: "var(--color-text-primary)",
+                  fontFamily: "var(--font-display)",
+                  letterSpacing: "0.15em",
+                }}
+              >
+                {APP_NAME}
+              </h1>
+              <p
+                className="text-[11px] font-semibold tracking-[0.25em] uppercase mt-1"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {APP_TAGLINE}
+              </p>
+            </div>
           </div>
           <UserMenu />
         </header>
