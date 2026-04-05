@@ -212,16 +212,47 @@ export function MapView({
 
     const results: JurisdictionData[] = [];
 
-    // Parent jurisdictions
-    for (const [id, res] of Object.entries(parentMap)) {
-      const coords = JURISDICTION_CENTROIDS[id];
-      if (!coords) continue;
+    // Global and EU resources apply to multiple jurisdictions
+    const globalResources = parentMap["global"] || [];
+    const euResources = parentMap["eu"] || [];
+    const euMemberIds = ["eu-germany", "eu-france", "eu-netherlands", "eu-belgium", "eu-spain", "eu-italy", "eu-sweden", "eu-denmark", "eu-finland", "eu-poland", "eu-greece", "eu-norway"];
+
+    // Create pins for EVERY jurisdiction with a centroid, including inherited regulations
+    for (const [id, coords] of Object.entries(JURISDICTION_CENTROIDS)) {
+      const directResources = parentMap[id] || [];
+      // Inherit global regulations for all jurisdictions (except global itself)
+      const inherited = id === "global" ? [] : globalResources;
+      // EU member states inherit EU regulations
+      const euInherited = euMemberIds.some((m) => m.startsWith(id)) || id === "eu" ? [] :
+        (id === "uk" ? [] : // UK is NOT in EU
+        Object.keys(SUB_JURISDICTION_CENTROIDS).some((k) => k === id) ? euResources : []);
+
+      const allRes = [...directResources, ...inherited];
+      if (allRes.length === 0) continue; // Skip jurisdictions with zero relevant regulations
+
       const jurDef = JURISDICTIONS.find((j) => j.id === id);
       results.push(buildEntry(
-        id, res, coords,
+        id, allRes, coords,
         jurDef?.label || id.toUpperCase(),
         jurDef?.region || "Global",
         false,
+      ));
+    }
+
+    // EU member state sub-jurisdictions — inherit EU + global regulations
+    for (const subId of euMemberIds) {
+      const coords = SUB_JURISDICTION_CENTROIDS[subId];
+      if (!coords) continue;
+      const directResources = subMap[subId] || [];
+      const allRes = [...directResources, ...euResources, ...globalResources];
+      if (allRes.length === 0) continue;
+      const label = SUB_JURISDICTION_LABELS[subId] || subId;
+      results.push(buildEntry(
+        subId, allRes, coords,
+        label,
+        "Europe",
+        true,
+        "eu",
       ));
     }
 
