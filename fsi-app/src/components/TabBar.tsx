@@ -4,19 +4,23 @@ import { cn } from "@/lib/cn";
 import { useNavigationStore } from "@/stores/navigationStore";
 import type { TabId } from "@/types/resource";
 import {
-  Home, Scale, Zap, Globe, TrendingUp, Database,
-  Building, GraduationCap, MapPin, Settings,
+  LayoutDashboard, Scale, TrendingUp, Globe,
+  GraduationCap, MapPin, Settings, User,
+  MessageSquare,
 } from "lucide-react";
 
-const TABS: { id: TabId; label: string; shortLabel?: string; icon: typeof Home }[] = [
-  { id: "home", label: "Home", icon: Home },
-  { id: "regulations", label: "Regulations", shortLabel: "Regs", icon: Scale },
-  { id: "technology", label: "Technology", shortLabel: "Tech", icon: Zap },
-  { id: "regional", label: "Regional", icon: Globe },
-  { id: "geopolitical", label: "Geopolitical", shortLabel: "Geo", icon: TrendingUp },
-  { id: "sources", label: "Sources", icon: Database },
-  { id: "facilities", label: "Facilities", icon: Building },
-  { id: "research", label: "Research", icon: GraduationCap },
+// Primary navigation — action-oriented labels
+const PRIMARY_TABS: { id: TabId; label: string; icon: typeof Scale }[] = [
+  { id: "home", label: "Dashboard", icon: LayoutDashboard },
+  { id: "regulations", label: "Regulations", icon: Scale },
+  { id: "technology", label: "Market Intelligence", icon: TrendingUp },
+  { id: "regional", label: "Operations", icon: Globe },
+  { id: "research", label: "Research & Sources", icon: GraduationCap },
+];
+
+// Utility bar — right-aligned
+const UTILITY_TABS: { id: string; label: string; icon: typeof MapPin; href?: string }[] = [
+  { id: "community", label: "Community", icon: MessageSquare, href: "/community" },
   { id: "map", label: "Map", icon: MapPin },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -26,37 +30,84 @@ export function TabBar() {
 
   return (
     <nav
-      className="sticky top-0 z-30 flex items-center border-b bg-[var(--color-background)]/95 backdrop-blur-sm overflow-x-auto"
+      className="sticky top-0 z-30 flex items-center border-b bg-[var(--color-background)] overflow-x-auto"
       style={{ borderColor: "var(--color-border-subtle)" }}
     >
-      {TABS.map(({ id, label, shortLabel, icon: Icon }) => {
-        const isActive = tab === id;
-        return (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={cn(
-              "relative flex items-center gap-1.5 px-3 py-3 shrink-0",
-              "text-[13px] font-medium",
-              "transition-colors duration-200 cursor-pointer",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
-              isActive
-                ? "text-[var(--color-text-primary)]"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-            )}
-          >
-            <Icon size={14} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="hidden sm:inline">{label}</span>
-            <span className="sm:hidden">{shortLabel || label}</span>
-            {isActive && (
-              <span
-                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              />
-            )}
-          </button>
-        );
-      })}
+      {/* Primary tabs */}
+      <div className="flex items-center">
+        {PRIMARY_TABS.map(({ id, label, icon: Icon }) => {
+          const isActive = tab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setTab(id as TabId)}
+              className={cn(
+                "relative flex items-center gap-1.5 px-3 py-3 shrink-0",
+                "text-[13px] font-medium",
+                "transition-colors duration-200 cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]",
+                isActive
+                  ? "text-[var(--color-text-primary)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              )}
+            >
+              <Icon size={14} strokeWidth={isActive ? 2.5 : 2} />
+              {label}
+              {isActive && (
+                <span
+                  className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                  style={{ backgroundColor: "var(--color-primary)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Utility tabs — right-aligned */}
+      <div className="flex items-center">
+        {UTILITY_TABS.map(({ id, label, icon: Icon, href }) => {
+          if (href) {
+            return (
+              <a
+                key={id}
+                href={href}
+                className="relative flex items-center gap-1 px-2.5 py-3 shrink-0 text-[12px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+              >
+                <Icon size={13} strokeWidth={2} />
+                <span className="hidden sm:inline">{label}</span>
+              </a>
+            );
+          }
+          const isActive = tab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setTab(id as TabId)}
+              className={cn(
+                "relative flex items-center gap-1 px-2.5 py-3 shrink-0",
+                "text-[12px] font-medium",
+                "transition-colors duration-200 cursor-pointer",
+                isActive
+                  ? "text-[var(--color-text-primary)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              )}
+            >
+              <Icon size={13} strokeWidth={isActive ? 2.5 : 2} />
+              <span className="hidden sm:inline">{label}</span>
+              {isActive && (
+                <span
+                  className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full"
+                  style={{ backgroundColor: "var(--color-primary)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </nav>
   );
 }

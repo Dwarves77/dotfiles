@@ -201,7 +201,7 @@ export function Dashboard({
 
   // Is this a domain-browsing tab?
   const isDomainTab = DOMAIN_TABS.has(tab);
-  const isSourcesTab = tab === "sources";
+  // Sources tab merged into Research tab
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
@@ -222,16 +222,7 @@ export function Dashboard({
               {APP_TAGLINE}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="/community"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors"
-              style={{ borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}
-            >
-              Community
-            </a>
-            <UserMenu />
-          </div>
+          <UserMenu />
         </header>
 
         {/* Tab Bar */}
@@ -277,7 +268,7 @@ export function Dashboard({
           <div className="space-y-4 mt-4">
             {!focusView && (
               <div
-                className="sticky top-[49px] z-20 pb-3 space-y-3 backdrop-blur-sm"
+                className="sticky top-[49px] z-20 pb-3 space-y-3"
                 style={{ backgroundColor: "var(--color-background)" }}
               >
                 <SearchBar />
@@ -367,46 +358,40 @@ export function Dashboard({
           </div>
         )}
 
-        {/* ── SOURCES TAB (Domain 5) ── */}
-        {isSourcesTab && !focusView && (
-          <div className="mt-4">
-            <SourceHealthDashboard />
-          </div>
-        )}
-
-        {/* ── TECHNOLOGY TAB (Domain 2) ── */}
+        {/* ── MARKET INTELLIGENCE (Technology + Geopolitical merged) ── */}
         {tab === "technology" && !focusView && (
-          <div className="mt-4">
-            <TechnologyTracker />
-          </div>
+          <MergedSection
+            label="Market Intelligence"
+            subtitle="Technology readiness, cost curves, commodity prices, carbon markets, and trade signals."
+            tabs={[
+              { id: "tech", label: "Technology Readiness", content: <TechnologyTracker /> },
+              { id: "geo", label: "Price Signals & Trade", content: <GeopoliticalSignals /> },
+            ]}
+          />
         )}
 
-        {/* ── REGIONAL TAB (Domain 3) ── */}
+        {/* ── OPERATIONS (Regional + Facilities merged) ── */}
         {tab === "regional" && !focusView && (
-          <div className="mt-4">
-            <RegionalIntelligence />
-          </div>
+          <MergedSection
+            label="Operations Intelligence"
+            subtitle="Operational conditions by jurisdiction — energy tariffs, labor costs, infrastructure, and green building requirements."
+            tabs={[
+              { id: "regional", label: "By Jurisdiction", content: <RegionalIntelligence /> },
+              { id: "facilities", label: "Facility Data", content: <FacilityOptimization /> },
+            ]}
+          />
         )}
 
-        {/* ── GEOPOLITICAL TAB (Domain 4) ── */}
-        {tab === "geopolitical" && !focusView && (
-          <div className="mt-4">
-            <GeopoliticalSignals />
-          </div>
-        )}
-
-        {/* ── FACILITIES TAB (Domain 6) ── */}
-        {tab === "facilities" && !focusView && (
-          <div className="mt-4">
-            <FacilityOptimization />
-          </div>
-        )}
-
-        {/* ── RESEARCH TAB (Domain 7) ── */}
+        {/* ── RESEARCH & SOURCES (merged) ── */}
         {tab === "research" && !focusView && (
-          <div className="mt-4">
-            <ResearchPipeline />
-          </div>
+          <MergedSection
+            label="Research & Sources"
+            subtitle="Academic research pipeline and data provenance registry."
+            tabs={[
+              { id: "research", label: "Research Pipeline", content: <ResearchPipeline /> },
+              { id: "sources", label: "Source Registry", content: <SourceHealthDashboard /> },
+            ]}
+          />
         )}
 
         {/* ── MAP TAB ── */}
@@ -521,6 +506,60 @@ function DomainEmptyState({ domain, hasFilters }: { domain: number | null; hasFi
       <p className="text-xs mt-1 max-w-md" style={{ color: "var(--color-text-secondary)" }}>
         {msg?.description || `${domainDef?.label || "This domain"} will be populated as the source monitoring system ingests intelligence items.`}
       </p>
+    </div>
+  );
+}
+
+// ── Merged Section with internal tabs ──
+
+function MergedSection({
+  label,
+  subtitle,
+  tabs,
+}: {
+  label: string;
+  subtitle: string;
+  tabs: { id: string; label: string; content: React.ReactNode }[];
+}) {
+  const [activeTab, setActiveTab] = useState(tabs[0].id);
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div>
+        <h2 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
+          {label}
+        </h2>
+        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+          {subtitle}
+        </p>
+      </div>
+
+      {/* Internal tabs */}
+      <div className="flex gap-1 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={cn(
+              "relative px-3 py-2 text-sm font-medium cursor-pointer transition-colors",
+              activeTab === t.id
+                ? "text-[var(--color-text-primary)]"
+                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+            )}
+          >
+            {t.label}
+            {activeTab === t.id && (
+              <span
+                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                style={{ backgroundColor: "var(--color-primary)" }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Active content */}
+      {tabs.find((t) => t.id === activeTab)?.content}
     </div>
   );
 }
