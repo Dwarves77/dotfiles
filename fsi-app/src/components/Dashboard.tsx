@@ -117,6 +117,7 @@ export function Dashboard({
   const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
 
   const [regView, setRegView] = useState<"list" | "timeline">("list");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
     message: "",
     visible: false,
@@ -280,8 +281,21 @@ export function Dashboard({
                 className="sticky top-[49px] z-20 pb-3 space-y-3"
                 style={{ backgroundColor: "var(--color-background)" }}
               >
-                <SearchBar />
-                <FilterBar />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1"><SearchBar /></div>
+                  <button
+                    onClick={() => setFiltersOpen(!filtersOpen)}
+                    className="shrink-0 px-3 py-2 text-xs font-medium rounded-md border cursor-pointer transition-colors"
+                    style={{
+                      borderColor: filtersOpen ? "var(--color-active-border)" : "var(--color-border)",
+                      backgroundColor: filtersOpen ? "var(--color-active-bg)" : "transparent",
+                      color: filtersOpen ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                    }}
+                  >
+                    Filters {filtersOpen ? "▲" : "▼"}
+                  </button>
+                </div>
+                {filtersOpen && <FilterBar />}
                 <div
                   className="flex items-center justify-between pb-3 border-b"
                   style={{ borderColor: "var(--color-border-subtle)" }}
