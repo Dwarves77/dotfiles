@@ -148,7 +148,7 @@ Return ONLY the JSON object, no other text.`,
     }
 
     // Stage regulations as proposed updates for admin review
-    const staged = [];
+    const stagedItems = [];
     for (const item of newItems.slice(0, 10)) {
       const { error } = await supabase.from("staged_updates").insert({
         update_type: "new_item",
@@ -172,15 +172,15 @@ Return ONLY the JSON object, no other text.`,
         confidence: "MEDIUM",
       });
 
-      if (!error) staged.push(item.title);
+      if (!error) stagedItems.push(item.title);
     }
 
     return NextResponse.json({
       success: true,
       discovered: regulations.length,
       new_items: newItems.length,
-      staged: staged.length,
-      staged_titles: staged,
+      staged: stagedItems.length,
+      staged_titles: stagedItems,
       new_sources_discovered: sourcesAdded.length,
       new_source_names: sourcesAdded,
     }, { headers: rateLimitHeaders(auth.userId) });
