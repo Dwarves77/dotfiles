@@ -317,7 +317,7 @@ function BaselineDataPoint({ data }: { data: typeof MIT_BASELINES.data[0] }) {
 // ── Main Component ──
 
 export function ResearchPipeline() {
-  const [showBaselines, setShowBaselines] = useState(true);
+  const [showBaselines, setShowBaselines] = useState(false);
 
   return (
     <div className="space-y-6">

@@ -28,7 +28,7 @@ export function WeeklyBriefing({
   onToast,
 }: WeeklyBriefingProps) {
   const { navigateToResource, pushFocusView } = useNavigationStore();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const date = new Date().toISOString().slice(0, 10);
 
   const briefing = useMemo(() => {
