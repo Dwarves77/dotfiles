@@ -56,33 +56,32 @@ interface MapViewProps {
 // ── Custom marker icon builder ──
 
 function createPinIcon(code: string, hasCritical: boolean, hasConflict: boolean, isSub: boolean): L.DivIcon {
-  const size = isSub ? 28 : 32;
+  const size = isSub ? 26 : 32;
   const fontSize = isSub ? 9 : 10;
-  const bg = isSub ? "#bbe2f5" : "var(--map-pin-bg)";
-  const border = isSub ? "rgba(187,226,245,0.5)" : "var(--map-pin-border)";
   return L.divIcon({
     className: "custom-pin",
     html: `
       <div style="
         width:${size}px;height:${size}px;
-        background:${bg};
-        border:2px solid ${border};
+        background:${isSub ? "var(--color-active-bg, #bbe2f5)" : "var(--color-primary, #0891B2)"};
+        border:2px solid ${isSub ? "var(--color-active-border, rgba(187,226,245,0.5))" : "var(--color-primary-hover, #0E7490)"};
         border-radius:6px;
         display:flex;align-items:center;justify-content:center;
         font-size:${fontSize}px;font-weight:700;font-family:monospace;
-        color:#171e19;
+        color:${isSub ? "var(--color-text-primary, #1A1A1A)" : "#FFFFFF"};
         position:relative;
+        box-shadow:0 1px 3px rgba(0,0,0,0.2);
       ">
         ${code}
         ${hasCritical ? `<span style="
           position:absolute;top:-3px;right:-3px;
           width:8px;height:8px;border-radius:50%;
-          background:#ff3b30;
+          background:#DC2626;border:1.5px solid #fff;
         "></span>` : ""}
         ${hasConflict ? `<span style="
           position:absolute;bottom:-3px;right:-3px;
           width:8px;height:8px;border-radius:50%;
-          background:#ff9500;
+          background:#D97706;border:1.5px solid #fff;
         "></span>` : ""}
       </div>
     `,
@@ -488,11 +487,11 @@ export function MapView({
               minZoom={2}
               zoomControl={false}
               className="h-full w-full"
-              style={{ background: "#171e19" }}
+              style={{ background: "var(--color-surface-raised, #F5F2EE)" }}
             >
               <TileLayer
                 attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               />
               <ZoomControl position="bottomleft" />
 
@@ -527,44 +526,99 @@ export function MapView({
             {/* Dark theme override for leaflet UI */}
             <style>{`
               .leaflet-control-zoom a {
-                background: var(--surface-card) !important;
-                color: var(--text-primary) !important;
-                border-color: rgba(255,255,255,0.12) !important;
+                background: var(--color-surface, #fff) !important;
+                color: var(--color-text-primary, #1a1a1a) !important;
+                border-color: var(--color-border, rgba(0,0,0,0.12)) !important;
               }
               .leaflet-control-zoom a:hover {
-                background: var(--surface-card-hover) !important;
+                background: var(--color-surface-raised, #f5f2ee) !important;
               }
               .leaflet-control-attribution {
-                background: rgba(23,30,25,0.8) !important;
-                color: var(--text-muted) !important;
+                background: var(--color-surface, #fff) !important;
+                color: var(--color-text-muted, #7a6e6c) !important;
                 font-size: 10px !important;
+                opacity: 0.7;
               }
               .leaflet-control-attribution a {
-                color: var(--text-muted) !important;
-              }
-              .leaflet-popup-content-wrapper {
-                background: transparent !important;
-                box-shadow: none !important;
-                padding: 0 !important;
-                border-radius: 0 !important;
-              }
-              .leaflet-popup-content {
-                margin: 0 !important;
-              }
-              .leaflet-popup-tip {
-                background: var(--map-popup-bg) !important;
-              }
-              .leaflet-popup-close-button {
-                color: var(--text-muted) !important;
-                font-size: 18px !important;
-                top: 8px !important;
-                right: 8px !important;
+                color: var(--color-text-muted, #7a6e6c) !important;
               }
               .custom-pin, .custom-cluster {
                 background: transparent !important;
                 border: none !important;
               }
+              /* Hide default Leaflet marker images — all pins use DivIcon */
+              .leaflet-marker-icon:not(.custom-pin):not(.custom-cluster):not(.marker-cluster) {
+                background: var(--color-primary) !important;
+                border: 2px solid var(--color-primary-hover) !important;
+                border-radius: 6px !important;
+                width: 24px !important;
+                height: 24px !important;
+              }
+              .leaflet-marker-icon img {
+                display: none !important;
+              }
+              .leaflet-marker-shadow {
+                display: none !important;
+              }
             `}</style>
+
+            {/* ── Map Key ── */}
+            <div
+              className="absolute bottom-12 left-3 z-[1000] rounded-lg p-3 space-y-2"
+              style={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                fontSize: 11,
+                maxWidth: 200,
+              }}
+            >
+              <p className="font-semibold text-[11px]" style={{ color: "var(--color-text-primary)" }}>Map Key</p>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 20, height: 20, borderRadius: 4, fontSize: 8, fontWeight: 700,
+                    fontFamily: "monospace", background: "var(--color-primary)", color: "#fff",
+                    border: "1.5px solid var(--color-primary-hover)",
+                  }}>EU</span>
+                  <span style={{ color: "var(--color-text-secondary)" }}>Jurisdiction with data</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 20, height: 20, borderRadius: 4, fontSize: 8, fontWeight: 700,
+                    fontFamily: "monospace", background: "var(--color-active-bg)", color: "var(--color-text-primary)",
+                    border: "1.5px solid var(--color-active-border)",
+                  }}>CA</span>
+                  <span style={{ color: "var(--color-text-secondary)" }}>Sub-region (state/province)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{
+                    display: "inline-block", width: 8, height: 8, borderRadius: "50%",
+                    background: "#DC2626",
+                  }} />
+                  <span style={{ color: "var(--color-text-secondary)" }}>Has CRITICAL regulations</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{
+                    display: "inline-block", width: 8, height: 8, borderRadius: "50%",
+                    background: "#D97706",
+                  }} />
+                  <span style={{ color: "var(--color-text-secondary)" }}>Active regulatory conflict</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 20, height: 20, borderRadius: "50%", fontSize: 8, fontWeight: 700,
+                    background: "var(--map-cluster-bg, #302b2f)",
+                    border: "1.5px solid var(--map-cluster-border, rgba(213,244,249,0.5))",
+                    color: "var(--map-cluster-text, #d5f4f9)",
+                  }}>3</span>
+                  <span style={{ color: "var(--color-text-secondary)" }}>Clustered jurisdictions</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
