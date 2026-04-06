@@ -40,7 +40,7 @@ export function DueThisQuarter({ resources }: DueThisQuarterProps) {
   if (due.length === 0) return null;
 
   return (
-    <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
+    <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 cursor-pointer group"

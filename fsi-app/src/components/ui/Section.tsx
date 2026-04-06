@@ -16,13 +16,7 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div
-      className="border rounded-lg"
-      style={{
-        borderColor: "var(--color-border)",
-        backgroundColor: "var(--color-surface)",
-      }}
-    >
+    <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 cursor-pointer group"

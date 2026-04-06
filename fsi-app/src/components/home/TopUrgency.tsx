@@ -27,7 +27,7 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
   if (top5.length === 0) return null;
 
   return (
-    <div className="border border-border-subtle rounded-md bg-surface-subtle">
+    <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 cursor-pointer group"

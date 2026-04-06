@@ -326,8 +326,12 @@ export function ResearchPipeline() {
           University & Research Pipeline
         </h2>
         <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-          Academic research relevant to freight and logistics sustainability.
+          We track where our data comes from and flag when academic research is about to change industry standards. This helps you trust the data and stay ahead of emerging regulation.
         </p>
+        <div className="flex gap-4 mt-2 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          <span><strong style={{ color: "var(--color-success)" }}>Partner</strong> — Active research collaboration, early access to findings</span>
+          <span><strong style={{ color: "var(--color-primary)" }}>Monitoring</strong> — Tracking publications and output, no formal relationship</span>
+        </div>
       </div>
 
       {/* MIT Baseline Data */}

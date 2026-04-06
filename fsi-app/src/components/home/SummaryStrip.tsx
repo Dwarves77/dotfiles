@@ -92,14 +92,11 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
             onClick={onClick}
             className={cn(
               "flex flex-col items-center gap-1.5 px-6 py-5",
-              "border rounded-lg",
+              "cl-card",
               "hover:bg-[var(--color-surface-raised)]",
               "transition-all duration-200 cursor-pointer"
             )}
             style={{
-              borderColor: "var(--color-border)",
-              backgroundColor: "var(--color-surface)",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             }}
           >
             <Icon size={16} strokeWidth={2} style={{ color }} />
@@ -112,20 +109,24 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
           </button>
         ))}
       </div>
-      {/* Priority Legend */}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 px-1">
-        <span className="text-[11px] text-text-muted">
-          <span className="font-bold text-[#FF3B30]">CRITICAL</span> — Immediate action required, deadlines within 90 days or active enforcement
-        </span>
-        <span className="text-[11px] text-text-muted">
-          <span className="font-bold text-[#FF9500]">HIGH</span> — Significant impact, action needed within 6 months
-        </span>
-        <span className="text-[11px] text-text-muted">
-          <span className="font-bold text-[#8e8e93]">MODERATE</span> — Monitor and plan, 6-12 month horizon
-        </span>
-        <span className="text-[11px] text-text-muted">
-          <span className="font-bold text-[#aeaeb2]">LOW</span> — Awareness only, no immediate action
-        </span>
+      {/* Priority Legend — 2×2 grid */}
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-1">
+        {[
+          { level: "CRITICAL", color: "#DC2626", desc: "Immediate action — deadlines within 90 days" },
+          { level: "HIGH", color: "#D97706", desc: "Action needed within 6 months" },
+          { level: "MODERATE", color: "#CA8A04", desc: "Monitor and plan — 6-12 month horizon" },
+          { level: "LOW", color: "#9CA3AF", desc: "Awareness only, no immediate action" },
+        ].map(({ level, color, desc }) => (
+          <div key={level} className="flex items-start gap-2">
+            <span
+              className="shrink-0 mt-1 w-2 h-2 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-[11px] text-text-muted leading-tight">
+              <span className="font-bold" style={{ color }}>{level}</span> — {desc}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -657,6 +657,9 @@ function RegionalProfileCard({ profile }: { profile: RegionalProfile }) {
                 <AlertCircle size={10} className="inline mr-1" />
                 Open Questions
               </span>
+              <p className="text-[10px] mt-0.5 mb-1" style={{ color: "var(--color-text-muted)" }}>
+                Unresolved data points our team is actively verifying. Treat with caution until resolved.
+              </p>
               <ul className="mt-1 space-y-1">
                 {profile.open_questions.map((q, i) => (
                   <li key={i} className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -671,6 +674,15 @@ function RegionalProfileCard({ profile }: { profile: RegionalProfile }) {
     </div>
   );
 }
+
+// Why each data category matters to freight operators
+const WHY_MATTERS: Record<string, string> = {
+  "Solar": "On-site solar reduces warehouse energy costs and meets green-building lease requirements.",
+  "Electricity": "Electricity rates directly impact warehouse, cold-chain, and EV fleet charging costs.",
+  "Labor": "Labor costs are the largest variable in warehouse and drayage operations.",
+  "EV Charging": "EV infrastructure determines feasibility of zero-emission last-mile delivery fleets.",
+  "Green Building": "Green certification is increasingly required by landlords and major shipper tenants.",
+};
 
 function DataCell({
   icon: Icon,
@@ -700,6 +712,11 @@ function DataCell({
       <p className="text-xs font-medium" style={{ color: "var(--color-text-primary)" }}>
         {dataPoint.status}
       </p>
+      {WHY_MATTERS[label] && (
+        <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--color-text-muted)" }}>
+          {WHY_MATTERS[label]}
+        </p>
+      )}
       <button
         onClick={() => setShowDetails(!showDetails)}
         className="text-[11px] mt-1 cursor-pointer"

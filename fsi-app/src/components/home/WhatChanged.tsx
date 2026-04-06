@@ -29,7 +29,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   const allIds = [...new Set([...newResources.map((r) => r.id), ...changed.map((r) => r.id)])];
 
   return (
-    <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
+    <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 cursor-pointer group"

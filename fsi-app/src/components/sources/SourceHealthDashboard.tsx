@@ -270,7 +270,7 @@ export function SourceHealthDashboard() {
     { id: "registry" as const, label: "Registry", count: sources.length },
     { id: "health" as const, label: "Health", count: overdueSources.length },
     { id: "provisional" as const, label: "Provisional", count: provisionalSources.filter((ps) => ps.status === "pending_review").length },
-    { id: "conflicts" as const, label: "Conflicts", count: openConflicts.length },
+    { id: "conflicts" as const, label: "Data Conflicts", count: openConflicts.length },
   ];
 
   return (
@@ -282,6 +282,25 @@ export function SourceHealthDashboard() {
         </h2>
         <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
           {sources.length} sources monitored across {[...new Set(sources.flatMap((s) => s.domains))].length} domains
+        </p>
+      </div>
+
+      {/* Tier explainer */}
+      <div className="cl-card p-3">
+        <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-primary)" }}>
+          Source Tiers — How we rank authority
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+          <span><strong>T1</strong> — Official legal text (gazettes, Federal Register)</span>
+          <span><strong>T2</strong> — Regulator guidance (FAQs, portals)</span>
+          <span><strong>T3</strong> — Intergovernmental (IGO datasets, trackers)</span>
+          <span><strong>T4</strong> — Expert analysis (think tanks, NGOs)</span>
+          <span><strong>T5</strong> — Industry standards (ISO, IATA)</span>
+          <span><strong>T6</strong> — Commercial intelligence (law firms, consultancies)</span>
+          <span><strong>T7</strong> — News & commentary (trade press)</span>
+        </div>
+        <p className="text-[11px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>
+          <strong>Score</strong> measures reliability: freshness of last check, historical accuracy, and whether we can verify the source independently.
         </p>
       </div>
 

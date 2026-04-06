@@ -7,6 +7,8 @@ import { NavigationStack } from "@/components/NavigationStack";
 import { FocusView } from "@/components/FocusView";
 import { ExportBuilder } from "@/components/ExportBuilder";
 import { BackToTop } from "@/components/BackToTop";
+import { PageContext } from "@/components/ui/PageContext";
+import { AiPromptBar } from "@/components/ui/AiPromptBar";
 
 // Home
 import { SummaryStrip } from "@/components/home/SummaryStrip";
@@ -244,6 +246,10 @@ export function Dashboard({
         {/* ── HOME TAB ── */}
         {tab === "home" && !focusView && (
           <div className="space-y-6 mt-4">
+            <PageContext
+              context={`Your freight operations are affected by ${resources.length} tracked regulations across ${new Set(resources.map((r) => r.jurisdiction)).size} jurisdictions. Here's what needs your attention.`}
+              aiPlaceholder="Ask anything — 'What regulations affect my EU shipments?' or 'What changed this week?'"
+            />
             {settings.showSummaryStrip && (
               <SummaryStrip
                 resources={resources}
@@ -276,6 +282,12 @@ export function Dashboard({
         {/* ── DOMAIN TABS (Regulations, Technology, Regional, Geopolitical, Facilities, Research) ── */}
         {(isDomainTab || focusView) && (
           <div className="space-y-4 mt-4">
+            {!focusView && tab === "regulations" && (
+              <PageContext
+                context="These regulations affect customs clearance, packaging, fuel costs, and carbon reporting for freight shipments. Sorted by how urgently they require action."
+                aiPlaceholder="Ask — 'What do I need to do before shipping to the EU in 2026?' or 'Which regulations affect air cargo?'"
+              />
+            )}
             {!focusView && (
               <div
                 className="sticky top-[49px] z-20 pb-3 space-y-3"
@@ -409,7 +421,8 @@ export function Dashboard({
         {tab === "technology" && !focusView && (
           <MergedSection
             label="Market Intelligence"
-            subtitle="Technology readiness, cost curves, commodity prices, carbon markets, and trade signals."
+            subtitle="Track how emerging technology, commodity prices, and trade policy shifts will affect your freight costs and carrier options."
+            aiPlaceholder="Ask — 'What's the cost outlook for SAF fuel?' or 'How will carbon pricing affect ocean freight rates?'"
             tabs={[
               { id: "tech", label: "Technology Readiness", content: <TechnologyTracker /> },
               { id: "geo", label: "Price Signals & Trade", content: <GeopoliticalSignals /> },
@@ -421,7 +434,8 @@ export function Dashboard({
         {tab === "regional" && !focusView && (
           <MergedSection
             label="Operations Intelligence"
-            subtitle="Operational conditions by jurisdiction — energy tariffs, labor costs, infrastructure, and green building requirements."
+            subtitle="Before operating in a new region, understand what it will cost and what rules apply. Energy costs, labor rates, and sustainability requirements by location."
+            aiPlaceholder="Ask — 'What are warehouse costs in Dubai?' or 'What EV charging infrastructure exists in the EU?'"
             tabs={[
               { id: "regional", label: "By Jurisdiction", content: <RegionalIntelligence /> },
               { id: "facilities", label: "Facility Data", content: <FacilityOptimization /> },
@@ -433,7 +447,8 @@ export function Dashboard({
         {tab === "research" && !focusView && (
           <MergedSection
             label="Research & Sources"
-            subtitle="Academic research pipeline and data provenance registry."
+            subtitle="We track where our data comes from and flag when academic research is about to change industry standards. This helps you trust the data and stay ahead."
+            aiPlaceholder="Ask — 'What research affects carbon accounting standards?' or 'How reliable is our EU ETS data?'"
             tabs={[
               { id: "research", label: "Research Pipeline", content: <ResearchPipeline /> },
               { id: "sources", label: "Source Registry", content: <SourceHealthDashboard /> },
@@ -565,10 +580,12 @@ function DomainEmptyState({ domain, hasFilters }: { domain: number | null; hasFi
 function MergedSection({
   label,
   subtitle,
+  aiPlaceholder,
   tabs,
 }: {
   label: string;
   subtitle: string;
+  aiPlaceholder?: string;
   tabs: { id: string; label: string; content: React.ReactNode }[];
 }) {
   const [activeTab, setActiveTab] = useState(tabs[0].id);
@@ -583,6 +600,7 @@ function MergedSection({
           {subtitle}
         </p>
       </div>
+      {aiPlaceholder && <AiPromptBar placeholder={aiPlaceholder} />}
 
       {/* Internal tabs */}
       <div className="flex gap-1 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>

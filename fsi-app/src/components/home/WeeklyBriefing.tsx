@@ -54,7 +54,7 @@ export function WeeklyBriefing({
   };
 
   return (
-    <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
+    <div className="cl-card">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
