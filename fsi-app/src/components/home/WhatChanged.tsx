@@ -30,20 +30,11 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
 
   return (
     <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="flex items-center justify-between p-4">
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 cursor-pointer group"
-        >
-          <ChevronDown
-            size={14}
-            strokeWidth={2}
-            className={cn(
-              "text-text-secondary transition-transform duration-300",
-              !open && "-rotate-90"
-            )}
-            style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
-          />
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+      >
+        <div className="flex items-center gap-2">
           <div>
             <h3 className="text-[13px] font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
               What Changed ({allIds.length})
@@ -52,19 +43,28 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               Since last audit — {auditDate || "recent"}
             </p>
           </div>
-        </button>
-        <button
-          onClick={() =>
-            pushFocusView({
-              title: "What Changed",
-              resourceIds: allIds,
-            })
-          }
-          className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-        >
-          View all &rarr;
-        </button>
-      </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              pushFocusView({ title: "What Changed", resourceIds: allIds });
+            }}
+            className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+          >
+            View all &rarr;
+          </span>
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            className={cn(
+              "text-text-secondary transition-transform duration-300",
+              open && "rotate-180"
+            )}
+            style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
+          />
+        </div>
+      </button>
       {open && (
         <div className="px-4 pb-4 space-y-4">
           {/* NEW Resources */}

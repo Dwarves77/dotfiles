@@ -28,39 +28,40 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
 
   return (
     <div className="border border-border-subtle rounded-md bg-surface-subtle">
-      <div className="flex items-center justify-between p-4">
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 cursor-pointer group"
-        >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+      >
+        <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+          Top Urgency
+        </h3>
+        <div className="flex items-center gap-3">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              pushFocusView({
+                title: "Top Urgency",
+                resourceIds: top5.map((r) => r.id),
+                why: Object.fromEntries(
+                  top5.map((r) => [r.id, `Urgency score: ${urgencyScore(r)}`])
+                ),
+              });
+            }}
+            className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+          >
+            View all &rarr;
+          </span>
           <ChevronDown
             size={14}
             strokeWidth={2}
             className={cn(
               "text-text-secondary transition-transform duration-300",
-              !open && "-rotate-90"
+              open && "rotate-180"
             )}
             style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
           />
-          <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
-            Top Urgency
-          </h3>
-        </button>
-        <button
-          onClick={() =>
-            pushFocusView({
-              title: "Top Urgency",
-              resourceIds: top5.map((r) => r.id),
-              why: Object.fromEntries(
-                top5.map((r) => [r.id, `Urgency score: ${urgencyScore(r)}`])
-              ),
-            })
-          }
-          className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-        >
-          View all &rarr;
-        </button>
-      </div>
+        </div>
+      </button>
       {open && (
         <div className="px-4 pb-2 divide-y divide-border-subtle">
           {top5.map((r) => {

@@ -25,20 +25,11 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
 
   return (
     <div className="border rounded-lg border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="flex items-center justify-between p-4">
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 cursor-pointer group"
-        >
-          <ChevronDown
-            size={14}
-            strokeWidth={2}
-            className={cn(
-              "text-text-secondary transition-transform duration-300",
-              !open && "-rotate-90"
-            )}
-            style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
-          />
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+      >
+        <div className="flex items-center gap-2">
           <GitBranch size={14} strokeWidth={2} className="text-text-secondary" />
           <div>
             <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
@@ -48,19 +39,31 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
               Regulations that have been replaced by newer versions
             </p>
           </div>
-        </button>
-        <button
-          onClick={() =>
-            pushFocusView({
-              title: "Superseded Regulations",
-              resourceIds: [...new Set(supersessions.flatMap((s) => [s.old, s.new]))],
-            })
-          }
-          className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-        >
-          View all &rarr;
-        </button>
-      </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              pushFocusView({
+                title: "Superseded Regulations",
+                resourceIds: [...new Set(supersessions.flatMap((s) => [s.old, s.new]))],
+              });
+            }}
+            className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+          >
+            View all &rarr;
+          </span>
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            className={cn(
+              "text-text-secondary transition-transform duration-300",
+              open && "rotate-180"
+            )}
+            style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
+          />
+        </div>
+      </button>
       {open && (
         <div className="px-4 pb-4 space-y-2">
           {supersessions.map((s, i) => {

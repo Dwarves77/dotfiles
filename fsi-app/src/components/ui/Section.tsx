@@ -23,20 +23,11 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
         backgroundColor: "var(--color-surface)",
       }}
     >
-      <div className="flex items-center justify-between p-4">
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 cursor-pointer group"
-        >
-          <ChevronDown
-            size={14}
-            strokeWidth={2}
-            className={cn(
-              "transition-transform duration-200",
-              !open && "-rotate-90"
-            )}
-            style={{ color: "var(--color-text-secondary)" }}
-          />
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+      >
+        <div className="flex items-center gap-2">
           <h3 className="text-xs font-semibold tracking-wide uppercase text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
             {title}
           </h3>
@@ -45,17 +36,28 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
               ({count})
             </span>
           )}
-        </button>
-        {onViewAll && (
-          <button
-            onClick={onViewAll}
-            className="text-xs cursor-pointer transition-colors hover:underline"
-            style={{ color: "var(--color-primary)" }}
-          >
-            View all &rarr;
-          </button>
-        )}
-      </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {onViewAll && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onViewAll(); }}
+              className="text-xs transition-colors hover:underline"
+              style={{ color: "var(--color-primary)" }}
+            >
+              View all &rarr;
+            </span>
+          )}
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            className={cn(
+              "transition-transform duration-200",
+              open && "rotate-180"
+            )}
+            style={{ color: "var(--color-text-secondary)" }}
+          />
+        </div>
+      </button>
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
   );
