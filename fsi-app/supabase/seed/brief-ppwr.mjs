@@ -4,7 +4,7 @@ const supabase = createClient("https://kwrsbpiseruzbfwjpvsp.supabase.co","eyJhbG
 const fullBrief = `# EU Packaging and Packaging Waste Regulation (PPWR 2025/40)
 
 **Regulatory Fact Document** | April 2026
-**Primary source:** [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng) | **Commission guidance:** [C(2026) 2151 Final](https://environment.ec.europa.eu/publications/guidance-document-packaging-and-packaging-waste-regulation-ppwr_en)
+**Primary source:** [[Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng) | **Commission guidance:** [C(2026) 2151 Final](https://environment.ec.europa.eu/publications/guidance-document-packaging-and-packaging-waste-regulation-ppwr_en)
 
 ---
 
@@ -14,7 +14,7 @@ The PPWR governs every piece of packaging placed on the EU market, regardless of
 
 The regulation is directly applicable across all 27 EU Member States from **August 12, 2026**. Unlike a directive, it requires no national transposition and cannot be watered down or delayed by individual Member States. It creates obligations across the entire supply chain: manufacturers, importers, distributors, and fulfillment service providers all carry distinct and, in some cases, overlapping obligations.
 
-**Source:** Articles 2, 3, 10, Regulation (EU) 2025/40
+**Source:** Articles 2, 3, 10, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)
 
 ---
 
@@ -26,13 +26,13 @@ These require decisions or action now. They are not 2030 planning items.
 
 Newly published European Commission guidance may fundamentally change what is required. Specifically, provisions address whether flight cases, road cases, and custom artwork crates fall within the regulation at all, whether custom-designed transport packaging is exempt from reuse targets, and how manufacturer obligations are allocated when packaging is sold under a company's own name. If legal confirms these provisions work in your favor, a significant portion of the compliance burden may not apply. If they do not, the investment and operational transformation described throughout this document is required in full.
 
-**Legal Confirmation Required:** Legal must read C(2026) 2151 final in full and advise on its implications before any compliance positions are established.
+**Action Required — Confirm for Your Business:** Legal must read C(2026) 2151 final in full and advise on its implications before any compliance positions are established.
 
 ### 2. EPR Registration Deadline — August 2027
 
 The EU Packaging Regulation requires companies placing packaging on the EU market to register as producers in each EU Member State by August 2027, after which unregistered producers cannot legally place packaging on the market. The European Commission was required to publish the registration format by February 2026. It has not done so. Without that format, registration preparation cannot begin.
 
-**Source:** Article 44, Regulation (EU) 2025/40
+**Source:** Article 44, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)
 
 ### 3. Case Tracking Infrastructure — 12-24 Month Build
 
@@ -42,7 +42,7 @@ The regulation requires operators of re-use systems to track and report rotation
 
 Whether flight cases, road cases, and custom artwork crates qualify as packaging under the regulation's definition is the threshold question. If they do not qualify, the reuse system builds, the recyclability grading, and the Annex VI reporting obligations do not apply. If they do qualify, every case in EU operations falls within scope.
 
-**Legal Confirmation Required:** Legal must produce a written position based on Article 3 and Section 1 of Commission guidance before operations begin any system build.
+**Action Required — Confirm for Your Business:** Legal must produce a written position based on Article 3 and Section 1 of Commission guidance before operations begin any system build.
 
 ### 5. Vendor and Client Compliance Exposure
 
@@ -52,7 +52,7 @@ Freight operators are exposed to penalties and shipment disruptions caused by ve
 
 From 2028, all packaging must carry harmonized EU recycling labels. From 2029, standardized digital QR reusability labels are required on reusable packaging in closed loop systems. Commission guidance Section 14 states that Article 12 labeling requirements primarily target consumer-facing packaging rather than industrial or commercial packaging.
 
-**Legal Confirmation Required:** Legal must read Section 14 and advise on scope for B2B transport packaging before any labeling investment is made.
+**Action Required — Confirm for Your Business:** Legal must read Section 14 and advise on scope for B2B transport packaging before any labeling investment is made.
 
 ---
 
@@ -61,16 +61,16 @@ From 2028, all packaging must carry harmonized EU recycling labels. From 2029, s
 ### As Commissioning Importers
 When a freight operator commissions crate fabrication on behalf of clients, in most transactions they are the importer placing packaging on the EU market for the first time. Commission guidance Section 2 confirms that for transport packaging without a name or trademark, the decisive criterion is who places the order and decides on the design specifications. Where the operator's name or trademark appears on the packaging, Article 21 makes them the manufacturer regardless of who built the crate.
 
-**Legal Confirmation Required:** Legal must map the manufacturer and producer obligation across main transaction types: commissioning crates from fabricators, selling branded packaging products, and handling client-supplied packaging for EU-bound shipments.
+**Action Required — Confirm for Your Business:** Legal must map the manufacturer and producer obligation across main transaction types: commissioning crates from fabricators, selling branded packaging products, and handling client-supplied packaging for EU-bound shipments.
 
-**Source:** Commission Guidance C(2026) 2151 final, Sections 2 and 3; Articles 15, 18, 21, Regulation (EU) 2025/40
+**Source:** [Commission Guidance C(2026) 2151 final](https://environment.ec.europa.eu/publications/guidance-document-packaging-and-packaging-waste-regulation-ppwr_en), Sections 2 and 3; Articles 15, 18, 21, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)
 
 ### As Logistics Operators Handling Client-Owned Equipment
 When handling client-owned cases rather than procuring new packaging, the client owns the cases and is the producer. The logistics operator bears the Article 20 duty of care obligation — meaning the operator must not work with clients whose packaging is non-compliant.
 
-**Legal Confirmation Required:** Legal must advise on the scope of Article 20 duty of care and what verification of client compliance is required before accepting a shipment.
+**Action Required — Confirm for Your Business:** Legal must advise on the scope of Article 20 duty of care and what verification of client compliance is required before accepting a shipment.
 
-**Source:** Articles 18, 19, 20, Regulation (EU) 2025/40
+**Source:** Articles 18, 19, 20, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)
 
 ---
 
@@ -108,7 +108,7 @@ The guidance confirms exemptions from reuse targets for equipment and commoditie
 | Custom-designed transport packaging | Exempt from reuse targets per Section 21 of Commission guidance. |
 | Operators under 1,000 kg per Member State AND under 10 employees AND under €2M turnover | Reuse targets do not apply. |
 
-**Source:** Article 29(1), 29(2), 29(5), Regulation (EU) 2025/40; Commission Guidance C(2026) 2151 final, Sections 19 and 21
+**Source:** Article 29(1), 29(2), 29(5), [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng); [Commission Guidance C(2026) 2151 final](https://environment.ec.europa.eu/publications/guidance-document-packaging-and-packaging-waste-regulation-ppwr_en), Sections 19 and 21
 
 ---
 
@@ -135,7 +135,7 @@ Bubble wrap, foam sheeting, polybags, tissue paper, and polystyrene are unambigu
 | Tissue paper and glassine | Paper and board. Not subject to plastic recycled content mandate. Lower compliance risk. |
 | Kraft paper and corrugated wraps | Paper and board. Not subject to plastic recycled content mandate. Lower compliance risk. |
 
-**Source:** Articles 6, 7, 67, Annex V, Regulation (EU) 2025/40
+**Source:** Articles 6, 7, 67, Annex V, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)
 
 ### Cardboard and Corrugated
 Explicitly exempt from reuse targets under Article 29. Expected to achieve high recyclability grades. No operational change required for compliant corrugated use.
@@ -155,7 +155,7 @@ Explicitly exempt from reuse targets under Article 29. Expected to achieve high 
 | Recipients of shipments | No. A recipient is not placing packaging on the EU market. |
 | Logistics operator handling client-owned packaging | Article 20 duty of care applies. Does not bear EPR registration for client-owned packaging unless its name appears on it. |
 
-**Source:** Articles 15, 18, 19, 20, 21, 44, Regulation (EU) 2025/40; Commission Guidance C(2026) 2151 final, Sections 2, 3, 4
+**Source:** Articles 15, 18, 19, 20, 21, 44, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng); [Commission Guidance C(2026) 2151 final](https://environment.ec.europa.eu/publications/guidance-document-packaging-and-packaging-waste-regulation-ppwr_en), Sections 2, 3, 4
 
 ---
 
@@ -169,9 +169,9 @@ A qualifying re-use system under Annex VI requires:
 - Reporting rules covering number of re-uses, rejects, returns, new packs added, and retired packs
 - Annual reports from end of 2030, due within six months, electronic and publicly accessible
 
-**Legal Confirmation Required:** Whether existing case return practices constitute a qualifying re-use system under Annex VI, or whether formal governance agreements and reporting infrastructure are required.
+**Action Required — Confirm for Your Business:** Whether existing case return practices constitute a qualifying re-use system under Annex VI, or whether formal governance agreements and reporting infrastructure are required.
 
-**Source:** Annex VI Parts A and B, Regulation (EU) 2025/40
+**Source:** Annex VI Parts A and B, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)
 
 ---
 
@@ -190,7 +190,7 @@ A qualifying re-use system under Annex VI requires:
 | First confirmed mandatory operator labeling obligation | 2028 |
 | Recyclability grade design implementing acts | January 2028 |
 
-**Source:** Articles 11, 12, 29, 30, 31, Regulation (EU) 2025/40
+**Source:** Articles 11, 12, 29, 30, 31, [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng)
 
 ---
 
@@ -238,7 +238,7 @@ A qualifying re-use system under Annex VI requires:
 
 | Source | URL | Authority |
 |---|---|---|
-| Regulation (EU) 2025/40 (primary text) | [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng) | Tier 1 — binding law |
+| [Regulation (EU) 2025/40](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng) (primary text) | [EUR-Lex](https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng) | Tier 1 — binding law |
 | Commission Guidance C(2026) 2151 Final | [DG Environment](https://environment.ec.europa.eu/publications/guidance-document-packaging-and-packaging-waste-regulation-ppwr_en) | Tier 2 — official guidance |
 `;
 

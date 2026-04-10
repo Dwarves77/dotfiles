@@ -43,12 +43,13 @@ const components: Components = {
   ),
   strong: ({ children }) => {
     const text = String(children);
-    // Legal confirmation flags
-    if (text.startsWith("Legal Confirmation Required")) {
+    // Business action flags — highlighted callouts for items requiring team confirmation
+    if (text.startsWith("Action Required") || text.startsWith("Confirm for Your Business") || text.startsWith("Legal Confirmation Required")) {
       return (
-        <span className="inline-flex items-center gap-1 text-[12px] font-bold text-[#FF9500] bg-[#FF9500]/10 border border-[#FF9500]/25 rounded px-2 py-0.5 my-1">
-          {children}
-        </span>
+        <div className="flex items-start gap-2 text-[12px] font-bold text-[#FF9500] bg-[#FF9500]/8 border border-[#FF9500]/25 rounded-md px-3 py-2 my-2">
+          <span className="shrink-0 mt-0.5">&#9888;</span>
+          <span>{children}</span>
+        </div>
       );
     }
     // Source citations
