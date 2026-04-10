@@ -271,7 +271,7 @@ export function Dashboard({
             )}
             {!focusView && (
               <div
-                className="sticky top-[49px] z-20 pb-3 space-y-3"
+                className="sticky top-0 z-20 pb-3 space-y-3"
                 style={{ backgroundColor: "var(--color-background)" }}
               >
                 <div className="flex items-center gap-2">
