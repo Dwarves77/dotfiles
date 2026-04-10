@@ -224,6 +224,46 @@ export const SECTOR_ADJACENCY: Record<string, string[]> = {
 // FilterBar and scoring pull the active subset from workspace_settings.sector_profile.
 export const VERTICALS = ALL_SECTORS;
 
+// ── Authority Levels (from environmental-policy-and-innovation skill) ──
+// Every claim, summary, or data point must be classified using this hierarchy.
+export const AUTHORITY_LEVELS = [
+  { id: "primary_text", label: "Primary Legal Text", short: "Primary", description: "Published in Official Journal, Federal Register, or official gazette. This IS the law.", color: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
+  { id: "official_guidance", label: "Official Guidance", short: "Guidance", description: "Regulator FAQ, implementation portal, or official interpretation. Authoritative but not the law itself.", color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
+  { id: "intergovernmental", label: "Intergovernmental Source", short: "IGO", description: "IGO publication, dataset, or tracker (IMO, ICAO, IEA). Frameworks that drive national regulation.", color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
+  { id: "expert_analysis", label: "Expert Analysis", short: "Analysis", description: "Think-tank, academic, or NGO analysis. Informed interpretation — must verify against primary sources for legal claims.", color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+  { id: "unconfirmed", label: "Unconfirmed / Industry Read", short: "Unconfirmed", description: "Trade press, consultancy opinion, or forwarder operational interpretation. Useful signal but not legally dispositive.", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" },
+] as const;
+
+export type AuthorityLevel = typeof AUTHORITY_LEVELS[number]["id"];
+
+// ── Briefing Output Sections (from skill) ──
+// All briefings must follow this 7-section format.
+export const BRIEFING_SECTIONS = [
+  "executive_summary",
+  "what_changed",
+  "operational_impact",
+  "compliance_risk_register",
+  "recommended_actions",
+  "open_questions",
+  "source_list",
+] as const;
+
+// ── Deep Dive Sections (from skill) ──
+export const DEEP_DIVE_SECTIONS = [
+  "regulation_identification",
+  "source_authority",
+  "immediate_actions",
+  "compliance_chain",
+  "classification_analysis",
+  "format_operation_analysis",
+  "third_party_exposure",
+  "confirmed_timeline",
+  "industry_translation",
+  "alternatives_innovation",
+  "legal_confirmation_required",
+  "sources",
+] as const;
+
 // ── Confidence Levels ──
 export const CONFIDENCE_LEVELS = ["confirmed", "unconfirmed"] as const;
 

@@ -18,7 +18,8 @@
       "Bash(printenv)",
       "Bash(node supabase/seed/add-tech-sources.mjs)",
       "Bash(gh pr create --title 'Phase A: Left sidebar rail + Next.js route foundation' --body ':*)",
-      "Read(//c/Users/jason/**)"
+      "Read(//c/Users/jason/**)",
+      "Bash(node supabase/seed/rewrite-critical-resources.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\jason\\dotfiles\\fsi-app\\src\\app\\regulations"

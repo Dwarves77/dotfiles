@@ -90,6 +90,28 @@ export interface Resource {
     status: "active" | "pending" | "resolved";
   };
 
+  // Authority and provenance (from skill)
+  authorityLevel?: "primary_text" | "official_guidance" | "intergovernmental" | "expert_analysis" | "unconfirmed";
+  sourceUrl?: string;          // Direct URL to primary source document
+  sourceName?: string;         // Name of the publishing body
+  sourceTier?: number;         // Tier 1-5 from skill source hierarchy
+  legalInstrument?: string;    // e.g. "Regulation (EU) 2023/1805", "40 CFR Part 86"
+  enforcementBody?: string;    // e.g. "European Commission DG CLIMA", "US EPA"
+  penaltyRange?: string;       // e.g. "€2,400/tonne shortfall", "Up to 4% EU turnover"
+  complianceDeadline?: string; // Next critical deadline
+  costMechanism?: string;      // How the cost flows to freight (surcharge, penalty, allowance)
+  actionOwner?: string;        // Suggested internal owner: Legal, Sustainability, Ocean Product, etc.
+  lastVerifiedDate?: string;   // ISO date when data was last verified against source
+
+  // Market data snapshot (for regulations with pricing impact)
+  marketData?: {
+    currentPrice?: string;     // e.g. "€68/tCO2" for ETS
+    previousPrice?: string;    // e.g. "€85/tCO2 (2023)"
+    priceSource?: string;      // e.g. "ICAP Allowance Price Explorer"
+    priceDate?: string;        // When the price was captured
+    freightCostImpact?: string; // e.g. "+$15-25/TEU on EU port calls"
+  };
+
   // Taxonomy (Phase 2+)
   category?: string;
   lifecycleStage?: string;

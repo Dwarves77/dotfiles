@@ -53,28 +53,38 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",  // Haiku for scanning — 12x cheaper than Sonnet, fast structured extraction
         max_tokens: 3000,
-        system: `You are a regulatory intelligence researcher for the global freight forwarding industry. Search for current and upcoming regulations, standards, and policy developments that affect freight logistics sustainability.
+        system: `You are the Sustainability & Climate Policy Intelligence Assistant for Caro's Ledge, a global freight forwarding intelligence platform. Your job is to translate regulatory and policy updates into operational impact, compliance risk, and recommended actions.
 
-For each regulation you find, provide:
+NON-NEGOTIABLES:
+- Ground every claim in sources; include the direct URL to the primary legal text or official publication.
+- Distinguish: (a) binding law/regulation, (b) regulator guidance/interpretation, (c) political announcements, (d) analysis/opinion.
+- Always extract: jurisdiction(s), affected transport mode(s), affected business functions, deadlines, penalties, and data requirements.
+- Provide a clear "What to do now" action with suggested owner (Legal, Sustainability, Ocean Product, Air Product, Customs, Sales).
+
+For each regulation you find, provide ALL of these fields:
 - title: Official name of the regulation
-- summary: One detailed paragraph explaining what it is, what it requires, and what changed recently
-- why_matters: One paragraph explaining the operational impact on freight forwarders — how it affects costs, compliance, routing, or client relationships
-- jurisdiction: Where it applies (EU, US, UK, Global, China, India, etc.)
+- what_is_it: Plain language explanation citing the specific legal instrument (directive/regulation number, Official Journal reference), jurisdiction, and enforcement body. 2-3 sentences minimum.
+- why_matters: How this regulation affects freight forwarding operations — pricing, procurement, carrier contracts, customer reporting, customs processes, or route planning. Include specific cost mechanisms (surcharges, penalties, allowance costs) with real figures or ranges. No generic "this is important" language. 3-4 sentences minimum.
+- key_data: Array of hard data points — effective dates, penalty amounts, phase-in percentages, tonnage thresholds, compliance deadlines. Every bullet must be specific and sourced.
+- note: Current enforcement status + any 2025-2026 developments + what the forwarder should do RIGHT NOW + who owns the action internally.
+- authority_level: "primary_text" | "official_guidance" | "intergovernmental" | "expert_analysis" | "unconfirmed"
+- jurisdiction: Where it applies
 - transport_modes: Array of affected modes (air, road, ocean, rail)
-- priority: CRITICAL (action needed now), HIGH (action within 6 months), MODERATE (monitor), or LOW (awareness)
-- status: proposed, adopted, in_force, monitoring
-- source_url: Direct URL to the official text or announcement
-- source_name: Name of the publishing body (e.g., "EUR-Lex", "Federal Register", "IMO")
-- effective_date: When it takes effect (if known)
-- key_deadlines: Array of upcoming deadline dates and what they require
+- priority: CRITICAL | HIGH | MODERATE | LOW
+- status: proposed | adopted | in_force | monitoring
+- source_url: Direct URL to the official text
+- source_name: Name of the publishing body
+- effective_date: When it takes effect
+- penalty_range: Specific penalty amounts or ranges
+- cost_mechanism: How the cost flows to the freight forwarder's invoice
 
-Focus on regulations that are:
-1. New or recently updated (last 6 months)
+Focus on:
+1. New or recently updated regulations (last 6 months)
 2. Directly relevant to freight forwarding operations
 3. Not already in our database
 4. Published by authoritative government or intergovernmental sources
 
-Also identify any NEW sources (government portals, regulatory bodies) that publish these regulations which should be added to our monitoring registry.
+Also identify NEW sources (government portals, regulatory bodies) to add to our monitoring registry.
 
 Return a JSON object with two arrays:
 {
@@ -154,8 +164,10 @@ Return ONLY the JSON object, no other text.`,
         update_type: "new_item",
         proposed_changes: {
           title: item.title,
-          summary: item.summary,
+          summary: item.note || item.summary || "",
+          what_is_it: item.what_is_it || "",
           why_matters: item.why_matters || "",
+          key_data: item.key_data || [],
           domain: 1,
           item_type: "regulation",
           jurisdictions: item.jurisdiction ? [item.jurisdiction.toLowerCase()] : ["global"],
@@ -165,7 +177,9 @@ Return ONLY the JSON object, no other text.`,
           source_url: item.source_url || "",
           source_name: item.source_name || "",
           entry_into_force: item.effective_date || null,
-          key_deadlines: item.key_deadlines || [],
+          penalty_range: item.penalty_range || "",
+          cost_mechanism: item.cost_mechanism || "",
+          authority_level: item.authority_level || "unconfirmed",
         },
         reason: `AI scan: ${topic || "general"} ${jurisdiction || "global"}`,
         source_url: item.source_url || "",
