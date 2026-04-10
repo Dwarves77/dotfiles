@@ -17,12 +17,12 @@ const NAV_ITEMS = [
   { href: "/regulations", label: "Regulations", icon: Scale },
   { href: "/market", label: "Market Intel", icon: TrendingUp },
   { href: "/operations", label: "Operations", icon: Globe },
+  { href: "/map", label: "Map", icon: MapPin },
   { href: "/research", label: "Research", icon: GraduationCap },
-  { href: "/community", label: "Community", icon: MessageSquare },
 ];
 
 const BOTTOM_ITEMS = [
-  { href: "/map", label: "Map", icon: MapPin },
+  { href: "/community", label: "Community", icon: MessageSquare },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
