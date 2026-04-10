@@ -120,13 +120,20 @@ body {
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ── Gradient bar fill — severity spectrum: red(critical) → orange → amber → blue(low) ── */
-.gradient-bar {
-  background: linear-gradient(90deg, #DC2626, #E8610A 35%, #D97706 55%, #2563EB);
+/* ── Risk gradient bars — colors only appear up to the actual severity level ── */
+/* Green(safe) → Yellow → Orange → Red(critical) */
+.gradient-bar-low {
+  background: #16A34A;
 }
-/* Reversed: blue(low) → green → amber → orange → red(critical) — use for progress toward risk */
-.gradient-bar-risk {
-  background: linear-gradient(90deg, #2563EB, #16A34A 30%, #CA8A04 55%, #D97706 75%, #DC2626);
+.gradient-bar-moderate {
+  background: linear-gradient(90deg, #16A34A, #EAB308 60%, #E8610A);
+}
+.gradient-bar-high {
+  background: linear-gradient(90deg, #16A34A, #EAB308 35%, #E8610A 65%, #DC2626);
+}
+/* General purpose gradient (for non-severity bars like jurisdiction coverage) */
+.gradient-bar {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary, #2563EB));
 }
 
 /* ── Selection ── */

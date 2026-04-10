@@ -42,6 +42,7 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
         const value = scores[dim] || 0;
         const label = IMPACT_LABELS[dim];
         const pct = (value / 3) * 100;
+        const gradientClass = value === 0 ? "" : value === 1 ? "gradient-bar-low" : value === 2 ? "gradient-bar-moderate" : "gradient-bar-high";
 
         return (
           <div key={dim} className="space-y-1">
@@ -53,13 +54,13 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
                 {value}/3 — {LEVEL_LABELS[value]}
               </span>
             </div>
-            {/* Chunky gradient bar like APEX */}
+            {/* Chunky bar — color only shows up to the actual severity level */}
             <div
               className="w-full h-3 rounded-full overflow-hidden"
               style={{ backgroundColor: "var(--color-surface-raised)" }}
             >
               <div
-                className="h-full rounded-full gradient-bar-risk transition-all duration-500"
+                className={cn("h-full rounded-full transition-all duration-500", gradientClass)}
                 style={{
                   width: `${pct}%`,
                   transitionTimingFunction: "var(--ease-out-expo)",
