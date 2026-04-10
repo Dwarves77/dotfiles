@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useNavigationStore } from "@/stores/navigationStore";
 import type { Resource, Dispute, ChangeLogEntry } from "@/types/resource";
-import { AlertTriangle, ArrowUp, Shield } from "lucide-react";
+import { AlertTriangle, ArrowUp, Eye, Shield } from "lucide-react";
 
 interface SummaryStripProps {
   resources: Resource[];
@@ -17,8 +17,9 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
   const stats = useMemo(() => {
     const critical = resources.filter((r) => r.priority === "CRITICAL");
     const high = resources.filter((r) => r.priority === "HIGH");
-    const moderate = resources.filter((r) => r.priority === "MODERATE" || r.priority === "LOW");
-    return { critical, high, moderate };
+    const moderate = resources.filter((r) => r.priority === "MODERATE");
+    const low = resources.filter((r) => r.priority === "LOW");
+    return { critical, high, moderate, low };
   }, [resources]);
 
   const cards = [
@@ -44,24 +45,34 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
       label: "Moderate",
       desc: "Monitor — 6-12 month horizon",
       count: stats.moderate.length,
+      icon: Eye,
+      color: "#CA8A04",
+      bg: "rgba(202, 138, 4, 0.08)",
+      ids: stats.moderate,
+    },
+    {
+      label: "Low",
+      desc: "No action needed — awareness only",
+      count: stats.low.length,
       icon: Shield,
       color: "#16A34A",
       bg: "rgba(22, 163, 74, 0.08)",
-      ids: stats.moderate,
+      ids: stats.low,
     },
   ];
 
   return (
     <div className="space-y-4">
       {/* Priority legend */}
-      <div className="flex items-center gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1.5">
         {[
-          { label: "CRITICAL", color: "#DC2626", desc: "Immediate action — deadlines within 90 days" },
-          { label: "HIGH", color: "#D97706", desc: "Action needed within 6 months" },
-          { label: "MODERATE", color: "#16A34A", desc: "Monitor and plan — 6-12 month horizon" },
+          { label: "CRITICAL", color: "#DC2626", desc: "Immediate action — 90 days" },
+          { label: "HIGH", color: "#D97706", desc: "Action needed — 6 months" },
+          { label: "MODERATE", color: "#CA8A04", desc: "Monitor — 6-12 months" },
+          { label: "LOW", color: "#16A34A", desc: "No action needed" },
         ].map(({ label, color, desc }) => (
           <div key={label} className="flex items-center gap-2">
-            <span className="shrink-0 w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+            <span className="shrink-0 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
             <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
               <span className="font-bold" style={{ color }}>{label}</span> — {desc}
             </span>
@@ -70,7 +81,7 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {cards.map(({ label, desc, count, icon: Icon, color, bg, ids }) => (
           <button
             key={label}

@@ -120,16 +120,20 @@ body {
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ── Risk gradient bars — 3 levels: green(moderate) → orange(high) → red(critical) ── */
+/* ── Risk gradient bars — 4 levels matching priority system ── */
+/* Green(low/safe) → Amber(moderate) → Orange(high) → Red(critical) */
 /* Colors only appear up to the actual severity level */
 .gradient-bar-low {
   background: #16A34A;
 }
 .gradient-bar-moderate {
-  background: linear-gradient(90deg, #16A34A, #D97706);
+  background: linear-gradient(90deg, #16A34A, #CA8A04);
 }
 .gradient-bar-high {
-  background: linear-gradient(90deg, #16A34A, #D97706 50%, #DC2626);
+  background: linear-gradient(90deg, #16A34A, #CA8A04 50%, #D97706);
+}
+.gradient-bar-critical {
+  background: linear-gradient(90deg, #16A34A, #CA8A04 33%, #D97706 66%, #DC2626);
 }
 /* General purpose gradient (for non-severity bars like jurisdiction coverage) */
 .gradient-bar {

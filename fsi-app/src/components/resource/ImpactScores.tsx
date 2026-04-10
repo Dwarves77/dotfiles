@@ -42,7 +42,7 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
         const value = scores[dim] || 0;
         const label = IMPACT_LABELS[dim];
         const pct = (value / 3) * 100;
-        const gradientClass = value === 0 ? "" : value === 1 ? "gradient-bar-low" : value === 2 ? "gradient-bar-moderate" : "gradient-bar-high";
+        const gradientClass = value === 0 ? "" : value === 1 ? "gradient-bar-low" : value === 2 ? "gradient-bar-moderate" : "gradient-bar-critical";
 
         return (
           <div key={dim} className="space-y-1">
