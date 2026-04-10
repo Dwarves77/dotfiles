@@ -48,18 +48,17 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
               <span className="text-xs text-text-secondary w-28 shrink-0">
                 {label}
               </span>
-              <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-surface-overlay rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all duration-500"
+                  className="h-full rounded-full gradient-bar transition-all duration-500"
                   style={{
                     width: `${(value / 3) * 100}%`,
-                    backgroundColor: color,
                     transitionTimingFunction: "var(--ease-out-expo)",
                   }}
                 />
               </div>
-              <span className="text-xs font-medium tabular-nums w-6 text-right" style={{ color }}>
-                {value}/3
+              <span className="text-sm font-bold tabular-nums w-6 text-right text-text-primary">
+                {value}
               </span>
               <span className="text-xs text-text-secondary w-16">
                 {LEVEL_LABELS[value]}
