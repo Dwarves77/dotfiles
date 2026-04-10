@@ -41,7 +41,7 @@ export function UserMenu() {
 
           {/* Dropdown */}
           <div
-            className="absolute right-0 top-full mt-1 z-50 w-64 rounded-lg border shadow-lg"
+            className="absolute left-0 bottom-full mb-1 z-50 w-64 rounded-lg border shadow-lg"
             style={{
               borderColor: "var(--color-border)",
               backgroundColor: "var(--color-surface)",
@@ -97,16 +97,16 @@ export function UserMenu() {
                   Admin Panel
                 </a>
               )}
-              <button
-                onClick={() => { useNavigationStore.getState().setTab("settings"); setOpen(false); }}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors cursor-pointer"
+              <a
+                href="/settings"
+                className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
                 style={{ color: "var(--color-text-secondary)" }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 <Settings size={14} />
                 Settings
-              </button>
+              </a>
               <button
                 onClick={signOut}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors cursor-pointer"

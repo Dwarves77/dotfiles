@@ -21,11 +21,6 @@ const NAV_ITEMS = [
   { href: "/research", label: "Research", icon: GraduationCap },
 ];
 
-const BOTTOM_ITEMS = [
-  { href: "/community", label: "Community", icon: MessageSquare },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -61,7 +56,7 @@ export function Sidebar() {
       </div>
 
       {/* Main nav */}
-      <nav className="flex-1 py-2 px-2 space-y-0.5">
+      <nav className="py-2 px-2 space-y-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
@@ -85,31 +80,34 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom nav + user */}
-      <div className="py-2 px-2 space-y-0.5 border-t" style={{ borderColor: "var(--color-border)" }}>
-        {BOTTOM_ITEMS.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors",
-              isActive(href)
-                ? "font-semibold"
-                : "hover:bg-[var(--color-bg-raised)]"
-            )}
-            style={{
-              color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-muted)",
-              backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
-            }}
-          >
-            <Icon size={16} strokeWidth={isActive(href) ? 2.2 : 1.8} />
-            <span className="hidden lg:inline">{label}</span>
-          </Link>
-        ))}
-        <div className="px-1 pt-1">
-          <UserMenu />
-        </div>
+      {/* Spacer — pushes community to middle area */}
+      <div className="flex-1" />
+
+      {/* Community — standalone middle section */}
+      <div className="px-2 py-2 border-t border-b" style={{ borderColor: "var(--color-border)" }}>
+        <Link
+          href="/community"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
+            isActive("/community")
+              ? "font-semibold"
+              : "hover:bg-[var(--color-bg-raised)]"
+          )}
+          style={{
+            color: isActive("/community") ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+            backgroundColor: isActive("/community") ? "var(--color-active-bg)" : undefined,
+            borderLeft: isActive("/community") ? "3px solid var(--color-primary)" : "3px solid transparent",
+          }}
+        >
+          <MessageSquare size={18} strokeWidth={isActive("/community") ? 2.2 : 1.8} />
+          <span className="hidden lg:inline">Community</span>
+        </Link>
+      </div>
+
+      {/* Bottom — user menu only (Settings is inside the dropdown) */}
+      <div className="px-3 py-3">
+        <UserMenu />
       </div>
     </>
   );
