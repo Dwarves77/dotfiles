@@ -94,6 +94,8 @@ interface DashboardProps {
   initialSources?: Source[];
   initialProvisionalSources?: ProvisionalSource[];
   initialOpenConflicts?: SourceConflict[];
+  /** Override the active page — when set, ignores navigationStore.tab */
+  page?: string;
 }
 
 export function Dashboard({
@@ -107,10 +109,13 @@ export function Dashboard({
   initialSources = [],
   initialProvisionalSources = [],
   initialOpenConflicts = [],
+  page,
 }: DashboardProps) {
   const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides } =
     useResourceStore();
-  const { tab, focusView } = useNavigationStore();
+  const { tab: storeTab, focusView } = useNavigationStore();
+  // Use page prop (from URL routing) if provided, otherwise fall back to store tab
+  const tab = page || storeTab;
   const settings = useSettingsStore();
   const loadSettings = useSettingsStore((s) => s.loadFromWorkspace);
   const settingsLoaded = useSettingsStore((s) => s.loaded);
@@ -219,35 +224,7 @@ export function Dashboard({
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-6">
-        {/* Header */}
-        <header className="mb-4 flex items-start justify-between">
-          <div>
-            <div>
-              <h1
-                className="text-3xl sm:text-4xl uppercase font-black"
-                style={{
-                  color: "var(--color-text-primary)",
-                  fontFamily: "var(--font-display)",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                {APP_NAME}
-              </h1>
-              <p
-                className="text-[11px] font-bold tracking-[0.25em] uppercase mt-1"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                {APP_TAGLINE}
-              </p>
-            </div>
-          </div>
-          <UserMenu />
-        </header>
-
-        {/* Tab Bar */}
-        <TabBar />
-
-        {/* Navigation */}
+        {/* Navigation Stack (for focus views / back button) */}
         <NavigationStack />
 
         {/* ── HOME TAB ── */}

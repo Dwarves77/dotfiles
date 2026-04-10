@@ -1,13 +1,13 @@
-import { Dashboard } from "@/components/Dashboard";
 import { getAppData } from "@/lib/data";
+import { RegulationsPage } from "@/components/pages/RegulationsPage";
 
 export const revalidate = 300;
 
-export default async function Home() {
+export default async function Regulations() {
   const data = await getAppData();
 
   return (
-    <Dashboard
+    <RegulationsPage
       initialResources={data.resources}
       initialArchived={data.archived}
       changelog={data.changelog}
@@ -15,10 +15,6 @@ export default async function Home() {
       xrefPairs={data.xrefPairs}
       supersessions={data.supersessions}
       auditDate={data.auditDate}
-      initialSources={data.sources}
-      initialProvisionalSources={data.provisionalSources}
-      initialOpenConflicts={data.openConflicts}
-      page="home"
     />
   );
 }

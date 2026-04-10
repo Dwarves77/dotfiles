@@ -9,6 +9,7 @@ const anton = Anton({
 });
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { AppShell } from "@/components/AppShell";
 import "./theme.css";
 import "./globals.css";
 
@@ -48,7 +49,7 @@ export default function RootLayout({
       <body className="antialiased">
         <AuthProvider>
           <ThemeInitializer />
-          {children}
+          <AppShell>{children}</AppShell>
         </AuthProvider>
       </body>
     </html>
