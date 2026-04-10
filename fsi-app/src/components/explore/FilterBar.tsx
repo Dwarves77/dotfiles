@@ -36,7 +36,8 @@ export function FilterBar() {
       jurCounts[jur] = (jurCounts[jur] || 0) + 1;
       priCounts[r.priority] = (priCounts[r.priority] || 0) + 1;
       const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
-      activeSectors.forEach(({ id, keywords }) => {
+      // Count against ALL sectors, not just active profile
+      ALL_SECTORS.forEach(({ id, keywords }) => {
         if (keywords.some((kw) => text.includes(kw))) {
           vertCounts[id] = (vertCounts[id] || 0) + 1;
         }
@@ -47,7 +48,7 @@ export function FilterBar() {
   }, [resources]);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-0">
       {hasActiveFilters && (
         <button
           onClick={clearFilters}
@@ -79,6 +80,7 @@ export function FilterBar() {
             active={filters.topics.includes(id)}
             count={counts.topicCounts[id]}
             color={TOPIC_COLORS[id]}
+            accentBorder
             onClick={() => toggleFilter("topics", id)}
           />
         ))}
@@ -124,16 +126,17 @@ export function FilterBar() {
             Reset to my sectors
           </button>
         )}
-        {ALL_SECTORS.filter(({ id }) => counts.vertCounts[id] || filters.verticals.includes(id)).map(({ id, label }) => {
+        {ALL_SECTORS.map(({ id, label }) => {
+          const count = counts.vertCounts[id];
           const inProfile = sectorProfile.length === 0 || sectorProfile.includes(id);
           return (
             <Pill
               key={id}
               label={label}
               active={filters.verticals.includes(id)}
-              count={counts.vertCounts[id]}
+              count={count}
               onClick={() => toggleFilter("verticals", id)}
-              className={!inProfile ? "opacity-50" : undefined}
+              className={!inProfile && !filters.verticals.includes(id) ? "opacity-40" : undefined}
             />
           );
         })}
@@ -156,13 +159,13 @@ export function FilterBar() {
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div
-      className="flex items-start gap-0 py-1.5 border-b last:border-0"
+      className="flex items-start gap-0 py-2 border-b last:border-0"
       style={{ borderColor: "var(--color-border-subtle)" }}
     >
       <div className="shrink-0 w-[72px] pt-1 mr-3">
         <span
-          className="text-[9px] font-bold tracking-[0.15em] uppercase block"
-          style={{ color: "var(--color-text-muted)" }}
+          className="text-[10px] font-bold tracking-[0.15em] uppercase block"
+          style={{ color: "var(--color-text-secondary)" }}
         >
           {label}
         </span>
