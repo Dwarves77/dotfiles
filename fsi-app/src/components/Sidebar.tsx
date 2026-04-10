@@ -85,7 +85,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom nav */}
+      {/* Bottom nav + user */}
       <div className="py-2 px-2 space-y-0.5 border-t" style={{ borderColor: "var(--color-border)" }}>
         {BOTTOM_ITEMS.map(({ href, label, icon: Icon }) => (
           <Link
@@ -107,11 +107,9 @@ export function Sidebar() {
             <span className="hidden lg:inline">{label}</span>
           </Link>
         ))}
-      </div>
-
-      {/* User */}
-      <div className="px-3 py-3 border-t" style={{ borderColor: "var(--color-border)" }}>
-        <UserMenu />
+        <div className="px-1 pt-1">
+          <UserMenu />
+        </div>
       </div>
     </>
   );
