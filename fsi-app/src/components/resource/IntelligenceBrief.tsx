@@ -24,25 +24,18 @@ function extractTOC(markdown: string): { id: string; title: string; level: numbe
   return toc;
 }
 
-// Detect row type for color-coding tables
-function getRowStyle(cellText: string): string {
-  const lower = cellText.toLowerCase();
-  // Exempt / not applicable
-  if (lower.includes("exempt") || lower.includes("0%") || lower.includes("not subject") || lower.includes("do not apply") || lower.includes("no.") || lower.includes("lower compliance risk"))
-    return "bg-[#059669]/8";
-  // High risk / required / obligated
-  if (lower.includes("high") || lower.includes("100%") || lower.includes("yes") || lower.includes("non-compliant") || lower.includes("banned"))
-    return "bg-[#FF3B30]/6";
-  // Medium / conditional
-  if (lower.includes("medium") || lower.includes("40%") || lower.includes("conditional") || lower.includes("10%"))
-    return "bg-[#FF9500]/6";
-  return "";
+// Map severity/likelihood text to badge classes
+function riskBadge(text: string): string | null {
+  const lower = text.trim().toLowerCase();
+  if (lower === "high") return "cl-badge cl-badge-critical";
+  if (lower === "medium") return "cl-badge cl-badge-high";
+  if (lower === "low") return "cl-badge cl-badge-moderate";
+  return null;
 }
 
-// Build components with anchor IDs for TOC navigation
 function createComponents(briefId: string): Components {
   return {
-    // H1 — Primary document title
+    // H1 — Document title
     h1: ({ children }) => {
       const text = String(children);
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -56,29 +49,33 @@ function createComponents(briefId: string): Components {
       );
     },
 
-    // H2 — Major sections: shaded header bar (#9)
+    // H2 — Major sections: cream background band, large top margin (#1, #4)
     h2: ({ children }) => {
       const text = String(children);
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       return (
         <h2
           id={`${briefId}-${id}`}
-          className="text-[14px] font-bold text-text-primary mt-6 mb-3 px-3 py-2 rounded-md uppercase tracking-wide"
-          style={{ backgroundColor: "var(--color-surface-raised)", borderLeft: "3px solid var(--color-primary)" }}
+          className="text-[14px] font-bold text-text-primary mt-8 mb-3 px-3 py-2.5 rounded-md -mx-3 uppercase tracking-wide"
+          style={{
+            backgroundColor: "#F0EDE8",
+            borderLeft: "3px solid var(--color-primary)",
+          }}
         >
           {children}
         </h2>
       );
     },
 
-    // H3 — Sub-sections: lighter treatment
+    // H3 — Sub-sections: secondary color, lighter weight (#1)
     h3: ({ children }) => {
       const text = String(children);
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       return (
         <h3
           id={`${briefId}-${id}`}
-          className="text-[13px] font-semibold text-text-primary mt-4 mb-1.5 pl-2 border-l-2 border-border-medium"
+          className="text-[13px] font-semibold mt-5 mb-1.5 pl-2 border-l-2 border-border-medium"
+          style={{ color: "var(--color-text-secondary)" }}
         >
           {children}
         </h3>
@@ -96,61 +93,67 @@ function createComponents(briefId: string): Components {
     ),
 
     ol: ({ children }) => (
-      <ol className="space-y-2 mb-3 ml-1 list-none counter-reset-item">{children}</ol>
+      <ol className="space-y-2 mb-3 ml-1 list-decimal list-inside">{children}</ol>
     ),
 
-    // Numbered list items — styled as mini-cards for action items (#2)
-    li: ({ children }) => {
-      const text = String(children);
-      // Detect if this is an action/numbered item with a heading pattern
-      const isActionItem = /^(Commission|EPR|Case|Packaging|Vendor|Mandatory|Legal|Begin|Audit|Review|Monitor)/.test(text);
-      if (isActionItem) {
-        return (
-          <li className="text-[13px] leading-[20px] text-text-primary/80 pl-3 py-2 mb-1 rounded-md border-l-3 border-[var(--color-primary)]/40 bg-surface-raised/50">
-            {children}
-          </li>
-        );
-      }
-      return (
-        <li className="text-[13px] leading-[20px] text-text-primary/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[8px] before:w-1 before:h-1 before:rounded-full before:bg-text-primary/30">
-          {children}
-        </li>
-      );
-    },
+    li: ({ children }) => (
+      <li className="text-[13px] leading-[20px] text-text-primary/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[8px] before:w-1 before:h-1 before:rounded-full before:bg-text-primary/30">
+        {children}
+      </li>
+    ),
 
     strong: ({ children }) => {
       const text = String(children);
 
-      // Business action flags (#4) — prominent amber callout blocks
+      // Action Required callouts (#3) — warm orange pattern matching cl-ai-bar
       if (text.startsWith("Action Required") || text.startsWith("Confirm for Your Business") || text.startsWith("Legal Confirmation Required")) {
+        const body = text.replace(/^(Action Required|Confirm for Your Business|Legal Confirmation Required)\s*[-—:]\s*/i, "");
         return (
-          <div className="flex items-start gap-2.5 text-[12px] font-bold text-[#B45309] bg-[#FEF3C7] border border-[#F59E0B]/30 rounded-lg px-4 py-3 my-3 shadow-sm">
-            <span className="text-[16px] shrink-0 mt-0.5">&#9888;&#65039;</span>
-            <div>
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-[#92400E] mb-0.5">
-                Action Required
-              </span>
-              <span className="text-[12px] font-medium text-[#78350F] leading-relaxed">
-                {String(children).replace(/^(Action Required|Confirm for Your Business|Legal Confirmation Required)\s*[-—:]\s*/i, "")}
-              </span>
-            </div>
+          <div
+            className="rounded-r-md my-3"
+            style={{
+              background: "#FFF7F0",
+              borderLeft: "3px solid #E8610A",
+              padding: "10px 14px",
+            }}
+          >
+            <strong
+              className="block mb-1"
+              style={{
+                color: "#E8610A",
+                fontSize: "11px",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                fontWeight: 700,
+              }}
+            >
+              Action Required
+            </strong>
+            <span className="text-[13px] leading-relaxed" style={{ color: "#1a1a1a" }}>
+              {body}
+            </span>
           </div>
         );
       }
 
-      // Source citations — compact accent bar
+      // Source citations
       if (text.startsWith("Source:")) {
         return (
-          <span className="block text-[11px] font-medium text-text-accent mt-1 mb-3 pl-3 border-l-2 border-text-accent/30 opacity-75">
+          <span
+            className="block text-[11px] font-medium mt-1 mb-3 pl-3 border-l-2 opacity-75"
+            style={{ color: "var(--color-text-accent)", borderColor: "var(--color-text-accent)" }}
+          >
             {children}
           </span>
         );
       }
 
-      // Flowerpot/IV Bag analogy labels
+      // Analogy labels
       if (text.endsWith("Analogy:") || text.endsWith("Definition:") || text.endsWith("Definition")) {
         return (
-          <strong className="font-bold text-[var(--color-primary)] text-[12px]">{children}</strong>
+          <strong className="font-bold text-[12px]" style={{ color: "var(--color-primary)" }}>
+            {children}
+          </strong>
         );
       }
 
@@ -158,43 +161,91 @@ function createComponents(briefId: string): Components {
     },
 
     em: ({ children }) => (
-      <em className="italic text-text-secondary">{children}</em>
+      <em className="italic" style={{ color: "var(--color-text-secondary)" }}>{children}</em>
     ),
 
     blockquote: ({ children }) => (
-      <blockquote className="border-l-3 border-[var(--color-primary)] bg-[var(--color-primary)]/5 pl-4 pr-3 py-2 my-3 rounded-r-md">
+      <blockquote
+        className="pl-4 pr-3 py-2 my-3 rounded-r-md"
+        style={{
+          borderLeft: "3px solid var(--color-primary)",
+          background: "var(--color-primary-light, rgba(232,97,10,0.05))",
+        }}
+      >
         {children}
       </blockquote>
     ),
 
-    // Tables — color-coded rows (#3)
+    // Tables — cl-card treatment with visible borders, striping, header distinction (#2)
     table: ({ children }) => (
-      <div className="overflow-x-auto my-4 rounded-lg border border-border-subtle shadow-sm">
-        <table className="w-full text-[12px]">{children}</table>
+      <div
+        className="overflow-x-auto my-4 rounded-lg"
+        style={{ border: "1px solid var(--color-border)" }}
+      >
+        <table className="w-full text-[12px] border-collapse">{children}</table>
       </div>
     ),
 
     thead: ({ children }) => (
-      <thead
-        className="border-b border-border-subtle"
-        style={{ backgroundColor: "var(--color-surface-raised)" }}
-      >
+      <thead style={{ background: "#FAFAF8", borderBottom: "1px solid var(--color-border)" }}>
         {children}
       </thead>
     ),
 
     th: ({ children }) => (
-      <th className="text-left px-3 py-2.5 font-bold text-text-primary text-[11px] uppercase tracking-wider">
+      <th
+        className="text-left px-3 py-2.5 font-bold text-[11px] uppercase"
+        style={{
+          color: "var(--color-text-secondary)",
+          letterSpacing: "0.04em",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
         {children}
       </th>
     ),
 
-    // Table cells with automatic row color-coding
+    // Table rows with alternating stripes
+    tr: ({ children }) => (
+      <tr
+        className="even:bg-black/[0.018]"
+        style={{ borderBottom: "1px solid var(--color-border)" }}
+      >
+        {children}
+      </tr>
+    ),
+
+    // Table cells — risk badge mapping for Severity/Likelihood columns
     td: ({ children }) => {
-      const cellText = String(children);
-      const rowStyle = getRowStyle(cellText);
+      const cellText = String(children).trim();
+      const badge = riskBadge(cellText);
+      if (badge) {
+        return (
+          <td className="px-3 py-2.5 align-top" style={{ borderBottom: "1px solid var(--color-border)" }}>
+            <span className={badge} style={{ fontSize: "10px", padding: "2px 8px" }}>
+              {cellText}
+            </span>
+          </td>
+        );
+      }
+
+      // Exempt/compliant rows get subtle green tint
+      const lower = cellText.toLowerCase();
+      let cellBg = "";
+      if (lower.includes("exempt") || lower.includes("0%") || lower.includes("not subject") || lower.includes("do not apply") || lower.includes("lower compliance risk")) {
+        cellBg = "rgba(5,150,105,0.06)";
+      } else if (lower.includes("non-compliant") || lower.includes("banned") || lower.includes("100%")) {
+        cellBg = "rgba(220,38,38,0.05)";
+      }
+
       return (
-        <td className={`px-3 py-2 text-text-primary/80 border-t border-border-subtle text-[12px] leading-relaxed ${rowStyle}`}>
+        <td
+          className="px-3 py-2.5 text-text-primary/80 align-top text-[12px] leading-relaxed"
+          style={{
+            borderBottom: "1px solid var(--color-border)",
+            backgroundColor: cellBg || undefined,
+          }}
+        >
           {children}
         </td>
       );
@@ -205,19 +256,26 @@ function createComponents(briefId: string): Components {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[var(--color-primary)] hover:underline font-medium"
+        className="font-medium hover:underline"
+        style={{ color: "var(--color-primary)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
       </a>
     ),
 
-    hr: () => <hr className="my-5 border-border-subtle" />,
+    hr: () => <hr className="my-6" style={{ borderColor: "var(--color-border)" }} />,
 
     code: ({ children, className }) => {
       if (!className) {
         return (
-          <code className="text-[12px] font-mono bg-surface-raised px-1.5 py-0.5 rounded border border-border-subtle text-text-primary">
+          <code
+            className="text-[12px] font-mono px-1.5 py-0.5 rounded"
+            style={{
+              background: "var(--color-surface-raised, #F5F4F1)",
+              border: "1px solid var(--color-border)",
+            }}
+          >
             {children}
           </code>
         );
@@ -235,29 +293,40 @@ export function IntelligenceBrief({ markdown }: IntelligenceBriefProps) {
 
   return (
     <div className="intelligence-brief">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-[var(--color-primary)]/20">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold tracking-widest uppercase text-[var(--color-primary)]">
+      {/* Hard separator between card metadata and document content (#5) */}
+      <div className="pt-4 mt-2" style={{ borderTop: "1px solid var(--color-border)" }}>
+        <div className="flex items-center gap-2 mb-4">
+          <span
+            className="text-[11px] font-bold tracking-widest uppercase"
+            style={{ color: "var(--color-primary)" }}
+          >
             Intelligence Brief
           </span>
-          <span className="text-[10px] text-text-muted">Full regulatory analysis</span>
+          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+            Full regulatory analysis
+          </span>
         </div>
       </div>
 
       {/* Table of Contents (#1) */}
       {toc.length > 3 && (
-        <div className="mb-5 rounded-lg border border-border-subtle overflow-hidden">
+        <div
+          className="mb-5 rounded-lg overflow-hidden"
+          style={{ border: "1px solid var(--color-border)" }}
+        >
           <button
             onClick={() => setTocOpen(!tocOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold uppercase tracking-wider cursor-pointer transition-colors hover:bg-surface-raised"
-            style={{ backgroundColor: "var(--color-surface-raised)", color: "var(--color-text-secondary)" }}
+            className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+            style={{
+              background: "#FAFAF8",
+              color: "var(--color-text-secondary)",
+            }}
           >
             <span>Contents ({toc.length} sections)</span>
             {tocOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </button>
           {tocOpen && (
-            <nav className="px-3 py-2 space-y-0.5">
+            <nav className="px-3 py-2 space-y-0.5" style={{ background: "#FEFDFB" }}>
               {toc.map((item) => (
                 <a
                   key={item.id}
@@ -267,10 +336,15 @@ export function IntelligenceBrief({ markdown }: IntelligenceBriefProps) {
                     e.stopPropagation();
                     document.getElementById(`${briefId}-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
-                  className="block text-[12px] py-0.5 text-text-secondary hover:text-[var(--color-primary)] transition-colors cursor-pointer"
-                  style={{ paddingLeft: item.level === 2 ? "12px" : "0" }}
+                  className="block text-[12px] py-0.5 transition-colors cursor-pointer hover:text-[var(--color-primary)]"
+                  style={{
+                    color: "var(--color-text-secondary)",
+                    paddingLeft: item.level === 2 ? "12px" : "0",
+                  }}
                 >
-                  {item.level === 2 && <span className="text-text-muted mr-1">—</span>}
+                  {item.level === 2 && (
+                    <span style={{ color: "var(--color-text-muted)" }} className="mr-1">—</span>
+                  )}
                   {item.title}
                 </a>
               ))}
