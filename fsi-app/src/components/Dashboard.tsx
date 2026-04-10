@@ -113,9 +113,17 @@ export function Dashboard({
 }: DashboardProps) {
   const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides } =
     useResourceStore();
-  const { tab: storeTab, focusView } = useNavigationStore();
+  const { tab: storeTab, focusView, clearNav } = useNavigationStore();
   // Use page prop (from URL routing) if provided, otherwise fall back to store tab
   const tab = page || storeTab;
+
+  // Clear focus view and expanded state when navigating between pages via sidebar
+  useEffect(() => {
+    if (page) {
+      clearNav();
+      setExpanded(null);
+    }
+  }, [page, clearNav, setExpanded]);
   const settings = useSettingsStore();
   const loadSettings = useSettingsStore((s) => s.loadFromWorkspace);
   const settingsLoaded = useSettingsStore((s) => s.loaded);
