@@ -1,7 +1,7 @@
 import { getAppData } from "@/lib/data";
 import { RegulationsPage } from "@/components/pages/RegulationsPage";
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function Regulations() {
   const data = await getAppData();

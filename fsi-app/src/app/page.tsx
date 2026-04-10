@@ -1,7 +1,7 @@
 import { Dashboard } from "@/components/Dashboard";
 import { getAppData } from "@/lib/data";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const data = await getAppData();
