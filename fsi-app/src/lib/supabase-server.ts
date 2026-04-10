@@ -311,22 +311,23 @@ export interface SourceData {
 }
 
 export async function fetchSourceData(): Promise<SourceData> {
+  const emptySourceData: SourceData = { sources: [], provisionalSources: [], openConflicts: [] };
+
   if (!isSupabaseConfigured()) {
-    // Return empty source data when no Supabase — sources only live in the database
-    return {
-      sources: [],
-      provisionalSources: [],
-      openConflicts: [],
-    };
+    return emptySourceData;
   }
 
-  const [sources, provisionalSources, openConflicts] = await Promise.all([
-    fetchSources(),
-    fetchProvisionalSources(),
-    fetchOpenConflicts(),
-  ]);
-
-  return { sources, provisionalSources, openConflicts };
+  try {
+    const [sources, provisionalSources, openConflicts] = await withTimeout(
+      Promise.all([fetchSources(), fetchProvisionalSources(), fetchOpenConflicts()]),
+      8000,
+      [[], [], []] as [Source[], ProvisionalSource[], SourceConflict[]]
+    );
+    return { sources, provisionalSources, openConflicts };
+  } catch (e) {
+    console.error("fetchSourceData failed:", e);
+    return emptySourceData;
+  }
 }
 
 // ── Workspace Intelligence Fetch ────────────────────────────

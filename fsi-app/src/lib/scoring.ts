@@ -258,9 +258,9 @@ export function filterResources(
     }
 
     // Cargo vertical / sector filter
-    // When searchScope is "all" AND there's an active search query, skip sector filtering
-    // so users can find items outside their profile during search
-    const skipSectorFilter = filters.searchScope === "all" && !!filters.search;
+    // When there's an active search query, always skip sector filtering
+    // so users can find cross-sector regulations like PPWR regardless of workspace profile
+    const skipSectorFilter = !!filters.search;
     if (filters.verticals.length > 0 && !skipSectorFilter) {
       const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
       const matchesVertical = filters.verticals.some((vId) => {
