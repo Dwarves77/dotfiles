@@ -163,12 +163,13 @@ export function Dashboard({
     [platformArchived, workspaceArchived]
   );
 
-  // Initialize source data on mount
+  // Initialize source data on mount (only when data is provided)
   useEffect(() => {
-    setSources(initialSources);
-    setProvisionalSources(initialProvisionalSources);
-    setOpenConflicts(initialOpenConflicts);
-  }, [initialSources, initialProvisionalSources, initialOpenConflicts, setSources, setProvisionalSources, setOpenConflicts]);
+    if (initialSources.length > 0) setSources(initialSources);
+    if (initialProvisionalSources.length > 0) setProvisionalSources(initialProvisionalSources);
+    if (initialOpenConflicts.length > 0) setOpenConflicts(initialOpenConflicts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load workspace settings from Supabase on mount
   useEffect(() => {

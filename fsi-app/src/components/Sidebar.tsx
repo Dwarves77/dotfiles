@@ -15,9 +15,9 @@ import { UserMenu } from "@/components/auth/UserMenu";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/regulations", label: "Regulations", icon: Scale },
+  { href: "/map", label: "Map", icon: MapPin },
   { href: "/market", label: "Market Intel", icon: TrendingUp },
   { href: "/operations", label: "Operations", icon: Globe },
-  { href: "/map", label: "Map", icon: MapPin },
   { href: "/research", label: "Research", icon: GraduationCap },
 ];
 
@@ -75,7 +75,7 @@ export function Sidebar() {
             }}
           >
             <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
-            <span className="hidden lg:inline">{label}</span>
+            {label}
           </Link>
         ))}
       </nav>
