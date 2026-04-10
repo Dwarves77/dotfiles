@@ -42,17 +42,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
             Since last audit — {auditDate || "recent"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              pushFocusView({ title: "What Changed", resourceIds: allIds });
-            }}
-            className="text-[13px] font-medium transition-colors hover:underline"
-            style={{ color: "var(--color-primary)" }}
-          >
-            View all &rarr;
-          </span>
+        <div className="flex items-center">
           <ChevronDown
             size={14}
             strokeWidth={2}

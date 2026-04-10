@@ -39,19 +39,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              pushFocusView({
-                title: "Superseded Regulations",
-                resourceIds: [...new Set(supersessions.flatMap((s) => [s.old, s.new]))],
-              });
-            }}
-            className="text-xs text-text-secondary hover:text-text-primary transition-colors"
-          >
-            View all &rarr;
-          </span>
+        <div className="flex items-center">
           <ChevronDown
             size={14}
             strokeWidth={2}
