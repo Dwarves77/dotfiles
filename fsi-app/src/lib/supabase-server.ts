@@ -48,6 +48,7 @@ function mapResource(row: any, timelines?: any[]): Resource {
     whatIsIt: row.what_is_it || "",
     whyMatters: row.why_matters || "",
     keyData: row.key_data || [],
+    fullBrief: row.full_brief || undefined,
     timeline: (timelines || []).map((t) => ({
       date: t.date,
       label: t.label,
@@ -379,6 +380,7 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
       whatIsIt: row.what_is_it || "",
       whyMatters: row.why_matters || "",
       keyData: row.key_data || [],
+      fullBrief: row.full_brief || undefined,
       timeline: (timelines || []).map((t: any) => ({
         date: t.date,
         label: t.label,

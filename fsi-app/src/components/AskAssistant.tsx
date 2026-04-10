@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { MessageSquare, Send, X, Loader2, Bot } from "lucide-react";
 
 interface Message {
@@ -15,6 +16,8 @@ export function AskAssistant() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
+  const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
+  const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
 
   // Listen for open-ask-assistant events from AiPromptBar
   useEffect(() => {
@@ -48,7 +51,11 @@ export function AskAssistant() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({
+          question,
+          sectorProfile,
+          jurisdictions: Object.keys(jurisdictionWeights || {}),
+        }),
       });
 
       const data = await resp.json();

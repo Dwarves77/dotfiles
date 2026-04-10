@@ -149,26 +149,45 @@ export function urgencyScore(
     }
   }
 
-  // Sector weight: how relevant is this resource to the active sector profile
-  let sectorW = 1.0; // default: no sector filtering applied
+  // Sector relevance multiplier (from skill standard)
+  // Same item can have Critical urgency for one sector and Low for another
+  // 1.0 = directly affects active sectors
+  // 0.9 = affects primary transport mode of active sectors
+  // 0.6 = indirect cost/compliance pass-through
+  // 0.3 = adjacent sectors with possible spillover
+  // 0.1 = no meaningful connection
+  let sectorW = 1.0;
   if (sectorCtx && sectorCtx.activeSectors.length > 0) {
     const directMatch = matchResourceSector(r, sectorCtx.activeSectors);
     if (directMatch) {
-      // Direct match to active sector — use custom weight or 1.0
+      // Directly and explicitly affects active sectors
       sectorW = sectorCtx.sectorWeights?.[directMatch] ?? 1.0;
     } else {
+      // Check transport mode overlap (affects primary mode = 0.9)
+      const resourceModes = r.modes || [r.cat];
+      const modeOverlap = resourceModes.some((m) =>
+        ["ocean", "air", "road"].includes(m)
+      );
+
       // Check if it matches ANY sector
       const allSectorIds = ALL_SECTORS.map((s) => s.id);
       const anyMatch = matchResourceSector(r, allSectorIds);
+
       if (anyMatch) {
-        // Matches a non-active sector — check adjacency
+        // Check adjacency for spillover
         const isAdjacent = sectorCtx.activeSectors.some(
           (activeId) => SECTOR_ADJACENCY[activeId]?.includes(anyMatch)
         );
-        sectorW = isAdjacent ? 0.5 : 0.2;
+        if (isAdjacent) {
+          sectorW = 0.3; // Adjacent sectors with possible spillover
+        } else {
+          sectorW = 0.1; // No meaningful connection to active sectors
+        }
+      } else if (modeOverlap) {
+        // General regulation affecting the transport mode — indirect pass-through
+        sectorW = 0.6;
       } else {
-        // No sector match at all — general freight regulation
-        sectorW = 0.8;
+        sectorW = 0.1; // No meaningful connection
       }
     }
   }

@@ -56,22 +56,66 @@ export interface Cluster {
   why: string;
 }
 
+// ── Skill-Standard Intelligence Sections ──
+// These match the 7-section format from the environmental-policy-and-innovation skill
+
+export interface OperationalImpact {
+  mode: string;                 // "ocean", "air", "road", "customs", "reporting", "procurement"
+  function: string;             // "contracts", "pricing", "compliance", "data", "operations"
+  impact: string;               // What this means operationally
+  severity: "low" | "medium" | "high";
+}
+
+export interface RiskRegisterEntry {
+  risk: string;                 // Description of the risk
+  severity: "low" | "medium" | "high";
+  likelihood: "low" | "medium" | "high";
+  deadline?: string;            // ISO date or description
+}
+
+export interface RecommendedAction {
+  action: string;               // What to do
+  owner: string;                // Who should own it (e.g. "Ocean Product + Finance")
+  timeframe: string;            // e.g. "30 days", "Q2 2026", "Immediate"
+  priority: number;             // 1 = highest priority
+}
+
+export interface SourceReference {
+  name: string;                 // e.g. "EUR-Lex", "Federal Register"
+  url: string;                  // Direct URL
+  tier?: number;                // 1-5 source tier
+  type?: "primary_text" | "official_guidance" | "intergovernmental" | "expert_analysis" | "industry";
+}
+
 export interface Resource {
   id: string;
   cat: string;           // primary mode: ocean, air, road
   sub: string;           // subcategory label
   title: string;
   url: string;
-  note: string;
+  note: string;          // Status + action summary (card preview)
   type: string;          // framework, regulation, law, standard, innovation, etc.
   priority: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
   added: string;         // ISO date
   reasoning: string;     // why this priority
   tags: string[];
-  whatIsIt: string;
-  whyMatters: string;
-  keyData: string[];
+  whatIsIt: string;       // Executive summary — what the regulation/item IS
+  whyMatters: string;     // Why it matters to freight forwarders specifically
+  keyData: string[];      // Key data points and figures
   timeline?: TimelineEntry[];
+
+  // Skill-standard structured intelligence (7-section format)
+  operationalImpact?: OperationalImpact[];   // Impact by mode + business function
+  riskRegister?: RiskRegisterEntry[];        // Compliance risk register
+  recommendedActions?: RecommendedAction[];  // Prioritized actions with owners
+  openQuestions?: string[];                  // Unresolved questions / info gaps
+  sourceUrls?: SourceReference[];            // Primary source documents
+
+  // Full intelligence brief — the deep regulatory playbook (markdown)
+  // This is the primary content field. whatIsIt/whyMatters/keyData are card previews.
+  // The brief follows the skill standard: article references, legal confirmation flags,
+  // operational impact by business function, tables, source citations per claim.
+  fullBrief?: string;
 
   // Applied from REMAP
   modes?: string[];

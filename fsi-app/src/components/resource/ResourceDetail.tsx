@@ -17,8 +17,9 @@ import { PRIORITY_COLORS, TOPIC_COLORS, ARCHIVE_REASONS } from "@/lib/constants"
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import {
   ExternalLink, Shield, AlertTriangle, GitBranch, Link2,
-  Archive, ChevronUp, Share2,
+  Archive, ChevronUp, Share2, ChevronDown,
 } from "lucide-react";
+import { IntelligenceBrief } from "./IntelligenceBrief";
 
 interface ResourceDetailProps {
   resource: Resource;
@@ -165,40 +166,45 @@ export function ResourceDetail({
         </div>
       )}
 
-      {/* What This Is */}
-      {r.whatIsIt && (
-        <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
-            What This Is
-          </span>
-          <p className="text-xs text-text-primary/80 leading-relaxed">{r.whatIsIt}</p>
-        </div>
-      )}
+      {/* Full Intelligence Brief (skill-standard) */}
+      {r.fullBrief ? (
+        <IntelligenceBrief markdown={r.fullBrief} />
+      ) : (
+        <>
+          {/* Legacy summary fields — shown when no full brief exists */}
+          {r.whatIsIt && (
+            <div>
+              <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
+                What This Is
+              </span>
+              <p className="text-xs text-text-primary/80 leading-relaxed">{r.whatIsIt}</p>
+            </div>
+          )}
 
-      {/* Why It Matters */}
-      {r.whyMatters && (
-        <div className="border-l-2 border-[#059669] pl-3 py-1">
-          <span className="text-xs font-semibold tracking-wider uppercase text-[#059669] block mb-1">
-            Why It Matters
-          </span>
-          <p className="text-xs text-text-primary leading-relaxed">{r.whyMatters}</p>
-        </div>
-      )}
+          {r.whyMatters && (
+            <div className="border-l-2 border-[#059669] pl-3 py-1">
+              <span className="text-xs font-semibold tracking-wider uppercase text-[#059669] block mb-1">
+                Why It Matters
+              </span>
+              <p className="text-xs text-text-primary leading-relaxed">{r.whyMatters}</p>
+            </div>
+          )}
 
-      {/* Key Data */}
-      {r.keyData?.length > 0 && (
-        <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
-            Key Data
-          </span>
-          <ul className="space-y-0.5">
-            {r.keyData.map((d, i) => (
-              <li key={i} className="text-xs text-text-primary/70 leading-relaxed pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[7px] before:w-1 before:h-1 before:rounded-full before:bg-text-primary/30">
-                {d}
-              </li>
-            ))}
-          </ul>
-        </div>
+          {r.keyData?.length > 0 && (
+            <div>
+              <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
+                Key Data
+              </span>
+              <ul className="space-y-0.5">
+                {r.keyData.map((d, i) => (
+                  <li key={i} className="text-xs text-text-primary/70 leading-relaxed pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[7px] before:w-1 before:h-1 before:rounded-full before:bg-text-primary/30">
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
 
       {/* Impact Scores */}
