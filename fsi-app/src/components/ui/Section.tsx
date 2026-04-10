@@ -22,13 +22,11 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
         className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold tracking-wide uppercase text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
+          <h3 className="cl-section-label group-hover:text-[var(--color-primary)] transition-colors">
             {title}
           </h3>
           {count !== undefined && (
-            <span className="text-sm font-semibold tabular-nums text-[var(--color-text-muted)]">
-              ({count})
-            </span>
+            <span className="cl-card-meta tabular-nums">({count})</span>
           )}
         </div>
         <div className="flex items-center gap-3">

@@ -141,23 +141,16 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
 
   if (embedded) return content;
 
+  const priorityClass = `cl-priority-${r.priority.toLowerCase()}`;
+
   return (
     <div
       id={`resource-${r.id}`}
       className={cn(
-        "border rounded-lg card-expand",
-        "hover:border-border-light",
-        isExpanded
-          ? "border-border-light bg-surface-card"
-          : "border-border-subtle bg-surface-card hover:bg-surface-card-hover hover:-translate-y-px"
+        "cl-row-card card-expand",
+        priorityClass,
+        isExpanded && "ring-1 ring-[var(--color-border-medium)]"
       )}
-      style={{
-        borderLeftWidth: 4,
-        borderLeftColor: topicColor || "var(--border-subtle)",
-        transitionTimingFunction: "var(--ease-out-expo)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.18)",
-        transition: "all 150ms ease",
-      }}
     >
       {content}
     </div>

@@ -1,103 +1,144 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-card: var(--card);
-  --color-card-hover: var(--card-hover);
-  --color-accent: var(--accent);
-
-  /* Semantic color tokens for Tailwind */
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-muted: var(--text-muted);
-  --color-text-accent: var(--text-accent);
-  --color-surface-base: var(--surface-base);
-  --color-surface-raised: var(--surface-raised);
-  --color-surface-raised-hover: var(--surface-raised-hover);
-  --color-surface-subtle: var(--surface-subtle);
-  --color-surface-subtle-hover: var(--surface-subtle-hover);
-  --color-surface-overlay: var(--surface-overlay);
-  --color-surface-input: var(--surface-input);
-  --color-surface-card: var(--surface-card);
-  --color-surface-card-hover: var(--surface-card-hover);
-  --color-border-subtle: var(--border-subtle);
-  --color-border-light: var(--border-light);
-  --color-border-medium: var(--border-medium);
-  --color-border-strong: var(--border-strong);
-  --color-active-bg: var(--active-bg);
-  --color-active-border: var(--active-border);
-  --color-active-solid: var(--color-active-solid);
-  --color-invert-bg: var(--invert-bg);
-  --color-invert-text: var(--invert-text);
+  --color-background: var(--color-bg-base);
+  --color-foreground: var(--color-text-primary);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-raised: var(--color-bg-raised);
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-active-bg: var(--color-active-bg);
+  --color-active-border: var(--color-active-border);
+  --color-primary: var(--color-primary);
 
   --font-sans: var(--font-jakarta), system-ui, sans-serif;
   --font-display: var(--font-anton), system-ui, sans-serif;
 }
 
-/* ── Base styles ── */
+/* ═══════════════════════════════════════════════════
+   UNIFIED CARD SYSTEM
+   All three types share --radius-md, same border, same bg.
+   Only padding and accent treatment differ.
+   ═══════════════════════════════════════════════════ */
+
+/* BASE CARD — sections, accordions, containers */
+.cl-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base);
+}
+.cl-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* STAT CARD — dashboard hero numbers only */
+.cl-stat-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  cursor: pointer;
+}
+.cl-stat-card:hover {
+  box-shadow: var(--shadow-stat-hover);
+  transform: translateY(-2px);
+}
+
+/* ROW CARD — list items: regulations, operations, research */
+.cl-row-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base);
+}
+.cl-row-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Priority left accent — applied as additional class on row cards */
+.cl-priority-critical { border-left: 3px solid var(--color-critical); }
+.cl-priority-high     { border-left: 3px solid var(--color-high); }
+.cl-priority-moderate { border-left: 3px solid var(--color-moderate); }
+.cl-priority-low      { border-left: 3px solid var(--color-low); }
+
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY SCALE
+   ═══════════════════════════════════════════════════ */
+
+.cl-page-title    { font-size: 20px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.01em; }
+.cl-section-label { font-size: 10px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.cl-card-title    { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
+.cl-card-body     { font-size: 13px; font-weight: 400; color: var(--color-text-secondary); line-height: 1.55; }
+.cl-card-meta     { font-size: 11px; font-weight: 500; color: var(--color-text-muted); }
+.cl-stat-number   { font-size: 34px; font-weight: 900; color: var(--color-text-primary); line-height: 1; }
+
+/* ═══════════════════════════════════════════════════
+   PRIORITY BADGES — one pattern, used everywhere
+   ═══════════════════════════════════════════════════ */
+
+.cl-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+}
+.cl-badge-critical { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.cl-badge-high     { background: var(--color-high-bg);     color: var(--color-high);     border-color: var(--color-high-border); }
+.cl-badge-moderate { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
+.cl-badge-low      { background: var(--color-low-bg);      color: var(--color-low);      border-color: var(--color-low-border); }
+
+/* ═══════════════════════════════════════════════════
+   AI PROMPT BAR
+   ═══════════════════════════════════════════════════ */
+
+.cl-ai-bar {
+  background: var(--color-bg-ai-strip);
+  border: 1px solid var(--color-border-ai);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════ */
+
 body {
-  background: var(--color-background);
+  background: var(--color-bg-base);
   color: var(--color-text-primary);
   font-family: var(--font-jakarta), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
-/* ── Card depth — universal card/section elevation ── */
-.cl-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-  transition: box-shadow 200ms ease, transform 200ms ease;
-}
-.cl-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
-}
-
-/* ── Stat card — hero numbers ── */
-.cl-stat-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
-  padding: 28px 24px;
-  text-align: center;
-  transition: box-shadow 200ms ease, transform 200ms ease;
-}
-.cl-stat-card:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
-  transform: translateY(-2px);
-}
-
-/* ── Card expansion ── */
+/* Card expansion transition */
 .card-expand {
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
 
-/* ── Content stagger ── */
-.stagger-enter > * {
-  animation: stagger-fade-in 250ms var(--ease-out-expo) both;
-}
+/* Content stagger */
+.stagger-enter > * { animation: stagger-fade-in 250ms ease both; }
 .stagger-enter > *:nth-child(1) { animation-delay: 0ms; }
 .stagger-enter > *:nth-child(2) { animation-delay: 50ms; }
 .stagger-enter > *:nth-child(3) { animation-delay: 100ms; }
@@ -106,57 +147,39 @@ body {
 .stagger-enter > *:nth-child(6) { animation-delay: 250ms; }
 
 @keyframes stagger-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Hide scrollbar on nav tabs ── */
+/* Hide scrollbar on nav tabs */
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ── Risk gradient bars — 4 levels matching priority system ── */
-/* Green(low/safe) → Amber(moderate) → Orange(high) → Red(critical) */
-/* Colors only appear up to the actual severity level */
-.gradient-bar-low {
-  background: #16A34A;
-}
-.gradient-bar-moderate {
-  background: linear-gradient(90deg, #16A34A, #CA8A04);
-}
-.gradient-bar-high {
-  background: linear-gradient(90deg, #16A34A, #CA8A04 50%, #D97706);
-}
-.gradient-bar-critical {
-  background: linear-gradient(90deg, #16A34A, #CA8A04 33%, #D97706 66%, #DC2626);
-}
-/* General purpose gradient (for non-severity bars like jurisdiction coverage) */
-.gradient-bar {
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary, #2563EB));
-}
+/* ═══════════════════════════════════════════════════
+   GRADIENT BARS — severity spectrum
+   ═══════════════════════════════════════════════════ */
 
-/* ── Selection ── */
+.gradient-bar-low      { background: var(--color-low); }
+.gradient-bar-moderate { background: linear-gradient(90deg, var(--color-low), var(--color-moderate)); }
+.gradient-bar-high     { background: linear-gradient(90deg, var(--color-low), var(--color-moderate) 50%, var(--color-high)); }
+.gradient-bar-critical { background: linear-gradient(90deg, var(--color-low), var(--color-moderate) 33%, var(--color-high) 66%, var(--color-critical)); }
+.gradient-bar          { background: linear-gradient(90deg, var(--color-primary), var(--color-secondary)); }
+
+/* Selection */
 ::selection {
   background: rgba(232, 97, 10, 0.15);
   color: var(--color-text-primary);
 }
 
-/* ── Focus ring (WCAG AA) ── */
+/* Focus ring (WCAG AA) */
 :focus-visible {
-  outline: 2px solid var(--color-focus-ring);
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 
-/* ── Reduced motion ── */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

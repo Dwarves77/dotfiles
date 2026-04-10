@@ -276,10 +276,7 @@ export function Dashboard({
             {settings.showWhatChanged && (
               <WhatChanged resources={resources} changelog={changelog} auditDate={auditDate} />
             )}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {settings.showTopUrgency && <TopUrgency resources={resources} />}
-              {settings.showDueThisQuarter && <DueThisQuarter resources={resources} />}
-            </div>
+            {settings.showDueThisQuarter && <DueThisQuarter resources={resources} />}
             {settings.showSupersessions && supersessions.length > 0 && (
               <Supersessions supersessions={supersessions} resourceMap={resourceMap} />
             )}

@@ -75,7 +75,53 @@
   --impact-client: #0D9488;
   --impact-operational: #2563EB;
 
-  /* Card surface */
+  /* Backgrounds (new unified tokens) */
+  --color-bg-base: #FAFAF8;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-raised: #F5F2EE;
+  --color-bg-sunken: rgba(0,0,0,0.03);
+  --color-bg-ai-strip: #FFF7F0;
+
+  /* Border variants */
+  --color-border-medium: rgba(0, 0, 0, 0.16);
+  --color-border-focus: #E8610A;
+  --color-border-ai: #FBD5B5;
+
+  /* Priority system (with bg/border variants for badges) */
+  --color-critical: #DC2626;
+  --color-critical-bg: #FEF2F2;
+  --color-critical-border: #FECACA;
+  --color-high: #D97706;
+  --color-high-bg: #FFFBEB;
+  --color-high-border: #FDE68A;
+  --color-moderate: #CA8A04;
+  --color-moderate-bg: #FEFCE8;
+  --color-moderate-border: #FEF08A;
+  --color-low: #16A34A;
+  --color-low-bg: #F0FDF4;
+  --color-low-border: #BBF7D0;
+
+  /* Text link */
+  --color-text-link: #2563EB;
+  --color-text-inverse: #FFFFFF;
+  --color-text-accent: #E8610A;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  --shadow-stat-hover: 0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Transitions */
+  --transition-fast: 0.12s ease;
+  --transition-base: 0.18s ease;
+
+  /* Card surface (legacy compat) */
   --surface-card: #FFFFFF;
   --surface-card-hover: #F9F7F4;
 
@@ -83,7 +129,7 @@
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.20);
 
-  /* Transitions */
+  /* Transitions (legacy) */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Legacy compat tokens (mapped to new system) */
@@ -181,8 +227,52 @@
   --impact-client: #14B8A6;
   --impact-operational: #3B82F6;
 
-  --surface-card: #1f2820;
-  --surface-card-hover: #272e28;
+  /* Backgrounds (dark) */
+  --color-bg-base: #111210;
+  --color-bg-surface: #1C1B19;
+  --color-bg-raised: #252422;
+  --color-bg-sunken: rgba(255,255,255,0.04);
+  --color-bg-ai-strip: rgba(232,97,10,0.10);
+
+  /* Border variants (dark) */
+  --color-border-medium: rgba(255, 255, 255, 0.16);
+  --color-border-focus: #F97316;
+  --color-border-ai: rgba(232,97,10,0.35);
+
+  /* Priority (dark mode badge backgrounds) */
+  --color-critical: #DC2626;
+  --color-critical-bg: rgba(220,38,38,0.15);
+  --color-critical-border: rgba(220,38,38,0.30);
+  --color-high: #D97706;
+  --color-high-bg: rgba(217,119,6,0.15);
+  --color-high-border: rgba(217,119,6,0.30);
+  --color-moderate: #CA8A04;
+  --color-moderate-bg: rgba(202,138,4,0.15);
+  --color-moderate-border: rgba(202,138,4,0.30);
+  --color-low: #16A34A;
+  --color-low-bg: rgba(22,163,74,0.15);
+  --color-low-border: rgba(22,163,74,0.30);
+
+  --color-text-link: #60A5FA;
+  --color-text-inverse: #111210;
+  --color-text-accent: #F07030;
+
+  /* Shadows (dark) */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.20);
+  --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.40), 0 2px 6px rgba(0,0,0,0.25);
+  --shadow-stat-hover: 0 6px 24px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.30);
+
+  /* Radius (same in dark) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --transition-fast: 0.12s ease;
+  --transition-base: 0.18s ease;
+
+  --surface-card: #1C1B19;
+  --surface-card-hover: #252422;
 
   --scrollbar-thumb: rgba(183, 198, 194, 0.2);
   --scrollbar-thumb-hover: rgba(183, 198, 194, 0.35);

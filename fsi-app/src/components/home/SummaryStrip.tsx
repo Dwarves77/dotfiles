@@ -103,8 +103,7 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
               <Icon size={20} strokeWidth={2} style={{ color }} />
             </div>
             <div
-              className="text-4xl font-black tabular-nums mb-1"
-              style={{ color: "var(--color-text-primary)" }}
+              className="cl-stat-number tabular-nums mb-1"
             >
               {count}
             </div>

@@ -6,12 +6,11 @@ import { downloadFile } from "@/lib/export/download";
 import { toBriefingEmail } from "@/lib/export/htmlReport";
 import { toBriefingSlack } from "@/lib/export/slackFormat";
 import { urgencyScore, matchResourceSector, buildSectorContext } from "@/lib/scoring";
-import { Badge } from "@/components/ui/Badge";
 import { useNavigationStore } from "@/stores/navigationStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
-import { PRIORITY_COLORS, ALL_SECTORS } from "@/lib/constants";
+import { ALL_SECTORS } from "@/lib/constants";
 import type { Resource, ChangeLogEntry, Dispute } from "@/types/resource";
-import { ChevronDown, FileText, Hash, ArrowRight } from "lucide-react";
+import { ChevronDown, FileText, Hash } from "lucide-react";
 
 interface WeeklyBriefingProps {
   resources: Resource[];
@@ -28,7 +27,7 @@ export function WeeklyBriefing({
   auditDate,
   onToast,
 }: WeeklyBriefingProps) {
-  const { navigateToResource, pushFocusView } = useNavigationStore();
+  const { pushFocusView } = useNavigationStore();
   const { sectorProfile, sectorWeights } = useWorkspaceStore();
   const [expanded, setExpanded] = useState(false);
   const date = new Date().toISOString().slice(0, 10);
@@ -108,54 +107,6 @@ export function WeeklyBriefing({
               {briefing.disputedEntries.length > 0 &&
                 ` ${briefing.disputedEntries.length} disputed items requiring attention.`}
             </p>
-          </div>
-
-          {/* Talking Points — Top 5 */}
-          <div>
-            <span className="text-xs font-semibold tracking-wider uppercase text-[var(--critical)] block mb-2">
-              Top Urgency
-            </span>
-            {briefing.top5.map((r) => (
-              <div key={r.id} className="flex items-start gap-2 mb-2">
-                <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-medium text-text-primary">{r.title}</p>
-                    {r.added && (
-                      <span className="text-xs text-text-secondary tabular-nums shrink-0">
-                        {r.added}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-text-secondary line-clamp-2">
-                    {r.whyMatters || r.note}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1">
-                    {r.url && (
-                      <a
-                        href={r.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-xs text-text-accent hover:underline"
-                      >
-                        Source
-                      </a>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigateToResource(r.id);
-                      }}
-                      className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-                    >
-                      <ArrowRight size={10} strokeWidth={2} />
-                      View in dashboard
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
 
           {/* Disputed */}
