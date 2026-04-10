@@ -30,7 +30,6 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
         className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
         <div className="flex items-center gap-2">
-          <GitBranch size={16} strokeWidth={2} style={{ color: "var(--color-primary)" }} />
           <div>
             <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
               Replaced Regulations ({supersessions.length})

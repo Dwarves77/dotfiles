@@ -64,17 +64,17 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
   return (
     <div className="space-y-4">
       {/* Priority legend */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
         {[
-          { label: "CRITICAL", color: "#DC2626", desc: "Immediate action — 90 days" },
-          { label: "HIGH", color: "#D97706", desc: "Action needed — 6 months" },
-          { label: "MODERATE", color: "#CA8A04", desc: "Monitor — 6-12 months" },
-          { label: "LOW", color: "#16A34A", desc: "No action needed" },
+          { label: "CRITICAL", color: "#DC2626", desc: "90 days" },
+          { label: "HIGH", color: "#D97706", desc: "6 months" },
+          { label: "MODERATE", color: "#CA8A04", desc: "6–12 months" },
+          { label: "LOW", color: "#16A34A", desc: "Awareness" },
         ].map(({ label, color, desc }) => (
-          <div key={label} className="flex items-center gap-2">
-            <span className="shrink-0 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-            <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
-              <span className="font-bold" style={{ color }}>{label}</span> — {desc}
+          <div key={label} className="flex items-center gap-1.5">
+            <span className="shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              <span className="font-bold" style={{ color }}>{label}</span> {desc}
             </span>
           </div>
         ))}
