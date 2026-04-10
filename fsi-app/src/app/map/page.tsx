@@ -1,7 +1,7 @@
 import { getAppData } from "@/lib/data";
 import { MapPage } from "@/components/pages/MapPage";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function Map() {
   const data = await getAppData();

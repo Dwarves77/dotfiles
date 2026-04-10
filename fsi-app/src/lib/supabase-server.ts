@@ -412,45 +412,75 @@ export interface DashboardData {
   auditDate: string;
 }
 
+// Timeout wrapper — prevents Supabase from hanging indefinitely on Vercel
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export async function fetchDashboardData(): Promise<DashboardData> {
-  if (!isSupabaseConfigured()) {
-    return {
-      resources: seedResources,
-      archived: seedArchived,
-      changelog: seedChangelog,
-      disputes: seedDisputes,
-      xrefPairs: seedXrefPairs,
-      supersessions: seedSupersessions,
-      auditDate: seedAuditDate,
-    };
-  }
-
-  // Use workspace intelligence function for resources (includes overrides)
-  const orgId = "a0000000-0000-0000-0000-000000000001"; // Default dev workspace
-  const [{ active: resources, archived }, changelog, disputes, xrefPairs, supersessions] =
-    await Promise.all([
-      fetchWorkspaceResources(orgId),
-      fetchChangelog(),
-      fetchDisputes(),
-      fetchXrefPairs(),
-      fetchSupersessions(),
-    ]);
-
-  // Audit date: most recent changelog entry or today
-  let auditDate = new Date().toISOString().slice(0, 10);
-  for (const entries of Object.values(changelog)) {
-    for (const e of entries) {
-      if (e.date > auditDate) auditDate = e.date;
-    }
-  }
-
-  return {
-    resources,
-    archived,
-    changelog,
-    disputes,
-    xrefPairs,
-    supersessions,
-    auditDate,
+  const seedFallback: DashboardData = {
+    resources: seedResources,
+    archived: seedArchived,
+    changelog: seedChangelog,
+    disputes: seedDisputes,
+    xrefPairs: seedXrefPairs,
+    supersessions: seedSupersessions,
+    auditDate: seedAuditDate,
   };
+
+  if (!isSupabaseConfigured()) {
+    return seedFallback;
+  }
+
+  try {
+    // Use workspace intelligence function for resources (includes overrides)
+    const orgId = "a0000000-0000-0000-0000-000000000001"; // Default dev workspace
+    const [{ active: resources, archived }, changelog, disputes, xrefPairs, supersessions] =
+      await withTimeout(
+        Promise.all([
+          fetchWorkspaceResources(orgId),
+          fetchChangelog(),
+          fetchDisputes(),
+          fetchXrefPairs(),
+          fetchSupersessions(),
+        ]),
+        8000, // 8 second timeout
+        [
+          { active: seedResources, archived: seedArchived },
+          seedChangelog,
+          seedDisputes,
+          seedXrefPairs,
+          seedSupersessions,
+        ] as [{ active: typeof seedResources; archived: typeof seedArchived }, typeof seedChangelog, typeof seedDisputes, typeof seedXrefPairs, typeof seedSupersessions]
+      );
+
+    // If Supabase returned empty, use seed data
+    if (!resources.length) {
+      return seedFallback;
+    }
+
+    // Audit date: most recent changelog entry or today
+    let auditDate = new Date().toISOString().slice(0, 10);
+    for (const entries of Object.values(changelog)) {
+      for (const e of entries) {
+        if (e.date > auditDate) auditDate = e.date;
+      }
+    }
+
+    return {
+      resources,
+      archived,
+      changelog,
+      disputes,
+      xrefPairs,
+      supersessions,
+      auditDate,
+    };
+  } catch (e) {
+    console.error("fetchDashboardData failed, using seed fallback:", e);
+    return seedFallback;
+  }
 }
