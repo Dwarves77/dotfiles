@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { MessageSquare, Send, X, Loader2, Bot } from "lucide-react";
 
@@ -15,6 +15,13 @@ export function AskAssistant() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEnd = useRef<HTMLDivElement>(null);
+
+  // Listen for open-ask-assistant events from AiPromptBar
+  useEffect(() => {
+    const handler = () => setIsOpen(true);
+    window.addEventListener("open-ask-assistant", handler);
+    return () => window.removeEventListener("open-ask-assistant", handler);
+  }, []);
 
   const handleAsk = async () => {
     if (!input.trim() || loading) return;
