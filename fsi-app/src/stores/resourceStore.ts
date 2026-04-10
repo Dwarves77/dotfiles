@@ -13,6 +13,7 @@ interface Filters {
   verticals: string[];
   confidence: string[];
   search: string;
+  searchScope: "profile" | "all";
 }
 
 // ── Workspace Override ──
@@ -39,6 +40,10 @@ interface ResourceState {
   filters: Filters;
   sort: SortKey;
 
+  // Sector session state
+  sessionSectorOverride: boolean;     // true when session sectors differ from workspace profile
+  workspaceSectorSnapshot: string[];  // snapshot of workspace profile at init time
+
   // UI
   expandedId: string | null;
 
@@ -53,10 +58,15 @@ interface ResourceState {
   restoreResource: (id: string) => void;
 
   // Actions — filters
-  toggleFilter: (dimension: keyof Omit<Filters, "search">, value: string) => void;
+  toggleFilter: (dimension: keyof Omit<Filters, "search" | "searchScope">, value: string) => void;
   setSearch: (search: string) => void;
+  setSearchScope: (scope: "profile" | "all") => void;
   clearFilters: () => void;
   setSort: (sort: SortKey) => void;
+
+  // Actions — sector session
+  initSessionSectors: (workspaceProfile: string[]) => void;
+  resetToWorkspaceSectors: () => void;
 
   // Actions — UI
   setExpanded: (id: string | null) => void;
@@ -70,6 +80,7 @@ const emptyFilters: Filters = {
   verticals: [],
   confidence: [],
   search: "",
+  searchScope: "profile",
 };
 
 export const useResourceStore = create<ResourceState>((set, get) => ({
@@ -78,6 +89,8 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
   overrides: new Map(),
   filters: { ...emptyFilters },
   sort: "urgency",
+  sessionSectorOverride: false,
+  workspaceSectorSnapshot: [],
   expandedId: null,
 
   setResources: (resources) => set({ resources }),
@@ -145,19 +158,46 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
 
   toggleFilter: (dimension, value) =>
     set((state) => {
-      const current = state.filters[dimension];
-      const next = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
-      return { filters: { ...state.filters, [dimension]: next } };
+      const arr = state.filters[dimension] as string[];
+      const next = arr.includes(value)
+        ? arr.filter((v) => v !== value)
+        : [...arr, value];
+      // Detect if sector filter now differs from workspace snapshot
+      const sectorOverride = dimension === "verticals"
+        ? JSON.stringify([...next].sort()) !== JSON.stringify([...state.workspaceSectorSnapshot].sort())
+        : state.sessionSectorOverride;
+      return {
+        filters: { ...state.filters, [dimension]: next },
+        sessionSectorOverride: sectorOverride,
+      };
     }),
 
   setSearch: (search) =>
     set((state) => ({ filters: { ...state.filters, search } })),
 
-  clearFilters: () => set({ filters: { ...emptyFilters } }),
+  setSearchScope: (searchScope) =>
+    set((state) => ({ filters: { ...state.filters, searchScope } })),
+
+  clearFilters: () => set((state) => ({
+    filters: { ...emptyFilters, verticals: state.workspaceSectorSnapshot },
+    sessionSectorOverride: false,
+  })),
 
   setSort: (sort) => set({ sort }),
+
+  // Sector session management
+  initSessionSectors: (workspaceProfile) =>
+    set((state) => ({
+      workspaceSectorSnapshot: workspaceProfile,
+      filters: { ...state.filters, verticals: workspaceProfile },
+      sessionSectorOverride: false,
+    })),
+
+  resetToWorkspaceSectors: () =>
+    set((state) => ({
+      filters: { ...state.filters, verticals: state.workspaceSectorSnapshot },
+      sessionSectorOverride: false,
+    })),
 
   setExpanded: (expandedId) => set({ expandedId }),
 }));

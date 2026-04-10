@@ -5,10 +5,11 @@ import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/export/download";
 import { toBriefingEmail } from "@/lib/export/htmlReport";
 import { toBriefingSlack } from "@/lib/export/slackFormat";
-import { urgencyScore } from "@/lib/scoring";
+import { urgencyScore, matchResourceSector, buildSectorContext } from "@/lib/scoring";
 import { Badge } from "@/components/ui/Badge";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { PRIORITY_COLORS } from "@/lib/constants";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { PRIORITY_COLORS, ALL_SECTORS } from "@/lib/constants";
 import type { Resource, ChangeLogEntry, Dispute } from "@/types/resource";
 import { ChevronDown, FileText, Hash, ArrowRight } from "lucide-react";
 
@@ -28,19 +29,35 @@ export function WeeklyBriefing({
   onToast,
 }: WeeklyBriefingProps) {
   const { navigateToResource, pushFocusView } = useNavigationStore();
+  const { sectorProfile, sectorWeights } = useWorkspaceStore();
   const [expanded, setExpanded] = useState(false);
   const date = new Date().toISOString().slice(0, 10);
 
+  const sectorCtx = buildSectorContext({ sectorProfile, sectorWeights });
+
   const briefing = useMemo(() => {
     const newR = resources.filter((r) => r.added === auditDate);
-    const top5 = [...resources].sort((a, b) => urgencyScore(b) - urgencyScore(a)).slice(0, 5);
+    const top5 = [...resources].sort((a, b) => urgencyScore(b, null, sectorCtx) - urgencyScore(a, null, sectorCtx)).slice(0, 5);
     const disputedEntries = Object.entries(disputes)
       .filter(([, d]) => d.note)
       .map(([id, d]) => ({ id, ...d, r: resources.find((x) => x.id === id) }))
       .filter((x) => x.r);
 
-    return { newR, top5, disputedEntries };
-  }, [resources, disputes, auditDate]);
+    // Group top items by sector for multi-sector workspaces
+    const bySector: Record<string, typeof top5> = {};
+    if (sectorProfile.length > 1) {
+      for (const r of top5) {
+        const matched = matchResourceSector(r, sectorProfile);
+        const key = matched
+          ? ALL_SECTORS.find((s) => s.id === matched)?.label || matched
+          : "General";
+        if (!bySector[key]) bySector[key] = [];
+        bySector[key].push(r);
+      }
+    }
+
+    return { newR, top5, disputedEntries, bySector };
+  }, [resources, disputes, auditDate, sectorCtx, sectorProfile]);
 
   const handleDownload = (format: "html" | "slack") => {
     if (format === "html") {

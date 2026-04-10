@@ -170,24 +170,55 @@ export interface SectorDefinition {
 
 export const ALL_SECTORS: SectorDefinition[] = [
   // Specialized cargo
-  { id: "fine-art", label: "Fine Art & Museums", keywords: ["artwork", "art ", "art,", "gallery", "museum", "fine art"] },
+  { id: "fine-art", label: "Fine Art & Museum Logistics", keywords: ["artwork", "art ", "art,", "gallery", "museum", "fine art"] },
   { id: "live-events", label: "Live Events & Touring", keywords: ["live event", "events", "concert", "exhibition", "trade show", "touring"] },
   { id: "luxury-goods", label: "Luxury Goods", keywords: ["luxury", "high-value", "premium"] },
   { id: "film-tv", label: "Film & TV Production", keywords: ["film", "tv", "production", "broadcast", "media"] },
-  { id: "automotive", label: "Automotive", keywords: ["automotive", "vehicle", "car ", "cars ", "oem"] },
-  { id: "humanitarian", label: "Humanitarian & Aid", keywords: ["humanitarian", "aid", "relief", "disaster"] },
+  { id: "automotive", label: "High-Value Automotive", keywords: ["automotive", "vehicle", "car ", "cars ", "oem", "classic car"] },
+  { id: "humanitarian", label: "Humanitarian & NGO Cargo", keywords: ["humanitarian", "aid", "relief", "disaster", "ngo"] },
   // General freight sectors
   { id: "bulk-commodity", label: "Bulk Commodity", keywords: ["bulk", "commodity", "grain", "ore", "coal"] },
   { id: "cold-chain", label: "Cold Chain & Perishables", keywords: ["cold chain", "perishable", "refrigerated", "frozen", "temperature"] },
-  { id: "pharma", label: "Pharmaceuticals", keywords: ["pharma", "pharmaceutical", "medical", "vaccine", "gdp"] },
-  { id: "ecommerce", label: "E-Commerce & Parcels", keywords: ["ecommerce", "e-commerce", "parcel", "last mile", "fulfillment"] },
-  { id: "industrial", label: "Industrial & Heavy Equipment", keywords: ["industrial", "equipment", "machinery", "heavy lift", "project cargo"] },
-  { id: "chemicals", label: "Chemicals & Hazmat", keywords: ["chemical", "hazmat", "dangerous goods", "dg", "imdg"] },
+  { id: "pharma", label: "Pharmaceutical & Healthcare", keywords: ["pharma", "pharmaceutical", "medical", "vaccine", "gdp", "healthcare"] },
+  { id: "ecommerce", label: "E-Commerce & Parcel", keywords: ["ecommerce", "e-commerce", "parcel", "last mile", "fulfillment"] },
+  { id: "industrial", label: "Industrial Equipment & Heavy Lift", keywords: ["industrial", "equipment", "machinery", "heavy lift", "project cargo"] },
+  { id: "chemicals", label: "Chemicals & Hazmat", keywords: ["chemical", "hazmat", "toxic", "corrosive"] },
   { id: "electronics", label: "Electronics & High-Tech", keywords: ["electronics", "semiconductor", "high-tech", "technology"] },
   { id: "textiles", label: "Textiles & Fashion", keywords: ["textile", "fashion", "garment", "apparel"] },
   { id: "agriculture", label: "Agriculture & Food", keywords: ["agriculture", "food", "agri", "livestock", "feed"] },
-  { id: "energy", label: "Energy & Oil/Gas", keywords: ["energy", "oil", "gas", "lng", "petroleum", "pipeline"] },
+  { id: "energy", label: "Energy & Renewables", keywords: ["energy", "renewable", "battery", "solar", "wind", "hydrogen", "power"] },
+  // New sectors
+  { id: "dangerous-goods", label: "Dangerous Goods (DG)", keywords: ["dangerous goods", "dg ", "imdg", "iata dg", "un number", "adr ", "rid ", "icao ti", "class 1", "class 2", "class 3"] },
+  { id: "general-air", label: "General Air Freight", keywords: ["air freight", "air cargo", "belly cargo", "freighter", "uld", "airline cargo"] },
+  { id: "general-ocean", label: "General Ocean FCL/LCL", keywords: ["ocean freight", "fcl", "lcl", "container shipping", "sea freight", "breakbulk"] },
+  { id: "oil-gas", label: "Oil & Gas", keywords: ["oil ", "gas ", "lng", "lpg", "petroleum", "crude", "refinery", "pipeline", "drilling", "offshore"] },
 ];
+
+// ── Sector Adjacency Map ──
+// Maps each sector to its neighbors for spillover scoring.
+// If a regulation affects an adjacent sector, it still partially matters.
+export const SECTOR_ADJACENCY: Record<string, string[]> = {
+  "fine-art": ["luxury-goods", "live-events"],
+  "live-events": ["fine-art", "film-tv"],
+  "luxury-goods": ["fine-art", "electronics", "automotive"],
+  "film-tv": ["live-events", "electronics"],
+  "automotive": ["industrial", "electronics", "luxury-goods"],
+  "humanitarian": ["cold-chain", "pharma"],
+  "bulk-commodity": ["agriculture", "general-ocean", "energy", "oil-gas"],
+  "cold-chain": ["pharma", "agriculture", "ecommerce"],
+  "pharma": ["cold-chain", "chemicals", "dangerous-goods"],
+  "ecommerce": ["electronics", "general-air", "textiles"],
+  "industrial": ["automotive", "chemicals", "energy", "oil-gas"],
+  "chemicals": ["dangerous-goods", "pharma", "industrial"],
+  "electronics": ["ecommerce", "general-air", "automotive"],
+  "textiles": ["ecommerce", "general-ocean"],
+  "agriculture": ["cold-chain", "bulk-commodity"],
+  "energy": ["oil-gas", "industrial", "bulk-commodity"],
+  "dangerous-goods": ["chemicals", "pharma", "oil-gas", "industrial"],
+  "general-air": ["ecommerce", "electronics", "pharma", "luxury-goods"],
+  "general-ocean": ["bulk-commodity", "industrial", "textiles", "agriculture"],
+  "oil-gas": ["energy", "bulk-commodity", "chemicals", "dangerous-goods"],
+};
 
 // Legacy alias — workspace code that still references VERTICALS gets the full master list.
 // FilterBar and scoring pull the active subset from workspace_settings.sector_profile.

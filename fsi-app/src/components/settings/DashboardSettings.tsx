@@ -2,6 +2,8 @@
 
 import { Toggle } from "@/components/ui/Toggle";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { ALL_SECTORS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 
 export function DashboardSettings() {
@@ -62,6 +64,9 @@ export function DashboardSettings() {
           ))}
         </div>
       </div>
+
+      {/* Freight Sectors */}
+      <SectorProfileSection />
 
       {/* Home Section Visibility */}
       <div className="space-y-3">
@@ -169,6 +174,88 @@ export function DashboardSettings() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Sector Profile Selection ──
+
+function SectorProfileSection() {
+  const { sectorProfile, setSectorProfile } = useWorkspaceStore();
+
+  const toggleSector = (sectorId: string) => {
+    const next = sectorProfile.includes(sectorId)
+      ? sectorProfile.filter((s) => s !== sectorId)
+      : [...sectorProfile, sectorId];
+    setSectorProfile(next);
+  };
+
+  const selectAll = () => setSectorProfile(ALL_SECTORS.map((s) => s.id));
+  const clearAll = () => setSectorProfile([]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase" style={{ letterSpacing: "1.5px", color: "var(--color-text-secondary)" }}>
+          Freight Sectors
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={selectAll}
+            className="text-[11px] font-medium cursor-pointer transition-colors"
+            style={{ color: "var(--color-primary)" }}
+          >
+            Select all
+          </button>
+          <button
+            onClick={clearAll}
+            className="text-[11px] font-medium cursor-pointer transition-colors"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+      <p className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
+        Select the sectors your organization operates in. This filters your default view, briefings, and urgency scoring.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {ALL_SECTORS.map((sector) => {
+          const active = sectorProfile.includes(sector.id);
+          return (
+            <button
+              key={sector.id}
+              onClick={() => toggleSector(sector.id)}
+              className={cn(
+                "flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left text-[13px] cursor-pointer transition-all duration-150",
+              )}
+              style={{
+                borderColor: active ? "var(--color-primary)" : "var(--color-border)",
+                backgroundColor: active ? "var(--color-active-bg)" : "var(--color-surface)",
+                color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                fontWeight: active ? 600 : 400,
+              }}
+            >
+              <span
+                className="shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px]"
+                style={{
+                  borderColor: active ? "var(--color-primary)" : "var(--color-border-strong)",
+                  backgroundColor: active ? "var(--color-primary)" : "transparent",
+                  color: active ? "#fff" : "transparent",
+                }}
+              >
+                ✓
+              </span>
+              {sector.label}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+        {sectorProfile.length === 0
+          ? "No sectors selected — showing all freight sectors by default."
+          : `${sectorProfile.length} sector${sectorProfile.length !== 1 ? "s" : ""} selected.`}
+      </p>
     </div>
   );
 }

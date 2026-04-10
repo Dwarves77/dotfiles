@@ -2,13 +2,13 @@
 
 import { Pill } from "@/components/ui/Pill";
 import { useResourceStore } from "@/stores/resourceStore";
-import { MODES, TOPICS, JURISDICTIONS, PRIORITIES, PRIORITY_COLORS, TOPIC_COLORS, CONFIDENCE_LEVELS } from "@/lib/constants";
+import { MODES, TOPICS, JURISDICTIONS, PRIORITIES, PRIORITY_COLORS, TOPIC_COLORS, CONFIDENCE_LEVELS, ALL_SECTORS } from "@/lib/constants";
 import { useWorkspaceStore, getActiveSectors } from "@/stores/workspaceStore";
 import { useMemo } from "react";
-import { X } from "lucide-react";
+import { X, RotateCcw } from "lucide-react";
 
 export function FilterBar() {
-  const { filters, toggleFilter, clearFilters, resources } = useResourceStore();
+  const { filters, toggleFilter, clearFilters, resources, sessionSectorOverride, resetToWorkspaceSectors } = useResourceStore();
   const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
   const activeSectors = getActiveSectors(sectorProfile);
 
@@ -110,15 +110,33 @@ export function FilterBar() {
       </FilterRow>
 
       <FilterRow label="Sector">
-        {activeSectors.filter(({ id }) => counts.vertCounts[id]).map(({ id, label }) => (
-          <Pill
-            key={id}
-            label={label}
-            active={filters.verticals.includes(id)}
-            count={counts.vertCounts[id]}
-            onClick={() => toggleFilter("verticals", id)}
-          />
-        ))}
+        {sessionSectorOverride && (
+          <button
+            onClick={resetToWorkspaceSectors}
+            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-md cursor-pointer transition-colors mr-1"
+            style={{
+              color: "var(--color-primary)",
+              backgroundColor: "var(--color-active-bg)",
+              border: "1px solid var(--color-active-border)",
+            }}
+          >
+            <RotateCcw size={10} />
+            Reset to my sectors
+          </button>
+        )}
+        {ALL_SECTORS.filter(({ id }) => counts.vertCounts[id] || filters.verticals.includes(id)).map(({ id, label }) => {
+          const inProfile = sectorProfile.length === 0 || sectorProfile.includes(id);
+          return (
+            <Pill
+              key={id}
+              label={label}
+              active={filters.verticals.includes(id)}
+              count={counts.vertCounts[id]}
+              onClick={() => toggleFilter("verticals", id)}
+              className={!inProfile ? "opacity-50" : undefined}
+            />
+          );
+        })}
       </FilterRow>
 
       <FilterRow label="Confidence">

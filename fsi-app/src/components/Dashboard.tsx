@@ -130,15 +130,22 @@ export function Dashboard({
   }, []);
 
   // Initialize resources on mount
+  const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
+  const sectorWeightsWs = useWorkspaceStore((s) => s.sectorWeights);
+  const { initSessionSectors } = useResourceStore();
+
   useEffect(() => {
+    const sectorCtx = { activeSectors: sectorProfile, sectorWeights: sectorWeightsWs };
     const scored = initialResources.map((r) => ({
       ...r,
-      urgencyScore: urgencyScore(r, jurisdictionWeights),
+      urgencyScore: urgencyScore(r, jurisdictionWeights, sectorCtx),
       impactScores: scoreResource(r),
     }));
     setResources(scored);
     setArchived(initialArchived);
-  }, [initialResources, initialArchived, setResources, setArchived]);
+    // Initialize session sector filter from workspace profile
+    initSessionSectors(sectorProfile);
+  }, [initialResources, initialArchived, setResources, setArchived, sectorProfile]);
 
   // Merge platform data with workspace overrides
   const { active: resources, archived: workspaceArchived } = useMemo(

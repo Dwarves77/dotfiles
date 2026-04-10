@@ -3,9 +3,10 @@
 import { useResourceStore } from "@/stores/resourceStore";
 import { Search, X } from "lucide-react";
 import { useCallback, useRef } from "react";
+import { cn } from "@/lib/cn";
 
 export function SearchBar() {
-  const { filters, setSearch } = useResourceStore();
+  const { filters, setSearch, setSearchScope } = useResourceStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -53,6 +54,32 @@ export function SearchBar() {
         >
           <X size={14} strokeWidth={2} />
         </button>
+      )}
+      {/* Scope toggle — visible when search is active */}
+      {filters.search && (
+        <div className="flex items-center gap-2 mt-1.5">
+          {(["profile", "all"] as const).map((scope) => (
+            <button
+              key={scope}
+              onClick={() => setSearchScope(scope)}
+              className={cn(
+                "text-[11px] font-medium px-2.5 py-1 rounded-md border cursor-pointer transition-colors",
+              )}
+              style={{
+                borderColor: filters.searchScope === scope ? "var(--color-active-border)" : "var(--color-border)",
+                backgroundColor: filters.searchScope === scope ? "var(--color-active-bg)" : "transparent",
+                color: filters.searchScope === scope ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+              }}
+            >
+              {scope === "profile" ? "My Sectors" : "All Sectors"}
+            </button>
+          ))}
+          {filters.searchScope === "all" && (
+            <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              Searching all freight sectors
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

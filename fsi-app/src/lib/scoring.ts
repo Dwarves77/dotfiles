@@ -1,5 +1,5 @@
 import type { Resource, ImpactScores } from "@/types/resource";
-import { JURISDICTION_WEIGHTS, ALL_SECTORS } from "./constants";
+import { JURISDICTION_WEIGHTS, ALL_SECTORS, SECTOR_ADJACENCY } from "./constants";
 
 // ── Jurisdiction Detection ──
 // Detects jurisdiction from resource content via keyword matching
@@ -79,11 +79,53 @@ export function scoreResource(r: Resource): ImpactScores {
   };
 }
 
+// ── Sector Context for scoring ──
+
+export interface SectorContext {
+  activeSectors: string[];
+  sectorWeights?: Record<string, number> | null;
+}
+
+/**
+ * Build sector context from workspace store values.
+ */
+export function buildSectorContext(ws: {
+  sectorProfile: string[];
+  sectorWeights: Record<string, number> | null;
+}): SectorContext {
+  return {
+    activeSectors: ws.sectorProfile,
+    sectorWeights: ws.sectorWeights,
+  };
+}
+
+/**
+ * Check if a resource matches any of the given active sectors by keyword.
+ * Returns the matched sector ID, or null.
+ */
+export function matchResourceSector(r: Resource, sectorIds: string[]): string | null {
+  const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
+  for (const sid of sectorIds) {
+    const sector = ALL_SECTORS.find((s) => s.id === sid);
+    if (sector?.keywords.some((kw) => text.includes(kw))) return sid;
+  }
+  return null;
+}
+
+/**
+ * Check if a resource is relevant to the active sector profile.
+ */
+export function isInActiveSectors(r: Resource, activeSectors: string[]): boolean {
+  if (activeSectors.length === 0) return true; // no profile = everything matches
+  return matchResourceSector(r, activeSectors) !== null;
+}
+
 // ── Urgency Score (composite) ──
-// Accepts optional workspace jurisdiction weights. If not provided, uses platform defaults.
+// Accepts optional workspace jurisdiction weights and sector context.
 export function urgencyScore(
   r: Resource,
-  workspaceWeights?: Record<string, number> | null
+  workspaceWeights?: Record<string, number> | null,
+  sectorCtx?: SectorContext
 ): number {
   const sc = scoreResource(r);
   const total = sc.cost + sc.compliance + sc.client + sc.operational;
@@ -107,7 +149,31 @@ export function urgencyScore(
     }
   }
 
-  return Math.round(total * priW * timeW * (0.5 + jurW * 0.5) * 10) / 10;
+  // Sector weight: how relevant is this resource to the active sector profile
+  let sectorW = 1.0; // default: no sector filtering applied
+  if (sectorCtx && sectorCtx.activeSectors.length > 0) {
+    const directMatch = matchResourceSector(r, sectorCtx.activeSectors);
+    if (directMatch) {
+      // Direct match to active sector — use custom weight or 1.0
+      sectorW = sectorCtx.sectorWeights?.[directMatch] ?? 1.0;
+    } else {
+      // Check if it matches ANY sector
+      const allSectorIds = ALL_SECTORS.map((s) => s.id);
+      const anyMatch = matchResourceSector(r, allSectorIds);
+      if (anyMatch) {
+        // Matches a non-active sector — check adjacency
+        const isAdjacent = sectorCtx.activeSectors.some(
+          (activeId) => SECTOR_ADJACENCY[activeId]?.includes(anyMatch)
+        );
+        sectorW = isAdjacent ? 0.5 : 0.2;
+      } else {
+        // No sector match at all — general freight regulation
+        sectorW = 0.8;
+      }
+    }
+  }
+
+  return Math.round(total * priW * timeW * (0.5 + jurW * 0.5) * sectorW * 10) / 10;
 }
 
 // ── Sort Helpers ──
@@ -145,6 +211,7 @@ export function filterResources(
     verticals: string[];
     confidence: string[];
     search: string;
+    searchScope?: "profile" | "all";
   }
 ): Resource[] {
   return resources.filter((r) => {
@@ -171,8 +238,11 @@ export function filterResources(
       if (!filters.priorities.includes(r.priority)) return false;
     }
 
-    // Cargo vertical filter
-    if (filters.verticals.length > 0) {
+    // Cargo vertical / sector filter
+    // When searchScope is "all" AND there's an active search query, skip sector filtering
+    // so users can find items outside their profile during search
+    const skipSectorFilter = filters.searchScope === "all" && !!filters.search;
+    if (filters.verticals.length > 0 && !skipSectorFilter) {
       const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
       const matchesVertical = filters.verticals.some((vId) => {
         const vertical = ALL_SECTORS.find((v) => v.id === vId);

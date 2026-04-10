@@ -14,10 +14,14 @@ interface WorkspaceState {
   // Jurisdiction weights — override platform defaults
   jurisdictionWeights: Record<string, number> | null;
 
+  // Sector weights — per-sector urgency multipliers
+  sectorWeights: Record<string, number> | null;
+
   // Actions
   setWorkspace: (orgId: string, orgName: string) => void;
   setSectorProfile: (sectors: string[]) => void;
   setJurisdictionWeights: (weights: Record<string, number> | null) => void;
+  setSectorWeights: (weights: Record<string, number> | null) => void;
 }
 
 // Default dev workspace
@@ -30,10 +34,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   orgName: DEV_ORG_NAME,
   sectorProfile: DEV_SECTORS,
   jurisdictionWeights: null,
+  sectorWeights: null,
 
   setWorkspace: (orgId, orgName) => set({ orgId, orgName }),
   setSectorProfile: (sectorProfile) => set({ sectorProfile }),
   setJurisdictionWeights: (jurisdictionWeights) => set({ jurisdictionWeights }),
+  setSectorWeights: (sectorWeights) => set({ sectorWeights }),
 }));
 
 /**
