@@ -36,7 +36,7 @@ export function SortSelector() {
             style={{
               borderColor: sort === key ? "var(--color-active-border)" : "var(--color-border)",
               backgroundColor: sort === key ? "var(--color-active-bg)" : "transparent",
-              color: sort === key ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+              color: sort === key ? "var(--color-primary)" : "var(--color-text-secondary)",
             }}
           >
             {label}

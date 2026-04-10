@@ -29,6 +29,7 @@
   --color-border-strong: var(--border-strong);
   --color-active-bg: var(--active-bg);
   --color-active-border: var(--active-border);
+  --color-active-solid: var(--color-active-solid);
   --color-invert-bg: var(--invert-bg);
   --color-invert-text: var(--invert-text);
 
@@ -103,9 +104,14 @@ body {
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Gradient bar fill ── */
+.gradient-bar {
+  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+}
+
 /* ── Selection ── */
 ::selection {
-  background: rgba(8, 145, 178, 0.15);
+  background: rgba(232, 97, 10, 0.15);
   color: var(--color-text-primary);
 }
 

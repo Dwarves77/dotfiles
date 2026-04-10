@@ -19,9 +19,17 @@
   --color-text-muted: #7A6E6C;
   --color-text-disabled: #9CA3AF;
 
-  /* Primary action */
-  --color-primary: #0891B2;
-  --color-primary-hover: #0E7490;
+  /* Primary action — orange athletic */
+  --color-primary: #E8610A;
+  --color-primary-hover: #D4570A;
+
+  /* Secondary accent — blue */
+  --color-secondary: #2563EB;
+  --color-secondary-hover: #1D4ED8;
+
+  /* Gradient endpoints */
+  --gradient-start: #E8610A;
+  --gradient-end: #2563EB;
 
   /* Borders */
   --color-border: rgba(0, 0, 0, 0.12);
@@ -32,11 +40,15 @@
   --color-error: #DC2626;
   --color-success: #16A34A;
   --color-warning: #D97706;
-  --color-focus-ring: #0891B2;
+  --color-focus-ring: #E8610A;
 
-  /* Interactive */
-  --color-active-bg: rgba(8, 145, 178, 0.08);
-  --color-active-border: rgba(8, 145, 178, 0.25);
+  /* Interactive — muted for highlights/chips */
+  --color-active-bg: rgba(232, 97, 10, 0.08);
+  --color-active-border: rgba(232, 97, 10, 0.25);
+
+  /* Solid active — for filled pills, primary CTAs */
+  --color-active-solid: #E8610A;
+  --color-active-solid-hover: #D4570A;
 
   /* Inversion (for buttons) */
   --color-invert-bg: #1A1A1A;
@@ -132,8 +144,14 @@
   --color-text-muted: #9f8d8b;
   --color-text-disabled: #6B7280;
 
-  --color-primary: #5eead4;
-  --color-primary-hover: #2dd4bf;
+  --color-primary: #F97316;
+  --color-primary-hover: #EA580C;
+
+  --color-secondary: #60A5FA;
+  --color-secondary-hover: #3B82F6;
+
+  --gradient-start: #F97316;
+  --gradient-end: #60A5FA;
 
   --color-border: rgba(255, 255, 255, 0.10);
   --color-border-subtle: rgba(255, 255, 255, 0.06);
@@ -142,10 +160,13 @@
   --color-error: #EF4444;
   --color-success: #22C55E;
   --color-warning: #F59E0B;
-  --color-focus-ring: #5eead4;
+  --color-focus-ring: #F97316;
 
-  --color-active-bg: rgba(94, 234, 212, 0.08);
-  --color-active-border: rgba(94, 234, 212, 0.25);
+  --color-active-bg: rgba(249, 115, 22, 0.12);
+  --color-active-border: rgba(249, 115, 22, 0.30);
+
+  --color-active-solid: #F97316;
+  --color-active-solid-hover: #EA580C;
 
   --color-invert-bg: #FFFFFF;
   --color-invert-text: #171e19;
