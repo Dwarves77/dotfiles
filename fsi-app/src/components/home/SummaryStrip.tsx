@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useNavigationStore } from "@/stores/navigationStore";
 import type { Resource, Dispute, ChangeLogEntry } from "@/types/resource";
-import { AlertTriangle, ArrowUp, Minus, ArrowDown } from "lucide-react";
+import { AlertTriangle, ArrowUp, Shield } from "lucide-react";
 
 interface SummaryStripProps {
   resources: Resource[];
@@ -17,9 +17,8 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
   const stats = useMemo(() => {
     const critical = resources.filter((r) => r.priority === "CRITICAL");
     const high = resources.filter((r) => r.priority === "HIGH");
-    const moderate = resources.filter((r) => r.priority === "MODERATE");
-    const low = resources.filter((r) => r.priority === "LOW");
-    return { critical, high, moderate, low };
+    const moderate = resources.filter((r) => r.priority === "MODERATE" || r.priority === "LOW");
+    return { critical, high, moderate };
   }, [resources]);
 
   const cards = [
@@ -45,61 +44,71 @@ export function SummaryStrip({ resources, changelog, disputes }: SummaryStripPro
       label: "Moderate",
       desc: "Monitor — 6-12 month horizon",
       count: stats.moderate.length,
-      icon: Minus,
-      color: "#CA8A04",
-      bg: "rgba(202, 138, 4, 0.08)",
-      ids: stats.moderate,
-    },
-    {
-      label: "Low",
-      desc: "Awareness only",
-      count: stats.low.length,
-      icon: ArrowDown,
+      icon: Shield,
       color: "#16A34A",
       bg: "rgba(22, 163, 74, 0.08)",
-      ids: stats.low,
+      ids: stats.moderate,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      {cards.map(({ label, desc, count, icon: Icon, color, bg, ids }) => (
-        <button
-          key={label}
-          onClick={() =>
-            pushFocusView({
-              title: `${label} Priority`,
-              resourceIds: ids.map((r) => r.id),
-              why: Object.fromEntries(
-                ids.map((r) => [r.id, r.reasoning || `${label} priority`])
-              ),
-            })
-          }
-          className="cl-stat-card cursor-pointer group"
-        >
-          <div
-            className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3"
-            style={{ backgroundColor: bg }}
+    <div className="space-y-4">
+      {/* Priority legend */}
+      <div className="flex items-center gap-6">
+        {[
+          { label: "CRITICAL", color: "#DC2626", desc: "Immediate action — deadlines within 90 days" },
+          { label: "HIGH", color: "#D97706", desc: "Action needed within 6 months" },
+          { label: "MODERATE", color: "#16A34A", desc: "Monitor and plan — 6-12 month horizon" },
+        ].map(({ label, color, desc }) => (
+          <div key={label} className="flex items-center gap-2">
+            <span className="shrink-0 w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
+              <span className="font-bold" style={{ color }}>{label}</span> — {desc}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-3 gap-4">
+        {cards.map(({ label, desc, count, icon: Icon, color, bg, ids }) => (
+          <button
+            key={label}
+            onClick={() =>
+              pushFocusView({
+                title: `${label} Priority`,
+                resourceIds: ids.map((r) => r.id),
+                why: Object.fromEntries(
+                  ids.map((r) => [r.id, r.reasoning || `${label} priority`])
+                ),
+              })
+            }
+            className="cl-stat-card cursor-pointer group"
           >
-            <Icon size={20} strokeWidth={2} style={{ color }} />
-          </div>
-          <div
-            className="text-4xl font-black tabular-nums mb-1"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {count}
-          </div>
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-0.5"
-            style={{ color }}
-          >
-            {label}
-          </div>
-          <div className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-            {desc}
-          </div>
-        </button>
-      ))}
+            <div
+              className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3"
+              style={{ backgroundColor: bg }}
+            >
+              <Icon size={20} strokeWidth={2} style={{ color }} />
+            </div>
+            <div
+              className="text-4xl font-black tabular-nums mb-1"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {count}
+            </div>
+            <div
+              className="text-xs font-bold tracking-widest uppercase mb-0.5"
+              style={{ color }}
+            >
+              {label}
+            </div>
+            <div className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+              {desc}
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
