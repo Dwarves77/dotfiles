@@ -28,7 +28,7 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
 
   const content = (
     <div
-      className="flex items-start gap-3 px-4 py-3.5 cursor-pointer"
+      className="flex items-start gap-3 px-5 py-4 cursor-pointer"
       onClick={() => setExpanded(isExpanded ? null : r.id)}
     >
         <div className="flex-1 min-w-0">
@@ -84,7 +84,7 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
           </div>
 
           {/* Title */}
-          <h3 className="text-[15px] font-semibold text-text-primary leading-tight mb-1" style={{ letterSpacing: "-0.1px" }}>
+          <h3 className="text-[16px] font-bold text-text-primary leading-snug mb-1.5" style={{ letterSpacing: "-0.2px" }}>
             <AcronymText text={r.title} />
           </h3>
 

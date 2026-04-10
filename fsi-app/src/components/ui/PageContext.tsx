@@ -14,8 +14,8 @@ interface PageContextProps {
  */
 export function PageContext({ context, aiPlaceholder }: PageContextProps) {
   return (
-    <div className="space-y-3 mb-4">
-      <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+    <div className="space-y-3 mb-5">
+      <p className="text-[14px] leading-relaxed font-medium" style={{ color: "var(--color-text-secondary)" }}>
         {context}
       </p>
       <AiPromptBar placeholder={aiPlaceholder} />

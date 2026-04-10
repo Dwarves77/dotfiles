@@ -58,18 +58,19 @@ export function WeeklyBriefing({
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 cursor-pointer"
+        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer"
       >
         <div>
-          <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
+          <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
             Weekly Briefing
           </h3>
-          <span className="ml-2 text-xs text-text-secondary">
+          <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
             {date}
           </span>
         </div>
         <ChevronDown
-          size={14}
+          size={16}
+          strokeWidth={2.5}
           className={cn(
             "text-text-secondary transition-transform duration-300",
             expanded && "rotate-180"

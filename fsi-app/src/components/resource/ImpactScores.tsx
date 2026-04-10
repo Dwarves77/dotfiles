@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { IMPACT_COLORS, IMPACT_LABELS } from "@/lib/constants";
+import { IMPACT_LABELS } from "@/lib/constants";
 import type { ImpactScores as ImpactScoresType, ImpactReasoning } from "@/types/resource";
 import { ChevronDown } from "lucide-react";
 
@@ -18,15 +18,16 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary">
+        <span className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
           Impact Assessment
         </span>
         {reasoning && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+            className="flex items-center gap-1 text-xs font-medium cursor-pointer transition-colors"
+            style={{ color: "var(--color-text-secondary)" }}
           >
             {expanded ? "Hide" : "Show"} reasoning
             <ChevronDown
@@ -39,33 +40,35 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
 
       {DIMS.map((dim) => {
         const value = scores[dim] || 0;
-        const color = IMPACT_COLORS[dim];
         const label = IMPACT_LABELS[dim];
+        const pct = (value / 3) * 100;
 
         return (
-          <div key={dim}>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-text-secondary w-28 shrink-0">
+          <div key={dim} className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
                 {label}
               </span>
-              <div className="flex-1 h-2 bg-surface-overlay rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full gradient-bar transition-all duration-500"
-                  style={{
-                    width: `${(value / 3) * 100}%`,
-                    transitionTimingFunction: "var(--ease-out-expo)",
-                  }}
-                />
-              </div>
-              <span className="text-sm font-bold tabular-nums w-6 text-right text-text-primary">
-                {value}
-              </span>
-              <span className="text-xs text-text-secondary w-16">
-                {LEVEL_LABELS[value]}
+              <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
+                {value}/3 — {LEVEL_LABELS[value]}
               </span>
             </div>
+            {/* Chunky gradient bar like APEX */}
+            <div
+              className="w-full h-3 rounded-full overflow-hidden"
+              style={{ backgroundColor: "var(--color-surface-raised)" }}
+            >
+              <div
+                className="h-full rounded-full gradient-bar-risk transition-all duration-500"
+                style={{
+                  width: `${pct}%`,
+                  transitionTimingFunction: "var(--ease-out-expo)",
+                  minWidth: value > 0 ? "8%" : "0%",
+                }}
+              />
+            </div>
             {expanded && reasoning?.[dim] && (
-              <p className="text-xs text-text-secondary ml-28 mt-0.5 pl-2 border-l border-border-subtle">
+              <p className="text-[12px] leading-relaxed pl-1" style={{ color: "var(--color-text-muted)" }}>
                 {reasoning[dim]}
               </p>
             )}

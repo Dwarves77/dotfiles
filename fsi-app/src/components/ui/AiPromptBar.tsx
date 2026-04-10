@@ -14,7 +14,7 @@ interface AiPromptBarProps {
 export function AiPromptBar({ placeholder, onSubmit }: AiPromptBarProps) {
   return (
     <div
-      className="cl-card flex items-center gap-3 px-4 py-3 cursor-pointer group"
+      className="cl-card flex items-center gap-3 px-5 py-3.5 cursor-pointer group"
       onClick={() => {
         // Open the floating AskAssistant by dispatching a custom event
         window.dispatchEvent(new CustomEvent("open-ask-assistant", { detail: { placeholder } }));

@@ -30,9 +30,9 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
     <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
-        <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+        <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
           Top Urgency
         </h3>
         <div className="flex items-center gap-3">

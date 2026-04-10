@@ -217,18 +217,18 @@ export function Dashboard({
           <div>
             <div>
               <h1
-                className="text-2xl sm:text-3xl uppercase"
+                className="text-3xl sm:text-4xl uppercase font-black"
                 style={{
                   color: "var(--color-text-primary)",
                   fontFamily: "var(--font-display)",
-                  letterSpacing: "0.08em",
+                  letterSpacing: "0.06em",
                 }}
               >
                 {APP_NAME}
               </h1>
               <p
-                className="text-[10px] font-semibold tracking-[0.2em] uppercase mt-0.5"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-[11px] font-bold tracking-[0.25em] uppercase mt-1"
+                style={{ color: "var(--color-text-muted)" }}
               >
                 {APP_TAGLINE}
               </p>

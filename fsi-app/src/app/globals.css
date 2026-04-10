@@ -66,11 +66,27 @@ body {
 .cl-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 200ms ease, transform 200ms ease;
 }
 .cl-card:hover {
-  box-shadow: 0 2px 6px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* ── Stat card — hero numbers ── */
+.cl-stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  padding: 28px 24px;
+  text-align: center;
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.cl-stat-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
 }
 
 /* ── Card expansion ── */
@@ -104,9 +120,13 @@ body {
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ── Gradient bar fill ── */
+/* ── Gradient bar fill — severity spectrum: red(critical) → orange → amber → blue(low) ── */
 .gradient-bar {
-  background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+  background: linear-gradient(90deg, #DC2626, #E8610A 35%, #D97706 55%, #2563EB);
+}
+/* Reversed: blue(low) → green → amber → orange → red(critical) — use for progress toward risk */
+.gradient-bar-risk {
+  background: linear-gradient(90deg, #2563EB, #16A34A 30%, #CA8A04 55%, #D97706 75%, #DC2626);
 }
 
 /* ── Selection ── */

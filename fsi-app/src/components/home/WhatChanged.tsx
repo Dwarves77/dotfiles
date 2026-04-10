@@ -32,17 +32,15 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
     <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
-        <div className="flex items-center gap-2">
-          <div>
-            <h3 className="text-[13px] font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
-              What Changed ({allIds.length})
-            </h3>
-            <p className="text-[11px] text-text-muted mt-0.5">
-              Since last audit — {auditDate || "recent"}
-            </p>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
+            What Changed ({allIds.length})
+          </h3>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+            Since last audit — {auditDate || "recent"}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <span
@@ -50,7 +48,8 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               e.stopPropagation();
               pushFocusView({ title: "What Changed", resourceIds: allIds });
             }}
-            className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+            className="text-[13px] font-medium transition-colors hover:underline"
+            style={{ color: "var(--color-primary)" }}
           >
             View all &rarr;
           </span>

@@ -73,9 +73,9 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
               return (
                 <div key={jur} className="flex items-center gap-2">
                   <span className="text-xs text-text-secondary w-20 shrink-0">{label}</span>
-                  <div className="flex-1 h-1.5 bg-surface-overlay rounded-full overflow-hidden">
+                  <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--color-surface-raised)" }}>
                     <div
-                      className="h-full bg-[var(--color-primary)] rounded-sm"
+                      className="h-full rounded-full gradient-bar"
                       style={{ width: `${pct}%` }}
                     />
                   </div>

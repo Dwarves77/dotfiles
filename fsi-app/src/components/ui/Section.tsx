@@ -19,14 +19,14 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
     <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-semibold tracking-wide uppercase text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
+          <h3 className="text-sm font-bold tracking-wide uppercase text-[var(--color-text-primary)] group-hover:text-[var(--color-primary)] transition-colors">
             {title}
           </h3>
           {count !== undefined && (
-            <span className="text-xs tabular-nums text-[var(--color-text-muted)]">
+            <span className="text-sm font-semibold tabular-nums text-[var(--color-text-muted)]">
               ({count})
             </span>
           )}
@@ -35,15 +35,15 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
           {onViewAll && (
             <span
               onClick={(e) => { e.stopPropagation(); onViewAll(); }}
-              className="text-xs transition-colors hover:underline"
+              className="text-[13px] font-medium transition-colors hover:underline"
               style={{ color: "var(--color-primary)" }}
             >
               View all &rarr;
             </span>
           )}
           <ChevronDown
-            size={14}
-            strokeWidth={2}
+            size={16}
+            strokeWidth={2.5}
             className={cn(
               "transition-transform duration-200",
               open && "rotate-180"
@@ -52,7 +52,7 @@ export function Section({ title, count, onViewAll, defaultOpen = true, children 
           />
         </div>
       </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
+      {open && <div className="px-5 pb-5">{children}</div>}
     </div>
   );
 }

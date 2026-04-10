@@ -27,15 +27,15 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
     <div className="cl-card">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 cursor-pointer group"
+        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
         <div className="flex items-center gap-2">
-          <GitBranch size={14} strokeWidth={2} className="text-text-secondary" />
+          <GitBranch size={16} strokeWidth={2} style={{ color: "var(--color-primary)" }} />
           <div>
-            <h3 className="text-xs font-semibold tracking-wider uppercase text-text-secondary group-hover:text-text-primary transition-colors">
+            <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
               Replaced Regulations ({supersessions.length})
             </h3>
-            <p className="text-[11px] text-text-muted mt-0.5">
+            <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
               Regulations that have been replaced by newer versions
             </p>
           </div>
