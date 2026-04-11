@@ -5,12 +5,21 @@
   --color-foreground: var(--color-text-primary);
   --color-surface: var(--color-bg-surface);
   --color-surface-raised: var(--color-bg-raised);
+  --color-surface-overlay: var(--color-bg-raised);
   --color-border: var(--color-border);
   --color-border-subtle: var(--color-border);
+  --color-border-medium: var(--color-border-strong);
+  --color-border-light: var(--color-border);
   --color-border-strong: var(--color-border-strong);
   --color-active-bg: var(--color-active-bg);
   --color-active-border: var(--color-active-border);
   --color-primary: var(--color-primary);
+
+  /* Text color aliases — makes text-text-primary, text-text-secondary etc. work as Tailwind classes */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-accent: var(--color-text-accent);
+  --color-text-muted: var(--color-text-muted);
 
   --font-sans: var(--font-jakarta), system-ui, sans-serif;
   --font-display: var(--font-anton), system-ui, sans-serif;

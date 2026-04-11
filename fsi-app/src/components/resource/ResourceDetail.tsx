@@ -98,15 +98,35 @@ export function ResourceDetail({
         </button>
       </div>
 
-      {/* Priority Reasoning */}
-      {r.reasoning && (
+      {/* Priority Reasoning — compact when fullBrief exists */}
+      {r.fullBrief ? (
+        /* Stat strip: quick orientation before the full brief */
+        <div className="flex gap-3 flex-wrap">
+          {r.complianceDeadline && (
+            <div className="px-3 py-2 rounded-md" style={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)" }}>
+              <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: "var(--color-text-muted)" }}>Deadline</span>
+              <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{r.complianceDeadline}</span>
+            </div>
+          )}
+          {r.timeline?.[0] && (
+            <div className="px-3 py-2 rounded-md" style={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)" }}>
+              <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: "var(--color-text-muted)" }}>Status</span>
+              <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{r.timeline[r.timeline.length - 1]?.status === "past" ? "In Force" : "Upcoming"}</span>
+            </div>
+          )}
+          <div className="px-3 py-2 rounded-md" style={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)" }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: "var(--color-text-muted)" }}>Urgency</span>
+            <span className="text-sm font-semibold" style={{ color: PRIORITY_COLORS[r.priority] }}>{urgency} / {r.priority}</span>
+          </div>
+        </div>
+      ) : r.reasoning ? (
         <div className="border-l-2 border-[var(--color-primary)] pl-3 py-1">
           <span className="text-xs font-semibold tracking-wider uppercase text-text-accent block mb-1">
             Why {r.priority}
           </span>
           <p className="text-xs text-text-primary/80 leading-relaxed">{r.reasoning}</p>
         </div>
-      )}
+      ) : null}
 
       {/* Regulatory Conflict */}
       {r.regulatoryConflict && (

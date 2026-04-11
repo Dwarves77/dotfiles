@@ -8,6 +8,9 @@ interface WorkspaceState {
   orgId: string | null;
   orgName: string;
 
+  // User role in current org
+  userRole: "owner" | "admin" | "editor" | "viewer" | null;
+
   // Sector profile — which sectors this workspace operates in
   sectorProfile: string[];
 
@@ -19,6 +22,7 @@ interface WorkspaceState {
 
   // Actions
   setWorkspace: (orgId: string, orgName: string) => void;
+  setUserRole: (role: WorkspaceState["userRole"]) => void;
   setSectorProfile: (sectors: string[]) => void;
   setJurisdictionWeights: (weights: Record<string, number> | null) => void;
   setSectorWeights: (weights: Record<string, number> | null) => void;
@@ -32,11 +36,13 @@ const DEV_SECTORS = ["fine-art", "live-events", "luxury-goods", "film-tv", "auto
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   orgId: DEV_ORG_ID,
   orgName: DEV_ORG_NAME,
+  userRole: "owner",
   sectorProfile: DEV_SECTORS,
   jurisdictionWeights: null,
   sectorWeights: null,
 
   setWorkspace: (orgId, orgName) => set({ orgId, orgName }),
+  setUserRole: (userRole) => set({ userRole }),
   setSectorProfile: (sectorProfile) => set({ sectorProfile }),
   setJurisdictionWeights: (jurisdictionWeights) => set({ jurisdictionWeights }),
   setSectorWeights: (sectorWeights) => set({ sectorWeights }),
