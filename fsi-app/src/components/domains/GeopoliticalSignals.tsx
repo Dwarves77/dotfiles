@@ -176,9 +176,15 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
               {signal.label}
             </h3>
           </div>
-          <p className="text-xs mt-1 line-clamp-1" style={{ color: "var(--color-text-secondary)" }}>
+          <p className="text-xs mt-1 line-clamp-2" style={{ color: "var(--color-text-secondary)" }}>
             {signal.description}
           </p>
+          {/* Show first indicator's "why" as preview */}
+          {!expanded && signal.indicators[0] && (
+            <p className="text-[11px] mt-1 line-clamp-1 italic" style={{ color: "var(--color-primary)" }}>
+              {signal.indicators[0].why_it_matters.split(".")[0]}.
+            </p>
+          )}
         </div>
         {signal.active_risks.length > 0 && (
           <AlertTriangle size={14} style={{ color: "var(--color-warning)" }} />
@@ -218,18 +224,18 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
                   {ind.what_it_measures}
                 </p>
 
-                {/* Why it matters to freight */}
+                {/* Why it matters to freight — prominent callout */}
                 <div
-                  className="p-2 rounded border-l-2"
+                  className="p-3 rounded-md"
                   style={{
-                    borderLeftColor: "var(--color-primary)",
-                    backgroundColor: "var(--color-active-bg)",
+                    borderLeft: "3px solid var(--color-primary)",
+                    backgroundColor: "#FFF7F0",
                   }}
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--color-primary)" }}>
-                    Why this matters
+                  <span className="text-[10px] font-bold uppercase tracking-widest block mb-1" style={{ color: "#E8610A" }}>
+                    Why This Matters to Your Business
                   </span>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--color-text-primary)" }}>
+                  <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-primary)" }}>
                     {ind.why_it_matters}
                   </p>
                 </div>
