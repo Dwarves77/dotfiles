@@ -164,7 +164,7 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
     >
       <div className="shrink-0 w-[72px] pt-1 mr-3">
         <span
-          className="text-[10px] font-bold tracking-[0.15em] uppercase block"
+          className="text-[11px] font-bold tracking-[0.12em] uppercase block"
           style={{ color: "var(--color-text-secondary)" }}
         >
           {label}

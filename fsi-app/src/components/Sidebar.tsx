@@ -47,7 +47,7 @@ export function Sidebar() {
             {APP_NAME}
           </h1>
           <p
-            className="text-[8px] font-bold tracking-[0.2em] uppercase mt-0.5"
+            className="text-[10px] font-bold tracking-[0.15em] uppercase mt-0.5"
             style={{ color: "var(--color-text-muted)" }}
           >
             {APP_TAGLINE}
@@ -71,7 +71,7 @@ export function Sidebar() {
             style={{
               color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
               backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
-              borderLeft: isActive(href) ? "3px solid var(--color-primary)" : "3px solid transparent",
+              fontWeight: isActive(href) ? 600 : 400,
             }}
           >
             <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />

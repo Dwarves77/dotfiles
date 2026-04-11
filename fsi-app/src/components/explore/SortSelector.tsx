@@ -17,7 +17,7 @@ export function SortSelector() {
     <div className="flex items-center gap-0">
       <div className="shrink-0 w-[72px] mr-3">
         <span
-          className="text-[9px] font-bold tracking-[0.15em] uppercase"
+          className="text-[11px] font-bold tracking-[0.12em] uppercase"
           style={{ color: "var(--color-text-muted)" }}
         >
           Sort

@@ -80,9 +80,9 @@ export function WeeklyBriefing({
           <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
             Weekly Briefing
           </h3>
-          <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
             {date}
-          </span>
+          </p>
         </div>
         <ChevronDown
           size={16}

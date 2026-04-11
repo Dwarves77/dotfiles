@@ -386,18 +386,10 @@ export function Dashboard({
                         <div
                           id={`resource-${r.id}`}
                           className={cn(
-                            "flex-1 min-w-0 border rounded-lg card-expand",
-                            isExpanded
-                              ? "border-[var(--color-border-strong)]"
-                              : "border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:-translate-y-px"
+                            "flex-1 min-w-0 cl-row-card card-expand",
+                            `cl-priority-${r.priority.toLowerCase()}`,
+                            isExpanded && "ring-1 ring-[var(--color-border-medium)]"
                           )}
-                          style={{
-                            borderLeftWidth: 3,
-                            borderLeftColor: topicColor || "var(--color-border)",
-                            backgroundColor: "var(--surface-card)",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
-                            transition: "all 200ms ease",
-                          }}
                         >
                           <ResourceCard resource={r} embedded />
                           {isExpanded && (

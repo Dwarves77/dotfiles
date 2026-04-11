@@ -85,7 +85,7 @@
 .cl-page-title    { font-size: 20px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.01em; }
 .cl-section-label { font-size: 10px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.08em; text-transform: uppercase; }
 .cl-card-title    { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
-.cl-card-body     { font-size: 13px; font-weight: 400; color: var(--color-text-secondary); line-height: 1.55; }
+.cl-card-body     { font-size: 14px; font-weight: 400; color: var(--color-text-secondary); line-height: 1.55; }
 .cl-card-meta     { font-size: 11px; font-weight: 500; color: var(--color-text-muted); }
 .cl-stat-number   { font-size: 34px; font-weight: 900; color: var(--color-text-primary); line-height: 1; }
 

@@ -17,7 +17,7 @@ export function Tag({ label, color, onClick, className }: TagProps) {
         onClick?.(e);
       }}
       className={cn(
-        "inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded",
+        "inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-md",
         "border transition-all duration-200",
         onClick && "cursor-pointer hover:opacity-80",
         className

@@ -89,13 +89,13 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
           </h3>
 
           {/* Note */}
-          <p className="text-[13px] leading-[20px] text-text-secondary line-clamp-2 mb-1">
+          <p className="text-[14px] leading-[21px] text-text-secondary line-clamp-2 mb-1">
             {r.note}
           </p>
 
           {/* Reasoning — why this priority (skip if same as focus view why) */}
           {r.reasoning && r.reasoning !== why && (
-            <p className="text-[13px] leading-[20px] text-text-accent/80 line-clamp-2 mb-2 italic">
+            <p className="text-[14px] leading-[21px] text-text-accent/80 line-clamp-2 mb-2 italic">
               {r.reasoning}
             </p>
           )}
