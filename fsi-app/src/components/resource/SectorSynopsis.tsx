@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useResourceStore, type StoredSynopsis, type StoredChange } from "@/stores/resourceStore";
@@ -121,9 +121,11 @@ function parseSections(markdown: string): { label: string; color: string; conten
 
 function SynopsisMarkdown({ content, sectorName }: { content: string; sectorName: string }) {
   const sections = parseSections(content);
+  const topId = useId().replace(/:/g, "") + "-top";
 
   return (
     <div className="synopsis-content space-y-4">
+      <div id={topId} />
       {sections.map((section, i) => (
         <div key={i}>
           <div
@@ -135,6 +137,15 @@ function SynopsisMarkdown({ content, sectorName }: { content: string; sectorName
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
             {section.content}
           </ReactMarkdown>
+          {sections.length > 3 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); document.getElementById(topId)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+              className="text-[10px] font-medium mt-1 cursor-pointer transition-colors"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Back to top
+            </button>
+          )}
         </div>
       ))}
     </div>

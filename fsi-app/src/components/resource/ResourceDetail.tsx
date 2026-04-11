@@ -167,19 +167,24 @@ export function ResourceDetail({
         </div>
       )}
 
-      {/* Sector-specific synopsis from intelligence_summaries, or fallback */}
-      <SectorSynopsisView
-        itemId={r.id}
-        fullBrief={r.fullBrief}
-        fallbackWhatIsIt={r.whatIsIt}
-        fallbackWhyMatters={r.whyMatters}
-        fallbackKeyData={r.keyData}
-      />
-
-      {/* Impact Scores */}
+      {/* Impact Scores — at top so you see what matters immediately */}
       <ImpactScores scores={scores} reasoning={r.impactReasoning} />
 
-      {/* Disputes */}
+      {/* Timeline — key deadlines visible before detail */}
+      <div>
+        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
+          Timeline
+        </span>
+        {r.timeline && r.timeline.length > 0 ? (
+          <TimelineBar items={r.timeline} color={topicColor} />
+        ) : (
+          <p className="text-[11px] text-text-muted italic">
+            No timeline milestones recorded yet — pending data enrichment
+          </p>
+        )}
+      </div>
+
+      {/* Disputes — visible before synopsis so you know what's contested */}
       {dispute?.note && (
         <div className="border border-[#FF9500]/20 rounded-md bg-[#FF9500]/5 p-3">
           <div className="flex items-center gap-1.5 mb-1.5">
@@ -219,19 +224,14 @@ export function ResourceDetail({
         </div>
       )}
 
-      {/* Timeline */}
-      <div>
-        <span className="text-xs font-semibold tracking-wider uppercase text-text-secondary block mb-1">
-          Timeline
-        </span>
-        {r.timeline && r.timeline.length > 0 ? (
-          <TimelineBar items={r.timeline} color={topicColor} />
-        ) : (
-          <p className="text-[11px] text-text-muted italic">
-            No timeline milestones recorded yet — pending data enrichment
-          </p>
-        )}
-      </div>
+      {/* Sector-specific synopsis */}
+      <SectorSynopsisView
+        itemId={r.id}
+        fullBrief={r.fullBrief}
+        fallbackWhatIsIt={r.whatIsIt}
+        fallbackWhyMatters={r.whyMatters}
+        fallbackKeyData={r.keyData}
+      />
 
       {/* Regulatory Lineage */}
       {lineage.length > 1 && (
