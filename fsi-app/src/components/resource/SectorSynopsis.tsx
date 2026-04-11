@@ -160,9 +160,14 @@ function SingleSectorSynopsis({ synopsis, sectorName }: { synopsis: StoredSynops
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--color-primary)" }}>
-          {sectorName}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--color-primary)" }}>
+            {sectorName}
+          </span>
+          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0" }}>
+            Full Brief
+          </span>
+        </div>
         <span
           className="text-[10px] font-bold px-2 py-0.5 rounded"
           style={{ backgroundColor: badge.bg, color: badge.text, border: `1px solid ${badge.border}` }}
@@ -253,7 +258,7 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
           className="text-[11px] font-medium px-3 py-1.5 rounded-md mb-3"
           style={{ backgroundColor: "var(--color-surface-raised)", color: "var(--color-text-muted)" }}
         >
-          General summary — sector-specific analysis not yet available
+          Summary — full sector-specific analysis in progress
         </div>
         {fallbackWhatIsIt && (
           <div className="mb-3">

@@ -222,11 +222,10 @@ export function MapView({
       // Inherit global regulations for all jurisdictions (except global itself)
       const inherited = id === "global" ? [] : globalResources;
       // EU member states inherit EU regulations
-      const euInherited = euMemberIds.some((m) => m.startsWith(id)) || id === "eu" ? [] :
-        (id === "uk" ? [] : // UK is NOT in EU
-        Object.keys(SUB_JURISDICTION_CENTROIDS).some((k) => k === id) ? euResources : []);
+      const isEuMember = euMemberIds.includes(id);
+      const euInherited = isEuMember ? euResources : [];
 
-      const allRes = [...directResources, ...inherited];
+      const allRes = [...directResources, ...inherited, ...euInherited];
       if (allRes.length === 0) continue; // Skip jurisdictions with zero relevant regulations
 
       const jurDef = JURISDICTIONS.find((j) => j.id === id);
@@ -986,7 +985,7 @@ export function MapView({
                             </div>
                             <div className="flex items-center gap-1 text-text-muted">
                               <span className="text-xs tabular-nums shrink-0">
-                                {jur.resources.length} reg{jur.resources.length !== 1 ? "s" : ""}
+                                {jur.resources.length} reg{jur.resources.length !== 1 ? "s" : ""}{jur.isSubJurisdiction ? " (incl. inherited)" : ""}
                               </span>
                               <ChevronRight size={14} />
                             </div>

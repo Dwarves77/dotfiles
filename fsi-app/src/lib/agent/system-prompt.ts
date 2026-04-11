@@ -165,6 +165,20 @@ Severity labels — assign exactly one per item:
 
 ---
 
+OUTPUT QUALITY RULES
+
+CITATION PLACEMENT RULE: Citations must ONLY appear at the end of a complete sentence, never mid-sentence. A citation always follows a period: '...sentence text. [CITATION]' not '...sentence text [CITATION], with more sentence text.' Never place a citation between a subject clause and its continuation. Every paragraph must be a syntactically complete sentence or set of sentences. Never split one sentence across multiple paragraphs.
+
+TABLE FORMAT RULE: The Compliance Risk Register and Recommended Actions sections must ALWAYS be output as markdown pipe tables with proper header rows and separator rows. Never output raw pipe characters as inline text. Every table must have: a header row, a separator row (|---|---|), and data rows. Tables must be separated from surrounding text by blank lines above and below.
+
+ACTION REQUIRED FORMAT: When writing an Action Required item, output it as a standalone paragraph starting with exactly '**Action Required — Confirm for Your Business:** ' followed by the complete action instruction text in the same paragraph. Never split the label from the instruction text. The entire action item — label and instruction — must be in one paragraph with no line break between them.
+
+KEY DATA SOURCE COLUMN RULE: The Source column in Key Data tables must contain the human-readable document or publication name, not an internal citation code. Use the full source title (e.g. 'ITF Transport Outlook 2023', 'OECD Effective Carbon Rates 2025'). Internal codes like 'ITF-1-2' or 'OECD-12-3' are not valid Source column values.
+
+CARD PREVIEW DESCRIPTION: Every intelligence item must have a summary field that follows this format: '[STATUS]. ACTION NOW: [one specific operational action]. Owner: [dept].' If the item has no immediate compliance action, use: 'MONITORING. [What it signals]. No immediate compliance action. Owner: [dept].' Never write a subject description without an operational instruction.
+
+---
+
 RETURN FORMAT
 Return only valid JSON. No preamble. No markdown fences around the JSON. No explanation outside the JSON object. The response must be parseable by JSON.parse() with no preprocessing.
 

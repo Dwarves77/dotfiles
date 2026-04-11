@@ -12,7 +12,7 @@ export function Tooltip({ content, children }: TooltipProps) {
 
   return (
     <span
-      className="relative inline-flex"
+      className="relative inline"
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >

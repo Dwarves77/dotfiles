@@ -82,11 +82,62 @@ function createComponents(briefId: string): Components {
       );
     },
 
-    p: ({ children }) => (
-      <p className="text-[13px] leading-[22px] text-text-primary/85 mb-3">
-        {children}
-      </p>
-    ),
+    p: ({ children }) => {
+      const text = String(children);
+
+      // Detect Action Required paragraphs and render as callout box with ALL text inside
+      if (text.includes("Action Required") || text.includes("Confirm for Your Business") || text.includes("Legal Confirmation Required")) {
+        const bodyText = text.replace(/^\*?\*?(Action Required|Confirm for Your Business|Legal Confirmation Required)\s*[-—:]\s*(Confirm for Your Business\s*[-—:]\s*)?/i, "").trim();
+        if (bodyText) {
+          return (
+            <div className="rounded-r-md my-3" style={{ background: "#FFF7F0", borderLeft: "3px solid #E8610A", padding: "10px 14px" }}>
+              <strong className="block mb-1" style={{ color: "#E8610A", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
+                Action Required
+              </strong>
+              <span className="text-[13px] leading-relaxed" style={{ color: "#1a1a1a" }}>{bodyText}</span>
+            </div>
+          );
+        }
+      }
+
+      // Detect raw markdown pipe tables that weren't parsed by remark
+      if (text.includes("|---") || (text.includes("| ") && text.split("|").length > 3)) {
+        // Parse the pipe table into HTML
+        const lines = text.split("\n").filter((l) => l.trim().length > 0);
+        const headerLine = lines.find((l) => l.includes("|") && !l.includes("---"));
+        const dataLines = lines.filter((l) => l.includes("|") && !l.includes("---") && l !== headerLine);
+        if (headerLine) {
+          const headers = headerLine.split("|").map((h) => h.trim()).filter(Boolean);
+          const rows = dataLines.map((l) => l.split("|").map((c) => c.trim()).filter(Boolean));
+          return (
+            <div className="overflow-x-auto my-4 rounded-lg" style={{ border: "1px solid var(--color-border)" }}>
+              <table className="w-full text-[12px] border-collapse">
+                <thead style={{ background: "#FAFAF8", borderBottom: "1px solid var(--color-border)" }}>
+                  <tr>{headers.map((h, i) => <th key={i} className="text-left px-3 py-2.5 font-bold text-[11px] uppercase" style={{ color: "var(--color-text-secondary)", letterSpacing: "0.04em" }}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, ri) => (
+                    <tr key={ri} className="even:bg-black/[0.018]" style={{ borderBottom: "1px solid var(--color-border)" }}>
+                      {row.map((cell, ci) => {
+                        const badge = riskBadge(cell);
+                        return badge
+                          ? <td key={ci} className="px-3 py-2.5 align-top"><span className={badge} style={{ fontSize: "10px", padding: "2px 8px" }}>{cell}</span></td>
+                          : <td key={ci} className="px-3 py-2.5 text-text-primary/80 align-top text-[12px] leading-relaxed">{cell}</td>;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+      }
+      return (
+        <p className="text-[13px] leading-[22px] text-text-primary/85 mb-3">
+          {children}
+        </p>
+      );
+    },
 
     ul: ({ children }) => (
       <ul className="space-y-1.5 mb-3 ml-1">{children}</ul>
