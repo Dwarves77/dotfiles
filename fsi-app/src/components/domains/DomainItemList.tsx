@@ -81,7 +81,7 @@ export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
                   className="text-[13px] leading-relaxed line-clamp-2"
                   style={{ color: "var(--color-text-secondary)" }}
                 >
-                  {item.note || item.whatIsIt?.slice(0, 200)}
+                  {item.note || item.whatIsIt}
                 </p>
               </div>
             </button>

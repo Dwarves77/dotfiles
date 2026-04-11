@@ -107,12 +107,12 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                           </span>
                           {ch.prev && (
                             <p className="text-xs text-text-secondary line-through">
-                              {ch.prev.slice(0, 120)}
+                              {ch.prev}
                             </p>
                           )}
                           {ch.now && (
                             <p className="text-xs text-text-primary font-medium">
-                              {ch.now.slice(0, 120)}
+                              {ch.now}
                             </p>
                           )}
                           {ch.impact && (

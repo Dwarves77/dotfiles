@@ -428,7 +428,7 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
                   )}
                   {!update.proposed_changes?.title && (
                     <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                      {update.reason || JSON.stringify(update.proposed_changes).slice(0, 300)}
+                      {update.reason || JSON.stringify(update.proposed_changes, null, 2)}
                     </p>
                   )}
                   <div className="flex gap-2">

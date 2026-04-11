@@ -74,14 +74,14 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-text-secondary line-through">
-                    {s.oldTitle || oldR?.title?.slice(0, 50) || s.old}
+                    {s.oldTitle || oldR?.title || s.old}
                   </span>
                   <span className="text-xs text-text-secondary">&rarr;</span>
                   <button
                     onClick={() => navigateToResource(s.new)}
                     className="text-xs text-text-primary hover:text-text-accent cursor-pointer transition-colors font-medium underline"
                   >
-                    {s.newTitle || newR?.title?.slice(0, 50) || s.new}
+                    {s.newTitle || newR?.title || s.new}
                   </button>
                 </div>
                 <p className="text-xs text-text-secondary leading-relaxed">{s.note}</p>

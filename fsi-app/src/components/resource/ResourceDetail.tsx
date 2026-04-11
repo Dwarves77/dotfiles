@@ -256,7 +256,7 @@ export function ResourceDetail({
                       : "border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer"
                   )}
                 >
-                  {node.title.slice(0, 40)}
+                  {node.title}
                 </button>
                 {i < lineage.length - 1 && (
                   <span className="text-text-secondary text-xs">&rarr;</span>
@@ -286,7 +286,7 @@ export function ResourceDetail({
                       onClick={() => navigateToResource(id)}
                       className="text-xs px-1.5 py-0.5 rounded-md border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
-                      {ref?.title?.slice(0, 35) || id}
+                      {ref?.title || id}
                     </button>
                   );
                 })}
@@ -305,7 +305,7 @@ export function ResourceDetail({
                       onClick={() => navigateToResource(id)}
                       className="text-xs px-1.5 py-0.5 rounded-md border border-border-subtle text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
-                      {ref?.title?.slice(0, 35) || id}
+                      {ref?.title || id}
                     </button>
                   );
                 })}
