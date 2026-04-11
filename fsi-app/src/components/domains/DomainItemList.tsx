@@ -24,11 +24,7 @@ export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
     // For now, domain filtering uses the item_type or category since domain isn't on the Resource type
     // Domain 2 = technology items, Domain 4 = market_signal items
     // We check if the resource has a matching category pattern
-    return resources.filter((r) => {
-      if (domain === 2) return r.type === "technology";
-      if (domain === 4) return r.type === "market_signal";
-      return false;
-    });
+    return resources.filter((r) => r.domain === domain);
   }, [resources, domain]);
 
   if (domainItems.length === 0) {

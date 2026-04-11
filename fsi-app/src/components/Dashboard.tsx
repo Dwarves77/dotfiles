@@ -434,8 +434,8 @@ export function Dashboard({
             subtitle="Before operating in a new region, understand what it will cost and what rules apply. Energy costs, labor rates, and sustainability requirements by location."
             aiPlaceholder="Ask — 'What are warehouse costs in Dubai?' or 'What EV charging infrastructure exists in the EU?'"
             tabs={[
-              { id: "regional", label: "By Jurisdiction", content: <RegionalIntelligence /> },
-              { id: "facilities", label: "Facility Data", content: <FacilityOptimization /> },
+              { id: "regional", label: "By Jurisdiction", content: <><DomainItemList domain={3} emptyMessage="No regional intelligence items yet." /><RegionalIntelligence /></> },
+              { id: "facilities", label: "Facility Data", content: <><DomainItemList domain={6} emptyMessage="No facility data items yet." /><FacilityOptimization /></> },
             ]}
           />
         )}
@@ -447,7 +447,7 @@ export function Dashboard({
             subtitle="We track where our data comes from and flag when academic research is about to change industry standards. This helps you trust the data and stay ahead."
             aiPlaceholder="Ask — 'What research affects carbon accounting standards?' or 'How reliable is our EU ETS data?'"
             tabs={[
-              { id: "research", label: "Research Pipeline", content: <ResearchPipeline /> },
+              { id: "research", label: "Research Pipeline", content: <><DomainItemList domain={7} emptyMessage="No research items yet." /><ResearchPipeline /></> },
               { id: "sources", label: "Source Registry", content: <SourceHealthDashboard /> },
             ]}
           />

@@ -119,6 +119,9 @@ export interface Resource {
   // operational impact by business function, tables, source citations per claim.
   fullBrief?: string;
 
+  // Intelligence domain (1=regulatory, 2=tech, 3=regional, 4=market, 5=sources, 6=facility, 7=research)
+  domain?: number;
+
   // Applied from REMAP
   modes?: string[];
   topic?: string;

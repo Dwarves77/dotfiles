@@ -382,6 +382,7 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
       whyMatters: row.why_matters || "",
       keyData: row.key_data || [],
       fullBrief: row.full_brief || undefined,
+      domain: row.domain || 1,
       timeline: (timelines || []).map((t: any) => ({
         date: t.date,
         label: t.label,
@@ -495,7 +496,8 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     const [synopsesResult, changesResult, sectorsResult] = await Promise.all([
       supabase
         .from("intelligence_summaries")
-        .select("item_id, sector, summary, urgency_score, intelligence_items!inner(legacy_id)"),
+        .select("item_id, sector, summary, urgency_score, intelligence_items!inner(legacy_id)")
+        .limit(10000),
       supabase
         .from("intelligence_changes")
         .select("item_id, change_type, change_severity, change_summary, intelligence_items!inner(legacy_id)")
