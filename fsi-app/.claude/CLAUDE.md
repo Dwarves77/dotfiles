@@ -120,6 +120,36 @@ None. No unauthenticated API routes exist.
 
 ---
 
+## AGENT ARCHITECTURE
+
+ONE Claude API call per source URL. Not per item. Not per sector.
+Claude identifies all items in the source, runs all delta detection, and generates 
+all 15 sector synopses for all signal items in a single response.
+
+Agent in Claude Console: agent_011CZwC8PTbAfM355bVK8w7G
+System prompt: src/lib/agent/system-prompt.ts
+API route: POST /api/agent/run
+
+Cost: 1 API call per source URL. 73 sources = maximum 73 API calls per full scan.
+
+DO NOT change this to per-item or per-sector calls.
+DO NOT make live Claude API calls at page load or user request.
+DO NOT rebuild the agent as a new file or route without reading this section first.
+
+The sector breakdown into 15 operationally distinct sectors happens because all 15 
+sector_contexts records are injected into the user message at runtime. The 
+synopsis_prompt field in each sector context record is what makes each sector 
+synopsis specific rather than generic. Never remove sector_contexts injection from 
+the route.
+
+Permitted live Claude API calls in this codebase:
+- /api/ask — user natural language questions, rate limited 10 per workspace per hour
+- /api/admin/scan — admin triggered source scan, 4 hour cooldown minimum
+
+Everything else reads from intelligence_summaries in the database.
+
+---
+
 ## Session Log
 
 ### 2026-04-04 — Major Renovation Session
