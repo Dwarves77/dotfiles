@@ -165,20 +165,20 @@ function createComponents(briefId: string): Components {
     strong: ({ children }) => {
       const text = String(children);
 
-      // Action Required callouts (#3) — warm orange pattern matching cl-ai-bar
+      // Action Required callouts — styled like the Disputed box
       if (text.startsWith("Action Required") || text.startsWith("Confirm for Your Business") || text.startsWith("Legal Confirmation Required")) {
-        const body = text.replace(/^(Action Required|Confirm for Your Business|Legal Confirmation Required)\s*[-—:]\s*/i, "");
+        const body = text.replace(/^(Action Required|Confirm for Your Business|Legal Confirmation Required)\s*[-—:]\s*(Confirm for Your Business\s*[-—:]\s*)?/i, "").trim();
         return (
           <div
-            className="rounded-r-md my-3"
+            className="rounded-lg my-3 p-3"
             style={{
               background: "#FFF7F0",
+              border: "1px solid rgba(232, 97, 10, 0.2)",
               borderLeft: "3px solid #E8610A",
-              padding: "10px 14px",
             }}
           >
             <strong
-              className="block mb-1"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 color: "#E8610A",
                 fontSize: "11px",
@@ -187,11 +187,13 @@ function createComponents(briefId: string): Components {
                 fontWeight: 700,
               }}
             >
-              Action Required
+              <span style={{ fontSize: "14px" }}>&#9888;</span> Action Required
             </strong>
-            <span className="text-[13px] leading-relaxed" style={{ color: "#1a1a1a" }}>
-              {body}
-            </span>
+            {body && (
+              <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>
+                {body}
+              </p>
+            )}
           </div>
         );
       }
@@ -345,10 +347,33 @@ function createComponents(briefId: string): Components {
   };
 }
 
+// Preprocess markdown to merge Action Required callouts with their instruction text
+function preprocessMarkdown(md: string): string {
+  // Pattern: **Action Required — Confirm for Your Business:**\n\n<instruction text>
+  // Merge into single paragraph so the renderer captures both inside the callout box
+  return md.replace(
+    /\*\*Action Required\s*[-—:]\s*Confirm for Your Business:\*\*\s*\n\n([^\n#*]+)/gi,
+    "**Action Required — Confirm for Your Business:** $1"
+  ).replace(
+    // Also handle: **Action Required — Confirm for Your Business:**\n\n  with the text having leading whitespace
+    /\*\*Action Required\s*[-—:]\s*Confirm for Your Business:\*\*\s*\n\n\s+([^\n#*]+)/gi,
+    "**Action Required — Confirm for Your Business:** $1"
+  ).replace(
+    // Clean up orphan fragments: paragraphs that are just punctuation or very short
+    /\n\n\s*[,;.]\s*\n\n/g,
+    "\n\n"
+  ).replace(
+    // Remove standalone period paragraphs
+    /\n\n\.\s*\n\n/g,
+    "\n\n"
+  );
+}
+
 export function IntelligenceBrief({ markdown }: IntelligenceBriefProps) {
   const [tocOpen, setTocOpen] = useState(true);
   const briefId = useId().replace(/:/g, "");
-  const toc = useMemo(() => extractTOC(markdown), [markdown]);
+  const processed = useMemo(() => preprocessMarkdown(markdown), [markdown]);
+  const toc = useMemo(() => extractTOC(processed), [processed]);
   const components = useMemo(() => createComponents(briefId), [briefId]);
 
   return (
@@ -415,7 +440,7 @@ export function IntelligenceBrief({ markdown }: IntelligenceBriefProps) {
 
       {/* Brief content */}
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {markdown}
+        {processed}
       </ReactMarkdown>
     </div>
   );
