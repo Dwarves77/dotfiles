@@ -36,7 +36,7 @@ export function Sidebar() {
       <div className="px-4 py-5 border-b" style={{ borderColor: "var(--color-border)" }}>
         <Link href="/" className="block">
           <h1
-            className="text-lg uppercase"
+            className="text-xl uppercase"
             style={{
               color: "var(--color-text-primary)",
               fontFamily: "var(--font-display)",
