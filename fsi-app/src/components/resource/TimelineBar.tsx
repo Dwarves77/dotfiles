@@ -61,7 +61,7 @@ export function TimelineBar({ items, color = "#34C759" }: TimelineBarProps) {
                 )}
                 style={{ color: m.isPast ? color : "var(--color-text-secondary)" }}
               >
-                {m.date}
+                {(() => { const mo = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; const p = m.date.split("-"); return p.length >= 2 ? `${mo[parseInt(p[1])-1]} ${p[0]}` : m.date; })()}
               </span>
               <span className="text-xs text-text-secondary text-center leading-tight px-1 truncate max-w-full">
                 {m.label}

@@ -411,6 +411,31 @@ export function Dashboard({
                 )}
               </div>
             )}
+
+            {/* Selection action bar */}
+            {selectedIds.length > 0 && (
+              <div
+                className="sticky bottom-4 z-30 flex items-center justify-between px-4 py-3 rounded-lg shadow-lg mx-auto max-w-lg"
+                style={{ backgroundColor: "var(--color-invert-bg)", color: "var(--color-invert-text)" }}
+              >
+                <span className="text-sm font-medium">{selectedIds.length} selected</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setExpanded("__export__")}
+                    className="text-xs font-medium px-3 py-1.5 rounded-md cursor-pointer"
+                    style={{ backgroundColor: "var(--color-primary)", color: "white" }}
+                  >
+                    Export
+                  </button>
+                  <button
+                    onClick={() => useExportStore.getState().clearSelection()}
+                    className="text-xs font-medium px-3 py-1.5 rounded-md cursor-pointer opacity-70 hover:opacity-100"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

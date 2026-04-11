@@ -81,7 +81,7 @@ export function WeeklyBriefing({
             Weekly Briefing
           </h3>
           <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {date}
+            {(() => { const d = new Date(date + "T12:00:00"); return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); })()}
           </p>
         </div>
         <ChevronDown
@@ -118,8 +118,8 @@ export function WeeklyBriefing({
               {briefing.disputedEntries.map((x) => (
                 <div key={x.id} className="border-l-2 border-[#FF9500] pl-2 mb-2">
                   <p className="text-xs font-medium text-text-primary">{x.r!.title}</p>
-                  <p className="text-xs text-text-secondary line-clamp-2">
-                    {x.note.slice(0, 150)}
+                  <p className="text-xs text-text-secondary line-clamp-3">
+                    {x.note}
                   </p>
                   {x.sources?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">

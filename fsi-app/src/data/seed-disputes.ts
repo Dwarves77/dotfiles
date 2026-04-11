@@ -14,7 +14,7 @@ export type DisputeMap = Record<string, Dispute>;
 export const SEED_DISPUTES: DisputeMap = {
   l6: {
     active: true,
-    note: "Regulatory survival uncertain. EPA Phase 3 under active political review — may be weakened, delayed, or rescinded. CARB standards (l7) remain independent but federal waiver also challenged. Sources conflict on timeline.",
+    note: "Regulatory survival uncertain. EPA Phase 3 under active political review — may be weakened, delayed, or rescinded. CARB Advanced Clean Trucks standards remain independent of federal action but federal waiver is also under legal challenge. Sources conflict on timeline and enforcement outlook.",
     sources: ["EPA", "Industry groups", "Environmental Defense Fund"],
   },
   l7: {

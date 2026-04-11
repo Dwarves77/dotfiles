@@ -78,10 +78,11 @@ export function FilterBar() {
             key={id}
             label={label}
             active={filters.topics.includes(id)}
-            count={counts.topicCounts[id]}
+            count={counts.topicCounts[id] || 0}
             color={TOPIC_COLORS[id]}
             accentBorder
             onClick={() => toggleFilter("topics", id)}
+            className={!counts.topicCounts[id] ? "opacity-40" : undefined}
           />
         ))}
       </FilterRow>

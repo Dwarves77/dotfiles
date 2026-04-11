@@ -30,7 +30,9 @@ export function TimelineView({ resources }: TimelineViewProps) {
         let dateStr = m.date;
         if (/^\d{4}-\d{2}$/.test(dateStr)) dateStr += "-01";
         else if (/^\d{4}$/.test(dateStr)) dateStr += "-01-01";
-        const date = new Date(dateStr);
+        // Parse as local date to avoid UTC timezone offset shifting months
+        const parts = dateStr.split("-").map(Number);
+        const date = new Date(parts[0], parts[1] - 1, parts[2] || 1);
         if (isNaN(date.getTime())) continue;
         const daysAway = Math.floor((date.getTime() - now.getTime()) / 864e5);
         all.push({
@@ -132,7 +134,7 @@ export function TimelineView({ resources }: TimelineViewProps) {
                     color: event.isPast ? "var(--color-text-muted)" : "var(--color-text-secondary)",
                     textDecoration: event.isPast ? "line-through" : "none",
                   }}>
-                    {event.dateStr}
+                    {(() => { const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]; const p = event.dateStr.split("-"); return p.length >= 2 ? `${m[parseInt(p[1])-1]} ${p[0]}` : event.dateStr; })()}
                   </span>
 
                   {/* Countdown */}

@@ -74,12 +74,13 @@ export function ResourceDetail({
       {/* Verification Badge */}
       <div className="flex items-center gap-3 pt-3">
         <div
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-xs font-medium"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-xs font-medium cursor-help"
           style={{
             color: verification.color,
             borderColor: `${verification.color}30`,
             backgroundColor: `${verification.color}10`,
           }}
+          title={`Source verification: ${verification.xrefCount} cross-reference links found. Verified = 3+ links, Partial = 1-2 links, Unverified = 0 links.`}
         >
           <Shield size={10} strokeWidth={2.5} />
           {verification.label}
@@ -87,7 +88,10 @@ export function ResourceDetail({
             <span className="opacity-60">({verification.xrefCount} links)</span>
           )}
         </div>
-        <span className="text-xs tabular-nums text-text-secondary">
+        <span
+          className="text-xs tabular-nums text-text-secondary cursor-help"
+          title={`Urgency score: ${urgency}. Calculated from compliance timeline proximity, cost impact (${scores.cost}/3), compliance obligation (${scores.compliance}/3), client-facing impact (${scores.client}/3), operational impact (${scores.operational}/3), priority weight, and sector relevance.`}
+        >
           Urgency: {urgency}
         </span>
         <button
@@ -326,23 +330,27 @@ export function ResourceDetail({
       )}
 
       {/* Priority Override */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-text-secondary">Priority:</span>
-        {(["CRITICAL", "HIGH", "MODERATE", "LOW"] as const).map((pri) => (
-          <button
-            key={pri}
-            onClick={() => updatePriority(r.id, pri)}
-            className={cn(
-              "text-xs px-1.5 py-0.5 rounded-md border cursor-pointer transition-colors",
-              r.priority === pri
-                ? "border-current font-medium"
-                : "border-border-subtle opacity-40 hover:opacity-70"
-            )}
-            style={{ color: PRIORITY_COLORS[pri] }}
-          >
-            {pri}
-          </button>
+      <div>
+        <span className="text-[10px] font-semibold uppercase tracking-wider block mb-1" style={{ color: "var(--color-text-muted)" }}>
+          Override priority for your workspace:
+        </span>
+        <div className="flex items-center gap-2">
+          {(["CRITICAL", "HIGH", "MODERATE", "LOW"] as const).map((pri) => (
+            <button
+              key={pri}
+              onClick={() => { updatePriority(r.id, pri); onToast(`Priority overridden to ${pri}. This affects your urgency sort order.`); }}
+              className={cn(
+                "text-xs px-1.5 py-0.5 rounded-md border cursor-pointer transition-colors",
+                r.priority === pri
+                  ? "border-current font-medium"
+                  : "border-border-subtle opacity-40 hover:opacity-70"
+              )}
+              style={{ color: PRIORITY_COLORS[pri] }}
+            >
+              {pri}
+            </button>
         ))}
+        </div>
       </div>
 
       {/* Archive */}
