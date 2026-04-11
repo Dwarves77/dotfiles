@@ -105,7 +105,7 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 8000,
+        max_tokens: 16000,
         system: AGENT_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -126,22 +126,30 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
       .map((b: any) => b.text)
       .join("") || "";
 
+    // Strip markdown fences if present
+    let cleanText = rawText.trim();
+    if (cleanText.startsWith("```")) {
+      cleanText = cleanText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+    }
+
     let parsed: { items: any[] };
     try {
-      parsed = JSON.parse(rawText);
+      parsed = JSON.parse(cleanText);
     } catch {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      // Try extracting the outermost JSON object
+      const jsonStart = cleanText.indexOf("{");
+      const jsonEnd = cleanText.lastIndexOf("}");
+      if (jsonStart === -1 || jsonEnd === -1) {
         return NextResponse.json(
-          { error: "Failed to parse agent response", raw: rawText.slice(0, 500) },
+          { error: "No JSON found in agent response", raw: cleanText.slice(0, 500) },
           { status: 500 }
         );
       }
       try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch {
+        parsed = JSON.parse(cleanText.slice(jsonStart, jsonEnd + 1));
+      } catch (parseErr: any) {
         return NextResponse.json(
-          { error: "Failed to parse extracted JSON", raw: jsonMatch[0].slice(0, 500) },
+          { error: `JSON parse failed: ${parseErr.message}`, raw: cleanText.slice(jsonStart, jsonStart + 500) },
           { status: 500 }
         );
       }
