@@ -227,6 +227,7 @@ interface SectorSynopsisViewProps {
 
 export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallbackWhyMatters, fallbackKeyData }: SectorSynopsisViewProps) {
   const [showAll, setShowAll] = useState(false);
+  const [showDetailed, setShowDetailed] = useState(false);
   const synopsesMap = useResourceStore((s) => s.synopses);
   const changeMap = useResourceStore((s) => s.intelligenceChanges);
   const displayNames = useResourceStore((s) => s.sectorDisplayNames);
@@ -237,48 +238,18 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
   const primarySector = sectorProfile[0];
   const primarySynopsis = itemSynopses?.get(primarySector);
 
-  // Get synopses for all active sectors that actually have data
   const activeSectorSynopses = sectorProfile
     .filter((s) => s !== primarySector && itemSynopses?.has(s))
     .map((s) => ({ sector: s, synopsis: itemSynopses!.get(s)!, name: displayNames.get(s) || s }));
 
   const primaryName = displayNames.get(primarySector) || primarySector;
+  const hasDetailedView = !!fullBrief;
 
-  // ── Prefer fullBrief when it exists — it has the deepest content ──
-  if (fullBrief) {
-    return (
-      <div>
-        <IntelligenceBrief markdown={fullBrief} />
-        {/* Sector toggle below the full brief */}
-        {primarySynopsis && activeSectorSynopses.length > 0 && (
-          <div className="mt-4">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowAll(!showAll); }}
-              className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer transition-colors"
-              style={{
-                color: showAll ? "var(--color-text-primary)" : "var(--color-primary)",
-                backgroundColor: showAll ? "var(--color-active-bg)" : "transparent",
-                border: `1px solid ${showAll ? "var(--color-active-border)" : "var(--color-border)"}`,
-              }}
-            >
-              {showAll ? "Hide sector views" : `View sector-specific analysis (${activeSectorSynopses.length + 1})`}
-            </button>
-            {showAll && (
-              <div className="mt-3 space-y-2">
-                <SectorAccordion synopsis={primarySynopsis} sectorName={primaryName} />
-                {activeSectorSynopses.map(({ sector, synopsis, name }) => (
-                  <SectorAccordion key={sector} synopsis={synopsis} sectorName={name} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
+  // ── Compact view (default): synopsis or fallback fields with colored headers ──
+  // ── Detailed view (toggle): full intelligence brief ──
 
-  // ── No fullBrief: check for synopsis, then old fields ──
-  if (!primarySynopsis) {
+  // No synopsis AND no fullBrief — show fallback only
+  if (!primarySynopsis && !fullBrief) {
 
     // Tier 3: Old whatIsIt/whyMatters/keyData fields
     return (
@@ -323,65 +294,119 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
     );
   }
 
-  // ── Synopsis exists: sector-specific view ──
+  // ── Main render: compact synopsis (default) with toggle to detailed view ──
   return (
     <div>
-      {/* Cross-sector headline */}
-      {change && (
-        <div
-          className="flex items-center gap-2 flex-wrap mb-4 px-3 py-2 rounded-md"
-          style={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)" }}
-        >
-          <p className="text-[12px] flex-1 min-w-0" style={{ color: "var(--color-text-primary)" }}>
-            {change.changeSummary}
-          </p>
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
+      {/* View toggle */}
+      {hasDetailedView && (
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowDetailed(false); }}
+            className="text-[11px] font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors"
             style={{
-              ...(() => { const b = severityBadge(change.changeSeverity); return { backgroundColor: b.bg, color: b.text, border: `1px solid ${b.border}` }; })(),
+              backgroundColor: !showDetailed ? "var(--color-invert-bg)" : "transparent",
+              color: !showDetailed ? "var(--color-invert-text)" : "var(--color-text-secondary)",
+              border: showDetailed ? "1px solid var(--color-border)" : "none",
             }}
           >
-            {severityBadge(change.changeSeverity).label}
-          </span>
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
+            Synopsis
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowDetailed(true); }}
+            className="text-[11px] font-semibold px-3 py-1 rounded-md cursor-pointer transition-colors"
             style={{
-              ...(() => { const b = urgencyBadge(primarySynopsis.urgencyScore); return { backgroundColor: b.bg, color: b.text, border: `1px solid ${b.border}` }; })(),
+              backgroundColor: showDetailed ? "var(--color-invert-bg)" : "transparent",
+              color: showDetailed ? "var(--color-invert-text)" : "var(--color-text-secondary)",
+              border: !showDetailed ? "1px solid var(--color-border)" : "none",
             }}
           >
-            Urgency {urgencyBadge(primarySynopsis.urgencyScore).label}
-          </span>
+            Full Details
+          </button>
         </div>
       )}
 
-      {/* Primary sector synopsis */}
-      <div className="pt-2 mt-2" style={{ borderTop: "1px solid var(--color-border)" }}>
-        <SingleSectorSynopsis synopsis={primarySynopsis} sectorName={primaryName} />
-      </div>
-
-      {/* Toggle for all active sectors */}
-      {activeSectorSynopses.length > 0 && (
-        <div className="mt-4">
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowAll(!showAll); }}
-            className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer transition-colors"
-            style={{
-              color: showAll ? "var(--color-text-primary)" : "var(--color-primary)",
-              backgroundColor: showAll ? "var(--color-active-bg)" : "transparent",
-              border: `1px solid ${showAll ? "var(--color-active-border)" : "var(--color-border)"}`,
-            }}
-          >
-            {showAll ? "Hide other sectors" : `View all my sectors (${activeSectorSynopses.length + 1})`}
-          </button>
-
-          {showAll && (
-            <div className="mt-3 space-y-2">
-              {activeSectorSynopses.map(({ sector, synopsis, name }) => (
-                <SectorAccordion key={sector} synopsis={synopsis} sectorName={name} />
-              ))}
+      {/* Detailed view — full intelligence brief */}
+      {showDetailed && fullBrief ? (
+        <IntelligenceBrief markdown={fullBrief} />
+      ) : (
+        <>
+          {/* Cross-sector headline */}
+          {change && (
+            <div
+              className="flex items-center gap-2 flex-wrap mb-4 px-3 py-2 rounded-md"
+              style={{ backgroundColor: "var(--color-surface-raised)", border: "1px solid var(--color-border)" }}
+            >
+              <p className="text-[12px] flex-1 min-w-0" style={{ color: "var(--color-text-primary)" }}>
+                {change.changeSummary}
+              </p>
+              {primarySynopsis && (
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
+                  style={{ ...(() => { const b = urgencyBadge(primarySynopsis.urgencyScore); return { backgroundColor: b.bg, color: b.text, border: `1px solid ${b.border}` }; })() }}
+                >
+                  Urgency {urgencyBadge(primarySynopsis.urgencyScore).label}
+                </span>
+              )}
             </div>
           )}
-        </div>
+
+          {/* Primary sector synopsis */}
+          {primarySynopsis ? (
+            <div className="pt-2 mt-2" style={{ borderTop: "1px solid var(--color-border)" }}>
+              <SingleSectorSynopsis synopsis={primarySynopsis} sectorName={primaryName} />
+            </div>
+          ) : (
+            /* Fallback: colored header fields */
+            <>
+              {fallbackWhatIsIt && (
+                <div className="mb-4">
+                  <div className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid var(--color-primary)", color: "var(--color-text-primary)" }}>What This Is</div>
+                  <p className="text-[13px] leading-[22px]" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>{fallbackWhatIsIt}</p>
+                </div>
+              )}
+              {fallbackWhyMatters && (
+                <div className="mb-4">
+                  <div className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #059669", color: "var(--color-text-primary)" }}>Why It Matters</div>
+                  <p className="text-[13px] leading-[22px]" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>{fallbackWhyMatters}</p>
+                </div>
+              )}
+              {fallbackKeyData && fallbackKeyData.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #2563EB", color: "var(--color-text-primary)" }}>Key Data</div>
+                  <ul className="space-y-1">
+                    {fallbackKeyData.map((d, i) => (
+                      <li key={i} className="text-[13px] leading-[20px] pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[8px] before:w-1 before:h-1 before:rounded-full before:bg-text-primary/30" style={{ color: "var(--color-text-primary)", opacity: 0.8 }}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Sector toggle */}
+          {activeSectorSynopses.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowAll(!showAll); }}
+                className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer transition-colors"
+                style={{
+                  color: showAll ? "var(--color-text-primary)" : "var(--color-primary)",
+                  backgroundColor: showAll ? "var(--color-active-bg)" : "transparent",
+                  border: `1px solid ${showAll ? "var(--color-active-border)" : "var(--color-border)"}`,
+                }}
+              >
+                {showAll ? "Hide other sectors" : `View all my sectors (${activeSectorSynopses.length + 1})`}
+              </button>
+              {showAll && (
+                <div className="mt-3 space-y-2">
+                  {activeSectorSynopses.map(({ sector, synopsis, name }) => (
+                    <SectorAccordion key={sector} synopsis={synopsis} sectorName={name} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
