@@ -67,15 +67,24 @@ function createComponents(briefId: string): Components {
       );
     },
 
-    // H3 — Sub-sections: secondary color, lighter weight (#1)
+    // H3 — Sub-sections: colored header bar matching section treatment
     h3: ({ children }) => {
       const text = String(children);
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      // Assign colors by section topic
+      let color = "#6B7280"; // default grey
+      const lower = text.toLowerCase();
+      if (lower.includes("ocean") || lower.includes("maritime") || lower.includes("shipping")) color = "#2563EB";
+      else if (lower.includes("air") || lower.includes("aviation") || lower.includes("saf")) color = "#0891B2";
+      else if (lower.includes("road") || lower.includes("truck") || lower.includes("drayage")) color = "#059669";
+      else if (lower.includes("customs") || lower.includes("reporting") || lower.includes("compliance")) color = "#7C3AED";
+      else if (lower.includes("action") || lower.includes("immediate") || lower.includes("required")) color = "#DC2626";
+      else if (lower.includes("competitive") || lower.includes("market")) color = "#D97706";
       return (
         <h3
           id={`${briefId}-${id}`}
-          className="text-[13px] font-semibold mt-5 mb-1.5 pl-2 border-l-2 border-border-medium"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-[11px] font-bold uppercase tracking-widest mt-5 mb-2 px-3 py-1.5 rounded-md"
+          style={{ backgroundColor: "#F0EDE8", borderLeft: `3px solid ${color}`, color: "var(--color-text-primary)" }}
         >
           {children}
         </h3>

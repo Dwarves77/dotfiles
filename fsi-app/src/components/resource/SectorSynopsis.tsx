@@ -244,12 +244,41 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
 
   const primaryName = displayNames.get(primarySector) || primarySector;
 
-  // ── No synopsis exists: check for fullBrief, then old fields ──
+  // ── Prefer fullBrief when it exists — it has the deepest content ──
+  if (fullBrief) {
+    return (
+      <div>
+        <IntelligenceBrief markdown={fullBrief} />
+        {/* Sector toggle below the full brief */}
+        {primarySynopsis && activeSectorSynopses.length > 0 && (
+          <div className="mt-4">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowAll(!showAll); }}
+              className="text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer transition-colors"
+              style={{
+                color: showAll ? "var(--color-text-primary)" : "var(--color-primary)",
+                backgroundColor: showAll ? "var(--color-active-bg)" : "transparent",
+                border: `1px solid ${showAll ? "var(--color-active-border)" : "var(--color-border)"}`,
+              }}
+            >
+              {showAll ? "Hide sector views" : `View sector-specific analysis (${activeSectorSynopses.length + 1})`}
+            </button>
+            {showAll && (
+              <div className="mt-3 space-y-2">
+                <SectorAccordion synopsis={primarySynopsis} sectorName={primaryName} />
+                {activeSectorSynopses.map(({ sector, synopsis, name }) => (
+                  <SectorAccordion key={sector} synopsis={synopsis} sectorName={name} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── No fullBrief: check for synopsis, then old fields ──
   if (!primarySynopsis) {
-    // Tier 2: Full intelligence brief exists (89 items have this)
-    if (fullBrief) {
-      return <IntelligenceBrief markdown={fullBrief} />;
-    }
 
     // Tier 3: Old whatIsIt/whyMatters/keyData fields
     return (
