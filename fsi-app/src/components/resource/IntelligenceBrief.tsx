@@ -347,26 +347,32 @@ function createComponents(briefId: string): Components {
   };
 }
 
-// Preprocess markdown to merge Action Required callouts with their instruction text
+// Preprocess markdown to fix broken sentence structure and merge Action Required callouts
 function preprocessMarkdown(md: string): string {
-  // Pattern: **Action Required — Confirm for Your Business:**\n\n<instruction text>
-  // Merge into single paragraph so the renderer captures both inside the callout box
-  return md.replace(
-    /\*\*Action Required\s*[-—:]\s*Confirm for Your Business:\*\*\s*\n\n([^\n#*]+)/gi,
+  let result = md;
+
+  // 1. Fix split sentences: rejoin lines that start with lowercase, comma, period, or connecting words
+  // Pattern: "...text\n\n, and\n\nmore text" → "...text, and more text"
+  // Pattern: "...text\n\n. More text" → "...text. More text"
+  result = result.replace(/\n\n([,;.]\s*(?:and|but|or|which|that|the|this|it|its|to|from|for|with|as|in|on|by|of|including|however|also|while|where|when|because|although|since)\s)/gi, " $1");
+
+  // 2. Rejoin sentences split by double newline where next line starts with lowercase or punctuation
+  result = result.replace(/\n\n([,;.]\s+)/g, "$1");
+
+  // 3. Rejoin when a line ends without sentence-ending punctuation and next starts with lowercase
+  result = result.replace(/([a-z0-9])\s*\n\n([a-z,;])/g, "$1 $2");
+
+  // 4. Remove standalone punctuation paragraphs (just "." or ", " on their own line)
+  result = result.replace(/\n\n\s*\.\s*\n\n/g, ".\n\n");
+  result = result.replace(/\n\n\s*,\s*\n\n/g, ", ");
+
+  // 5. Merge Action Required callouts with their instruction text
+  result = result.replace(
+    /\*\*Action Required\s*[-—:]\s*Confirm for Your Business:\*\*\s*\n\n\s*([^\n#*]+)/gi,
     "**Action Required — Confirm for Your Business:** $1"
-  ).replace(
-    // Also handle: **Action Required — Confirm for Your Business:**\n\n  with the text having leading whitespace
-    /\*\*Action Required\s*[-—:]\s*Confirm for Your Business:\*\*\s*\n\n\s+([^\n#*]+)/gi,
-    "**Action Required — Confirm for Your Business:** $1"
-  ).replace(
-    // Clean up orphan fragments: paragraphs that are just punctuation or very short
-    /\n\n\s*[,;.]\s*\n\n/g,
-    "\n\n"
-  ).replace(
-    // Remove standalone period paragraphs
-    /\n\n\.\s*\n\n/g,
-    "\n\n"
   );
+
+  return result;
 }
 
 export function IntelligenceBrief({ markdown }: IntelligenceBriefProps) {
