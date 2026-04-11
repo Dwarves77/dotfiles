@@ -135,6 +135,8 @@ Cost: 1 API call per source URL. 73 sources = maximum 73 API calls per full scan
 DO NOT change this to per-item or per-sector calls.
 DO NOT make live Claude API calls at page load or user request.
 DO NOT rebuild the agent as a new file or route without reading this section first.
+DO NOT create duplicate intelligence items. Every item is linked to a single source. If a scan finds an item that already exists under a different title, UPDATE the existing item — do not insert a new row. Deduplicate by source_url and by matching regulation name/number before inserting.
+DO NOT leave any item without a full_brief. Every intelligence item must have complete content. If content cannot be generated, flag the item to the admin — never leave it blank.
 
 The sector breakdown into 15 operationally distinct sectors happens because all 15 
 sector_contexts records are injected into the user message at runtime. The 
