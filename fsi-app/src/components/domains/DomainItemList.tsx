@@ -24,19 +24,17 @@ export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
     // For now, domain filtering uses the item_type or category since domain isn't on the Resource type
     // Domain 2 = technology items, Domain 4 = market_signal items
     // We check if the resource has a matching category pattern
-    return resources.filter((r) => r.domain === domain);
+    return resources.filter((r) => {
+      if (domain === 2) return r.type === "technology";
+      if (domain === 3) return r.topic === "regional" || r.sub === "regional";
+      if (domain === 4) return r.type === "market_signal";
+      if (domain === 6) return r.topic === "facility" || r.sub === "facility";
+      if (domain === 7) return r.type === "research_finding";
+      return false;
+    });
   }, [resources, domain]);
 
-  if (domainItems.length === 0) {
-    return (
-      <div
-        className="text-center py-12 rounded-lg"
-        style={{ backgroundColor: "var(--color-surface-raised)", color: "var(--color-text-muted)" }}
-      >
-        <p className="text-sm">{emptyMessage || "No intelligence items in this domain yet."}</p>
-      </div>
-    );
-  }
+  if (domainItems.length === 0) return null;
 
   return (
     <div className="space-y-2">
