@@ -243,7 +243,9 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
     .map((s) => ({ sector: s, synopsis: itemSynopses!.get(s)!, name: displayNames.get(s) || s }));
 
   const primaryName = displayNames.get(primarySector) || primarySector;
-  const hasDetailedView = !!fullBrief;
+  // Toggle available when there's a fullBrief, OR when there's a synopsis AND fallback fields
+  // (synopsis = compact, fallback fields expanded = details)
+  const hasDetailedView = !!fullBrief || !!(primarySynopsis && fallbackWhatIsIt);
 
   // ── Compact view (default): synopsis or fallback fields with colored headers ──
   // ── Detailed view (toggle): full intelligence brief ──
