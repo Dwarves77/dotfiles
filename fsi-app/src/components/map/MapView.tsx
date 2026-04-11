@@ -220,12 +220,10 @@ export function MapView({
     for (const [id, coords] of Object.entries(JURISDICTION_CENTROIDS)) {
       const directResources = parentMap[id] || [];
       // Inherit global regulations for all jurisdictions (except global itself)
+      // EU member states do NOT inherit here — they get their own marker only for country-specific regs
       const inherited = id === "global" ? [] : globalResources;
-      // EU member states inherit EU regulations
-      const isEuMember = euMemberIds.includes(id);
-      const euInherited = isEuMember ? euResources : [];
 
-      const allRes = [...directResources, ...inherited, ...euInherited];
+      const allRes = [...directResources, ...inherited];
       if (allRes.length === 0) continue; // Skip jurisdictions with zero relevant regulations
 
       const jurDef = JURISDICTIONS.find((j) => j.id === id);
@@ -237,16 +235,17 @@ export function MapView({
       ));
     }
 
-    // EU member state sub-jurisdictions — inherit EU + global regulations
+    // EU member state sub-jurisdictions — only show if they have COUNTRY-SPECIFIC regulations
+    // EU-wide regulations stay on the single "EU" marker, not duplicated to every member state
     for (const subId of euMemberIds) {
       const coords = SUB_JURISDICTION_CENTROIDS[subId];
       if (!coords) continue;
       const directResources = subMap[subId] || [];
-      const allRes = [...directResources, ...euResources, ...globalResources];
-      if (allRes.length === 0) continue;
+      // Only create a marker if this country has its OWN regulations beyond EU-wide ones
+      if (directResources.length === 0) continue;
       const label = SUB_JURISDICTION_LABELS[subId] || subId;
       results.push(buildEntry(
-        subId, allRes, coords,
+        subId, directResources, coords,
         label,
         "Europe",
         true,
@@ -985,7 +984,7 @@ export function MapView({
                             </div>
                             <div className="flex items-center gap-1 text-text-muted">
                               <span className="text-xs tabular-nums shrink-0">
-                                {jur.resources.length} reg{jur.resources.length !== 1 ? "s" : ""}{jur.isSubJurisdiction ? " (incl. inherited)" : ""}
+                                {jur.resources.length} reg{jur.resources.length !== 1 ? "s" : ""}
                               </span>
                               <ChevronRight size={14} />
                             </div>
