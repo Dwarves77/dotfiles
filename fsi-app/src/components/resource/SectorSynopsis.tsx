@@ -261,29 +261,29 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
           Summary — full sector-specific analysis in progress
         </div>
         {fallbackWhatIsIt && (
-          <div className="mb-3">
-            <span className="text-xs font-semibold tracking-wider uppercase block mb-1" style={{ color: "var(--color-text-secondary)" }}>
+          <div className="mb-4">
+            <div className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid var(--color-primary)", color: "var(--color-text-primary)" }}>
               What This Is
-            </span>
-            <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-primary)", opacity: 0.8 }}>{fallbackWhatIsIt}</p>
+            </div>
+            <p className="text-[13px] leading-[22px]" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>{fallbackWhatIsIt}</p>
           </div>
         )}
         {fallbackWhyMatters && (
-          <div className="border-l-2 pl-3 py-1 mb-3" style={{ borderColor: "#059669" }}>
-            <span className="text-xs font-semibold tracking-wider uppercase block mb-1" style={{ color: "#059669" }}>
+          <div className="mb-4">
+            <div className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #059669", color: "var(--color-text-primary)" }}>
               Why It Matters
-            </span>
-            <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-primary)" }}>{fallbackWhyMatters}</p>
+            </div>
+            <p className="text-[13px] leading-[22px]" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>{fallbackWhyMatters}</p>
           </div>
         )}
         {fallbackKeyData && fallbackKeyData.length > 0 && (
-          <div>
-            <span className="text-xs font-semibold tracking-wider uppercase block mb-1" style={{ color: "var(--color-text-secondary)" }}>
+          <div className="mb-4">
+            <div className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #2563EB", color: "var(--color-text-primary)" }}>
               Key Data
-            </span>
-            <ul className="space-y-0.5">
+            </div>
+            <ul className="space-y-1">
               {fallbackKeyData.map((d, i) => (
-                <li key={i} className="text-xs leading-relaxed pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[7px] before:w-1 before:h-1 before:rounded-full" style={{ color: "var(--color-text-primary)", opacity: 0.7 }}>
+                <li key={i} className="text-[13px] leading-[20px] pl-3 relative before:content-[''] before:absolute before:left-0 before:top-[8px] before:w-1 before:h-1 before:rounded-full before:bg-text-primary/30" style={{ color: "var(--color-text-primary)", opacity: 0.8 }}>
                   {d}
                 </li>
               ))}
