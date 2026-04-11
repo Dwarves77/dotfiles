@@ -94,6 +94,9 @@ interface DashboardProps {
   initialSources?: Source[];
   initialProvisionalSources?: ProvisionalSource[];
   initialOpenConflicts?: SourceConflict[];
+  initialSynopses?: { itemId: string; sector: string; summary: string; urgencyScore: number | null }[];
+  initialIntelligenceChanges?: { itemId: string; changeType: string; changeSeverity: string; changeSummary: string }[];
+  initialSectorDisplayNames?: { sector: string; displayName: string }[];
   /** Override the active page — when set, ignores navigationStore.tab */
   page?: string;
 }
@@ -109,9 +112,12 @@ export function Dashboard({
   initialSources = [],
   initialProvisionalSources = [],
   initialOpenConflicts = [],
+  initialSynopses = [],
+  initialIntelligenceChanges = [],
+  initialSectorDisplayNames = [],
   page,
 }: DashboardProps) {
-  const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides } =
+  const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides, setSynopses, setIntelligenceChanges, setSectorDisplayNames } =
     useResourceStore();
   const { tab: storeTab, focusView, clearNav } = useNavigationStore();
   // Use page prop (from URL routing) if provided, otherwise fall back to store tab
@@ -176,6 +182,14 @@ export function Dashboard({
     if (initialSources.length > 0) setSources(initialSources);
     if (initialProvisionalSources.length > 0) setProvisionalSources(initialProvisionalSources);
     if (initialOpenConflicts.length > 0) setOpenConflicts(initialOpenConflicts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Initialize synopsis data on mount
+  useEffect(() => {
+    if (initialSynopses.length > 0) setSynopses(initialSynopses);
+    if (initialIntelligenceChanges.length > 0) setIntelligenceChanges(initialIntelligenceChanges);
+    if (initialSectorDisplayNames.length > 0) setSectorDisplayNames(initialSectorDisplayNames);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

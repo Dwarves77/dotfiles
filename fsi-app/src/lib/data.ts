@@ -30,6 +30,9 @@ export async function getAppData() {
       sources: [],
       provisionalSources: [],
       openConflicts: [],
+      synopses: [],
+      intelligenceChanges: [],
+      sectorDisplayNames: [],
     };
   }
 }

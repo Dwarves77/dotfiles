@@ -405,6 +405,25 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
 
 // ── Master Fetch ─────────────────────────────────────────────
 
+export interface SectorSynopsis {
+  itemId: string;
+  sector: string;
+  summary: string;
+  urgencyScore: number | null;
+}
+
+export interface IntelligenceChange {
+  itemId: string;
+  changeType: string;
+  changeSeverity: string;
+  changeSummary: string;
+}
+
+export interface SectorDisplayName {
+  sector: string;
+  displayName: string;
+}
+
 export interface DashboardData {
   resources: Resource[];
   archived: Resource[];
@@ -413,6 +432,9 @@ export interface DashboardData {
   xrefPairs: [string, string][];
   supersessions: Supersession[];
   auditDate: string;
+  synopses: SectorSynopsis[];
+  intelligenceChanges: IntelligenceChange[];
+  sectorDisplayNames: SectorDisplayName[];
 }
 
 // Timeout wrapper — prevents Supabase from hanging indefinitely on Vercel
@@ -432,6 +454,9 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     xrefPairs: seedXrefPairs,
     supersessions: seedSupersessions,
     auditDate: seedAuditDate,
+    synopses: [],
+    intelligenceChanges: [],
+    sectorDisplayNames: [],
   };
 
   if (!isSupabaseConfigured()) {
@@ -465,6 +490,48 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       return seedFallback;
     }
 
+    // Fetch synopses, intelligence changes, and sector display names
+    const supabase = getSupabase();
+    const [synopsesResult, changesResult, sectorsResult] = await Promise.all([
+      supabase
+        .from("intelligence_summaries")
+        .select("item_id, sector, summary, urgency_score"),
+      supabase
+        .from("intelligence_changes")
+        .select("item_id, change_type, change_severity, change_summary")
+        .order("detected_at", { ascending: false }),
+      supabase
+        .from("sector_contexts")
+        .select("sector, display_name"),
+    ]);
+
+    const synopses: SectorSynopsis[] = (synopsesResult.data || []).map((r: any) => ({
+      itemId: r.item_id,
+      sector: r.sector,
+      summary: r.summary,
+      urgencyScore: r.urgency_score,
+    }));
+
+    // Dedupe changes to most recent per item
+    const changesSeen = new Set<string>();
+    const intelligenceChanges: IntelligenceChange[] = [];
+    for (const c of changesResult.data || []) {
+      if (!changesSeen.has(c.item_id)) {
+        changesSeen.add(c.item_id);
+        intelligenceChanges.push({
+          itemId: c.item_id,
+          changeType: c.change_type,
+          changeSeverity: c.change_severity,
+          changeSummary: c.change_summary,
+        });
+      }
+    }
+
+    const sectorDisplayNames: SectorDisplayName[] = (sectorsResult.data || []).map((s: any) => ({
+      sector: s.sector,
+      displayName: s.display_name,
+    }));
+
     // Audit date: most recent changelog entry or today
     let auditDate = new Date().toISOString().slice(0, 10);
     for (const entries of Object.values(changelog)) {
@@ -481,6 +548,9 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       xrefPairs,
       supersessions,
       auditDate,
+      synopses,
+      intelligenceChanges,
+      sectorDisplayNames,
     };
   } catch (e) {
     console.error("fetchDashboardData failed, using seed fallback:", e);

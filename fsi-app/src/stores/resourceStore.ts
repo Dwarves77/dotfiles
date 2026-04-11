@@ -28,10 +28,30 @@ export interface WorkspaceOverride {
   notes: string;
 }
 
+// ── Synopsis + Change types ──
+export interface StoredSynopsis {
+  sector: string;
+  summary: string;
+  urgencyScore: number | null;
+}
+
+export interface StoredChange {
+  changeType: string;
+  changeSeverity: string;
+  changeSummary: string;
+}
+
 interface ResourceState {
   // Platform data (shared, never mutated by workspace actions)
   resources: Resource[];
   archived: Resource[];
+
+  // Sector synopses: itemId -> sector -> synopsis
+  synopses: Map<string, Map<string, StoredSynopsis>>;
+  // Intelligence changes: itemId -> most recent change
+  intelligenceChanges: Map<string, StoredChange>;
+  // Sector display names: sector id -> display name
+  sectorDisplayNames: Map<string, string>;
 
   // Workspace overrides (org-scoped, layered on top of platform data)
   overrides: Map<string, WorkspaceOverride>;
@@ -50,6 +70,9 @@ interface ResourceState {
   // Actions — platform data (set on load only)
   setResources: (resources: Resource[]) => void;
   setArchived: (archived: Resource[]) => void;
+  setSynopses: (synopses: { itemId: string; sector: string; summary: string; urgencyScore: number | null }[]) => void;
+  setIntelligenceChanges: (changes: { itemId: string; changeType: string; changeSeverity: string; changeSummary: string }[]) => void;
+  setSectorDisplayNames: (names: { sector: string; displayName: string }[]) => void;
 
   // Actions — workspace overrides (write to override layer, not platform data)
   setOverrides: (overrides: WorkspaceOverride[]) => void;
@@ -86,6 +109,9 @@ const emptyFilters: Filters = {
 export const useResourceStore = create<ResourceState>((set, get) => ({
   resources: [],
   archived: [],
+  synopses: new Map(),
+  intelligenceChanges: new Map(),
+  sectorDisplayNames: new Map(),
   overrides: new Map(),
   filters: { ...emptyFilters },
   sort: "urgency",
@@ -95,6 +121,31 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
 
   setResources: (resources) => set({ resources }),
   setArchived: (archived) => set({ archived }),
+
+  setSynopses: (list) => {
+    const map = new Map<string, Map<string, StoredSynopsis>>();
+    for (const s of list) {
+      if (!map.has(s.itemId)) map.set(s.itemId, new Map());
+      map.get(s.itemId)!.set(s.sector, { sector: s.sector, summary: s.summary, urgencyScore: s.urgencyScore });
+    }
+    set({ synopses: map });
+  },
+
+  setIntelligenceChanges: (list) => {
+    const map = new Map<string, StoredChange>();
+    for (const c of list) {
+      if (!map.has(c.itemId)) {
+        map.set(c.itemId, { changeType: c.changeType, changeSeverity: c.changeSeverity, changeSummary: c.changeSummary });
+      }
+    }
+    set({ intelligenceChanges: map });
+  },
+
+  setSectorDisplayNames: (list) => {
+    const map = new Map<string, string>();
+    for (const s of list) map.set(s.sector, s.displayName);
+    set({ sectorDisplayNames: map });
+  },
 
   // Load workspace overrides from Supabase
   setOverrides: (overrideList) => {

@@ -8,7 +8,6 @@ export default async function Home() {
   try {
     data = await getAppData();
   } catch {
-    // If Supabase fails, use seed data so the page still renders
     const seed = await import("@/data");
     data = {
       resources: seed.resources,
@@ -21,6 +20,9 @@ export default async function Home() {
       sources: [],
       provisionalSources: [],
       openConflicts: [],
+      synopses: [],
+      intelligenceChanges: [],
+      sectorDisplayNames: [],
     };
   }
 
@@ -36,6 +38,9 @@ export default async function Home() {
       initialSources={data.sources}
       initialProvisionalSources={data.provisionalSources}
       initialOpenConflicts={data.openConflicts}
+      initialSynopses={data.synopses}
+      initialIntelligenceChanges={data.intelligenceChanges}
+      initialSectorDisplayNames={data.sectorDisplayNames}
       page="home"
     />
   );

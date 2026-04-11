@@ -15,6 +15,9 @@ export default async function Regulations() {
       xrefPairs={data.xrefPairs}
       supersessions={data.supersessions}
       auditDate={data.auditDate}
+      initialSynopses={data.synopses}
+      initialIntelligenceChanges={data.intelligenceChanges}
+      initialSectorDisplayNames={data.sectorDisplayNames}
     />
   );
 }
