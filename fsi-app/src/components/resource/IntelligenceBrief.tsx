@@ -42,7 +42,7 @@ function createComponents(briefId: string): Components {
       return (
         <h1
           id={`${briefId}-${id}`}
-          className="text-[17px] font-bold text-text-primary mt-6 mb-3 pb-2 border-b-2 border-[var(--color-primary)]/30"
+          className="text-[16px] font-bold text-text-primary mt-3 mb-2 pb-1.5 border-b border-[var(--color-primary)]/30"
         >
           {children}
         </h1>
@@ -56,7 +56,7 @@ function createComponents(briefId: string): Components {
       return (
         <h2
           id={`${briefId}-${id}`}
-          className="text-[14px] font-bold text-text-primary mt-8 mb-3 px-3 py-2.5 rounded-md -mx-3 uppercase tracking-wide"
+          className="text-[14px] font-bold text-text-primary mt-4 mb-2 px-3 py-2 rounded-md -mx-3 uppercase tracking-wide"
           style={{
             backgroundColor: "#F0EDE8",
             borderLeft: "3px solid var(--color-primary)",
@@ -74,7 +74,7 @@ function createComponents(briefId: string): Components {
       return (
         <h3
           id={`${briefId}-${id}`}
-          className="text-[13px] font-semibold mt-5 mb-1.5 pl-2 border-l-2 border-border-medium"
+          className="text-[13px] font-semibold mt-3 mb-1 pl-2 border-l-2 border-border-medium"
           style={{ color: "var(--color-text-secondary)" }}
         >
           {children}
@@ -83,17 +83,17 @@ function createComponents(briefId: string): Components {
     },
 
     p: ({ children }) => (
-      <p className="text-[13px] leading-[22px] text-text-primary/85 mb-3">
+      <p className="text-[13px] leading-[20px] text-text-primary/85 mb-2">
         {children}
       </p>
     ),
 
     ul: ({ children }) => (
-      <ul className="space-y-1.5 mb-3 ml-1">{children}</ul>
+      <ul className="space-y-1 mb-2 ml-1">{children}</ul>
     ),
 
     ol: ({ children }) => (
-      <ol className="space-y-2 mb-3 ml-1 list-decimal list-inside">{children}</ol>
+      <ol className="space-y-1 mb-2 ml-1 list-decimal list-inside">{children}</ol>
     ),
 
     li: ({ children }) => (
@@ -140,7 +140,7 @@ function createComponents(briefId: string): Components {
       if (text.startsWith("Source:")) {
         return (
           <span
-            className="block text-[11px] font-medium mt-1 mb-3 pl-3 border-l-2 opacity-75"
+            className="block text-[11px] font-medium mt-0.5 mb-2 pl-3 border-l-2 opacity-75"
             style={{ color: "var(--color-text-accent)", borderColor: "var(--color-text-accent)" }}
           >
             {children}
@@ -166,7 +166,7 @@ function createComponents(briefId: string): Components {
 
     blockquote: ({ children }) => (
       <blockquote
-        className="pl-4 pr-3 py-2 my-3 rounded-r-md"
+        className="pl-4 pr-3 py-1.5 my-2 rounded-r-md"
         style={{
           borderLeft: "3px solid var(--color-primary)",
           background: "var(--color-primary-light, rgba(232,97,10,0.05))",
