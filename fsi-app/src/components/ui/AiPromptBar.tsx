@@ -9,7 +9,7 @@ interface AiPromptBarProps {
 export function AiPromptBar({ placeholder }: AiPromptBarProps) {
   return (
     <div
-      className="cl-ai-bar cursor-pointer group"
+      className="cl-ai-bar cursor-pointer group sticky top-0 z-20"
       onClick={() => {
         window.dispatchEvent(new CustomEvent("open-ask-assistant", { detail: { placeholder } }));
       }}
