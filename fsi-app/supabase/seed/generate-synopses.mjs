@@ -15,34 +15,56 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cnNicGlzZXJ1emJmd2pwdnNwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDg1NzkzOCwiZXhwIjoyMDU2NDMzOTM4fQ.zPd4fS8kqnwGXif54aJe7zbcSdFf5-t7GXewSSfeNcE"
 );
 
-// Same system prompt from src/lib/agent/system-prompt.ts — synopsis generation portion only
-const SYSTEM_PROMPT = `You receive a full intelligence brief for one regulatory item and all 15 freight forwarding sector contexts. Generate a sector-specific synopsis for EVERY sector in a single JSON response.
+// 10-section synopsis format from the environmental-policy-and-innovation skill
+const SYSTEM_PROMPT = `You receive regulatory content for one intelligence item and all 15 freight forwarding sector contexts. Generate a 10-section sector-specific synopsis for EVERY sector in a single JSON response.
 
-SOURCE AUTHORITY HIERARCHY — apply to every claim:
-1. Confirmed primary text — cite specific articles and dates
-2. Official guidance — cite document reference, state it is interpretive
-3. Secondary legal — name the firm/association, label as secondary
-4. Industry operator interpretation — label clearly as navigation only
-5. Legal Confirmation Required — flag wherever no source has confirmed
+SOURCE AUTHORITY HIERARCHY — apply to every claim in every synopsis:
+1. Confirmed primary text — Official Journal, Federal Register, IMO gazette. Cite specific articles and dates. This is the only level that confirms a legal obligation.
+2. Official guidance — Commission guidance, regulator FAQ, implementing acts. Authoritative but not primary law. Cite document reference and date.
+3. Secondary legal — Law firm commentary, industry association analysis. Named source, labeled as secondary.
+4. Industry operator interpretation — Trade press, consultancy. Navigation only, not dispositive. Label clearly.
+5. Legal Confirmation Required — Flag explicitly wherever no source has confirmed a claim. Never present an inference as fact.
 
-SECTOR SYNOPSIS STRUCTURE (three parts per sector):
-Part 1 — WHAT CHANGED: One paragraph citing the legal instrument, article, effective date, and change type.
-Part 2 — WHAT IT MEANS FOR THIS SECTOR: 2-4 paragraphs specific to this sector's cargo, modes, roles. Use Action Required — Confirm for Your Business flags. Include third party exposure.
-Part 3 — WHAT TO DO: Numbered actions with WHO, WHEN, WHAT.
+QUALITY BENCHMARK: Every synopsis must match the PPWR v7 Regulatory Fact Document standard. Specific article references, penalty amounts where confirmed, cost mechanisms, legal confirmation flags, and operational impact specific to the sector being analyzed. Generic summaries that could apply to any freight operator are rejected.
 
-If urgency_score is 0.1 write one sentence only. Do not pad low-relevance synopses.
+COMPETITIVE INTELLIGENCE LENS — apply to every synopsis:
+What does knowing this now, before competitors know it, enable this operator to do? State lead time value explicitly. Where does early compliance create preferred supplier status or tender advantage? Where does early action protect margin? Follow the signal chain: what future regulations does this regulation signal?
+
+10-SECTION SYNOPSIS STRUCTURE — generate all 10 for high-relevance sectors (urgency >= 0.3):
+
+Section 1 — REGULATION IDENTIFICATION: Full name, official citation, primary source URL, effective date, jurisdiction, transport modes. Source authority level for every fact. Related regulations discovered by following citations.
+
+Section 2 — SOURCE AUTHORITY HIERARCHY: Every source classified. New sources discovered listed with URL and provisional trust tier.
+
+Section 3 — IMMEDIATE ACTION ITEMS: What requires action NOW, not at the compliance deadline. For each: what the gap is, why it cannot wait, who must act, consequence of not acting, competitive cost of waiting. If nothing immediate, state explicitly.
+
+Section 4 — COMPLIANCE CHAIN MAPPING: Where this sector sits in the supply chain. Role occupied. Multiple roles possible. Obligations per role. Legal obligation location versus operational consequence location.
+
+Section 5 — CLASSIFICATION ANALYSIS: Threshold definitions to resolve before compliance program design. Exemptions or relief available. All unresolved questions labeled Legal Confirmation Required.
+
+Section 6 — FORMAT OR OPERATION ANALYSIS: Each distinct asset type or operational mode analyzed separately. Regulatory status, confirmed obligations, unresolved questions, compliance risk level, what changes regardless of how unresolved questions answer.
+
+Section 7 — THIRD PARTY EXPOSURE: Which third parties have obligations they may not know about. Consequence for this operator if they fail to comply. Vendor onboarding, pre-shipment verification, or contract language needed.
+
+Section 8 — COMPETITIVE INTELLIGENCE: What knowing this now enables. Lead time window. Where early compliance creates preferred supplier status. Where early action protects margin. Where new market opportunity exists. What future regulatory signals this regulation contains.
+
+Section 9 — INDUSTRY-SPECIFIC TRANSLATION: What this regulation means operationally for this specific sector. Which operations and cargo types are in scope. Which are exempt. Where compliance burden falls on operator versus clients. What this sector is doing today that creates exposure.
+
+Section 10 — LEGAL CONFIRMATION REQUIRED ITEMS: Consolidated list of every unresolved question requiring legal advice. Must exist in every synopsis. If none, state explicitly.
+
+If urgency_score is 0.1: write sections 1 and 9 only. Do not generate all 10 sections for irrelevant sectors.
 
 URGENCY SCORING per sector (0.1 to 1.0):
-1.0 — directly affects this sector
-0.9 — affects primary transport mode
-0.6 — indirect pass-through
-0.3 — adjacent spillover
+1.0 — directly and explicitly affects this sector's core operations
+0.9 — affects this sector's primary transport mode
+0.6 — indirect cost or compliance pass-through
+0.3 — adjacent sector with possible spillover
 0.1 — no meaningful connection
 
 Return ONLY valid JSON. No markdown fences. No preamble.
 {
   "synopses": {
-    "fine-art": { "summary": "markdown synopsis", "urgency_score": 0.0 },
+    "fine-art": { "summary": "10-section markdown synopsis", "urgency_score": 0.0 },
     "live-events": { "summary": "...", "urgency_score": 0.0 },
     "luxury-goods": { "summary": "...", "urgency_score": 0.0 },
     "film-tv": { "summary": "...", "urgency_score": 0.0 },
@@ -59,7 +81,7 @@ Return ONLY valid JSON. No markdown fences. No preamble.
     "general-ocean": { "summary": "...", "urgency_score": 0.0 }
   }
 }
-All 15 sectors must be present. Never omit a sector.`;
+All 15 sectors must be present. Never omit a sector. Never return partial results.`;
 
 async function run() {
   // Load sector contexts
@@ -77,18 +99,12 @@ async function run() {
     .eq("is_archived", false)
     .order("priority");
 
-  const { data: existing } = await supabase
-    .from("intelligence_summaries")
-    .select("item_id");
-  const hasSynopses = new Set((existing || []).map((e) => e.item_id));
+  // REGENERATE ALL — delete existing synopses and regenerate with 10-section format
+  const needSynopses = items;
 
-  const needSynopses = items.filter((i) => !hasSynopses.has(i.id));
-
-  console.log(`\n=== SYNOPSIS GENERATOR ===`);
+  console.log(`\n=== SYNOPSIS GENERATOR (10-SECTION FORMAT) ===`);
   console.log(`Sector contexts: ${sectors.length}`);
-  console.log(`Total items: ${items.length}`);
-  console.log(`Already have synopses: ${hasSynopses.size}`);
-  console.log(`Need synopses: ${needSynopses.length}`);
+  console.log(`Total items to regenerate: ${needSynopses.length}`);
   console.log(`\nStarting...\n`);
 
   let done = 0;
@@ -114,7 +130,7 @@ ${JSON.stringify(sectors, null, 2)}`;
 
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 12000,
+        max_tokens: 16000,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       });

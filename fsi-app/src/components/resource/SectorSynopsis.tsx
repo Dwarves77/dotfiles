@@ -74,84 +74,69 @@ const mdComponents = {
   ),
 };
 
-// ── Split synopsis into three labeled sections ──
+// ── 10-section synopsis structure from skill ──
 
-function splitSynopsis(markdown: string): { whatChanged: string; whatItMeans: string; whatToDo: string } {
-  // Try to split on numbered list (Part 3 starts at "1." or "1)")
-  const numberedListMatch = markdown.match(/\n(1[\.\)]\s)/);
+const SECTION_CONFIG: { pattern: RegExp; label: string; color: string }[] = [
+  { pattern: /^#+\s*(?:Section\s*1|REGULATION IDENTIFICATION)/im, label: "Regulation Identification", color: "var(--color-primary)" },
+  { pattern: /^#+\s*(?:Section\s*2|SOURCE AUTHORITY HIERARCHY)/im, label: "Source Authority", color: "#6B7280" },
+  { pattern: /^#+\s*(?:Section\s*3|IMMEDIATE ACTION ITEMS)/im, label: "Immediate Action Items", color: "#DC2626" },
+  { pattern: /^#+\s*(?:Section\s*4|COMPLIANCE CHAIN MAPPING)/im, label: "Compliance Chain", color: "#7C3AED" },
+  { pattern: /^#+\s*(?:Section\s*5|CLASSIFICATION ANALYSIS)/im, label: "Classification Analysis", color: "#2563EB" },
+  { pattern: /^#+\s*(?:Section\s*6|FORMAT OR OPERATION ANALYSIS)/im, label: "Format / Operation Analysis", color: "#059669" },
+  { pattern: /^#+\s*(?:Section\s*7|THIRD PARTY EXPOSURE)/im, label: "Third Party Exposure", color: "#D97706" },
+  { pattern: /^#+\s*(?:Section\s*8|COMPETITIVE INTELLIGENCE)/im, label: "Competitive Intelligence", color: "#0891B2" },
+  { pattern: /^#+\s*(?:Section\s*9|INDUSTRY.SPECIFIC TRANSLATION)/im, label: "Industry-Specific Translation", color: "#059669" },
+  { pattern: /^#+\s*(?:Section\s*10|LEGAL CONFIRMATION REQUIRED)/im, label: "Legal Confirmation Required", color: "#DC2626" },
+];
 
-  if (numberedListMatch && numberedListMatch.index !== undefined) {
-    const beforeList = markdown.slice(0, numberedListMatch.index).trim();
-    const actionList = markdown.slice(numberedListMatch.index).trim();
+function parseSections(markdown: string): { label: string; color: string; content: string }[] {
+  const lines = markdown.split("\n");
+  const sections: { label: string; color: string; content: string; startLine: number }[] = [];
 
-    // First paragraph = what changed, rest = what it means
-    const paragraphs = beforeList.split(/\n\n+/);
-    const whatChanged = paragraphs[0] || "";
-    const whatItMeans = paragraphs.slice(1).join("\n\n") || "";
-
-    return { whatChanged, whatItMeans, whatToDo: actionList };
+  for (let i = 0; i < lines.length; i++) {
+    for (const cfg of SECTION_CONFIG) {
+      if (cfg.pattern.test(lines[i])) {
+        sections.push({ label: cfg.label, color: cfg.color, content: "", startLine: i });
+        break;
+      }
+    }
   }
 
-  // Fallback: first paragraph = what changed, rest = what it means, no actions
-  const paragraphs = markdown.split(/\n\n+/);
-  return {
-    whatChanged: paragraphs[0] || "",
-    whatItMeans: paragraphs.slice(1).join("\n\n") || "",
-    whatToDo: "",
-  };
+  // If no section headers found, render as single block
+  if (sections.length === 0) {
+    return [{ label: "Synopsis", color: "var(--color-primary)", content: markdown }];
+  }
+
+  // Extract content between section headers
+  for (let i = 0; i < sections.length; i++) {
+    const startLine = sections[i].startLine + 1; // skip the header line
+    const endLine = i + 1 < sections.length ? sections[i + 1].startLine : lines.length;
+    sections[i].content = lines.slice(startLine, endLine).join("\n").trim();
+  }
+
+  return sections.filter((s) => s.content.length > 0);
 }
 
-// ── Structured synopsis renderer with labeled sections ──
+// ── Structured synopsis renderer with 10-section display ──
 
 function SynopsisMarkdown({ content, sectorName }: { content: string; sectorName: string }) {
-  const { whatChanged, whatItMeans, whatToDo } = splitSynopsis(content);
+  const sections = parseSections(content);
 
   return (
     <div className="synopsis-content space-y-4">
-      {/* Section 1: What Changed */}
-      {whatChanged && (
-        <div>
+      {sections.map((section, i) => (
+        <div key={i}>
           <div
             className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md"
-            style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid var(--color-primary)", color: "var(--color-text-primary)" }}
+            style={{ backgroundColor: "#F0EDE8", borderLeft: `3px solid ${section.color}`, color: "var(--color-text-primary)" }}
           >
-            What Changed
+            {section.label === "Industry-Specific Translation" ? `${section.label}: ${sectorName}` : section.label}
           </div>
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-            {whatChanged}
+            {section.content}
           </ReactMarkdown>
         </div>
-      )}
-
-      {/* Section 2: What It Means for This Sector */}
-      {whatItMeans && (
-        <div>
-          <div
-            className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md"
-            style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #059669", color: "var(--color-text-primary)" }}
-          >
-            What It Means for {sectorName}
-          </div>
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-            {whatItMeans}
-          </ReactMarkdown>
-        </div>
-      )}
-
-      {/* Section 3: What To Do */}
-      {whatToDo && (
-        <div>
-          <div
-            className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md"
-            style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #2563EB", color: "var(--color-text-primary)" }}
-          >
-            What To Do
-          </div>
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-            {whatToDo}
-          </ReactMarkdown>
-        </div>
-      )}
+      ))}
     </div>
   );
 }
