@@ -83,36 +83,27 @@ If nothing changed since last ingestion set is_signal to false and do not genera
 ---
 
 SECTOR SYNOPSIS STRUCTURE
-Generate this for every signal item, for every sector. Every synopsis must meet the standard of the PPWR v7 Regulatory Fact Document produced for Dietl International and Rockit in April 2026. That document is the benchmark for source attribution, separation of confirmed fact from inference, operational specificity, and honest flagging of unresolved questions.
+Every sector synopsis must follow the 10-section structure defined in the environmental-policy-and-innovation skill. A synopsis that does not cover all 10 sections for a high-relevance sector is incomplete and will be rejected.
 
-Part 1 — WHAT CHANGED:
-One paragraph stating the regulatory fact. Must include:
-- The full name of the legal instrument and its official citation
-- The specific article or provision that changed
-- The effective date or compliance deadline
-- Whether this is: new, status_change, deadline_change, scope_change, penalty_change, provision_added, provision_amended, or administrative
-- The source authority level: confirmed primary text, official guidance, secondary legal, or industry operator interpretation
-Never state something changed without citing where that is confirmed. If it cannot be confirmed from primary text label it Legal Confirmation Required.
+Section 1 — REGULATION IDENTIFICATION: Full name, official citation, primary source URL, effective date, jurisdiction, transport modes affected. Source authority level for every fact. Related regulations discovered by following citations.
 
-Part 2 — WHAT IT MEANS FOR THIS SECTOR:
-Two to four paragraphs of operational impact. Each paragraph must:
-- Be specific to this sector's cargo types, transport modes, and compliance roles as defined in the sector context provided
-- Name the specific packaging formats, asset types, operational functions, or client relationships affected
-- State what changes in practice for an operator in this sector
-- Distinguish between confirmed obligations and unresolved questions
-- Flag unresolved questions as: Action Required — Confirm for Your Business
-- State indirect cost or compliance pass-through effects where they exist
-- Identify which third parties in this sector's supply chain also carry obligations and what the consequence is for this operator if those third parties fail to comply
-Never write a paragraph that could apply equally to any freight operator. Never force a translation that does not exist. If the regulation has no meaningful relevance for this sector write one sentence only and set urgency_score to 0.1.
+Section 2 — SOURCE AUTHORITY HIERARCHY: Every source classified as confirmed primary text, official guidance, secondary legal, industry operator interpretation, or Legal Confirmation Required. New sources discovered listed with URL and provisional trust tier.
 
-Part 3 — WHAT TO DO:
-Numbered list of concrete actions. Every action must state:
-- WHO: the specific role or team responsible (legal, operations, procurement, compliance, commercial)
-- WHEN: a specific date or timeframe, not "soon" or "as soon as possible"
-- WHAT: the specific deliverable, decision, or action required
-If no action is required for this sector state that explicitly in one sentence. Do not list actions that apply generically to all freight operators. Every action must be specific to the operational reality of this sector.
+Section 3 — IMMEDIATE ACTION ITEMS: What requires action now. For each: what the gap is, why it cannot wait, who must act, consequence of not acting, competitive cost of waiting. If nothing immediate, state that explicitly.
 
-Do not use headers between parts. Write Parts 1 and 2 in continuous prose. Use a numbered list only for Part 3. The full synopsis for a high-relevance sector must be substantial and specific. The full synopsis for a low-relevance sector must be one sentence only. Never pad a low-relevance synopsis to appear more thorough.
+Section 4 — COMPLIANCE CHAIN MAPPING: Where this sector sits in the supply chain. Role occupied. Multiple roles possible. Obligations per role. Legal obligation location versus operational consequence location.
+
+Section 5 — CLASSIFICATION ANALYSIS: Threshold definitions to resolve before compliance program design. Whether the operation meets the definition. Exemptions or relief available. Legal confirmation required before any system build. All unresolved questions labeled Legal Confirmation Required.
+
+Section 6 — FORMAT OR OPERATION ANALYSIS: Each distinct asset type or operational mode analyzed separately. Regulatory status, confirmed obligations, unresolved questions, compliance risk level, what changes regardless of how unresolved questions answer.
+
+Section 7 — THIRD PARTY EXPOSURE: Which third parties have obligations they may not know about. Consequence for this operator if they fail to comply. Vendor onboarding, pre-shipment verification, or contract language needed.
+
+Section 8 — COMPETITIVE INTELLIGENCE: What knowing this now enables. Lead time window stated explicitly. Where early compliance creates preferred supplier status. Where early action protects margin. Where new market opportunity exists. Where investment should not be made if regulation delays. What future regulatory signals this regulation contains.
+
+Section 9 — INDUSTRY-SPECIFIC TRANSLATION: What this regulation means operationally for this specific sector. Which operations and cargo types are in scope. Which are exempt. Where compliance burden falls on operator versus clients. What this sector is doing today that creates exposure.
+
+Section 10 — LEGAL CONFIRMATION REQUIRED ITEMS: Consolidated list of every unresolved question requiring legal advice before action. Must exist in every synopsis. If none, state that explicitly.
 
 ---
 
@@ -125,7 +116,7 @@ Assign per sector from 0.1 to 1.0 based on operational relevance to that sector:
 0.3 — Regulation affects an adjacent sector with possible spillover into this sector
 0.1 — No meaningful connection to this sector
 
-If urgency_score is 0.1 write a one-sentence synopsis only stating the regulation name and that it has no meaningful operational relevance for this sector. Do not generate a full three-part synopsis for irrelevant sectors. Do not force a translation that does not exist.
+If urgency_score is 0.1 write sections 1 and 9 only. Do not generate all 10 sections for irrelevant sectors. Do not force a translation that does not exist.
 
 ---
 
