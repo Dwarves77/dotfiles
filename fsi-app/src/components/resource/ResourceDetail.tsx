@@ -190,6 +190,7 @@ export function ResourceDetail({
       {/* Sector-specific synopsis from intelligence_summaries, or fallback */}
       <SectorSynopsisView
         itemId={r.id}
+        fullBrief={r.fullBrief}
         fallbackWhatIsIt={r.whatIsIt}
         fallbackWhyMatters={r.whyMatters}
         fallbackKeyData={r.keyData}

@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { useResourceStore, type StoredSynopsis, type StoredChange } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { IntelligenceBrief } from "./IntelligenceBrief";
 
 // ── Urgency badge colors ──
 
@@ -127,13 +128,15 @@ function SectorAccordion({ synopsis, sectorName }: { synopsis: StoredSynopsis; s
 
 interface SectorSynopsisViewProps {
   itemId: string;
-  /** Fallback content when no synopsis exists */
+  /** Full intelligence brief markdown (existing 89 briefs) */
+  fullBrief?: string;
+  /** Fallback content when no synopsis AND no brief exists */
   fallbackWhatIsIt?: string;
   fallbackWhyMatters?: string;
   fallbackKeyData?: string[];
 }
 
-export function SectorSynopsisView({ itemId, fallbackWhatIsIt, fallbackWhyMatters, fallbackKeyData }: SectorSynopsisViewProps) {
+export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallbackWhyMatters, fallbackKeyData }: SectorSynopsisViewProps) {
   const [showAll, setShowAll] = useState(false);
   const synopsesMap = useResourceStore((s) => s.synopses);
   const changeMap = useResourceStore((s) => s.intelligenceChanges);
@@ -152,8 +155,14 @@ export function SectorSynopsisView({ itemId, fallbackWhatIsIt, fallbackWhyMatter
 
   const primaryName = displayNames.get(primarySector) || primarySector;
 
-  // ── No synopsis exists: fallback ──
+  // ── No synopsis exists: check for fullBrief, then old fields ──
   if (!primarySynopsis) {
+    // Tier 2: Full intelligence brief exists (89 items have this)
+    if (fullBrief) {
+      return <IntelligenceBrief markdown={fullBrief} />;
+    }
+
+    // Tier 3: Old whatIsIt/whyMatters/keyData fields
     return (
       <div>
         <div
