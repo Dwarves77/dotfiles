@@ -85,8 +85,8 @@ export function WeeklyBriefing({
           </p>
         </div>
         <ChevronDown
-          size={16}
-          strokeWidth={2.5}
+          size={14}
+          strokeWidth={2}
           className={cn(
             "text-text-secondary transition-transform duration-300",
             expanded && "rotate-180"

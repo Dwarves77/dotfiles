@@ -37,17 +37,15 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
             Regulations that have been replaced by newer versions
           </p>
         </div>
-        <div className="flex items-center">
-          <ChevronDown
-            size={14}
-            strokeWidth={2}
-            className={cn(
-              "text-text-secondary transition-transform duration-300",
-              open && "rotate-180"
-            )}
-            style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
-          />
-        </div>
+        <ChevronDown
+          size={14}
+          strokeWidth={2}
+          className={cn(
+            "text-text-secondary transition-transform duration-300",
+            open && "rotate-180"
+          )}
+          style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
+        />
       </button>
       {open && (
         <div className="px-4 pb-4 space-y-2">

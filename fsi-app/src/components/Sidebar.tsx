@@ -36,11 +36,11 @@ export function Sidebar() {
       <div className="px-4 py-5 border-b" style={{ borderColor: "var(--color-border)" }}>
         <Link href="/" className="block">
           <h1
-            className="text-lg uppercase"
+            className="text-base uppercase"
             style={{
               color: "var(--color-text-primary)",
               fontFamily: "var(--font-display)",
-              fontWeight: 700,
+              fontWeight: 400,
               letterSpacing: "0.04em",
             }}
           >
