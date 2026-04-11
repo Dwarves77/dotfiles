@@ -183,7 +183,7 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
               item_type: "regulation",
               priority: "MODERATE",
               status: "monitoring",
-              confidence: "medium",
+              confidence: "confirmed",
               added_date: new Date().toISOString().slice(0, 10),
               is_archived: false,
             })
