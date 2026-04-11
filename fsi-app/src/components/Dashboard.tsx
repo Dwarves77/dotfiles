@@ -460,15 +460,14 @@ export function Dashboard({
           />
         )}
 
-        {/* ── RESEARCH & SOURCES (merged) ── */}
+        {/* ── RESEARCH (Source Registry moved to admin only) ── */}
         {tab === "research" && !focusView && (
           <MergedSection
-            label="Research & Sources"
-            subtitle="We track where our data comes from and flag when academic research is about to change industry standards. This helps you trust the data and stay ahead."
-            aiPlaceholder="Ask — 'What research affects carbon accounting standards?' or 'How reliable is our EU ETS data?'"
+            label="Research"
+            subtitle="Academic and institutional findings that inform future standards and emerging regulation. Signals where the industry is heading."
+            aiPlaceholder="Ask — 'What research affects carbon accounting standards?' or 'What are MIT's latest findings on freight emissions?'"
             tabs={[
               { id: "research", label: "Research Pipeline", content: <><DomainItemList domain={7} emptyMessage="No research items yet." /><ResearchPipeline /></> },
-              { id: "sources", label: "Source Registry", content: <SourceHealthDashboard /> },
             ]}
           />
         )}

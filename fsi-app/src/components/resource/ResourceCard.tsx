@@ -6,7 +6,7 @@ import { ModeBadge } from "@/components/ui/ModeBadge";
 import { Tag } from "@/components/ui/Tag";
 import { useResourceStore } from "@/stores/resourceStore";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { PRIORITY_COLORS, TOPIC_COLORS } from "@/lib/constants";
+import { PRIORITY_COLORS, TOPIC_COLORS, INFO_TYPE_COLORS, INFO_TYPE_LABELS, getInfoType } from "@/lib/constants";
 import { ChevronDown, Share2 } from "lucide-react";
 import type { Resource } from "@/types/resource";
 import { AcronymText } from "@/components/ui/AcronymText";
@@ -25,6 +25,8 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
   const isExpanded = expandedId === r.id;
   const modes = r.modes || [r.cat];
   const topicColor = TOPIC_COLORS[r.topic || ""] || undefined;
+  const infoType = getInfoType(r.type);
+  const typeColor = INFO_TYPE_COLORS[infoType];
 
   const content = (
     <div
@@ -49,6 +51,12 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
               )}
             </div>
             <div className="flex items-center gap-2">
+              <span
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                style={{ color: typeColor, backgroundColor: `${typeColor}15`, border: `1px solid ${typeColor}30` }}
+              >
+                {INFO_TYPE_LABELS[infoType]}
+              </span>
               <Badge
                 label={r.priority}
                 color={PRIORITY_COLORS[r.priority]}
@@ -151,6 +159,7 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
         priorityClass,
         isExpanded && "ring-1 ring-[var(--color-border-medium)]"
       )}
+      style={{ borderLeftColor: typeColor, borderLeftWidth: "3px" }}
     >
       {content}
     </div>

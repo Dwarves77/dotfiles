@@ -325,6 +325,52 @@ export const PRIORITY_COLORS: Record<string, string> = {
   LOW: "var(--low)",
 };
 
+// ── Information Type Taxonomy ──
+// Three fundamental types of information on the platform
+export type InfoType = "regulation" | "market_intel" | "research";
+
+export const INFO_TYPE_COLORS: Record<InfoType, string> = {
+  regulation: "#2563EB",   // Blue — institutional, governmental, authoritative
+  market_intel: "#D97706", // Amber — price signals, market movement, volatility
+  research: "#7C3AED",    // Purple — academic, forward-looking, analytical
+};
+
+export const INFO_TYPE_LABELS: Record<InfoType, string> = {
+  regulation: "Regulation",
+  market_intel: "Market Intel",
+  research: "Research",
+};
+
+// Map item_type to info_type
+export function getInfoType(itemType: string): InfoType {
+  if (["regulation", "framework", "standard", "initiative"].includes(itemType)) return "regulation";
+  if (["research_finding"].includes(itemType)) return "research";
+  return "market_intel"; // market_signal, technology, innovation, tool
+}
+
+// ── Urgency Vocabulary Per Section ──
+// Same color system, different labels per information type
+export const URGENCY_LABELS: Record<InfoType, Record<string, string>> = {
+  regulation: {
+    CRITICAL: "Critical",
+    HIGH: "High",
+    MODERATE: "Moderate",
+    LOW: "Low",
+  },
+  market_intel: {
+    CRITICAL: "Watch",
+    HIGH: "Elevated",
+    MODERATE: "Stable",
+    LOW: "Informational",
+  },
+  research: {
+    CRITICAL: "Emerging",
+    HIGH: "Active",
+    MODERATE: "Established",
+    LOW: "Archived",
+  },
+};
+
 export const TOPIC_COLORS: Record<string, string> = {
   // Sustainability
   emissions: "var(--topic-emissions)",
