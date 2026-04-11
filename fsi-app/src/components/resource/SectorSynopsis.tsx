@@ -28,42 +28,130 @@ function severityBadge(severity: string): { label: string; bg: string; text: str
   }
 }
 
-// ── Markdown renderer for synopsis content ──
+// ── Markdown components shared across all synopsis renderers ──
 
-function SynopsisMarkdown({ content }: { content: string }) {
+const mdComponents = {
+  p: ({ children }: any) => (
+    <p className="mb-3 text-[13px] leading-[22px]" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>{children}</p>
+  ),
+  strong: ({ children }: any) => {
+    const text = String(children);
+    if (text.startsWith("Action Required") || text.startsWith("Confirm for Your Business")) {
+      const body = text.replace(/^(Action Required|Confirm for Your Business)\s*[-—:]\s*/i, "");
+      return (
+        <div className="rounded-r-md my-3" style={{ background: "#FFF7F0", borderLeft: "3px solid #E8610A", padding: "10px 14px" }}>
+          <strong className="block mb-1" style={{ color: "#E8610A", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
+            Action Required
+          </strong>
+          {body && <span className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-primary)" }}>{body}</span>}
+        </div>
+      );
+    }
+    return <strong className="font-semibold" style={{ color: "var(--color-text-primary)" }}>{children}</strong>;
+  },
+  ol: ({ children }: any) => <ol className="space-y-2 mb-3 list-decimal list-inside">{children}</ol>,
+  ul: ({ children }: any) => <ul className="space-y-1.5 mb-3 ml-1">{children}</ul>,
+  li: ({ children }: any) => <li className="text-[13px] leading-[20px]" style={{ color: "var(--color-text-primary)", opacity: 0.8 }}>{children}</li>,
+  h2: ({ children }: any) => (
+    <h2 className="text-[13px] font-bold uppercase tracking-widest mt-5 mb-2 px-3 py-2 rounded-md -mx-1" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid var(--color-primary)", color: "var(--color-text-primary)" }}>
+      {children}
+    </h2>
+  ),
+  h3: ({ children }: any) => (
+    <h3 className="text-[13px] font-semibold mt-4 mb-1.5 pl-2 border-l-2" style={{ borderColor: "var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
+      {children}
+    </h3>
+  ),
+  blockquote: ({ children }: any) => (
+    <blockquote className="pl-3 py-1 my-2 border-l-2" style={{ borderColor: "var(--color-text-accent)", color: "var(--color-text-secondary)" }}>
+      {children}
+    </blockquote>
+  ),
+  a: ({ href, children }: any) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline" style={{ color: "var(--color-primary)" }} onClick={(e: any) => e.stopPropagation()}>
+      {children}
+    </a>
+  ),
+};
+
+// ── Split synopsis into three labeled sections ──
+
+function splitSynopsis(markdown: string): { whatChanged: string; whatItMeans: string; whatToDo: string } {
+  // Try to split on numbered list (Part 3 starts at "1." or "1)")
+  const numberedListMatch = markdown.match(/\n(1[\.\)]\s)/);
+
+  if (numberedListMatch && numberedListMatch.index !== undefined) {
+    const beforeList = markdown.slice(0, numberedListMatch.index).trim();
+    const actionList = markdown.slice(numberedListMatch.index).trim();
+
+    // First paragraph = what changed, rest = what it means
+    const paragraphs = beforeList.split(/\n\n+/);
+    const whatChanged = paragraphs[0] || "";
+    const whatItMeans = paragraphs.slice(1).join("\n\n") || "";
+
+    return { whatChanged, whatItMeans, whatToDo: actionList };
+  }
+
+  // Fallback: first paragraph = what changed, rest = what it means, no actions
+  const paragraphs = markdown.split(/\n\n+/);
+  return {
+    whatChanged: paragraphs[0] || "",
+    whatItMeans: paragraphs.slice(1).join("\n\n") || "",
+    whatToDo: "",
+  };
+}
+
+// ── Structured synopsis renderer with labeled sections ──
+
+function SynopsisMarkdown({ content, sectorName }: { content: string; sectorName: string }) {
+  const { whatChanged, whatItMeans, whatToDo } = splitSynopsis(content);
+
   return (
-    <div className="synopsis-content text-[13px] leading-[22px]">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          p: ({ children }) => (
-            <p className="mb-3" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>{children}</p>
-          ),
-          strong: ({ children }) => {
-            const text = String(children);
-            if (text.startsWith("Action Required")) {
-              return (
-                <div className="rounded-r-md my-3" style={{ background: "#FFF7F0", borderLeft: "3px solid #E8610A", padding: "10px 14px" }}>
-                  <strong className="block mb-1" style={{ color: "#E8610A", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
-                    Action Required
-                  </strong>
-                  <span className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-primary)" }}>
-                    {text.replace(/^Action Required\s*[-—:]\s*(Confirm for Your Business\s*[-—:]\s*)?/i, "")}
-                  </span>
-                </div>
-              );
-            }
-            return <strong className="font-semibold" style={{ color: "var(--color-text-primary)" }}>{children}</strong>;
-          },
-          ol: ({ children }) => <ol className="space-y-2 mb-3 list-decimal list-inside">{children}</ol>,
-          li: ({ children }) => <li className="text-[13px] leading-[20px]" style={{ color: "var(--color-text-primary)", opacity: 0.8 }}>{children}</li>,
-          a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline" style={{ color: "var(--color-primary)" }} onClick={(e) => e.stopPropagation()}>
-              {children}
-            </a>
-          ),
-        }}
-      />
+    <div className="synopsis-content space-y-4">
+      {/* Section 1: What Changed */}
+      {whatChanged && (
+        <div>
+          <div
+            className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md"
+            style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid var(--color-primary)", color: "var(--color-text-primary)" }}
+          >
+            What Changed
+          </div>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {whatChanged}
+          </ReactMarkdown>
+        </div>
+      )}
+
+      {/* Section 2: What It Means for This Sector */}
+      {whatItMeans && (
+        <div>
+          <div
+            className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md"
+            style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #059669", color: "var(--color-text-primary)" }}
+          >
+            What It Means for {sectorName}
+          </div>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {whatItMeans}
+          </ReactMarkdown>
+        </div>
+      )}
+
+      {/* Section 3: What To Do */}
+      {whatToDo && (
+        <div>
+          <div
+            className="text-[11px] font-bold uppercase tracking-widest mb-2 px-3 py-1.5 rounded-md"
+            style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid #2563EB", color: "var(--color-text-primary)" }}
+          >
+            What To Do
+          </div>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {whatToDo}
+          </ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }
@@ -86,7 +174,7 @@ function SingleSectorSynopsis({ synopsis, sectorName }: { synopsis: StoredSynops
           Urgency {badge.label}
         </span>
       </div>
-      <SynopsisMarkdown content={synopsis.summary} />
+      <SynopsisMarkdown content={synopsis.summary} sectorName={sectorName} />
     </div>
   );
 }
@@ -117,7 +205,7 @@ function SectorAccordion({ synopsis, sectorName }: { synopsis: StoredSynopsis; s
       </button>
       {open && (
         <div className="px-3 pb-3 pt-1">
-          <SynopsisMarkdown content={synopsis.summary} />
+          <SynopsisMarkdown content={synopsis.summary} sectorName={sectorName} />
         </div>
       )}
     </div>
