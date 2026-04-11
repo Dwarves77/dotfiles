@@ -109,6 +109,32 @@ export function WeeklyBriefing({
             </p>
           </div>
 
+          {/* Top Priority Items — clickable talking points */}
+          <div>
+            <span className="text-xs font-semibold tracking-wider uppercase block mb-2" style={{ color: "var(--color-text-secondary)" }}>
+              Top Priority This Week
+            </span>
+            {briefing.top5.map((r) => (
+              <button
+                key={r.id}
+                onClick={(e) => { e.stopPropagation(); pushFocusView({ title: r.title, resourceIds: [r.id] }); }}
+                className="w-full text-left mb-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-[var(--color-surface-raised)]"
+                style={{ borderLeft: `3px solid ${r.priority === "CRITICAL" ? "#DC2626" : r.priority === "HIGH" ? "#D97706" : "#2563EB"}` }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>{r.title}</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: r.priority === "CRITICAL" ? "#DC2626" : r.priority === "HIGH" ? "#D97706" : "#CA8A04", backgroundColor: r.priority === "CRITICAL" ? "#FEF2F2" : r.priority === "HIGH" ? "#FFFBEB" : "#FEFCE8", border: `1px solid ${r.priority === "CRITICAL" ? "#FECACA" : r.priority === "HIGH" ? "#FDE68A" : "#FEF08A"}` }}>
+                    {r.priority}
+                  </span>
+                </div>
+                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>{r.note}</p>
+                {r.reasoning && (
+                  <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--color-primary)" }}>{r.reasoning}</p>
+                )}
+              </button>
+            ))}
+          </div>
+
           {/* Disputed */}
           {briefing.disputedEntries.length > 0 && (
             <div>
@@ -116,9 +142,13 @@ export function WeeklyBriefing({
                 Disputed Items
               </span>
               {briefing.disputedEntries.map((x) => (
-                <div key={x.id} className="border-l-2 border-[#FF9500] pl-2 mb-2">
+                <button
+                  key={x.id}
+                  onClick={(e) => { e.stopPropagation(); pushFocusView({ title: x.r!.title, resourceIds: [x.id] }); }}
+                  className="w-full text-left border-l-2 border-[#FF9500] pl-2 mb-2 cursor-pointer hover:bg-[var(--color-surface-raised)] rounded-r-md transition-colors p-1"
+                >
                   <p className="text-xs font-medium text-text-primary">{x.r!.title}</p>
-                  <p className="text-xs text-text-secondary line-clamp-3">
+                  <p className="text-xs text-text-secondary">
                     {x.note}
                   </p>
                   {x.sources?.length > 0 && (
@@ -148,7 +178,7 @@ export function WeeklyBriefing({
                       })}
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}
