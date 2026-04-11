@@ -29,12 +29,20 @@ export async function POST(request: NextRequest) {
     const jobStart = Date.now();
     const failures: string[] = [];
 
-    // ── Step 2: Rate limit — 1 run per source URL per hour ──
+    // ── Step 2: Rate limit + provisional gate ──
     const { data: sourceRecord } = await supabase
       .from("sources")
-      .select("id, last_scanned")
+      .select("id, last_scanned, status")
       .eq("url", sourceUrl)
       .single();
+
+    // Gate: do not process provisional sources — no API spend on unverified sources
+    if (sourceRecord?.status === "provisional") {
+      return NextResponse.json(
+        { error: "Source is provisional. Activate it (status='active') before processing." },
+        { status: 403 }
+      );
+    }
 
     if (sourceRecord?.last_scanned) {
       const lastScanned = new Date(sourceRecord.last_scanned).getTime();

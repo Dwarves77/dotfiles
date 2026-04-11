@@ -137,6 +137,7 @@ DO NOT make live Claude API calls at page load or user request.
 DO NOT rebuild the agent as a new file or route without reading this section first.
 DO NOT create duplicate intelligence items. Every item is linked to a single source. If a scan finds an item that already exists under a different title, UPDATE the existing item — do not insert a new row. Deduplicate by source_url and by matching regulation name/number before inserting.
 DO NOT leave any item without a full_brief. Every intelligence item must have complete content. If content cannot be generated, flag the item to the admin — never leave it blank.
+DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set status='active', admin_only=false), not a code change.
 
 The sector breakdown into 15 operationally distinct sectors happens because all 15 
 sector_contexts records are injected into the user message at runtime. The 
