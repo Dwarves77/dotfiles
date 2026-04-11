@@ -35,6 +35,7 @@ import { RegionalIntelligence } from "@/components/domains/RegionalIntelligence"
 import { GeopoliticalSignals } from "@/components/domains/GeopoliticalSignals";
 import { ResearchPipeline } from "@/components/domains/ResearchPipeline";
 import { FacilityOptimization } from "@/components/domains/FacilityOptimization";
+import { DomainItemList } from "@/components/domains/DomainItemList";
 
 // Map
 import dynamic from "next/dynamic";
@@ -420,8 +421,8 @@ export function Dashboard({
             subtitle="Track how emerging technology, commodity prices, and trade policy shifts will affect your freight costs and carrier options."
             aiPlaceholder="Ask — 'What's the cost outlook for SAF fuel?' or 'How will carbon pricing affect ocean freight rates?'"
             tabs={[
-              { id: "tech", label: "Technology Readiness", content: <TechnologyTracker /> },
-              { id: "geo", label: "Price Signals & Trade", content: <GeopoliticalSignals /> },
+              { id: "tech", label: "Technology Readiness", content: <><DomainItemList domain={2} emptyMessage="No technology intelligence items yet." /><TechnologyTracker /></> },
+              { id: "geo", label: "Price Signals & Trade", content: <><DomainItemList domain={4} emptyMessage="No market intelligence items yet." /><GeopoliticalSignals /></> },
             ]}
           />
         )}
