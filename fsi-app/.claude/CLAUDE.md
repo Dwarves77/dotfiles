@@ -310,3 +310,43 @@ After deployment, the app will automatically use live data (no code changes need
 2. Start dev server (`npm run dev`) and verify live data renders in all views
 3. Build monitoring queue worker (cron to scan sources)
 4. Community layer planning (Phase 2)
+
+### 2026-04-10/11 — Intelligence Agent + Content Overhaul + UI Fixes
+
+#### Accomplished
+- **Intelligence Agent route** (`POST /api/agent/run`): Single Claude API call per source URL. Delta detection + 15 sector synopses in one response. System prompt at `src/lib/agent/system-prompt.ts`. Writes to `intelligence_items`, `intelligence_changes`, `intelligence_summaries`.
+- **Full intelligence briefs**: 89 of 119 resources generated via Claude API with web search. 10,000-16,000 chars each with tables, risk registers, recommended actions, source citations. Synced to seed JSON.
+- **Sector-specific synopsis display**: New `SectorSynopsisView` component replaces old `whatIsIt`/`whyMatters`/`keyData` and `fullBrief` display. Primary sector synopsis shown by default; "View all my sectors" toggle for multi-sector accordion. Fallback to old fields when no synopsis exists.
+- **Database migration 007**: `full_brief` TEXT column on `intelligence_items`, `resources`, `staged_updates`. RPC function updated.
+- **IntelligenceBrief component**: Markdown renderer with TOC, color-coded tables (green exempt / red required), Action Required callouts (#FFF7F0 orange), shaded H2 section bars, risk badge pills, source citations.
+- **Sector-aware AI assistant**: `/api/ask` now receives workspace sector profile + jurisdictions. System prompt generates sector-specific responses. Multi-sector workspaces get per-sector translations.
+- **Urgency scoring updated**: Sector multipliers from skill standard (1.0 / 0.9 / 0.6 / 0.3 / 0.1).
+- **40 freight sectors** (was 20): Added flowers, wine/spirits, retail/FMCG, furniture, construction, metals, mining, aerospace, medical devices, live animals, forestry, general road, rail, oversized/OOG, personal effects, government/military, sports, precious goods, nuclear, liquid bulk.
+- **Filter system fixed**: Priority pills always show color. Topic pills show left-border accent. Search skips sector filter for cross-sector regulations.
+- **Tailwind classes fixed**: 187 usages of `text-text-primary` etc. now resolve via `@theme` block.
+- **Admin role dynamic**: Reads from `org_memberships` via AuthProvider, not hardcoded.
+- **Theme toggle**: Sun/Moon in UserMenu dropdown.
+- **Data resilience**: `fetchDashboardData` + `fetchSourceData` have 8-second timeouts. `getAppData` has 10-second overall timeout. Seed fallback on failure.
+- **19 orphan duplicate items** deleted from `intelligence_items` (scan results with null legacy_id).
+- **Duplicate reasoning text** fixed in ResourceCard (skip when same as focus view `why`).
+
+#### Decisions Made
+- `generate-briefs.mjs` is **retired**. Intelligence generation happens via agent route, not seed scripts.
+- `full_brief` field is superseded by `intelligence_summaries`. Users read sector-specific synopses, not monolithic briefs.
+- ONE Claude API call per source URL — not per item, not per sector. 73 sources = max 73 calls per full scan.
+- Permitted live Claude API calls: `/api/ask` (user questions) and `/api/admin/scan` (admin scan) only. Everything else reads from database.
+- Synopsis quality benchmark: PPWR v7 Regulatory Fact Document standard.
+- Sector contexts read from `sector_contexts` table at runtime — not hardcoded. 15 sectors with `synopsis_prompt` per sector.
+
+#### Blockers / Open Questions
+- **30 intelligence briefs not generated** (17 CRITICAL including EU ETS, CSRD, CII, ISO 14083, IMO NZF, CBAM, ReFuelEU Aviation). API credits ran out during generation. Agent route is ready to generate sector synopses for these — needs credits.
+- **Agent route fetch failures**: IMO.org returns 500 to server-side fetches. Some EC pages return parseable content but Claude response may exceed token limit. `max_tokens` increased to 16000.
+- **Dashboard still reads `full_brief`** in some home sections (WeeklyBriefing, WhatChanged). These need updating to read from `intelligence_summaries`.
+- **Sector impact matrices** not yet appended to completed briefs — now superseded by `intelligence_summaries` approach.
+
+#### Next Steps
+1. Run agent route against remaining 12 CRITICAL source URLs (after credits restored)
+2. Run agent route against 13 MODERATE/LOW source URLs
+3. Update WeeklyBriefing and WhatChanged home sections to read from `intelligence_summaries`
+4. Test full synopsis display on production — verify sector-specific content renders correctly
+5. Delete `/api/debug/data-path` diagnostic route (no longer needed)
