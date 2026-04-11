@@ -221,16 +221,9 @@ export function Dashboard({
           .filter(Boolean) as Resource[]
       : resources;
 
-    // Domain filtering: all existing legacy resources are Domain 1 (Regulatory)
-    // When on a domain tab, only show items matching that domain
+    // Domain filtering — show only items matching the active domain
     if (currentDomain && !focusView) {
-      if (currentDomain === 1) {
-        // All legacy resources are regulatory — show them all on Domain 1
-        // Once intelligence_items table is live, this filters by item.domain
-      } else {
-        // Domains 2-7 have no legacy resources yet — show empty state
-        items = [];
-      }
+      items = items.filter((r) => (r.domain || 1) === currentDomain);
     }
 
     items = filterResources(items, filters);
