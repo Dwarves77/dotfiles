@@ -73,16 +73,15 @@ export function FilterBar() {
       </FilterRow>
 
       <FilterRow label="Topic">
-        {TOPICS.map(({ id, label }) => (
+        {TOPICS.filter(({ id }) => counts.topicCounts[id]).map(({ id, label }) => (
           <Pill
             key={id}
             label={label}
             active={filters.topics.includes(id)}
-            count={counts.topicCounts[id] || 0}
+            count={counts.topicCounts[id]}
             color={TOPIC_COLORS[id]}
             accentBorder
             onClick={() => toggleFilter("topics", id)}
-            className={!counts.topicCounts[id] ? "opacity-40" : undefined}
           />
         ))}
       </FilterRow>
@@ -127,7 +126,7 @@ export function FilterBar() {
             Reset to my sectors
           </button>
         )}
-        {ALL_SECTORS.map(({ id, label }) => {
+        {ALL_SECTORS.filter(({ id }) => counts.vertCounts[id] || filters.verticals.includes(id)).map(({ id, label }) => {
           const count = counts.vertCounts[id];
           const inProfile = sectorProfile.length === 0 || sectorProfile.includes(id);
           return (
