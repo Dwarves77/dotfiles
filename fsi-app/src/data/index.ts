@@ -43,8 +43,10 @@ export const xrefPairs: [string, string][] = XREF_PAIRS.map((pair) => [pair[0], 
 
 // Convert supersessions — agent-created format uses different field names
 export const supersessions: Supersession[] = SUPERSESSIONS.map((s) => ({
-  old: s.id,
+  old: s.newId,       // newId is an actual resource ID (e.g. "g2", "c1")
   new: s.newId,
+  oldTitle: s.oldTitle,
+  newTitle: s.newTitle,
   date: s.date,
   severity: s.severity,
   note: s.what,

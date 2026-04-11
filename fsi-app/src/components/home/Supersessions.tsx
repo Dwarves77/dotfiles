@@ -77,18 +77,15 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
                   <span className="text-xs text-text-secondary tabular-nums">{s.date}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => navigateToResource(s.old)}
-                    className="text-xs text-text-secondary hover:text-text-primary cursor-pointer transition-colors line-through"
-                  >
-                    {oldR?.title?.slice(0, 50) || s.old}
-                  </button>
+                  <span className="text-xs text-text-secondary line-through">
+                    {s.oldTitle || oldR?.title?.slice(0, 50) || s.old}
+                  </span>
                   <span className="text-xs text-text-secondary">&rarr;</span>
                   <button
                     onClick={() => navigateToResource(s.new)}
-                    className="text-xs text-text-primary hover:text-text-accent cursor-pointer transition-colors font-medium"
+                    className="text-xs text-text-primary hover:text-text-accent cursor-pointer transition-colors font-medium underline"
                   >
-                    {newR?.title?.slice(0, 50) || s.new}
+                    {s.newTitle || newR?.title?.slice(0, 50) || s.new}
                   </button>
                 </div>
                 <p className="text-xs text-text-secondary leading-relaxed">{s.note}</p>
