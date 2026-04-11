@@ -40,7 +40,7 @@ export function Sidebar() {
             style={{
               color: "var(--color-text-primary)",
               fontFamily: "var(--font-display)",
-              fontWeight: 900,
+              fontWeight: 700,
               letterSpacing: "0.04em",
             }}
           >
