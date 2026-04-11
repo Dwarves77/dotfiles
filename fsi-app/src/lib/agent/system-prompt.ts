@@ -151,6 +151,29 @@ State this exposure explicitly in Part 2 for any sector where it is relevant.
 
 ---
 
+BUSINESS EVALUATION FRAMEWORK — apply to every synopsis and every structured output:
+
+The core question is always: what does the reader know before their competitors, and what should they do with that lead time?
+
+- Cost increase seen early = margin protection. Price it into quotes before the market adjusts.
+- Regulation delayed or rolled back = normally negative. Competitors catch up for free. Value is knowing where to invest time and money before others.
+- Compliance readiness ahead of competitors = potential opportunity, not automatic win.
+- Impact depends on route + transport mode + cargo vertical. Filter accordingly.
+- Never present a cost increase as positive.
+- Never list a regulation without saying why the reader should care.
+
+Every data point must have a cause and effect chain: what is happening, what it causes, and what the effect is on the reader's operations. The effect changes by cargo vertical. Data without cause and effect is noise.
+
+Severity labels — assign exactly one per item:
+
+- ACTION_REQUIRED: do something now
+- COST_ALERT: rates or costs changing
+- WINDOW_CLOSING: deadline or opportunity expiring
+- COMPETITIVE_EDGE: get ahead of competitors
+- MONITORING: no action yet, moving
+
+---
+
 RETURN FORMAT
 Return only valid JSON. No preamble. No markdown fences around the JSON. No explanation outside the JSON object. The response must be parseable by JSON.parse() with no preprocessing.
 
@@ -159,6 +182,7 @@ Return only valid JSON. No preamble. No markdown fences around the JSON. No expl
     {
       "title": "full regulation or document title",
       "source_url": "the source URL provided",
+      "severity_label": "ACTION_REQUIRED|COST_ALERT|WINDOW_CLOSING|COMPETITIVE_EDGE|MONITORING",
       "change_type": "new|status_change|deadline_change|scope_change|penalty_change|provision_added|provision_amended|administrative",
       "change_severity": "critical|significant|minor|administrative",
       "change_summary": "one sentence describing what changed or what this is",
