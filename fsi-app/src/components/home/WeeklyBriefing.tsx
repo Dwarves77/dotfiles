@@ -76,7 +76,7 @@ export function WeeklyBriefing({
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-5 py-4 cursor-pointer"
       >
-        <div>
+        <div className="text-left">
           <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
             Weekly Briefing
           </h3>

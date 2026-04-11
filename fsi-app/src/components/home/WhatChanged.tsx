@@ -34,7 +34,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
-        <div>
+        <div className="text-left">
           <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
             What Changed ({allIds.length})
           </h3>

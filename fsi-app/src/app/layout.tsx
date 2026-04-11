@@ -37,6 +37,7 @@ export default function RootLayout({
       className={`${anton.variable} ${jakarta.variable}`}
       data-theme="light"
       suppressHydrationWarning
+      style={{ backgroundColor: "#fafaf8" }}
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
