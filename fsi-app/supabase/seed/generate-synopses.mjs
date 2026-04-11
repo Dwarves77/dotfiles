@@ -70,12 +70,11 @@ async function run() {
 
   if (!sectors?.length) { console.log("No sector contexts found"); return; }
 
-  // Load items with full_brief that don't have synopses yet
+  // Load ALL items that don't have synopses yet
   const { data: items } = await supabase
     .from("intelligence_items")
-    .select("id, legacy_id, title, priority, full_brief")
+    .select("id, legacy_id, title, priority, full_brief, what_is_it, why_matters, key_data, summary")
     .eq("is_archived", false)
-    .not("full_brief", "is", null)
     .order("priority");
 
   const { data: existing } = await supabase
@@ -87,7 +86,7 @@ async function run() {
 
   console.log(`\n=== SYNOPSIS GENERATOR ===`);
   console.log(`Sector contexts: ${sectors.length}`);
-  console.log(`Items with briefs: ${items.length}`);
+  console.log(`Total items: ${items.length}`);
   console.log(`Already have synopses: ${hasSynopses.size}`);
   console.log(`Need synopses: ${needSynopses.length}`);
   console.log(`\nStarting...\n`);
@@ -99,12 +98,16 @@ async function run() {
     process.stdout.write(`[${done + 1}/${needSynopses.length}] ${item.legacy_id || "?"} — ${item.title}...`);
 
     try {
+      const briefContent = item.full_brief
+        ? item.full_brief.slice(0, 12000)
+        : `What It Is:\n${item.what_is_it || ""}\n\nWhy It Matters:\n${item.why_matters || ""}\n\nKey Data:\n${(item.key_data || []).join("\n")}\n\nStatus:\n${item.summary || ""}`;
+
       const userMessage = `INTELLIGENCE ITEM:
 Title: ${item.title}
 Priority: ${item.priority}
 
-FULL BRIEF:
-${item.full_brief.slice(0, 12000)}
+REGULATORY CONTENT:
+${briefContent}
 
 SECTOR CONTEXTS:
 ${JSON.stringify(sectors, null, 2)}`;

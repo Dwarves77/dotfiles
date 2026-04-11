@@ -495,31 +495,33 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     const [synopsesResult, changesResult, sectorsResult] = await Promise.all([
       supabase
         .from("intelligence_summaries")
-        .select("item_id, sector, summary, urgency_score"),
+        .select("item_id, sector, summary, urgency_score, intelligence_items!inner(legacy_id)"),
       supabase
         .from("intelligence_changes")
-        .select("item_id, change_type, change_severity, change_summary")
+        .select("item_id, change_type, change_severity, change_summary, intelligence_items!inner(legacy_id)")
         .order("detected_at", { ascending: false }),
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
     ]);
 
+    // Map synopses using legacy_id so they match the resource.id used in the UI
     const synopses: SectorSynopsis[] = (synopsesResult.data || []).map((r: any) => ({
-      itemId: r.item_id,
+      itemId: (r as any).intelligence_items?.legacy_id || r.item_id,
       sector: r.sector,
       summary: r.summary,
       urgencyScore: r.urgency_score,
     }));
 
-    // Dedupe changes to most recent per item
+    // Dedupe changes to most recent per item, keyed by legacy_id
     const changesSeen = new Set<string>();
     const intelligenceChanges: IntelligenceChange[] = [];
     for (const c of changesResult.data || []) {
-      if (!changesSeen.has(c.item_id)) {
-        changesSeen.add(c.item_id);
+      const key = (c as any).intelligence_items?.legacy_id || c.item_id;
+      if (!changesSeen.has(key)) {
+        changesSeen.add(key);
         intelligenceChanges.push({
-          itemId: c.item_id,
+          itemId: key,
           changeType: c.change_type,
           changeSeverity: c.change_severity,
           changeSummary: c.change_summary,
