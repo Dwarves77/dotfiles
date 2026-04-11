@@ -29,15 +29,13 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
-        <div className="flex items-center gap-2">
-          <div>
-            <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
-              Replaced Regulations ({supersessions.length})
-            </h3>
-            <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-              Regulations that have been replaced by newer versions
-            </p>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
+            Replaced Regulations ({supersessions.length})
+          </h3>
+          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+            Regulations that have been replaced by newer versions
+          </p>
         </div>
         <div className="flex items-center">
           <ChevronDown

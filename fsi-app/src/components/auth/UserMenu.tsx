@@ -29,12 +29,12 @@ function ThemeToggle() {
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const orgName = useWorkspaceStore((s) => s.orgName);
+  const userRole = useWorkspaceStore((s) => s.userRole);
   const [open, setOpen] = useState(false);
 
   if (!user) return null;
 
   const displayName = user.email?.split("@")[0] || "User";
-  const userRole = useWorkspaceStore((s) => s.userRole);
   const isAdmin = userRole === "owner" || userRole === "admin";
 
   return (
