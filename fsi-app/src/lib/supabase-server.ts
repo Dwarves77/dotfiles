@@ -491,35 +491,73 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       return seedFallback;
     }
 
-    // Fetch synopses, intelligence changes, and sector display names
+    // Fetch synopses (paginated — PostgREST caps at 1000 per request), changes, and sector names
     const supabase = getSupabase();
-    const [synopsesResult, changesResult, sectorsResult] = await Promise.all([
-      supabase
-        .from("intelligence_summaries")
-        .select("item_id, sector, summary, urgency_score, intelligence_items!inner(legacy_id)")
-        .limit(10000),
+
+    async function fetchAllSynopses() {
+      const allSynopses: any[] = [];
+      let from = 0;
+      const batchSize = 1000;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("intelligence_summaries")
+          .select("item_id, sector, summary, urgency_score")
+          .range(from, from + batchSize - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allSynopses.push(...data);
+
+        if (data.length < batchSize) break;
+        from += batchSize;
+      }
+
+      return allSynopses;
+    }
+
+    const [allSynopses, changesResult, sectorsResult] = await Promise.all([
+      fetchAllSynopses(),
       supabase
         .from("intelligence_changes")
-        .select("item_id, change_type, change_severity, change_summary, intelligence_items!inner(legacy_id)")
+        .select("item_id, change_type, change_severity, change_summary")
         .order("detected_at", { ascending: false }),
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
     ]);
 
-    // Map synopses using legacy_id so they match the resource.id used in the UI
-    const synopses: SectorSynopsis[] = (synopsesResult.data || []).map((r: any) => ({
-      itemId: (r as any).intelligence_items?.legacy_id || r.item_id,
+    // Build UUID→legacy_id lookup from resources already fetched
+    // The UI uses r.id = legacy_id || uuid. Synopses use item_id = uuid.
+    // We need to map synopsis item_ids to the IDs the UI uses.
+    const uuidToUiId = new Map<string, string>();
+    for (const r of resources) {
+      // r.id is already legacy_id || uuid (set in fetchWorkspaceResources)
+      // We need to find the UUID for each resource to map synopses
+    }
+    // Fetch the UUID→legacy_id mapping directly
+    const { data: idMap } = await supabase
+      .from("intelligence_items")
+      .select("id, legacy_id")
+      .eq("is_archived", false);
+    for (const row of idMap || []) {
+      uuidToUiId.set(row.id, row.legacy_id || row.id);
+    }
+
+    // Map synopses using the UUID→UI_ID lookup
+    const synopses: SectorSynopsis[] = allSynopses.map((r: any) => ({
+      itemId: uuidToUiId.get(r.item_id) || r.item_id,
       sector: r.sector,
       summary: r.summary,
       urgencyScore: r.urgency_score,
     }));
 
-    // Dedupe changes to most recent per item, keyed by legacy_id
+    // Dedupe changes to most recent per item
     const changesSeen = new Set<string>();
     const intelligenceChanges: IntelligenceChange[] = [];
     for (const c of changesResult.data || []) {
-      const key = (c as any).intelligence_items?.legacy_id || c.item_id;
+      const key = uuidToUiId.get(c.item_id) || c.item_id;
       if (!changesSeen.has(key)) {
         changesSeen.add(key);
         intelligenceChanges.push({
