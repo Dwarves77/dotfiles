@@ -168,14 +168,16 @@ export function Dashboard({
   }, [initialResources, initialArchived, setResources, setArchived, sectorProfile]);
 
   // Merge platform data with workspace overrides
+  // Use initialResources as fallback during first render before store is populated
+  const effectiveResources = platformResources.length > 0 ? platformResources : initialResources;
+  const effectiveArchived = platformArchived.length > 0 ? platformArchived : initialArchived;
   const { active: resources, archived: workspaceArchived } = useMemo(
-    () => mergeWithOverrides(platformResources, overrides),
-    [platformResources, overrides]
+    () => mergeWithOverrides(effectiveResources, overrides),
+    [effectiveResources, overrides]
   );
-  // Combined archived: platform archived + workspace archived
   const archived = useMemo(
-    () => [...platformArchived, ...workspaceArchived],
-    [platformArchived, workspaceArchived]
+    () => [...effectiveArchived, ...workspaceArchived],
+    [effectiveArchived, workspaceArchived]
   );
 
   // Initialize source data on mount (only when data is provided)
