@@ -15,10 +15,10 @@ import { UserMenu } from "@/components/auth/UserMenu";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/regulations", label: "Regulations", icon: Scale },
-  { href: "/map", label: "Map", icon: MapPin },
   { href: "/market", label: "Market Intel", icon: TrendingUp },
-  { href: "/operations", label: "Operations", icon: Globe },
   { href: "/research", label: "Research", icon: GraduationCap },
+  { href: "/operations", label: "Operations", icon: Globe },
+  { href: "/map", label: "Map", icon: MapPin },
 ];
 
 export function Sidebar() {
