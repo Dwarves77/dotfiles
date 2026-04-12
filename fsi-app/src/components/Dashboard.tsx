@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { AlertTriangle, ArrowUp, Eye, Shield } from "lucide-react";
 import { Toast } from "@/components/ui/Toast";
 import { TabBar } from "@/components/TabBar";
 import { NavigationStack } from "@/components/NavigationStack";
@@ -441,9 +442,11 @@ export function Dashboard({
             subtitle="Track how emerging technology, commodity prices, and trade policy shifts will affect your freight costs and carrier options."
             aiPlaceholder="Ask — 'What's the cost outlook for SAF fuel?' or 'How will carbon pricing affect ocean freight rates?'"
             tabs={[
-              { id: "tech", label: "Technology Readiness", content: <><DomainItemList domain={2} emptyMessage="No technology intelligence items yet." /><TechnologyTracker /></> },
-              { id: "geo", label: "Price Signals & Trade", content: <><DomainItemList domain={4} emptyMessage="No market intelligence items yet." /><GeopoliticalSignals /></> },
+              { id: "tech", label: "Technology Readiness", content: <><DomainItemList domain={2} /><TechnologyTracker /></> },
+              { id: "geo", label: "Price Signals & Trade", content: <><DomainItemList domain={4} /><GeopoliticalSignals /></> },
             ]}
+            urgencyType="market_intel"
+            resources={resources}
           />
         )}
 
@@ -467,8 +470,10 @@ export function Dashboard({
             subtitle="Academic and institutional findings that inform future standards and emerging regulation. Signals where the industry is heading."
             aiPlaceholder="Ask — 'What research affects carbon accounting standards?' or 'What are MIT's latest findings on freight emissions?'"
             tabs={[
-              { id: "research", label: "Research Pipeline", content: <><DomainItemList domain={7} emptyMessage="No research items yet." /><ResearchPipeline /></> },
+              { id: "research", label: "Research Pipeline", content: <><DomainItemList domain={7} /><ResearchPipeline /></> },
             ]}
+            urgencyType="research"
+            resources={resources}
           />
         )}
 
@@ -598,13 +603,48 @@ function MergedSection({
   subtitle,
   aiPlaceholder,
   tabs,
+  urgencyType,
+  resources: allResources,
 }: {
   label: string;
   subtitle: string;
   aiPlaceholder?: string;
   tabs: { id: string; label: string; content: React.ReactNode }[];
+  urgencyType?: "market_intel" | "research";
+  resources?: Resource[];
 }) {
   const [activeTab, setActiveTab] = useState(tabs[0].id);
+  const { pushFocusView } = useNavigationStore();
+
+  // Urgency labels per type
+  const urgencyLabels = urgencyType === "market_intel"
+    ? { CRITICAL: "Watch", HIGH: "Elevated", MODERATE: "Stable", LOW: "Informational" }
+    : urgencyType === "research"
+    ? { CRITICAL: "Emerging", HIGH: "Active", MODERATE: "Established", LOW: "Archived" }
+    : null;
+
+  const urgencyDescs = urgencyType === "market_intel"
+    ? { CRITICAL: "Threshold breached — immediate cost impact", HIGH: "Significant movement — review models", MODERATE: "Within normal range — monitor", LOW: "Background awareness" }
+    : urgencyType === "research"
+    ? { CRITICAL: "New finding — warrants attention", HIGH: "Ongoing research — near-term implications", MODERATE: "Published — informing current standards", LOW: "Completed — reference only" }
+    : null;
+
+  // Filter resources to this section's types
+  const sectionResources = useMemo(() => {
+    if (!allResources || !urgencyType) return [];
+    return allResources.filter((r) => {
+      if (urgencyType === "market_intel") return ["market_signal", "technology", "innovation", "tool"].includes(r.type);
+      if (urgencyType === "research") return r.type === "research_finding";
+      return false;
+    });
+  }, [allResources, urgencyType]);
+
+  const urgencyCards = urgencyLabels ? [
+    { priority: "CRITICAL" as const, label: urgencyLabels.CRITICAL, desc: urgencyDescs!.CRITICAL, color: "#DC2626", bg: "rgba(220,38,38,0.08)", icon: AlertTriangle },
+    { priority: "HIGH" as const, label: urgencyLabels.HIGH, desc: urgencyDescs!.HIGH, color: "#D97706", bg: "rgba(217,119,6,0.08)", icon: ArrowUp },
+    { priority: "MODERATE" as const, label: urgencyLabels.MODERATE, desc: urgencyDescs!.MODERATE, color: "#CA8A04", bg: "rgba(202,138,4,0.08)", icon: Eye },
+    { priority: "LOW" as const, label: urgencyLabels.LOW, desc: urgencyDescs!.LOW, color: "#16A34A", bg: "rgba(22,163,74,0.08)", icon: Shield },
+  ] : null;
 
   return (
     <div className="mt-4 space-y-4">
@@ -612,11 +652,57 @@ function MergedSection({
         <h2 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
           {label}
         </h2>
-        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-          {subtitle}
-        </p>
+        {subtitle && (
+          <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+            {subtitle}
+          </p>
+        )}
       </div>
       {aiPlaceholder && <AiPromptBar placeholder={aiPlaceholder} />}
+
+      {/* Urgency stat cards — same style as dashboard SummaryStrip */}
+      {urgencyCards && (
+        <>
+          <div className="flex items-center gap-4 text-[10px] font-semibold uppercase tracking-wider flex-wrap" style={{ color: "var(--color-text-muted)" }}>
+            {urgencyCards.map((c) => (
+              <span key={c.priority} className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                <span style={{ color: c.color }}>{c.label}</span>
+                <span>{c.desc.split("—")[0]?.trim()}</span>
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {urgencyCards.map((card) => {
+              const count = sectionResources.filter((r) => r.priority === card.priority).length;
+              const ids = sectionResources.filter((r) => r.priority === card.priority);
+              const Icon = card.icon;
+              return (
+                <button
+                  key={card.priority}
+                  onClick={() => pushFocusView({
+                    title: `${card.label} — ${count} items`,
+                    resourceIds: ids.map((r) => r.id),
+                  })}
+                  className="cl-stat-card text-center py-4 px-3 cursor-pointer transition-all duration-200 hover:shadow-md"
+                  style={{ borderColor: `${card.color}20` }}
+                >
+                  <Icon size={20} style={{ color: card.color }} className="mx-auto mb-2" />
+                  <div className="cl-stat-number" style={{ color: "var(--color-text-primary)", fontSize: "28px" }}>
+                    {count}
+                  </div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider mt-1" style={{ color: card.color }}>
+                    {card.label}
+                  </div>
+                  <div className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                    {card.desc}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Internal tabs */}
       <div className="flex gap-1 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
