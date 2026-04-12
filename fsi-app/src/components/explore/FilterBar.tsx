@@ -2,13 +2,28 @@
 
 import { Pill } from "@/components/ui/Pill";
 import { useResourceStore } from "@/stores/resourceStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { MODES, TOPICS, JURISDICTIONS, PRIORITIES, PRIORITY_COLORS, TOPIC_COLORS, CONFIDENCE_LEVELS, ALL_SECTORS } from "@/lib/constants";
 import { useWorkspaceStore, getActiveSectors } from "@/stores/workspaceStore";
-import { useMemo } from "react";
-import { X, RotateCcw } from "lucide-react";
+import { useMemo, useEffect, useRef } from "react";
+import { X, RotateCcw, Save, Undo2 } from "lucide-react";
 
 export function FilterBar() {
   const { filters, toggleFilter, clearFilters, resources, sessionSectorOverride, resetToWorkspaceSectors } = useResourceStore();
+  const { savedFilters, saveFilterDefaults, clearFilterDefaults } = useSettingsStore();
+  const initialLoad = useRef(true);
+
+  // On first mount, apply saved filter defaults if they exist
+  useEffect(() => {
+    if (initialLoad.current && savedFilters) {
+      const store = useResourceStore.getState();
+      savedFilters.modes.forEach((m) => { if (!store.filters.modes.includes(m)) store.toggleFilter("modes", m); });
+      savedFilters.topics.forEach((t) => { if (!store.filters.topics.includes(t)) store.toggleFilter("topics", t); });
+      savedFilters.jurisdictions.forEach((j) => { if (!store.filters.jurisdictions.includes(j)) store.toggleFilter("jurisdictions", j); });
+      savedFilters.priorities.forEach((p) => { if (!store.filters.priorities.includes(p)) store.toggleFilter("priorities", p); });
+      initialLoad.current = false;
+    }
+  }, [savedFilters]);
   const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
   const activeSectors = getActiveSectors(sectorProfile);
 
@@ -49,15 +64,39 @@ export function FilterBar() {
 
   return (
     <div className="space-y-0">
-      {hasActiveFilters && (
-        <button
-          onClick={clearFilters}
-          className="flex items-center gap-1 text-xs cursor-pointer transition-colors mb-2"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          <X size={12} strokeWidth={2} />
-          Clear all filters
-        </button>
+      {(hasActiveFilters || savedFilters) && (
+        <div className="flex items-center gap-3 mb-2">
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs cursor-pointer transition-colors"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              <X size={12} strokeWidth={2} />
+              Clear filters
+            </button>
+          )}
+          {hasActiveFilters && (
+            <button
+              onClick={() => saveFilterDefaults({ modes: filters.modes, topics: filters.topics, jurisdictions: filters.jurisdictions, priorities: filters.priorities })}
+              className="flex items-center gap-1 text-xs cursor-pointer transition-colors"
+              style={{ color: "var(--color-primary)" }}
+            >
+              <Save size={12} strokeWidth={2} />
+              Save as default
+            </button>
+          )}
+          {savedFilters && (
+            <button
+              onClick={() => { clearFilterDefaults(); clearFilters(); }}
+              className="flex items-center gap-1 text-xs cursor-pointer transition-colors"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              <Undo2 size={12} strokeWidth={2} />
+              Reset defaults
+            </button>
+          )}
+        </div>
       )}
 
       <FilterRow label="Mode">

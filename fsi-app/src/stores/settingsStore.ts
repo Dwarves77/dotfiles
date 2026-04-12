@@ -19,6 +19,14 @@ interface SettingsState {
   alertPriorities: string[];
   theme: "light" | "dark";
 
+  // Saved filter defaults (persisted to localStorage)
+  savedFilters: {
+    modes: string[];
+    topics: string[];
+    jurisdictions: string[];
+    priorities: string[];
+  } | null;
+
   // Sync state
   orgId: string | null;
   loaded: boolean;
@@ -30,6 +38,8 @@ interface SettingsState {
   setBriefingDay: (day: SettingsState["briefingDay"]) => void;
   setAlertPriorities: (priorities: string[]) => void;
   setTheme: (theme: "light" | "dark") => void;
+  saveFilterDefaults: (filters: { modes: string[]; topics: string[]; jurisdictions: string[]; priorities: string[] }) => void;
+  clearFilterDefaults: () => void;
   loadFromWorkspace: (orgId: string) => Promise<void>;
 }
 
@@ -82,6 +92,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   briefingDay: "monday",
   alertPriorities: ["CRITICAL", "HIGH"],
   theme: ((typeof window !== "undefined" ? localStorage.getItem("fsi-theme") : null) || "light") as "light" | "dark",
+  savedFilters: (typeof window !== "undefined" ? (() => { try { return JSON.parse(localStorage.getItem("fsi-saved-filters") || "null"); } catch { return null; } })() : null),
 
   orgId: null,
   loaded: false,
@@ -128,7 +139,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       localStorage.setItem("fsi-theme", theme);
       document.documentElement.setAttribute("data-theme", theme);
     }
-    // Theme is stored locally, not in workspace settings
+  },
+
+  saveFilterDefaults: (filters) => {
+    set({ savedFilters: filters });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fsi-saved-filters", JSON.stringify(filters));
+    }
+  },
+
+  clearFilterDefaults: () => {
+    set({ savedFilters: null });
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("fsi-saved-filters");
+    }
   },
 
   // Load settings from workspace_settings table
