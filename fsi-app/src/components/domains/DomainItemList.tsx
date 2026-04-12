@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { useResourceStore } from "@/stores/resourceStore";
 import { SectorSynopsisView } from "@/components/resource/SectorSynopsis";
 import { Badge } from "@/components/ui/Badge";
-import { PRIORITY_COLORS } from "@/lib/constants";
+import { PRIORITY_COLORS, INFO_TYPE_COLORS, INFO_TYPE_LABELS, getInfoType } from "@/lib/constants";
+import { UrgencyFilterBar, MARKET_INTEL_URGENCY, RESEARCH_URGENCY } from "@/components/ui/UrgencyFilterBar";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Resource } from "@/types/resource";
@@ -17,13 +18,9 @@ interface DomainItemListProps {
 export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
   const resources = useResourceStore((s) => s.resources);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [urgencyFilter, setUrgencyFilter] = useState<string | null>(null);
 
-  // Filter resources by domain — resources from the store include all items
-  // Domain items were inserted with a domain field; legacy items are domain 1
   const domainItems = useMemo(() => {
-    // For now, domain filtering uses the item_type or category since domain isn't on the Resource type
-    // Domain 2 = technology items, Domain 4 = market_signal items
-    // We check if the resource has a matching category pattern
     return resources.filter((r) => {
       if (domain === 2) return r.type === "technology";
       if (domain === 3) return r.topic === "regional" || r.sub === "regional";
@@ -34,11 +31,39 @@ export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
     });
   }, [resources, domain]);
 
+  // Urgency counts for the filter bar
+  const urgencyCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    domainItems.forEach((r) => { counts[r.priority] = (counts[r.priority] || 0) + 1; });
+    return counts;
+  }, [domainItems]);
+
+  // Apply urgency filter
+  const filteredItems = useMemo(() => {
+    if (!urgencyFilter) return domainItems;
+    return domainItems.filter((r) => r.priority === urgencyFilter);
+  }, [domainItems, urgencyFilter]);
+
+  // Which urgency config to use
+  const urgencyConfig = domain === 4 || domain === 2 ? MARKET_INTEL_URGENCY : domain === 7 ? RESEARCH_URGENCY : null;
+
   if (domainItems.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      {domainItems.map((item) => {
+    <div className="space-y-3">
+      {/* Urgency filter bar */}
+      {urgencyConfig && (
+        <div className="mb-2">
+          <UrgencyFilterBar
+            options={urgencyConfig}
+            activeFilter={urgencyFilter}
+            onFilter={setUrgencyFilter}
+            counts={urgencyCounts}
+          />
+        </div>
+      )}
+
+      {filteredItems.map((item) => {
         const isExpanded = expandedId === item.id;
         return (
           <div
@@ -50,6 +75,8 @@ export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
             style={{
               borderColor: "var(--color-border)",
               backgroundColor: "var(--color-surface)",
+              borderLeftColor: INFO_TYPE_COLORS[getInfoType(item.type)],
+              borderLeftWidth: "3px",
             }}
           >
             {/* Card header */}
@@ -66,7 +93,10 @@ export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
                     {item.title}
                   </h3>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge label={item.priority} color={PRIORITY_COLORS[item.priority]} />
+                    <Badge
+                      label={urgencyConfig?.find(o => o.value === item.priority)?.label || item.priority}
+                      color={PRIORITY_COLORS[item.priority]}
+                    />
                     <ChevronDown
                       size={14}
                       className={cn(
