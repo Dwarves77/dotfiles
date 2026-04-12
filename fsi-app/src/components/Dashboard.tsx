@@ -121,7 +121,7 @@ export function Dashboard({
 }: DashboardProps) {
   const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides, setSynopses, setIntelligenceChanges, setSectorDisplayNames } =
     useResourceStore();
-  const { tab: storeTab, focusView, clearNav } = useNavigationStore();
+  const { tab: storeTab, focusView, clearNav, pushFocusView } = useNavigationStore();
   // Use page prop (from URL routing) if provided, otherwise fall back to store tab
   const tab = page || storeTab;
 
@@ -284,10 +284,55 @@ export function Dashboard({
         {(isDomainTab || focusView) && (
           <div className="space-y-4 mt-4">
             {!focusView && tab === "regulations" && (
-              <PageContext
-                context="These regulations affect customs clearance, packaging, fuel costs, and carbon reporting for freight shipments. Sorted by how urgently they require action."
-                aiPlaceholder="Ask — 'What do I need to do before shipping to the EU in 2026?' or 'Which regulations affect air cargo?'"
-              />
+              <>
+                <PageContext
+                  context="These regulations affect customs clearance, packaging, fuel costs, and carbon reporting for freight shipments. Sorted by how urgently they require action."
+                  aiPlaceholder="Ask — 'What do I need to do before shipping to the EU in 2026?' or 'Which regulations affect air cargo?'"
+                />
+                {/* Urgency stat cards for Regulations */}
+                <div className="flex items-center gap-4 text-[10px] font-semibold uppercase tracking-wider flex-wrap" style={{ color: "var(--color-text-muted)" }}>
+                  {[
+                    { label: "CRITICAL", desc: "90 days", color: "#DC2626" },
+                    { label: "HIGH", desc: "6 months", color: "#D97706" },
+                    { label: "MODERATE", desc: "6-12 months", color: "#CA8A04" },
+                    { label: "LOW", desc: "Awareness", color: "#16A34A" },
+                  ].map((c) => (
+                    <span key={c.label} className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                      <span style={{ color: c.color }}>{c.label}</span>
+                      <span>{c.desc}</span>
+                    </span>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {([
+                    { pri: "CRITICAL" as const, label: "Critical", desc: "Immediate action — 90 days", color: "#DC2626", bg: "rgba(220,38,38,0.08)", Icon: AlertTriangle },
+                    { pri: "HIGH" as const, label: "High", desc: "Action needed — 6 months", color: "#D97706", bg: "rgba(217,119,6,0.08)", Icon: ArrowUp },
+                    { pri: "MODERATE" as const, label: "Moderate", desc: "Monitor — 6-12 month horizon", color: "#CA8A04", bg: "rgba(202,138,4,0.08)", Icon: Eye },
+                    { pri: "LOW" as const, label: "Low", desc: "No action needed — awareness only", color: "#16A34A", bg: "rgba(22,163,74,0.08)", Icon: Shield },
+                  ]).map((card) => {
+                    const regResources = resources.filter((r) => (r.domain || 1) === 1);
+                    const count = regResources.filter((r) => r.priority === card.pri).length;
+                    const ids = regResources.filter((r) => r.priority === card.pri);
+                    return (
+                      <button
+                        key={card.pri}
+                        onClick={() => pushFocusView({
+                          title: `${card.label} Priority — ${count} items`,
+                          resourceIds: ids.map((r) => r.id),
+                        })}
+                        className="cl-stat-card text-center py-4 px-3 cursor-pointer transition-all duration-200 hover:shadow-md"
+                        style={{ borderColor: `${card.color}20` }}
+                      >
+                        <card.Icon size={20} style={{ color: card.color }} className="mx-auto mb-2" />
+                        <div className="cl-stat-number" style={{ color: "var(--color-text-primary)", fontSize: "28px" }}>{count}</div>
+                        <div className="text-[11px] font-bold uppercase tracking-wider mt-1" style={{ color: card.color }}>{card.label}</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{card.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
             {!focusView && (
               <div
