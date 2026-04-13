@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",  // Haiku for scanning — 12x cheaper than Sonnet, fast structured extraction
+        model: "claude-sonnet-4-6",  // Haiku for scanning — 12x cheaper than Sonnet, fast structured extraction
         max_tokens: 3000,
         system: `You are the Sustainability & Climate Policy Intelligence Assistant for Caro's Ledge, a global freight forwarding intelligence platform. Your job is to translate regulatory and policy updates into operational impact, compliance risk, and recommended actions.
 
