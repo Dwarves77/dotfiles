@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
-import { AGENT_SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
+import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per source URL
@@ -114,7 +114,7 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 16000,
-        system: AGENT_SYSTEM_PROMPT,
+        system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
     });
