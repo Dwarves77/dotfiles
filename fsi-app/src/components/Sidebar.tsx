@@ -7,6 +7,7 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import {
   LayoutDashboard, Scale, TrendingUp, Globe,
   GraduationCap, MessageSquare, MapPin, Settings,
+  Shield, User,
   Menu, X,
 } from "lucide-react";
 import { useState } from "react";
@@ -19,6 +20,10 @@ const NAV_ITEMS = [
   { href: "/research", label: "Research", icon: GraduationCap },
   { href: "/operations", label: "Operations", icon: Globe },
   { href: "/map", label: "Map", icon: MapPin },
+  // TEMPORARILY exposed for public access. Remove to restore gated access via UserMenu.
+  { href: "/admin", label: "Admin", icon: Shield },
+  { href: "/profile", label: "Profile", icon: User },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
