@@ -1,11 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { redirect } from "next/navigation";
 import { CommunityHub } from "@/components/community/CommunityHub";
 
 export default async function CommunityPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // TEMPORARILY DISABLED for public access. Restore: if (!user) redirect("/login");
 
   // Fetch forum sections
   const { data: sections } = await supabase
@@ -32,7 +31,7 @@ export default async function CommunityPage() {
       sections={sections || []}
       recentThreads={threads || []}
       caseStudies={caseStudies || []}
-      userId={user.id}
+      userId={user?.id || ""}
     />
   );
 }
