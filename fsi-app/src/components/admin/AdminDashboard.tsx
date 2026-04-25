@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { APP_NAME } from "@/lib/constants";
+import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
 
 interface AdminDashboardProps {
   userId: string;
@@ -16,7 +17,7 @@ interface AdminDashboardProps {
 }
 
 export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<"users" | "orgs" | "updates" | "scan">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "orgs" | "updates" | "scan" | "sources">("users");
   const [members, setMembers] = useState<any[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [stagedUpdates, setStagedUpdates] = useState<any[]>([]);
@@ -131,6 +132,7 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
     { id: "orgs" as const, label: "Organizations", icon: Building, count: orgs.length },
     { id: "updates" as const, label: "Staged Updates", icon: FileCheck, count: stagedUpdates.length },
     { id: "scan" as const, label: "Regulatory Scan", icon: Radar, count: 0 },
+    { id: "sources" as const, label: "Source Registry", icon: Shield, count: 0 },
   ];
 
   return (
@@ -534,6 +536,11 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
               </div>
             )}
           </div>
+        )}
+
+        {/* ── Sources Tab ── */}
+        {activeTab === "sources" && (
+          <SourceHealthDashboard />
         )}
 
         {/* Toast */}
