@@ -15,6 +15,7 @@ import { StatStrip, type StatTone } from "@/components/ui/StatStrip";
 
 // Home
 import { SummaryStrip } from "@/components/home/SummaryStrip";
+import { DashboardHero } from "@/components/home/DashboardHero";
 import { WeeklyBriefing } from "@/components/home/WeeklyBriefing";
 import { WhatChanged } from "@/components/home/WhatChanged";
 import { TopUrgency } from "@/components/home/TopUrgency";
@@ -92,12 +93,17 @@ const DOMAIN_TABS = new Set(["regulations"]);
  *  in the dashboard-rebuild commit. */
 function mastheadFor(tab: string, resourceCount: number): { eyebrow?: string; title: string; meta?: string } {
   switch (tab) {
-    case "home":
+    case "home": {
+      const today = new Date();
+      const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+      const dateStr = today.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      const weekNo = Math.ceil(((today.getTime() - new Date(today.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7);
       return {
-        eyebrow: "VOL IV · WEEKLY BRIEF",
+        eyebrow: `Vol IV · No. ${weekNo} · ${dayName}`,
         title: "Dashboard — Your brief",
-        meta: `${resourceCount} regulations tracked · live signals across freight policy`,
+        meta: `${dateStr} · ${resourceCount} regulations tracked · 8 jurisdictions`,
       };
+    }
     case "regulations":
       return {
         eyebrow: "Regulatory intelligence",
@@ -299,10 +305,13 @@ export function Dashboard({
   // a later commit; centralized here for now while every route still
   // funnels through Dashboard.tsx.
   const masthead = mastheadFor(tab, resources.length);
+  // Dashboard masthead carries the 4-up hero strip inside it per
+  // dashboard-v3.html; other pages don't.
+  const belowSlot = tab === "home" && !focusView ? <DashboardHero resources={resources} /> : undefined;
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
-      <PageMasthead eyebrow={masthead.eyebrow} title={masthead.title} meta={masthead.meta} />
+      <PageMasthead eyebrow={masthead.eyebrow} title={masthead.title} meta={masthead.meta} belowSlot={belowSlot} />
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-6">
         {/* Navigation Stack (for focus views / back button) */}
         <NavigationStack />
@@ -314,13 +323,9 @@ export function Dashboard({
               context={`Your freight operations are affected by ${resources.length} tracked regulations across ${new Set(resources.map((r) => r.jurisdiction)).size} jurisdictions. Here's what needs your attention.`}
               aiPlaceholder="Ask anything — 'What regulations affect my EU shipments?' or 'What changed this week?'"
             />
-            {settings.showSummaryStrip && (
-              <SummaryStrip
-                resources={resources}
-                changelog={changelog}
-                disputes={disputes}
-              />
-            )}
+            {/* Hero strip moved to PageMasthead belowSlot per dashboard-v3.html.
+                SummaryStrip retained but no longer mounted on home — kept
+                available for any focus view that wants the 4-up summary. */}
             {settings.showWeeklyBriefing && (
               <WeeklyBriefing
                 resources={resources}
