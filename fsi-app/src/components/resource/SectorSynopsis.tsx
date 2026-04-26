@@ -13,7 +13,7 @@ import { IntelligenceBrief } from "./IntelligenceBrief";
 function urgencyBadge(score: number | null): { label: string; bg: string; text: string; border: string } {
   if (score === null) return { label: "—", bg: "transparent", text: "var(--color-text-muted)", border: "var(--color-border)" };
   if (score >= 0.9) return { label: score.toFixed(1), bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
-  if (score >= 0.6) return { label: score.toFixed(1), bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+  if (score >= 0.6) return { label: score.toFixed(1), bg: "#FFF7ED", text: "#D97706", border: "#FED7AA" };
   if (score >= 0.3) return { label: score.toFixed(1), bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE" };
   return { label: score.toFixed(1), bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
 }
@@ -21,7 +21,7 @@ function urgencyBadge(score: number | null): { label: string; bg: string; text: 
 function severityBadge(severity: string): { label: string; bg: string; text: string; border: string } {
   switch (severity) {
     case "critical": return { label: "CRITICAL", bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
-    case "significant": return { label: "SIGNIFICANT", bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+    case "significant": return { label: "SIGNIFICANT", bg: "#FFF7ED", text: "#D97706", border: "#FED7AA" };
     case "minor": return { label: "MINOR", bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE" };
     case "administrative": return { label: "ADMINISTRATIVE", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
     default: return { label: severity.toUpperCase(), bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };

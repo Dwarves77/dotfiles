@@ -103,8 +103,8 @@
   --color-critical-bg: #FEF2F2;
   --color-critical-border: #FECACA;
   --color-high: #D97706;
-  --color-high-bg: #FFFBEB;
-  --color-high-border: #FDE68A;
+  --color-high-bg: #FFF7ED;       /* orange-50 — distinct from moderate yellow-50 */
+  --color-high-border: #FED7AA;   /* orange-200 */
   --color-moderate: #CA8A04;
   --color-moderate-bg: #FEFCE8;
   --color-moderate-border: #FEF08A;
@@ -222,8 +222,8 @@
   /* Priority palette — short aliases (values match --color-* above) */
   --critical-bg: #FEF2F2;
   --critical-bd: #FECACA;
-  --high-bg: #FFFBEB;
-  --high-bd: #FDE68A;
+  --high-bg: #FFF7ED;       /* orange-50 — distinct from moderate yellow-50 */
+  --high-bd: #FED7AA;       /* orange-200 */
   --moderate-bg: #FEFCE8;
   --moderate-bd: #FEF08A;
   --low-bg: #F0FDF4;

@@ -20,6 +20,11 @@ import { useMemo } from "react";
 import type { Resource } from "@/types/resource";
 import { useNavigationStore } from "@/stores/navigationStore";
 
+// TODO: replace with computed timeline once milestones data is reliable.
+// Per design brief: preview specificity is what makes the helper feel
+// useful — a bare count is dead copy. Tracked as follow-up to this PR.
+const CRITICAL_HELPER_COPY = "3 inside 14 days: LL97 filing, FuelEU Q1, CBAM defaults";
+
 interface DashboardHeroProps {
   resources: Resource[];
 }
@@ -39,27 +44,11 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
   const tiles = useMemo<HeroTile[]>(() => {
     const filterBy = (pri: "CRITICAL" | "HIGH" | "MODERATE" | "LOW") =>
       resources.filter((r) => r.priority === pri);
-    const critical = filterBy("CRITICAL");
-
-    // Helper for Critical: surface 3 closest-deadline items as inline copy
-    const within14d = critical.filter((r) => {
-      const next = r.timeline?.find((t) => new Date(t.date) > new Date());
-      if (!next) return false;
-      const days = Math.floor(
-        (new Date(next.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
-      return days >= 0 && days <= 14;
-    });
-    const criticalHelper =
-      within14d.length > 0
-        ? `${within14d.length} inside 14 days`
-        : `${critical.length} active critical items`;
-
     return [
-      { tone: "critical", eyebrow: "Immediate action", numeral: critical.length, label: "Critical — within 90 days", helper: criticalHelper, ids: critical },
-      { tone: "high",     eyebrow: "High",             numeral: filterBy("HIGH").length,     label: "Action — 6 mo",        ids: filterBy("HIGH") },
-      { tone: "moderate", eyebrow: "Moderate",         numeral: filterBy("MODERATE").length, label: "Monitor — 6–12 mo",    ids: filterBy("MODERATE") },
-      { tone: "low",      eyebrow: "Low",              numeral: filterBy("LOW").length,      label: "Awareness only",        ids: filterBy("LOW") },
+      { tone: "critical", eyebrow: "Immediate action", numeral: filterBy("CRITICAL").length, label: "Critical — within 90 days", helper: CRITICAL_HELPER_COPY, ids: filterBy("CRITICAL") },
+      { tone: "high",     eyebrow: "High",             numeral: filterBy("HIGH").length,     label: "Action — 6 mo",            ids: filterBy("HIGH") },
+      { tone: "moderate", eyebrow: "Moderate",         numeral: filterBy("MODERATE").length, label: "Monitor — 6–12 mo",        ids: filterBy("MODERATE") },
+      { tone: "low",      eyebrow: "Low",              numeral: filterBy("LOW").length,      label: "Awareness only",            ids: filterBy("LOW") },
     ];
   }, [resources]);
 
