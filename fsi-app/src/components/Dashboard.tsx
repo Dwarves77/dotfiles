@@ -10,6 +10,7 @@ import { ExportBuilder } from "@/components/ExportBuilder";
 import { BackToTop } from "@/components/BackToTop";
 import { PageContext } from "@/components/ui/PageContext";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
+import { PageMasthead } from "@/components/PageMasthead";
 
 // Home
 import { SummaryStrip } from "@/components/home/SummaryStrip";
@@ -84,6 +85,58 @@ const DOMAIN_TAB_MAP: Record<string, number> = {
 
 // Tabs that show the resource explorer (only Domain 1 — regulations use the legacy resource list)
 const DOMAIN_TABS = new Set(["regulations"]);
+
+/** PageMasthead values per tab. Eyebrow/title/meta lifted from
+ *  design_handoff_2026-04/preview/*.html. Home masthead gets refined
+ *  in the dashboard-rebuild commit. */
+function mastheadFor(tab: string, resourceCount: number): { eyebrow?: string; title: string; meta?: string } {
+  switch (tab) {
+    case "home":
+      return {
+        eyebrow: "VOL IV · WEEKLY BRIEF",
+        title: "Dashboard — Your brief",
+        meta: `${resourceCount} regulations tracked · live signals across freight policy`,
+      };
+    case "regulations":
+      return {
+        eyebrow: "Regulatory intelligence",
+        title: "Regulations",
+        meta: `${resourceCount} regulations tracked · 8 jurisdictions`,
+      };
+    case "technology":
+      return {
+        eyebrow: "Market intelligence",
+        title: "Market",
+        meta: "Technology readiness, price signals, trade policy",
+      };
+    case "regional":
+      return {
+        eyebrow: "Operations intelligence",
+        title: "Operations",
+        meta: "Jurisdictions, facilities, energy, labor",
+      };
+    case "research":
+      return {
+        eyebrow: "Research pipeline",
+        title: "Research",
+        meta: "Academic and institutional findings shaping standards",
+      };
+    case "map":
+      return {
+        eyebrow: "Global view",
+        title: "Map",
+        meta: "Jurisdictions where signals are active",
+      };
+    case "settings":
+      return {
+        eyebrow: "Workspace",
+        title: "Settings",
+        meta: "Display, exports, archive, supersessions",
+      };
+    default:
+      return { title: tab.charAt(0).toUpperCase() + tab.slice(1) };
+  }
+}
 
 interface DashboardProps {
   initialResources: Resource[];
@@ -241,8 +294,14 @@ export function Dashboard({
   const isDomainTab = DOMAIN_TABS.has(tab);
   // Sources tab merged into Research tab
 
+  // Masthead values per tab. Will move to per-route page.tsx mounts in
+  // a later commit; centralized here for now while every route still
+  // funnels through Dashboard.tsx.
+  const masthead = mastheadFor(tab, resources.length);
+
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
+      <PageMasthead eyebrow={masthead.eyebrow} title={masthead.title} meta={masthead.meta} />
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-6">
         {/* Navigation Stack (for focus views / back button) */}
         <NavigationStack />
