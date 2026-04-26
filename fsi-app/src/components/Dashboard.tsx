@@ -10,8 +10,9 @@ import { ExportBuilder } from "@/components/ExportBuilder";
 import { BackToTop } from "@/components/BackToTop";
 import { PageContext } from "@/components/ui/PageContext";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
-import { PageMasthead } from "@/components/PageMasthead";
-import { StatStrip, type StatTone } from "@/components/ui/StatStrip";
+import { PageMasthead } from "@/components/shell/PageMasthead";
+import { SectionHeader } from "@/components/shell/SectionHeader";
+import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
 
 // Home
 import { SummaryStrip } from "@/components/home/SummaryStrip";
