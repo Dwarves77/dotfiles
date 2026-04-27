@@ -160,6 +160,7 @@ interface DashboardProps {
   initialSynopses?: { itemId: string; sector: string; summary: string; urgencyScore: number | null }[];
   initialIntelligenceChanges?: { itemId: string; changeType: string; changeSeverity: string; changeSummary: string }[];
   initialSectorDisplayNames?: { sector: string; displayName: string }[];
+  initialOverrides?: { itemId: string; priorityOverride: string | null; isArchived: boolean; archiveReason: string | null; archiveNote: string | null; notes: string }[];
   /** Override the active page — when set, ignores navigationStore.tab */
   page?: string;
 }
@@ -178,9 +179,10 @@ export function Dashboard({
   initialSynopses = [],
   initialIntelligenceChanges = [],
   initialSectorDisplayNames = [],
+  initialOverrides = [],
   page,
 }: DashboardProps) {
-  const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides, setSynopses, setIntelligenceChanges, setSectorDisplayNames } =
+  const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides, setSynopses, setIntelligenceChanges, setSectorDisplayNames, setOverrides } =
     useResourceStore();
   const { tab: storeTab, focusView, clearNav, pushFocusView } = useNavigationStore();
   // Use page prop (from URL routing) if provided, otherwise fall back to store tab
@@ -255,6 +257,16 @@ export function Dashboard({
     if (initialSynopses.length > 0) setSynopses(initialSynopses);
     if (initialIntelligenceChanges.length > 0) setIntelligenceChanges(initialIntelligenceChanges);
     if (initialSectorDisplayNames.length > 0) setSectorDisplayNames(initialSectorDisplayNames);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Hydrate workspace overrides from Supabase on mount.
+  // resourceStore.updatePriority/archiveResource/restoreResource persist to
+  // the workspace_item_overrides table via /api/workspace/overrides; this
+  // re-loads any overrides set on previous sessions so the UI reflects the
+  // workspace's actual state.
+  useEffect(() => {
+    if (initialOverrides.length > 0) setOverrides(initialOverrides);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

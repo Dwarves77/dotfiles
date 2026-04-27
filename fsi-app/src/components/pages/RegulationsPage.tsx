@@ -14,6 +14,7 @@ interface Props {
   initialSynopses?: { itemId: string; sector: string; summary: string; urgencyScore: number | null }[];
   initialIntelligenceChanges?: { itemId: string; changeType: string; changeSeverity: string; changeSummary: string }[];
   initialSectorDisplayNames?: { sector: string; displayName: string }[];
+  initialOverrides?: { itemId: string; priorityOverride: string | null; isArchived: boolean; archiveReason: string | null; archiveNote: string | null; notes: string }[];
 }
 
 export function RegulationsPage(props: Props) {

@@ -425,6 +425,15 @@ export interface SectorDisplayName {
   displayName: string;
 }
 
+export interface WorkspaceOverrideRow {
+  itemId: string;
+  priorityOverride: string | null;
+  isArchived: boolean;
+  archiveReason: string | null;
+  archiveNote: string | null;
+  notes: string;
+}
+
 export interface DashboardData {
   resources: Resource[];
   archived: Resource[];
@@ -436,6 +445,7 @@ export interface DashboardData {
   synopses: SectorSynopsis[];
   intelligenceChanges: IntelligenceChange[];
   sectorDisplayNames: SectorDisplayName[];
+  overrides: WorkspaceOverrideRow[];
 }
 
 // Timeout wrapper — prevents Supabase from hanging indefinitely on Vercel
@@ -458,6 +468,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],
+    overrides: [],
   };
 
   if (!isSupabaseConfigured()) {
@@ -517,7 +528,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       return allSynopses;
     }
 
-    const [allSynopses, changesResult, sectorsResult] = await Promise.all([
+    const [allSynopses, changesResult, sectorsResult, overridesResult] = await Promise.all([
       fetchAllSynopses(),
       supabase
         .from("intelligence_changes")
@@ -526,6 +537,10 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
+      supabase
+        .from("workspace_item_overrides")
+        .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes")
+        .eq("org_id", orgId),
     ]);
 
     // Build UUID→legacy_id lookup from resources already fetched
@@ -582,6 +597,16 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       }
     }
 
+    // Map workspace_item_overrides UUID item_id → UI-side id (legacy_id || uuid)
+    const overrides: WorkspaceOverrideRow[] = (overridesResult.data || []).map((o: any) => ({
+      itemId: uuidToUiId.get(o.item_id) || o.item_id,
+      priorityOverride: o.priority_override ?? null,
+      isArchived: !!o.is_archived,
+      archiveReason: o.archive_reason ?? null,
+      archiveNote: o.archive_note ?? null,
+      notes: o.notes ?? "",
+    }));
+
     return {
       resources,
       archived,
@@ -593,6 +618,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       synopses,
       intelligenceChanges,
       sectorDisplayNames,
+      overrides,
     };
   } catch (e) {
     console.error("fetchDashboardData failed, using seed fallback:", e);

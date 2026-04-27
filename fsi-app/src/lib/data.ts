@@ -33,6 +33,7 @@ export async function getAppData() {
       synopses: [],
       intelligenceChanges: [],
       sectorDisplayNames: [],
+      overrides: [],
     };
   }
 }

@@ -23,6 +23,7 @@ export default async function Home() {
       synopses: [],
       intelligenceChanges: [],
       sectorDisplayNames: [],
+      overrides: [],
     };
   }
 
@@ -41,6 +42,7 @@ export default async function Home() {
       initialSynopses={data.synopses}
       initialIntelligenceChanges={data.intelligenceChanges}
       initialSectorDisplayNames={data.sectorDisplayNames}
+      initialOverrides={data.overrides}
       page="home"
     />
   );
