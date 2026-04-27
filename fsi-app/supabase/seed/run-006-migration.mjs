@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 
+process.loadEnvFile(".env.local");
 const supabase = createClient(
-  "https://kwrsbpiseruzbfwjpvsp.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cnNicGlzZXJ1emJmd2pwdnNwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDg1NzkzOCwiZXhwIjoyMDU2NDMzOTM4fQ.zPd4fS8kqnwGXif54aJe7zbcSdFf5-t7GXewSSfeNcE"
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Split SQL into individual statements and execute sequentially
@@ -99,11 +100,11 @@ async function runFile(filePath, label) {
 async function execSQL(sql, label) {
   // Use the Supabase Management API v1 SQL endpoint
   // This is available at POST /sql on the project URL with service role
-  const resp = await fetch("https://kwrsbpiseruzbfwjpvsp.supabase.co/sql", {
+  const resp = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/sql`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cnNicGlzZXJ1emJmd2pwdnNwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDg1NzkzOCwiZXhwIjoyMDU2NDMzOTM4fQ.zPd4fS8kqnwGXif54aJe7zbcSdFf5-t7GXewSSfeNcE`,
+      "Authorization": `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
     },
     body: JSON.stringify({ query: sql }),
   });

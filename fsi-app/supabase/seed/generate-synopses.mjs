@@ -1,18 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "fs";
 
-const envFile = readFileSync(".env.local", "utf8");
-const env = {};
-envFile.split("\n").forEach((line) => {
-  const [key, ...rest] = line.split("=");
-  if (key && rest.length) env[key.trim()] = rest.join("=").trim();
-});
+process.loadEnvFile(".env.local");
 
-const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(
-  "https://kwrsbpiseruzbfwjpvsp.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cnNicGlzZXJ1emJmd2pwdnNwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDg1NzkzOCwiZXhwIjoyMDU2NDMzOTM4fQ.zPd4fS8kqnwGXif54aJe7zbcSdFf5-t7GXewSSfeNcE"
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // 10-section synopsis format from the environmental-policy-and-innovation skill

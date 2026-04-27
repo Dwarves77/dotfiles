@@ -19,10 +19,10 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 
 ## Design System
 - **Light-first** (Apple HIG principles from frontend-design skill)
-- Single typeface: Plus Jakarta Sans (300-700)
+- Body typeface: Plus Jakarta Sans (300-700). Display typeface: Anton, scoped to masthead title, `.card-head h3`, and `.brief-section h3` only — see STATUS.md and the design previews for the canonical surfaces. Do not use Anton in body copy or in arbitrary section headers.
 - Semantic color tokens only — no raw hex in components
 - 8pt spacing grid, WCAG AA contrast, 44pt touch targets
-- No Anton font, no ambient orbs, no dark-first aesthetic
+- No ambient orbs, no dark-first aesthetic
 
 ## Intelligence Domains (primary navigation)
 1. Regulatory & Legislative (119 legacy resources live here)

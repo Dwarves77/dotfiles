@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-const supabase = createClient("https://kwrsbpiseruzbfwjpvsp.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cnNicGlzZXJ1emJmd2pwdnNwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDg1NzkzOCwiZXhwIjoyMDU2NDMzOTM4fQ.zPd4fS8kqnwGXif54aJe7zbcSdFf5-t7GXewSSfeNcE");
+process.loadEnvFile(".env.local");
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const rewrites = [
   { id: "g33", what_is_it: "EU Deforestation Regulation (EUDR) under Regulation (EU) 2023/1115 requires importers to verify that commodities placed on the EU market have not contributed to deforestation. Covers: cattle, cocoa, coffee, oil palm, rubber, soya, wood (and derived products including timber crating, plywood, paper packaging). Due diligence statements must accompany shipments. Delayed twice — currently scheduled for application from 30 December 2026 for large operators. Simplification review ongoing.", why_matters: "EUDR directly affects freight forwarders handling timber crating, wooden pallets, rubber components, leather goods, and palm-oil-derived packaging materials. For freight forwarders: (1) due diligence statements must accompany shipments containing covered commodities, (2) wooden crating and pallets (plywood, softwood) are in scope as 'wood products', (3) forwarders must verify that suppliers provide geolocation data for raw material sourcing, (4) penalties up to 4% of EU-wide turnover for non-compliance.",
