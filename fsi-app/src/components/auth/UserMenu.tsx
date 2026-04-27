@@ -32,12 +32,10 @@ export function UserMenu() {
   const userRole = useWorkspaceStore((s) => s.userRole);
   const [open, setOpen] = useState(false);
 
-  // TEMPORARILY DISABLED for public access. Restore: if (!user) return null;
+  if (!user) return null;
 
-  const displayName = user?.email?.split("@")[0] || "Guest";
-  // TEMPORARILY force admin visibility for public access. Restore:
-  // const isAdmin = userRole === "owner" || userRole === "admin";
-  const isAdmin = true;
+  const displayName = user.email?.split("@")[0] || "User";
+  const isAdmin = userRole === "owner" || userRole === "admin";
 
   return (
     <div className="relative">
@@ -77,7 +75,7 @@ export function UserMenu() {
               style={{ borderColor: "var(--color-border-subtle)" }}
             >
               <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
-                {user?.email || "Guest"}
+                {user.email}
               </p>
               <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
                 {orgName}

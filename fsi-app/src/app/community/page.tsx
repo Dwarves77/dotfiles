@@ -1,10 +1,11 @@
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { CommunityHub } from "@/components/community/CommunityHub";
 
 export default async function CommunityPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  // TEMPORARILY DISABLED for public access. Restore: if (!user) redirect("/login");
+  if (!user) redirect("/login?redirect=/community");
 
   // Fetch forum sections
   const { data: sections } = await supabase

@@ -56,14 +56,13 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Protected routes: redirect to login if not authenticated
-  // TEMPORARILY DISABLED for public access. Re-enable to restore auth gate.
-  // if (!user) {
-  //   const url = request.nextUrl.clone();
-  //   url.pathname = "/login";
-  //   url.searchParams.set("redirect", pathname);
-  //   return NextResponse.redirect(url);
-  // }
+  // Protected routes: redirect to login if not authenticated.
+  if (!user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }

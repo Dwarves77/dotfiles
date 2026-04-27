@@ -12,16 +12,24 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { UserMenu } from "@/components/auth/UserMenu";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 
-const NAV_ITEMS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  /** When true, only render for users with role owner|admin. */
+  adminOnly?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/regulations", label: "Regulations", icon: Scale },
   { href: "/market", label: "Market Intel", icon: TrendingUp },
   { href: "/research", label: "Research", icon: GraduationCap },
   { href: "/operations", label: "Operations", icon: Globe },
   { href: "/map", label: "Map", icon: MapPin },
-  // TEMPORARILY exposed for public access. Remove to restore gated access via UserMenu.
-  { href: "/admin", label: "Admin", icon: Shield },
+  { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -29,6 +37,9 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const userRole = useWorkspaceStore((s) => s.userRole);
+  const isAdmin = userRole === "owner" || userRole === "admin";
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -62,7 +73,7 @@ export function Sidebar() {
 
       {/* Main nav */}
       <nav className="py-2 px-2 space-y-0.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+        {visibleNavItems.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

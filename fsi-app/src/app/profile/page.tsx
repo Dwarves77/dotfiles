@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { WorkspaceProfile } from "@/components/admin/WorkspaceProfile";
 
@@ -5,7 +6,7 @@ export default async function ProfilePage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // TEMPORARILY DISABLED for public access. Restore: if (!user) redirect("/login");
+  if (!user) redirect("/login?redirect=/profile");
 
-  return <WorkspaceProfile userId={user?.id || ""} userEmail={user?.email || ""} />;
+  return <WorkspaceProfile userId={user.id} userEmail={user.email || ""} />;
 }
