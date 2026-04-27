@@ -270,13 +270,15 @@ export function Dashboard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load workspace settings from Supabase on mount
+  // Load workspace settings from Supabase once AuthProvider has resolved
+  // the user's org_id into workspaceStore. Skip for anonymous users — they
+  // get the localStorage-only settings the store ships with.
+  const orgIdFromAuth = useWorkspaceStore((s) => s.orgId);
   useEffect(() => {
-    if (!settingsLoaded) {
-      // Use the dev workspace org ID — will be dynamic once auth context provides org
-      loadSettings("a0000000-0000-0000-0000-000000000001");
+    if (!settingsLoaded && orgIdFromAuth) {
+      loadSettings(orgIdFromAuth);
     }
-  }, [settingsLoaded, loadSettings]);
+  }, [settingsLoaded, orgIdFromAuth, loadSettings]);
 
   // Build resource map for lookups
   const resourceMap = useMemo(() => {

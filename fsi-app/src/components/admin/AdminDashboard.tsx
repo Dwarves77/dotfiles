@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import {
   Users, Building, FileCheck, Plus, Trash2,
   CheckCircle, XCircle, RefreshCw, Shield, ArrowLeft,
@@ -54,14 +55,22 @@ export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
     setTimeout(() => setToast(""), 3000);
   };
 
-  // Add member to the dev org
+  // Add member to the caller's current workspace.
+  // The full "invite by email + provision" flow lives at /api/admin/users
+  // (POST). This direct insert is the dev-mode shortcut that adds the
+  // current user under a new role; it requires a resolved orgId from
+  // auth context.
+  const orgIdFromAuth = useWorkspaceStore((s) => s.orgId);
   const addMember = async () => {
     if (!newEmail) return;
+    if (!orgIdFromAuth) {
+      showToast("No workspace resolved — sign in to add members.");
+      return;
+    }
 
-    // Look up user by email in auth.users (needs service role — use API route)
     const { error } = await supabase.from("org_memberships").insert({
-      org_id: "a0000000-0000-0000-0000-000000000001",
-      user_id: userId, // For now, add current user
+      org_id: orgIdFromAuth,
+      user_id: userId,
       role: newRole,
     });
 

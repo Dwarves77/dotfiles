@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { resolveOrgIdFromUserId } from "@/lib/api/org";
 
 function getServiceClient() {
   return createClient(
@@ -11,17 +12,6 @@ function getServiceClient() {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-async function resolveOrgId(supabase: ReturnType<typeof getServiceClient>, userId: string): Promise<string | null> {
-  const { data } = await supabase
-    .from("org_memberships")
-    .select("org_id")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  return data?.org_id ?? null;
-}
 
 // Resolve a UI-side identifier (legacy_id like "o3" OR a UUID) to the
 // intelligence_items.id UUID. Returns null if not found.
@@ -51,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceClient();
 
-  const orgId = await resolveOrgId(supabase, auth.userId);
+  const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
   if (!orgId) {
     return NextResponse.json(
       { error: "User has no organization membership" },
@@ -125,7 +115,7 @@ export async function DELETE(request: NextRequest) {
 
   const supabase = getServiceClient();
 
-  const orgId = await resolveOrgId(supabase, auth.userId);
+  const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
   if (!orgId) {
     return NextResponse.json(
       { error: "User has no organization membership" },

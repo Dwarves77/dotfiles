@@ -456,7 +456,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   ]);
 }
 
-export async function fetchDashboardData(): Promise<DashboardData> {
+export async function fetchDashboardData(orgId: string | null): Promise<DashboardData> {
   const seedFallback: DashboardData = {
     resources: seedResources,
     archived: seedArchived,
@@ -475,9 +475,17 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     return seedFallback;
   }
 
+  // Anonymous request — no org resolved from auth context. Return the
+  // public/seed view (no workspace overrides). Once auth is enforced
+  // (Phase A.4), this branch is only reachable for misconfiguration.
+  if (!orgId) {
+    return seedFallback;
+  }
+
   try {
-    // Use workspace intelligence function for resources (includes overrides)
-    const orgId = "a0000000-0000-0000-0000-000000000001"; // Default dev workspace
+    // Workspace-scoped intelligence read. orgId is the caller's auth-resolved
+    // membership; the RPC merges intelligence_items with this workspace's
+    // overrides only.
     const [{ active: resources, archived }, changelog, disputes, xrefPairs, supersessions] =
       await withTimeout(
         Promise.all([
