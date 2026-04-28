@@ -423,7 +423,7 @@ After deployment, the app will automatically use live data (no code changes need
 3. Apply migration 016 — `sources.processing_paused` + `system_state` table.
 4. Apply migration 017 — `sources.admin_only` column + partial index.
 5. Add `WORKER_SECRET` and `APP_URL` repo secrets (already in place from source-monitoring) — the trust-recompute workflow uses the same secrets.
-6. After all migrations are applied, manually trigger `.github/workflows/trust-recompute.yml` once via the Actions tab to verify the endpoint returns 200 and produces the expected distribution.
+6. **Trust-recompute workflow needs a manual trigger immediately after `redesign/full-migration` merges to master**, to verify end-to-end against the now-deployed route. Until merge, the workflow run will 404 against production because `APP_URL` points to the master deployment, which does not yet contain `/api/admin/recompute-trust`. The workflow definition is verified correct (test run 25063688946 dispatched 2026-04-28: reached the curl step, all secrets and YAML resolved cleanly, only the route was missing on the target).
 7. After Supabase deployment, add `IMODOCS_USERNAME` and `IMODOCS_PASSWORD` to Vercel env vars if you ever activate the IMODOCS handler in a future commit (currently inert).
 8. **B.0d manual review**: review the 12 currently-pending provisional sources via the new UI buttons. Approve, reject, or defer each.
 
