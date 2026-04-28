@@ -1,0 +1,78 @@
+name: Trust score monthly recompute
+
+# Monthly recompute of source trust scores. Walks every source in the
+# registry and applies the Bayesian-prior-blend formula
+# (computeOverallScore in src/lib/trust.ts). The endpoint also returns
+# the score distribution and per-tier averages so the workflow log
+# captures meaningful telemetry, not just an HTTP status.
+#
+# Required secrets (Repo → Settings → Secrets and variables → Actions):
+#   APP_URL        — Production base URL, e.g. https://your-app.vercel.app (no trailing slash)
+#   WORKER_SECRET  — Same value as the WORKER_SECRET env var on the deployed app
+#
+# Schedule: 03:00 UTC on the 1st of every month. Also runnable on
+# demand from the Actions tab via workflow_dispatch (used to verify
+# the endpoint after first deployment).
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+
+jobs:
+  recompute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required secrets
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+        run: |
+          missing=0
+          if [ -z "$APP_URL" ]; then
+            echo "::error::APP_URL secret is not set."
+            missing=1
+          fi
+          if [ -z "$WORKER_SECRET" ]; then
+            echo "::error::WORKER_SECRET secret is not set."
+            missing=1
+          fi
+          [ "$missing" -eq 0 ]
+
+      - name: Call /api/admin/recompute-trust
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+        run: |
+          set -u
+          base="${APP_URL%/}"
+          target="$base/api/admin/recompute-trust"
+
+          echo "Calling $target"
+
+          tmp_body=$(mktemp)
+          status=$(curl -sS -o "$tmp_body" -w "%{http_code}" \
+            --max-time 120 \
+            --retry 2 --retry-delay 5 --retry-connrefused \
+            -X POST \
+            -H "x-worker-secret: $WORKER_SECRET" \
+            -H "Content-Type: application/json" \
+            "$target") || curl_exit=$?
+
+          echo "HTTP status: $status"
+          echo "Response body:"
+          cat "$tmp_body"
+          echo
+
+          if [ "${curl_exit:-0}" -ne 0 ]; then
+            echo "::error::curl failed with exit code $curl_exit"
+            exit "$curl_exit"
+          fi
+
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Recompute returned non-2xx status: $status"
+            exit 1
+          fi
+
+          echo "✓ Trust recompute completed successfully."
