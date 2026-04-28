@@ -30,93 +30,46 @@ function getSupabase() {
   );
 }
 
-// ── Row → TypeScript Mapping ─────────────────────────────────
-
-function mapResource(row: any, timelines?: any[]): Resource {
-  return {
-    id: row.id,
-    cat: row.category,
-    sub: row.subcategory || "",
-    title: row.title,
-    url: row.url || "",
-    note: row.note || "",
-    type: row.type || "",
-    priority: row.priority,
-    added: row.added_date,
-    reasoning: row.reasoning || "",
-    tags: row.tags || [],
-    whatIsIt: row.what_is_it || "",
-    whyMatters: row.why_matters || "",
-    keyData: row.key_data || [],
-    fullBrief: row.full_brief || undefined,
-    timeline: (timelines || []).map((t) => ({
-      date: t.date,
-      label: t.label,
-      status: t.status || undefined,
-    })),
-    modes: row.modes || [],
-    topic: row.topic || undefined,
-    jurisdiction: row.jurisdiction || undefined,
-    isArchived: row.is_archived,
-    archiveReason: row.archive_reason || undefined,
-    archiveNote: row.archive_note || undefined,
-    archivedDate: row.archived_date || undefined,
-    replacedBy: row.archive_replacement || undefined,
-  };
-}
-
 // ── Fetch Functions ──────────────────────────────────────────
+// All reads are against the new item_* schema (Phase A.5.b). UUID
+// item ids are translated to UI-side ids (legacy_id || uuid) inline
+// via PostgREST embedded selects, so the wire shape consumed by
+// existing components is preserved.
 
-async function fetchResources(): Promise<Resource[]> {
-  const supabase = getSupabase();
-
-  const [{ data: rows }, { data: timelineRows }] = await Promise.all([
-    supabase.from("resources").select("*").eq("is_archived", false),
-    supabase.from("timelines").select("*").order("sort_order"),
-  ]);
-
-  const timelineMap = new Map<string, any[]>();
-  (timelineRows || []).forEach((t: any) => {
-    const arr = timelineMap.get(t.resource_id) || [];
-    arr.push(t);
-    timelineMap.set(t.resource_id, arr);
-  });
-
-  return (rows || []).map((row: any) =>
-    mapResource(row, timelineMap.get(row.id))
-  );
-}
-
-async function fetchArchived(): Promise<Resource[]> {
-  const supabase = getSupabase();
-  const { data: rows } = await supabase
-    .from("resources")
-    .select("*")
-    .eq("is_archived", true);
-
-  return (rows || []).map((row: any) => mapResource(row));
+// PostgREST embedded selects sometimes return the joined row as a single
+// object and sometimes (when the relationship is inferred as many-to-one
+// through an aliased FK) as a single-element array. We accept both
+// shapes and pick the legacy_id || uuid as the UI-side id.
+type EmbeddedItem = { id: string; legacy_id: string | null };
+function uiId(ii: EmbeddedItem | EmbeddedItem[] | null | undefined): string | null {
+  if (!ii) return null;
+  const obj = Array.isArray(ii) ? ii[0] : ii;
+  if (!obj) return null;
+  return obj.legacy_id || obj.id;
 }
 
 async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
   const supabase = getSupabase();
   const { data: rows } = await supabase
-    .from("changelog")
-    .select("*")
-    .order("date", { ascending: false });
+    .from("item_changelog")
+    .select("change_date, change_type, field, previous_value, new_value, impact, intelligence_items!inner(id, legacy_id)")
+    .order("change_date", { ascending: false });
 
   const result: Record<string, ChangeLogEntry[]> = {};
   (rows || []).forEach((row: any) => {
+    const id = uiId(row.intelligence_items);
+    if (!id) return;
     const entry: ChangeLogEntry = {
-      id: row.resource_id,
-      date: row.date,
-      type: row.type,
-      fields: row.fields || undefined,
-      prev: row.prev_value || undefined,
-      now: row.now_value || undefined,
+      id,
+      date: row.change_date,
+      type: row.change_type,
+      fields: row.field ? [row.field] : undefined,
+      prev: row.previous_value || undefined,
+      now: row.new_value || undefined,
       impact: row.impact || undefined,
     };
-    if (!result[row.resource_id]) result[row.resource_id] = [];
-    result[row.resource_id].push(entry);
+    if (!result[id]) result[id] = [];
+    result[id].push(entry);
   });
 
   return result;
@@ -125,20 +78,22 @@ async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
 async function fetchDisputes(): Promise<Record<string, Dispute>> {
   const supabase = getSupabase();
   const { data: rows } = await supabase
-    .from("disputes")
-    .select("*")
-    .eq("active", true);
+    .from("item_disputes")
+    .select("note, disputing_sources, intelligence_items!inner(id, legacy_id)")
+    .eq("is_active", true);
 
   const result: Record<string, Dispute> = {};
   (rows || []).forEach((row: any) => {
-    const sources = Array.isArray(row.sources)
-      ? row.sources
-      : typeof row.sources === "string"
-        ? JSON.parse(row.sources)
+    const id = uiId(row.intelligence_items);
+    if (!id) return;
+    const sources = Array.isArray(row.disputing_sources)
+      ? row.disputing_sources
+      : typeof row.disputing_sources === "string"
+        ? JSON.parse(row.disputing_sources)
         : [];
 
-    result[row.resource_id] = {
-      resource: row.resource_id,
+    result[id] = {
+      resource: id,
       note: row.note,
       sources: sources.map((s: any) =>
         typeof s === "string" ? { name: s, url: "" } : s
@@ -151,25 +106,40 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
 
 async function fetchXrefPairs(): Promise<[string, string][]> {
   const supabase = getSupabase();
-  const { data: rows } = await supabase.from("cross_references").select("*");
+  const { data: rows } = await supabase
+    .from("item_cross_references")
+    .select("source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)");
 
-  return (rows || []).map((row: any) => [row.source_id, row.target_id]);
+  const pairs: [string, string][] = [];
+  for (const row of rows || []) {
+    const s = uiId(row.source);
+    const t = uiId(row.target);
+    if (s && t) pairs.push([s, t]);
+  }
+  return pairs;
 }
 
 async function fetchSupersessions(): Promise<Supersession[]> {
   const supabase = getSupabase();
   const { data: rows } = await supabase
-    .from("supersessions")
-    .select("*")
-    .order("date", { ascending: false });
+    .from("item_supersessions")
+    .select("supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)")
+    .order("supersession_date", { ascending: false });
 
-  return (rows || []).map((row: any) => ({
-    old: row.old_id,
-    new: row.new_id,
-    date: row.date,
-    severity: row.severity as "major" | "minor" | "replacement",
-    note: row.note || "",
-  }));
+  const out: Supersession[] = [];
+  for (const row of rows || []) {
+    const oldId = uiId(row.old);
+    const newId = uiId(row.new);
+    if (!oldId || !newId) continue;
+    out.push({
+      old: oldId,
+      new: newId,
+      date: row.supersession_date,
+      severity: row.severity as "major" | "minor" | "replacement",
+      note: row.note || "",
+    });
+  }
+  return out;
 }
 
 // ── Source Fetch Functions ───────────────────────────────────
@@ -336,38 +306,45 @@ export async function fetchSourceData(): Promise<SourceData> {
 async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resource[]; archived: Resource[] }> {
   const supabase = getSupabase();
 
-  // Fetch via workspace function
+  // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
+  // No legacy `resources` fallback after A.5.b — if the RPC returns empty,
+  // fetchDashboardData's seed fallback covers the misconfiguration case.
   const { data: items, error } = await supabase.rpc("get_workspace_intelligence", { p_org_id: orgId });
 
   if (error || !items?.length) {
-    // Fallback to legacy resources if workspace function fails
-    const legacy = await fetchResources();
-    const legacyArchived = await fetchArchived();
-    return { active: legacy, archived: legacyArchived };
+    return { active: [], archived: [] };
   }
 
-  // Fetch timelines for these items
-  const itemIds = items.map((i: any) => i.legacy_id).filter(Boolean);
+  // Build UUID → UI-id translation map from the RPC payload (each row has
+  // both id and legacy_id). The UI keys resources by UI id (legacy_id || uuid).
+  const uuidToUiId = new Map<string, string>();
+  for (const i of items) uuidToUiId.set(i.id, i.legacy_id || i.id);
+
+  // Timelines from the new schema. Key is item.id (UUID), translated to UI id
+  // for the lookup map the resource builder consumes.
+  const itemUuids = items.map((i: any) => i.id);
   const { data: timelineRows } = await supabase
-    .from("timelines")
-    .select("*")
-    .in("resource_id", itemIds)
+    .from("item_timelines")
+    .select("item_id, milestone_date, label, is_completed, sort_order")
+    .in("item_id", itemUuids)
     .order("sort_order");
 
   const timelineMap = new Map<string, any[]>();
   (timelineRows || []).forEach((t: any) => {
-    const arr = timelineMap.get(t.resource_id) || [];
+    const uiId = uuidToUiId.get(t.item_id) || t.item_id;
+    const arr = timelineMap.get(uiId) || [];
     arr.push(t);
-    timelineMap.set(t.resource_id, arr);
+    timelineMap.set(uiId, arr);
   });
 
   const active: Resource[] = [];
   const archived: Resource[] = [];
 
   for (const row of items) {
-    const timelines = row.legacy_id ? timelineMap.get(row.legacy_id) : undefined;
+    const resourceId = row.legacy_id || row.id;
+    const timelines = timelineMap.get(resourceId);
     const resource: Resource = {
-      id: row.legacy_id || row.id,
+      id: resourceId,
       cat: (row.transport_modes?.[0]) || "global",
       sub: row.category || "",
       title: row.title,
@@ -384,9 +361,13 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
       fullBrief: row.full_brief || undefined,
       domain: row.domain || 1,
       timeline: (timelines || []).map((t: any) => ({
-        date: t.date,
+        date: t.milestone_date,
         label: t.label,
-        status: t.status || undefined,
+        // is_completed BOOLEAN ↔ legacy status TEXT. The 010 migration set
+        // is_completed=true for legacy "past"|"completed" rows, so map back
+        // to "past" (the only completion-state value the TimelineEntry
+        // type accepts). Non-completed milestones leave status undefined.
+        status: t.is_completed ? ("past" as const) : undefined,
       })),
       modes: row.transport_modes || [],
       topic: row.category || undefined,
