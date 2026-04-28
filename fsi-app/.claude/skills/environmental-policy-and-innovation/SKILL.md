@@ -38,6 +38,29 @@ Specific applications of the integrity rule:
 - No invented anticipated events. The anticipated-guidance section is populated only from announced or scheduled events with sourced dates.
 - Source classification at every claim. The 6-level source hierarchy is applied to every claim, not just the sources list.
 
+## Operating Principle: Creative intelligence, accurate grounding
+
+The platform actively seeks intelligence beyond what's directly given. When source coverage is thin, it searches for additional sources. When canonical sources are broken or missing, it finds replacements. When regulations intersect non-obviously, it identifies and synthesizes the intersection. When a topic suggests sources should exist that aren't in the registry, it surfaces them as candidates.
+
+This is the platform's core value: creative AND accurate. Generic LLMs are creative but unreliable. Conservative compliance tools are reliable but limited. Caro's Ledge does both.
+
+Every component honors this principle:
+- Source discovery: actively seeks canonical sources for items missing or broken sources
+- Citation extraction: surfaces new sources from agent runs, even when not explicitly given
+- Intersection detection: identifies non-obvious regulation interactions before users ask
+- Brief generation: does substantive work to populate sections with real content
+- Anticipated guidance: identifies what's likely coming based on scheduling sources
+- Synthesis briefs: synthesizes cross-jurisdictional patterns from component regulations
+
+But every claim is grounded in a verifiable source. The integrity rule is non-negotiable:
+- No invented facts, no hallucinated content, no plausible-sounding generic filler
+- When source coverage is thin, sections are honestly omitted (not filled with invented content)
+- When canonical sources can't be found, the gap is flagged (not papered over)
+- All synthesis is grounded in component sources cited inline
+- All discovered sources are verified before integration
+
+The agent's mandate: be creative about WHAT to find, conservative about WHAT to claim. If you can't ground a claim in a verifiable source, omit it. If you find new sources that should be tracked, surface them as provisional. If you notice connections that should be flagged, document them with citations.
+
 ## The Workspace-Anchored Rule (mandatory, never violated)
 
 Every output is anchored to the reader's workspace profile. The output never names the workspace, its company, or any individual person. Anchoring is by role, operation, cargo verticals, transport modes, trade lanes, products, and supply chain position, expressed in generic terms that the workspace's profile drives.

@@ -4,6 +4,7 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { pauseReason } from "@/lib/api/pause";
 import { parseAgentOutput, AgentOutputParseError } from "@/lib/agent/parse-output";
+import { buildSourcePool } from "@/lib/agent/source-pool";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per source URL
@@ -88,33 +89,62 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Failed to fetch source: ${e.message}` }, { status: 502 });
     }
 
-    // ── Step 4: Load sector contexts — single query, all 15 ──
-    const { data: sectorContexts, error: sectorErr } = await supabase
-      .from("sector_contexts")
-      .select("sector, display_name, synopsis_prompt, transport_modes, cargo_types, compliance_roles, urgency_weights")
-      .order("sector");
-
-    if (sectorErr || !sectorContexts?.length) {
-      return NextResponse.json({ error: "Failed to load sector contexts" }, { status: 500 });
-    }
-
-    // ── Step 5: Load existing intelligence items for this source ──
+    // ── Step 4: Load existing intelligence_items row for this source URL ──
+    // The new SKILL.md contract regenerates one specific item per agent run;
+    // it doesn't multiplex 15-sector synopses across all items at the URL.
+    // Pull the item's domain / jurisdictions / topic_tags / source_id so the
+    // dynamic source pool (Step 5) can rank registry sources by topical fit.
     const { data: existingItems } = await supabase
       .from("intelligence_items")
-      .select("id, title, summary, what_is_it, why_matters, key_data, priority, source_url, updated_at")
+      .select("id, title, summary, what_is_it, why_matters, key_data, priority, source_url, source_id, domain, jurisdictions, topic_tags, item_type, full_brief, updated_at")
       .eq("source_url", sourceUrl);
 
-    // ── Step 6: Build the user message ──
-    const userMessage = `SOURCE URL: ${sourceUrl}
+    const targetItem = (existingItems || []).find((e: any) => e.source_url === sourceUrl);
+    if (!targetItem) {
+      return NextResponse.json(
+        { error: `No intelligence_items row matches source_url=${sourceUrl}.` },
+        { status: 404 }
+      );
+    }
 
-SOURCE CONTENT:
+    // ── Step 5: Build dynamic per-item source pool ──
+    // Replaces the static "first 40 active sources" used during the B.2 pilot.
+    // Filtered by domain × jurisdictions × topic_tags, sorted by score / tier /
+    // trust score, capped at 40, primary source_id always included.
+    const pool = await buildSourcePool(supabase, {
+      id: targetItem.id,
+      source_id: targetItem.source_id,
+      domain: targetItem.domain,
+      jurisdictions: targetItem.jurisdictions,
+      topic_tags: targetItem.topic_tags,
+    });
+
+    // ── Step 6: Build the user message under the SKILL.md 2026-04-28 contract ──
+    // Workspace profile is currently hardcoded to the platform workspace; future
+    // work will read from workspace_settings keyed by the calling org.
+    const userMessage = `INPUT ITEM:
+- id: ${targetItem.id}
+- title: ${targetItem.title}
+- item_type: ${targetItem.item_type}
+- domain: ${targetItem.domain ?? "(null)"}
+- jurisdictions: ${JSON.stringify(targetItem.jurisdictions || [])}
+- topic_tags: ${JSON.stringify(targetItem.topic_tags || [])}
+- source_url: ${targetItem.source_url || "(none)"}
+- existing brief preview: ${(targetItem.full_brief || "").slice(0, 1500)}
+
+SOURCE CONTENT (truncated):
 ${sourceContent}
 
-EXISTING ITEMS FROM THIS SOURCE FOR DELTA DETECTION:
-${JSON.stringify(existingItems || [], null, 2)}
+WORKSPACE PROFILE:
+- cargo_verticals: live events, fine art, luxury goods, film and TV, high-value automotive, humanitarian
+- transport_mode_priority: air primary, road secondary, ocean tertiary
+- trade_lanes: Americas, Europe, Asia
+- supply_chain_role: freight forwarder
 
-SECTOR CONTEXTS:
-${JSON.stringify(sectorContexts, null, 2)}`;
+AVAILABLE SOURCES (for sources_used; use only these UUIDs — pool size ${pool.pool_size}, primary included: ${pool.primary_included}):
+${JSON.stringify(pool.sources, null, 2)}
+
+Generate the brief per the format selected by item_type, then emit the YAML frontmatter block as instructed.`;
 
     // ── Step 7: Single Claude API call ──
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -298,17 +328,8 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
     }
 
     // ── Step 10: Update intelligence_items row by source_url ──
-    // Match the existing row whose source_url matches this run. If no row
-    // matches, return error — agent runs target known items, not net-new
-    // inserts. (Citation extraction creates new provisional sources, not
-    // intelligence_items.)
-    const targetItem = (existingItems || []).find((e: any) => e.source_url === sourceUrl);
-    if (!targetItem) {
-      return NextResponse.json(
-        { error: `No intelligence_items row matches source_url=${sourceUrl}. Aborting.` },
-        { status: 404 }
-      );
-    }
+    // targetItem was resolved in Step 4 (above) so the source-pool builder
+    // could use the row's domain / jurisdictions / topic_tags. Reuse here.
 
     const { error: updateErr } = await supabase
       .from("intelligence_items")
