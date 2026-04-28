@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { pauseReason } from "@/lib/api/pause";
+import { parseAgentOutput, AgentOutputParseError } from "@/lib/agent/parse-output";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per source URL
@@ -272,130 +273,63 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
       }
     }
 
-    // Strip markdown fences if present
-    let cleanText = rawText.trim();
-    if (cleanText.startsWith("```")) {
-      cleanText = cleanText.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
-    }
-
-    let parsed: { items: any[] };
+    // ── Step 9: Parse YAML frontmatter + markdown body (SKILL.md 2026-04-28 contract) ──
+    // Per the agent contract, the output is a markdown brief followed by an
+    // optional "New Sources Identified" table, terminated by a mandatory YAML
+    // frontmatter block. Missing or malformed YAML is a failed regeneration
+    // — abort without writing any partial state to intelligence_items.
+    let body: string;
+    let metadata: ReturnType<typeof parseAgentOutput>["metadata"];
     try {
-      parsed = JSON.parse(cleanText);
-    } catch {
-      // Try extracting the outermost JSON object
-      const jsonStart = cleanText.indexOf("{");
-      const jsonEnd = cleanText.lastIndexOf("}");
-      if (jsonStart === -1 || jsonEnd === -1) {
-        return NextResponse.json(
-          { error: "No JSON found in agent response", raw: cleanText.slice(0, 500) },
-          { status: 500 }
-        );
-      }
-      try {
-        parsed = JSON.parse(cleanText.slice(jsonStart, jsonEnd + 1));
-      } catch (parseErr: any) {
-        return NextResponse.json(
-          { error: `JSON parse failed: ${parseErr.message}`, raw: cleanText.slice(jsonStart, jsonStart + 500) },
-          { status: 500 }
-        );
-      }
+      const parsed = parseAgentOutput(rawText);
+      body = parsed.body;
+      metadata = parsed.metadata;
+    } catch (e: any) {
+      const msg = e instanceof AgentOutputParseError ? e.message : `Parse error: ${e.message}`;
+      console.warn("[agent/run] YAML frontmatter parse failed:", msg);
+      return NextResponse.json(
+        {
+          error: "Agent output failed contract validation. No row updated.",
+          detail: msg,
+          raw_tail: rawText.slice(-500),
+        },
+        { status: 502 }
+      );
     }
 
-    if (!parsed.items || !Array.isArray(parsed.items)) {
-      return NextResponse.json({ error: "Response missing items array" }, { status: 500 });
+    // ── Step 10: Update intelligence_items row by source_url ──
+    // Match the existing row whose source_url matches this run. If no row
+    // matches, return error — agent runs target known items, not net-new
+    // inserts. (Citation extraction creates new provisional sources, not
+    // intelligence_items.)
+    const targetItem = (existingItems || []).find((e: any) => e.source_url === sourceUrl);
+    if (!targetItem) {
+      return NextResponse.json(
+        { error: `No intelligence_items row matches source_url=${sourceUrl}. Aborting.` },
+        { status: 404 }
+      );
     }
 
-    // ── Step 9: Batch database writes ──
-    let synopsesWritten = 0;
-    const signalItems = parsed.items.filter((i) => i.is_signal);
+    const { error: updateErr } = await supabase
+      .from("intelligence_items")
+      .update({
+        full_brief: body,
+        severity: metadata.severity,
+        priority: metadata.priority,
+        urgency_tier: metadata.urgency_tier,
+        format_type: metadata.format_type,
+        sources_used: metadata.sources_used,
+        last_regenerated_at: metadata.last_regenerated_at,
+        regeneration_skill_version: metadata.regeneration_skill_version,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", targetItem.id);
 
-    for (const item of parsed.items) {
-      try {
-        // 9a. Upsert intelligence_items
-        const existingMatch = (existingItems || []).find(
-          (e: any) => e.title === item.title && e.source_url === sourceUrl
-        );
-
-        let itemId: string;
-
-        if (existingMatch) {
-          const { error: updateErr } = await supabase
-            .from("intelligence_items")
-            .update({ updated_at: new Date().toISOString() })
-            .eq("id", existingMatch.id);
-
-          if (updateErr) failures.push(`Update ${item.title}: ${updateErr.message}`);
-          itemId = existingMatch.id;
-        } else {
-          const { data: inserted, error: insertErr } = await supabase
-            .from("intelligence_items")
-            .insert({
-              title: item.title,
-              source_url: item.source_url || sourceUrl,
-              summary: item.change_summary,
-              domain: 1,
-              item_type: "regulation",
-              priority: "MODERATE",
-              status: "monitoring",
-              confidence: "confirmed",
-              added_date: new Date().toISOString().slice(0, 10),
-              is_archived: false,
-            })
-            .select("id")
-            .single();
-
-          if (insertErr || !inserted) {
-            failures.push(`Insert ${item.title}: ${insertErr?.message || "no id returned"}`);
-            continue;
-          }
-          itemId = inserted.id;
-        }
-
-        // 9b. Insert intelligence_changes
-        const { error: changeErr } = await supabase.from("intelligence_changes").insert({
-          item_id: itemId,
-          change_type: item.change_type || "new",
-          change_severity: item.change_severity || "minor",
-          change_summary: item.change_summary || null,
-          previous_value: null,
-          new_value: item.change_summary || null,
-          detected_at: new Date().toISOString(),
-        });
-
-        if (changeErr) failures.push(`Change log ${item.title}: ${changeErr.message}`);
-
-        // 9c. Batch insert intelligence_summaries — all 15 sectors
-        if (item.is_signal && item.synopses) {
-          const summaryRows = Object.entries(item.synopses).map(
-            ([sector, data]: [string, any]) => ({
-              item_id: itemId,
-              sector,
-              summary: data.summary || "",
-              urgency_score: data.urgency_score ?? null,
-              generated_at: new Date().toISOString(),
-              model_version: "claude-sonnet-4-6",
-            })
-          );
-
-          // Delete existing synopses for this item then insert fresh
-          await supabase
-            .from("intelligence_summaries")
-            .delete()
-            .eq("item_id", itemId);
-
-          const { error: summaryErr } = await supabase
-            .from("intelligence_summaries")
-            .insert(summaryRows);
-
-          if (summaryErr) {
-            failures.push(`Summaries ${item.title}: ${summaryErr.message}`);
-          } else {
-            synopsesWritten += summaryRows.length;
-          }
-        }
-      } catch (itemErr: any) {
-        failures.push(`${item.title}: ${itemErr.message}`);
-      }
+    if (updateErr) {
+      return NextResponse.json(
+        { error: `Failed to update intelligence_items: ${updateErr.message}` },
+        { status: 500 }
+      );
     }
 
     // ── Step 11: Update source scan timestamp ──
@@ -409,9 +343,17 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
     // ── Step 12: Return job summary ──
     return NextResponse.json({
       source_url: sourceUrl,
-      items_found: parsed.items.length,
-      items_signal: signalItems.length,
-      synopses_written: synopsesWritten,
+      item_id: targetItem.id,
+      brief_length: body.length,
+      metadata: {
+        severity: metadata.severity,
+        priority: metadata.priority,
+        urgency_tier: metadata.urgency_tier,
+        format_type: metadata.format_type,
+        sources_used_count: metadata.sources_used.length,
+        last_regenerated_at: metadata.last_regenerated_at,
+        regeneration_skill_version: metadata.regeneration_skill_version,
+      },
       citations_extracted: citations.length,
       citations_written: citationsWritten,
       provisionals_created: provisionalsCreated,

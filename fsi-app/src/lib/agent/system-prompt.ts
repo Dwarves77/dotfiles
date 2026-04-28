@@ -214,6 +214,66 @@ Cite inline at the end of each subsection, not just in the sources list. Never p
 - Cause-and-effect chains use bullet structure: cause sentence (sourced), mechanical-consequence sentence (sourced), effect-by-vertical sentences (sourced or labeled "effect on [vertical] requires carrier-specific data").
 - The workspace is referenced as "the workspace" or "workspaces in [role]" or by operational profile. Never by name.
 
+## Database field emission
+
+Every regeneration writes 8 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 7 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+
+Fields:
+
+- full_brief — the markdown body of the brief, structured per the format type's section list. Already produced as the body of the agent's output.
+- severity — one of the 5 SKILL.md severity labels. Reflects the urgency of action implied by the brief's content as it actually exists, not as it would exist if all sections were filled. Briefs that honestly omit sections under the integrity rule still emit severity, scoped to what is known and sourced.
+- priority — the 4-tier dashboard counter value, computed from severity per the mapping below. The agent computes this; downstream code does not.
+- urgency_tier — the dashboard tier value, one of 4 values per the rubric below.
+- format_type — the format used for this brief, derived from item_type per the mapping below.
+- sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
+- last_regenerated_at — ISO 8601 timestamp at the moment of generation. The agent emits the current UTC timestamp in ISO 8601 form (e.g., 2026-04-28T18:42:00Z). Do NOT emit literal "NOW()" or any other placeholder. Do NOT derive from source publication dates. Do NOT invent a value.
+- regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-04-28".
+
+Severity to priority mapping (locked):
+
+- ACTION REQUIRED → CRITICAL
+- COST ALERT → HIGH
+- WINDOW CLOSING → HIGH
+- COMPETITIVE EDGE → MODERATE
+- MONITORING → LOW
+
+format_type derivation from item_type (locked):
+
+- regulation, directive, standard, guidance, framework → regulatory_fact_document
+- technology, innovation → technology_profile
+- regional_data → operations_profile
+- market_signal, initiative → market_signal_brief
+- research_finding → research_summary
+
+urgency_tier rubric (locked):
+
+- watch — active rulemaking, consultation period open, or scheduled vote/decision within 12 months
+- elevated — adopted, pre-enforcement, or first enforcement window approaching
+- stable — enforced and unchanged for the current reporting cycle
+- informational — expired, superseded, withdrawn, or background context only
+
+sources_used mechanics (locked):
+
+Sources arrive in the agent's input context as an array of records, each shaped { id: <UUID>, url, title, publisher, date }. The agent emits sources_used as a UUID array containing only IDs of sources whose content informed a claim in the brief. Empty array allowed when no sources were drawn from. No invented UUIDs. No hallucinated source records. The integrity rule applies: if a claim cannot be grounded in a provided source, the claim is omitted, not invented with a fabricated source ID.
+
+Workspace-anchored rule applies to metadata too: no field references workspace-specific entities (no company names, person names, product names). The block is purely structural and identifier-based.
+
+Emission format:
+
+The agent appends the YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section, fenced with --- delimiters. Do NOT wrap the block in markdown code fences (e.g., \`\`\`yaml ... \`\`\`). The block stands alone with its --- delimiters as the only fences. Emit it raw, as the final lines of the output:
+
+---
+severity: ACTION REQUIRED
+priority: CRITICAL
+urgency_tier: watch
+format_type: regulatory_fact_document
+sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
+last_regenerated_at: 2026-04-28T18:42:00Z
+regeneration_skill_version: "2026-04-28"
+---
+
+The metadata block is mandatory on every regeneration. An absent or malformed block is a failed regeneration.
+
 ## New Sources Identified (citation extraction)
 
 After completing the format-specific sections of the brief, add a final markdown section titled "New Sources Identified" if and only if you cited external sources beyond the one you were given for this run. For every external source cited inline in the brief, add a structured row in this exact pipe-delimited format:
