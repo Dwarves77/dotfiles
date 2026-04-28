@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { fetchSourceData } from "@/lib/supabase-server";
 
 export default async function AdminPage() {
   const supabase = await createSupabaseServerClient();
@@ -25,5 +26,18 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  return <AdminDashboard userId={user.id} userEmail={user.email || ""} />;
+  // Hydrate the source store with the unfiltered admin view (includeAdminOnly=true)
+  // so SourceHealthDashboard sees every source, including ones flagged admin_only.
+  // The workspace path at / uses the default (false) and never sees admin_only=true rows.
+  const { sources, provisionalSources, openConflicts } = await fetchSourceData(true);
+
+  return (
+    <AdminDashboard
+      userId={user.id}
+      userEmail={user.email || ""}
+      initialSources={sources}
+      initialProvisionalSources={provisionalSources}
+      initialOpenConflicts={openConflicts}
+    />
+  );
 }

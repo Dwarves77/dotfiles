@@ -285,7 +285,7 @@ export interface SourceData {
   openConflicts: SourceConflict[];
 }
 
-export async function fetchSourceData(): Promise<SourceData> {
+export async function fetchSourceData(includeAdminOnly = false): Promise<SourceData> {
   const emptySourceData: SourceData = { sources: [], provisionalSources: [], openConflicts: [] };
 
   if (!isSupabaseConfigured()) {
@@ -294,7 +294,7 @@ export async function fetchSourceData(): Promise<SourceData> {
 
   try {
     const [sources, provisionalSources, openConflicts] = await withTimeout(
-      Promise.all([fetchSources(), fetchProvisionalSources(), fetchOpenConflicts()]),
+      Promise.all([fetchSources(includeAdminOnly), fetchProvisionalSources(), fetchOpenConflicts()]),
       8000,
       [[], [], []] as [Source[], ProvisionalSource[], SourceConflict[]]
     );

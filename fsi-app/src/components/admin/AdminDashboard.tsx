@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useSourceStore } from "@/stores/sourceStore";
+import type { Source, ProvisionalSource, SourceConflict } from "@/types/source";
 import {
   Users, Building, FileCheck, Plus, Trash2,
   CheckCircle, XCircle, RefreshCw, Shield, ArrowLeft,
@@ -15,9 +17,30 @@ import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboar
 interface AdminDashboardProps {
   userId: string;
   userEmail: string;
+  initialSources?: Source[];
+  initialProvisionalSources?: ProvisionalSource[];
+  initialOpenConflicts?: SourceConflict[];
 }
 
-export function AdminDashboard({ userId, userEmail }: AdminDashboardProps) {
+export function AdminDashboard({
+  userId,
+  userEmail,
+  initialSources = [],
+  initialProvisionalSources = [],
+  initialOpenConflicts = [],
+}: AdminDashboardProps) {
+  // Hydrate the source store with the admin-context unfiltered list. Mirror of
+  // the Dashboard pattern at src/components/Dashboard.tsx (lines 247-253). The
+  // source store is shared across pages, but only / and /admin populate it; if
+  // the user enters /admin directly the store would otherwise be empty and
+  // SourceHealthDashboard would render zero sources.
+  const { setSources, setProvisionalSources, setOpenConflicts } = useSourceStore();
+  useEffect(() => {
+    if (initialSources.length > 0) setSources(initialSources);
+    if (initialProvisionalSources.length > 0) setProvisionalSources(initialProvisionalSources);
+    if (initialOpenConflicts.length > 0) setOpenConflicts(initialOpenConflicts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [activeTab, setActiveTab] = useState<"users" | "orgs" | "updates" | "scan" | "sources">("users");
   const [members, setMembers] = useState<any[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
