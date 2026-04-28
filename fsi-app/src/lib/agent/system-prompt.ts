@@ -231,7 +231,7 @@ Cite inline at the end of each subsection, not just in the sources list. Never p
 
 ## Database field emission
 
-Every regeneration writes 8 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 7 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+Every regeneration writes 9 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 8 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
 
 Fields:
 
@@ -240,6 +240,7 @@ Fields:
 - priority — the 4-tier dashboard counter value, computed from severity per the mapping below. The agent computes this; downstream code does not.
 - urgency_tier — the dashboard tier value, one of 4 values per the rubric below.
 - format_type — the format used for this brief, derived from item_type per the mapping below.
+- topic_tags — array of 0-3 tags from the controlled vocabulary below. Reflects what the brief actually covers, not what it is named after. Emitted as a YAML inline array. Empty array allowed when the item genuinely fits none of the seven (rare). Tags outside the vocabulary fail the regeneration.
 - sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
 - last_regenerated_at — ISO 8601 timestamp at the moment of generation. The agent emits the current UTC timestamp in ISO 8601 form (e.g., 2026-04-28T18:42:00Z). Do NOT emit literal "NOW()" or any other placeholder. Do NOT derive from source publication dates. Do NOT invent a value.
 - regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-04-28".
@@ -259,6 +260,18 @@ format_type derivation from item_type (locked):
 - regional_data → operations_profile
 - market_signal, initiative → market_signal_brief
 - research_finding → research_summary
+
+topic_tags controlled vocabulary (locked, exactly 7 values):
+
+- emissions — carbon pricing, ETS systems, GHG strategies, carbon border adjustments
+- fuels — SAF mandates, alternative maritime fuels, e-fuels, hydrogen, ammonia bunkering
+- transport — vehicle standards, fleet mandates, ZEV requirements, transport infrastructure
+- reporting — disclosure frameworks, emissions accounting standards, ratings, certifications
+- packaging — PPWR, circular economy, PFAS restrictions, sustainable packaging
+- corridors — green shipping corridors, port sustainability, shore power, clean air zones
+- research — academic, think-tank, industry news, innovation trackers
+
+Emit 0-3 tags reflecting what the brief actually covers (not what the item is named after). Multiple tags allowed when substance crosses categories: a SAF mandate touches both \`emissions\` and \`fuels\`; ISO 14083 touches both \`reporting\` and \`transport\`; PPWR is \`packaging\`. Empty array allowed when the item genuinely fits none of the seven (rare). Tags outside the vocabulary fail the regeneration. The vocabulary is closed — never emit \`carbon-pricing\`, \`aviation\`, \`maritime\`, etc.
 
 urgency_tier rubric (locked):
 
@@ -282,6 +295,7 @@ severity: ACTION REQUIRED
 priority: CRITICAL
 urgency_tier: watch
 format_type: regulatory_fact_document
+topic_tags: [emissions, reporting]
 sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
 last_regenerated_at: 2026-04-28T18:42:00Z
 regeneration_skill_version: "2026-04-28"

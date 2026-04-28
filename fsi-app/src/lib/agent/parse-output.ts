@@ -27,6 +27,19 @@ const FORMAT_TYPE_VALUES = [
   "research_summary",
 ] as const;
 
+// Closed vocabulary mirroring SKILL.md "7 Topic Categories". Tags outside this
+// list fail the regeneration. The vocabulary drives the dynamic per-item source
+// pool, dashboard filters, and source-coverage matrix.
+const TOPIC_TAG_VALUES = [
+  "emissions",
+  "fuels",
+  "transport",
+  "reporting",
+  "packaging",
+  "corridors",
+  "research",
+] as const;
+
 const SEVERITY_TO_PRIORITY: Record<string, string> = {
   "ACTION REQUIRED": "CRITICAL",
   "COST ALERT": "HIGH",
@@ -40,6 +53,7 @@ export interface AgentMetadata {
   priority: typeof PRIORITY_VALUES[number];
   urgency_tier: typeof URGENCY_TIER_VALUES[number];
   format_type: typeof FORMAT_TYPE_VALUES[number];
+  topic_tags: typeof TOPIC_TAG_VALUES[number][];
   sources_used: string[];
   last_regenerated_at: string;
   regeneration_skill_version: string;
@@ -135,6 +149,7 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     "priority",
     "urgency_tier",
     "format_type",
+    "topic_tags",
     "sources_used",
     "last_regenerated_at",
     "regeneration_skill_version",
@@ -165,6 +180,26 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     throw new AgentOutputParseError(
       `Priority "${fields.priority}" does not match the locked mapping for severity "${fields.severity}" (expected "${expectedPriority}")`
     );
+  }
+
+  // Parse topic_tags array (closed vocabulary, 0-3 values).
+  const tagsRaw = fields.topic_tags.trim();
+  if (!tagsRaw.startsWith("[") || !tagsRaw.endsWith("]")) {
+    throw new AgentOutputParseError(`topic_tags must be a YAML inline array, got: ${tagsRaw.slice(0, 100)}`);
+  }
+  const tagsInner = tagsRaw.slice(1, -1).trim();
+  const topicTags: string[] = tagsInner
+    ? tagsInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
+    : [];
+  if (topicTags.length > 3) {
+    throw new AgentOutputParseError(`topic_tags exceeds 3 values: ${topicTags.join(", ")}`);
+  }
+  for (const tag of topicTags) {
+    if (!TOPIC_TAG_VALUES.includes(tag as any)) {
+      throw new AgentOutputParseError(
+        `topic_tags contains an out-of-vocabulary value: "${tag}". Allowed: ${TOPIC_TAG_VALUES.join(", ")}`
+      );
+    }
   }
 
   // Parse sources_used array
@@ -199,6 +234,7 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     priority: fields.priority as AgentMetadata["priority"],
     urgency_tier: fields.urgency_tier as AgentMetadata["urgency_tier"],
     format_type: fields.format_type as AgentMetadata["format_type"],
+    topic_tags: topicTags as AgentMetadata["topic_tags"],
     sources_used: sourcesUsed,
     last_regenerated_at: ts,
     regeneration_skill_version: fields.regeneration_skill_version,

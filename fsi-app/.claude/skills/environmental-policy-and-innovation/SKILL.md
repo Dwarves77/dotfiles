@@ -474,6 +474,8 @@ Active resources organized into 7 categories. Counts vary as the database grows;
 
 ## 7 Topic Categories
 
+These seven values are the controlled vocabulary for `intelligence_items.topic_tags`. The agent emits topic_tags during regeneration as part of the YAML metadata block (see Database Field Emission). Tags drive the dynamic per-item source pool, filter and search behaviour in the dashboard, and the source-coverage matrix.
+
 - emissions: Carbon pricing, ETS systems, GHG strategies, carbon border adjustments
 - fuels: SAF mandates, alternative maritime fuels, e-fuels, hydrogen, ammonia bunkering
 - transport: Vehicle standards, fleet mandates, ZEV requirements, infrastructure
@@ -481,6 +483,10 @@ Active resources organized into 7 categories. Counts vary as the database grows;
 - packaging: PPWR, circular economy, PFAS restrictions, sustainable packaging
 - corridors: Green shipping corridors, port sustainability, shore power, clean air zones
 - research: Academic, think-tank, industry news, innovation trackers
+
+Every regulatory, technology, market, operations, or research item touches at least one of these. An item can emit multiple tags when the substance crosses categories (e.g., a SAF mandate touches both `emissions` and `fuels`; ISO 14083 touches both `reporting` and `transport`). The agent emits no more than three tags per item; if more would apply, choose the dominant categories.
+
+The vocabulary is closed. The agent does not emit tags outside this list (e.g., not `carbon-pricing` for `emissions`, not `aviation` for `transport`). An emitted tag outside the vocabulary fails the regeneration.
 
 ## 8 Jurisdictions
 
@@ -607,6 +613,55 @@ Briefs are stored as markdown in intelligence_items.full_brief. The markdown con
 - The workspace is referenced as "the workspace" or "workspaces in [role]" or by operational profile, never by name
 
 This convention enables consistent display in the UI and enables a future schema migration to extract structured fields from the markdown reliably.
+
+## Database Field Emission (YAML frontmatter contract)
+
+Every regeneration writes 9 fields to `intelligence_items`. The `full_brief` column carries the markdown body produced under the format selected above. The other 8 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+
+Fields:
+
+- `full_brief` — the markdown body of the brief, structured per the format type's section list. Already produced as the body of the agent's output.
+- `severity` — one of the 5 severity labels. Reflects the urgency of action implied by the brief's content as it actually exists, not as it would exist if all sections were filled. Briefs that honestly omit sections under the integrity rule still emit severity, scoped to what is known and sourced.
+- `priority` — the 4-tier dashboard counter value, computed from severity per the locked mapping below. The agent computes this; downstream code does not.
+- `urgency_tier` — the dashboard tier value, one of `watch`, `elevated`, `stable`, `informational`.
+- `format_type` — the format used for this brief, derived from `item_type` per the locked mapping below.
+- `topic_tags` — array of 0-3 values from the 7 Topic Categories controlled vocabulary above. Reflects what the brief actually covers, not what it nominally is named after. Emitted as a YAML inline array. Empty array allowed when the item genuinely fits none of the seven (rare). Tags outside the vocabulary fail the regeneration.
+- `sources_used` — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
+- `last_regenerated_at` — ISO 8601 timestamp at the moment of generation. Current UTC timestamp in ISO 8601 form (e.g., `2026-04-28T18:42:00Z`). Never `NOW()`, never a placeholder, never derived from source publication dates.
+- `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-04-28"`.
+
+Severity to priority mapping (locked):
+
+- ACTION REQUIRED → CRITICAL
+- COST ALERT → HIGH
+- WINDOW CLOSING → HIGH
+- COMPETITIVE EDGE → MODERATE
+- MONITORING → LOW
+
+format_type derivation from item_type (locked):
+
+- regulation, directive, standard, guidance, framework → regulatory_fact_document
+- technology, innovation, tool → technology_profile
+- regional_data → operations_profile
+- market_signal, initiative → market_signal_brief
+- research_finding → research_summary
+
+Emission format. The agent appends the YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section, fenced with `---` delimiters. The block is NOT wrapped in markdown code fences (no triple-backtick `yaml`). The block stands alone with its `---` delimiters as the only fences. Example:
+
+```
+---
+severity: ACTION REQUIRED
+priority: CRITICAL
+urgency_tier: watch
+format_type: regulatory_fact_document
+topic_tags: [emissions, reporting]
+sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
+last_regenerated_at: 2026-04-28T18:42:00Z
+regeneration_skill_version: "2026-04-28"
+---
+```
+
+The metadata block is mandatory on every regeneration. An absent or malformed block is a failed regeneration.
 
 ## Update Protocol
 
