@@ -238,11 +238,12 @@ function SourceRow({ source }: { source: Source }) {
             )}
           </div>
 
-          {/* Admin controls — pause toggle, fetch-now, regenerate-brief */}
+          {/* Admin controls — pause toggle, fetch-now, regenerate-brief, visibility */}
           <div className="pt-3 border-t" style={{ borderColor: "var(--color-border-subtle)" }}>
             <SourceRowControls
               sourceId={source.id}
               initialPaused={!!(source as any).processing_paused}
+              initialAdminOnly={!!(source as any).admin_only}
             />
           </div>
         </div>

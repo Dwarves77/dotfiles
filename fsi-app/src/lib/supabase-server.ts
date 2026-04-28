@@ -203,13 +203,18 @@ function mapSourceRow(row: any): Source {
   };
 }
 
-async function fetchSources(): Promise<Source[]> {
+async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
   const supabase = getSupabase();
-  const { data: rows } = await supabase
+  let query = supabase
     .from("sources")
     .select("*")
     .order("tier", { ascending: true });
-
+  if (!includeAdminOnly) {
+    // Workspace-facing default — hide admin_only sources from regular users.
+    // The admin dashboard fetches the unfiltered list via /api/admin/sources/all.
+    query = query.eq("admin_only", false);
+  }
+  const { data: rows } = await query;
   return (rows || []).map(mapSourceRow);
 }
 

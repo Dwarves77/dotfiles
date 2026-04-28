@@ -104,14 +104,17 @@ export function GlobalPauseToggle() {
 interface SourceRowControlsProps {
   sourceId: string;
   initialPaused?: boolean;
+  initialAdminOnly?: boolean;
 }
 
-export function SourceRowControls({ sourceId, initialPaused = false }: SourceRowControlsProps) {
+export function SourceRowControls({ sourceId, initialPaused = false, initialAdminOnly = false }: SourceRowControlsProps) {
   const supabase = createSupabaseBrowserClient();
   const [paused, setPaused] = useState(initialPaused);
+  const [adminOnly, setAdminOnly] = useState(initialAdminOnly);
   const [pausing, setPausing] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   function flash(kind: "ok" | "err", text: string) {
@@ -195,9 +198,36 @@ export function SourceRowControls({ sourceId, initialPaused = false }: SourceRow
     }
   }
 
+  async function toggleVisibility() {
+    setTogglingVisibility(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const next = !adminOnly;
+      const res = await fetch(`/api/admin/sources/${sourceId}/visibility`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ admin_only: next }),
+      });
+      if (res.ok) {
+        setAdminOnly(next);
+        flash("ok", next ? "Hidden from workspaces (admin only)" : "Visible to workspaces");
+      } else {
+        const payload = await res.json();
+        flash("err", payload.error || "Visibility toggle failed");
+      }
+    } catch (e: any) {
+      flash("err", e.message);
+    } finally {
+      setTogglingVisibility(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <button
           onClick={(e) => { e.stopPropagation(); togglePause(); }}
           disabled={pausing}
@@ -231,6 +261,20 @@ export function SourceRowControls({ sourceId, initialPaused = false }: SourceRow
         >
           {regenerating ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
           {regenerating ? "Regenerating…" : "Regenerate brief"}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); toggleVisibility(); }}
+          disabled={togglingVisibility}
+          aria-label={adminOnly ? "Make source visible to workspaces" : "Hide source from workspaces (admin only)"}
+          className="inline-flex items-center gap-1 px-2 py-1 text-[11px] rounded border disabled:opacity-50"
+          style={{
+            borderColor: adminOnly ? "var(--color-primary)" : "var(--color-border)",
+            backgroundColor: adminOnly ? "rgba(30,58,138,0.10)" : "var(--color-surface)",
+            color: "var(--color-text-primary)",
+          }}
+        >
+          {togglingVisibility ? <Loader2 size={11} className="animate-spin" /> : null}
+          {adminOnly ? "Admin only" : "Show in workspaces"}
         </button>
       </div>
       {statusMsg && (
