@@ -372,6 +372,7 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
       modes: row.transport_modes || [],
       topic: row.category || undefined,
       jurisdiction: row.jurisdictions?.[0] || undefined,
+      sourceId: row.source_id || undefined,
       isArchived: row.effective_archived || false,
     };
 
