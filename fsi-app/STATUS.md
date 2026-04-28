@@ -150,6 +150,7 @@ Verifier could not run during the responsive pass due to upstream error — the 
 6. **Use `shell.css` tokens only for chrome. Use `colors_and_type.css` tokens for content. Do not mix.**
 7. **Do not introduce new uses of legacy orange tokens.** Where you find them in code, leave them — the cleanup commit at the end of the PR will sweep them.
 8. **Do not reopen responsive decisions.** Patch issues in `shell.css`, not per-page.
+9. **Deprecation means deletion, not annotation.** When work supersedes an artifact (a table, a file, a code path, a script, a config entry), the artifact is deleted in the same PR or in an explicit cleanup commit before the next phase begins. Comments saying "deprecated, scheduled for removal" are temporary scaffolding only, never the final state. Pre-flight check between phases: sweep for anything deprecated by that phase's work and delete it.
 
 Plus from the prior plan, all still in force:
 

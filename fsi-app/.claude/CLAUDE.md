@@ -352,4 +352,30 @@ After deployment, the app will automatically use live data (no code changes need
 2. Run agent route against 13 MODERATE/LOW source URLs
 3. Update WeeklyBriefing and WhatChanged home sections to read from `intelligence_summaries`
 4. Test full synopsis display on production — verify sector-specific content renders correctly
-5. Delete `/api/debug/data-path` diagnostic route (no longer needed)
+5. ~~Delete `/api/debug/data-path` diagnostic route~~ — RESOLVED 2026-04-28: directory `src/app/api/debug/` does not exist; route was removed in an earlier session.
+
+### 2026-04-28 — Phase B kickoff: SKILL.md rewrite, system prompt rewrite, Rule 11 deprecation policy
+
+#### Accomplished
+- **SKILL.md rewrite to 42,002-byte canonical** (`fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md`, 607 lines, dated 2026-04-28). Major reformat: 14-section regulatory fact document (8 conditional), four format-specific output structures (Technology Profile 8, Operations Profile 8, Market Signal Brief 8, Research Summary 6), the Integrity Rule (no invented content, gaps explicitly labeled, sections omitted not invented), the Workspace-Anchored Rule (no company/personal/product names; generic-but-in-scope language driven by workspace profile), the Cross-Format Lens Requirement (every brief serves substantive, competitive, client-conversation, action lenses), and a markdown storage convention for `intelligence_items.full_brief`.
+- **Stale 45,625-byte copy at `~/.claude/skills/environmental-policy-and-innovation/`** — removed. Empty parent directory removed too. Sibling `frontend-design/` left intact. Do not pull skill content from `~/.claude/skills/` for this skill — the operative path is the repo copy at `fsi-app/.claude/skills/...`.
+- **System prompt at `src/lib/agent/system-prompt.ts` rewritten end-to-end** (18,667 bytes) to encode the new SKILL.md contract: Integrity Rule, Workspace-Anchored Rule, format-selection logic by `item_type`, full section list per format, Cross-Format Lens, Cause-and-Effect chain (sourced at every link), 5 severity labels in space-separated form, 6-level source hierarchy with inline citation requirement, markdown storage convention, 14 numbered Rules for All Output. Build passes. `/api/agent/run` import unchanged.
+- **Rule 11 deprecation sweep executed** (per the working-rules entry added to STATUS.md this session). Tier 1: migration `013_drop_legacy_tables.sql` created (DROPs the 6 legacy tables — `resources`, `timelines`, `changelog`, `disputes`, `cross_references`, `supersessions`); migration `012_deprecate_legacy_tables.sql` deleted (superseded). Tier 2: 8 one-shot migration scripts deleted from `supabase/seed/`. Tier 3: 11 brief-rewrite/synopsis scripts deleted from `supabase/seed/`. Tier 4: `seed-resources.json` retained as seed bundle.
+- **Working rule added to STATUS.md** (item 9 in "Migration rules"): "Deprecation means deletion, not annotation." This rule is now in force project-wide.
+
+#### Brief coverage status (out-of-contract under new SKILL.md)
+- 155 of 164 `intelligence_items` rows have `full_brief` content. 9 intentional exclusions: 4 archived legacy items (arc1-arc4) and 5 ghost supersession FK targets (ss1-ss5) seeded by migration 011.
+- **Existing 155 briefs were generated under the previous 10-section contract.** They are out-of-contract under the new SKILL.md (the 14-section regulatory fact document plus 4 non-regulatory formats, the Integrity Rule, the Workspace-Anchored Rule).
+- Sample-test of 5 random briefs against the previous (10-section) contract: 0 of 5 fully passed. 1 of 5 (`g6`, ~12k chars) was structurally close but failed mode order and vertical filtering. 4 of 5 were short summaries (<3k chars) lacking severity labels and most sections.
+- Bimodal distribution: 72 long-form (>10k chars, structurally aspirational), 3 intermediate (5-10k), 23 mid summaries (2-5k), 57 short summaries (<2k chars, mostly placeholders).
+- Phase B.2 regeneration scope still to be decided. Under the new contract the bar is higher (workspace anchoring, format selection by `item_type`, Integrity Rule). Regeneration will be required, but timing/scope is open.
+
+#### Decisions Made
+- The repo `SKILL.md` is the authoritative canonical for build-time work. The Anthropic-internal `/mnt/skills/user/...` mount path is not addressable from Claude Code's filesystem.
+- The system prompt's Workspace-Anchored Rule includes the same wrong/right substitution patterns shown in SKILL.md (Dietl/importer, Anthony Fraser/operator interpretation, Rockit/manual-piece-count workspace) as illustrative wrong examples only. The output the prompt produces never names any of those.
+- Rule 11 (Deprecation = deletion) is in effect from this date. Pre-flight check between phases sweeps for anything deprecated by that phase's work and deletes it.
+
+#### Next Steps
+1. Apply migration 013 via Supabase SQL Editor (committed in commit 3 with SQL in body for copy-paste).
+2. Decide Phase B.2 regeneration scope: how many of the 155 existing out-of-contract briefs to regenerate under the new skill, in what priority order.
+3. Phase B.3 (`SourceCoverageMatrix` on Research) once B.2 scope is settled.
