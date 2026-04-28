@@ -12,6 +12,7 @@ import {
   Shield, Activity,
 } from "lucide-react";
 import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCard";
+import { GlobalPauseToggle, SourceRowControls } from "@/components/sources/SourceAdminControls";
 
 // ── Tier Summary Card ──
 
@@ -229,6 +230,20 @@ function SourceRow({ source }: { source: Source }) {
                 Paywalled
               </span>
             )}
+            {(source as any).processing_paused && (
+              <span className="flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
+                <Clock size={11} />
+                Paused (admin)
+              </span>
+            )}
+          </div>
+
+          {/* Admin controls — pause toggle, fetch-now, regenerate-brief */}
+          <div className="pt-3 border-t" style={{ borderColor: "var(--color-border-subtle)" }}>
+            <SourceRowControls
+              sourceId={source.id}
+              initialPaused={!!(source as any).processing_paused}
+            />
           </div>
         </div>
       )}
@@ -292,6 +307,9 @@ export function SourceHealthDashboard() {
           {sources.length} sources monitored across {[...new Set(sources.flatMap((s) => s.domains))].length} domains
         </p>
       </div>
+
+      {/* Global pause toggle for budget control */}
+      <GlobalPauseToggle />
 
       {/* Tier explainer */}
       <div className="cl-card p-3">

@@ -16,6 +16,7 @@ import {
   computeOverallScore,
 } from "@/lib/trust";
 import type { TrustMetrics, SourceTier } from "@/types/source";
+import { isGloballyPaused } from "@/lib/api/pause";
 
 const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
 
@@ -34,12 +35,20 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceClient();
 
+  // Global pause gate — skip the recompute entirely.
+  if (await isGloballyPaused(supabase)) {
+    return NextResponse.json({ message: "Global processing pause is active; trust recompute skipped", updated: 0 });
+  }
+
   // Pull every source and recompute. Schema uses flat trust_score_* columns.
+  // Per-source paused rows are skipped so their last-known trust score is
+  // preserved while the source is intentionally on hold.
   const { data: sources, error } = await supabase
     .from("sources")
     .select(
       "id, name, tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked"
-    );
+    )
+    .eq("processing_paused", false);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

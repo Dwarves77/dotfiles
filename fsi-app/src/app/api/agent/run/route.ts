@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
+import { pauseReason } from "@/lib/api/pause";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per source URL
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   );
 
   try {
-    const { sourceUrl } = await request.json();
+    const { sourceUrl, bypassPause } = await request.json();
     if (!sourceUrl || typeof sourceUrl !== "string") {
       return NextResponse.json({ error: "sourceUrl is required" }, { status: 400 });
     }
@@ -42,6 +43,17 @@ export async function POST(request: NextRequest) {
         { error: "Source is provisional. Activate it (status='active') before processing." },
         { status: 403 }
       );
+    }
+
+    // Pause gate — both global and per-source. Manual admin paths bypass
+    // this by setting bypassPause: true in the body (the regenerate-brief
+    // admin route does this). Auth is required for all callers, so the
+    // bypass is gated by admin authentication.
+    if (!bypassPause) {
+      const reason = await pauseReason(supabase, sourceRecord?.id);
+      if (reason) {
+        return NextResponse.json({ error: reason }, { status: 409 });
+      }
     }
 
     if (sourceRecord?.last_scanned) {

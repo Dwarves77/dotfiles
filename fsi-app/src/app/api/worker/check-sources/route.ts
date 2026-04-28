@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isGloballyPaused } from "@/lib/api/pause";
 
 /**
  * POST /api/worker/check-sources
@@ -29,12 +30,18 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceClient();
 
+  // Global pause gate — short-circuits before any DB scan work.
+  if (await isGloballyPaused(supabase)) {
+    return NextResponse.json({ message: "Global processing pause is active; worker exiting", checked: 0 });
+  }
+
   try {
-    // Step 1: Find sources due for checking
+    // Step 1: Find sources due for checking. Filter out per-source pause.
     const { data: dueSources, error: queueError } = await supabase
       .from("sources")
       .select("id, name, url, tier, update_frequency, last_checked, access_method")
       .eq("status", "active")
+      .eq("processing_paused", false)
       .or(`next_scheduled_check.is.null,next_scheduled_check.lte.${new Date().toISOString()}`)
       .order("tier", { ascending: true })
       .limit(10); // Process 10 sources per run
