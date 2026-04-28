@@ -379,3 +379,62 @@ After deployment, the app will automatically use live data (no code changes need
 1. Apply migration 013 via Supabase SQL Editor (committed in commit 3 with SQL in body for copy-paste).
 2. Decide Phase B.2 regeneration scope: how many of the 155 existing out-of-contract briefs to regenerate under the new skill, in what priority order.
 3. Phase B.3 (`SourceCoverageMatrix` on Research) once B.2 scope is settled.
+
+### 2026-04-28 — Phase B.0: API integration, source discovery pipeline, admin controls
+
+#### Accomplished
+
+- **B.0a audit** — read-only inventory of source-table state, API integration gaps, source-discovery pipeline state. Output drove the rest of B.0.
+- **B.0b — API route handler + source-record backfill** (8607bdc): added REGULATIONS_GOV_API_KEY case (X-Api-Key header) and Accept-header support to `fetchViaApi`. Backfilled configs on 5 NULL-endpoint sources (NREL NSRDB, NREL PVWatts, ILOSTAT now api-flagged with proper endpoints; MarineTraffic and Thomson Reuters downgraded to scrape with notes), 2 docs-page sources (Regulations.gov → /v4/documents + key tag; EUR-Lex → SPARQL with `Accept: application/sparql-results+json`), and 3 cargo-culted EIA sources (each now points at its real /v2/ endpoint). Verified end-to-end: 10 of 10 source records return real API data via the route's logic.
+- **B.0c — replace 5 scrape sources, expand registry by 17 sources** (9a7ca0a): CDP Supply Chain switched to data.cdp.net Socrata API. NREL System Advisor Model + 3 IMO sources stay scrape with notes documenting why. 17 new expansion sources added across industry interpretation (DNV, Bureau Veritas, ABS, ClassNK, CLECAT, TIACA), trade press (FreightWaves, Lloyd's List, The Loadstar, Splash247, JOC, TradeWinds — RSS feed configured where available), and climate/standards bodies (Smart Freight Centre, ESPO, AAPA, Sabin Center Climate Laws, Maritime Carbon Intelligence). 2 candidates (ITF/OECD, ICCT Freight) already in registry from earlier seed. Reuters Sustainable Business dropped from the original list — 401 paywalled. **IMODOCS deferred**: no public API key model exists for docs.imo.org; see commit 9a7ca0a for the full deferral rationale. IMODOCS_USERNAME/PASSWORD env vars are inert.
+- **B.0e — provisional source promotion API + AI-recommended classification UI** (72f4fe1): new `POST /api/admin/sources/promote` (approve/reject/defer with audit trail in source_trust_events), `POST /api/admin/sources/recommend-classification` (Claude Haiku call, cached on `provisional_sources.recommended_classification` JSONB). New `ProvisionalReviewCard` component replaces the read-only provisional list; on expand, fetches and displays AI rationale, pre-fills editable fields, presents Approve/Reject/Defer buttons. Migration 015 (DDL) adds the cache column.
+- **B.0f — citation extraction in agent route** (90376c5): system prompt instructs the agent to emit a `## New Sources Identified` markdown table; `/api/agent/run` parses it (before the JSON parse so it survives parse failures) and writes to source_citations (URL matches existing source) or upserts/inserts into provisional_sources (URL is new or already provisional). Synthetic test verified parser + DB writes against a 4-row table; live agent run deferred to B.2.
+- **B.0g — trust scoring with Bayesian-prior blend, monthly recompute** (28e7024): refactored `src/lib/trust.ts` to expose `computeEarnedScore(metrics)`, `tierPrior(tier)`, and `computeOverallScore(metrics, tier)`. Blend formula: `overall = priorWeight × tierPrior + (1 − priorWeight) × earned`, where priorWeight = max(0, 1 − signalCount/10). Tier priors: T1=85, T2=75, T3=65, T4=55, T5=45, T6=35, T7=25. Initial 176-source backfill produced honest tier-aligned distribution (T1 avg 84.5, T2-T6 each at exactly their tier prior). New `POST /api/admin/recompute-trust` (worker-secret auth) and `.github/workflows/trust-recompute.yml` (monthly, 03:00 UTC on the 1st). The earned-only formula previously returned uniform 40 for every source because all 7 trust inputs were sparse; the prior blend gives the UI immediate differentiated authority signal while preserving earned-trust dynamics.
+- **B.0j — manual pause and on-demand fetch/regenerate controls** (b76a104): per-source `processing_paused` column and singleton `system_state.global_processing_paused` flag (migration 016). Worker scan, agent run, and trust recompute honour both gates; manual admin actions bypass with `bypassPause: true`. New endpoints: `pause-global`, `[id]/pause`, `[id]/fetch-now`, `[id]/regenerate-brief`. New `SourceAdminControls` component adds GlobalPauseToggle banner at dashboard top and Pause/Fetch now/Regenerate brief buttons on every expanded SourceRow.
+- **B.0i — admin_only column with UI toggle** (0292910): per CLAUDE.md spec, workspace-facing reads gate on `admin_only = false`; admin contexts read unfiltered. Migration 017 adds the column + a partial index. New endpoints: `GET /api/admin/sources/all` (unfiltered admin read), `POST /api/admin/sources/[id]/visibility`. SourceRowControls grew a fourth button: "Show in workspaces" ↔ "Admin only".
+- **B.0h cleanup** — three audit scripts (audit-sources-b0a, audit-api-keys-b0a, audit-discovery-b0a), three B.0b/B.0c probe and backfill scripts, and the B.0g trust backfill script all deleted from `supabase/seed/` per Rule 11. Their work is durable in code or DB.
+
+#### API integration status (post-B.0)
+
+| Source family | Method | Auth | Status |
+|---|---|---|---|
+| EIA Open Data, Petroleum Spot, STEO | api | EIA_API_KEY (query-string) | Verified end-to-end |
+| NREL NSRDB, PVWatts | api | NREL_API_KEY (query-string) | Verified |
+| Regulations.gov v4 | api | REGULATIONS_GOV_API_KEY (X-Api-Key header) | Verified |
+| DATA_GOV_API_KEY | n/a | (no source uses this key currently) | Key valid, no consumer |
+| EUR-Lex SPARQL | api | (none — public, requires `Accept: application/sparql-results+json`) | Verified |
+| Federal Register | api | (none — public) | Verified |
+| ILOSTAT SDMX | api | (none — public) | Verified |
+| CDP Open Data | api | (none — public) | Configured |
+| World Bank, IEA, UK Legislation, Climate Watch, EEA, EPA Envirofacts | api | (none — public) | Configured per existing seed |
+| 17 new expansion sources | api (RSS) or scrape | (none) | Configured per B.0c |
+
+#### Source-discovery pipeline status
+
+- Citation extraction: live on every agent run via `/api/agent/run` Step 8a-8b. Writes source_citations rows (existing source match) or upserts/inserts into provisional_sources (new URL or already-provisional URL).
+- Promotion: live at `POST /api/admin/sources/promote` with three decisions (approve/reject/defer). Approve writes a new sources row + a `source_trust_events` audit row. UI buttons in SourceHealthDashboard provisional view, with AI-recommended classification (Haiku) cached on `provisional_sources.recommended_classification`.
+- Trust scoring: backfilled with Bayesian-prior blend (tier priors + earned data). Monthly recompute scheduled. Self-correcting as B.0f populates citation data.
+- admin_only column: live with UI toggle. Workspace-facing reads filtered; admin context unfiltered via `/api/admin/sources/all`.
+
+#### Pending USER ACTIONS (apply in this order before next phase work)
+
+1. Apply migration 013 — `DROP TABLE` for the 6 legacy tables (SQL in commit 3edc20b body).
+2. Apply migration 015 — `provisional_sources.recommended_classification JSONB` column.
+3. Apply migration 016 — `sources.processing_paused` + `system_state` table.
+4. Apply migration 017 — `sources.admin_only` column + partial index.
+5. Add `WORKER_SECRET` and `APP_URL` repo secrets (already in place from source-monitoring) — the trust-recompute workflow uses the same secrets.
+6. After all migrations are applied, manually trigger `.github/workflows/trust-recompute.yml` once via the Actions tab to verify the endpoint returns 200 and produces the expected distribution.
+7. After Supabase deployment, add `IMODOCS_USERNAME` and `IMODOCS_PASSWORD` to Vercel env vars if you ever activate the IMODOCS handler in a future commit (currently inert).
+8. **B.0d manual review**: review the 12 currently-pending provisional sources via the new UI buttons. Approve, reject, or defer each.
+
+#### Constraints reaffirmed in B.0
+- Per Rule 11, deprecation = deletion not annotation. All B.0a/B.0b/B.0c/B.0g one-shot scripts deleted in commit. No "scheduled for removal" annotations carried forward.
+- IMODOCS authenticated access deferred (no public API key model). Public IMO scraping continues for the 3 IMO sources. Workaround: manual document retrieval via Jason's account when a specific compliance question requires exact MEPC text.
+- Pause flags honoured by automated paths only. Manual fetch and regenerate actions are explicit admin overrides and bypass pause.
+
+#### Next Steps
+1. Apply migrations 013, 015, 016, 017 via Supabase SQL Editor.
+2. Trigger trust-recompute workflow once to verify.
+3. B.0d manual review of the 12 pending provisionals.
+4. Phase B.2 brief regeneration: decide scope (how many of the 155 out-of-contract briefs to regenerate under the new skill).
+5. Phase B.3 SourceCoverageMatrix on Research page.

@@ -151,6 +151,8 @@ Verifier could not run during the responsive pass due to upstream error — the 
 7. **Do not introduce new uses of legacy orange tokens.** Where you find them in code, leave them — the cleanup commit at the end of the PR will sweep them.
 8. **Do not reopen responsive decisions.** Patch issues in `shell.css`, not per-page.
 9. **Deprecation means deletion, not annotation.** When work supersedes an artifact (a table, a file, a code path, a script, a config entry), the artifact is deleted in the same PR or in an explicit cleanup commit before the next phase begins. Comments saying "deprecated, scheduled for removal" are temporary scaffolding only, never the final state. Pre-flight check between phases: sweep for anything deprecated by that phase's work and delete it.
+10. **API-first source retrieval.** When a source has a free public API, the registry record uses `access_method='api'` and points at the canonical API endpoint, not a docs page or the human-facing portal. Browserless is the fallback for sources without APIs, not the default. New sources are evaluated for an API equivalent at intake. Phase B.0 completed this audit and migration; future seed work follows the same convention.
+11. **Manual operator actions bypass pause and cooldown.** The pause flags (`sources.processing_paused`, `system_state.global_processing_paused`) gate automated processing only. Admin paths (`fetch-now`, `regenerate-brief`, direct admin scans) bypass intentionally — they're explicit operator decisions. Don't add pause-checks to manual paths.
 
 Plus from the prior plan, all still in force:
 
