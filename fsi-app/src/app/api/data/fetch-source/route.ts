@@ -6,23 +6,29 @@ const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const NREL_API_KEY = process.env.NREL_API_KEY;
 const DATA_GOV_API_KEY = process.env.DATA_GOV_API_KEY;
+const REGULATIONS_GOV_API_KEY = process.env.REGULATIONS_GOV_API_KEY;
 
 // ── Fetch via free API (no key or key from env) ──
-async function fetchViaApi(endpoint: string, keyEnv?: string): Promise<{ content: string; method: "api" }> {
+async function fetchViaApi(endpoint: string, keyEnv?: string, acceptHeader?: string): Promise<{ content: string; method: "api" }> {
   let url = endpoint;
 
-  // Inject API key if required
+  // Inject API key if required. regulations.gov v4 uses an `X-Api-Key`
+  // header rather than a query-string parameter; everything else is
+  // query-string based.
+  const headers: Record<string, string> = { "User-Agent": "CarosLedge/1.0" };
+  if (acceptHeader) headers["Accept"] = acceptHeader;
+
   if (keyEnv === "EIA_API_KEY" && EIA_API_KEY) {
     url += (url.includes("?") ? "&" : "?") + `api_key=${EIA_API_KEY}`;
   } else if (keyEnv === "NREL_API_KEY" && NREL_API_KEY) {
     url += (url.includes("?") ? "&" : "?") + `api_key=${NREL_API_KEY}`;
   } else if (keyEnv === "DATA_GOV_API_KEY" && DATA_GOV_API_KEY) {
     url += (url.includes("?") ? "&" : "?") + `api_key=${DATA_GOV_API_KEY}`;
+  } else if (keyEnv === "REGULATIONS_GOV_API_KEY" && REGULATIONS_GOV_API_KEY) {
+    headers["X-Api-Key"] = REGULATIONS_GOV_API_KEY;
   }
 
-  const res = await fetch(url, {
-    headers: { "User-Agent": "CarosLedge/1.0" },
-  });
+  const res = await fetch(url, { headers });
 
   if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
   const data = await res.text();
@@ -99,9 +105,12 @@ export async function POST(request: NextRequest) {
 
     try {
       if (source.access_method === "api" && source.api_endpoint) {
-        // Determine which key env var is needed
+        // Notes-driven config: `Key: VARNAME` selects which env-var key to inject;
+        // `Accept: <mime>` overrides the default Accept header (needed for SPARQL,
+        // JSON-LD, and other content-negotiation APIs).
         const keyEnv = source.notes?.match(/Key:\s*(\w+)/)?.[1] || undefined;
-        result = await fetchViaApi(source.api_endpoint, keyEnv);
+        const acceptHeader = source.notes?.match(/Accept:\s*([^\n]+)/)?.[1]?.trim() || undefined;
+        result = await fetchViaApi(source.api_endpoint, keyEnv, acceptHeader);
       } else {
         result = await fetchViaBrowserless(source.url);
       }
