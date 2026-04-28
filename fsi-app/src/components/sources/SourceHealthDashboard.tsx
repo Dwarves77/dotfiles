@@ -11,6 +11,7 @@ import {
   Clock, Eye, Search, ChevronDown, ExternalLink,
   Shield, Activity,
 } from "lucide-react";
+import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCard";
 
 // ── Tier Summary Card ──
 
@@ -257,7 +258,14 @@ function MetricBox({ label, value, sublabel }: { label: string; value: string; s
 // ── Main Dashboard ──
 
 export function SourceHealthDashboard() {
-  const { sources, provisionalSources, openConflicts, filters, activeView, setActiveView, setSourceSearch } = useSourceStore();
+  const { sources, provisionalSources, openConflicts, filters, activeView, setActiveView, setSourceSearch, setProvisionalSources } = useSourceStore();
+
+  // Optimistically remove a provisional row from the list after a successful
+  // approve/reject; defer keeps it but updates reviewer_notes server-side.
+  function handleProvisionalAction(id: string, action: "approve" | "reject" | "defer") {
+    if (action === "defer") return; // row stays in pending_review state; no list change
+    setProvisionalSources(provisionalSources.filter((p) => p.id !== id));
+  }
 
   const filteredSources = useMemo(() => filterSources(sources, filters), [sources, filters]);
 
@@ -416,43 +424,11 @@ export function SourceHealthDashboard() {
             />
           ) : (
             provisionalSources.map((ps) => (
-              <div
+              <ProvisionalReviewCard
                 key={ps.id}
-                className="p-4 rounded-lg border"
-                style={{
-                  borderColor: "var(--color-border)",
-                  backgroundColor: "var(--color-surface)",
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
-                    {ps.name}
-                  </span>
-                  <span
-                    className="text-[11px] font-medium px-2 py-0.5 rounded"
-                    style={{
-                      color: ps.status === "pending_review" ? "var(--color-warning)" : "var(--color-text-secondary)",
-                      backgroundColor: "var(--color-surface-raised)",
-                    }}
-                  >
-                    {ps.status.replace("_", " ")}
-                  </span>
-                </div>
-                <a
-                  href={ps.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs hover:underline"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  {ps.url}
-                </a>
-                <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
-                  <span>{ps.independent_citers} independent citer{ps.independent_citers !== 1 ? "s" : ""}</span>
-                  <span>Discovered via: {ps.discovered_via.replace("_", " ")}</span>
-                  {ps.highest_citing_tier && <span>Highest citer: T{ps.highest_citing_tier}</span>}
-                </div>
-              </div>
+                ps={ps as any}
+                onActionDone={handleProvisionalAction}
+              />
             ))
           )}
         </div>
