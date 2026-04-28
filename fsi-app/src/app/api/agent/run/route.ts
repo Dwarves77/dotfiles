@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // ── Step 2: Rate limit + provisional gate ──
     const { data: sourceRecord } = await supabase
       .from("sources")
-      .select("id, last_scanned, status")
+      .select("id, last_scanned, status, tier")
       .eq("url", sourceUrl)
       .single();
 
@@ -133,6 +133,132 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
       ?.filter((b: any) => b.type === "text")
       .map((b: any) => b.text)
       .join("") || "";
+
+    // ── Step 8a: Citation extraction (runs before JSON parse so it survives parse failures) ──
+    // Look for a "New Sources Identified" section per the system prompt. The
+    // agent emits a markdown table with columns | Source Name | URL | Tier (1-7) | Why |.
+    // Failures here log warnings only — we never fail the run on citation parsing.
+    const citations: Array<{ name: string; url: string; tier: number; why: string }> = [];
+    try {
+      const sectionMatch = rawText.match(/(?:^|\n)#{0,3}\s*New Sources Identified[^\n]*\n([\s\S]*?)(?=\n#{1,3}\s|$)/i);
+      if (sectionMatch) {
+        const tableBody = sectionMatch[1];
+        const rows = tableBody.split(/\r?\n/);
+        for (const row of rows) {
+          const trimmed = row.trim();
+          if (!trimmed.startsWith("|")) continue;
+          // Skip table-header separator rows like |----|----|
+          if (/^\|\s*-+/.test(trimmed)) continue;
+          const cells = trimmed.split("|").map((c: string) => c.trim()).filter((c: string) => c.length > 0);
+          if (cells.length < 4) continue;
+          const [name, url, tierRaw, why] = cells;
+          // Skip the header row ("Source Name | URL | Tier estimate ...")
+          if (/^source\s*name$/i.test(name) || /^url$/i.test(url)) continue;
+          const tier = parseInt(tierRaw.replace(/[^\d]/g, ""), 10);
+          if (!url.startsWith("http") || isNaN(tier) || tier < 1 || tier > 7) continue;
+          citations.push({ name, url, tier, why });
+        }
+      }
+    } catch (parseErr: any) {
+      console.warn("Citation extraction failed (non-fatal):", parseErr.message);
+    }
+
+    // ── Step 8b: Process citations now — independent of JSON parse outcome ──
+    // Citations write before the JSON parse step so a parse failure on the
+    // brief body (which can happen when the agent produces markdown rather
+    // than JSON) doesn't lose the citations. Failures here are logged but
+    // don't fail the run.
+    let citationsWritten = 0;
+    let provisionalsCreated = 0;
+    let provisionalsUpdated = 0;
+    if (sourceRecord?.id && citations.length) {
+      const citingId = sourceRecord.id;
+      const citingTier = sourceRecord.tier;
+
+      for (const c of citations) {
+        try {
+          const { data: existingSource } = await supabase
+            .from("sources")
+            .select("id, total_citations, confirmation_count")
+            .eq("url", c.url)
+            .maybeSingle();
+
+          if (existingSource) {
+            if (existingSource.id === citingId) continue;
+            const { error: cErr } = await supabase
+              .from("source_citations")
+              .upsert(
+                {
+                  citing_source_id: citingId,
+                  cited_source_id: existingSource.id,
+                  context: c.why,
+                  detected_at: new Date().toISOString(),
+                },
+                { onConflict: "citing_source_id,cited_source_id" }
+              );
+            if (!cErr) {
+              citationsWritten++;
+              await supabase
+                .from("sources")
+                .update({
+                  total_citations: (existingSource.total_citations || 0) + 1,
+                  confirmation_count: (existingSource.confirmation_count || 0) + 1,
+                })
+                .eq("id", existingSource.id);
+            } else {
+              failures.push(`Citation ${c.url}: ${cErr.message}`);
+            }
+            continue;
+          }
+
+          const { data: existingProv } = await supabase
+            .from("provisional_sources")
+            .select("id, citation_count, citing_source_ids, highest_citing_tier")
+            .eq("url", c.url)
+            .maybeSingle();
+
+          if (existingProv) {
+            const ids = Array.isArray(existingProv.citing_source_ids) ? existingProv.citing_source_ids : [];
+            const updatedIds = ids.includes(citingId) ? ids : [...ids, citingId];
+            const newHighest = Math.min(
+              existingProv.highest_citing_tier ?? 99,
+              citingTier ?? 99
+            );
+            const { error: pErr } = await supabase
+              .from("provisional_sources")
+              .update({
+                citation_count: (existingProv.citation_count || 0) + 1,
+                citing_source_ids: updatedIds,
+                independent_citers: updatedIds.length,
+                highest_citing_tier: newHighest === 99 ? null : newHighest,
+              })
+              .eq("id", existingProv.id);
+            if (!pErr) provisionalsUpdated++;
+            else failures.push(`Provisional update ${c.url}: ${pErr.message}`);
+            continue;
+          }
+
+          const { error: insertErr } = await supabase.from("provisional_sources").insert({
+            name: c.name.slice(0, 200),
+            url: c.url,
+            description: c.why.slice(0, 500),
+            discovered_via: "citation_detection",
+            cited_by_source_id: citingId,
+            cited_by_source_tier: citingTier,
+            citation_count: 1,
+            citing_source_ids: [citingId],
+            independent_citers: 1,
+            highest_citing_tier: citingTier,
+            provisional_tier: c.tier,
+            status: "pending_review",
+          });
+          if (!insertErr) provisionalsCreated++;
+          else failures.push(`Provisional insert ${c.url}: ${insertErr.message}`);
+        } catch (citationErr: any) {
+          failures.push(`Citation ${c.url}: ${citationErr.message}`);
+        }
+      }
+    }
 
     // Strip markdown fences if present
     let cleanText = rawText.trim();
@@ -260,7 +386,7 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
       }
     }
 
-    // ── Step 10: Update source scan timestamp ──
+    // ── Step 11: Update source scan timestamp ──
     if (sourceRecord?.id) {
       await supabase
         .from("sources")
@@ -268,12 +394,16 @@ ${JSON.stringify(sectorContexts, null, 2)}`;
         .eq("id", sourceRecord.id);
     }
 
-    // ── Step 11: Return job summary ──
+    // ── Step 12: Return job summary ──
     return NextResponse.json({
       source_url: sourceUrl,
       items_found: parsed.items.length,
       items_signal: signalItems.length,
       synopses_written: synopsesWritten,
+      citations_extracted: citations.length,
+      citations_written: citationsWritten,
+      provisionals_created: provisionalsCreated,
+      provisionals_updated: provisionalsUpdated,
       failures,
       duration_ms: Date.now() - jobStart,
     });

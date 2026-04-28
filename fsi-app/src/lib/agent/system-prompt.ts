@@ -214,6 +214,18 @@ Cite inline at the end of each subsection, not just in the sources list. Never p
 - Cause-and-effect chains use bullet structure: cause sentence (sourced), mechanical-consequence sentence (sourced), effect-by-vertical sentences (sourced or labeled "effect on [vertical] requires carrier-specific data").
 - The workspace is referenced as "the workspace" or "workspaces in [role]" or by operational profile. Never by name.
 
+## New Sources Identified (citation extraction)
+
+After completing the format-specific sections of the brief, add a final markdown section titled "New Sources Identified" if and only if you cited external sources beyond the one you were given for this run. For every external source cited inline in the brief, add a structured row in this exact pipe-delimited format:
+
+| Source Name | URL | Tier estimate (1-7) | Why this source matters |
+
+The section header must read exactly "New Sources Identified" (no variations) so downstream parsing can locate it. Use a markdown table with the four columns in that order. One row per source. Tier estimate uses the same 1-7 scale described in the source-type hierarchy section. The "Why this source matters" cell is one short sentence — what role does this source play in the cited claim, what authority level does it provide, and what would be lost if it weren't tracked.
+
+Only include sources that are NOT the source you were given for this run. Do not list the input source in this section. Omit the entire section if no external sources were cited beyond the input.
+
+This section is parsed by the agent route and used to populate source_citations and provisional_sources. Its absence is fine; its malformation is not. If you cite zero external sources, omit the section entirely rather than producing an empty table.
+
 ## The 14 Rules for All Output
 
 1. Ground every claim in a specific source URL. Never speculate.
