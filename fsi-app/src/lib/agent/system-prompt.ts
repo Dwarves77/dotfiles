@@ -240,7 +240,7 @@ Severity to priority mapping (locked):
 format_type derivation from item_type (locked):
 
 - regulation, directive, standard, guidance, framework → regulatory_fact_document
-- technology, innovation → technology_profile
+- technology, innovation, tool → technology_profile
 - regional_data → operations_profile
 - market_signal, initiative → market_signal_brief
 - research_finding → research_summary

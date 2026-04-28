@@ -101,6 +101,10 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 - Claude skill runs separately, not embedded
 - Light mode is default; dark mode is opt-in variant
 
+## Known data debt
+
+- **3 institutional body rows typed as `tool`** (g3 EEA, g12 ECLAC, t3 OECD Environment) are properly intelligence about institutions, not tools. They likely belong in the sources registry rather than intelligence_items. Defer reclassification or migration to sources until **Phase D** when source-registry-vs-intelligence-item separation is properly addressed. For now they retain `item_type='tool'` and will receive Technology Profile briefs (a poor structural fit but the least-bad option until Phase D).
+
 ## API Security Policy
 - **All API routes require authentication by default.** Every route must call `requireAuth()` from `src/lib/api/auth.ts` before processing. Unauthenticated requests receive 401.
 - **Unauthenticated public routes require explicit justification** documented here with the route path and the reason it is public.
