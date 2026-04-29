@@ -144,12 +144,18 @@ export function CanonicalSourceReview() {
       });
   }, [groups, confFilter, verifiedFilter, issueFilter]);
 
-  // Bulk-eligible candidates: high-confidence + verified + (URL already a source OR has cached AI rec)
+  // Bulk-eligible candidates: any high-confidence row that already has a
+  // cached AI classification or an existing-registry-source match. Verified
+  // status was previously a hard requirement, but unverified just means the
+  // verifier's title-overlap probe got a Cloudflare 403 on intergovernmental
+  // sites — most are still legitimately the right canonical source. The
+  // user's domain-allowlist judgment in the review prompt is the gate;
+  // bulk-eligible widens the pool to whatever has been classified.
   const bulkEligible = useMemo(() => {
     const out: Candidate[] = [];
     for (const g of groups) {
       for (const c of g.candidates) {
-        if (c.confidence !== "high" || !c.verified) continue;
+        if (c.confidence !== "high") continue;
         if (!c.existing_source_id && !c.recommended_classification) continue;
         out.push(c);
       }
@@ -244,10 +250,10 @@ export function CanonicalSourceReview() {
           <div className="text-sm">
             <strong style={{ color: "var(--color-text-primary)" }}>{bulkEligible.length}</strong>
             <span style={{ color: "var(--color-text-secondary)" }}>
-              {" "}high-confidence verified candidates eligible for bulk approve
+              {" "}high-confidence candidates eligible for bulk approve
             </span>
             <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-              URLs already in registry or with cached AI classification. Skips Haiku call.
+              URL already in registry or AI classification cached. Includes unverified — title-overlap probe often hits Cloudflare 403 on intergovernmental sites.
             </div>
           </div>
           <button
