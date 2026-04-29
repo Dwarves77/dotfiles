@@ -10,12 +10,12 @@ import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { browserlessRender } from "@/lib/sources/browserless";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const NREL_API_KEY = process.env.NREL_API_KEY;
 const DATA_GOV_API_KEY = process.env.DATA_GOV_API_KEY;
 const REGULATIONS_GOV_API_KEY = process.env.REGULATIONS_GOV_API_KEY;
-const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
 
 function getServiceClient() {
   return createClient(
@@ -42,30 +42,8 @@ async function fetchViaApi(endpoint: string, keyEnv?: string, acceptHeader?: str
 }
 
 async function fetchViaBrowserless(sourceUrl: string): Promise<string> {
-  if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
-  // Browserless v2 schema: waitForSelector is an object, not a string. The
-  // string form returns 400 "must be of type object" since the API change.
-  const res = await fetch(`https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: sourceUrl,
-      waitForSelector: { selector: "body", timeout: 5000, visible: true },
-      gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Browserless ${res.status}: ${err.slice(0, 200)}`);
-  }
-  const html = await res.text();
-  return html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 100000);
+  const r = await browserlessRender(sourceUrl);
+  return r.text;
 }
 
 export async function POST(

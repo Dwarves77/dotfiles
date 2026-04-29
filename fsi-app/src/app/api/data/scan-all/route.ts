@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
+import { browserlessRender } from "@/lib/sources/browserless";
 
-const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const NREL_API_KEY = process.env.NREL_API_KEY;
 const DATA_GOV_API_KEY = process.env.DATA_GOV_API_KEY;
@@ -20,22 +20,8 @@ async function fetchContent(source: any): Promise<{ content: string; method: str
     return { content: (await res.text()).slice(0, 100000), method: "api" };
   }
 
-  if (!BROWSERLESS_API_KEY) throw new Error("No BROWSERLESS_API_KEY");
-  // Browserless v2 schema: waitForSelector is an object { selector, timeout,
-  // visible }, not a string. String form returns 400 since the API change.
-  const res = await fetch(`https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: source.url,
-      waitForSelector: { selector: "body", timeout: 5000, visible: true },
-      gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
-    }),
-  });
-  if (!res.ok) throw new Error(`Browserless ${res.status}`);
-  const html = await res.text();
-  const text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  return { content: text.slice(0, 100000), method: "browserless" };
+  const r = await browserlessRender(source.url);
+  return { content: r.text, method: "browserless" };
 }
 
 /**

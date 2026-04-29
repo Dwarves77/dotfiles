@@ -5,6 +5,7 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { pauseReason } from "@/lib/api/pause";
 import { parseAgentOutput, AgentOutputParseError } from "@/lib/agent/parse-output";
 import { buildSourcePool } from "@/lib/agent/source-pool";
+import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per source URL
@@ -71,55 +72,30 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Step 3: Fetch source content via Browserless ──
-    // Routed through Browserless for ALL agent fetches (no plain-fetch
-    // fallback). Plain fetch under-fetched JS-heavy sources by 67-98% in
-    // measurement: NPC China returned 9 chars to plain fetch vs 605 via
-    // Browserless; Diario Oficial Brazil 8.5k → 25.6k. Single path keeps
-    // SPA-heavy regulators usable as agent input.
-    //
-    // waitForSelector schema is the v2 object form per docs.browserless.io
-    // (string form returns 400 since the API change — see prior fix
-    // commit for the manual-fetch and scan-all callsites).
-    const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
-    if (!BROWSERLESS_API_KEY) {
-      return NextResponse.json({ error: "BROWSERLESS_API_KEY not configured" }, { status: 500 });
-    }
+    // All source fetches go through Browserless via the shared helper at
+    // src/lib/sources/browserless.ts. Plain fetch was removed entirely:
+    // it under-fetched JS-heavy sources by 67-98% (NPC China 9 → 605,
+    // Diario Oficial Brazil 8.5k → 25.6k). Single path keeps SPA-heavy
+    // regulators usable as agent input.
     let sourceContent: string;
-    let fetchStatus: number = 0;
-    let fetchHtmlLength: number = 0;
-    let fetchTextLength: number = 0;
-    const fetchStart = Date.now();
+    let fetchStatus = 0;
+    let fetchHtmlLength = 0;
+    let fetchTextLength = 0;
+    let fetchMs = 0;
     try {
-      const res = await fetch(`https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: sourceUrl,
-          waitForSelector: { selector: "body", timeout: 5000, visible: true },
-          gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
-        }),
-      });
-      fetchStatus = res.status;
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Browserless ${res.status}: ${err.slice(0, 200)}`);
-      }
-      const html = await res.text();
-      fetchHtmlLength = html.length;
-      sourceContent = html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 80000);
-      fetchTextLength = sourceContent.length;
-    } catch (e: any) {
-      const fetchMs = Date.now() - fetchStart;
-      console.log(`[agent/run] FETCH FAIL  url=${sourceUrl}  ms=${fetchMs}  status=${fetchStatus}  err=${e.message?.slice(0, 200)}`);
-      return NextResponse.json({ error: `Failed to fetch source: ${e.message}` }, { status: 502 });
+      const r = await browserlessRender(sourceUrl, { maxTextLength: 80000 });
+      sourceContent = r.text;
+      fetchStatus = r.status;
+      fetchHtmlLength = r.htmlLength;
+      fetchTextLength = r.textLength;
+      fetchMs = r.renderMs;
+    } catch (e: unknown) {
+      const ms = e instanceof BrowserlessError ? e.renderMs ?? 0 : 0;
+      const status = e instanceof BrowserlessError ? e.status ?? 0 : 0;
+      const msg = e instanceof Error ? e.message : String(e);
+      console.log(`[agent/run] FETCH FAIL  url=${sourceUrl}  ms=${ms}  status=${status}  err=${msg.slice(0, 200)}`);
+      return NextResponse.json({ error: `Failed to fetch source: ${msg}` }, { status: 502 });
     }
-    const fetchMs = Date.now() - fetchStart;
     console.log(`[agent/run] FETCH OK    url=${sourceUrl}  ms=${fetchMs}  status=${fetchStatus}  html=${fetchHtmlLength}  text=${fetchTextLength}`);
 
     // ── Step 4: Load existing intelligence_items row for this source URL ──
