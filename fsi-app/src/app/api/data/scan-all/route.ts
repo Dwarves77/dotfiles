@@ -21,10 +21,16 @@ async function fetchContent(source: any): Promise<{ content: string; method: str
   }
 
   if (!BROWSERLESS_API_KEY) throw new Error("No BROWSERLESS_API_KEY");
+  // Browserless v2 schema: waitForSelector is an object { selector, timeout,
+  // visible }, not a string. String form returns 400 since the API change.
   const res = await fetch(`https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: source.url, waitForSelector: "body", gotoOptions: { waitUntil: "networkidle2", timeout: 15000 } }),
+    body: JSON.stringify({
+      url: source.url,
+      waitForSelector: { selector: "body", timeout: 5000, visible: true },
+      gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
+    }),
   });
   if (!res.ok) throw new Error(`Browserless ${res.status}`);
   const html = await res.text();

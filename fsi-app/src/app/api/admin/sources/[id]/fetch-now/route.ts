@@ -43,12 +43,14 @@ async function fetchViaApi(endpoint: string, keyEnv?: string, acceptHeader?: str
 
 async function fetchViaBrowserless(sourceUrl: string): Promise<string> {
   if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
+  // Browserless v2 schema: waitForSelector is an object, not a string. The
+  // string form returns 400 "must be of type object" since the API change.
   const res = await fetch(`https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       url: sourceUrl,
-      waitForSelector: "body",
+      waitForSelector: { selector: "body", timeout: 5000, visible: true },
       gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
     }),
   });
