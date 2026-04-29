@@ -70,14 +70,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Step 3: Fetch source content once ──
+    // ── Step 3: Fetch source content via Browserless ──
+    // Routed through Browserless for ALL agent fetches (no plain-fetch
+    // fallback). Plain fetch under-fetched JS-heavy sources by 67-98% in
+    // measurement: NPC China returned 9 chars to plain fetch vs 605 via
+    // Browserless; Diario Oficial Brazil 8.5k → 25.6k. Single path keeps
+    // SPA-heavy regulators usable as agent input.
+    //
+    // waitForSelector schema is the v2 object form per docs.browserless.io
+    // (string form returns 400 since the API change — see prior fix
+    // commit for the manual-fetch and scan-all callsites).
+    const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
+    if (!BROWSERLESS_API_KEY) {
+      return NextResponse.json({ error: "BROWSERLESS_API_KEY not configured" }, { status: 500 });
+    }
     let sourceContent: string;
+    let fetchStatus: number = 0;
+    let fetchHtmlLength: number = 0;
+    let fetchTextLength: number = 0;
+    const fetchStart = Date.now();
     try {
-      const res = await fetch(sourceUrl, {
-        headers: { "User-Agent": "CarosLedge-IntelligenceAgent/1.0" },
+      const res = await fetch(`https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: sourceUrl,
+          waitForSelector: { selector: "body", timeout: 5000, visible: true },
+          gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
+        }),
       });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      fetchStatus = res.status;
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Browserless ${res.status}: ${err.slice(0, 200)}`);
+      }
       const html = await res.text();
+      fetchHtmlLength = html.length;
       sourceContent = html
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -85,9 +113,14 @@ export async function POST(request: NextRequest) {
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 80000);
+      fetchTextLength = sourceContent.length;
     } catch (e: any) {
+      const fetchMs = Date.now() - fetchStart;
+      console.log(`[agent/run] FETCH FAIL  url=${sourceUrl}  ms=${fetchMs}  status=${fetchStatus}  err=${e.message?.slice(0, 200)}`);
       return NextResponse.json({ error: `Failed to fetch source: ${e.message}` }, { status: 502 });
     }
+    const fetchMs = Date.now() - fetchStart;
+    console.log(`[agent/run] FETCH OK    url=${sourceUrl}  ms=${fetchMs}  status=${fetchStatus}  html=${fetchHtmlLength}  text=${fetchTextLength}`);
 
     // ── Step 4: Load existing intelligence_items row for this source URL ──
     // The new SKILL.md contract regenerates one specific item per agent run;
@@ -367,6 +400,13 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
       source_url: sourceUrl,
       item_id: targetItem.id,
       brief_length: body.length,
+      fetch: {
+        status: fetchStatus,
+        render_ms: fetchMs,
+        html_length: fetchHtmlLength,
+        text_length: fetchTextLength,
+        truncated_at: 80000,
+      },
       metadata: {
         severity: metadata.severity,
         priority: metadata.priority,
