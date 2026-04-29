@@ -97,10 +97,15 @@ export function CanonicalSourceReview() {
   const [verifiedFilter, setVerifiedFilter] = useState<"all" | "verified" | "unverified">("all");
   const [issueFilter, setIssueFilter] = useState<"all" | "stale_url" | "missing_link" | "missing_source">("all");
 
-  // Bulk
+  // Bulk approve
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkResult, setBulkResult] = useState<any>(null);
+
+  // Pre-cache classifications (server-side batch Haiku calls)
+  const [precacheRunning, setPrecacheRunning] = useState(false);
+  const [precacheProgress, setPrecacheProgress] = useState<{ done: number; total: number } | null>(null);
+  const [precacheError, setPrecacheError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -163,12 +168,70 @@ export function CanonicalSourceReview() {
     return out;
   }, [groups]);
 
+  // High-confidence candidates that COULD be bulk-approved if we cached
+  // their AI classification. Drives the "Pre-cache N classifications"
+  // button — once these are cached, they roll into bulkEligible.
+  const precacheCandidates = useMemo(() => {
+    const out: Candidate[] = [];
+    for (const g of groups) {
+      for (const c of g.candidates) {
+        if (c.confidence !== "high") continue;
+        if (c.existing_source_id) continue; // existing source, no classification needed
+        if (c.recommended_classification) continue; // already cached
+        out.push(c);
+      }
+    }
+    return out;
+  }, [groups]);
+
   function removeCandidate(candidateId: string) {
     setGroups((gs) =>
       gs
         .map((g) => ({ ...g, candidates: g.candidates.filter((c) => c.id !== candidateId) }))
         .filter((g) => g.candidates.length > 0)
     );
+  }
+
+  // Server-side batch Haiku classification. Drives "Pre-cache N classifications"
+  // button — replaces the per-card expand-and-wait flow that triggers CDP
+  // timeouts in agent-driven review tabs. Calls the bulk-classify endpoint
+  // in chunks of 25 (within Vercel's 60s function timeout, ~12s per call
+  // at 5 concurrent Haiku × 2s each).
+  async function runPrecache() {
+    setPrecacheRunning(true);
+    setPrecacheError(null);
+    setPrecacheProgress({ done: 0, total: precacheCandidates.length });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const ids = precacheCandidates.map((c) => c.id);
+      const CHUNK = 25;
+      let done = 0;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const slice = ids.slice(i, i + CHUNK);
+        const res = await fetch("/api/admin/canonical-sources/bulk-classify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ candidateIds: slice }),
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          setPrecacheError(payload.error || `Batch failed at ${i}/${ids.length}`);
+          break;
+        }
+        done += slice.length;
+        setPrecacheProgress({ done, total: ids.length });
+      }
+      // Reload candidates so the now-cached classifications appear in
+      // bulkEligible and the precache button disappears.
+      await load();
+    } catch (e: any) {
+      setPrecacheError(e.message);
+    } finally {
+      setPrecacheRunning(false);
+    }
   }
 
   async function runBulk() {
@@ -237,6 +300,48 @@ export function CanonicalSourceReview() {
         <StatBox label="Medium" value={stats.medium} />
         <StatBox label="Low" value={stats.low} />
       </div>
+
+      {/* Pre-cache classifications banner — appears when there are
+          high-confidence candidates without cached AI classification.
+          Server-side batch path avoids the per-card expand-and-wait
+          flow that freezes the renderer. */}
+      {precacheCandidates.length > 0 && (
+        <div
+          className="p-3 rounded-lg border flex items-center justify-between gap-3"
+          style={{
+            borderColor: "var(--color-warning)50",
+            backgroundColor: "var(--color-warning)10",
+          }}
+        >
+          <div className="text-sm">
+            <strong style={{ color: "var(--color-text-primary)" }}>{precacheCandidates.length}</strong>
+            <span style={{ color: "var(--color-text-secondary)" }}>
+              {" "}high-confidence candidates need AI classification before bulk approve
+            </span>
+            <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+              Runs server-side in batches of 25 (~12s each at 5 concurrent Haiku calls). No per-card expansion needed — once done, these roll into the bulk-approve banner.
+            </div>
+            {precacheProgress && precacheRunning && (
+              <div className="text-[11px] mt-1" style={{ color: "var(--color-warning)" }}>
+                Classifying {precacheProgress.done} / {precacheProgress.total}…
+              </div>
+            )}
+            {precacheError && (
+              <div className="text-[11px] mt-1" style={{ color: "var(--color-error)" }}>
+                {precacheError}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={runPrecache}
+            disabled={precacheRunning}
+            className="px-3 py-1.5 text-xs font-medium rounded shrink-0 disabled:opacity-50"
+            style={{ backgroundColor: "var(--color-warning)", color: "#fff" }}
+          >
+            {precacheRunning ? "Classifying…" : `Pre-cache ${precacheCandidates.length}`}
+          </button>
+        </div>
+      )}
 
       {/* Bulk approve banner */}
       {bulkEligible.length > 0 && (
