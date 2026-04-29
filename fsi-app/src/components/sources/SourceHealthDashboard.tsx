@@ -12,6 +12,7 @@ import {
   Shield, Activity,
 } from "lucide-react";
 import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCard";
+import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceReview";
 import { GlobalPauseToggle, SourceRowControls } from "@/components/sources/SourceAdminControls";
 
 // ── Tier Summary Card ──
@@ -294,6 +295,7 @@ export function SourceHealthDashboard() {
     { id: "registry" as const, label: "Registry", count: sources.length },
     { id: "health" as const, label: "Health", count: overdueSources.length },
     { id: "provisional" as const, label: "Provisional", count: provisionalSources.filter((ps) => ps.status === "pending_review").length },
+    { id: "canonical" as const, label: "Canonical Source Issues", count: 0 },
     { id: "conflicts" as const, label: "Data Conflicts", count: openConflicts.length },
   ];
 
@@ -452,6 +454,9 @@ export function SourceHealthDashboard() {
           )}
         </div>
       )}
+
+      {/* Canonical source issues */}
+      {activeView === "canonical" && <CanonicalSourceReview />}
 
       {/* Open conflicts */}
       {activeView === "conflicts" && (

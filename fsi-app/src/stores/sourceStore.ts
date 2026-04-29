@@ -22,7 +22,7 @@ interface SourceState {
 
   // UI
   expandedSourceId: string | null;
-  activeView: "registry" | "health" | "provisional" | "conflicts";
+  activeView: "registry" | "health" | "provisional" | "canonical" | "conflicts";
 
   // Actions — data
   setSources: (sources: Source[]) => void;
