@@ -245,7 +245,7 @@ Fields:
 - compliance_object_tags — array of 0-4 tags from the closed compliance-object vocabulary below. Tags outside the vocabulary fail the regeneration. Drives intersection detection.
 - related_items — UUID array of intelligence_items the agent recognised as related during composition. UUIDs MUST come from the source pool input. No invented UUIDs. Empty array when no relations identified.
 - intersection_summary — short markdown string (≤1500 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title. Emit empty string OR null when no intersections were identified.
-- sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
+- sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs. Emit FULL 36-character UUIDs (e.g. a1b2c3d4-e5f6-4789-9abc-def012345678) — never the 8-character prefix shorthand. Truncated UUIDs fail the regeneration.
 - last_regenerated_at — ISO 8601 timestamp at the moment of generation. The agent emits the current UTC timestamp in ISO 8601 form (e.g., 2026-04-29T18:42:00Z). Do NOT emit literal "NOW()" or any other placeholder. Do NOT derive from source publication dates. Do NOT invent a value.
 - regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-04-29".
 
