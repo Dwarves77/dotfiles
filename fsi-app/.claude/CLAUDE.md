@@ -13,7 +13,7 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 
 ## Tech Stack
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
-- Supabase (PostgreSQL) — schema defined, not yet deployed
+- Supabase (PostgreSQL) — live; 25 migrations applied; data model documented in `supabase/migrations/`.
 - Zustand stores (resourceStore, navigationStore, settingsStore, exportStore, sourceStore)
 - lucide-react icons, GSAP available
 
