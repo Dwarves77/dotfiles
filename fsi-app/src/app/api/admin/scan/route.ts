@@ -42,17 +42,19 @@ export async function POST(request: NextRequest) {
       ...(staged || []).map((s: any) => (s.proposed_changes?.title || "").toLowerCase()).filter(Boolean),
     ]);
 
-    // Call Claude to search for new regulations
+    // Call Claude with web_search to find new regulations from live sources
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "web-search-2025-03-05",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",  // Haiku for scanning — 12x cheaper than Sonnet, fast structured extraction
+        model: "claude-sonnet-4-6",
         max_tokens: 3000,
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
         system: `You are the Sustainability & Climate Policy Intelligence Assistant for Caro's Ledge, a global freight forwarding intelligence platform. Your job is to translate regulatory and policy updates into operational impact, compliance risk, and recommended actions.
 
 NON-NEGOTIABLES:
