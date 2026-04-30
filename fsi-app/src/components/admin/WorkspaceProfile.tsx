@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { ALL_SECTORS } from "@/lib/constants";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { SectorSelector } from "@/components/profile/SectorSelector";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, Check, Save } from "lucide-react";
+import { ArrowLeft, Bell, Check, Save } from "lucide-react";
 
 interface WorkspaceProfileProps {
   userId: string;
@@ -15,21 +15,26 @@ interface WorkspaceProfileProps {
 export function WorkspaceProfile({ userId, userEmail }: WorkspaceProfileProps) {
   const { orgId, orgName, sectorProfile, setSectorProfile } = useWorkspaceStore();
   const [selectedSectors, setSelectedSectors] = useState<string[]>(sectorProfile);
+  const [notifyOnActivation, setNotifyOnActivation] = useState(false);
+  const [signupAt, setSignupAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const supabase = createSupabaseBrowserClient();
 
-  // Load from DB on mount
   useEffect(() => {
     if (!orgId) return;
     supabase
       .from("workspace_settings")
-      .select("sector_profile")
+      .select("sector_profile, notify_on_sector_activation, sectors_activation_signup_at")
       .eq("org_id", orgId)
       .single()
       .then(({ data }) => {
-        if (data?.sector_profile?.length) {
-          setSelectedSectors(data.sector_profile);
+        if (data?.sector_profile?.length) setSelectedSectors(data.sector_profile);
+        if (typeof data?.notify_on_sector_activation === "boolean") {
+          setNotifyOnActivation(data.notify_on_sector_activation);
+        }
+        if (data?.sectors_activation_signup_at) {
+          setSignupAt(data.sectors_activation_signup_at);
         }
       });
   }, [orgId, supabase]);
@@ -45,9 +50,20 @@ export function WorkspaceProfile({ userId, userEmail }: WorkspaceProfileProps) {
     if (!orgId) return;
     setSaving(true);
 
+    const updates: Record<string, unknown> = {
+      sector_profile: selectedSectors,
+      notify_on_sector_activation: notifyOnActivation,
+    };
+    // Only stamp signup_at on first opt-in. Never overwrite once set.
+    if (notifyOnActivation && !signupAt) {
+      const now = new Date().toISOString();
+      updates.sectors_activation_signup_at = now;
+      setSignupAt(now);
+    }
+
     const { error } = await supabase
       .from("workspace_settings")
-      .update({ sector_profile: selectedSectors })
+      .update(updates)
       .eq("org_id", orgId);
 
     if (!error) {
@@ -64,7 +80,6 @@ export function WorkspaceProfile({ userId, userEmail }: WorkspaceProfileProps) {
       style={{ backgroundColor: "var(--color-background)" }}
     >
       <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6">
-        {/* Header */}
         <div className="mb-6">
           <a
             href="/"
@@ -85,7 +100,6 @@ export function WorkspaceProfile({ userId, userEmail }: WorkspaceProfileProps) {
           </p>
         </div>
 
-        {/* Sector Selection */}
         <div className="space-y-4">
           <div>
             <h2
@@ -101,48 +115,54 @@ export function WorkspaceProfile({ userId, userEmail }: WorkspaceProfileProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {ALL_SECTORS.map((sector) => {
-              const isSelected = selectedSectors.includes(sector.id);
-              return (
-                <button
-                  key={sector.id}
-                  onClick={() => toggleSector(sector.id)}
-                  className="flex items-center gap-3 p-3 rounded-lg border text-left cursor-pointer transition-colors"
-                  style={{
-                    borderColor: isSelected ? "var(--color-active-border)" : "var(--color-border)",
-                    backgroundColor: isSelected ? "var(--color-active-bg)" : "var(--color-surface)",
-                  }}
-                >
-                  <div
-                    className="w-5 h-5 rounded flex items-center justify-center shrink-0 border"
-                    style={{
-                      borderColor: isSelected ? "var(--color-primary)" : "var(--color-border)",
-                      backgroundColor: isSelected ? "var(--color-primary)" : "transparent",
-                    }}
-                  >
-                    {isSelected && <Check size={12} color="white" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "var(--color-text-primary)" }}
-                    >
-                      {sector.label}
-                    </span>
-                    <p
-                      className="text-[11px] mt-0.5 line-clamp-1"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
-                      Keywords: {sector.keywords.slice(0, 4).join(", ")}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          <SectorSelector
+            selectedSectors={selectedSectors}
+            onToggle={toggleSector}
+          />
 
-          {/* Save */}
+          <label
+            className="flex items-start gap-3 p-3 rounded-lg border mt-2 cursor-pointer"
+            style={{
+              borderColor: notifyOnActivation
+                ? "var(--color-active-border)"
+                : "var(--color-border)",
+              backgroundColor: notifyOnActivation
+                ? "var(--color-active-bg)"
+                : "var(--color-surface)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={notifyOnActivation}
+              onChange={(e) => {
+                setNotifyOnActivation(e.target.checked);
+                setSaved(false);
+              }}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div
+                className="flex items-center gap-2 text-sm font-medium"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                <Bell size={14} />
+                Notify me when per-sector reporting activates
+              </div>
+              <p
+                className="text-xs mt-1"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Per-sector synopses are on the platform roadmap. We&apos;ll let
+                you know when they&apos;re available for your selected sectors.
+                {signupAt && (
+                  <>
+                    {" "}You opted in on {new Date(signupAt).toLocaleDateString()}.
+                  </>
+                )}
+              </p>
+            </div>
+          </label>
+
           <div className="flex items-center gap-3 pt-2">
             <Button
               variant="primary"
