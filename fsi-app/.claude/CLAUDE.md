@@ -593,3 +593,51 @@ Skill version: `2026-04-29`.
 #### In flight as of session pause
 - Background task: 10-item B.2 retry batch (`b203cd32v`) at 8/10
 - Next: kick off full 152-item run when retry validates ≥80%
+
+### 2026-04-30 — Cleanup pass on `cleanup/post-b2`
+
+Branched from `redesign/full-migration` HEAD (`6bc8032`). All commits below land on `cleanup/post-b2`; merge to `redesign/full-migration` after the user reviews.
+
+#### Phase 1 — documentation contradiction sweep (16 items from `docs/contradictions-audit.md`)
+
+- 1e730bc · contradiction 1: Source Registry section deleted (numbers move every commit, replaced with live-data pointer)
+- 5c01817 · contradiction 2: Tech Stack Supabase status reflects live deployment
+- a57e1ac · contradiction 3: Not Started rewritten; Phase B Complete added
+- 91f96b3 · contradiction 4: Key Files list expanded with Phase B.2.5 surfaces
+- 9852514 · contradiction 5: API Security route table → policy statement
+- f0fb184 · contradiction 6: verified resolved in `f0f7cdf` (no further changes)
+- (item 7 was already self-resolved per the audit; no commit needed)
+- (item 8: session log historical, intentionally untouched)
+- 82b5515 · contradiction 9: PR #5 verified still OPEN draft, STATUS.md line accurate
+- 59486ef · contradiction 10: migration 008 verification deferred (sandbox lacks node)
+- 621b749 · contradictions 11/12/13: empty marker — already resolved or no fix needed (rules 11/12/13 aligned with practice)
+- d586439 · contradiction 14: migration 021→023 rename to break numbering collision (USER ACTION: `migration repair` after merge)
+- 3c78ced · contradictions 15/16: Vercel Deployment Protection reframed as USER ACTION; regulation-detail count RESOLVED (superseded by 14-section format)
+
+#### Phase 2 — `/api/admin/scan` drift fixes (3 items from `docs/admin-scan-audit.md`)
+
+- d918b3e · drifts 1+2: enable web_search tool + anthropic-beta header; fix misleading Haiku/Sonnet comment
+- c9f076d · drift 3: implement 4h cooldown via migration 024 (`admin_action_cooldowns` table) + route gate (defensive: no-ops if table missing)
+
+#### Phase 3 — Onboarding placeholder for sector activation (5-commit set)
+
+Per `docs/intelligence-summaries-proposal.md` decision (2026-04-30 SHELVED), per-sector reporting is on the platform roadmap with placeholder UX shipping now to capture activation interest:
+
+- 3507ca8 · migration 025: `notify_on_sector_activation` + `sectors_activation_signup_at` columns on `workspace_settings`
+- 97ac7b6 · `SectorSelector` shared component (`src/components/profile/SectorSelector.tsx`)
+- 8be79da · `/onboarding` route + `SectorOnboarding` component
+- db5fa4d · `WorkspaceProfile` (settings) refactored to use SectorSelector + activation-notify toggle
+- 4dbe2e6 · CLAUDE.md "Sector Activation" section documents future-feature path and current placeholder boundaries
+
+#### Phase 4 — final cleanup commit (this entry)
+
+Pending USER ACTIONS aggregated from this pass (apply in this order):
+1. `npx supabase migration list --linked` — verify migration 008 applied state (contradiction 10).
+2. After merge: rename migration 021 in Supabase ledger:
+   `npx supabase migration repair --status reverted 021_intersection_detection_function`
+   `npx supabase migration repair --status applied 023_intersection_detection_function`
+3. Apply migration 024 (`admin_action_cooldowns`) before activating the 4h scan cooldown gate.
+4. Apply migration 025 (`sector_activation_interest`) before the onboarding/profile UX is exercised in production.
+5. Verify Vercel Deployment Protection state on Production before merging PR #5.
+
+Sandbox during this pass lacked node binary; supabase CLI invocations could not run from this environment, so all migration application is queued for the user.
