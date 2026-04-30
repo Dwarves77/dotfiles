@@ -88,6 +88,8 @@ Source registry counts and current state visible at /admin Source Health Dashboa
 - Intersection detection (15+ strong cross-regulation pairs detected)
 
 ## Key Files
+
+Foundation:
 - `src/types/source.ts` — Source trust framework
 - `src/types/intelligence.ts` — Intelligence item types
 - `src/lib/trust.ts` — Trust scoring engine
@@ -95,8 +97,26 @@ Source registry counts and current state visible at /admin Source Health Dashboa
 - `src/data/source-mapping.ts` — Legacy resource → source linkage
 - `src/stores/sourceStore.ts` — Source state management
 - `src/components/sources/SourceHealthDashboard.tsx` — Source health UI
-- `supabase/migrations/004_source_trust_framework.sql` — Full schema
-- `supabase/seed/seed-sources.sql` — 73 source entries
+- `supabase/migrations/004_source_trust_framework.sql` — Trust framework schema
+- `supabase/seed/seed-sources.sql` — Source registry seed
+
+Agent runtime (Phase B.2.5 contract — do not modify without reading SKILL.md):
+- `src/lib/agent/system-prompt.ts` — agent contract (the 13-field YAML emission spec)
+- `src/lib/agent/parse-output.ts` — YAML parser (3-tier fallback for fence/inline drift)
+- `src/lib/agent/source-pool.ts` — dynamic per-item source pool
+- `src/lib/sources/browserless.ts` — unified Browserless content-fetch helper
+- `supabase/seed/b2-runner.mjs` — full-corpus regeneration runner (idempotent, checkpoint-resumable)
+- `supabase/seed/canonical-source-discover.mjs` — canonical-source discovery via Claude + web_search
+
+Phase B.2.5 surfaces:
+- `src/components/sources/IntersectionDetectionView.tsx` — Intersections sub-tab
+- `src/components/sources/CanonicalSourceReview.tsx` — Canonical-source review tab + bulk actions
+- `src/components/sources/B2ProgressBanner.tsx` — auto-refreshing regen progress strip
+- `src/components/resource/IntelligenceMetadataStrip.tsx` — per-item metadata strip above brief
+- `src/app/api/admin/intersections/route.ts` — intersection detection RPC wrapper
+- `src/app/api/admin/canonical-sources/{pending,decide,bulk-approve,bulk-classify,recommend-classification}/route.ts` — canonical-source review pipeline
+- `src/app/api/admin/b2-progress/route.ts` — regen progress aggregator
+- `src/app/api/admin/recompute-trust/route.ts` — trust score Bayesian-prior recompute
 
 ## Constraints
 - All exports use Blob download (no clipboard API, no window.open)
