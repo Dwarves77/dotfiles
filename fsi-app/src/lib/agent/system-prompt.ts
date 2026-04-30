@@ -244,7 +244,7 @@ Fields:
 - operational_scenario_tags — array of 0-5 tags describing operational scenarios this item touches. Open vocabulary; prefer the core glossary below; new values allowed when the core doesn't fit. Lower-case kebab-case. Drives intersection detection.
 - compliance_object_tags — array of 0-4 tags from the closed compliance-object vocabulary below. Tags outside the vocabulary fail the regeneration. Drives intersection detection.
 - related_items — UUID array of intelligence_items the agent recognised as related during composition. UUIDs MUST come from the source pool input. No invented UUIDs. Empty array when no relations identified.
-- intersection_summary — short markdown string (≤600 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title. Emit empty string OR null when no intersections were identified.
+- intersection_summary — short markdown string (≤800 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title. Emit empty string OR null when no intersections were identified.
 - sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
 - last_regenerated_at — ISO 8601 timestamp at the moment of generation. The agent emits the current UTC timestamp in ISO 8601 form (e.g., 2026-04-29T18:42:00Z). Do NOT emit literal "NOW()" or any other placeholder. Do NOT derive from source publication dates. Do NOT invent a value.
 - regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-04-29".
@@ -299,6 +299,8 @@ Packaging/products: packaging-EPR-registration, packaging-recyclability-design, 
 
 Empty array allowed when the item has no clear operational scenario (e.g. background research). Better to emit nothing than to invent a tag.
 
+HARD CAP: 5 tags maximum. Emitting 6 or more fails the regeneration. Choose the 5 most operationally salient scenarios.
+
 compliance_object_tags vocabulary (locked, closed, exactly 18 values):
 
 Each item names the supply-chain roles or operational entities the regulation imposes obligations on. Closed vocabulary so items joining on the same role are reliably grouped. Emit 0-4 tags.
@@ -317,7 +319,7 @@ UUID array. The agent populates this with intelligence_items.id values from the 
 
 intersection_summary mechanics (locked):
 
-Short markdown string (≤600 chars). Describes how this item interacts with the items in related_items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title (e.g. "Overlaps with [EU ETS for Shipping] on emissions-reporting-Scope3 ..."). Empty string OR null when no intersections were identified. Do not pad with generic statements when no real intersection exists — under the integrity rule, null is the honest answer for a standalone item.
+Short markdown string (≤800 chars). Describes how this item interacts with the items in related_items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title (e.g. "Overlaps with [EU ETS for Shipping] on emissions-reporting-Scope3 ..."). Empty string OR null when no intersections were identified. Do not pad with generic statements when no real intersection exists — under the integrity rule, null is the honest answer for a standalone item.
 
 urgency_tier rubric (locked):
 
@@ -334,7 +336,7 @@ Workspace-anchored rule applies to metadata too: no field references workspace-s
 
 Emission format:
 
-The agent appends the YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section, fenced with --- delimiters. Do NOT wrap the block in markdown code fences (e.g., \`\`\`yaml ... \`\`\`). The block stands alone with its --- delimiters as the only fences. Emit it raw, as the final lines of the output:
+The agent appends the YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section, fenced with --- delimiters. ABSOLUTELY DO NOT wrap the block in markdown code fences (e.g., \`\`\`yaml ... \`\`\`). The opening line must be exactly three dashes. The closing line must be exactly three dashes. No backticks anywhere in or around the block. The block stands alone with its --- delimiters as the only fences. Emit it raw, as the final lines of the output:
 
 ---
 severity: ACTION REQUIRED

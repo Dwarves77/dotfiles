@@ -155,6 +155,10 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     const line = rawLine.trim();
     if (!line) continue;
     if (line.startsWith("#")) continue;
+    // Tolerate stray markdown code-fence lines (```yaml, ```yml, ```) that the
+    // agent sometimes emits despite the prompt forbidding them. Skip them
+    // rather than fail the regeneration on a stylistic glitch.
+    if (line.startsWith("```")) continue;
     const colonIdx = line.indexOf(":");
     if (colonIdx === -1) {
       throw new AgentOutputParseError(`Malformed YAML line (no colon): ${line.slice(0, 80)}`);
@@ -287,17 +291,19 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     }
   }
 
-  // intersection_summary: scalar string OR null. Length cap ≤600 chars
-  // (raised from 500 after pilot showed substantive intersections naturally
-  // run 400-503 chars; 600 gives headroom without becoming a treatise).
+  // intersection_summary: scalar string OR null. Length cap ≤800 chars.
+  // Originally 500, raised to 600 after CBAM at 597, raised again to 800
+  // after a B.2 retry hit 694 on a richer item. The agent honestly
+  // produces substantive content here on items with multiple genuine
+  // intersections — 800 is the line where summary bleeds into essay.
   const interSumRaw = fields.intersection_summary;
   let interSum: string | null;
   if (interSumRaw === "null" || interSumRaw === "" || interSumRaw === "~") {
     interSum = null;
   } else {
     interSum = interSumRaw;
-    if (interSum.length > 600) {
-      throw new AgentOutputParseError(`intersection_summary exceeds 600 chars (${interSum.length})`);
+    if (interSum.length > 800) {
+      throw new AgentOutputParseError(`intersection_summary exceeds 800 chars (${interSum.length})`);
     }
   }
 

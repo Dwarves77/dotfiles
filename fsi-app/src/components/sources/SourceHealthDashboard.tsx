@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCard";
 import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceReview";
+import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
 import { GlobalPauseToggle, SourceRowControls } from "@/components/sources/SourceAdminControls";
 
 // ── Tier Summary Card ──
@@ -296,6 +297,7 @@ export function SourceHealthDashboard() {
     { id: "health" as const, label: "Health", count: overdueSources.length },
     { id: "provisional" as const, label: "Provisional", count: provisionalSources.filter((ps) => ps.status === "pending_review").length },
     { id: "canonical" as const, label: "Canonical Source Issues", count: 0 },
+    { id: "intersections" as const, label: "Intersections", count: 0 },
     { id: "conflicts" as const, label: "Data Conflicts", count: openConflicts.length },
   ];
 
@@ -457,6 +459,11 @@ export function SourceHealthDashboard() {
 
       {/* Canonical source issues */}
       {activeView === "canonical" && <CanonicalSourceReview />}
+
+      {/* Intersection detection — surfaces pairs of items sharing
+          operational scenarios + compliance objects. Populated by B.2
+          regeneration emitting the new tag fields. */}
+      {activeView === "intersections" && <IntersectionDetectionView />}
 
       {/* Open conflicts */}
       {activeView === "conflicts" && (
