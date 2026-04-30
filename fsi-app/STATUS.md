@@ -5,7 +5,7 @@ Updated as commits land. Source of truth for "what's done, what's next."
 
 **Branch:** `redesign/full-migration` → PR #5 (draft)
 **Production deploy target:** `master` (auto-deploy on, per Vercel settings)
-**Migration files committed, NOT yet run:** `008_platform_admin_profiles.sql`, `008_seed_platform_admins.sql`. Apply order documented in commits `50f9346` and `c67dd29`. Migration commits run after code merge, never before.
+**Migration application policy:** two tracks. **Schema migrations (DDL on runtime tables)** apply via Supabase CLI BEFORE committing the dependent code, so preview deployments don't 500-error on missing columns; document the apply timestamp in the commit body. **Data migrations (seeds, backfills, content migration)** commit the migration file alongside the consumer code and run AFTER merge. The platform-admin migrations `008_platform_admin_profiles.sql` and `008_seed_platform_admins.sql` are data migrations under this policy and run after merge per their original commit notes (`50f9346`, `c67dd29`).
 
 ---
 
@@ -153,6 +153,7 @@ Verifier could not run during the responsive pass due to upstream error — the 
 9. **Deprecation means deletion, not annotation.** When work supersedes an artifact (a table, a file, a code path, a script, a config entry), the artifact is deleted in the same PR or in an explicit cleanup commit before the next phase begins. Comments saying "deprecated, scheduled for removal" are temporary scaffolding only, never the final state. Pre-flight check between phases: sweep for anything deprecated by that phase's work and delete it.
 10. **API-first source retrieval.** When a source has a free public API, the registry record uses `access_method='api'` and points at the canonical API endpoint, not a docs page or the human-facing portal. Browserless is the fallback for sources without APIs, not the default. New sources are evaluated for an API equivalent at intake. Phase B.0 completed this audit and migration; future seed work follows the same convention.
 11. **Manual operator actions bypass pause and cooldown.** The pause flags (`sources.processing_paused`, `system_state.global_processing_paused`) gate automated processing only. Admin paths (`fetch-now`, `regenerate-brief`, direct admin scans) bypass intentionally — they're explicit operator decisions. Don't add pause-checks to manual paths.
+12. **Migration application — two tracks.** **Schema migrations (DDL on runtime tables)** apply via Supabase CLI BEFORE committing the dependent code, so preview deployments don't 500-error on missing columns. Document the apply timestamp in the commit body (e.g. `Applied: 2026-04-29T18:42Z via supabase db query --linked`). **Data migrations (seeds, backfills, content migration)** commit the migration file alongside the consumer code; run AFTER merge. The earlier rule "migration commit runs after code merge, never before" applies to data migrations only — schema migrations apply first under the runtime constraint that columns must exist before code references them.
 
 Plus from the prior plan, all still in force:
 
@@ -163,7 +164,7 @@ Plus from the prior plan, all still in force:
 - **Section headers.** Use [SectionHeader](src/components/shell/SectionHeader.tsx). If you find inline `.sh` markup or `<h2>` styled inline with Anton + 2px rule, replace with the component.
 - **Shadows.** Match preview's `var(--shadow)` for now. The broader no-shadow flatten is a separate pass after this migration.
 - **Oxblood.** Reserved for editorial moments only — one per screen max. Stat tiles use the standard priority palette, not oxblood. Masthead gradient is navy→red shell chrome, not part of the oxblood budget.
-- **Migrations.** No automatic ordering — each migration is applied via its own `apply-NNN.mjs`. Append `008_*` and `009_*`; existing 006/007 collisions are aesthetic debt — do not touch. **Migration commit runs after code merge, never before.** Dry-run via `BEGIN`/orphan-count/`ROLLBACK` first; orphan list to PR for review by user; then commit.
+- **Migrations.** Two-track policy per rule 12 above. Schema migrations apply first via Supabase CLI; data migrations commit alongside consumer code and run after merge. Apply scripts (`apply-NNN.mjs`) are optional — early data migrations (008, 009) use them; later schema migrations (013, 015–022) use direct `npx supabase db query --linked -f` followed by `migration repair --status applied N`. Existing 006/007 numbering collisions are aesthetic debt — do not touch. Dry-run via `BEGIN`/orphan-count/`ROLLBACK` first for any data migration; orphan list to PR for review by user; then commit.
 
 ---
 
