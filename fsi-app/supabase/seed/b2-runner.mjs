@@ -181,22 +181,39 @@ ${JSON.stringify(pool.sources, null, 2)}
 
 Generate the brief per the format selected by item_type, then emit the YAML frontmatter block as instructed. The frontmatter MUST include all 12 metadata fields.`;
 
-  // 4. Sonnet call (with 240s timeout — longest legitimate call observed
-  // was 234s; anything longer is hung and should fail fast so the queue
-  // moves on rather than blocking the entire run).
+  // 4. Sonnet call. 360s timeout (raised from 240s after item 1 of the
+  // first full-run attempt timed out at 240s on g1's 51k-char input —
+  // pilot's longest at 234s was at the lower bound of variance; some
+  // large items legitimately need 250-350s of model time). Retry once
+  // on timeout — random latency spikes are common; a single retry usually
+  // clears them. Total worst case: 720s = 12 min per item, vs the typical
+  // 100-180s. The runner won't get stuck on any single item past 12 min.
   const sonnetStart = Date.now();
+  const SONNET_TIMEOUT = 360_000;
   let claudeRes;
-  try {
-    claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+  let attemptedRetry = false;
+  async function sonnetCall() {
+    return fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 24000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: userMessage }] }),
-      signal: AbortSignal.timeout(240_000),
+      signal: AbortSignal.timeout(SONNET_TIMEOUT),
     });
+  }
+  try {
+    try {
+      claudeRes = await sonnetCall();
+    } catch (e1) {
+      const isTimeout = e1.name === "TimeoutError" || e1.name === "AbortError";
+      if (!isTimeout) throw e1;
+      console.log(`    ⚠ sonnet timeout — retrying once`);
+      attemptedRetry = true;
+      claudeRes = await sonnetCall();
+    }
   } catch (e) {
     const isTimeout = e.name === "TimeoutError" || e.name === "AbortError";
-    console.log(`    ✗ sonnet ${isTimeout ? "timeout (>240s)" : "network"}: ${e.message?.slice(0, 200)}`);
-    appendFileSync(LOG_PATH, `${new Date().toISOString()} [${item.legacy_id || item.id}] SONNET_${isTimeout ? "TIMEOUT" : "NETWORK"} ${e.message}\n`);
+    console.log(`    ✗ sonnet ${isTimeout ? `timeout (>${SONNET_TIMEOUT/1000}s${attemptedRetry ? " on retry" : ""})` : "network"}: ${e.message?.slice(0, 200)}`);
+    appendFileSync(LOG_PATH, `${new Date().toISOString()} [${item.legacy_id || item.id}] SONNET_${isTimeout ? "TIMEOUT" : "NETWORK"}${attemptedRetry ? "_RETRY" : ""} ${e.message}\n`);
     tally.sonnet_failed++;
     continue;
   }
