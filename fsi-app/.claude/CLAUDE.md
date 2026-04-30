@@ -126,33 +126,55 @@ None. No unauthenticated API routes exist.
 
 ## AGENT ARCHITECTURE
 
-ONE Claude API call per source URL. Not per item. Not per sector.
-Claude identifies all items in the source, runs all delta detection, and generates 
-all 15 sector synopses for all signal items in a single response.
+### Current model (Phase B.2.5+, SKILL.md contract 2026-04-29)
 
-System prompt: src/lib/agent/system-prompt.ts
-API route: POST /api/agent/run
+**Format-selected single-brief regeneration.** `/api/agent/run` takes a `sourceUrl`, fetches the `intelligence_items` row that has that URL as its `source_url`, and regenerates ONE brief in the format selected by `item_type`:
 
-Cost: 1 API call per source URL. 73 sources = maximum 73 API calls per full scan.
+- `regulation`, `directive`, `standard`, `guidance`, `framework` → regulatory_fact_document (14 sections, 8 conditional)
+- `technology`, `innovation`, `tool` → technology_profile (8 sections)
+- `regional_data` → operations_profile (8 sections)
+- `market_signal`, `initiative` → market_signal_brief (8 sections)
+- `research_finding` → research_summary (6 sections)
 
-DO NOT change this to per-item or per-sector calls.
-DO NOT make live Claude API calls at page load or user request.
-DO NOT rebuild the agent as a new file or route without reading this section first.
-DO NOT create duplicate intelligence items. Every item is linked to a single source. If a scan finds an item that already exists under a different title, UPDATE the existing item — do not insert a new row. Deduplicate by source_url and by matching regulation name/number before inserting.
-DO NOT leave any item without a full_brief. Every intelligence item must have complete content. If content cannot be generated, flag the item to the admin — never leave it blank.
-DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set status='active', admin_only=false), not a code change.
+The agent emits 13 fields per regeneration: `full_brief` markdown body plus 12 YAML metadata fields. The four intersection-readiness fields — `operational_scenario_tags`, `compliance_object_tags`, `related_items`, `intersection_summary` — drive the platform's intersection detection feature. See SKILL.md and `src/lib/agent/system-prompt.ts` for the contract.
 
-The sector breakdown into 15 operationally distinct sectors happens because all 15 
-sector_contexts records are injected into the user message at runtime. The 
-synopsis_prompt field in each sector context record is what makes each sector 
-synopsis specific rather than generic. Never remove sector_contexts injection from 
-the route.
+Runtime files (do not modify without reading SKILL.md first):
+- System prompt: `src/lib/agent/system-prompt.ts`
+- Parser (3-tier YAML fallback): `src/lib/agent/parse-output.ts`
+- API route: `POST /api/agent/run`
+- Browserless helper: `src/lib/sources/browserless.ts`
+- Dynamic source pool: `src/lib/agent/source-pool.ts`
+- Full-corpus runner: `supabase/seed/b2-runner.mjs`
 
-Permitted live Claude API calls in this codebase:
-- /api/ask — user natural language questions, rate limited 10 per workspace per hour
-- /api/admin/scan — admin triggered source scan, 4 hour cooldown minimum
+Cost: ~$0.15 per item regeneration. 155 eligible items ≈ $23 for a full regeneration pass.
 
-Everything else reads from intelligence_summaries in the database.
+### Archived (pre Phase B.2.5)
+
+**Multi-sector synopsis model.** The agent previously identified all items in a source URL, ran delta detection, and generated 15 sector synopses for all signal items in a single response. `sector_contexts` records were injected into the user message at runtime; `synopsis_prompt` per sector made each synopsis sector-specific. This model was retired when the SectorSynopsisView UI surface was deprecated. The 2,325 `intelligence_summaries` rows generated under that model are stale and pending decision (retire view + delete rows OR regenerate under new contract — see `docs/intelligence_summaries_proposal.md`).
+
+**Anthropic Console Managed Agent.** Earlier CLAUDE.md revisions referenced a Console-side managed agent (`agent_011CZwC8PTbAfM355bVK8w7G`). Current code does not invoke the Managed Agent — `/api/agent/run` calls `api.anthropic.com/v1/messages` directly with `model: claude-sonnet-4-6`. The Managed Agent ID may still exist in the Anthropic Console but is not part of the running architecture.
+
+### Permitted live Claude API calls in this codebase
+
+All other routes read from the `intelligence_items` table. No live Claude API calls happen at page load or on unauthenticated user requests.
+
+| Route | Model | Purpose | Rate limit / cooldown |
+|---|---|---|---|
+| `/api/agent/run` | claude-sonnet-4-6 | Per-item brief regeneration, format-selected | 1h cooldown per source |
+| `/api/ask` | claude-sonnet-4-6 | User natural-language questions | 10/workspace/hour |
+| `/api/admin/scan` | claude-sonnet-4-6 + web_search | Admin-triggered regulatory scan; stages results in `staged_updates` for review | 4h cooldown |
+| `/api/admin/sources/recommend-classification` | claude-haiku-4-5 | Provisional-source AI classification (cached on row) | per-call |
+| `/api/admin/canonical-sources/recommend-classification` | claude-haiku-4-5 | Canonical-source candidate AI classification (cached) | per-call |
+| `/api/admin/canonical-sources/bulk-classify` | claude-haiku-4-5 (concurrency=5) | Batch classification of canonical candidates (≤30/call) | maxDuration 60s |
+
+### Non-negotiable rules
+
+- DO NOT change `/api/agent/run` to per-sector calls. The format-selected single-brief contract is the new architecture.
+- DO NOT make live Claude API calls outside the routes above.
+- DO NOT rebuild the agent runtime files without reading SKILL.md and this section first.
+- DO NOT create duplicate intelligence items. `/api/agent/run` UPDATES the existing row matching `source_url`. `/api/admin/scan` stages new items in `staged_updates` for admin review — never auto-inserts.
+- DO NOT leave any item without a full_brief. Every regeneration must emit the 13-field contract or fail honestly. Failed regenerations retain the older `regeneration_skill_version` and re-run on the next pass; the runner is idempotent.
+- DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set `status='active'`, `admin_only=false`), not a code change.
 
 ---
 
