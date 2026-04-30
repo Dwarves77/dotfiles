@@ -137,14 +137,11 @@ Phase B.2.5 surfaces:
 - Rate limiter: `src/lib/api/rate-limit.ts` — in-memory sliding window. Replace with Redis in production.
 - `robots.txt` blocks all AI crawlers and all `/api/`, `/dashboard/`, `/settings/`, `/admin/` routes.
 
-### Currently Authenticated Routes
-| Route | Methods | Purpose |
-|---|---|---|
-| `/api/sources` | GET | List sources with trust metrics |
-| `/api/staged-updates` | GET, POST | List pending updates, approve/reject |
+### Authenticated Routes
 
-### Currently Public Routes (with justification)
-None. No unauthenticated API routes exist.
+All routes under `src/app/api/` call `requireAuth()` except `/api/auth/callback` (Supabase OAuth callback) and `/api/worker/*` which use worker-secret auth. Admin-only routes additionally check role via the admin role gate (`requirePlatformAdmin` or equivalent).
+
+The route inventory drifts per commit; query it directly with `find src/app/api -name route.ts | sed 's|src/app/api||;s|/route.ts||'`. Listing routes here would always be stale.
 
 ---
 
