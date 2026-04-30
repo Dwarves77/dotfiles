@@ -7,6 +7,7 @@ import { useResourceStore, type StoredSynopsis, type StoredChange } from "@/stor
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { IntelligenceBrief } from "./IntelligenceBrief";
+import { IntelligenceMetadataStrip } from "./IntelligenceMetadataStrip";
 
 // ── Urgency badge colors ──
 
@@ -327,9 +328,16 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
         </div>
       )}
 
-      {/* Detailed view — full intelligence brief */}
+      {/* Detailed view — full intelligence brief, preceded by structured
+          metadata strip (severity / urgency / format / topic + scenario +
+          compliance-object tags / intersection summary). Strip self-fetches
+          and renders nothing when the item hasn't been regenerated under
+          the current contract. */}
       {showDetailed && fullBrief ? (
-        <IntelligenceBrief markdown={fullBrief} />
+        <>
+          <IntelligenceMetadataStrip itemId={itemId} />
+          <IntelligenceBrief markdown={fullBrief} />
+        </>
       ) : (
         <>
           {/* Cross-sector headline */}
