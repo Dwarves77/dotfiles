@@ -291,19 +291,21 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     }
   }
 
-  // intersection_summary: scalar string OR null. Length cap ≤800 chars.
-  // Originally 500, raised to 600 after CBAM at 597, raised again to 800
-  // after a B.2 retry hit 694 on a richer item. The agent honestly
-  // produces substantive content here on items with multiple genuine
-  // intersections — 800 is the line where summary bleeds into essay.
+  // intersection_summary: scalar string OR null. Length cap ≤1500 chars.
+  // Cap history: 500 → 600 (CBAM at 597) → 800 (B.2 retry at 694) →
+  // 1500 (g1 EU Fit for 55 at 857; Fit for 55 is meta-regulation
+  // spanning 13+ components, naturally produces dense intersection
+  // content). 1500 ≈ 250 words ≈ short paragraph — final ceiling.
+  // If a brief ever exceeds 1500, that's the agent rambling, not
+  // genuine content density.
   const interSumRaw = fields.intersection_summary;
   let interSum: string | null;
   if (interSumRaw === "null" || interSumRaw === "" || interSumRaw === "~") {
     interSum = null;
   } else {
     interSum = interSumRaw;
-    if (interSum.length > 800) {
-      throw new AgentOutputParseError(`intersection_summary exceeds 800 chars (${interSum.length})`);
+    if (interSum.length > 1500) {
+      throw new AgentOutputParseError(`intersection_summary exceeds 1500 chars (${interSum.length})`);
     }
   }
 
