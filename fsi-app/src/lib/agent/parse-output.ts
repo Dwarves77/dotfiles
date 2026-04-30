@@ -105,30 +105,47 @@ function findYamlBlock(text: string): { yaml: string; start: number; end: number
   // Strip a single trailing ```yaml ... ``` or ``` ... ``` code-fence wrapper
   // if the agent emitted one. The contract forbids it (see system-prompt.ts),
   // but agents sometimes wrap YAML in code fences anyway. Be tolerant.
-  let trimmed = text.trimEnd();
+  const original = text.trimEnd();
+  let trimmed = original;
+  let fenceContent: string | null = null;
+  let fenceStart: number | null = null;
   const fenceMatch = trimmed.match(/```(?:yaml|yml)?\s*\n([\s\S]*?)\n```\s*$/);
   if (fenceMatch) {
+    fenceContent = fenceMatch[1];
+    fenceStart = fenceMatch.index!;
     trimmed = trimmed.slice(0, fenceMatch.index!) + fenceMatch[1];
   }
   // Match a closing --- at the very end (allowing trailing whitespace)
   // then walk backward to find the matching opening ---.
   const closeMatch = trimmed.match(/(^|\n)---\s*$/);
-  if (!closeMatch) return null;
-  const closeStart = closeMatch.index! + (closeMatch[1] === "\n" ? 1 : 0);
+  if (closeMatch) {
+    const closeStart = closeMatch.index! + (closeMatch[1] === "\n" ? 1 : 0);
 
-  // Find the previous --- on its own line before closeStart.
-  // Use [ \t]*\n (horizontal whitespace only) instead of \s*\n — \s consumes
-  // newlines and would gobble the leading \n of an adjacent ---\n line, which
-  // misses the actual YAML opening fence when an agent emits markdown rules
-  // before the YAML block.
-  const before = trimmed.slice(0, closeStart);
-  const openMatch = [...before.matchAll(/(^|\n)---[ \t]*\n/g)].pop();
-  if (!openMatch) return null;
-  const openStart = openMatch.index! + (openMatch[1] === "\n" ? 1 : 0);
-  const openEnd = openStart + openMatch[0].length - (openMatch[1] === "\n" ? 1 : 0);
-  // openEnd points to the first character of the YAML body.
-  const yaml = before.slice(openEnd);
-  return { yaml, start: openStart, end: trimmed.length };
+    // Find the previous --- on its own line before closeStart.
+    // Use [ \t]*\n (horizontal whitespace only) instead of \s*\n — \s consumes
+    // newlines and would gobble the leading \n of an adjacent ---\n line, which
+    // misses the actual YAML opening fence when an agent emits markdown rules
+    // before the YAML block.
+    const before = trimmed.slice(0, closeStart);
+    const openMatch = [...before.matchAll(/(^|\n)---[ \t]*\n/g)].pop();
+    if (openMatch) {
+      const openStart = openMatch.index! + (openMatch[1] === "\n" ? 1 : 0);
+      const openEnd = openStart + openMatch[0].length - (openMatch[1] === "\n" ? 1 : 0);
+      // openEnd points to the first character of the YAML body.
+      const yaml = before.slice(openEnd);
+      return { yaml, start: openStart, end: trimmed.length };
+    }
+  }
+
+  // Fallback: agent wrapped the YAML in code fences but never emitted the
+  // --- delimiters. If the fence contents look like YAML (contain at least
+  // the regeneration_skill_version key — a stable marker that's hard to
+  // confuse with markdown body content), use the fence body as the YAML.
+  if (fenceContent !== null && fenceStart !== null && /^\s*regeneration_skill_version\s*:/m.test(fenceContent)) {
+    return { yaml: fenceContent, start: fenceStart, end: original.length };
+  }
+
+  return null;
 }
 
 /**
