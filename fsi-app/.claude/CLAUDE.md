@@ -130,7 +130,6 @@ ONE Claude API call per source URL. Not per item. Not per sector.
 Claude identifies all items in the source, runs all delta detection, and generates 
 all 15 sector synopses for all signal items in a single response.
 
-Agent in Claude Console: agent_011CZwC8PTbAfM355bVK8w7G
 System prompt: src/lib/agent/system-prompt.ts
 API route: POST /api/agent/run
 
@@ -471,3 +470,53 @@ After deployment, the app will automatically use live data (no code changes need
 3. B.0d manual review of the 12 pending provisionals.
 4. Phase B.2 brief regeneration: decide scope (how many of the 155 out-of-contract briefs to regenerate under the new skill).
 5. Phase B.3 SourceCoverageMatrix on Research page.
+
+### 2026-04-29 — Phase B.2.5 + B.2 in flight: intersection-readiness contract + full regeneration
+
+**Path B chosen** (intersection-aware regeneration in a single pass) over Path A (regenerate now, re-regenerate later for intersection). Saves ~$19 + 6 hours of duplicate runs and avoids creating 164 briefs that immediately become deprecated under Rule 11.
+
+#### B.2.5 contract extension (DONE)
+
+13-field YAML emission contract now includes 4 intersection-readiness fields:
+- `operational_scenario_tags` — open vocabulary, ≤5 tags, lower-case kebab-case. Core glossary of ~36 values across ocean/air/road/customs/carbon/reporting/packaging in SKILL.md. Open vocab so agents can surface new scenarios when the core doesn't fit.
+- `compliance_object_tags` — closed vocabulary, ≤4 tags. 18 supply-chain roles: carrier-{ocean,air,road,rail}, vessel/aircraft/road-fleet operator, freight-forwarder, customs-broker, nvocc, shipper/importer/exporter/manufacturer-producer/distributor, port/airport/terminal/warehouse-operator.
+- `related_items` — UUID array, MUST come from source pool. No invented UUIDs.
+- `intersection_summary` — short markdown ≤800 chars (raised 500→600 after CBAM hit 597; raised 600→800 after a B.2 retry hit 694; substantive items genuinely produce dense intersection content).
+
+Skill version: `2026-04-29`.
+
+#### Migration 020 (applied)
+- `operational_scenario_tags TEXT[]`, `compliance_object_tags TEXT[]`, `related_items UUID[]`, `intersection_summary TEXT` on intelligence_items
+- GIN indexes on the three array columns for fast intersection queries
+
+#### Migration 021 (applied)
+- `detect_intersections(min_strength, max_results)` RPC. Joins intelligence_items against itself (canonicalized A.id < B.id), filters pairs sharing ≥1 op_scenario_tag AND ≥1 compliance_object_tag, scores by 3pts/scenario + 2pts/compliance + 5pts explicit-link + 2pts both-high-priority. STABLE function, read-only.
+
+#### Intersection Detection feature (DONE)
+- `GET /api/admin/intersections?minStrength=N&limit=N` wraps the RPC with auth + rate limit.
+- New "Intersections" sub-tab in SourceHealthDashboard with stats banner, threshold control, strong/medium/weak grouped cards showing both items + shared tag pills + intersection_summaries.
+- Verified: with only 8 items regenerated, 33 pairs detected. Top hits include CII↔IMO GHG (strength 15), Crude/Jet Fuel↔ReFuelEU (12), UK MEES↔NYC Local Law 97 (10, cross-jurisdictional building-emissions match).
+
+#### B.2 progress visibility (DONE)
+- `GET /api/admin/b2-progress` returns total/at-current/at-older/never counts, by-format, by-priority, tag-coverage gauges, last 10 regenerations.
+- `B2ProgressBanner` component at top of SourceHealthDashboard auto-refreshes every 30s.
+
+#### Full B.2 runner (b2-runner.mjs)
+- Sequential, idempotent (skips items already at current contract), checkpoint-resumable.
+- Browserless fetch (visible:true dropped — was rejecting valid pages) → Sonnet (max_tokens 24000) → parseAgentOutput → DB update.
+- Args: `--limit=N`, `--legacy=g2,g6`, `--dry-run`.
+- Progress logged to `supabase/seed/b2-progress.log` (gitignored).
+- 152 items remaining; ~$22 estimated; ~6 hours sequential.
+
+#### Pilot + retry-batch validation
+- Pilot 5 items: 3 ok (a3 ReFuelEU, c1 CSRD, t1 EU CBAM), 1 fetch-fail (r2 Kuehne dead URL), 1 cap-fail (CBAM 503>500 — fixed by 600 bump).
+- 10-item retry batch with all fixes: 7 ok / 1 fail / 2 in flight at last check (87.5%+ rate).
+
+#### Pending USER ACTIONS (apply when convenient)
+1. Apply migrations 020 and 021 — both already applied via supabase CLI on the dev DB; production migrations sync naturally on next deploy from master.
+2. Manual review of the 210 still-pending canonical_source_candidates (held during B.2.5 — not blocking).
+3. Eventually merge `redesign/full-migration` to master so production picks up the contract changes.
+
+#### In flight as of session pause
+- Background task: 10-item B.2 retry batch (`b203cd32v`) at 8/10
+- Next: kick off full 152-item run when retry validates ≥80%
