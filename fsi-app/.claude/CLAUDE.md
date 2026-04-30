@@ -75,11 +75,17 @@ Source registry counts and current state visible at /admin Source Health Dashboa
 - Empty states on FocusView, ArchiveViewer (zero + filtered)
 
 ## Not Started
-- Supabase deployment and live data connection
-- Execute migration: 119 resources → intelligence_items with source_id FK
-- Monitoring queue implementation
-- Worker/cron for source scanning
-- Community layer (Phase 2)
+- Community layer UI (Phase 2). Tables seeded; UI not yet built.
+- Phase C surface rebuilds: Operations, Settings, Profile, Market Intel, Research, Admin schema + UI, Regulation detail core + enhancements (planned)
+- Phase D system activation: Notifications, Community activation, Cross-section search (planned)
+
+## Phase B Complete
+- Supabase deployment (live, 25 migrations applied)
+- Migration 010: legacy resources → intelligence_items with source_id FK (148/155 items at current contract)
+- Monitoring queue infrastructure (table + worker route at /api/worker/check-sources)
+- Source scanning via GitHub Actions (/api/data/scan-all + trust-recompute monthly workflow)
+- Format-selected single-brief regeneration (commit 2fecb79 onward)
+- Intersection detection (15+ strong cross-regulation pairs detected)
 
 ## Key Files
 - `src/types/source.ts` — Source trust framework
