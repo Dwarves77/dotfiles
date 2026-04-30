@@ -165,7 +165,7 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 16000,
+        max_tokens: 24000,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),

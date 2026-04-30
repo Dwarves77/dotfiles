@@ -82,6 +82,11 @@ export async function browserlessRender(
   const start = Date.now();
   let status = 0;
   try {
+    // visible:true was too strict — sites with display:none containers (or
+    // delayed body visibility on SPA portals like climate-laws.org and some
+    // .gov sites) timed out the waitForSelector even though the body was
+    // present and renderable. Drop the visible flag; selector-presence
+    // alone is the right signal for content extraction.
     const res = await fetch(
       `https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`,
       {
@@ -89,7 +94,7 @@ export async function browserlessRender(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url,
-          waitForSelector: { selector: waitSelector, timeout: waitTimeoutMs, visible: true },
+          waitForSelector: { selector: waitSelector, timeout: waitTimeoutMs },
           gotoOptions: { waitUntil: "networkidle2", timeout: gotoTimeoutMs },
         }),
       }
