@@ -181,7 +181,9 @@ ${JSON.stringify(pool.sources, null, 2)}
 
 Generate the brief per the format selected by item_type, then emit the YAML frontmatter block as instructed. The frontmatter MUST include all 12 metadata fields.`;
 
-  // 4. Sonnet call
+  // 4. Sonnet call (with 240s timeout — longest legitimate call observed
+  // was 234s; anything longer is hung and should fail fast so the queue
+  // moves on rather than blocking the entire run).
   const sonnetStart = Date.now();
   let claudeRes;
   try {
@@ -189,10 +191,12 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 24000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: userMessage }] }),
+      signal: AbortSignal.timeout(240_000),
     });
   } catch (e) {
-    console.log(`    ✗ sonnet network: ${e.message?.slice(0, 200)}`);
-    appendFileSync(LOG_PATH, `${new Date().toISOString()} [${item.legacy_id || item.id}] SONNET_NETWORK ${e.message}\n`);
+    const isTimeout = e.name === "TimeoutError" || e.name === "AbortError";
+    console.log(`    ✗ sonnet ${isTimeout ? "timeout (>240s)" : "network"}: ${e.message?.slice(0, 200)}`);
+    appendFileSync(LOG_PATH, `${new Date().toISOString()} [${item.legacy_id || item.id}] SONNET_${isTimeout ? "TIMEOUT" : "NETWORK"} ${e.message}\n`);
     tally.sonnet_failed++;
     continue;
   }
