@@ -287,15 +287,17 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     }
   }
 
-  // intersection_summary: scalar string OR null. Length cap ≤500 chars.
+  // intersection_summary: scalar string OR null. Length cap ≤600 chars
+  // (raised from 500 after pilot showed substantive intersections naturally
+  // run 400-503 chars; 600 gives headroom without becoming a treatise).
   const interSumRaw = fields.intersection_summary;
   let interSum: string | null;
   if (interSumRaw === "null" || interSumRaw === "" || interSumRaw === "~") {
     interSum = null;
   } else {
     interSum = interSumRaw;
-    if (interSum.length > 500) {
-      throw new AgentOutputParseError(`intersection_summary exceeds 500 chars (${interSum.length})`);
+    if (interSum.length > 600) {
+      throw new AgentOutputParseError(`intersection_summary exceeds 600 chars (${interSum.length})`);
     }
   }
 

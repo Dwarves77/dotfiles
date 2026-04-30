@@ -538,7 +538,7 @@ Each item emits 0-4 compliance-object tags. An item with no clear compliance obj
 
 The integrity rule applies. No invented UUIDs. No links to items the agent didn't actually consider.
 
-`intersection_summary` is a short markdown string (≤ 500 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, or operational coupling. Sourced; cite the linked items inline by title.
+`intersection_summary` is a short markdown string (≤ 600 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, or operational coupling. Sourced; cite the linked items inline by title.
 
 When no intersections were identified, emit empty array for `related_items` and null for `intersection_summary`. That's the honest answer for a standalone item.
 
@@ -683,7 +683,7 @@ Fields:
 - `operational_scenario_tags` — array of 0-5 values describing operational scenarios the item touches. Prefer the core glossary in the Operational Scenario Tags section above; new values allowed when the core doesn't fit. Lower-case kebab-case. Drives intersection detection.
 - `compliance_object_tags` — array of 0-4 values from the closed Compliance Object Tags glossary above. Tags outside the glossary fail the regeneration. Drives intersection detection.
 - `related_items` — UUID array of intelligence_items the agent recognised as related during composition. UUIDs must come from the source pool input. No invented UUIDs. Empty array when no relations identified.
-- `intersection_summary` — short markdown string (≤500 chars) describing how this item interacts with the linked items. Sourced; cite linked items inline by title. Empty string OR null when no intersections were identified.
+- `intersection_summary` — short markdown string (≤600 chars) describing how this item interacts with the linked items. Sourced; cite linked items inline by title. Empty string OR null when no intersections were identified.
 - `sources_used` — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
 - `last_regenerated_at` — ISO 8601 timestamp at the moment of generation. Current UTC timestamp in ISO 8601 form (e.g., `2026-04-28T18:42:00Z`). Never `NOW()`, never a placeholder, never derived from source publication dates.
 - `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-04-29"`.
