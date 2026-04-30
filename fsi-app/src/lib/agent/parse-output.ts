@@ -339,21 +339,24 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     }
   }
 
-  // intersection_summary: scalar string OR null. Length cap ≤1500 chars.
-  // Cap history: 500 → 600 (CBAM at 597) → 800 (B.2 retry at 694) →
-  // 1500 (g1 EU Fit for 55 at 857; Fit for 55 is meta-regulation
-  // spanning 13+ components, naturally produces dense intersection
-  // content). 1500 ≈ 250 words ≈ short paragraph — final ceiling.
-  // If a brief ever exceeds 1500, that's the agent rambling, not
-  // genuine content density.
+  // intersection_summary: scalar string OR null. Cap 2000 chars with
+  // truncate-on-overflow rather than fail. Losing an entire 13-field
+  // regeneration because this one supplementary field is 55 chars over
+  // some arbitrary cap is bad cost/benefit — the brief, the topic_tags,
+  // and the structural intersection metadata (tags + related_items) are
+  // all still good. Truncate the long tail and keep the rest.
+  // Cap history: 500 → 600 → 800 → 1500 → 2000-with-truncate.
   const interSumRaw = fields.intersection_summary;
   let interSum: string | null;
   if (interSumRaw === "null" || interSumRaw === "" || interSumRaw === "~") {
     interSum = null;
   } else {
     interSum = interSumRaw;
-    if (interSum.length > 1500) {
-      throw new AgentOutputParseError(`intersection_summary exceeds 1500 chars (${interSum.length})`);
+    if (interSum.length > 2000) {
+      // Truncate at 1997 + ellipsis. Log to console so the operator can
+      // see how often the cap is hit at scale; it's not a parse failure.
+      console.warn(`[parse-output] intersection_summary truncated from ${interSum.length} → 2000 chars`);
+      interSum = interSum.slice(0, 1997) + "...";
     }
   }
 
