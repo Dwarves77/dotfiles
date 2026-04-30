@@ -14,6 +14,7 @@ import {
 import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCard";
 import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceReview";
 import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
+import { B2ProgressBanner } from "@/components/sources/B2ProgressBanner";
 import { GlobalPauseToggle, SourceRowControls } from "@/components/sources/SourceAdminControls";
 
 // ── Tier Summary Card ──
@@ -312,6 +313,9 @@ export function SourceHealthDashboard() {
           {sources.length} sources monitored across {[...new Set(sources.flatMap((s) => s.domains))].length} domains
         </p>
       </div>
+
+      {/* B.2 regeneration progress (auto-refreshes every 30s) */}
+      <B2ProgressBanner />
 
       {/* Global pause toggle for budget control */}
       <GlobalPauseToggle />
