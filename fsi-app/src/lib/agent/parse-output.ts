@@ -137,12 +137,43 @@ function findYamlBlock(text: string): { yaml: string; start: number; end: number
     }
   }
 
-  // Fallback: agent wrapped the YAML in code fences but never emitted the
-  // --- delimiters. If the fence contents look like YAML (contain at least
-  // the regeneration_skill_version key — a stable marker that's hard to
-  // confuse with markdown body content), use the fence body as the YAML.
+  // Fallback A: agent wrapped the YAML in code fences but never emitted
+  // the --- delimiters. If the fence contents look like YAML (contain at
+  // least the regeneration_skill_version key — a stable marker that's
+  // hard to confuse with markdown body content), use the fence body
+  // directly.
   if (fenceContent !== null && fenceStart !== null && /^\s*regeneration_skill_version\s*:/m.test(fenceContent)) {
     return { yaml: fenceContent, start: fenceStart, end: original.length };
+  }
+
+  // Fallback B: agent emitted raw YAML at the end with no fences at all
+  // (no --- and no ```). Find the magic regeneration_skill_version line
+  // and walk backwards line-by-line to find the start of the YAML block.
+  // A YAML line matches /^\s*[a-z_]+\s*:/ — once we hit a line that
+  // doesn't, that's the boundary.
+  const skillVersionMatch = original.match(/^[ \t]*regeneration_skill_version[ \t]*:/m);
+  if (skillVersionMatch) {
+    const lines = original.split(/\r?\n/);
+    let lastIdx = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (/^[ \t]*regeneration_skill_version[ \t]*:/.test(lines[i])) { lastIdx = i; break; }
+    }
+    if (lastIdx >= 0) {
+      let firstIdx = lastIdx;
+      while (firstIdx > 0) {
+        const prev = lines[firstIdx - 1];
+        // Allow blank lines and YAML key:value lines (and array continuations like `- foo:`)
+        if (/^\s*$/.test(prev)) break; // blank line is the boundary
+        if (/^[ \t]*[a-z_]+[ \t]*:/.test(prev)) { firstIdx--; continue; }
+        // Non-YAML line — stop
+        break;
+      }
+      // Compute byte offset to firstIdx
+      let charOffset = 0;
+      for (let i = 0; i < firstIdx; i++) charOffset += lines[i].length + 1;
+      const yamlContent = lines.slice(firstIdx, lastIdx + 1).join("\n");
+      return { yaml: yamlContent, start: charOffset, end: original.length };
+    }
   }
 
   return null;
