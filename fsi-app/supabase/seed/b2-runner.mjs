@@ -147,14 +147,24 @@ for (let i = 0; i < targets.length; i++) {
     continue;
   }
 
-  // 2. Source pool
-  const pool = await buildSourcePool(supabase, {
-    id: item.id,
-    source_id: item.source_id,
-    domain: item.domain,
-    jurisdictions: item.jurisdictions,
-    topic_tags: item.topic_tags,
-  });
+  // 2. Source pool — wrapped in try/catch so a transient Supabase network
+  // blip doesn't crash the entire run. Single-item failure → log and continue.
+  let pool;
+  try {
+    pool = await buildSourcePool(supabase, {
+      id: item.id,
+      source_id: item.source_id,
+      domain: item.domain,
+      jurisdictions: item.jurisdictions,
+      topic_tags: item.topic_tags,
+    });
+  } catch (e) {
+    const msg = e.message?.slice(0, 200) || String(e).slice(0, 200);
+    console.log(`    ✗ source pool: ${msg}`);
+    appendFileSync(LOG_PATH, `${new Date().toISOString()} [${item.legacy_id || item.id}] POOL_FAIL ${msg}\n`);
+    tally.sonnet_failed++; // count under sonnet for tally simplicity (not its own bucket)
+    continue;
+  }
 
   // 3. User message
   const userMessage = `INPUT ITEM:
