@@ -199,6 +199,36 @@ All other routes read from the `intelligence_items` table. No live Claude API ca
 
 ---
 
+## Sector Activation (future feature, placeholder live)
+
+**Status: SHELVED with placeholder UX.** Per-sector reporting is on the platform roadmap but not active. See `docs/intelligence-summaries-proposal.md` for the cost decision (2026-04-30) — the 2,325 `intelligence_summaries` rows stay, the `SectorSynopsisView` component stays, and per-sector synopsis regeneration is deferred until multi-workspace onboarding ships.
+
+### What ships now (placeholder)
+
+- Sector profile selection at `/onboarding` (first-time flow) and `/profile` (revisit/edit). Both surfaces use the shared `SectorSelector` component (`src/components/profile/SectorSelector.tsx`).
+- "Notify me when per-sector reporting activates" toggle on both surfaces. Writes:
+  - `workspace_settings.notify_on_sector_activation` (boolean)
+  - `workspace_settings.sectors_activation_signup_at` (timestamp; stamped on first opt-in only, never overwritten on subsequent toggles)
+- Migration 025 (`025_sector_activation_interest.sql`) adds the two columns. Schema migration — apply BEFORE merging the dependent code per STATUS.md rule 12.
+
+### What activates the feature
+
+When per-sector reporting is approved for activation:
+
+1. Pick the per-sector architecture (lazy cache vs precomputed vs runtime synthesis) at activation time against then-current cost and latency constraints. The Path A vs Path B framing in `docs/intelligence-summaries-proposal.md` is a 2026-04-30 snapshot — revisit fresh.
+2. Build the per-sector synopsis pipeline (writes back to `intelligence_summaries` or whichever store the architecture picks).
+3. Read `workspace_settings WHERE notify_on_sector_activation = true` to drive a one-time email/in-app announcement at activation launch.
+4. Wire SectorSynopsisView (currently still rendered against `full_brief` with fallbacks) to consume the per-sector store.
+
+### What NOT to do until activation is approved
+
+- DO NOT regenerate `intelligence_summaries`. Cost is not justified at current single-workspace usage.
+- DO NOT delete the 2,325 existing rows. Decision was SHELVE not RETIRE.
+- DO NOT remove `SectorSynopsisView`. The UI surface stays — the data path stays the same as today (reads `full_brief`).
+- DO NOT auto-mount `/onboarding` on first login until the activation feature ships. The route exists for explicit linking from invite/announce flows; first-login auto-mount is a separate feature decision.
+
+---
+
 ## Operating Principle: Creative intelligence, accurate grounding
 
 The platform actively seeks intelligence beyond what's directly given. When source coverage is thin, it searches for additional sources. When canonical sources are broken or missing, it finds replacements. When regulations intersect non-obviously, it identifies and synthesizes the intersection. When a topic suggests sources should exist that aren't in the registry, it surfaces them as candidates.
