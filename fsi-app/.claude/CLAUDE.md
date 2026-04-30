@@ -13,7 +13,7 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 
 ## Tech Stack
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
-- Supabase (PostgreSQL) — schema defined, not yet deployed
+- Supabase (PostgreSQL) — live; 25 migrations applied; data model documented in `supabase/migrations/`.
 - Zustand stores (resourceStore, navigationStore, settingsStore, exportStore, sourceStore)
 - lucide-react icons, GSAP available
 
@@ -34,10 +34,8 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 7. University & Research Pipeline
 
 ## Source Registry
-- 73 sources seeded across T1-T6, all 7 domains
-- 1 provisional (DEWA Shams Dubai — needs live verification)
-- Source mapping: 95/119 legacy resources mapped to sources (80%)
-- 24 unmapped = provisional source candidates for discovery pipeline
+
+Source registry counts and current state visible at /admin Source Health Dashboard. Counts move per commit; static doc claims here would always drift.
 
 ## Completed
 - Source trust types (`src/types/source.ts`, 520 lines)
@@ -77,13 +75,21 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 - Empty states on FocusView, ArchiveViewer (zero + filtered)
 
 ## Not Started
-- Supabase deployment and live data connection
-- Execute migration: 119 resources → intelligence_items with source_id FK
-- Monitoring queue implementation
-- Worker/cron for source scanning
-- Community layer (Phase 2)
+- Community layer UI (Phase 2). Tables seeded; UI not yet built.
+- Phase C surface rebuilds: Operations, Settings, Profile, Market Intel, Research, Admin schema + UI, Regulation detail core + enhancements (planned)
+- Phase D system activation: Notifications, Community activation, Cross-section search (planned)
+
+## Phase B Complete
+- Supabase deployment (live, 25 migrations applied)
+- Migration 010: legacy resources → intelligence_items with source_id FK (148/155 items at current contract)
+- Monitoring queue infrastructure (table + worker route at /api/worker/check-sources)
+- Source scanning via GitHub Actions (/api/data/scan-all + trust-recompute monthly workflow)
+- Format-selected single-brief regeneration (commit 2fecb79 onward)
+- Intersection detection (15+ strong cross-regulation pairs detected)
 
 ## Key Files
+
+Foundation:
 - `src/types/source.ts` — Source trust framework
 - `src/types/intelligence.ts` — Intelligence item types
 - `src/lib/trust.ts` — Trust scoring engine
@@ -91,8 +97,26 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 - `src/data/source-mapping.ts` — Legacy resource → source linkage
 - `src/stores/sourceStore.ts` — Source state management
 - `src/components/sources/SourceHealthDashboard.tsx` — Source health UI
-- `supabase/migrations/004_source_trust_framework.sql` — Full schema
-- `supabase/seed/seed-sources.sql` — 73 source entries
+- `supabase/migrations/004_source_trust_framework.sql` — Trust framework schema
+- `supabase/seed/seed-sources.sql` — Source registry seed
+
+Agent runtime (Phase B.2.5 contract — do not modify without reading SKILL.md):
+- `src/lib/agent/system-prompt.ts` — agent contract (the 13-field YAML emission spec)
+- `src/lib/agent/parse-output.ts` — YAML parser (3-tier fallback for fence/inline drift)
+- `src/lib/agent/source-pool.ts` — dynamic per-item source pool
+- `src/lib/sources/browserless.ts` — unified Browserless content-fetch helper
+- `supabase/seed/b2-runner.mjs` — full-corpus regeneration runner (idempotent, checkpoint-resumable)
+- `supabase/seed/canonical-source-discover.mjs` — canonical-source discovery via Claude + web_search
+
+Phase B.2.5 surfaces:
+- `src/components/sources/IntersectionDetectionView.tsx` — Intersections sub-tab
+- `src/components/sources/CanonicalSourceReview.tsx` — Canonical-source review tab + bulk actions
+- `src/components/sources/B2ProgressBanner.tsx` — auto-refreshing regen progress strip
+- `src/components/resource/IntelligenceMetadataStrip.tsx` — per-item metadata strip above brief
+- `src/app/api/admin/intersections/route.ts` — intersection detection RPC wrapper
+- `src/app/api/admin/canonical-sources/{pending,decide,bulk-approve,bulk-classify,recommend-classification}/route.ts` — canonical-source review pipeline
+- `src/app/api/admin/b2-progress/route.ts` — regen progress aggregator
+- `src/app/api/admin/recompute-trust/route.ts` — trust score Bayesian-prior recompute
 
 ## Constraints
 - All exports use Blob download (no clipboard API, no window.open)
@@ -113,46 +137,95 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 - Rate limiter: `src/lib/api/rate-limit.ts` — in-memory sliding window. Replace with Redis in production.
 - `robots.txt` blocks all AI crawlers and all `/api/`, `/dashboard/`, `/settings/`, `/admin/` routes.
 
-### Currently Authenticated Routes
-| Route | Methods | Purpose |
-|---|---|---|
-| `/api/sources` | GET | List sources with trust metrics |
-| `/api/staged-updates` | GET, POST | List pending updates, approve/reject |
+### Authenticated Routes
 
-### Currently Public Routes (with justification)
-None. No unauthenticated API routes exist.
+All routes under `src/app/api/` call `requireAuth()` except `/api/auth/callback` (Supabase OAuth callback) and `/api/worker/*` which use worker-secret auth. Admin-only routes additionally check role via the admin role gate (`requirePlatformAdmin` or equivalent).
+
+The route inventory drifts per commit; query it directly with `find src/app/api -name route.ts | sed 's|src/app/api||;s|/route.ts||'`. Listing routes here would always be stale.
 
 ---
 
 ## AGENT ARCHITECTURE
 
-ONE Claude API call per source URL. Not per item. Not per sector.
-Claude identifies all items in the source, runs all delta detection, and generates 
-all 15 sector synopses for all signal items in a single response.
+### Current model (Phase B.2.5+, SKILL.md contract 2026-04-29)
 
-System prompt: src/lib/agent/system-prompt.ts
-API route: POST /api/agent/run
+**Format-selected single-brief regeneration.** `/api/agent/run` takes a `sourceUrl`, fetches the `intelligence_items` row that has that URL as its `source_url`, and regenerates ONE brief in the format selected by `item_type`:
 
-Cost: 1 API call per source URL. 73 sources = maximum 73 API calls per full scan.
+- `regulation`, `directive`, `standard`, `guidance`, `framework` → regulatory_fact_document (14 sections, 8 conditional)
+- `technology`, `innovation`, `tool` → technology_profile (8 sections)
+- `regional_data` → operations_profile (8 sections)
+- `market_signal`, `initiative` → market_signal_brief (8 sections)
+- `research_finding` → research_summary (6 sections)
 
-DO NOT change this to per-item or per-sector calls.
-DO NOT make live Claude API calls at page load or user request.
-DO NOT rebuild the agent as a new file or route without reading this section first.
-DO NOT create duplicate intelligence items. Every item is linked to a single source. If a scan finds an item that already exists under a different title, UPDATE the existing item — do not insert a new row. Deduplicate by source_url and by matching regulation name/number before inserting.
-DO NOT leave any item without a full_brief. Every intelligence item must have complete content. If content cannot be generated, flag the item to the admin — never leave it blank.
-DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set status='active', admin_only=false), not a code change.
+The agent emits 13 fields per regeneration: `full_brief` markdown body plus 12 YAML metadata fields. The four intersection-readiness fields — `operational_scenario_tags`, `compliance_object_tags`, `related_items`, `intersection_summary` — drive the platform's intersection detection feature. See SKILL.md and `src/lib/agent/system-prompt.ts` for the contract.
 
-The sector breakdown into 15 operationally distinct sectors happens because all 15 
-sector_contexts records are injected into the user message at runtime. The 
-synopsis_prompt field in each sector context record is what makes each sector 
-synopsis specific rather than generic. Never remove sector_contexts injection from 
-the route.
+Runtime files (do not modify without reading SKILL.md first):
+- System prompt: `src/lib/agent/system-prompt.ts`
+- Parser (3-tier YAML fallback): `src/lib/agent/parse-output.ts`
+- API route: `POST /api/agent/run`
+- Browserless helper: `src/lib/sources/browserless.ts`
+- Dynamic source pool: `src/lib/agent/source-pool.ts`
+- Full-corpus runner: `supabase/seed/b2-runner.mjs`
 
-Permitted live Claude API calls in this codebase:
-- /api/ask — user natural language questions, rate limited 10 per workspace per hour
-- /api/admin/scan — admin triggered source scan, 4 hour cooldown minimum
+Cost: ~$0.15 per item regeneration. 155 eligible items ≈ $23 for a full regeneration pass.
 
-Everything else reads from intelligence_summaries in the database.
+### Archived (pre Phase B.2.5)
+
+**Multi-sector synopsis model.** The agent previously identified all items in a source URL, ran delta detection, and generated 15 sector synopses for all signal items in a single response. `sector_contexts` records were injected into the user message at runtime; `synopsis_prompt` per sector made each synopsis sector-specific. This model was retired when the SectorSynopsisView UI surface was deprecated. The 2,325 `intelligence_summaries` rows generated under that model are stale and pending decision (retire view + delete rows OR regenerate under new contract — see `docs/intelligence_summaries_proposal.md`).
+
+**Anthropic Console Managed Agent.** Earlier CLAUDE.md revisions referenced a Console-side managed agent (`agent_011CZwC8PTbAfM355bVK8w7G`). Current code does not invoke the Managed Agent — `/api/agent/run` calls `api.anthropic.com/v1/messages` directly with `model: claude-sonnet-4-6`. The Managed Agent ID may still exist in the Anthropic Console but is not part of the running architecture.
+
+### Permitted live Claude API calls in this codebase
+
+All other routes read from the `intelligence_items` table. No live Claude API calls happen at page load or on unauthenticated user requests.
+
+| Route | Model | Purpose | Rate limit / cooldown |
+|---|---|---|---|
+| `/api/agent/run` | claude-sonnet-4-6 | Per-item brief regeneration, format-selected | 1h cooldown per source |
+| `/api/ask` | claude-sonnet-4-6 | User natural-language questions | 10/workspace/hour |
+| `/api/admin/scan` | claude-sonnet-4-6 + web_search | Admin-triggered regulatory scan; stages results in `staged_updates` for review | 4h cooldown |
+| `/api/admin/sources/recommend-classification` | claude-haiku-4-5 | Provisional-source AI classification (cached on row) | per-call |
+| `/api/admin/canonical-sources/recommend-classification` | claude-haiku-4-5 | Canonical-source candidate AI classification (cached) | per-call |
+| `/api/admin/canonical-sources/bulk-classify` | claude-haiku-4-5 (concurrency=5) | Batch classification of canonical candidates (≤30/call) | maxDuration 60s |
+
+### Non-negotiable rules
+
+- DO NOT change `/api/agent/run` to per-sector calls. The format-selected single-brief contract is the new architecture.
+- DO NOT make live Claude API calls outside the routes above.
+- DO NOT rebuild the agent runtime files without reading SKILL.md and this section first.
+- DO NOT create duplicate intelligence items. `/api/agent/run` UPDATES the existing row matching `source_url`. `/api/admin/scan` stages new items in `staged_updates` for admin review — never auto-inserts.
+- DO NOT leave any item without a full_brief. Every regeneration must emit the 13-field contract or fail honestly. Failed regenerations retain the older `regeneration_skill_version` and re-run on the next pass; the runner is idempotent.
+- DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set `status='active'`, `admin_only=false`), not a code change.
+
+---
+
+## Sector Activation (future feature, placeholder live)
+
+**Status: SHELVED with placeholder UX.** Per-sector reporting is on the platform roadmap but not active. See `docs/intelligence-summaries-proposal.md` for the cost decision (2026-04-30) — the 2,325 `intelligence_summaries` rows stay, the `SectorSynopsisView` component stays, and per-sector synopsis regeneration is deferred until multi-workspace onboarding ships.
+
+### What ships now (placeholder)
+
+- Sector profile selection at `/onboarding` (first-time flow) and `/profile` (revisit/edit). Both surfaces use the shared `SectorSelector` component (`src/components/profile/SectorSelector.tsx`).
+- "Notify me when per-sector reporting activates" toggle on both surfaces. Writes:
+  - `workspace_settings.notify_on_sector_activation` (boolean)
+  - `workspace_settings.sectors_activation_signup_at` (timestamp; stamped on first opt-in only, never overwritten on subsequent toggles)
+- Migration 025 (`025_sector_activation_interest.sql`) adds the two columns. Schema migration — apply BEFORE merging the dependent code per STATUS.md rule 12.
+
+### What activates the feature
+
+When per-sector reporting is approved for activation:
+
+1. Pick the per-sector architecture (lazy cache vs precomputed vs runtime synthesis) at activation time against then-current cost and latency constraints. The Path A vs Path B framing in `docs/intelligence-summaries-proposal.md` is a 2026-04-30 snapshot — revisit fresh.
+2. Build the per-sector synopsis pipeline (writes back to `intelligence_summaries` or whichever store the architecture picks).
+3. Read `workspace_settings WHERE notify_on_sector_activation = true` to drive a one-time email/in-app announcement at activation launch.
+4. Wire SectorSynopsisView (currently still rendered against `full_brief` with fallbacks) to consume the per-sector store.
+
+### What NOT to do until activation is approved
+
+- DO NOT regenerate `intelligence_summaries`. Cost is not justified at current single-workspace usage.
+- DO NOT delete the 2,325 existing rows. Decision was SHELVE not RETIRE.
+- DO NOT remove `SectorSynopsisView`. The UI surface stays — the data path stays the same as today (reads `full_brief`).
+- DO NOT auto-mount `/onboarding` on first login until the activation feature ships. The route exists for explicit linking from invite/announce flows; first-login auto-mount is a separate feature decision.
 
 ---
 
@@ -520,3 +593,51 @@ Skill version: `2026-04-29`.
 #### In flight as of session pause
 - Background task: 10-item B.2 retry batch (`b203cd32v`) at 8/10
 - Next: kick off full 152-item run when retry validates ≥80%
+
+### 2026-04-30 — Cleanup pass on `cleanup/post-b2`
+
+Branched from `redesign/full-migration` HEAD (`6bc8032`). All commits below land on `cleanup/post-b2`; merge to `redesign/full-migration` after the user reviews.
+
+#### Phase 1 — documentation contradiction sweep (16 items from `docs/contradictions-audit.md`)
+
+- 1e730bc · contradiction 1: Source Registry section deleted (numbers move every commit, replaced with live-data pointer)
+- 5c01817 · contradiction 2: Tech Stack Supabase status reflects live deployment
+- a57e1ac · contradiction 3: Not Started rewritten; Phase B Complete added
+- 91f96b3 · contradiction 4: Key Files list expanded with Phase B.2.5 surfaces
+- 9852514 · contradiction 5: API Security route table → policy statement
+- f0fb184 · contradiction 6: verified resolved in `f0f7cdf` (no further changes)
+- (item 7 was already self-resolved per the audit; no commit needed)
+- (item 8: session log historical, intentionally untouched)
+- 82b5515 · contradiction 9: PR #5 verified still OPEN draft, STATUS.md line accurate
+- 59486ef · contradiction 10: migration 008 verification deferred (sandbox lacks node)
+- 621b749 · contradictions 11/12/13: empty marker — already resolved or no fix needed (rules 11/12/13 aligned with practice)
+- d586439 · contradiction 14: migration 021→023 rename to break numbering collision (USER ACTION: `migration repair` after merge)
+- 3c78ced · contradictions 15/16: Vercel Deployment Protection reframed as USER ACTION; regulation-detail count RESOLVED (superseded by 14-section format)
+
+#### Phase 2 — `/api/admin/scan` drift fixes (3 items from `docs/admin-scan-audit.md`)
+
+- d918b3e · drifts 1+2: enable web_search tool + anthropic-beta header; fix misleading Haiku/Sonnet comment
+- c9f076d · drift 3: implement 4h cooldown via migration 024 (`admin_action_cooldowns` table) + route gate (defensive: no-ops if table missing)
+
+#### Phase 3 — Onboarding placeholder for sector activation (5-commit set)
+
+Per `docs/intelligence-summaries-proposal.md` decision (2026-04-30 SHELVED), per-sector reporting is on the platform roadmap with placeholder UX shipping now to capture activation interest:
+
+- 3507ca8 · migration 025: `notify_on_sector_activation` + `sectors_activation_signup_at` columns on `workspace_settings`
+- 97ac7b6 · `SectorSelector` shared component (`src/components/profile/SectorSelector.tsx`)
+- 8be79da · `/onboarding` route + `SectorOnboarding` component
+- db5fa4d · `WorkspaceProfile` (settings) refactored to use SectorSelector + activation-notify toggle
+- 4dbe2e6 · CLAUDE.md "Sector Activation" section documents future-feature path and current placeholder boundaries
+
+#### Phase 4 — final cleanup commit (this entry)
+
+Pending USER ACTIONS aggregated from this pass (apply in this order):
+1. `npx supabase migration list --linked` — verify migration 008 applied state (contradiction 10).
+2. After merge: rename migration 021 in Supabase ledger:
+   `npx supabase migration repair --status reverted 021_intersection_detection_function`
+   `npx supabase migration repair --status applied 023_intersection_detection_function`
+3. Apply migration 024 (`admin_action_cooldowns`) before activating the 4h scan cooldown gate.
+4. Apply migration 025 (`sector_activation_interest`) before the onboarding/profile UX is exercised in production.
+5. Verify Vercel Deployment Protection state on Production before merging PR #5.
+
+Sandbox during this pass lacked node binary; supabase CLI invocations could not run from this environment, so all migration application is queued for the user.

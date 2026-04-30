@@ -5,6 +5,9 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+const SCAN_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
+const SCAN_COOLDOWN_KEY = "admin_scan";
+
 /**
  * POST /api/admin/scan
  *
@@ -28,6 +31,30 @@ export async function POST(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // 4h cooldown gate. Migration 024 must be applied for this to be enforced.
+  // If the table is missing (migration not yet applied), the cooldown is silently
+  // skipped — the upsert at the end of a successful scan will also no-op.
+  const { data: cooldownRow } = await supabase
+    .from("admin_action_cooldowns")
+    .select("last_triggered_at")
+    .eq("action_key", SCAN_COOLDOWN_KEY)
+    .maybeSingle();
+
+  if (cooldownRow?.last_triggered_at) {
+    const elapsed = Date.now() - new Date(cooldownRow.last_triggered_at).getTime();
+    if (elapsed < SCAN_COOLDOWN_MS) {
+      const retryAfterSec = Math.ceil((SCAN_COOLDOWN_MS - elapsed) / 1000);
+      return NextResponse.json(
+        {
+          error: "Scan is on cooldown",
+          retry_after_seconds: retryAfterSec,
+          last_triggered_at: cooldownRow.last_triggered_at,
+        },
+        { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+      );
+    }
+  }
+
   try {
     const { topic, jurisdiction } = await request.json();
 
@@ -42,17 +69,19 @@ export async function POST(request: NextRequest) {
       ...(staged || []).map((s: any) => (s.proposed_changes?.title || "").toLowerCase()).filter(Boolean),
     ]);
 
-    // Call Claude to search for new regulations
+    // Call Claude with web_search to find new regulations from live sources
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "web-search-2025-03-05",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",  // Haiku for scanning — 12x cheaper than Sonnet, fast structured extraction
+        model: "claude-sonnet-4-6",
         max_tokens: 3000,
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
         system: `You are the Sustainability & Climate Policy Intelligence Assistant for Caro's Ledge, a global freight forwarding intelligence platform. Your job is to translate regulatory and policy updates into operational impact, compliance risk, and recommended actions.
 
 NON-NEGOTIABLES:
@@ -188,6 +217,15 @@ Return ONLY the JSON object, no other text.`,
 
       if (!error) stagedItems.push(item.title);
     }
+
+    // Stamp the cooldown ledger on success. If migration 024 hasn't been applied
+    // yet, this no-ops silently — cooldown will activate once the table exists.
+    await supabase.from("admin_action_cooldowns").upsert({
+      action_key: SCAN_COOLDOWN_KEY,
+      last_triggered_at: new Date().toISOString(),
+      triggered_by: auth.userId,
+      metadata: { topic: topic || null, jurisdiction: jurisdiction || null, staged: stagedItems.length },
+    }, { onConflict: "action_key" });
 
     return NextResponse.json({
       success: true,
