@@ -542,6 +542,71 @@ The integrity rule applies. No invented UUIDs. No links to items the agent didn'
 
 When no intersections were identified, emit empty array for `related_items` and null for `intersection_summary`. That's the honest answer for a standalone item.
 
+## Intersection Detection (system feature)
+
+Intersection detection is the platform's headline capability and the reason the four intersection-readiness fields exist. It surfaces non-obvious couplings between regulations, technologies, market signals, and research findings — proactively, without the user having to ask "does X interact with Y."
+
+The agent's job in the brief contract is to populate the four fields with grounded, sourced content. The system's job — which runs offline of the agent and does not consume API spend — is to compute pairwise intersections from those tags and rank them. Both halves matter: tags without detection are inert metadata; detection without disciplined tags produces noise.
+
+### What counts as an intersection
+
+Two items A and B intersect when:
+
+1. They share at least one `operational_scenario_tag`, AND
+2. They share at least one `compliance_object_tag`, AND
+3. Both items are not archived
+
+Sharing only a topic_tag does not constitute an intersection. The platform deliberately requires both axes — operational scenario AND compliance object — because real intersections involve the same physical operation imposing duties on the same supply-chain entity. A regulation about ocean fueling and a regulation about supplier ESG reporting both touch "freight-forwarder" but if their operational scenarios don't overlap, they aren't structurally coupled.
+
+### Strength scoring
+
+Each intersection pair receives a strength score that ranks display order. The score is computed deterministically from the tag overlaps and metadata:
+
+- +3 points per shared `operational_scenario_tag`
+- +2 points per shared `compliance_object_tag`
+- +5 points if A explicitly lists B in `related_items` (or B lists A) — explicit linkage by the agent during composition
+- +2 points if both A and B carry priority CRITICAL or HIGH (the regulator-attention bonus)
+
+Strength tiers, by convention:
+
+- Strong (≥12): multiple shared scenarios + multiple shared compliance objects, often with explicit linkage. These are obvious-once-shown couplings the user should see first.
+- Medium (8-11): some shared scenarios + compliance objects. Worth surfacing but require reader judgment.
+- Weak (<8): limited overlap. Many of these are "common universe" pairs (e.g. both items touch `freight-forwarder` and `emissions-reporting-Scope3`) — surface only when filters call for them.
+
+### Canonicalization
+
+Pairs are canonicalized so each intersection appears exactly once: A.id < B.id ordering. The system never shows the same pair twice with sides swapped. This matters at scale — an intersection-rich corpus of 150 items produces n²/2 = ~11k candidate pairs, of which strength≥7 typically yields hundreds.
+
+### Agent's role: produce tags that join
+
+The agent's discipline in tag emission directly determines intersection signal quality. Three rules the agent should internalize:
+
+1. **Use the core glossary first.** Two items emitting `vessel-CII-rating` join cleanly. Two items where one emits `vessel-CII-rating` and the other emits `cii-rating-vessels` (paraphrase) never join. The vocabulary's job is to make joining mechanical.
+
+2. **Tag what the brief actually covers, not what the item is named.** EU CBAM is named after carbon border adjustment but its substantive content also covers customs declaration import and Scope 3 reporting. Tagging only `CBAM-declaration` would miss the customs and reporting intersections. The agent emits the full set of scenarios the brief substantively addresses.
+
+3. **Populate `related_items` only when grounded.** The agent draws on the AVAILABLE SOURCES pool during composition. If brief composition cited or relied on item B's content, B goes in A's `related_items`. If B was just topically adjacent but didn't inform the brief, leave it out. The integrity rule applies — `related_items` is grounded linkage, not associative speculation.
+
+### The intersection_summary's role
+
+`intersection_summary` is the agent's narrative explanation of how this item interacts with the items in `related_items`. It's the human-readable answer to "why are these two coupled?" When two intersection summaries are surfaced together (one from each side of the pair), they triangulate the relationship from both perspectives.
+
+The summary should:
+
+- Cite linked items by title, not by UUID
+- Describe the specific mechanism of coupling (overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling)
+- Stay grounded — every claim sourced from the items themselves or their cited material
+
+Avoid generic statements like "Both items address sustainability." That's not an intersection; it's a category. An intersection statement names the operational link: "Both impose Scope 3 reporting on the same import flow under different reference periods, creating duplicate-but-not-identical reporting obligations on the same emission units."
+
+### Downstream consumers
+
+The intersection link graph is consumed by:
+
+- The Intersections sub-tab in Source Health Dashboard, ranked by strength with stats banner and threshold filter
+- The per-item metadata strip rendered above each brief in detail view, showing both the intersection_summary and the resolved related_items list
+- The agent itself on subsequent regenerations: when an item's source pool includes its own related_items, the agent has structured context for cross-regulation reasoning
+
 ## 8 Jurisdictions
 
 - eu: European Union (highest regulatory density)
@@ -739,6 +804,8 @@ When the user says "update the skill," the agent:
 8. Delivers as a downloadable file for upload to /mnt/skills/user/environmental-policy-and-innovation/
 
 ## Changelog
+
+2026-04-29: Phase B.2.5 — intersection-readiness contract. Extended the YAML emission contract from 9 fields to 13 fields with four new intersection-readiness fields: operational_scenario_tags (open vocabulary, 0-5 tags, ~36-value core glossary across ocean / air / road / customs-trade / carbon-ETS / reporting / packaging-products), compliance_object_tags (closed vocabulary, 0-4 tags, 18 supply-chain roles spanning carriers / vehicle operators / forwarders-intermediaries / cargo principals / infrastructure operators), related_items (UUID array of intelligence_items the agent recognised as related during composition; integrity rule applies — no invented UUIDs), and intersection_summary (≤1500 chars markdown describing how this item interacts with linked items). Added the Intersection Detection section documenting the system feature: pairs sharing ≥1 operational_scenario_tag AND ≥1 compliance_object_tag are detected automatically, ranked by strength score (+3/scenario, +2/compliance object, +5 for explicit related_items linkage, +2 if both items priority CRITICAL/HIGH), canonicalized so each pair appears once. Added 7 Topic Categories closed-vocabulary documentation and Operational Scenario Tags open-vocabulary core glossary. Bumped regeneration_skill_version from "2026-04-28" to "2026-04-29".
 
 2026-04-28: Major rewrite. Replaced 10-section intelligence brief with 14-section regulatory fact document for regulation/directive/standard/guidance/framework. Added four format-specific output structures: Technology Profile (8 sections), Operations Profile (8 sections), Market Signal Brief (8 sections), Research Summary (6 sections). Added the Integrity Rule (no invented content, sections omitted when ungrounded). Added the Workspace-Anchored Rule (no company names, no personal names, generic language driven by workspace profile). Added Anticipated Authoritative Guidance and Pending Regulatory Events as a structured section in the regulatory fact document. Added the Cross-Format Lens Requirement (every brief serves substantive, competitive, client-conversation, and action lenses). Reframed Technology Profile from technology reference to multi-lens intelligence covering all sustainability technology, not only competitor-access scenarios. Reframed Operations Profile from regional regulatory reference to cost-and-feasibility decision support. Added operator and competitive intelligence sources to priority registry. Standardized severity labels to space-separated form. Established markdown storage convention for full_brief column.
 
