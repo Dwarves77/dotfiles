@@ -5,7 +5,9 @@ Updated as commits land. Source of truth for "what's done, what's next."
 
 **Branch:** `redesign/full-migration` → PR #5 (draft)
 **Production deploy target:** `master` (auto-deploy on, per Vercel settings)
-**Migration application policy:** two tracks. **Schema migrations (DDL on runtime tables)** apply via Supabase CLI BEFORE committing the dependent code, so preview deployments don't 500-error on missing columns; document the apply timestamp in the commit body. **Data migrations (seeds, backfills, content migration)** commit the migration file alongside the consumer code and run AFTER merge. The platform-admin migrations `008_platform_admin_profiles.sql` and `008_seed_platform_admins.sql` are data migrations under this policy and run after merge per their original commit notes (`50f9346`, `c67dd29`).
+**Migration application policy:** two tracks. **Schema migrations (DDL on runtime tables)** apply via Supabase CLI BEFORE committing the dependent code, so preview deployments don't 500-error on missing columns; document the apply timestamp in the commit body. **Data migrations (seeds, backfills, content migration)** commit the migration file alongside the consumer code and run AFTER merge.
+
+**Migration 008 status (data migration):** `008_platform_admin_profiles.sql` and `008_seed_platform_admins.sql` were both committed under the "data migration runs after merge" rule (commits `50f9346` + `c67dd29`). Their applied-status against the live Supabase DB has not been re-verified in this audit pass. Run `npx supabase migration list --linked` to confirm; if both show `applied`, this status note can be deleted in a follow-up commit. (Cleanup pass 2026-04-30 was run from a sandbox without node access, so the verification step deferred.)
 
 ---
 
