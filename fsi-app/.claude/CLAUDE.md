@@ -34,10 +34,8 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 7. University & Research Pipeline
 
 ## Source Registry
-- 73 sources seeded across T1-T6, all 7 domains
-- 1 provisional (DEWA Shams Dubai — needs live verification)
-- Source mapping: 95/119 legacy resources mapped to sources (80%)
-- 24 unmapped = provisional source candidates for discovery pipeline
+
+Source registry counts and current state visible at /admin Source Health Dashboard. Counts move per commit; static doc claims here would always drift.
 
 ## Completed
 - Source trust types (`src/types/source.ts`, 520 lines)
