@@ -488,6 +488,60 @@ Every regulatory, technology, market, operations, or research item touches at le
 
 The vocabulary is closed. The agent does not emit tags outside this list (e.g., not `carbon-pricing` for `emissions`, not `aviation` for `transport`). An emitted tag outside the vocabulary fails the regeneration.
 
+## Operational Scenario Tags (open vocabulary, intersection-readiness)
+
+`operational_scenario_tags` describes the operational situations a regulation, technology, market signal, or research finding touches. These tags drive intersection detection: when two items share scenario tags, they are intersection candidates and the system surfaces the relationship proactively.
+
+Prefer the core glossary below. Emit a new scenario only when the core glossary doesn't fit and the substance is clearly operational (not generic). Use lower-case kebab-case, no spaces.
+
+Core glossary (~36 values, prefer these):
+
+Ocean: `ocean-bunkering`, `ocean-fuel-blend-mandate`, `ocean-emissions-MRV`, `vessel-port-call`, `vessel-shore-power`, `vessel-CII-rating`, `green-shipping-corridor`
+
+Air: `air-fueling`, `SAF-blending`, `aircraft-emissions-CORSIA`, `aircraft-emissions-ETS`, `airport-shore-power`
+
+Road: `road-cabotage`, `drayage`, `urban-truck-zone`, `truck-CO2-standard`, `road-charging-infrastructure`
+
+Customs/trade: `customs-declaration-import`, `customs-declaration-export`, `CBAM-declaration`, `EUDR-due-diligence`, `dangerous-goods-classification`
+
+Carbon/ETS: `ETS-allowance-purchase`, `ETS-allowance-surrender`, `carbon-pricing-pass-through`, `carbon-border-adjustment`
+
+Reporting: `emissions-reporting-Scope1`, `emissions-reporting-Scope3`, `sustainability-report-CSRD`, `disclosure-ISSB`, `supplier-data-request`
+
+Packaging/products: `packaging-EPR-registration`, `packaging-recyclability-design`, `packaging-PFAS-restriction`, `product-due-diligence-CSDDD`
+
+Each item emits 0-5 scenario tags. An item without an obvious scenario (e.g. background research) may emit an empty array — that's honest. Tags outside the core glossary are allowed when needed but should be the exception, not the rule.
+
+## Compliance Object Tags (closed vocabulary, intersection-readiness)
+
+`compliance_object_tags` names the supply-chain roles or operational entities a regulation imposes obligations on. Closed vocabulary so items joining on the same role are reliably grouped.
+
+Closed glossary (18 values, exact-match required):
+
+Carriers: `carrier-ocean`, `carrier-air`, `carrier-road`, `carrier-rail`
+
+Vehicle/fleet operators: `vessel-operator`, `aircraft-operator`, `road-fleet-operator`
+
+Forwarders & intermediaries: `freight-forwarder`, `customs-broker`, `nvocc`
+
+Cargo principals: `shipper`, `importer`, `exporter`, `manufacturer-producer`, `distributor`
+
+Infrastructure: `port-operator`, `airport-operator`, `terminal-operator`, `warehouse-operator`
+
+Each item emits 0-4 compliance-object tags. An item with no clear compliance object (e.g. a research finding) emits an empty array. Tags outside the glossary fail the regeneration.
+
+## Related Items and Intersection Summary (intersection-readiness)
+
+`related_items` is a UUID array of other intelligence_items the agent identifies as topically or operationally related during brief composition. Populate this only with UUIDs that:
+1. Appeared in the agent's source pool input for this run, AND
+2. Were drawn on (cited or referenced) during composition, OR represent an obvious operational dependency the agent identified
+
+The integrity rule applies. No invented UUIDs. No links to items the agent didn't actually consider.
+
+`intersection_summary` is a short markdown string (≤ 500 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, or operational coupling. Sourced; cite the linked items inline by title.
+
+When no intersections were identified, emit empty array for `related_items` and null for `intersection_summary`. That's the honest answer for a standalone item.
+
 ## 8 Jurisdictions
 
 - eu: European Union (highest regulatory density)
@@ -616,7 +670,7 @@ This convention enables consistent display in the UI and enables a future schema
 
 ## Database Field Emission (YAML frontmatter contract)
 
-Every regeneration writes 9 fields to `intelligence_items`. The `full_brief` column carries the markdown body produced under the format selected above. The other 8 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+Every regeneration writes 13 fields to `intelligence_items`. The `full_brief` column carries the markdown body produced under the format selected above. The other 12 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
 
 Fields:
 
@@ -626,9 +680,13 @@ Fields:
 - `urgency_tier` — the dashboard tier value, one of `watch`, `elevated`, `stable`, `informational`.
 - `format_type` — the format used for this brief, derived from `item_type` per the locked mapping below.
 - `topic_tags` — array of 0-3 values from the 7 Topic Categories controlled vocabulary above. Reflects what the brief actually covers, not what it nominally is named after. Emitted as a YAML inline array. Empty array allowed when the item genuinely fits none of the seven (rare). Tags outside the vocabulary fail the regeneration.
+- `operational_scenario_tags` — array of 0-5 values describing operational scenarios the item touches. Prefer the core glossary in the Operational Scenario Tags section above; new values allowed when the core doesn't fit. Lower-case kebab-case. Drives intersection detection.
+- `compliance_object_tags` — array of 0-4 values from the closed Compliance Object Tags glossary above. Tags outside the glossary fail the regeneration. Drives intersection detection.
+- `related_items` — UUID array of intelligence_items the agent recognised as related during composition. UUIDs must come from the source pool input. No invented UUIDs. Empty array when no relations identified.
+- `intersection_summary` — short markdown string (≤500 chars) describing how this item interacts with the linked items. Sourced; cite linked items inline by title. Empty string OR null when no intersections were identified.
 - `sources_used` — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
 - `last_regenerated_at` — ISO 8601 timestamp at the moment of generation. Current UTC timestamp in ISO 8601 form (e.g., `2026-04-28T18:42:00Z`). Never `NOW()`, never a placeholder, never derived from source publication dates.
-- `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-04-28"`.
+- `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-04-29"`.
 
 Severity to priority mapping (locked):
 
@@ -655,9 +713,13 @@ priority: CRITICAL
 urgency_tier: watch
 format_type: regulatory_fact_document
 topic_tags: [emissions, reporting]
+operational_scenario_tags: [CBAM-declaration, customs-declaration-import, emissions-reporting-Scope3]
+compliance_object_tags: [importer, customs-broker, manufacturer-producer]
+related_items: [b3c4d5e6-f7a8-4901-2345-678901234567]
+intersection_summary: "Overlaps with EU ETS for shipping (linked) on emissions-reporting-Scope3; CBAM declarants importing covered goods that arrived via EU-ETS-priced ocean freight face dual reporting obligations on the same emission units."
 sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
-last_regenerated_at: 2026-04-28T18:42:00Z
-regeneration_skill_version: "2026-04-28"
+last_regenerated_at: 2026-04-29T18:42:00Z
+regeneration_skill_version: "2026-04-29"
 ---
 ```
 
