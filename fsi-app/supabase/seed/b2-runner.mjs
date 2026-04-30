@@ -188,7 +188,7 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
     claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 16000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: userMessage }] }),
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 24000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: userMessage }] }),
     });
   } catch (e) {
     console.log(`    ✗ sonnet network: ${e.message?.slice(0, 200)}`);

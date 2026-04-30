@@ -42,3 +42,10 @@ next-env.d.ts
 
 # supabase CLI cache (created by supabase link / db query)
 supabase/.temp/
+
+# B.2 runner artifacts (regenerable; per-run logs & ts compile output)
+/.test-out/
+supabase/seed/b2-progress.log
+
+# canonical-source discovery scratch (regeneratable from agent)
+canonical-flagged.json
