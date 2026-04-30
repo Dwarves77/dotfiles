@@ -40,6 +40,26 @@ const TOPIC_TAG_VALUES = [
   "research",
 ] as const;
 
+// Closed vocabulary for compliance_object_tags (SKILL.md 18 values). Tags
+// outside this list fail the regeneration. Drives intersection detection.
+const COMPLIANCE_OBJECT_VALUES = [
+  "carrier-ocean", "carrier-air", "carrier-road", "carrier-rail",
+  "vessel-operator", "aircraft-operator", "road-fleet-operator",
+  "freight-forwarder", "customs-broker", "nvocc",
+  "shipper", "importer", "exporter", "manufacturer-producer", "distributor",
+  "port-operator", "airport-operator", "terminal-operator", "warehouse-operator",
+] as const;
+// (Note: 19 values total because the original spec said "18" but required
+// nvocc as a separate role from freight-forwarder/customs-broker. The closed
+// list as enforced is the 19 above. SKILL.md narrative groups them into 18
+// for readability; the validator follows the actual list.)
+
+// operational_scenario_tags is intentionally OPEN vocabulary per SKILL.md —
+// agents prefer the core glossary but may emit new values when needed. The
+// validator only enforces shape (lower-case kebab-case, no whitespace) and
+// upper bound (≤5 tags).
+const OPERATIONAL_SCENARIO_TAG_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/i;
+
 const SEVERITY_TO_PRIORITY: Record<string, string> = {
   "ACTION REQUIRED": "CRITICAL",
   "COST ALERT": "HIGH",
@@ -54,6 +74,10 @@ export interface AgentMetadata {
   urgency_tier: typeof URGENCY_TIER_VALUES[number];
   format_type: typeof FORMAT_TYPE_VALUES[number];
   topic_tags: typeof TOPIC_TAG_VALUES[number][];
+  operational_scenario_tags: string[];
+  compliance_object_tags: typeof COMPLIANCE_OBJECT_VALUES[number][];
+  related_items: string[];
+  intersection_summary: string | null;
   sources_used: string[];
   last_regenerated_at: string;
   regeneration_skill_version: string;
@@ -150,6 +174,10 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     "urgency_tier",
     "format_type",
     "topic_tags",
+    "operational_scenario_tags",
+    "compliance_object_tags",
+    "related_items",
+    "intersection_summary",
     "sources_used",
     "last_regenerated_at",
     "regeneration_skill_version",
@@ -202,6 +230,75 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     }
   }
 
+  // Parse operational_scenario_tags (open vocabulary, 0-5 values, kebab-case shape)
+  const opScenRaw = fields.operational_scenario_tags.trim();
+  if (!opScenRaw.startsWith("[") || !opScenRaw.endsWith("]")) {
+    throw new AgentOutputParseError(`operational_scenario_tags must be a YAML inline array, got: ${opScenRaw.slice(0, 100)}`);
+  }
+  const opScenInner = opScenRaw.slice(1, -1).trim();
+  const opScenTags: string[] = opScenInner
+    ? opScenInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
+    : [];
+  if (opScenTags.length > 5) {
+    throw new AgentOutputParseError(`operational_scenario_tags exceeds 5 values: ${opScenTags.join(", ")}`);
+  }
+  for (const tag of opScenTags) {
+    if (!OPERATIONAL_SCENARIO_TAG_RE.test(tag)) {
+      throw new AgentOutputParseError(
+        `operational_scenario_tags contains a malformed value: "${tag}". Expected lower-case kebab-case (e.g. ocean-bunkering).`
+      );
+    }
+  }
+
+  // Parse compliance_object_tags (closed vocabulary, 0-4 values)
+  const compObjRaw = fields.compliance_object_tags.trim();
+  if (!compObjRaw.startsWith("[") || !compObjRaw.endsWith("]")) {
+    throw new AgentOutputParseError(`compliance_object_tags must be a YAML inline array, got: ${compObjRaw.slice(0, 100)}`);
+  }
+  const compObjInner = compObjRaw.slice(1, -1).trim();
+  const compObjTags: string[] = compObjInner
+    ? compObjInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
+    : [];
+  if (compObjTags.length > 4) {
+    throw new AgentOutputParseError(`compliance_object_tags exceeds 4 values: ${compObjTags.join(", ")}`);
+  }
+  for (const tag of compObjTags) {
+    if (!COMPLIANCE_OBJECT_VALUES.includes(tag as any)) {
+      throw new AgentOutputParseError(
+        `compliance_object_tags contains an out-of-vocabulary value: "${tag}". Allowed: ${COMPLIANCE_OBJECT_VALUES.join(", ")}`
+      );
+    }
+  }
+
+  // Parse related_items (UUID array, may be empty)
+  const relRaw = fields.related_items.trim();
+  if (!relRaw.startsWith("[") || !relRaw.endsWith("]")) {
+    throw new AgentOutputParseError(`related_items must be a YAML inline array, got: ${relRaw.slice(0, 100)}`);
+  }
+  const relInner = relRaw.slice(1, -1).trim();
+  const relatedItems: string[] = relInner
+    ? relInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
+    : [];
+  // Validate UUID shape (use same regex as sources_used; defined below — defined here too for safety)
+  const uuidReEarly = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  for (const id of relatedItems) {
+    if (!uuidReEarly.test(id)) {
+      throw new AgentOutputParseError(`related_items contains a non-UUID value: ${id}`);
+    }
+  }
+
+  // intersection_summary: scalar string OR null. Length cap ≤500 chars.
+  const interSumRaw = fields.intersection_summary;
+  let interSum: string | null;
+  if (interSumRaw === "null" || interSumRaw === "" || interSumRaw === "~") {
+    interSum = null;
+  } else {
+    interSum = interSumRaw;
+    if (interSum.length > 500) {
+      throw new AgentOutputParseError(`intersection_summary exceeds 500 chars (${interSum.length})`);
+    }
+  }
+
   // Parse sources_used array
   // Accept: [], [uuid], [uuid, uuid, ...]
   const sourcesRaw = fields.sources_used.trim();
@@ -235,6 +332,10 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     urgency_tier: fields.urgency_tier as AgentMetadata["urgency_tier"],
     format_type: fields.format_type as AgentMetadata["format_type"],
     topic_tags: topicTags as AgentMetadata["topic_tags"],
+    operational_scenario_tags: opScenTags,
+    compliance_object_tags: compObjTags as AgentMetadata["compliance_object_tags"],
+    related_items: relatedItems,
+    intersection_summary: interSum,
     sources_used: sourcesUsed,
     last_regenerated_at: ts,
     regeneration_skill_version: fields.regeneration_skill_version,
