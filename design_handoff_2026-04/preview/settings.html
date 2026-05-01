@@ -1,0 +1,201 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Settings</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; flex-wrap: wrap; }
+  .tabs a { padding: 12px 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); border-bottom: 3px solid transparent; cursor: pointer; text-decoration: none; }
+  .tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
+  .card-head { padding: 18px 22px; border-bottom: 1px solid var(--border-sub); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .card-head h3 { font-family: var(--font-display); font-size: 22px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; }
+  .card-head .meta { font-size: 11px; color: var(--muted); }
+  .card-body { padding: 20px 22px; }
+
+  .toggle-row { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--border-sub); }
+  .toggle-row:first-child { border-top: 0; padding-top: 4px; }
+  .toggle-row .ti { font-size: 14px; font-weight: 700; }
+  .toggle-row .ds { font-size: 12px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
+  .toggle { position: relative; width: 38px; height: 22px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 999px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.15s; }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle.on::after { transform: translateX(16px); }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); font-family: inherit; font-size: 13px; background: var(--surface); color: var(--text); }
+
+  .seg { display: inline-flex; gap: 0; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
+  .seg button { padding: 8px 14px; border: 0; background: var(--surface); font-family: inherit; font-size: 12px; font-weight: 700; color: var(--text-2); cursor: pointer; border-left: 1px solid var(--border-sub); }
+  .seg button:first-child { border-left: 0; }
+  .seg button.on { background: var(--accent); color: #fff; }
+
+  .dash-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .dash-cards label { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-sub); border-radius: var(--r-sm); font-size: 13px; cursor: pointer; background: var(--surface); }
+  .dash-cards label.has { background: var(--accent-bg); border-color: var(--accent-bd); }
+  .dash-cards label small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+  .ds-row { display: grid; grid-template-columns: 1fr auto; gap: 14px; padding: 12px 0; border-top: 1px solid var(--border-sub); align-items: center; font-size: 13px; }
+  .ds-row:first-child { border-top: 0; padding-top: 4px; }
+  .ds-row .nm { font-weight: 700; }
+  .ds-row .v { font-family: var(--font-display); font-size: 18px; }
+
+  .arch-row { display: grid; grid-template-columns: 80px 1fr auto auto; gap: 14px; padding: 12px 0; border-top: 1px solid var(--border-sub); font-size: 13px; align-items: center; }
+  .arch-row:first-child { border-top: 0; padding-top: 4px; }
+  .arch-row .when { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
+  .arch-row .nm { font-weight: 700; line-height: 1.35; }
+  .arch-row .nm small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  .arch-row .pill { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--text-2); border: 1px solid var(--border-sub); }
+  .arch-row .restore { background: transparent; border: 1px solid var(--border); color: var(--text-2); padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 999px; cursor: pointer; font-family: inherit; }
+
+  .side-card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 14px; }
+  .side-card h4 { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } .dash-cards { grid-template-columns: 1fr; } }
+</style>
+</head><body data-accent="navy">
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html" class="active"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Personal preferences</div>
+      <h1 class="mh-title">Settings</h1>
+      <div class="mh-date">General · dashboard · exports · data · archive</div>
+    </div>
+    <div class="body-wrap">
+
+      <div class="tabs" id="tabs">
+        <a data-tab="general" class="on">General</a>
+        <a data-tab="dashboard">Dashboard</a>
+        <a data-tab="exports">Exports</a>
+        <a data-tab="data">Data &amp; supersessions</a>
+        <a data-tab="archive">Archive</a>
+      </div>
+
+      <section class="panel on" data-panel="general">
+        <div class="card">
+          <div class="card-head"><h3>Notifications</h3></div>
+          <div class="card-body">
+            <div class="toggle-row"><div><div class="ti">Critical regulatory updates</div><div class="ds">Email + push · always on for owners and admins</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div><div class="ti">Daily morning briefing</div><div class="ds">07:00 in your local time · 5 stories, ranked by relevance</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div><div class="ti">Weekly market intel digest</div><div class="ds">Friday · EUA, UK ETS, CORSIA price action and signals</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div><div class="ti">Filing reminders</div><div class="ds">7 days, 48h and 24h before any filing you own is due</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div><div class="ti">Community replies</div><div class="ds">When someone replies in a thread you started or follow</div></div><div class="toggle"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Display &amp; appearance</h3></div>
+          <div class="card-body">
+            <div class="toggle-row"><div><div class="ti">Reduce motion</div><div class="ds">Disable transitions and parallax effects</div></div><div class="toggle"></div></div>
+            <div class="toggle-row"><div><div class="ti">Compact density</div><div class="ds">Tighter table rows, smaller paddings — for power users</div></div><div class="toggle"></div></div>
+            <div class="toggle-row"><div><div class="ti">Default jurisdiction filter</div><div class="ds">Apply your home jurisdictions across all lists by default</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div><div class="ti">Default sector filter</div><div class="ds">Apply your saved sector profile across all lists by default</div></div><div class="toggle on"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>Security</h3></div>
+          <div class="card-body">
+            <div class="toggle-row"><div><div class="ti">Two-factor authentication</div><div class="ds">Authenticator app · last verified 2 weeks ago</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div><div class="ti">Session expiry</div><div class="ds">Sign out after 12 hours of inactivity</div></div><div class="toggle on"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="dashboard">
+        <div class="card">
+          <div class="card-head"><h3>Dashboard cards</h3><span class="meta">Toggle which cards appear · drag to reorder</span></div>
+          <div class="card-body">
+            <div class="dash-cards">
+              <label class="has"><input type="checkbox" checked><span><b>Critical regulations</b><small>Top 5 with countdown</small></span></label>
+              <label class="has"><input type="checkbox" checked><span><b>Disputed items</b><small>Items contested by community or verifiers</small></span></label>
+              <label class="has"><input type="checkbox" checked><span><b>This week's filings</b><small>Filings you own · due in 7 days</small></span></label>
+              <label class="has"><input type="checkbox" checked><span><b>Market panel</b><small>EUA · UK ETS · CORSIA prices</small></span></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="exports">
+        <div class="card">
+          <div class="card-head"><h3>Default export format</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="field"><label>Format</label><div class="seg"><button class="on">HTML</button><button>PDF</button><button>Slack</button><button>Plain text</button></div></div>
+              <div class="field"><label>Detail level</label><div class="seg"><button>Summary</button><button class="on">Standard</button><button>Full (with sources)</button></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="data">
+        <div class="card">
+          <div class="card-head"><h3>Data summary</h3></div>
+          <div class="card-body">
+            <div class="ds-row"><div class="nm">Regulations watched</div><div class="v">12</div></div>
+            <div class="ds-row"><div class="nm">Filings owned</div><div class="v">3</div></div>
+            <div class="ds-row"><div class="nm">Saved searches</div><div class="v">8</div></div>
+            <div class="ds-row"><div class="nm">Posts in community</div><div class="v">38</div></div>
+            <div class="ds-row"><div class="nm">Archived items</div><div class="v">17</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="archive">
+        <div class="card">
+          <div class="card-head"><h3>Archived items</h3><span class="meta">17 items · still recoverable for 90 days</span></div>
+          <div class="card-body">
+            <div class="arch-row"><span class="when">2 days ago</span><div class="nm">FuelEU Maritime — Q1 2026 GHG return<small>FuelEU-Q1 · was Critical</small></div><span class="pill">Regulation</span><button class="restore">Restore</button></div>
+            <div class="arch-row"><span class="when">2 days ago</span><div class="nm">EU CBAM Delegated Act<small>EU-CBAM-DA · was Critical</small></div><span class="pill">Regulation</span><button class="restore">Restore</button></div>
+            <div class="arch-row"><span class="when">5 days ago</span><div class="nm">CARB AB-2446 — embodied carbon<small>CARB-AB2446 · was High</small></div><span class="pill">Regulation</span><button class="restore">Restore</button></div>
+            <div class="arch-row"><span class="when">2 wks ago</span><div class="nm">Q4 2025 retrospective brief<small>Authored by Marta · 12 reads</small></div><span class="pill">Brief</span><button class="restore">Restore</button></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+<script>
+  document.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => t.classList.toggle('on')));
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const a = e.target.closest('[data-tab]'); if (!a) return;
+    e.preventDefault();
+    [...tabs.children].forEach(c => c.classList.toggle('on', c === a));
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === a.dataset.tab));
+  });
+</script>
+</body></html>

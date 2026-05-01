@@ -1,0 +1,426 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Community</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  body[data-side="community"] .app { grid-template-columns: 280px 1fr; }
+  body[data-side="community"] .side-default { display: none !important; }
+  body[data-side="standard"] .side-community { display: none !important; }
+
+  .side-community { display: flex; flex-direction: column; height: 100vh; padding: 0; }
+  .side-community .sc-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--border-sub); flex-shrink: 0; }
+  .side-community .sc-back { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--muted); text-decoration: none; letter-spacing: 0.04em; padding: 4px 8px 4px 0; border-radius: var(--r-sm); margin-bottom: 10px; }
+  .side-community .sc-title { font-family: var(--font-display); font-size: 22px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text); line-height: 1; }
+  .side-community .sc-sub { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .side-community .sc-sub button { background: transparent; border: 1px solid var(--border-sub); border-radius: var(--r-sm); color: var(--text-2); font-family: inherit; font-size: 11px; font-weight: 700; padding: 3px 8px; cursor: pointer; }
+
+  .side-community .sc-search { padding: 10px 14px; border-bottom: 1px solid var(--border-sub); flex-shrink: 0; }
+  .side-community .sc-search input { width: 100%; border: 1px solid var(--border-sub); border-radius: var(--r-sm); background: var(--bg); padding: 7px 11px; font-family: inherit; font-size: 12px; color: var(--text); outline: 0; }
+
+  .side-community .sc-scroll { flex: 1; overflow-y: auto; padding: 6px 8px 16px; }
+
+  .sc-section { margin-top: 10px; }
+  .sc-section-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px 4px; cursor: pointer; user-select: none; color: var(--muted); }
+  .sc-section-head .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; flex: 1; }
+  .sc-section-head .ct { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--bg); color: var(--muted); }
+
+  .sc-list { display: flex; flex-direction: column; gap: 1px; padding: 2px 0; }
+  .sc-item { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); cursor: pointer; }
+  .sc-item:hover { background: var(--bg); }
+  .sc-item.active { background: var(--accent-bg); color: var(--accent); }
+  .sc-item.active .sc-item-name { color: var(--accent); font-weight: 700; }
+  .sc-item .sc-item-icon { display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--muted); }
+  .sc-item.is-private .sc-item-icon { color: var(--high); }
+  .sc-item .sc-item-name { font-size: 13px; font-weight: 600; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sc-item .sc-item-name b { font-weight: 700; color: var(--text); }
+  .sc-item .sc-unread { background: var(--critical); color: #fff; padding: 1px 6px; border-radius: 999px; min-width: 18px; text-align: center; font-size: 10px; font-weight: 700; }
+  .sc-item .sc-mention { background: var(--accent); color: #fff; padding: 1px 6px; border-radius: 999px; min-width: 18px; text-align: center; font-size: 10px; font-weight: 700; }
+
+  .sc-foot { flex-shrink: 0; padding: 10px 14px; border-top: 1px solid var(--border-sub); display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; }
+  .sc-foot .av { width: 30px; height: 30px; border-radius: 999px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 12px; }
+  .sc-foot .nm { font-size: 12px; font-weight: 700; line-height: 1.2; }
+  .sc-foot .or { font-size: 10px; color: var(--muted); }
+
+  .cs-search { position: relative; margin-top: 18px; max-width: 880px; }
+  .cs-search-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 8px 6px 18px; box-shadow: var(--shadow); }
+  .cs-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; color: var(--text); padding: 9px 0; }
+  .cs-kbd { font-size: 10px; font-weight: 700; color: var(--muted); padding: 2px 7px; border: 1px solid var(--border-sub); border-radius: 4px; background: var(--bg); flex-shrink: 0; letter-spacing: 0.04em; }
+  .cs-go { background: var(--accent); color: #fff; border: 0; border-radius: 999px; font-family: inherit; font-weight: 700; font-size: 12px; padding: 8px 16px; cursor: pointer; flex-shrink: 0; letter-spacing: 0.04em; text-transform: uppercase; }
+  .cs-scopes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-left: 6px; align-items: center; }
+  .cs-scope, .cs-filter { font-family: inherit; font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; }
+  .cs-scope.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .region-strip { display: flex; gap: 0; align-items: stretch; padding: 0 36px; background: var(--raised); border-bottom: 1px solid var(--border-sub); overflow-x: auto; }
+  .region-tab { padding: 14px 18px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-2); cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 8px; flex-shrink: 0; background: transparent; border-left: 0; border-right: 0; border-top: 0; font-family: inherit; }
+  .region-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+  .region-tab .ct { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border-sub); color: var(--muted); font-weight: 700; }
+  .region-tab.on .ct { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .composer { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 22px; box-shadow: var(--shadow); }
+  .composer-row { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; }
+  .composer .av { width: 40px; height: 40px; border-radius: 999px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 14px; }
+  .composer textarea { width: 100%; min-height: 36px; resize: vertical; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; line-height: 1.5; color: var(--text); padding: 8px 0 4px; }
+  .composer-bottom { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--border-sub); }
+  .composer-target { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: var(--r-sm); border: 1px solid var(--high-bd); background: var(--high-bg); color: var(--high); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .composer .post-btn { margin-left: auto; background: var(--accent); color: #fff; border: 0; border-radius: var(--r-sm); padding: 8px 18px; font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+  .group-head { background: linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 70%); border: 1px solid #FED7AA; border-left: 3px solid var(--high); border-radius: var(--r-lg); padding: 18px 22px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; box-shadow: var(--shadow); }
+  .group-head .gh-icon { width: 50px; height: 50px; border-radius: 10px; background: var(--high-bg); border: 1px solid var(--high-bd); display: flex; align-items: center; justify-content: center; color: var(--high); font-family: var(--font-display); font-size: 18px; }
+  .group-head .gh-name { font-family: var(--font-display); font-size: 28px; font-weight: 400; letter-spacing: 0.03em; text-transform: uppercase; line-height: 1; margin-bottom: 6px; }
+  .group-head .gh-meta { font-size: 12px; color: var(--text-2); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+  .feed { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+  .feed-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--border-sub); flex-wrap: wrap; gap: 10px; }
+  .feed-head h3 { font-family: var(--font-display); font-size: 22px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; }
+  .feed-filter { display: flex; gap: 6px; }
+  .feed-filter .f { font-size: 11px; padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); cursor: pointer; font-family: inherit; }
+  .feed-filter .f.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .post { padding: 16px 22px; border-top: 1px solid var(--border-sub); display: grid; grid-template-columns: 40px 1fr; gap: 14px; cursor: pointer; }
+  .post:first-child { border-top: 0; }
+  .post:hover { background: var(--bg); }
+  .post .av { width: 40px; height: 40px; border-radius: 999px; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-bd); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 13px; }
+  .post .av.crit { background: var(--critical-bg); border-color: var(--critical-bd); color: var(--critical); }
+  .post .av.high { background: var(--high-bg); border-color: var(--high-bd); color: var(--high); }
+  .post .av.green { background: var(--low-bg); border-color: var(--low-bd); color: var(--low); }
+  .post-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); }
+  .post-head b { color: var(--text); font-weight: 700; }
+  .post-head .group-pill { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; background: var(--high-bg); color: var(--high); border: 1px solid var(--high-bd); }
+  .post-title { font-size: 15px; font-weight: 700; line-height: 1.35; color: var(--text); }
+  .post-snippet { font-size: 12.5px; color: var(--text-2); line-height: 1.5; margin-top: 4px; }
+  .post-foot { font-size: 11px; color: var(--muted); margin-top: 8px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .post-foot b { color: var(--text); font-weight: 700; }
+  .promote-btn { background: transparent; border: 1px solid var(--accent-bd); color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 3px; cursor: pointer; font-family: inherit; margin-left: auto; }
+
+  .side-card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 14px; }
+  .side-card h4 { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+
+  .vendor-row { display: grid; grid-template-columns: 32px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border-sub); align-items: center; }
+  .vendor-row:first-of-type { border-top: 0; padding-top: 2px; }
+  .vendor-row .av { width: 32px; height: 32px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-sub); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 11px; color: var(--text-2); }
+  .vendor-row .nm { font-size: 13px; font-weight: 700; line-height: 1.2; }
+  .vendor-row .nm .verified { color: var(--low); font-size: 11px; }
+  .vendor-row .desc { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .vendor-row .mention { font-size: 10px; color: var(--accent); margin-top: 3px; font-weight: 700; }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } body[data-side="community"] .app { grid-template-columns: 1fr; } }
+</style>
+</head><body data-accent="navy" data-side="community">
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+
+  <aside class="side side-default">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html" class="active"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+
+  <aside class="side side-community">
+    <div class="sc-head">
+      <a class="sc-back" href="dashboard-v3.html">‹ Back to Caro's Ledge</a>
+      <div class="sc-title">Community</div>
+      <div class="sc-sub">
+        <span>Sarah Chen · EU Desk</span>
+        <button>+ Onboard</button>
+      </div>
+    </div>
+
+    <div class="sc-search">
+      <input type="text" placeholder="Jump to a group, channel, person…">
+    </div>
+
+    <div class="sc-scroll">
+      <div class="sc-section">
+        <div class="sc-section-head"><span class="lbl">Starred</span><span class="ct">3</span></div>
+        <div class="sc-list">
+          <div class="sc-item active is-private"><span class="sc-item-icon">🔒</span><span class="sc-item-name"><b>EU Compliance Council</b></span><span class="sc-mention">2</span></div>
+          <div class="sc-item is-private"><span class="sc-item-icon">🔒</span><span class="sc-item-name">SAF Working Group</span><span class="sc-unread">12</span></div>
+          <div class="sc-item"><span class="sc-item-icon">★</span><span class="sc-item-name">Editorial — Caro's Ledge</span><span></span></div>
+        </div>
+      </div>
+
+      <div class="sc-section">
+        <div class="sc-section-head"><span class="lbl">Private groups</span><span class="ct">5</span></div>
+        <div class="sc-list">
+          <div class="sc-item is-private"><span class="sc-item-icon">🔒</span><span class="sc-item-name"><b>Maersk Sustainability Team</b></span><span class="sc-unread">8</span></div>
+          <div class="sc-item is-private"><span class="sc-item-icon">🔒</span><span class="sc-item-name">CBAM Readers Circle</span><span></span></div>
+          <div class="sc-item is-private"><span class="sc-item-icon">🔒</span><span class="sc-item-name">Verifier Network</span><span class="sc-mention">1</span></div>
+        </div>
+      </div>
+
+      <div class="sc-section">
+        <div class="sc-section-head"><span class="lbl">Public forums</span><span class="ct">4</span></div>
+        <div class="sc-list">
+          <div class="sc-item"><span class="sc-item-icon">🌐</span><span class="sc-item-name"><b>EU / Europe</b></span><span class="sc-unread">38</span></div>
+          <div class="sc-item"><span class="sc-item-icon">🌐</span><span class="sc-item-name">United Kingdom</span><span></span></div>
+          <div class="sc-item"><span class="sc-item-icon">🌐</span><span class="sc-item-name">Global Cross-Jurisdictional</span><span class="sc-unread">14</span></div>
+          <div class="sc-item"><span class="sc-item-icon">🌐</span><span class="sc-item-name">United States</span><span></span></div>
+        </div>
+      </div>
+
+      <div class="sc-section">
+        <div class="sc-section-head"><span class="lbl">My topics</span><span class="ct">2</span></div>
+        <div class="sc-list">
+          <div class="sc-item"><span class="sc-item-icon">#</span><span class="sc-item-name">CBAM</span><span style="font-size:10px;color:var(--muted);font-weight:600">3 grps</span></div>
+          <div class="sc-item"><span class="sc-item-icon">#</span><span class="sc-item-name">FuelEU + SAF</span><span style="font-size:10px;color:var(--muted);font-weight:600">2 grps</span></div>
+        </div>
+      </div>
+
+      <div class="sc-section">
+        <div class="sc-section-head"><span class="lbl">Direct messages</span><span class="ct">4</span></div>
+        <div class="sc-list">
+          <div class="sc-item"><span class="sc-item-icon">●</span><span class="sc-item-name"><b>Jin-soo Kim</b></span><span class="sc-unread">3</span></div>
+          <div class="sc-item"><span class="sc-item-icon">○</span><span class="sc-item-name">Marta Olesen</span><span></span></div>
+          <div class="sc-item"><span class="sc-item-icon">●</span><span class="sc-item-name">Rosa Vega</span><span></span></div>
+        </div>
+      </div>
+
+      <div class="sc-section">
+        <div class="sc-section-head"><span class="lbl">Browse</span></div>
+        <div class="sc-list">
+          <div class="sc-item"><span class="sc-item-icon">⌗</span><span class="sc-item-name">All groups (84)</span><span></span></div>
+          <div class="sc-item"><span class="sc-item-icon">📅</span><span class="sc-item-name">Events</span><span></span></div>
+          <div class="sc-item"><span class="sc-item-icon">⛁</span><span class="sc-item-name">Vendor directory</span><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sc-foot">
+      <div class="av">SC</div>
+      <div><div class="nm">Sarah Chen</div><div class="or">Maersk · EU Desk</div></div>
+      <button style="background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:13px">⊙</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 112 · Thursday</div>
+      <h1 class="mh-title">Community</h1>
+      <div class="mh-date">Regional working groups · public forums · vendor referrals — bridge the silos between regional teams</div>
+
+      <div class="cs-search">
+        <div class="cs-search-row">
+          <span style="color:var(--accent);font-size:18px">⌕</span>
+          <input type="text" placeholder="Search posts, groups, members, vendors, regulations cited in discussions…">
+          <span class="cs-kbd">⌘K</span>
+          <button class="cs-go">Search</button>
+        </div>
+        <div class="cs-scopes">
+          <button class="cs-scope on">All</button>
+          <button class="cs-scope">Posts</button>
+          <button class="cs-scope">Groups</button>
+          <button class="cs-scope">People</button>
+          <button class="cs-scope">Vendors</button>
+          <button class="cs-scope">Events</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="region-strip">
+      <button class="region-tab on">⊙ EU / Europe <span class="ct">324</span></button>
+      <button class="region-tab">⊙ United Kingdom <span class="ct">112</span></button>
+      <button class="region-tab">⊙ United States <span class="ct">208</span></button>
+      <button class="region-tab">⊙ Latin America <span class="ct">38</span></button>
+      <button class="region-tab">⊙ Asia Pacific <span class="ct">147</span></button>
+      <button class="region-tab">⊙ Hong Kong <span class="ct">22</span></button>
+      <button class="region-tab">⊙ Middle East &amp; Africa <span class="ct">29</span></button>
+      <button class="region-tab">⏯ Global / Cross-jurisdictional <span class="ct">86</span></button>
+    </div>
+
+    <div class="body-wrap">
+      <div class="group-head">
+        <div class="gh-icon">EU</div>
+        <div style="flex:1; min-width:0">
+          <div class="gh-name">EU Compliance Council</div>
+          <div class="gh-meta">
+            <span style="color:var(--high);font-weight:800;letter-spacing:0.08em;font-size:10px">🔒 PRIVATE · INVITE-ONLY</span>
+            <span><b>42</b> members</span>
+            <span><b>12</b> new posts this week</span>
+            <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:#1A1A1A;color:#FFF">Admin</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-row">
+          <div class="av">SC</div>
+          <div style="display:flex;flex-direction:column;gap:10px;min-width:0;flex:1">
+            <textarea placeholder="Share an update, ask a question, or post a finding from your regional team…"></textarea>
+            <div class="composer-bottom">
+              <button class="composer-target"><span>🔒</span><span>EU Compliance Council · Private</span><span style="opacity:0.6">▾</span></button>
+              <button class="post-btn">Post →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="layout">
+        <div class="feed">
+          <div class="feed-head">
+            <h3>EU Compliance Council</h3>
+            <div class="feed-filter">
+              <button class="f on">All</button>
+              <button class="f">Threads</button>
+              <button class="f">Mentions</button>
+              <button class="f">Promoted</button>
+            </div>
+          </div>
+
+          <div class="post">
+            <div class="av crit">JK</div>
+            <div>
+              <div class="post-head">
+                <b>Jin-soo Kim</b>
+                <span>· Polaris Logistics · 6h ago</span>
+                <span class="group-pill">🔒 EU Compliance Council</span>
+              </div>
+              <div class="post-title">CBAM threshold cut to 2,500 kg — what's everyone doing for back-catalogue shipments?</div>
+              <div class="post-snippet">Our reading is that anything imported between Apr 1 and effective date sits in scope. Internal counsel disagrees. Has anyone put a memo together that worked?</div>
+              <div class="post-foot">
+                <span><b>38</b> replies</span>
+                <span><b>23m</b> last reply</span>
+                <span><b>8</b> participants</span>
+                <button class="promote-btn">↗ Promote to public</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="post">
+            <div class="av high">MO</div>
+            <div>
+              <div class="post-head">
+                <b>Marta Olesen</b>
+                <span>· TransAtlantic Cargo · 1d ago</span>
+                <span class="group-pill">🔒 EU Compliance Council</span>
+              </div>
+              <div class="post-title">Pooling memo template — final draft attached, reviewing for Council sign-off Friday.</div>
+              <div class="post-snippet">Last round of comments incorporated. Section 4 (verifier evidence) was the contentious one — I've split it into 4a (operator-side) and 4b (verifier-side) so each can be redlined separately…</div>
+              <div class="post-foot">
+                <span><b>14</b> replies</span>
+                <span><b>2h</b> last reply</span>
+                <span>📎 1 attachment</span>
+                <button class="promote-btn">↗ Promote to public</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="post">
+            <div class="av">RV</div>
+            <div>
+              <div class="post-head">
+                <b>Rosa Vega</b>
+                <span>· DNV Maritime · 2d ago</span>
+                <span class="group-pill">🔒 EU Compliance Council</span>
+              </div>
+              <div class="post-title">Verifier walkthrough: my notes from a January FRA audit (open to questions).</div>
+              <div class="post-snippet">Three pages of audit findings I can share inside the Council. Includes evidence patterns the auditors flagged twice. DM if you want the redacted PDF.</div>
+              <div class="post-foot">
+                <span><b>52</b> replies</span>
+                <span><b>1h</b> last reply</span>
+                <span><b>★ Verifier</b></span>
+                <button class="promote-btn">↗ Promote to public</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="post">
+            <div class="av green">CL</div>
+            <div>
+              <div class="post-head">
+                <b>Caro's Ledge</b>
+                <span>· Editorial · 3d ago</span>
+                <span class="group-pill">🔒 EU Compliance Council</span>
+              </div>
+              <div class="post-title">Briefing: CBAM amendment text — annotated for Council members</div>
+              <div class="post-snippet">Editorial team's annotated read of the amendment, with cross-references to the November draft.</div>
+              <div class="post-foot">
+                <span><b>22</b> replies</span>
+                <span><b>4h</b> last reply</span>
+                <span>📎 PDF · 9 pages</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="side-card">
+            <h4>Council members <a href="#" style="font-size:10px;font-weight:700;color:var(--accent);text-decoration:none">All 42 →</a></h4>
+            <div class="vendor-row">
+              <div class="av">JK</div>
+              <div>
+                <div class="nm">Jin-soo Kim <span class="verified">✓</span></div>
+                <div class="desc">Polaris Logistics · Head of Compliance · Seoul</div>
+              </div>
+            </div>
+            <div class="vendor-row">
+              <div class="av">MO</div>
+              <div>
+                <div class="nm">Marta Olesen</div>
+                <div class="desc">TransAtlantic Cargo · CSO · Copenhagen</div>
+              </div>
+            </div>
+            <div class="vendor-row">
+              <div class="av">RV</div>
+              <div>
+                <div class="nm">Rosa Vega <span class="verified">✓</span></div>
+                <div class="desc">DNV Maritime · Lead Verifier · Madrid</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="side-card">
+            <h4>EU vendors mentioned this week <a href="#" style="font-size:10px;font-weight:700;color:var(--accent);text-decoration:none">Directory →</a></h4>
+            <div class="vendor-row">
+              <div class="av">CH</div>
+              <div>
+                <div class="nm">Chenue <span class="verified">✓</span></div>
+                <div class="desc">EV art transport · Biofuel logistics · EU + UK</div>
+                <div class="mention">↗ Mentioned 4× this week</div>
+              </div>
+            </div>
+            <div class="vendor-row">
+              <div class="av">MT</div>
+              <div>
+                <div class="nm">Mtec Fine Art <span class="verified">✓</span></div>
+                <div class="desc">Sustainable crating · Recycled packaging · UK / EU</div>
+                <div class="mention">↗ Mentioned 2× this week</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="side-card">
+            <h4>How publishing works</h4>
+            <div style="font-size:12px;line-height:1.6;color:var(--text-2)">
+              <p style="margin:0 0 10px"><b>🔒 Private posts</b> stay inside your group.</p>
+              <p style="margin:0 0 10px"><b>🌐 Public posts</b> are visible to all members of the regional or global forum.</p>
+              <p style="margin:0"><b>↗ Promote</b> lets a group admin lift a private finding into the public forum.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+</body></html>

@@ -1,0 +1,261 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Research Pipeline</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 6px 0 14px; font-size: 11px; color: var(--text-2); }
+  .legend .it { display: inline-flex; gap: 6px; align-items: center; }
+  .legend .it::before { content: '●'; }
+  .legend .it.draft::before { color: var(--muted); }
+  .legend .it.act::before { color: var(--high); }
+  .legend .it.pub::before { color: var(--low); }
+  .legend .it.arch::before { color: var(--text-2); }
+  .legend .it b { font-weight: 800; letter-spacing: 0.06em; }
+
+  .status-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .status-strip .s { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 18px; box-shadow: var(--shadow); text-align: center; }
+  .status-strip .s .ic { font-family: var(--font-display); font-size: 16px; line-height: 1; margin-bottom: 8px; display: inline-block; }
+  .status-strip .s.draft .ic, .status-strip .s.draft .k, .status-strip .s.draft .v { color: var(--text-2); }
+  .status-strip .s.act   .ic, .status-strip .s.act   .k, .status-strip .s.act   .v { color: var(--high); }
+  .status-strip .s.pub   .ic, .status-strip .s.pub   .k, .status-strip .s.pub   .v { color: var(--low); }
+  .status-strip .s.arch  .ic, .status-strip .s.arch  .k, .status-strip .s.arch  .v { color: var(--text-2); }
+  .status-strip .s.act { background: var(--high-bg); border: 1px solid var(--high-bd); border-left: 4px solid var(--high); }
+  .status-strip .s .v { font-family: var(--font-display); font-size: 56px; line-height: 1; }
+  .status-strip .s .k { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; margin: 8px 0 4px; }
+  .status-strip .s .m { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-sub); margin-bottom: 8px; }
+  .tabs a { padding: 12px 18px; font-size: 13px; font-weight: 700; color: var(--text-2); border-bottom: 3px solid transparent; cursor: pointer; text-decoration: none; }
+  .tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; padding-top: 22px; }
+  .panel.on { display: block; }
+
+  .panel-head h3 { font-family: var(--font-display); font-size: 26px; font-weight: 400; letter-spacing: 0.02em; margin: 0 0 6px; }
+  .panel-head p { font-size: 14px; line-height: 1.5; color: var(--text-2); margin: 0 0 18px; max-width: 88ch; }
+
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .filter-bar .lab { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+  .filter-bar button { font-family: inherit; font-size: 12px; padding: 7px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; color: var(--text-2); font-weight: 700; cursor: pointer; }
+  .filter-bar button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filter-bar .search { flex: 1; min-width: 240px; padding: 8px 12px; font-family: inherit; font-size: 12px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+  .src { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .src summary { padding: 16px 20px; display: grid; grid-template-columns: 1fr auto; gap: 14px; cursor: pointer; list-style: none; align-items: center; }
+  .src summary::-webkit-details-marker { display: none; }
+  .src .ttl-row { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .src .ttl { font-size: 15px; font-weight: 700; color: var(--text); }
+  .src .meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; display: flex; gap: 14px; flex-wrap: wrap; }
+  .src .pills { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .src .pill { font-size: 9px; padding: 3px 8px; border-radius: 3px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid; }
+  .src .pill.draft { color: var(--muted); border-color: var(--border); background: var(--bg); }
+  .src .pill.act { color: var(--high); border-color: var(--high-bd); background: var(--high-bg); }
+  .src .pill.pub { color: var(--low); border-color: var(--low-bd); background: var(--low-bg); }
+  .src .pill.arch { color: var(--text-2); border-color: var(--border-sub); background: var(--bg); }
+  .src .pill.tag { color: var(--accent); border-color: var(--accent-bd); background: var(--accent-bg); }
+  .src .pill.partner { color: #6D28D9; border-color: #DDD6FE; background: #F5F3FF; }
+  .src .pill.monitor { color: #0369A1; border-color: #BAE6FD; background: #F0F9FF; }
+  .src .pill.region { color: var(--text-2); border-color: var(--border); background: var(--surface); text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .src summary::after { content: '▾'; font-size: 22px; color: var(--muted); justify-self: end; }
+  .src[open] summary::after { content: '▴'; }
+
+  .src .body { padding: 4px 20px 18px; border-top: 1px solid var(--border-sub); display: grid; grid-template-columns: 1fr 220px; gap: 24px; }
+  .src .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 14px 0 8px; }
+  .src .body .syn { font-size: 13px; line-height: 1.6; color: var(--text); margin: 0; }
+
+  .src .timeline { font-size: 12px; line-height: 1.65; }
+  .src .timeline .ev { display: grid; grid-template-columns: 88px 1fr; gap: 8px; padding: 5px 0; border-top: 1px dashed var(--border-sub); }
+  .src .timeline .ev:first-child { border-top: 0; }
+  .src .timeline .dt { font-family: var(--font-display); color: var(--muted); }
+
+  .side-card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .side-card .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .side-card.queue { border: 1px solid var(--high-bd); background: var(--high-bg); }
+  .side-card.queue .lab { color: var(--high); }
+  .side-card .big { font-family: var(--font-display); font-size: 30px; line-height: 1; color: var(--high); margin-bottom: 6px; }
+  .side-card p { font-size: 12.5px; line-height: 1.55; margin: 0; color: var(--text); }
+  .side-card .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border-sub); align-items: center; font-size: 13px; }
+  .side-card .row:first-of-type { border-top: 0; padding-top: 2px; }
+  .side-card .row .nm small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+  .side-card .row .v { font-family: var(--font-display); font-size: 14px; padding: 2px 8px; border-radius: 3px; }
+  .side-card .row .v.act { color: var(--high); background: var(--high-bg); border: 1px solid var(--high-bd); }
+  .side-card .row .v.draft { color: var(--muted); background: var(--bg); border: 1px solid var(--border); }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .src .body { grid-template-columns: 1fr; } .status-strip { grid-template-columns: 1fr 1fr; } }
+</style>
+</head><body data-accent="navy">
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html" class="active"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 112 · Thursday</div>
+      <h1 class="mh-title">Research Pipeline</h1>
+      <div class="mh-date">The regulations and consultations our team is tracking, drafting, or has already published.</div>
+
+      <div class="legend">
+        <span class="it draft"><b>Draft</b> Internal — being researched</span>
+        <span class="it act"><b>Active review</b> Awaiting expert validation</span>
+        <span class="it pub"><b>Published</b> Live in client surfaces</span>
+        <span class="it arch"><b>Archived</b> Superseded or rejected</span>
+      </div>
+
+      <div class="status-strip">
+        <div class="s draft"><div class="ic">▢</div><div class="v">14</div><div class="k">Draft</div><div class="m">Internal — researcher building the file</div></div>
+        <div class="s act"><div class="ic">◑</div><div class="v">7</div><div class="k">Active review</div><div class="m">Awaiting validator sign-off</div></div>
+        <div class="s pub"><div class="ic">●</div><div class="v">142</div><div class="k">Published</div><div class="m">Live in regulations &amp; intel</div></div>
+        <div class="s arch"><div class="ic">○</div><div class="v">23</div><div class="k">Archived</div><div class="m">Superseded or out-of-scope</div></div>
+      </div>
+    </div>
+    <div class="body-wrap">
+      <div class="ai">
+        <form class="ai-row" onsubmit="return false">
+          <span class="ai-spark">✦</span>
+          <input class="ai-input" type="text" placeholder="Ask anything about your research pipeline — e.g. What's queued for the EU?">
+          <button class="ai-submit">Ask</button>
+        </form>
+        <div class="ai-chips">
+          <button class="ai-chip">What's queued for the EU?</button>
+          <button class="ai-chip">Partner-flagged this month</button>
+          <button class="ai-chip">Show recent publishes</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <a data-tab="pipeline" class="on">Pipeline</a>
+        <a data-tab="sources">Source coverage</a>
+      </div>
+
+      <section class="panel on" data-panel="pipeline">
+        <div class="layout">
+          <div>
+            <div class="panel-head">
+              <h3>Currently in pipeline</h3>
+              <p>Filter by stage, region, or flag. Partner-flagged items came from a Caro's Ledge advisor; Monitoring items are tracked from a public regulator feed.</p>
+            </div>
+
+            <div class="filter-bar">
+              <span class="lab">Stage</span>
+              <button class="on">All (186)</button>
+              <button>Draft</button>
+              <button>Active review</button>
+              <button>Published</button>
+            </div>
+
+            <details class="src" open>
+              <summary>
+                <div>
+                  <div class="ttl-row">
+                    <span class="pill act">Active review</span>
+                    <span class="ttl">EU FuelEU Maritime — Article 6 implementing acts (vessel pooling)</span>
+                  </div>
+                  <div class="meta">
+                    <span>Regulator · <b>European Commission DG MOVE</b></span>
+                    <span>First seen · <b>14 Jan 2026</b></span>
+                    <span>Owner · <b>Rosa Vega</b></span>
+                  </div>
+                </div>
+                <div class="pills">
+                  <span class="pill region">Ocean · EU</span>
+                  <span class="pill partner">Partner-flagged</span>
+                  <span class="pill tag">Carbon pricing</span>
+                </div>
+              </summary>
+              <div class="body">
+                <div>
+                  <div class="lab">Synopsis (draft)</div>
+                  <p class="syn">Draft implementing acts on FuelEU Maritime Article 6 vessel-pooling. Two of our shipper-partners flagged this as material for 2026 reporting because the pooling mechanics will determine whether their chartered tonnage triggers a non-compliance penalty.</p>
+
+                  <div class="lab">Timeline</div>
+                  <div class="timeline">
+                    <div class="ev"><span class="dt">14 Jan</span><span>Regulator published draft acts</span></div>
+                    <div class="ev"><span class="dt">22 Jan</span><span>Partner counsel flagged via Slack</span></div>
+                    <div class="ev"><span class="dt">28 Feb</span><span>Researcher draft completed (Rosa)</span></div>
+                    <div class="ev"><span class="dt">03 Apr</span><span>Validator review — this week</span></div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+            <details class="src">
+              <summary>
+                <div>
+                  <div class="ttl-row"><span class="pill draft">Draft</span><span class="ttl">UK — proposed amendment to ETS scope (aviation domestic flights)</span></div>
+                  <div class="meta"><span>Regulator · <b>UK DESNZ</b></span><span>First seen · <b>02 Mar 2026</b></span><span>Owner · <b>Jin-soo Kim</b></span></div>
+                </div>
+                <div class="pills"><span class="pill region">Air · UK</span><span class="pill monitor">Monitoring</span></div>
+              </summary>
+            </details>
+
+            <details class="src">
+              <summary>
+                <div>
+                  <div class="ttl-row"><span class="pill act">Active review</span><span class="ttl">CARB — Advanced Clean Fleets Phase 2 (drayage clarification)</span></div>
+                  <div class="meta"><span>Regulator · <b>California Air Resources Board</b></span><span>Owner · <b>Mia Santos</b></span></div>
+                </div>
+                <div class="pills"><span class="pill region">Road · US</span><span class="pill partner">Partner-flagged</span></div>
+              </summary>
+            </details>
+          </div>
+
+          <aside>
+            <div class="side-card queue">
+              <div class="lab">Awaiting your review</div>
+              <div class="big">3 items</div>
+              <p>Two partner-flagged items and one EUR-Lex draft are ready for validator sign-off. Oldest in queue: 11 days.</p>
+            </div>
+            <div class="side-card">
+              <div class="lab">By owner — open items</div>
+              <div class="row"><span class="nm">Rosa Vega<small>EU regulatory</small></span><span class="v act">8</span></div>
+              <div class="row"><span class="nm">Jin-soo Kim<small>APAC + carbon markets</small></span><span class="v draft">5</span></div>
+              <div class="row"><span class="nm">Mia Santos<small>Americas + facility</small></span><span class="v draft">4</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="sources">
+        <div class="panel-head">
+          <h3>Source feeds &amp; coverage matrix</h3>
+          <p>Every regulation in the pipeline traces back to a primary source feed. This is what we monitor, how often, and where we still have gaps.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const a = e.target.closest('[data-tab]'); if (!a) return;
+    e.preventDefault();
+    [...tabs.children].forEach(c => c.classList.toggle('on', c === a));
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === a.dataset.tab));
+  });
+</script>
+</body></html>

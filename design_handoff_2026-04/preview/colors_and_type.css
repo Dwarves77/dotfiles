@@ -1,0 +1,227 @@
+/* ───────────────────────────────────────────────────────────
+   Caro's Ledge — Design Reference Tokens
+   Faithful mirror of fsi-app/src/app/theme.css + globals.css
+   (light theme only; this file is for the reference previews)
+   ─────────────────────────────────────────────────────────── */
+
+/* ── Type ─────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Anton&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-display: 'Anton', system-ui, sans-serif;
+
+  /* ── Surfaces ──────────────────────────────────────────── */
+  --color-background: #FAFAF8;
+  --color-surface: #FFFFFF;
+  --color-surface-raised: #F5F2EE;
+  --color-surface-raised-hover: #EFEBE5;
+  --color-surface-overlay: rgba(0,0,0,0.03);
+  --color-surface-input: rgba(0,0,0,0.04);
+
+  --color-bg-base: #FAFAF8;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-raised: #F5F2EE;
+  --color-bg-sunken: rgba(0,0,0,0.03);
+  --color-bg-ai-strip: #FFF7F0;
+
+  /* ── Text ──────────────────────────────────────────────── */
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #5A6B67;
+  --color-text-muted: #7A6E6C;
+  --color-text-disabled: #9CA3AF;
+  --color-text-link: #2563EB;
+  --color-text-inverse: #FFFFFF;
+  --color-text-accent: #E8610A;
+
+  /* ── Brand ─────────────────────────────────────────────── */
+  --color-primary: #E8610A;        /* athletic orange */
+  --color-primary-hover: #D4570A;
+  --color-secondary: #2563EB;      /* blue */
+  --color-secondary-hover: #1D4ED8;
+  --gradient-start: #E8610A;
+  --gradient-end: #2563EB;
+
+  /* ── Borders ───────────────────────────────────────────── */
+  --color-border: rgba(0,0,0,0.12);
+  --color-border-subtle: rgba(0,0,0,0.06);
+  --color-border-medium: rgba(0,0,0,0.16);
+  --color-border-strong: rgba(0,0,0,0.20);
+  --color-border-focus: #E8610A;
+  --color-border-ai: #FBD5B5;
+
+  /* ── State ─────────────────────────────────────────────── */
+  --color-error: #DC2626;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-focus-ring: #E8610A;
+
+  --color-active-bg: rgba(232,97,10,0.08);
+  --color-active-border: rgba(232,97,10,0.25);
+  --color-active-solid: #E8610A;
+  --color-active-solid-hover: #D4570A;
+
+  --color-invert-bg: #1A1A1A;
+  --color-invert-text: #FFFFFF;
+
+  /* ── Priority ──────────────────────────────────────────── */
+  --critical: #DC2626;
+  --high:     #D97706;
+  --moderate: #6B7280;
+  --low:      #9CA3AF;
+
+  --color-critical:        #DC2626;
+  --color-critical-bg:     #FEF2F2;
+  --color-critical-border: #FECACA;
+  --color-high:            #D97706;
+  --color-high-bg:         #FFF7ED;
+  --color-high-border:     #FED7AA;
+  --color-moderate:        #CA8A04;
+  --color-moderate-bg:     #FEFCE8;
+  --color-moderate-border: #FEF08A;
+  --color-low:             #16A34A;
+  --color-low-bg:          #F0FDF4;
+  --color-low-border:      #BBF7D0;
+
+  /* ── Topic ─────────────────────────────────────────────── */
+  --topic-emissions:  #5856D6;
+  --topic-fuels:      #A2845E;
+  --topic-transport:  #16A34A;
+  --topic-reporting:  #9333EA;
+  --topic-packaging:  #E11D48;
+  --topic-corridors:  #2563EB;
+  --topic-research:   #0891B2;
+
+  /* ── Impact dimensions ─────────────────────────────────── */
+  --impact-cost:        #CA8A04;
+  --impact-compliance:  #9333EA;
+  --impact-client:      #0D9488;
+  --impact-operational: #2563EB;
+
+  /* ── Shadows ───────────────────────────────────────────── */
+  --shadow-card:        0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-card-hover:  0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  --shadow-stat-hover:  0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+
+  /* ── Radius ────────────────────────────────────────────── */
+  --radius-sm:  6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* ── Transitions ───────────────────────────────────────── */
+  --transition-fast: 0.12s ease;
+  --transition-base: 0.18s ease;
+}
+
+/* ───────────────────────────────────────────────────
+   BASE
+   ─────────────────────────────────────────────────── */
+html, body {
+  margin: 0;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ───────────────────────────────────────────────────
+   CARDS  (from globals.css — the unified system)
+   ─────────────────────────────────────────────────── */
+.cl-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base);
+}
+.cl-card:hover { box-shadow: var(--shadow-card-hover); }
+
+.cl-stat-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  cursor: pointer;
+}
+.cl-stat-card:hover {
+  box-shadow: var(--shadow-stat-hover);
+  transform: translateY(-2px);
+}
+
+.cl-row-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base);
+}
+.cl-row-card:hover { box-shadow: var(--shadow-card-hover); }
+
+.cl-priority-critical { border-left: 3px solid var(--color-critical); }
+.cl-priority-high     { border-left: 3px solid var(--color-high); }
+.cl-priority-moderate { border-left: 3px solid var(--color-moderate); }
+.cl-priority-low      { border-left: 3px solid var(--color-low); }
+
+/* ───────────────────────────────────────────────────
+   TYPE
+   ─────────────────────────────────────────────────── */
+.cl-page-title    { font-size: 20px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.01em; }
+.cl-section-label { font-size: 10px; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.cl-card-title    { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
+.cl-card-body     { font-size: 14px; font-weight: 400; color: var(--color-text-secondary); line-height: 1.55; }
+.cl-card-meta     { font-size: 11px; font-weight: 500; color: var(--color-text-muted); }
+.cl-stat-number   { font-size: 34px; font-weight: 900; color: var(--color-text-primary); line-height: 1; }
+
+/* ───────────────────────────────────────────────────
+   PRIORITY BADGES
+   ─────────────────────────────────────────────────── */
+.cl-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  text-transform: uppercase;
+}
+.cl-badge-critical { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.cl-badge-high     { background: var(--color-high-bg);     color: var(--color-high);     border-color: var(--color-high-border); }
+.cl-badge-moderate { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
+.cl-badge-low      { background: var(--color-low-bg);      color: var(--color-low);      border-color: var(--color-low-border); }
+
+/* ───────────────────────────────────────────────────
+   AI PROMPT BAR
+   ─────────────────────────────────────────────────── */
+.cl-ai-bar {
+  background: var(--color-bg-ai-strip);
+  border: 1px solid var(--color-border-ai);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* ───────────────────────────────────────────────────
+   GRADIENT SEVERITY BARS
+   ─────────────────────────────────────────────────── */
+.gradient-bar-low      { background: var(--color-low); }
+.gradient-bar-moderate { background: linear-gradient(90deg, var(--color-low), var(--color-moderate)); }
+.gradient-bar-high     { background: linear-gradient(90deg, var(--color-low), var(--color-moderate) 50%, var(--color-high)); }
+.gradient-bar-critical { background: linear-gradient(90deg, var(--color-low), var(--color-moderate) 33%, var(--color-high) 66%, var(--color-critical)); }
+.gradient-bar          { background: linear-gradient(90deg, var(--color-primary), var(--color-secondary)); }
+
+/* ───────────────────────────────────────────────────
+   SELECTION / FOCUS
+   ─────────────────────────────────────────────────── */
+::selection { background: rgba(232, 97, 10, 0.15); color: var(--color-text-primary); }
+:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }

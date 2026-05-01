@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Caro's Ledge — Design Reference</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { box-sizing: border-box; }
+  .page { max-width: 1080px; margin: 0 auto; padding: 40px 32px 80px; }
+  header { margin-bottom: 32px; }
+  .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-primary); margin-bottom: 8px; }
+  h1 { font-family: var(--font-display); font-size: 44px; font-weight: 400; letter-spacing: 0.02em; text-transform: uppercase; margin: 0; color: var(--color-text-primary); line-height: 1; }
+  .sub { margin-top: 10px; color: var(--color-text-secondary); font-size: 15px; max-width: 64ch; line-height: 1.5; }
+  h2 { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-muted); margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-subtle); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .card { display: block; padding: 16px 18px; text-decoration: none; color: inherit; }
+  .card .label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px; }
+  .card .title { font-size: 15px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
+  .card .desc { font-size: 13px; color: var(--color-text-secondary); line-height: 1.45; }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--color-border-subtle); font-size: 12px; color: var(--color-text-muted); }
+  code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; background: var(--color-bg-raised); padding: 1px 5px; border-radius: 3px; color: var(--color-text-primary); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">Design Reference</div>
+    <h1>Caro's Ledge</h1>
+    <p class="sub">Light-first, Apple-HIG inspired. Semantic tokens only. These pages document the tokens and components defined in <code>fsi-app/src/app/theme.css</code> and <code>globals.css</code>.</p>
+  </header>
+
+  <h2>Foundations</h2>
+  <div class="grid">
+    <a class="card cl-card" href="tokens-surfaces.html"><div class="label">Color · Surfaces &amp; text</div><div class="title">Surfaces, text &amp; borders</div><div class="desc">Background, surface, raised, sunken, AI strip. Primary, secondary, muted, link, inverse.</div></a>
+    <a class="card cl-card" href="tokens-brand.html"><div class="label">Color · Brand</div><div class="title">Primary, secondary &amp; gradient</div><div class="desc">Orange <code>#E8610A</code>, blue <code>#2563EB</code>, and the start–end gradient.</div></a>
+    <a class="card cl-card" href="tokens-priority.html"><div class="label">Color · Priority</div><div class="title">Critical · High · Moderate · Low</div><div class="desc">Text, bg, border triad per level. Used on badges, row accents and gradient bars.</div></a>
+    <a class="card cl-card" href="tokens-topic-impact.html"><div class="label">Color · Topic &amp; impact</div><div class="title">Topic colors &amp; impact dimensions</div><div class="desc">Emissions, fuels, transport… and the four impact dimensions.</div></a>
+    <a class="card cl-card" href="type-scale.html"><div class="label">Type</div><div class="title">Plus Jakarta Sans + Anton</div><div class="desc">Page title, section label, card title/body/meta, stat number.</div></a>
+    <a class="card cl-card" href="spacing-radius-shadow.html"><div class="label">Tokens</div><div class="title">Radius, shadow &amp; transitions</div><div class="desc">Four radii, three card shadows, two transition speeds.</div></a>
+  </div>
+
+  <h2>Surfaces</h2>
+  <div class="grid">
+    <a class="card cl-card" href="patterns.html" style="grid-column: span 2;"><div class="label">↩ Foundation</div><div class="title">Pattern Library — locked components</div><div class="desc">Single source of truth for every component used across the site.</div></a>
+    <a class="card cl-card" href="dashboard-v3.html" style="grid-column: span 2;"><div class="label">Prototype · Landing</div><div class="title">Dashboard v3 — current direction</div><div class="desc">Built from the locked patterns. Navy accent, urgency colors for priority/deadlines, unified section cards.</div></a>
+    <a class="card cl-card" href="regulations.html"><div class="label">App · Regulations</div><div class="title">Regulations list</div><div class="desc">Kanban / card-grid as Tweak variants. Filters, owner, due, status.</div></a>
+    <a class="card cl-card" href="regulation-detail.html"><div class="label">App · Detail</div><div class="title">Regulation detail page</div><div class="desc">Tabs, timeline, exposure calculator, lanes, attached notes.</div></a>
+    <a class="card cl-card" href="market-intel.html"><div class="label">App · Market Intel</div><div class="title">Market intel</div><div class="desc">Carbon prices, regulatory signals timeline, lane risk index, watchlist.</div></a>
+    <a class="card cl-card" href="research.html"><div class="label">App · Research</div><div class="title">Research</div><div class="desc">Editorial long-form feature, article grid, briefing list, topic chips.</div></a>
+    <a class="card cl-card" href="operations.html"><div class="label">App · Operations</div><div class="title">Operations</div><div class="desc">Lane exposure heatmap, filing calendar, fleet status with CII grades.</div></a>
+    <a class="card cl-card" href="map.html"><div class="label">App · Map</div><div class="title">Map (real / editorial)</div><div class="desc">Jurisdictional overlay with two visual styles toggleable via Tweaks.</div></a>
+    <a class="card cl-card" href="community.html"><div class="label">App · Community</div><div class="title">Community</div><div class="desc">Discussion threads, member spotlight, leaderboards, events.</div></a>
+    <a class="card cl-card" href="admin.html"><div class="label">App · Admin</div><div class="title">Admin (platform-ops)</div><div class="desc">Organizations directory, integrations, sources, staged updates, regulatory scan, audit.</div></a>
+    <a class="card cl-card" href="profile.html"><div class="label">App · Profile</div><div class="title">Profile</div><div class="desc">Personal, organization, members &amp; roles, billing, sectors, jurisdictions, verifier badge, activity.</div></a>
+    <a class="card cl-card" href="settings.html"><div class="label">App · Settings</div><div class="title">Settings</div><div class="desc">General, dashboard, exports, data &amp; supersessions, archive.</div></a>
+  </div>
+
+  <h2>Components</h2>
+  <div class="grid">
+    <a class="card cl-card" href="cards.html"><div class="label">Component · Cards</div><div class="title">cl-card · cl-stat-card · cl-row-card</div><div class="desc">The three-card system.</div></a>
+    <a class="card cl-card" href="badges.html"><div class="label">Component · Badges</div><div class="title">Priority badges</div><div class="desc">Pill-shaped, colored bg + border + text per priority level.</div></a>
+    <a class="card cl-card" href="gradient-bars.html"><div class="label">Component · Gradient bars</div><div class="title">Severity spectrum bars</div><div class="desc">Green→amber→red gradient bars used on impact dimensions.</div></a>
+    <a class="card cl-card" href="ai-bar.html"><div class="label">Component · AI bar</div><div class="title">AI prompt bar</div><div class="desc">Soft strip with ask-anything prompt + primary CTA.</div></a>
+  </div>
+
+  <footer>
+    Reference for <code>fsi-app</code>. Do not edit repo files from here.
+  </footer>
+</div>
+</body>
+</html>

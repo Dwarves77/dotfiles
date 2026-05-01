@@ -1,0 +1,275 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Market Intelligence</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 6px 0 14px; font-size: 11px; color: var(--text-2); }
+  .legend .it { display: inline-flex; gap: 6px; align-items: center; }
+  .legend .it::before { content: '●'; }
+  .legend .it.watch::before { color: var(--critical); }
+  .legend .it.elev::before { color: var(--high); }
+  .legend .it.stab::before { color: var(--moderate); }
+  .legend .it.info::before { color: var(--low); }
+  .legend .it b { font-weight: 800; letter-spacing: 0.06em; }
+
+  .status-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .status-strip .s { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 18px; box-shadow: var(--shadow); text-align: center; position: relative; }
+  .status-strip .s .ic { font-family: var(--font-display); font-size: 16px; line-height: 1; margin-bottom: 8px; display: inline-block; }
+  .status-strip .s.watch .ic, .status-strip .s.watch .k, .status-strip .s.watch .v { color: var(--critical); }
+  .status-strip .s.elev  .ic, .status-strip .s.elev  .k, .status-strip .s.elev  .v { color: var(--high); }
+  .status-strip .s.stab  .ic, .status-strip .s.stab  .k, .status-strip .s.stab  .v { color: var(--moderate); }
+  .status-strip .s.info  .ic, .status-strip .s.info  .k, .status-strip .s.info  .v { color: var(--low); }
+  .status-strip .s.watch { background: var(--critical-bg); border: 1px solid var(--critical-bd); border-left: 4px solid var(--critical); }
+  .status-strip .s .v { font-family: var(--font-display); font-size: 56px; line-height: 1; font-weight: 400; }
+  .status-strip .s .k { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; margin: 8px 0 4px; }
+  .status-strip .s .m { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-sub); margin-bottom: 8px; }
+  .tabs a { padding: 12px 18px; font-size: 13px; font-weight: 700; color: var(--text-2); border-bottom: 3px solid transparent; cursor: pointer; text-decoration: none; }
+  .tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; padding-top: 22px; }
+  .panel.on { display: block; }
+
+  .panel-head h3 { font-family: var(--font-display); font-size: 26px; font-weight: 400; letter-spacing: 0.02em; margin: 0 0 6px; }
+  .panel-head p { font-size: 14px; line-height: 1.5; color: var(--text-2); margin: 0 0 22px; max-width: 88ch; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+  .cat { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .cat summary { padding: 16px 20px; display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: center; cursor: pointer; list-style: none; }
+  .cat summary::-webkit-details-marker { display: none; }
+  .cat summary::after { content: '▾'; font-size: 22px; color: var(--muted); justify-self: end; padding: 0 4px; }
+  .cat[open] summary::after { content: '▴'; }
+  .cat .icobox { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--accent-strip); border: 1px solid var(--accent-strip-bd); display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 16px; }
+  .cat .ttl { font-size: 15px; font-weight: 700; color: var(--text); }
+  .cat .desc { font-size: 12.5px; color: var(--text-2); margin-top: 3px; line-height: 1.45; }
+  .cat .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .cat .chip { font-size: 10px; padding: 2px 8px; background: var(--bg); border: 1px solid var(--border-sub); border-radius: 3px; color: var(--text-2); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .cat .body { padding: 4px 20px 20px; border-top: 1px solid var(--border-sub); }
+  .cat .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 16px 0 10px; }
+  .cat .metric-row { background: var(--bg); border: 1px solid var(--border-sub); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+  .cat .metric-row .nm { font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .cat .metric-row .vv { font-family: var(--font-display); font-size: 22px; line-height: 1; color: var(--text); margin-top: 4px; }
+
+  .price-cat { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); margin-bottom: 12px; box-shadow: var(--shadow); }
+  .price-cat summary { padding: 14px 20px; cursor: pointer; list-style: none; display: flex; gap: 12px; align-items: center; }
+  .price-cat summary::-webkit-details-marker { display: none; }
+  .price-cat summary::after { content: '▾'; font-size: 20px; color: var(--muted); margin-left: auto; }
+  .price-cat[open] summary::after { content: '▴'; }
+  .price-cat .tag { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 3px 8px; background: var(--bg); border: 1px solid var(--border-sub); border-radius: 3px; }
+  .price-cat .ttl { font-size: 15px; font-weight: 700; }
+  .price-cat .alert { color: var(--high); font-size: 14px; margin-left: auto; margin-right: 8px; }
+  .price-cat .desc { font-size: 12.5px; color: var(--text-2); margin: 0 20px 12px 20px; line-height: 1.5; }
+
+  .price-row { background: var(--bg); margin: 6px 14px; border-radius: var(--r-sm); padding: 14px 16px; position: relative; border: 1px solid var(--border-sub); }
+  .price-row .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .price-row .nm { font-size: 14px; font-weight: 700; }
+  .price-row .unit { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .price-row .why { background: var(--surface); border-left: 3px solid var(--high); border-radius: var(--r-sm); padding: 10px 14px; font-size: 12.5px; line-height: 1.55; }
+  .price-row .why b { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--high); margin-bottom: 3px; }
+
+  .side-card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .side-card.alert { border: 1px solid var(--high-bd); background: var(--high-bg); }
+  .side-card .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .side-card.alert .lab { color: var(--high); }
+  .side-card .big { font-family: var(--font-display); font-size: 30px; line-height: 1; color: var(--high); margin-bottom: 6px; }
+  .side-card p { font-size: 12.5px; line-height: 1.55; margin: 0; color: var(--text); }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .status-strip { grid-template-columns: 1fr 1fr; } }
+</style>
+</head><body data-accent="navy">
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html" class="active"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 112 · Thursday</div>
+      <h1 class="mh-title">Market Intelligence</h1>
+      <div class="mh-date">Track how emerging technology, commodity prices, and trade policy shifts will affect your freight costs and carrier options.</div>
+
+      <div class="legend">
+        <span class="it watch"><b>Watch</b> Threshold breached</span>
+        <span class="it elev"><b>Elevated</b> Significant movement</span>
+        <span class="it stab"><b>Stable</b> Within normal range</span>
+        <span class="it info"><b>Informational</b> Background awareness</span>
+      </div>
+
+      <div class="status-strip">
+        <div class="s watch"><div class="ic">⚠</div><div class="v">2</div><div class="k">Watch</div><div class="m">Threshold breached — immediate cost impact</div></div>
+        <div class="s elev"><div class="ic">▴</div><div class="v">5</div><div class="k">Elevated</div><div class="m">Significant movement — review models</div></div>
+        <div class="s stab"><div class="ic">⊙</div><div class="v">14</div><div class="k">Stable</div><div class="m">Within normal range — monitor</div></div>
+        <div class="s info"><div class="ic">⏯</div><div class="v">8</div><div class="k">Informational</div><div class="m">Background awareness</div></div>
+      </div>
+    </div>
+    <div class="body-wrap">
+      <div class="ai">
+        <form class="ai-row" onsubmit="return false">
+          <span class="ai-spark">✦</span>
+          <input class="ai-input" type="text" placeholder="Ask anything about market intel — e.g. What's the cost outlook for SAF fuel?">
+          <button class="ai-submit">Ask</button>
+        </form>
+        <div class="ai-chips">
+          <button class="ai-chip">SAF cost outlook</button>
+          <button class="ai-chip">Carbon pricing on ocean freight</button>
+          <button class="ai-chip">Diesel forward curve</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <a data-tab="tech" class="on">Technology Readiness</a>
+        <a data-tab="prices">Price Signals &amp; Trade</a>
+      </div>
+
+      <section class="panel on" data-panel="tech">
+        <div class="layout">
+          <div>
+            <div class="panel-head">
+              <h3>Energy &amp; Technology Innovation</h3>
+              <p>Category-level tracking across transport energy and technology. Cost curves, deployment status, and policy signals.</p>
+            </div>
+
+            <details class="cat" open>
+              <summary>
+                <span class="icobox">⚡</span>
+                <div>
+                  <div class="ttl">Battery &amp; Electric Vehicles</div>
+                  <div class="desc">Battery technology trajectories. EV commercial vehicles, charging infrastructure, range/payload economics by region.</div>
+                  <div class="chips"><span class="chip">ROAD</span><span class="chip">TRL 7–9</span></div>
+                </div>
+              </summary>
+              <div class="body">
+                <div class="lab">Key metrics</div>
+                <div class="metric-row"><div><div class="nm">Li-ion pack cost (2024)</div><div class="vv">$115/kWh</div></div></div>
+                <div class="metric-row"><div><div class="nm">Class 8 EV range</div><div class="vv">150–300 mi</div></div></div>
+                <div class="metric-row"><div><div class="nm">EV truck TCO parity</div><div class="vv">2026–2028 est.</div></div></div>
+              </div>
+            </details>
+
+            <details class="cat">
+              <summary>
+                <span class="icobox">⛽</span>
+                <div>
+                  <div class="ttl">Sustainable Aviation Fuel</div>
+                  <div class="desc">SAF production capacity by feedstock pathway, cost premium by region, and mandate compliance timelines.</div>
+                  <div class="chips"><span class="chip">AIR</span><span class="chip">TRL 8–9</span></div>
+                </div>
+              </summary>
+            </details>
+
+            <details class="cat">
+              <summary>
+                <span class="icobox">⊕</span>
+                <div>
+                  <div class="ttl">Green Hydrogen</div>
+                  <div class="desc">Green H₂ cost curves by production pathway, refueling infrastructure by corridor.</div>
+                  <div class="chips"><span class="chip">ROAD</span><span class="chip">OCEAN</span><span class="chip">TRL 5–7</span></div>
+                </div>
+              </summary>
+            </details>
+
+            <details class="cat">
+              <summary>
+                <span class="icobox">⛴</span>
+                <div>
+                  <div class="ttl">Marine Alternative Fuels</div>
+                  <div class="desc">Ammonia, methanol, biofuels, LNG — vessel order books, fuel availability by port.</div>
+                  <div class="chips"><span class="chip">OCEAN</span><span class="chip">TRL 6–8</span></div>
+                </div>
+              </summary>
+            </details>
+          </div>
+
+          <aside>
+            <div class="side-card alert">
+              <div class="lab">Watch this week</div>
+              <div class="big">2 alerts</div>
+              <p>EUA carbon price crossed €92 — third weekly close above resistance. Singapore green bunker pricing jumped 8.3% on stricter port-side rules.</p>
+            </div>
+            <div class="side-card">
+              <div class="lab">Methodology</div>
+              <p>TRL bands per IEA. Status pills based on 30-day moving averages crossing pre-set vol thresholds. Sources updated daily, weekly, or quarterly as marked.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="prices">
+        <div class="layout">
+          <div>
+            <div class="panel-head">
+              <h3>Geopolitical &amp; Market Signals</h3>
+              <p>Commodity prices, carbon markets, trade restrictions, critical minerals, and shipping chokepoint monitoring.</p>
+            </div>
+
+            <details class="price-cat" open>
+              <summary><span class="tag">Energy prices</span><span class="ttl">Crude Oil &amp; Jet Fuel</span><span class="alert">⚠</span></summary>
+              <p class="desc">Brent crude, WTI, and jet fuel spot prices by hub. Direct input to air and ocean freight surcharges.</p>
+              <div class="price-row">
+                <div class="head"><div class="nm">Brent crude</div><div class="unit">USD/barrel</div></div>
+                <div class="why"><b>Why this matters to your business</b>Directly determines bunker fuel surcharges on every ocean freight invoice. A $10/bbl move translates to roughly $15–25 per TEU on major trade lanes.</div>
+              </div>
+              <div class="price-row">
+                <div class="head"><div class="nm">Jet fuel (Singapore)</div><div class="unit">USD/gallon</div></div>
+                <div class="why"><b>Why this matters to your business</b>Sets the fuel surcharge for all air cargo moving through Asia-Pacific. Singapore MOPS is the reference price for most Asian carriers.</div>
+              </div>
+            </details>
+
+            <details class="price-cat">
+              <summary><span class="tag">Carbon markets</span><span class="ttl">EUA, UK ETS &amp; CORSIA</span><span class="alert">⚠</span></summary>
+              <p class="desc">Emissions allowance prices and offset benchmarks.</p>
+            </details>
+
+            <details class="price-cat">
+              <summary><span class="tag">Chokepoints</span><span class="ttl">Suez · Panama · Strait of Hormuz</span></summary>
+              <p class="desc">Transit volume, draft restrictions, and security advisories for the world's critical shipping chokepoints.</p>
+            </details>
+          </div>
+
+          <aside>
+            <div class="side-card alert">
+              <div class="lab">Two thresholds breached</div>
+              <div class="big">EUA · €92</div>
+              <p>EUA carbon price closed above €92 for the third consecutive week. Singapore jet fuel jumped 8.3% w/w.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const a = e.target.closest('[data-tab]'); if (!a) return;
+    e.preventDefault();
+    [...tabs.children].forEach(c => c.classList.toggle('on', c === a));
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === a.dataset.tab));
+  });
+</script>
+</body></html>

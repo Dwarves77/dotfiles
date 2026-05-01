@@ -1,0 +1,333 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Dashboard v3 — merged</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Anton&display=swap');
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-display: 'Anton', system-ui, sans-serif;
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --raised: #F5F2EE;
+    --text: #1A1A1A;
+    --text-2: #5A6B67;
+    --muted: #7A6E6C;
+    --border: rgba(0,0,0,0.12);
+    --border-sub: rgba(0,0,0,0.06);
+    --critical: #DC2626; --critical-bg: #FEF2F2; --critical-bd: #FECACA;
+    --high: #D97706; --high-bg: #FFF7ED; --high-bd: #FED7AA;
+    --moderate: #CA8A04; --moderate-bg: #FEFCE8; --moderate-bd: #FEF08A;
+    --low: #16A34A; --low-bg: #F0FDF4; --low-bd: #BBF7D0;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+
+    --accent: #0F766E;
+    --accent-hover: #0B5E58;
+    --accent-bg: rgba(15,118,110,0.08);
+    --accent-bd: rgba(15,118,110,0.25);
+    --accent-strip: #F0FAF9;
+    --accent-strip-bd: #B8E0DC;
+  }
+  body[data-accent="slate"] {
+    --accent: #2563EB; --accent-hover: #1D4ED8;
+    --accent-bg: rgba(37,99,235,0.08); --accent-bd: rgba(37,99,235,0.25);
+    --accent-strip: #EFF4FE; --accent-strip-bd: #BFD3FA;
+  }
+  body[data-accent="navy"] {
+    --accent: #1E3A8A; --accent-hover: #172E6F;
+    --accent-bg: rgba(30,58,138,0.08); --accent-bd: rgba(30,58,138,0.25);
+    --accent-strip: #EEF1F9; --accent-strip-bd: #C4CEE8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+  .switch { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--border-sub); padding: 10px 28px; display: flex; align-items: center; gap: 14px; font-size: 12px; }
+  .switch .lbl { font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .switch .sw { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); font-weight: 700; cursor: pointer; background: var(--surface); color: var(--text); font-family: inherit; font-size: 12px; }
+  .switch .sw.on { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-bd); }
+  .switch .dot { width: 10px; height: 10px; border-radius: 999px; }
+
+  .app { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 40px); transition: grid-template-columns 0.22s ease; }
+  .app.collapsed { grid-template-columns: 56px 1fr; }
+
+  .side { background: var(--surface); border-right: 1px solid var(--border-sub); padding: 16px 0 20px; position: sticky; top: 41px; height: calc(100vh - 41px); overflow: hidden; display: flex; flex-direction: column; align-self: start; }
+  .side .brand { padding: 0 20px 16px; border-bottom: 1px solid var(--border-sub); flex-shrink: 0; }
+  .side .brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .side .brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand-text { transition: opacity 0.18s ease; }
+  .side-foot { flex-shrink: 0; padding: 10px 14px 0; border-top: 1px solid var(--border-sub); display: flex; justify-content: flex-end; }
+  .side-toggle { width: 28px; height: 28px; border-radius: 6px; background: transparent; border: 1px solid var(--border-sub); color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; padding: 0; transition: background 0.15s, color 0.15s; }
+  .side-toggle:hover { background: var(--raised); color: var(--text); }
+  .side nav { padding: 12px 10px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+  .side nav .nav-group { display: flex; flex-direction: column; }
+  .side nav .nav-spacer { flex: 1; min-height: 12px; }
+  .side nav .nav-divider { height: 1px; background: var(--border-sub); margin: 8px 12px; flex-shrink: 0; }
+  .side nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; color: var(--text-2); border-radius: var(--r-sm); text-decoration: none; margin-bottom: 2px; white-space: nowrap; overflow: hidden; }
+  .side nav a:hover { background: var(--raised); color: var(--text); }
+  .side nav a.active { background: var(--accent-bg); color: var(--accent); }
+  .side nav .ico { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+  .side nav .lbl { transition: opacity 0.18s ease; }
+
+  .app.collapsed .side .brand { padding: 0 8px 16px; }
+  .app.collapsed .brand-text { opacity: 0; pointer-events: none; height: 0; overflow: hidden; }
+  .app.collapsed .side-foot { justify-content: center; padding: 10px 6px 0; }
+  .app.collapsed .side nav { padding: 12px 6px; }
+  .app.collapsed .side nav a { justify-content: center; padding: 10px 0; }
+  .app.collapsed .side nav .lbl { opacity: 0; width: 0; pointer-events: none; }
+
+  @media (max-width: 767px) {
+    body { padding: 0; }
+    .back { left: 60px; top: 14px; }
+    .app, .app.collapsed { grid-template-columns: 1fr; }
+    .side { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; z-index: 50; transform: translateX(-100%); transition: transform 0.22s ease; box-shadow: 4px 0 16px rgba(0,0,0,0.18); background: var(--surface); }
+    .app.collapsed .side { width: 260px; }
+    .app.collapsed .brand-text { opacity: 1; width: auto; height: auto; pointer-events: auto; }
+    .app.collapsed .side nav a { justify-content: flex-start; padding: 10px 12px; }
+    .app.collapsed .side nav .lbl { opacity: 1; width: auto; pointer-events: auto; }
+    .app.collapsed .side-toggle { position: static; transform: none; }
+    .side-toggle { display: none; }
+    .app.mobile-open .side { transform: translateX(0); }
+    .mobile-burger { display: inline-flex; }
+    .app.mobile-open .mobile-scrim { opacity: 1; pointer-events: auto; }
+    .main { padding-top: 56px; }
+
+    .masthead { padding: 22px 18px 22px; }
+    .mh-title { font-size: 28px; word-break: break-word; }
+    .mh-eyebrow { font-size: 9px; }
+    .mh-date { font-size: 11px; }
+
+    .hero { grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .h-card { padding: 14px 16px; }
+    .h-n { font-size: 56px; }
+    .h-card.crit .h-n { font-size: 64px; }
+
+    .ai { padding: 12px; margin-bottom: 22px; }
+    .ai-row { flex-wrap: wrap; padding: 6px; }
+    .ai-input { min-width: 0; width: 100%; padding: 10px 8px; }
+
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    .rep-row { grid-template-columns: 1fr 1fr; }
+    .section { margin-bottom: 26px; }
+    .brief { padding: 18px; }
+    .brief .title { font-size: 16px; }
+
+    [class*="grid-cols-3"], [class*="grid-cols-4"], [class*="grid-cols-5"] { grid-template-columns: 1fr 1fr !important; }
+  }
+  @media (max-width: 480px) {
+    .hero { grid-template-columns: 1fr; }
+    .rep-row { grid-template-columns: 1fr; }
+    .mh-title { font-size: 24px; }
+  }
+  .mobile-burger { display: none; position: fixed; top: 12px; left: 12px; z-index: 60; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; align-items: center; justify-content: center; font-size: 18px; box-shadow: var(--shadow); }
+  .mobile-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.18s; }
+  @media (max-width: 767px) { .mobile-scrim { display: block; } }
+
+  .main { padding: 0; max-width: 1280px; }
+
+  .masthead { background: var(--raised); border-bottom: 1px solid var(--border-sub); padding: 30px 36px 34px; position: relative; }
+  .masthead::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--critical)); }
+  .mh-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .mh-title { font-family: var(--font-display); font-size: 44px; font-weight: 400; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text); margin: 0 0 6px; line-height: 1; }
+  .mh-date { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+
+  .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 14px; margin-top: 24px; }
+  .h-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 22px; position: relative; box-shadow: var(--shadow); }
+  .h-card.crit { background: linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 55%); border-color: #FECACA; }
+  .h-card.crit::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--critical); border-radius: var(--r-lg) 0 0 var(--r-lg); }
+  .h-k { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; color: var(--muted); }
+  .h-card.crit .h-k { color: var(--critical); }
+  .h-card.high .h-k { color: var(--high); }
+  .h-card.mod  .h-k { color: var(--moderate); }
+  .h-card.low  .h-k { color: var(--low); }
+  .h-n { font-family: var(--font-display); font-size: 72px; font-weight: 400; line-height: 0.88; letter-spacing: -0.01em; color: var(--text); font-variant-numeric: tabular-nums; }
+  .h-card.crit .h-n { font-size: 84px; color: var(--critical); }
+  .h-card.high .h-n { color: var(--high); }
+  .h-card.mod  .h-n { color: var(--moderate); }
+  .h-card.low  .h-n { color: var(--low); }
+  .h-l { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 6px; }
+  .h-m { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+
+  .body-wrap { padding: 28px 36px 60px; }
+
+  .ai { background: var(--accent-strip); border: 1px solid var(--accent-strip-bd); border-radius: var(--r-lg); padding: 16px 18px 14px; margin-bottom: 32px; }
+  .ai-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--accent-bd); border-radius: 999px; padding: 6px 8px 6px 16px; }
+  .ai-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+  .ai-spark { color: var(--accent); font-size: 16px; }
+  .ai-input { flex: 1; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; color: var(--text); padding: 8px 0; }
+  .ai-input::placeholder { color: var(--muted); }
+  .ai-submit { background: var(--accent); color: #fff; border: 0; border-radius: 999px; font-weight: 700; font-size: 13px; font-family: inherit; padding: 9px 18px; cursor: pointer; }
+  .ai-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-left: 4px; }
+  .ai-chip { font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px; background: var(--surface); border: 1px solid var(--accent-bd); color: var(--accent); cursor: pointer; font-family: inherit; }
+  .ai-chip:hover { background: var(--accent); color: #fff; }
+
+  .sh { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 10px; border-bottom: 2px solid var(--text); margin-bottom: 18px; }
+  .sh h2 { font-family: var(--font-display); font-size: 30px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; line-height: 1; }
+  .sh .aside { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
+  .sh .aside b { color: var(--text); font-weight: 800; }
+  .section { margin-bottom: 40px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .brief { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px 24px; box-shadow: var(--shadow); }
+  .brief .title { font-size: 18px; font-weight: 800; color: var(--text); margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-sub); letter-spacing: -0.01em; }
+  .brief .summary { font-size: 13.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 14px; }
+  .brief .summary b { color: var(--text); }
+  .brief ul { list-style: none; padding: 0; margin: 0; }
+  .brief li { display: grid; grid-template-columns: 4px 1fr auto; gap: 14px; padding: 11px 0; border-top: 1px solid var(--border-sub); align-items: center; }
+  .brief li:first-child { border-top: 0; padding-top: 4px; }
+  .brief li .rule { align-self: stretch; border-radius: 2px; }
+  .brief li .t { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .brief li .m { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .side-meta { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .side-meta.crit { color: var(--critical); }
+  .side-meta.high { color: var(--high); }
+  .side-meta.mod  { color: var(--moderate); }
+
+  .wc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 22px 20px; box-shadow: var(--shadow); }
+  .wc-h { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-sub); letter-spacing: -0.01em; }
+  .wc-summary { font-size: 13.5px; color: var(--text-2); line-height: 1.55; margin: 0 0 14px; }
+  .wc-summary b { color: var(--text); }
+  .wc-item { display: grid; grid-template-columns: 3px 1fr auto; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border-sub); align-items: flex-start; }
+  .wc-summary + .wc-item, .wc-item:first-of-type { border-top: 0; padding-top: 2px; }
+  .wc-item .rule { align-self: stretch; border-radius: 2px; min-height: 28px; }
+  .wc-label { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+  .wc-label.new-crit { color: var(--critical); }
+  .wc-label.new { color: var(--low); }
+  .wc-label.upd.high { color: var(--high); }
+  .wc-label.upd.mod  { color: var(--moderate); }
+  .wc-item .t { font-size: 13.5px; font-weight: 700; color: var(--text); }
+  .wc-item .m { font-size: 11.5px; color: var(--text-2); margin-top: 2px; line-height: 1.4; }
+
+  .badge { display: inline-flex; align-items: center; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 999px; border: 1px solid; text-transform: uppercase; }
+  .badge.crit { background: var(--critical-bg); color: var(--critical); border-color: var(--critical-bd); }
+  .badge.high { background: var(--high-bg); color: var(--high); border-color: var(--high-bd); }
+  .badge.mod  { background: var(--moderate-bg); color: var(--moderate); border-color: var(--moderate-bd); }
+
+  .rep-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .rep { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 12px 14px; position: relative; }
+  .rep .arrow { position: absolute; top: 10px; right: 12px; color: var(--muted); font-size: 13px; font-weight: 700; }
+  .rep .t { font-size: 13px; font-weight: 700; color: var(--text); }
+  .rep .m { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+  .back { color: var(--muted); font-size: 12px; text-decoration: none; padding: 10px 32px 0; display: block; }
+</style>
+</head><body data-accent="navy">
+
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger" aria-label="Open menu">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-text">
+        <div class="n">Caro's Ledge</div>
+        <div class="t">Freight Sustainability Intelligence</div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html" class="active"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group">
+        <a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a>
+      </div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot">
+      <button class="side-toggle" id="sideToggle" aria-label="Toggle sidebar" title="Collapse sidebar">‹</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 112 · Thursday</div>
+      <h1 class="mh-title">Dashboard — Your Brief</h1>
+      <div class="mh-date">April 18, 2026 · 155 regulations tracked · 8 jurisdictions</div>
+
+      <div class="hero">
+        <div class="h-card crit">
+          <div class="h-k">Immediate action</div>
+          <div class="h-n">25</div>
+          <div class="h-l">Critical — within 90 days</div>
+          <div class="h-m">3 inside 14 days: LL97 filing, FuelEU Q1, CBAM defaults</div>
+        </div>
+        <div class="h-card high"><div class="h-k">High</div><div class="h-n">77</div><div class="h-l">Action — 6 mo</div></div>
+        <div class="h-card mod"><div class="h-k">Moderate</div><div class="h-n">52</div><div class="h-l">Monitor — 6–12 mo</div></div>
+        <div class="h-card low"><div class="h-k">Low</div><div class="h-n">1</div><div class="h-l">Awareness only</div></div>
+      </div>
+    </div>
+
+    <div class="body-wrap">
+
+      <div class="ai">
+        <form class="ai-row" onsubmit="return false">
+          <span class="ai-spark">✦</span>
+          <input class="ai-input" type="text" placeholder="Ask anything about your regulations — e.g. What's due in the next 30 days?">
+          <button class="ai-submit">Ask</button>
+        </form>
+        <div class="ai-chips">
+          <button class="ai-chip" onclick="this.closest('.ai').querySelector('.ai-input').value=this.textContent">What's due in 30 days?</button>
+          <button class="ai-chip" onclick="this.closest('.ai').querySelector('.ai-input').value=this.textContent">What changed this week?</button>
+          <button class="ai-chip" onclick="this.closest('.ai').querySelector('.ai-input').value=this.textContent">CBAM obligations Q2</button>
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="sh">
+          <h2>This Week</h2>
+          <div class="aside">Weekly briefing · <b>Apr 18</b></div>
+        </div>
+
+        <div class="two">
+          <div class="brief">
+            <div class="title">Top priority this week — 5 items</div>
+            <p class="summary">Three new critical items entered scope. FuelEU Maritime penalty uplift is being <b>priced into Q1 2026 contracts</b>. CBAM default values expire in 76 days — your supplier-data template needs updating.</p>
+            <ul>
+              <li><span class="rule" style="background:var(--critical)"></span><div><div class="t">NYC Local Law 97 — LL84 filing</div><div class="m">Deadline May 1 · 18 days · Operations + Legal</div></div><span class="side-meta crit">18 days</span></li>
+              <li><span class="rule" style="background:var(--critical)"></span><div><div class="t">FuelEU Maritime — Q1 2026 GHG return</div><div class="m">Due 30 Apr · Ocean operations</div></div><span class="side-meta crit">6 days</span></li>
+              <li><span class="rule" style="background:var(--high)"></span><div><div class="t">CBAM default-value expiry</div><div class="m">31 Dec · 20% penalty rate if unverified</div></div><span class="side-meta high">76 days</span></li>
+              <li><span class="rule" style="background:var(--high)"></span><div><div class="t">ICAO CORSIA Phase 2</div><div class="m">Effective 1 Jan 2027 — participation mandatory</div></div><span class="side-meta high">Q1 '27</span></li>
+              <li><span class="rule" style="background:var(--moderate)"></span><div><div class="t">DfT green-corridor roadmap</div><div class="m">Consultation closes 22 Nov</div></div><span class="side-meta mod">22 Nov</span></li>
+            </ul>
+          </div>
+
+          <div class="wc">
+            <div class="wc-h">What changed — 3 since last audit</div>
+            <p class="wc-summary">One <b>new critical</b> item from the EU CBAM delegated act — it lowers the threshold to 2,500 kg, pulling more of your art handlers into scope. Two existing rules updated.</p>
+            <div class="wc-item"><span class="rule" style="background:var(--critical)"></span><div><div class="wc-label new-crit">New · Critical</div><div class="t">EU CBAM Delegated Act</div><div class="m">Lowers threshold to 2,500 kg for art handlers</div></div><span class="side-meta crit">76 days</span></div>
+            <div class="wc-item"><span class="rule" style="background:var(--high)"></span><div><div class="wc-label upd high">Updated · High</div><div class="t">MEPC.377(80) penalty</div><div class="m">€2,400/tCO₂e effective 1 Jan 2026</div></div><span class="side-meta high">1 Jan</span></div>
+            <div class="wc-item"><span class="rule" style="background:var(--moderate)"></span><div><div class="wc-label upd mod">Updated · Moderate</div><div class="t">ICAO A41-22 CORSIA</div><div class="m">Phase 2 participation mandatory</div></div><span class="side-meta mod">Q1 '27</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="sh">
+          <h2>Replaced</h2>
+          <div class="aside"><b>5</b> regulations superseded by newer versions</div>
+        </div>
+        <div class="rep-row">
+          <div class="rep"><div class="arrow">→</div><div class="t">MEPC.304(72)</div><div class="m">By MEPC.377(80)<br>2024-06</div></div>
+          <div class="rep"><div class="arrow">→</div><div class="t">Reg EU 2018/842</div><div class="m">By 2023/857<br>2023-05</div></div>
+          <div class="rep"><div class="arrow">→</div><div class="t">ICAO A40-19</div><div class="m">By A41-22<br>2022-10</div></div>
+          <div class="rep"><div class="arrow">→</div><div class="t">LL84 pre-2024</div><div class="m">By LL97 amended<br>2024-01</div></div>
+          <div class="rep"><div class="arrow">→</div><div class="t">CBAM transitional</div><div class="m">By definitive phase<br>2026-01</div></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script src="shell.js?v=2"></script>
+</body></html>

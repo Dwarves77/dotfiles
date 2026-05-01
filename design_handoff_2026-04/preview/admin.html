@@ -1,0 +1,161 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Admin</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .tabs a { padding: 12px 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); border-bottom: 3px solid transparent; cursor: pointer; text-decoration: none; }
+  .tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .strip .s { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow); }
+  .strip .k { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .strip .v { font-family: var(--font-display); font-size: 28px; line-height: 1; }
+  .strip .m { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
+  .card-head { padding: 18px 22px; border-bottom: 1px solid var(--border-sub); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .card-head h3 { font-family: var(--font-display); font-size: 22px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; }
+  .card-head .meta { font-size: 11px; color: var(--muted); }
+
+  .users { width: 100%; border-collapse: collapse; }
+  .users th, .users td { text-align: left; padding: 12px 22px; font-size: 13px; }
+  .users th { background: var(--raised); font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .users tbody tr { border-top: 1px solid var(--border-sub); }
+  .users tbody tr:hover { background: var(--bg); }
+  .users .who { display: flex; gap: 10px; align-items: center; }
+  .users .av { width: 32px; height: 32px; border-radius: 999px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 12px; flex-shrink: 0; }
+  .users .nm { font-weight: 700; }
+  .users .em { font-size: 11px; color: var(--muted); }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .strip { grid-template-columns: 1fr 1fr; } }
+</style>
+</head><body data-accent="navy">
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html" class="active"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Caro's Ledge · Platform Operations</div>
+      <h1 class="mh-title">Admin</h1>
+      <div class="mh-date">Organizations · integrations · sources · staged updates · regulatory scan · audit</div>
+    </div>
+    <div class="body-wrap">
+      <div style="display:flex;gap:10px;align-items:center;background:var(--accent-bg);border:1px solid var(--accent-bd);border-radius:var(--r-md);padding:10px 16px;margin-bottom:18px;font-size:12px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>
+        <span><b style="color:var(--accent)">Caro's Ledge admin view</b> — you are looking at platform-wide controls. Per-org settings (members, billing) live on each org owner's <a href="profile.html" style="color:var(--accent);font-weight:700">Profile</a>.</span>
+      </div>
+      <div class="tabs" id="tabs">
+        <a data-tab="orgs" class="on">Organizations</a>
+        <a data-tab="integrations">API &amp; integrations</a>
+        <a data-tab="sources">Source registry</a>
+        <a data-tab="staged">Staged updates</a>
+        <a data-tab="scan">Regulatory scan</a>
+        <a data-tab="audit">Audit log</a>
+      </div>
+
+      <section class="panel on" data-panel="orgs">
+        <div class="strip">
+          <div class="s"><div class="k">Organizations</div><div class="v">28</div><div class="m">3 enterprise · 17 bureau · 8 desk</div></div>
+          <div class="s"><div class="k">Active members</div><div class="v">412</div><div class="m">across all orgs</div></div>
+          <div class="s"><div class="k">MRR</div><div class="v">€68k</div><div class="m">+€2.4k vs last month</div></div>
+          <div class="s"><div class="k">Health alerts</div><div class="v" style="color:var(--high)">3</div><div class="m">orgs needing attention</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>All organizations</h3>
+            <span class="meta">28 orgs · sorted by activity</span>
+          </div>
+          <table class="users">
+            <thead><tr><th>Organization</th><th>Owner</th><th>Plan</th><th>Members</th><th>MRR</th><th>Health</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><div class="av" style="background:var(--accent)">TC</div><div><div class="nm">TransAtlantic Cargo Holdings</div><div class="em">transat.carosledge.com</div></div></div></td><td><b>Marta Olesen</b></td><td><span style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:var(--accent);background:var(--accent-bg);padding:3px 8px;border-radius:999px">BUREAU</span></td><td>42 / 60</td><td style="font-family:var(--font-display);font-size:14px">€2,520</td><td><span style="color:var(--low);font-weight:700">✓ Healthy</span></td><td><a href="#" style="color:var(--accent);font-weight:700;font-size:11px">Manage →</a></td></tr>
+              <tr><td><div class="who"><div class="av" style="background:#0EA5E9">MK</div><div><div class="nm">Maersk Sustainability Ops</div><div class="em">maersk-sust.carosledge.com</div></div></div></td><td><b>Anders Holm</b></td><td><span style="font-size:11px;font-weight:800;color:#16A34A;background:rgba(22,163,74,0.12);padding:3px 8px;border-radius:999px">ENTERPRISE</span></td><td>118 / Unlim.</td><td style="font-family:var(--font-display);font-size:14px">€8,400</td><td><span style="color:var(--low);font-weight:700">✓ Healthy</span></td><td><a href="#" style="color:var(--accent);font-weight:700;font-size:11px">Manage →</a></td></tr>
+              <tr><td><div class="who"><div class="av" style="background:#D97706">DH</div><div><div class="nm">DHL Group Compliance</div><div class="em">dhl.carosledge.com</div></div></div></td><td><b>Petra Wagner</b></td><td><span style="font-size:11px;font-weight:800;color:#16A34A;background:rgba(22,163,74,0.12);padding:3px 8px;border-radius:999px">ENTERPRISE</span></td><td>96 / Unlim.</td><td style="font-family:var(--font-display);font-size:14px">€6,800</td><td><span style="color:var(--high);font-weight:700">⚠ At risk</span></td><td><a href="#" style="color:var(--accent);font-weight:700;font-size:11px">Manage →</a></td></tr>
+              <tr><td><div class="who"><div class="av" style="background:#9333EA">CM</div><div><div class="nm">CMA CGM Climate Desk</div><div class="em">cma.carosledge.com</div></div></div></td><td><b>Camille Roux</b></td><td><span style="font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-bg);padding:3px 8px;border-radius:999px">BUREAU</span></td><td>14 / 15</td><td style="font-family:var(--font-display);font-size:14px">€2,400</td><td><span style="color:var(--low);font-weight:700">✓ Healthy</span></td><td><a href="#" style="color:var(--accent);font-weight:700;font-size:11px">Manage →</a></td></tr>
+              <tr><td><div class="who"><div class="av" style="background:#DC2626">TF</div><div><div class="nm">Trafigura Carbon Desk</div><div class="em">trafig.carosledge.com</div></div></div></td><td><b>Marco Bianchi</b></td><td><span style="font-size:11px;font-weight:800;color:var(--text-2);background:var(--bg);border:1px solid var(--border);padding:3px 8px;border-radius:999px">DESK</span></td><td>1 / 1</td><td style="font-family:var(--font-display);font-size:14px">€480</td><td><span style="color:var(--critical);font-weight:700">✕ Suspended</span></td><td><a href="#" style="color:var(--accent);font-weight:700;font-size:11px">Manage →</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="integrations">
+        <div class="card">
+          <div class="card-head"><h3>Available integrations</h3><span class="meta">Master catalog · published to all orgs</span></div>
+          <div style="padding:20px 22px;font-size:13px;color:var(--text-2);line-height:1.6">SAP S/4HANA · CBAM Reporting API (sandbox + production) · Slack alerting · Microsoft Teams · Outbound webhooks · Oracle TMS · Salesforce Net Zero Cloud</div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="sources">
+        <div class="card">
+          <div class="card-head"><h3>Source registry</h3><span class="meta">159 sources · 7 tier hierarchy</span></div>
+          <div style="padding:20px 22px;font-size:13px;color:var(--text-2);line-height:1.6">T1 Primary legal text · T2 Regulator implementation · T3 Intergovernmental · T4 Expert analysis · T5 Industry &amp; standards · T6 News · T7 Provisional</div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="staged">
+        <div class="strip">
+          <div class="s"><div class="k">Staged</div><div class="v">14</div><div class="m">awaiting review</div></div>
+          <div class="s"><div class="k">Auto-detected</div><div class="v">9</div><div class="m">by regulatory scan</div></div>
+          <div class="s"><div class="k">User-submitted</div><div class="v">5</div><div class="m">via "Suggest a source"</div></div>
+          <div class="s"><div class="k">Avg time to publish</div><div class="v">3.2h</div><div class="m">target: under 24h</div></div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="scan">
+        <div class="strip">
+          <div class="s"><div class="k">Sources monitored</div><div class="v">159</div><div class="m">across 7 domains</div></div>
+          <div class="s"><div class="k">Scan frequency</div><div class="v">15min</div><div class="m">avg per source</div></div>
+          <div class="s"><div class="k">Detections · 24h</div><div class="v">23</div><div class="m">9 sent to staging</div></div>
+          <div class="s"><div class="k">Failing crawlers</div><div class="v" style="color:var(--high)">3</div><div class="m">need attention</div></div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="audit">
+        <div class="card">
+          <div class="card-head"><h3>Audit log</h3><span class="meta">Last 30 days · workspace-wide</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const a = e.target.closest('[data-tab]'); if (!a) return;
+    e.preventDefault();
+    [...tabs.children].forEach(c => c.classList.toggle('on', c === a));
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === a.dataset.tab));
+  });
+</script>
+</body></html>

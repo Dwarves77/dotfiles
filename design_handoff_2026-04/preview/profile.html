@@ -1,0 +1,240 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Profile</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; flex-wrap: wrap; }
+  .tabs a { padding: 12px 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); border-bottom: 3px solid transparent; cursor: pointer; text-decoration: none; }
+  .tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
+  .card-head { padding: 18px 22px; border-bottom: 1px solid var(--border-sub); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .card-head h3 { font-family: var(--font-display); font-size: 22px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; }
+  .card-head .meta { font-size: 11px; color: var(--muted); }
+  .card-body { padding: 20px 22px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); font-family: inherit; font-size: 13px; background: var(--surface); color: var(--text); }
+  .field textarea { min-height: 80px; resize: vertical; }
+
+  .sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .sec-grid label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border-sub); border-radius: var(--r-sm); font-size: 12px; cursor: pointer; background: var(--surface); }
+  .sec-grid label.has { background: var(--accent-bg); border-color: var(--accent-bd); color: var(--accent); }
+  .sec-grid label.hi::before { content: '★'; color: var(--accent); font-size: 10px; margin-right: 2px; }
+  .sec-grid label .ct { margin-left: auto; font-family: var(--font-display); font-size: 11px; color: var(--muted); }
+  .sec-section-h { grid-column: 1/-1; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px; padding-top: 10px; border-top: 1px dashed var(--border-sub); }
+  .sec-section-h:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+
+  .juris-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .juris-chips .jc { padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface); color: var(--text-2); }
+  .juris-chips .jc.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .verifier-state { display: flex; gap: 14px; align-items: center; padding: 16px; border: 1px solid var(--border-sub); border-radius: var(--r-md); background: var(--bg); margin-bottom: 16px; }
+  .verifier-state .vs-i { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .verifier-state .vs-t { font-size: 14px; font-weight: 700; }
+  .verifier-state .vs-d { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+
+  .strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .strip .s { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow); }
+  .strip .k { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .strip .v { font-family: var(--font-display); font-size: 28px; line-height: 1; }
+  .strip .m { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+  .side-card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 14px; }
+  .side-card h4 { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .strip { grid-template-columns: 1fr 1fr; } .form-grid { grid-template-columns: 1fr; } .sec-grid { grid-template-columns: 1fr; } }
+</style>
+</head><body data-accent="navy">
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html" class="active"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Marta Olesen · she / her</div>
+      <h1 class="mh-title">Profile</h1>
+      <div class="mh-date">Personal details · sector profile · jurisdictions · verifier credentials</div>
+    </div>
+    <div class="body-wrap">
+
+      <div class="strip">
+        <div class="s"><div class="k">Sectors followed</div><div class="v">7</div><div class="m">3 highlighted niches</div></div>
+        <div class="s"><div class="k">Home jurisdictions</div><div class="v">5</div><div class="m">EU · UK · US · IMO · ICAO</div></div>
+        <div class="s"><div class="k">Watching</div><div class="v">12</div><div class="m">regulations</div></div>
+        <div class="s"><div class="k">Posts · Briefs</div><div class="v">38<span style="font-size:14px"> · 4</span></div><div class="m">since Mar 2024</div></div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <a data-tab="personal" class="on">Personal</a>
+        <a data-tab="organization">Organization</a>
+        <a data-tab="members">Members &amp; roles</a>
+        <a data-tab="billing">Billing &amp; plan</a>
+        <a data-tab="sectors">Sector profile</a>
+        <a data-tab="jurisdictions">Jurisdictions</a>
+        <a data-tab="verifier">Verifier badge</a>
+        <a data-tab="activity">Activity</a>
+      </div>
+
+      <section class="panel on" data-panel="personal">
+        <div class="layout">
+          <div class="card">
+            <div class="card-head"><h3>Personal profile</h3><span class="meta">Visible to your workspace</span></div>
+            <div class="card-body">
+              <div style="display:flex;gap:18px;align-items:center;margin-bottom:24px"><div style="width:88px;height:88px;border-radius:999px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:32px">MO</div><div><div style="font-family:var(--font-display);font-size:24px;letter-spacing:0.02em;line-height:1">Marta Olesen</div><div style="font-size:13px;color:var(--text-2);margin-top:6px">Head of Sustainability · TransAtlantic Cargo Holdings</div></div></div>
+              <div class="form-grid">
+                <div class="field"><label>Full name</label><input type="text" value="Marta Olesen"></div>
+                <div class="field"><label>Pronouns</label><input type="text" value="she / her"></div>
+                <div class="field"><label>Title</label><input type="text" value="Head of Sustainability"></div>
+                <div class="field"><label>Team</label><input type="text" value="ESG &amp; Compliance"></div>
+                <div class="field"><label>Email</label><input type="email" value="marta.olesen@transat.com"></div>
+                <div class="field"><label>Time zone</label><select><option>Europe / Frankfurt (UTC+1)</option><option>Europe / London</option></select></div>
+                <div class="field full"><label>Bio</label><textarea>15+ years in ocean &amp; air freight sustainability. Currently leading the CBAM transition at TransAtlantic. Author of the 2025 pooling structures briefing.</textarea></div>
+              </div>
+            </div>
+          </div>
+          <aside>
+            <div class="side-card"><h4>At a glance</h4><div style="font-size:13px;line-height:1.7"><b>Joined</b> Mar 2024<br><b>Posts</b> 38 · <b>Briefs</b> 4<br><b>Watching</b> 12 regulations<br><b>Verifier</b> No</div></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="organization">
+        <div class="card">
+          <div class="card-head"><h3>Workspace details</h3><span class="meta">You created this organization · Mar 2024</span></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="field"><label>Workspace name</label><input type="text" value="TransAtlantic Cargo Holdings"></div>
+              <div class="field"><label>Subdomain</label><input type="text" value="transat.carosledge.com"></div>
+              <div class="field"><label>Industry</label><select><option>Air freight forwarding</option><option>Ocean freight</option></select></div>
+              <div class="field"><label>Headquarters</label><input type="text" value="Frankfurt, DE"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="members">
+        <div class="card">
+          <div class="card-head"><h3>Members</h3><span class="meta">42 of 60 seats used</span></div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="billing">
+        <div class="card">
+          <div class="card-head"><h3>Plan</h3><span class="meta">Renews 1 Aug 2026</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+              <div style="padding:18px;border:1px solid var(--border-sub);border-radius:var(--r-md)"><h4 style="font-family:var(--font-display);font-size:14px;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 8px">Desk</h4><div style="font-family:var(--font-display);font-size:28px">€480/mo</div></div>
+              <div style="padding:18px;border:2px solid var(--accent);border-radius:var(--r-md);background:var(--accent-bg)"><h4 style="font-family:var(--font-display);font-size:14px;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 8px;color:var(--accent)">Bureau · CURRENT</h4><div style="font-family:var(--font-display);font-size:28px;color:var(--accent)">€2,400/mo</div></div>
+              <div style="padding:18px;border:1px solid var(--border-sub);border-radius:var(--r-md)"><h4 style="font-family:var(--font-display);font-size:14px;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 8px">Enterprise</h4><div style="font-family:var(--font-display);font-size:28px">Custom</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="sectors">
+        <div class="card">
+          <div class="card-head"><h3>Sector profile</h3><span class="meta">40-sector multi-select · default filter across the product</span></div>
+          <div class="card-body">
+            <div style="font-size:12px;color:var(--text-2);margin-bottom:14px"><b id="secCount">7</b> sectors selected · this is what "Reset to my sectors" reads from across the product</div>
+            <div class="sec-grid">
+              <div class="sec-section-h">Highlighted niches</div>
+              <label class="hi has"><input type="checkbox" checked><span>Fine Art &amp; Museum Logistics</span><span class="ct">6</span></label>
+              <label class="hi"><input type="checkbox"><span>Live Events &amp; Touring</span><span class="ct">4</span></label>
+              <label class="hi has"><input type="checkbox" checked><span>Luxury Goods &amp; High Value</span><span class="ct">6</span></label>
+              <label class="hi has"><input type="checkbox" checked><span>Film, TV &amp; Media Production</span><span class="ct">12</span></label>
+              <label class="hi"><input type="checkbox"><span>Automotive &amp; Motorsport</span><span class="ct">13</span></label>
+              <label class="hi has"><input type="checkbox" checked><span>Humanitarian &amp; NGO Cargo</span><span class="ct">4</span></label>
+              <div class="sec-section-h">All sectors</div>
+              <label><input type="checkbox"><span>Industrial Equipment &amp; Heavy Lift</span><span class="ct">9</span></label>
+              <label><input type="checkbox"><span>Construction &amp; Building Materials</span><span class="ct">14</span></label>
+              <label has><input type="checkbox"><span>Metals &amp; Steel</span><span class="ct">36</span></label>
+              <label class="has"><input type="checkbox" checked><span>General Ocean FCL/LCL</span><span class="ct">11</span></label>
+              <label class="has"><input type="checkbox" checked><span>General Road &amp; Trucking</span><span class="ct">22</span></label>
+              <label class="has"><input type="checkbox" checked><span>General Air Freight</span><span class="ct">16</span></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="jurisdictions">
+        <div class="card">
+          <div class="card-head"><h3>Home jurisdictions</h3></div>
+          <div class="card-body">
+            <div class="juris-chips">
+              <button class="jc on">EU</button>
+              <button class="jc on">United Kingdom</button>
+              <button class="jc on">United States</button>
+              <button class="jc on">IMO (Global)</button>
+              <button class="jc on">ICAO (Global)</button>
+              <button class="jc">China</button>
+              <button class="jc">Japan</button>
+              <button class="jc">Singapore</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="verifier">
+        <div class="card">
+          <div class="card-head"><h3>Verifier credentials</h3></div>
+          <div class="card-body">
+            <div class="verifier-state">
+              <div class="vs-i">○</div>
+              <div>
+                <div class="vs-t">You are not a verifier</div>
+                <div class="vs-d">Verifier badges (✓) appear next to community contributions and are required to approve disputed regulatory entries.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="activity">
+        <div class="card">
+          <div class="card-head"><h3>Recent activity</h3><span class="meta">Workspace · last 90 days</span></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const a = e.target.closest('[data-tab]'); if (!a) return;
+    e.preventDefault();
+    [...tabs.children].forEach(c => c.classList.toggle('on', c === a));
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === a.dataset.tab));
+  });
+</script>
+</body></html>

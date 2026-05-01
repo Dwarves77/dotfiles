@@ -1,0 +1,224 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Regulations</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 14px; margin-top: 24px; }
+  .h-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 22px; position: relative; box-shadow: var(--shadow); }
+  .h-card.crit { background: linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 55%); border-color: #FECACA; }
+  .h-card.crit::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--critical); border-radius: var(--r-lg) 0 0 var(--r-lg); }
+  .h-k { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; color: var(--muted); }
+  .h-card.crit .h-k { color: var(--critical); }
+  .h-card.high .h-k { color: var(--high); }
+  .h-card.mod  .h-k { color: var(--moderate); }
+  .h-card.low  .h-k { color: var(--low); }
+  .h-n { font-family: var(--font-display); font-size: 72px; font-weight: 400; line-height: 0.88; letter-spacing: -0.01em; color: var(--text); font-variant-numeric: tabular-nums; }
+  .h-card.crit .h-n { font-size: 84px; color: var(--critical); }
+  .h-card.high .h-n { color: var(--high); }
+  .h-card.mod  .h-n { color: var(--moderate); }
+  .h-card.low  .h-n { color: var(--low); }
+  .h-l { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 6px; }
+  .h-m { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .h-card { padding: 14px 16px; }
+    .h-n { font-size: 56px; }
+    .h-card.crit .h-n { font-size: 64px; }
+  }
+
+  .toolbar { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 22px; box-shadow: var(--shadow); }
+  .toolbar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .toolbar .search { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; }
+  .toolbar .search input { flex: 1; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 13px; color: var(--text); }
+  .toolbar-collapse { display: inline-flex; align-items: center; gap: 8px; background: var(--accent-bg); border: 1px solid var(--accent-bd); border-radius: var(--r-sm); padding: 7px 14px; font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--accent); cursor: pointer; white-space: nowrap; }
+  .toolbar-collapse .arr { font-size: 10px; transition: transform 0.2s ease; display: inline-block; }
+  .toolbar.collapsed .toolbar-collapse .arr { transform: rotate(180deg); }
+
+  .toolbar-actions { display: flex; gap: 14px; padding: 10px 2px 6px; }
+  .toolbar.collapsed .toolbar-actions, .toolbar.collapsed .toolbar-filters { display: none; }
+  .ta-btn { background: transparent; border: 0; padding: 0; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
+  .ta-btn:hover { text-decoration: underline; }
+
+  .toolbar-filters { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+  .frow { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: start; padding: 6px 2px; border-top: 1px solid var(--border-sub); }
+  .frow:first-child { border-top: 0; padding-top: 2px; }
+
+  .filter-label { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding-top: 8px; }
+  .filter-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+  .chip { font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; font-family: inherit; letter-spacing: 0.04em; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .chip:hover { border-color: var(--accent-bd); color: var(--accent); }
+  .chip.on { background: var(--accent-bg); border-color: var(--accent-bd); color: var(--accent); }
+  .chip .ct { color: var(--muted); font-weight: 600; font-size: 10.5px; letter-spacing: 0; }
+  .chip.on .ct { color: currentColor; opacity: 0.7; }
+
+  .chip.pri.on .dot { background: currentColor; }
+  .chip.pri .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-2); display: inline-block; }
+  .chip.pri.crit.on { background: var(--critical-bg); border-color: var(--critical-bd); color: var(--critical); }
+  .chip.pri.high.on { background: var(--high-bg); border-color: var(--high-bd); color: var(--high); }
+  .chip.pri.mod.on { background: var(--moderate-bg); border-color: var(--moderate-bd); color: var(--moderate); }
+  .chip.pri.low.on { background: var(--low-bg); border-color: var(--low-bd); color: var(--low); }
+
+  .chip.sector { color: var(--text-2); }
+  .chip.sector.hi { background: var(--accent-bg); border-color: var(--accent-bd); color: var(--accent); }
+  .chip.sector.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .resmeta { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; padding: 0 2px; }
+  .resmeta .count { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text); }
+  .resmeta .count b { color: var(--accent); }
+
+  .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kcol { background: var(--raised); border: 1px solid var(--border-sub); border-radius: var(--r-lg); padding: 14px 12px 16px; min-height: 400px; display: flex; flex-direction: column; }
+  .kcol.crit { background: linear-gradient(180deg, #FEF2F2 0%, var(--raised) 60%); border-color: var(--critical-bd); }
+  .kcol.high { background: linear-gradient(180deg, #FFF7ED 0%, var(--raised) 60%); border-color: var(--high-bd); }
+  .kcol.mod { background: linear-gradient(180deg, #FEFCE8 0%, var(--raised) 60%); border-color: var(--moderate-bd); }
+  .kcol.low { background: linear-gradient(180deg, #F0FDF4 0%, var(--raised) 60%); border-color: var(--low-bd); }
+  .khead { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 12px; border-bottom: 1px solid var(--border-sub); margin-bottom: 12px; }
+  .khead .ttl { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .khead .ttl .swatch { width: 8px; height: 8px; border-radius: 999px; }
+  .kcol.crit .khead .ttl { color: var(--critical); } .kcol.crit .khead .ttl .swatch { background: var(--critical); }
+  .kcol.high .khead .ttl { color: var(--high); }     .kcol.high .khead .ttl .swatch { background: var(--high); }
+  .kcol.mod  .khead .ttl { color: var(--moderate); } .kcol.mod  .khead .ttl .swatch { background: var(--moderate); }
+  .kcol.low  .khead .ttl { color: var(--low); }      .kcol.low  .khead .ttl .swatch { background: var(--low); }
+  .khead .n { font-family: var(--font-display); font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .kcol.crit .khead .n { color: var(--critical); }
+  .kcol.high .khead .n { color: var(--high); }
+  .kcol.mod  .khead .n { color: var(--moderate); }
+  .kcol.low  .khead .n { color: var(--low); }
+  .klist { display: flex; flex-direction: column; gap: 8px; }
+
+  .kcard { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 12px 14px; box-shadow: var(--shadow); position: relative; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+  .kcard:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .kcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: var(--r-md) 0 0 var(--r-md); }
+  .kcard.crit::before { background: var(--critical); }
+  .kcard.high::before { background: var(--high); }
+  .kcard.mod::before  { background: var(--moderate); }
+  .kcard.low::before  { background: var(--low); }
+  .kcard .juris { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .kcard .ti { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 6px; }
+  .kcard .meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-2); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-sub); }
+  .kcard .meta .due { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kcard.crit .meta .due { color: var(--critical); }
+  .kcard.high .meta .due { color: var(--high); }
+  .kcard.mod  .meta .due { color: var(--moderate); }
+  .kcard.low  .meta .due { color: var(--low); }
+  .kcard .tag-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .kcard .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 2px 6px; background: var(--bg); border-radius: 3px; }
+
+  @media (max-width: 1100px) { .kanban { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) { .kanban { grid-template-columns: 1fr; } }
+</style>
+</head><body data-accent="navy">
+
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger" aria-label="Open menu">☰</button>
+
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html" title="Dashboard"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html" class="active" title="Regulations"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html" title="Market Intel"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html" title="Research"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html" title="Operations"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html" title="Map"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group">
+        <a href="community.html" title="Community"><span class="ico">⬢</span><span class="lbl">Community</span></a>
+      </div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html" title="Admin"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html" title="Profile"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html" title="Settings"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle" title="Collapse sidebar">‹</button></div>
+  </aside>
+
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 112 · Thursday</div>
+      <h1 class="mh-title">Regulations</h1>
+      <div class="mh-date">155 regulations tracked · 8 jurisdictions · last sync 4 min ago</div>
+
+      <div class="hero">
+        <div class="h-card crit">
+          <div class="h-k">Immediate action</div>
+          <div class="h-n">25</div>
+          <div class="h-l">Critical — within 90 days</div>
+          <div class="h-m">3 inside 14 days: LL97 filing, FuelEU Q1, CBAM defaults</div>
+        </div>
+        <div class="h-card high"><div class="h-k">High</div><div class="h-n">77</div><div class="h-l">Action — 6 mo</div></div>
+        <div class="h-card mod"><div class="h-k">Moderate</div><div class="h-n">52</div><div class="h-l">Monitor — 6–12 mo</div></div>
+        <div class="h-card low"><div class="h-k">Low</div><div class="h-n">1</div><div class="h-l">Awareness only</div></div>
+      </div>
+    </div>
+
+    <div class="body-wrap">
+      <div class="ai">
+        <form class="ai-row" onsubmit="return false">
+          <span class="ai-spark">✦</span>
+          <input class="ai-input" type="text" placeholder="Ask anything about your regulations — e.g. What's due in the next 30 days?">
+          <button class="ai-submit">Ask</button>
+        </form>
+        <div class="ai-chips">
+          <button class="ai-chip">What's due in 30 days?</button>
+          <button class="ai-chip">What changed this week?</button>
+          <button class="ai-chip">CBAM obligations Q2</button>
+        </div>
+      </div>
+
+      <div class="toolbar" id="toolbar">
+        <div class="toolbar-row">
+          <div class="search"><span style="color:var(--muted)">⌕</span><input type="text" placeholder="Search title, tags, jurisdiction…"></div>
+          <button class="toolbar-collapse"><span>Filters</span><span class="arr">▴</span></button>
+        </div>
+        <div class="toolbar-filters">
+          <div class="frow"><span class="filter-label">Mode</span><div class="filter-group"><button class="chip">Air <span class="ct">92</span></button><button class="chip">Road <span class="ct">114</span></button><button class="chip">Ocean <span class="ct">122</span></button><button class="chip">Rail <span class="ct">1</span></button></div></div>
+          <div class="frow"><span class="filter-label">Priority</span><div class="filter-group"><button class="chip pri crit on"><span class="dot"></span>CRITICAL <span class="ct">25</span></button><button class="chip pri high on"><span class="dot"></span>HIGH <span class="ct">77</span></button><button class="chip pri mod on"><span class="dot"></span>MODERATE <span class="ct">52</span></button><button class="chip pri low on"><span class="dot"></span>LOW <span class="ct">1</span></button></div></div>
+        </div>
+      </div>
+
+      <div class="resmeta"><div class="count"><b>155</b> Regulations</div></div>
+
+      <section class="section">
+        <div class="kanban">
+          <div class="kcol crit">
+            <div class="khead"><div class="ttl"><span class="swatch"></span> Immediate Action</div><div class="n">25</div></div>
+            <div class="klist">
+              <a class="kcard crit" href="regulation-detail.html"><div class="juris">US · United States</div><div class="ti">Local Law 97 — LL84 filing</div><div class="meta"><span>LL97-LL84</span><span class="due">18 days</span></div></a>
+              <a class="kcard crit" href="regulation-detail.html"><div class="juris">EU · EU</div><div class="ti">FuelEU Maritime — Q1 2026 GHG return</div><div class="meta"><span>FuelEU-Q1</span><span class="due">6 days</span></div></a>
+              <a class="kcard crit" href="regulation-detail.html"><div class="juris">EU · EU</div><div class="ti">CBAM default-value expiry</div><div class="meta"><span>CBAM-Defaults</span><span class="due">76 days</span></div></a>
+            </div>
+          </div>
+          <div class="kcol high">
+            <div class="khead"><div class="ttl"><span class="swatch"></span> Action — 6 mo</div><div class="n">77</div></div>
+            <div class="klist">
+              <a class="kcard high" href="regulation-detail.html"><div class="juris">EU · EU</div><div class="ti">EU ETS — Maritime extension</div><div class="meta"><span>EU-ETS-MAR</span><span class="due">180 days</span></div></a>
+              <a class="kcard high" href="regulation-detail.html"><div class="juris">UK · United Kingdom</div><div class="ti">UK ETS — 2026 cap reduction</div><div class="meta"><span>UK-ETS-2026</span><span class="due">1 Jan</span></div></a>
+            </div>
+          </div>
+          <div class="kcol mod">
+            <div class="khead"><div class="ttl"><span class="swatch"></span> Monitor — 6–12 mo</div><div class="n">52</div></div>
+            <div class="klist">
+              <a class="kcard mod" href="regulation-detail.html"><div class="juris">UK · United Kingdom</div><div class="ti">DfT Green-corridor roadmap</div><div class="meta"><span>DfT-Green</span><span class="due">22 Nov</span></div></a>
+            </div>
+          </div>
+          <div class="kcol low">
+            <div class="khead"><div class="ttl"><span class="swatch"></span> Awareness only</div><div class="n">1</div></div>
+            <div class="klist">
+              <a class="kcard low" href="regulation-detail.html"><div class="juris">ICAO · Global</div><div class="ti">ICAO — SAF refinery accreditation</div><div class="meta"><span>ICAO-Refinery</span><span class="due">Q4 '27</span></div></a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+</body></html>

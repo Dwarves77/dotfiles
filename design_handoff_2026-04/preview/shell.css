@@ -1,0 +1,136 @@
+/* Caro's Ledge — shared app shell (sidebar + tokens + responsive) */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Anton&display=swap');
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Anton', system-ui, sans-serif;
+  --bg: #FAFAF8;
+  --surface: #FFFFFF;
+  --raised: #F5F2EE;
+  --text: #1A1A1A;
+  --text-2: #5A6B67;
+  --muted: #7A6E6C;
+  --border: rgba(0,0,0,0.12);
+  --border-sub: rgba(0,0,0,0.06);
+  --critical: #DC2626; --critical-bg: #FEF2F2; --critical-bd: #FECACA;
+  --high: #D97706; --high-bg: #FFF7ED; --high-bd: #FED7AA;
+  --moderate: #CA8A04; --moderate-bg: #FEFCE8; --moderate-bd: #FEF08A;
+  --low: #16A34A; --low-bg: #F0FDF4; --low-bd: #BBF7D0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+
+  --accent: #1E3A8A;
+  --accent-hover: #172E6F;
+  --accent-bg: rgba(30,58,138,0.08);
+  --accent-bd: rgba(30,58,138,0.25);
+  --accent-strip: #EEF1F9;
+  --accent-strip-bd: #C4CEE8;
+}
+body[data-accent="teal"] {
+  --accent: #0F766E; --accent-hover: #0B5E58;
+  --accent-bg: rgba(15,118,110,0.08); --accent-bd: rgba(15,118,110,0.25);
+  --accent-strip: #F0FAF9; --accent-strip-bd: #B8E0DC;
+}
+body[data-accent="slate"] {
+  --accent: #2563EB; --accent-hover: #1D4ED8;
+  --accent-bg: rgba(37,99,235,0.08); --accent-bd: rgba(37,99,235,0.25);
+  --accent-strip: #EFF4FE; --accent-strip-bd: #BFD3FA;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+.back { color: var(--muted); font-size: 12px; text-decoration: none; padding: 10px 32px 0; display: block; }
+
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; transition: grid-template-columns 0.22s ease; }
+.app.collapsed { grid-template-columns: 56px 1fr; }
+
+.side { background: var(--surface); border-right: 1px solid var(--border-sub); padding: 16px 0 20px; position: sticky; top: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-self: start; }
+.side .brand { padding: 0 20px 16px; border-bottom: 1px solid var(--border-sub); flex-shrink: 0; }
+.side .brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side .brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-text { transition: opacity 0.18s ease; }
+.side-foot { flex-shrink: 0; padding: 10px 14px 0; border-top: 1px solid var(--border-sub); display: flex; justify-content: flex-end; }
+.side-toggle { width: 28px; height: 28px; border-radius: 6px; background: transparent; border: 1px solid var(--border-sub); color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; padding: 0; transition: background 0.15s, color 0.15s; }
+.side-toggle:hover { background: var(--raised); color: var(--text); }
+.side nav { padding: 12px 10px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.side nav .nav-group { display: flex; flex-direction: column; }
+.side nav .nav-spacer { flex: 1; min-height: 12px; }
+.side nav .nav-divider { height: 1px; background: var(--border-sub); margin: 8px 12px; flex-shrink: 0; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; color: var(--text-2); border-radius: var(--r-sm); text-decoration: none; margin-bottom: 2px; white-space: nowrap; overflow: hidden; }
+.side nav a:hover { background: var(--raised); color: var(--text); }
+.side nav a.active { background: var(--accent-bg); color: var(--accent); }
+.side nav .ico { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+.side nav .lbl { transition: opacity 0.18s ease; }
+
+.app.collapsed .side .brand { padding: 0 8px 16px; }
+.app.collapsed .brand-text { opacity: 0; pointer-events: none; height: 0; overflow: hidden; }
+.app.collapsed .side-foot { justify-content: center; padding: 10px 6px 0; }
+.app.collapsed .side nav { padding: 12px 6px; }
+.app.collapsed .side nav a { justify-content: center; padding: 10px 0; }
+.app.collapsed .side nav .lbl { opacity: 0; width: 0; pointer-events: none; }
+
+.main { padding: 0; min-width: 0; }
+
+/* Page masthead */
+.masthead { background: var(--raised); border-bottom: 1px solid var(--border-sub); padding: 30px 36px 28px; position: relative; }
+.masthead::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--critical)); }
+.mh-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+.mh-title { font-family: var(--font-display); font-size: 44px; font-weight: 400; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text); margin: 0 0 6px; line-height: 1; }
+.mh-date { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+
+.body-wrap { padding: 28px 36px 60px; }
+
+.sh { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 10px; border-bottom: 2px solid var(--text); margin-bottom: 18px; }
+.sh h2 { font-family: var(--font-display); font-size: 30px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; line-height: 1; }
+.sh .aside { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
+.section { margin-bottom: 40px; }
+
+.badge { display: inline-flex; align-items: center; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 999px; border: 1px solid; text-transform: uppercase; }
+.badge.crit { background: var(--critical-bg); color: var(--critical); border-color: var(--critical-bd); }
+.badge.high { background: var(--high-bg); color: var(--high); border-color: var(--high-bd); }
+.badge.mod  { background: var(--moderate-bg); color: var(--moderate); border-color: var(--moderate-bd); }
+.badge.low  { background: var(--low-bg); color: var(--low); border-color: var(--low-bd); }
+.badge.neutral { background: var(--surface); color: var(--text-2); border-color: var(--border); }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; font-family: inherit; font-weight: 700; font-size: 12px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.btn:hover { background: var(--raised); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.ghost { border-color: transparent; }
+
+.input { font-family: inherit; font-size: 13px; padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+
+/* SHARED AI PROMPT BAR — canonical, used identically on every page */
+.ai { background: var(--accent-strip); border: 1px solid var(--accent-strip-bd); border-radius: var(--r-lg); padding: 16px 18px 14px; margin: 0 0 28px; }
+.ai .ai-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--accent-bd); border-radius: 999px; padding: 6px 8px 6px 16px; }
+.ai .ai-row:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.ai .ai-spark { color: var(--accent); font-size: 16px; flex-shrink: 0; }
+.ai .ai-input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; color: var(--text); padding: 8px 0; }
+.ai .ai-input::placeholder { color: var(--muted); }
+.ai .ai-submit { background: var(--accent); color: #fff; border: 0; border-radius: 999px; font-weight: 700; font-size: 13px; font-family: inherit; padding: 9px 18px; cursor: pointer; flex-shrink: 0; }
+.ai .ai-submit:hover { background: var(--accent-hover); }
+.ai .ai-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-left: 4px; }
+.ai .ai-chip { font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px; background: var(--surface); border: 1px solid var(--accent-bd); color: var(--accent); cursor: pointer; font-family: inherit; }
+.ai .ai-chip:hover { background: var(--accent); color: #fff; }
+
+/* Mobile */
+.mobile-burger { display: none; position: fixed; top: 12px; left: 12px; z-index: 60; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; align-items: center; justify-content: center; font-size: 18px; box-shadow: var(--shadow); }
+.mobile-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; opacity: 0; pointer-events: none; transition: opacity 0.18s; }
+@media (max-width: 767px) {
+  .mobile-scrim { display: block; }
+  .app, .app.collapsed { grid-template-columns: 1fr; }
+  .side { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; z-index: 50; transform: translateX(-100%); transition: transform 0.22s ease; box-shadow: 4px 0 16px rgba(0,0,0,0.18); background: var(--surface); }
+  .app.collapsed .side { width: 260px; }
+  .app.collapsed .brand-text { opacity: 1; height: auto; }
+  .app.collapsed .side nav a { justify-content: flex-start; padding: 10px 12px; }
+  .app.collapsed .side nav .lbl { opacity: 1; width: auto; pointer-events: auto; }
+  .side-toggle { display: none; }
+  .app.mobile-open .side { transform: translateX(0); }
+  .app.mobile-open .mobile-scrim { opacity: 1; pointer-events: auto; }
+  .mobile-burger { display: inline-flex; }
+  .main { padding-top: 56px; }
+  .masthead { padding: 22px 18px 22px; }
+  .mh-title { font-size: 28px; word-break: break-word; }
+  .body-wrap { padding: 22px 18px 50px; }
+  .back { padding-left: 60px; }
+}

@@ -1,0 +1,205 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — CBAM Delegated Act</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .reg-hero { background: var(--surface); border: 1px solid var(--border-sub); border-left: 5px solid var(--critical); border-radius: var(--r-lg); padding: 22px 26px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .modes { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .mode-chip { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-2); display: inline-flex; gap: 5px; align-items: center; font-weight: 600; }
+  .reg-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+  .reg-title-row h2 { font-family: var(--font-display); font-size: 30px; font-weight: 400; letter-spacing: 0.01em; margin: 0; line-height: 1.05; }
+  .reg-title-row .pills { display: flex; gap: 8px; flex-shrink: 0; }
+  .pill { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 3px; }
+  .pill-reg { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-bd); }
+  .pill-crit { background: var(--critical-bg); color: var(--critical); border: 1px solid var(--critical-bd); }
+  .reg-deck { font-size: 14px; line-height: 1.55; color: var(--text-2); margin-bottom: 14px; max-width: 78ch; }
+  .tag-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tag-chip { font-size: 11px; padding: 3px 10px; background: var(--bg); border: 1px solid var(--border-sub); border-radius: 999px; color: var(--text-2); font-weight: 600; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .stat-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat-strip .s { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow); }
+  .stat-strip .k { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-strip .v { font-family: var(--font-display); font-size: 28px; line-height: 1; color: var(--text); }
+  .stat-strip .v.crit { color: var(--critical); }
+  .stat-strip .s.crit .k, .stat-strip .s.crit .v { color: var(--critical); }
+  .stat-strip .s.crit { background: var(--critical-bg); border: 1px solid var(--critical-bd); border-left: 4px solid var(--critical); }
+  .stat-strip .v small { font-family: var(--font-sans); font-size: 12px; font-weight: 700; }
+  .stat-strip .m { font-size: 11px; color: var(--text-2); margin-top: 6px; line-height: 1.4; }
+
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-sub); margin-bottom: 22px; overflow-x: auto; }
+  .tabs a { padding: 12px 18px; font-size: 13px; font-weight: 700; color: var(--text-2); border-bottom: 3px solid transparent; cursor: pointer; text-decoration: none; white-space: nowrap; }
+  .tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .ai-summary { background: var(--accent-strip); border: 1px solid var(--accent-strip-bd); border-radius: var(--r-md); padding: 16px 20px; margin-bottom: 16px; }
+  .ai-summary .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .ai-summary .head .l { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+  .ai-summary .head .l::before { content: '✦ '; }
+  .ai-summary .head .r { font-size: 11px; color: var(--muted); }
+  .ai-summary p { font-size: 14px; line-height: 1.6; margin: 0; color: var(--text); }
+
+  .brief-section { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 22px 26px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .brief-section h3 { font-family: var(--font-display); font-size: 22px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border-sub); }
+  .brief-section .lead { border-left: 3px solid var(--accent); padding-left: 16px; font-size: 14.5px; line-height: 1.7; margin: 0 0 16px; color: var(--text); }
+  .brief-section p { font-size: 14px; line-height: 1.7; margin: 0 0 14px; color: var(--text); }
+  .brief-section ul { margin: 0 0 14px; padding-left: 18px; font-size: 14px; line-height: 1.75; }
+
+  .why-tag { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--high); padding: 3px 8px; background: var(--high-bg); border: 1px solid var(--high-bd); border-radius: 3px; margin-right: 8px; }
+
+  .side-card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .side-card.deadline { border: 1px solid var(--critical-bd); background: var(--critical-bg); }
+  .side-card .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .side-card.deadline .lab { color: var(--critical); }
+  .side-card .big { font-family: var(--font-display); font-size: 36px; line-height: 1; color: var(--critical); margin-bottom: 8px; }
+  .side-card p { font-size: 12px; line-height: 1.55; margin: 0; color: var(--text); }
+  .side-card .kv { display: grid; grid-template-columns: 78px 1fr; gap: 6px 10px; font-size: 12.5px; line-height: 1.55; }
+  .side-card .kv dt { color: var(--muted); font-weight: 600; }
+  .side-card .kv dd { margin: 0; color: var(--text); font-weight: 600; }
+
+  .impact-row { display: grid; grid-template-columns: 160px 1fr 110px; gap: 16px; align-items: center; padding: 8px 0; }
+  .impact-row .ll { font-size: 13px; font-weight: 600; }
+  .impact-row .vv { font-size: 12px; font-weight: 700; text-align: right; }
+  .impact-bar { height: 10px; border-radius: 999px; background: var(--bg); overflow: hidden; position: relative; border: 1px solid var(--border-sub); }
+  .impact-bar .fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #16A34A 0%, #FBBF24 50%, #DC2626 100%); }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .stat-strip { grid-template-columns: 1fr 1fr; } }
+</style>
+</head><body data-accent="navy">
+<a class="back" href="regulations.html">← Regulations</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html" class="active"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Regulations · EU-27</div>
+      <h1 class="mh-title">CBAM — Delegated Act 2026</h1>
+      <div class="mh-date">CBAM-DA-2026 · Effective 1 Jul 2026 · Reviewed 18 Apr 2026</div>
+    </div>
+
+    <div class="body-wrap">
+      <div class="reg-hero">
+        <div class="modes">
+          <span class="mode-chip">⛴ OCEAN</span>
+          <span class="mode-chip">✈ AIR</span>
+          <span class="mode-chip">🚚 ROAD</span>
+        </div>
+        <div class="reg-title-row">
+          <h2>CBAM Delegated Act lowers de-minimis threshold to 2,500 kg</h2>
+          <div class="pills"><span class="pill pill-reg">Delegated act</span><span class="pill pill-crit">Critical</span></div>
+        </div>
+        <p class="reg-deck">The European Commission has formally adopted the delegated act that lowers the de-minimis threshold for the Carbon Border Adjustment Mechanism. The change brings a substantial portion of art-handling and specialty freight under verification scope from 1&nbsp;July&nbsp;2026.</p>
+        <div class="tag-chips">
+          <span class="tag-chip">CBAM</span>
+          <span class="tag-chip">EU-27</span>
+          <span class="tag-chip">de-minimis</span>
+          <span class="tag-chip">art handling</span>
+          <span class="tag-chip">verifier</span>
+        </div>
+        <div class="actions">
+          <button class="btn primary">+ Add to watchlist</button>
+          <button class="btn">Export brief (PDF)</button>
+          <button class="btn">Share</button>
+        </div>
+      </div>
+
+      <div class="stat-strip">
+        <div class="s"><div class="k">Effective</div><div class="v">76<small> d</small></div><div class="m">1 Jul 2026</div></div>
+        <div class="s crit"><div class="k">Penalty rate</div><div class="v crit">€85<small>/tCO₂e</small></div><div class="m">+20% if unverified</div></div>
+        <div class="s"><div class="k">Your exposure</div><div class="v">€2.4<small>M</small></div><div class="m">Annualised, current data</div></div>
+        <div class="s"><div class="k">Lanes affected</div><div class="v">17</div><div class="m">Of 84 active lanes</div></div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <a data-tab="summary" class="on">Summary</a>
+        <a data-tab="exposure">Exposure</a>
+        <a data-tab="calculator">Penalty calculator</a>
+        <a data-tab="timeline">Timeline</a>
+        <a data-tab="full">Full text</a>
+        <a data-tab="sources">Sources</a>
+        <a data-tab="notes">Team notes (4)</a>
+      </div>
+
+      <section class="panel on" data-panel="summary">
+        <div class="layout">
+          <div>
+            <div class="ai-summary">
+              <div class="head"><span class="l">AI plain-language summary</span><span class="r">Generated · Verified by 2 analysts</span></div>
+              <p>The EU has tightened the rules for how much carbon-heavy freight can cross its borders without paying a tax. Specifically, the threshold drops from 50,000 kg to <b>2,500 kg.</b> For your art-handling business that means most international shipments now require verified emissions data — or you pay 20% extra in penalties. The deadline is 1 July 2026.</p>
+            </div>
+
+            <div class="brief-section">
+              <h3>What changed</h3>
+              <div class="lead">The Commission has finalised the delegated act amending Regulation (EU) 2023/956. The de-minimis threshold for embedded emissions reporting drops from <b>50,000 kg to 2,500 kg</b> per consignment, effective 1 July 2026.</div>
+              <p>This is significant for specialty freight categories — including fine-art transport, scientific instruments, and high-value luxury goods — that previously fell below the threshold by weight but now sit clearly within scope. The Commission's impact assessment estimates an additional <b>168,000 consignments per year</b> will require verified Embedded Emissions Reports (EERs).</p>
+            </div>
+
+            <div class="brief-section">
+              <h3>Why it matters</h3>
+              <ul>
+                <li><span class="why-tag">Cost</span>An estimated <b>€2.4M annualised</b> increase in CBAM levies across your 17 affected lanes at current shipment volumes.</li>
+                <li><span class="why-tag">Ops</span>Verifier capacity is constrained — published wait times have risen to 9–11 weeks at three of the five major EU verifier hubs.</li>
+                <li><span class="why-tag">Client</span>Tier-1 shippers will request verified declarations from 1&nbsp;July; default values invite uplift charges that flow back to the customer.</li>
+                <li><span class="why-tag">Compliance</span>Failure to file a verified EER within 30 days of import incurs a <b>50 EUR/tCO₂e administrative penalty</b> on top of the levy.</li>
+              </ul>
+            </div>
+          </div>
+
+          <aside>
+            <div class="side-card deadline">
+              <div class="lab">Next deadline</div>
+              <div class="big">76 days</div>
+              <p>Threshold becomes effective 1 July 2026. Action required: collect verified supplier data for 11 lanes, switch declarations for 6.</p>
+            </div>
+            <div class="side-card">
+              <div class="lab">Identification</div>
+              <dl class="kv">
+                <dt>ID</dt><dd>CBAM-DA-2026</dd>
+                <dt>Type</dt><dd>Delegated act</dd>
+                <dt>Publisher</dt><dd>EU Commission</dd>
+                <dt>Effective</dt><dd>1 Jul 2026</dd>
+                <dt>Reviewed</dt><dd>Apr 18, 2026</dd>
+              </dl>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const a = e.target.closest('[data-tab]'); if (!a) return;
+    e.preventDefault();
+    [...tabs.children].forEach(c => c.classList.toggle('on', c === a));
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === a.dataset.tab));
+  });
+</script>
+</body></html>

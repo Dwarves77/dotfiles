@@ -1,0 +1,239 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caro's Ledge — Operations</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 6px 0 14px; font-size: 11px; color: var(--text-2); }
+  .legend .it { display: inline-flex; gap: 6px; align-items: center; }
+  .legend .it::before { content: '●'; }
+  .legend .it.crit::before { color: var(--critical); }
+  .legend .it.high::before { color: var(--high); }
+  .legend .it.mod::before { color: var(--moderate); }
+  .legend .it.low::before { color: var(--low); }
+  .legend .it b { font-weight: 800; letter-spacing: 0.06em; }
+
+  .status-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .status-strip .s { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 18px; box-shadow: var(--shadow); text-align: center; }
+  .status-strip .s .ic { font-family: var(--font-display); font-size: 16px; line-height: 1; margin-bottom: 8px; display: inline-block; }
+  .status-strip .s.crit .ic, .status-strip .s.crit .k, .status-strip .s.crit .v { color: var(--critical); }
+  .status-strip .s.high .ic, .status-strip .s.high .k, .status-strip .s.high .v { color: var(--high); }
+  .status-strip .s.mod  .ic, .status-strip .s.mod  .k, .status-strip .s.mod  .v { color: var(--moderate); }
+  .status-strip .s.low  .ic, .status-strip .s.low  .k, .status-strip .s.low  .v { color: var(--low); }
+  .status-strip .s.crit { background: var(--critical-bg); border: 1px solid var(--critical-bd); border-left: 4px solid var(--critical); }
+  .status-strip .s .v { font-family: var(--font-display); font-size: 56px; line-height: 1; }
+  .status-strip .s .k { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; margin: 8px 0 4px; }
+  .status-strip .s .m { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-sub); margin-bottom: 8px; }
+  .tabs a { padding: 12px 18px; font-size: 13px; font-weight: 700; color: var(--text-2); border-bottom: 3px solid transparent; cursor: pointer; text-decoration: none; }
+  .tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
+  .panel { display: none; padding-top: 22px; }
+  .panel.on { display: block; }
+
+  .panel-head h3 { font-family: var(--font-display); font-size: 26px; font-weight: 400; letter-spacing: 0.02em; margin: 0 0 6px; }
+  .panel-head p { font-size: 14px; line-height: 1.5; color: var(--text-2); margin: 0 0 18px; max-width: 88ch; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+  .juris { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); margin-bottom: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .juris summary { padding: 14px 20px; display: flex; gap: 12px; align-items: center; cursor: pointer; list-style: none; }
+  .juris summary::-webkit-details-marker { display: none; }
+  .juris summary::after { content: '▾'; font-size: 22px; color: var(--muted); margin-left: auto; }
+  .juris[open] summary::after { content: '▴'; }
+  .juris .globe { color: var(--accent); font-size: 16px; }
+  .juris .ttl { font-size: 15px; font-weight: 700; }
+  .juris .pri { font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; margin-left: 8px; }
+  .juris .pri.high { background: var(--high-bg); color: var(--high); border: 1px solid var(--high-bd); }
+  .juris .reg-region { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  .juris .body { padding: 4px 20px 20px; border-top: 1px solid var(--border-sub); }
+
+  .chip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .data-chip { background: var(--bg); border: 1px solid var(--border-sub); border-radius: var(--r-sm); padding: 12px 14px; }
+  .data-chip .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .data-chip .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--high); }
+  .data-chip .val { font-size: 13.5px; font-weight: 700; line-height: 1.4; margin-bottom: 4px; }
+  .data-chip .desc { font-size: 12px; color: var(--text-2); line-height: 1.5; font-style: italic; }
+  .data-chip a { font-size: 11px; color: var(--accent); font-weight: 700; text-decoration: none; }
+
+  .juris .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+  .juris ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--text-2); }
+
+  .open-q { background: var(--high-bg); border-left: 3px solid var(--high); border-radius: var(--r-sm); padding: 12px 16px; margin-top: 12px; font-size: 12.5px; line-height: 1.55; }
+  .open-q b { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--high); margin-bottom: 4px; }
+
+  .side-card { background: var(--surface); border: 1px solid var(--border-sub); border-radius: var(--r-md); padding: 14px 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .side-card .lab { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .side-card p { font-size: 12.5px; line-height: 1.55; margin: 0; color: var(--text); }
+
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } .status-strip { grid-template-columns: 1fr 1fr; } .chip-grid { grid-template-columns: 1fr; } }
+</style>
+</head><body data-accent="navy">
+<a class="back" href="index.html">← Reference</a>
+<button class="mobile-burger" id="mobileBurger">☰</button>
+<div class="app" id="app">
+  <div class="mobile-scrim" id="mobileScrim"></div>
+  <aside class="side">
+    <div class="brand"><div class="brand-text"><div class="n">Caro's Ledge</div><div class="t">Freight Sustainability Intelligence</div></div></div>
+    <nav>
+      <div class="nav-group">
+        <a href="dashboard-v3.html"><span class="ico">▼</span><span class="lbl">Dashboard</span></a>
+        <a href="regulations.html"><span class="ico">⚐</span><span class="lbl">Regulations</span></a>
+        <a href="market-intel.html"><span class="ico">⏚</span><span class="lbl">Market Intel</span></a>
+        <a href="research.html"><span class="ico">⌬</span><span class="lbl">Research</span></a>
+        <a href="operations.html" class="active"><span class="ico">⊕</span><span class="lbl">Operations</span></a>
+        <a href="map.html"><span class="ico">⊙</span><span class="lbl">Map</span></a>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group"><a href="community.html"><span class="ico">⬢</span><span class="lbl">Community</span></a></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-group">
+        <a href="admin.html"><span class="ico">⏶</span><span class="lbl">Admin</span></a>
+        <a href="profile.html"><span class="ico">⏯</span><span class="lbl">Profile</span></a>
+        <a href="settings.html"><span class="ico">⊙</span><span class="lbl">Settings</span></a>
+      </div>
+    </nav>
+    <div class="side-foot"><button class="side-toggle" id="sideToggle">‹</button></div>
+  </aside>
+  <main class="main">
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 112 · Thursday</div>
+      <h1 class="mh-title">Operations Intelligence</h1>
+      <div class="mh-date">Before operating in a new region, understand what it will cost and what rules apply. Energy costs, labor rates, and sustainability requirements by location.</div>
+
+      <div class="legend">
+        <span class="it crit"><b>Critical</b> Block / immediate cost impact</span>
+        <span class="it high"><b>High</b> Plan ahead</span>
+        <span class="it mod"><b>Moderate</b> Monitor</span>
+        <span class="it low"><b>Low</b> Background awareness</span>
+      </div>
+
+      <div class="status-strip">
+        <div class="s crit"><div class="ic">⚠</div><div class="v">3</div><div class="k">Critical</div><div class="m">Threshold breached — immediate cost impact</div></div>
+        <div class="s high"><div class="ic">▴</div><div class="v">9</div><div class="k">High</div><div class="m">Plan ahead — material impact</div></div>
+        <div class="s mod"><div class="ic">⊙</div><div class="v">12</div><div class="k">Moderate</div><div class="m">Monitor — within range</div></div>
+        <div class="s low"><div class="ic">⏯</div><div class="v">6</div><div class="k">Low</div><div class="m">Background awareness</div></div>
+      </div>
+    </div>
+    <div class="body-wrap">
+      <div class="ai">
+        <form class="ai-row" onsubmit="return false">
+          <span class="ai-spark">✦</span>
+          <input class="ai-input" type="text" placeholder="Ask anything about your operations — e.g. What are warehouse costs in Dubai?">
+          <button class="ai-submit">Ask</button>
+        </form>
+        <div class="ai-chips">
+          <button class="ai-chip">Warehouse costs in Dubai</button>
+          <button class="ai-chip">EV charging in the EU</button>
+          <button class="ai-chip">Solar permitting timelines</button>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <a data-tab="juris" class="on">By Jurisdiction</a>
+        <a data-tab="facility">Facility Data</a>
+      </div>
+
+      <section class="panel on" data-panel="juris">
+        <div class="layout">
+          <div>
+            <div class="panel-head">
+              <h3>Regional Operations Intelligence</h3>
+              <p>Energy tariffs, labor costs, solar permitting, EV infrastructure, and green building requirements by jurisdiction.</p>
+            </div>
+
+            <details class="juris" open>
+              <summary>
+                <span class="globe">⊙</span>
+                <div>
+                  <div><span class="ttl">Dubai / UAE</span><span class="pri high">High</span></div>
+                  <div class="reg-region">Middle East</div>
+                </div>
+              </summary>
+              <div class="body">
+                <div class="chip-grid">
+                  <div class="data-chip">
+                    <div class="head"><div class="lab">☀ Solar</div></div>
+                    <div class="val">Permitted — DEWA Shams Dubai</div>
+                    <div class="desc">On-site solar reduces warehouse energy costs and meets green-building lease requirements.</div>
+                  </div>
+                  <div class="data-chip">
+                    <div class="head"><div class="lab">⚡ Electricity</div></div>
+                    <div class="val">AED 0.23–0.38/kWh commercial</div>
+                    <div class="desc">Electricity rates directly impact warehouse, cold-chain, and EV fleet charging costs.</div>
+                  </div>
+                  <div class="data-chip">
+                    <div class="head"><div class="lab">▲ Labor</div></div>
+                    <div class="val">AED 3,000–5,000/month</div>
+                    <div class="desc">Labor costs are the largest variable in warehouse and drayage operations.</div>
+                  </div>
+                  <div class="data-chip">
+                    <div class="head"><div class="lab">⚡ EV Charging</div></div>
+                    <div class="val">DEWA Green Charger initiative</div>
+                    <div class="desc">EV infrastructure determines feasibility of zero-emission last-mile delivery fleets.</div>
+                  </div>
+                </div>
+
+                <div class="lab">Active regulations</div>
+                <ul>
+                  <li>DEWA Shams Dubai rooftop solar (verify current status)</li>
+                  <li>UAE Net Zero 2050 strategy</li>
+                  <li>Dubai Clean Energy Strategy 2050</li>
+                </ul>
+              </div>
+            </details>
+
+            <details class="juris">
+              <summary>
+                <span class="globe">⊙</span>
+                <div><div><span class="ttl">United Kingdom</span><span class="pri high">High</span></div><div class="reg-region">Europe</div></div>
+              </summary>
+            </details>
+
+            <details class="juris">
+              <summary>
+                <span class="globe">⊙</span>
+                <div><div><span class="ttl">EU (Germany, Netherlands, Belgium, France, Italy)</span><span class="pri high">High</span></div><div class="reg-region">Europe</div></div>
+              </summary>
+            </details>
+
+            <details class="juris">
+              <summary>
+                <span class="globe">⊙</span>
+                <div><div><span class="ttl">Singapore</span><span class="pri high">High</span></div><div class="reg-region">Asia-Pacific</div></div>
+              </summary>
+            </details>
+          </div>
+
+          <aside>
+            <div class="side-card">
+              <div class="lab">Coverage</div>
+              <p><b>12 jurisdictions</b> with complete data. Africa region <b>not yet covered</b> — flag for prioritisation if needed for client lanes.</p>
+            </div>
+            <div class="side-card">
+              <div class="lab">Methodology</div>
+              <p>Data points sourced from published regulator and utility schedules. Where ranges shown, reflects regional / tariff-tier variance.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="facility">
+        <div class="panel-head">
+          <h3>Warehouse &amp; Facility Optimization</h3>
+          <p>Electricity tariffs, solar ROI, battery storage, labor benchmarks, and green building certifications by location.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="shell.js?v=2"></script>
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const a = e.target.closest('[data-tab]'); if (!a) return;
+    e.preventDefault();
+    [...tabs.children].forEach(c => c.classList.toggle('on', c === a));
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === a.dataset.tab));
+  });
+</script>
+</body></html>
