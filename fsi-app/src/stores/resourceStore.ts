@@ -2,6 +2,48 @@
 
 import { create } from "zustand";
 import type { Resource } from "@/types/resource";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+
+// ── Persistence helper ──
+// POST or DELETE the override on /api/workspace/overrides. Returns true on
+// 2xx, false otherwise. Anonymous users (no session token) get a console
+// warning and a `false` return — caller should rollback the optimistic update
+// in that case so the UI doesn't lie.
+async function persistOverride(
+  payload: { itemId: string } & Record<string, unknown>,
+  method: "POST" | "DELETE"
+): Promise<boolean> {
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      console.warn(
+        "[resourceStore] No auth session — override change is local-only and will be lost on reload."
+      );
+      return false;
+    }
+    const resp = await fetch("/api/workspace/overrides", {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.error(
+        `[resourceStore] /api/workspace/overrides ${method} returned ${resp.status}: ${text.slice(0, 300)}`
+      );
+      return false;
+    }
+    return true;
+  } catch (e: any) {
+    console.error("[resourceStore] /api/workspace/overrides request failed:", e?.message || e);
+    return false;
+  }
+}
 
 type SortKey = "urgency" | "priority" | "alpha" | "added" | "modified";
 
@@ -154,8 +196,12 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
     set({ overrides: map });
   },
 
-  // Write to workspace override layer — NOT mutating platform data
-  updatePriority: (id, priority) =>
+  // Write to workspace override layer — NOT mutating platform data.
+  // Optimistically updates local state, then POSTs to
+  // /api/workspace/overrides. On failure, rolls back to the prior state so
+  // the UI accurately reflects what's persisted in workspace_item_overrides.
+  updatePriority: (id, priority) => {
+    const prev = get().overrides.get(id);
     set((state) => {
       const newOverrides = new Map(state.overrides);
       const existing = newOverrides.get(id) || {
@@ -168,10 +214,22 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
       };
       newOverrides.set(id, { ...existing, priorityOverride: priority });
       return { overrides: newOverrides };
-    }),
+    });
+    persistOverride({ itemId: id, priorityOverride: priority }, "POST").then((ok) => {
+      if (!ok) {
+        set((state) => {
+          const rolled = new Map(state.overrides);
+          if (prev) rolled.set(id, prev);
+          else rolled.delete(id);
+          return { overrides: rolled };
+        });
+      }
+    });
+  },
 
   // Archive via workspace override — platform item stays untouched
-  archiveResource: (id, reason, note) =>
+  archiveResource: (id, reason, note) => {
+    const prev = get().overrides.get(id);
     set((state) => {
       const newOverrides = new Map(state.overrides);
       const existing = newOverrides.get(id) || {
@@ -189,10 +247,25 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         archiveNote: note,
       });
       return { overrides: newOverrides };
-    }),
+    });
+    persistOverride(
+      { itemId: id, isArchived: true, archiveReason: reason, archiveNote: note },
+      "POST"
+    ).then((ok) => {
+      if (!ok) {
+        set((state) => {
+          const rolled = new Map(state.overrides);
+          if (prev) rolled.set(id, prev);
+          else rolled.delete(id);
+          return { overrides: rolled };
+        });
+      }
+    });
+  },
 
-  // Restore: remove archive override
-  restoreResource: (id) =>
+  // Restore: clear archive flag in the override row
+  restoreResource: (id) => {
+    const prev = get().overrides.get(id);
     set((state) => {
       const newOverrides = new Map(state.overrides);
       const existing = newOverrides.get(id);
@@ -205,7 +278,21 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         });
       }
       return { overrides: newOverrides };
-    }),
+    });
+    persistOverride(
+      { itemId: id, isArchived: false, archiveReason: null, archiveNote: null },
+      "POST"
+    ).then((ok) => {
+      if (!ok) {
+        set((state) => {
+          const rolled = new Map(state.overrides);
+          if (prev) rolled.set(id, prev);
+          else rolled.delete(id);
+          return { overrides: rolled };
+        });
+      }
+    });
+  },
 
   toggleFilter: (dimension, value) =>
     set((state) => {

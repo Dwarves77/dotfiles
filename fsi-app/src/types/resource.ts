@@ -141,6 +141,7 @@ export interface Resource {
 
   // Authority and provenance (from skill)
   authorityLevel?: "primary_text" | "official_guidance" | "intergovernmental" | "expert_analysis" | "unconfirmed";
+  sourceId?: string;           // FK to sources.id — used by SourceProvenanceBadge
   sourceUrl?: string;          // Direct URL to primary source document
   sourceName?: string;         // Name of the publishing body
   sourceTier?: number;         // Tier 1-5 from skill source hierarchy

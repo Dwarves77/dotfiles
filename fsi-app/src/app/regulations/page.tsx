@@ -18,6 +18,7 @@ export default async function Regulations() {
       initialSynopses={data.synopses}
       initialIntelligenceChanges={data.intelligenceChanges}
       initialSectorDisplayNames={data.sectorDisplayNames}
+      initialOverrides={data.overrides}
     />
   );
 }

@@ -10,9 +10,13 @@ import { ExportBuilder } from "@/components/ExportBuilder";
 import { BackToTop } from "@/components/BackToTop";
 import { PageContext } from "@/components/ui/PageContext";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
+import { PageMasthead } from "@/components/shell/PageMasthead";
+import { SectionHeader } from "@/components/shell/SectionHeader";
+import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
 
 // Home
 import { SummaryStrip } from "@/components/home/SummaryStrip";
+import { DashboardHero } from "@/components/home/DashboardHero";
 import { WeeklyBriefing } from "@/components/home/WeeklyBriefing";
 import { WhatChanged } from "@/components/home/WhatChanged";
 import { TopUrgency } from "@/components/home/TopUrgency";
@@ -85,6 +89,63 @@ const DOMAIN_TAB_MAP: Record<string, number> = {
 // Tabs that show the resource explorer (only Domain 1 — regulations use the legacy resource list)
 const DOMAIN_TABS = new Set(["regulations"]);
 
+/** PageMasthead values per tab. Eyebrow/title/meta lifted from
+ *  design_handoff_2026-04/preview/*.html. Home masthead gets refined
+ *  in the dashboard-rebuild commit. */
+function mastheadFor(tab: string, resourceCount: number): { eyebrow?: string; title: string; meta?: string } {
+  switch (tab) {
+    case "home": {
+      const today = new Date();
+      const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+      const dateStr = today.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      const weekNo = Math.ceil(((today.getTime() - new Date(today.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7);
+      return {
+        eyebrow: `Vol IV · No. ${weekNo} · ${dayName}`,
+        title: "Dashboard — Your brief",
+        meta: `${dateStr} · ${resourceCount} regulations tracked · 8 jurisdictions`,
+      };
+    }
+    case "regulations":
+      return {
+        eyebrow: "Regulatory intelligence",
+        title: "Regulations",
+        meta: `${resourceCount} regulations tracked · 8 jurisdictions`,
+      };
+    case "technology":
+      return {
+        eyebrow: "Market intelligence",
+        title: "Market",
+        meta: "Technology readiness, price signals, trade policy",
+      };
+    case "regional":
+      return {
+        eyebrow: "Operations intelligence",
+        title: "Operations",
+        meta: "Jurisdictions, facilities, energy, labor",
+      };
+    case "research":
+      return {
+        eyebrow: "Research pipeline",
+        title: "Research",
+        meta: "Academic and institutional findings shaping standards",
+      };
+    case "map":
+      return {
+        eyebrow: "Global view",
+        title: "Map",
+        meta: "Jurisdictions where signals are active",
+      };
+    case "settings":
+      return {
+        eyebrow: "Workspace",
+        title: "Settings",
+        meta: "Display, exports, archive, supersessions",
+      };
+    default:
+      return { title: tab.charAt(0).toUpperCase() + tab.slice(1) };
+  }
+}
+
 interface DashboardProps {
   initialResources: Resource[];
   initialArchived: Resource[];
@@ -99,6 +160,7 @@ interface DashboardProps {
   initialSynopses?: { itemId: string; sector: string; summary: string; urgencyScore: number | null }[];
   initialIntelligenceChanges?: { itemId: string; changeType: string; changeSeverity: string; changeSummary: string }[];
   initialSectorDisplayNames?: { sector: string; displayName: string }[];
+  initialOverrides?: { itemId: string; priorityOverride: string | null; isArchived: boolean; archiveReason: string | null; archiveNote: string | null; notes: string }[];
   /** Override the active page — when set, ignores navigationStore.tab */
   page?: string;
 }
@@ -117,9 +179,10 @@ export function Dashboard({
   initialSynopses = [],
   initialIntelligenceChanges = [],
   initialSectorDisplayNames = [],
+  initialOverrides = [],
   page,
 }: DashboardProps) {
-  const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides, setSynopses, setIntelligenceChanges, setSectorDisplayNames } =
+  const { resources: platformResources, archived: platformArchived, setResources, setArchived, filters, sort, expandedId, setExpanded, overrides, setSynopses, setIntelligenceChanges, setSectorDisplayNames, setOverrides } =
     useResourceStore();
   const { tab: storeTab, focusView, clearNav, pushFocusView } = useNavigationStore();
   // Use page prop (from URL routing) if provided, otherwise fall back to store tab
@@ -197,13 +260,25 @@ export function Dashboard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load workspace settings from Supabase on mount
+  // Hydrate workspace overrides from Supabase on mount.
+  // resourceStore.updatePriority/archiveResource/restoreResource persist to
+  // the workspace_item_overrides table via /api/workspace/overrides; this
+  // re-loads any overrides set on previous sessions so the UI reflects the
+  // workspace's actual state.
   useEffect(() => {
-    if (!settingsLoaded) {
-      // Use the dev workspace org ID — will be dynamic once auth context provides org
-      loadSettings("a0000000-0000-0000-0000-000000000001");
+    if (initialOverrides.length > 0) setOverrides(initialOverrides);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load workspace settings from Supabase once AuthProvider has resolved
+  // the user's org_id into workspaceStore. Skip for anonymous users — they
+  // get the localStorage-only settings the store ships with.
+  const orgIdFromAuth = useWorkspaceStore((s) => s.orgId);
+  useEffect(() => {
+    if (!settingsLoaded && orgIdFromAuth) {
+      loadSettings(orgIdFromAuth);
     }
-  }, [settingsLoaded, loadSettings]);
+  }, [settingsLoaded, orgIdFromAuth, loadSettings]);
 
   // Build resource map for lookups
   const resourceMap = useMemo(() => {
@@ -241,8 +316,17 @@ export function Dashboard({
   const isDomainTab = DOMAIN_TABS.has(tab);
   // Sources tab merged into Research tab
 
+  // Masthead values per tab. Will move to per-route page.tsx mounts in
+  // a later commit; centralized here for now while every route still
+  // funnels through Dashboard.tsx.
+  const masthead = mastheadFor(tab, resources.length);
+  // Dashboard masthead carries the 4-up hero strip inside it per
+  // dashboard-v3.html; other pages don't.
+  const belowSlot = tab === "home" && !focusView ? <DashboardHero resources={resources} /> : undefined;
+
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--color-background)" }}>
+      <PageMasthead eyebrow={masthead.eyebrow} title={masthead.title} meta={masthead.meta} belowSlot={belowSlot} />
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-6">
         {/* Navigation Stack (for focus views / back button) */}
         <NavigationStack />
@@ -254,13 +338,9 @@ export function Dashboard({
               context={`Your freight operations are affected by ${resources.length} tracked regulations across ${new Set(resources.map((r) => r.jurisdiction)).size} jurisdictions. Here's what needs your attention.`}
               aiPlaceholder="Ask anything — 'What regulations affect my EU shipments?' or 'What changed this week?'"
             />
-            {settings.showSummaryStrip && (
-              <SummaryStrip
-                resources={resources}
-                changelog={changelog}
-                disputes={disputes}
-              />
-            )}
+            {/* Hero strip moved to PageMasthead belowSlot per dashboard-v3.html.
+                SummaryStrip retained but no longer mounted on home — kept
+                available for any focus view that wants the 4-up summary. */}
             {settings.showWeeklyBriefing && (
               <WeeklyBriefing
                 resources={resources}
@@ -289,49 +369,36 @@ export function Dashboard({
                   context="These regulations affect customs clearance, packaging, fuel costs, and carbon reporting for freight shipments. Sorted by how urgently they require action."
                   aiPlaceholder="Ask — 'What do I need to do before shipping to the EU in 2026?' or 'Which regulations affect air cargo?'"
                 />
-                {/* Urgency stat cards for Regulations */}
-                <div className="flex items-center gap-4 text-[10px] font-semibold uppercase tracking-wider flex-wrap" style={{ color: "var(--color-text-muted)" }}>
-                  {[
-                    { label: "CRITICAL", desc: "90 days", color: "#DC2626" },
-                    { label: "HIGH", desc: "6 months", color: "#D97706" },
-                    { label: "MODERATE", desc: "6-12 months", color: "#CA8A04" },
-                    { label: "LOW", desc: "Awareness", color: "#16A34A" },
-                  ].map((c) => (
-                    <span key={c.label} className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-                      <span style={{ color: c.color }}>{c.label}</span>
-                      <span>{c.desc}</span>
-                    </span>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {([
-                    { pri: "CRITICAL" as const, label: "Critical", desc: "Immediate action — 90 days", color: "#DC2626", bg: "rgba(220,38,38,0.08)", Icon: AlertTriangle },
-                    { pri: "HIGH" as const, label: "High", desc: "Action needed — 6 months", color: "#D97706", bg: "rgba(217,119,6,0.08)", Icon: ArrowUp },
-                    { pri: "MODERATE" as const, label: "Moderate", desc: "Monitor — 6-12 month horizon", color: "#CA8A04", bg: "rgba(202,138,4,0.08)", Icon: Eye },
-                    { pri: "LOW" as const, label: "Low", desc: "No action needed — awareness only", color: "#16A34A", bg: "rgba(22,163,74,0.08)", Icon: Shield },
-                  ]).map((card) => {
-                    const regResources = resources.filter((r) => (r.domain || 1) === 1);
-                    const count = regResources.filter((r) => r.priority === card.pri).length;
-                    const ids = regResources.filter((r) => r.priority === card.pri);
-                    return (
-                      <button
-                        key={card.pri}
-                        onClick={() => pushFocusView({
-                          title: `${card.label} Priority — ${count} items`,
+                {(() => {
+                  // Regulations urgency strip — Option 2 stat tiles.
+                  // Critical is the primary (rail+tint) tile per the lifecycle table in DESIGN_SYSTEM.md.
+                  const regResources = resources.filter((r) => (r.domain || 1) === 1);
+                  const tiles = (
+                    [
+                      { tone: "critical" as const, eyebrow: "Critical", helper: "Immediate — 90 days", pri: "CRITICAL" as const, primary: true,  icon: "▮" },
+                      { tone: "high" as const,     eyebrow: "High",     helper: "Plan — 6 months",     pri: "HIGH" as const,                       icon: "▲" },
+                      { tone: "moderate" as const, eyebrow: "Moderate", helper: "Monitor — 6–12 mo",   pri: "MODERATE" as const,                   icon: "◎" },
+                      { tone: "low" as const,      eyebrow: "Low",      helper: "Awareness only",       pri: "LOW" as const,                        icon: "◯" },
+                    ]
+                  ).map((t) => {
+                    const ids = regResources.filter((r) => r.priority === t.pri);
+                    return {
+                      tone: t.tone,
+                      eyebrow: t.eyebrow,
+                      helper: t.helper,
+                      icon: t.icon,
+                      numeral: ids.length,
+                      primary: t.primary,
+                      ariaLabel: `${t.eyebrow} priority — ${ids.length} items`,
+                      onClick: () =>
+                        pushFocusView({
+                          title: `${t.eyebrow} priority — ${ids.length} items`,
                           resourceIds: ids.map((r) => r.id),
-                        })}
-                        className="cl-stat-card text-center py-4 px-3 cursor-pointer transition-all duration-200 hover:shadow-md"
-                        style={{ borderColor: `${card.color}20` }}
-                      >
-                        <card.Icon size={20} style={{ color: card.color }} className="mx-auto mb-2" />
-                        <div className="cl-stat-number" style={{ color: "var(--color-text-primary)", fontSize: "28px" }}>{count}</div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider mt-1" style={{ color: card.color }}>{card.label}</div>
-                        <div className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>{card.desc}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+                        }),
+                    };
+                  });
+                  return <StatStrip tiles={tiles} />;
+                })()}
               </>
             )}
             {!focusView && (
@@ -505,6 +572,8 @@ export function Dashboard({
               { id: "regional", label: "By Jurisdiction", content: <><DomainItemList domain={3} emptyMessage="No regional intelligence items yet." /><RegionalIntelligence /></> },
               { id: "facilities", label: "Facility Data", content: <><DomainItemList domain={6} emptyMessage="No facility data items yet." /><FacilityOptimization /></> },
             ]}
+            urgencyType="operations"
+            resources={resources}
           />
         )}
 
@@ -655,41 +724,79 @@ function MergedSection({
   subtitle: string;
   aiPlaceholder?: string;
   tabs: { id: string; label: string; content: React.ReactNode }[];
-  urgencyType?: "market_intel" | "research";
+  urgencyType?: "market_intel" | "research" | "operations";
   resources?: Resource[];
 }) {
   const [activeTab, setActiveTab] = useState(tabs[0].id);
   const { pushFocusView } = useNavigationStore();
 
-  // Urgency labels per type
-  const urgencyLabels = urgencyType === "market_intel"
-    ? { CRITICAL: "Watch", HIGH: "Elevated", MODERATE: "Stable", LOW: "Informational" }
-    : urgencyType === "research"
-    ? { CRITICAL: "Emerging", HIGH: "Active", MODERATE: "Established", LOW: "Archived" }
-    : null;
+  // Stat-strip configuration per surface. Tones + labels + primary tile
+  // mirror design_handoff_2026-04/preview/{market-intel,research,operations}.html
+  // and the lifecycle table in DESIGN_SYSTEM.md.
+  //
+  // Counts come from resource priority tiers — research labels are a
+  // semantic compromise pending a real lifecycle field on items.
+  const STRIP_CONFIG: Record<
+    "market_intel" | "research" | "operations",
+    Array<{
+      pri: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+      tone: StatTone;
+      label: string;
+      desc: string;
+      icon?: string;
+      primary?: boolean;
+    }>
+  > = {
+    market_intel: [
+      { pri: "CRITICAL", tone: "critical", label: "Watch",         desc: "Threshold breached",       icon: "▮", primary: true },
+      { pri: "HIGH",     tone: "high",     label: "Elevated",      desc: "Significant movement",     icon: "▲" },
+      { pri: "MODERATE", tone: "moderate", label: "Stable",        desc: "Within normal range",      icon: "◎" },
+      { pri: "LOW",      tone: "low",      label: "Informational", desc: "Background awareness",     icon: "◯" },
+    ],
+    research: [
+      { pri: "CRITICAL", tone: "muted", label: "Draft",     desc: "In progress",        icon: "○" },
+      { pri: "HIGH",     tone: "high",  label: "Active",    desc: "Ongoing review",     icon: "●", primary: true },
+      { pri: "MODERATE", tone: "low",   label: "Published", desc: "Established",         icon: "◆" },
+      { pri: "LOW",      tone: "muted", label: "Archived",  desc: "Reference only",      icon: "—" },
+    ],
+    operations: [
+      { pri: "CRITICAL", tone: "critical", label: "Critical", desc: "Immediate — 90 days", icon: "▮", primary: true },
+      { pri: "HIGH",     tone: "high",     label: "High",     desc: "Plan — 6 months",     icon: "▲" },
+      { pri: "MODERATE", tone: "moderate", label: "Moderate", desc: "Monitor — 6–12 mo",   icon: "◎" },
+      { pri: "LOW",      tone: "low",      label: "Low",      desc: "Awareness only",      icon: "◯" },
+    ],
+  };
 
-  const urgencyDescs = urgencyType === "market_intel"
-    ? { CRITICAL: "Threshold breached — immediate cost impact", HIGH: "Significant movement — review models", MODERATE: "Within normal range — monitor", LOW: "Background awareness" }
-    : urgencyType === "research"
-    ? { CRITICAL: "New finding — warrants attention", HIGH: "Ongoing research — near-term implications", MODERATE: "Published — informing current standards", LOW: "Completed — reference only" }
-    : null;
-
-  // Filter resources to this section's types
+  // Filter resources to this section's types / domains
   const sectionResources = useMemo(() => {
     if (!allResources || !urgencyType) return [];
     return allResources.filter((r) => {
       if (urgencyType === "market_intel") return ["market_signal", "technology", "innovation", "tool"].includes(r.type);
       if (urgencyType === "research") return r.type === "research_finding";
+      if (urgencyType === "operations") return r.domain === 3 || r.domain === 6;
       return false;
     });
   }, [allResources, urgencyType]);
 
-  const urgencyCards = urgencyLabels ? [
-    { priority: "CRITICAL" as const, label: urgencyLabels.CRITICAL, desc: urgencyDescs!.CRITICAL, color: "#DC2626", bg: "rgba(220,38,38,0.08)", icon: AlertTriangle },
-    { priority: "HIGH" as const, label: urgencyLabels.HIGH, desc: urgencyDescs!.HIGH, color: "#D97706", bg: "rgba(217,119,6,0.08)", icon: ArrowUp },
-    { priority: "MODERATE" as const, label: urgencyLabels.MODERATE, desc: urgencyDescs!.MODERATE, color: "#CA8A04", bg: "rgba(202,138,4,0.08)", icon: Eye },
-    { priority: "LOW" as const, label: urgencyLabels.LOW, desc: urgencyDescs!.LOW, color: "#16A34A", bg: "rgba(22,163,74,0.08)", icon: Shield },
-  ] : null;
+  const stripTiles = urgencyType
+    ? STRIP_CONFIG[urgencyType].map((t) => {
+        const ids = sectionResources.filter((r) => r.priority === t.pri);
+        return {
+          tone: t.tone,
+          eyebrow: t.label,
+          helper: t.desc,
+          icon: t.icon,
+          numeral: ids.length,
+          primary: t.primary,
+          ariaLabel: `${t.label} — ${ids.length} items`,
+          onClick: () =>
+            pushFocusView({
+              title: `${t.label} — ${ids.length} items`,
+              resourceIds: ids.map((r) => r.id),
+            }),
+        };
+      })
+    : null;
 
   return (
     <div className="mt-4 space-y-4">
@@ -705,49 +812,7 @@ function MergedSection({
       </div>
       {aiPlaceholder && <AiPromptBar placeholder={aiPlaceholder} />}
 
-      {/* Urgency stat cards — same style as dashboard SummaryStrip */}
-      {urgencyCards && (
-        <>
-          <div className="flex items-center gap-4 text-[10px] font-semibold uppercase tracking-wider flex-wrap" style={{ color: "var(--color-text-muted)" }}>
-            {urgencyCards.map((c) => (
-              <span key={c.priority} className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-                <span style={{ color: c.color }}>{c.label}</span>
-                <span>{c.desc.split("—")[0]?.trim()}</span>
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {urgencyCards.map((card) => {
-              const count = sectionResources.filter((r) => r.priority === card.priority).length;
-              const ids = sectionResources.filter((r) => r.priority === card.priority);
-              const Icon = card.icon;
-              return (
-                <button
-                  key={card.priority}
-                  onClick={() => pushFocusView({
-                    title: `${card.label} — ${count} items`,
-                    resourceIds: ids.map((r) => r.id),
-                  })}
-                  className="cl-stat-card text-center py-4 px-3 cursor-pointer transition-all duration-200 hover:shadow-md"
-                  style={{ borderColor: `${card.color}20` }}
-                >
-                  <Icon size={20} style={{ color: card.color }} className="mx-auto mb-2" />
-                  <div className="cl-stat-number" style={{ color: "var(--color-text-primary)", fontSize: "28px" }}>
-                    {count}
-                  </div>
-                  <div className="text-[11px] font-bold uppercase tracking-wider mt-1" style={{ color: card.color }}>
-                    {card.label}
-                  </div>
-                  <div className="text-[10px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                    {card.desc}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
+      {stripTiles && <StatStrip tiles={stripTiles} />}
 
       {/* Internal tabs */}
       <div className="flex gap-1 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>

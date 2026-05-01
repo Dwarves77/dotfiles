@@ -7,13 +7,14 @@ import { useResourceStore, type StoredSynopsis, type StoredChange } from "@/stor
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { IntelligenceBrief } from "./IntelligenceBrief";
+import { IntelligenceMetadataStrip } from "./IntelligenceMetadataStrip";
 
 // ── Urgency badge colors ──
 
 function urgencyBadge(score: number | null): { label: string; bg: string; text: string; border: string } {
   if (score === null) return { label: "—", bg: "transparent", text: "var(--color-text-muted)", border: "var(--color-border)" };
   if (score >= 0.9) return { label: score.toFixed(1), bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
-  if (score >= 0.6) return { label: score.toFixed(1), bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+  if (score >= 0.6) return { label: score.toFixed(1), bg: "#FFF7ED", text: "#D97706", border: "#FED7AA" };
   if (score >= 0.3) return { label: score.toFixed(1), bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE" };
   return { label: score.toFixed(1), bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
 }
@@ -21,7 +22,7 @@ function urgencyBadge(score: number | null): { label: string; bg: string; text: 
 function severityBadge(severity: string): { label: string; bg: string; text: string; border: string } {
   switch (severity) {
     case "critical": return { label: "CRITICAL", bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
-    case "significant": return { label: "SIGNIFICANT", bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" };
+    case "significant": return { label: "SIGNIFICANT", bg: "#FFF7ED", text: "#D97706", border: "#FED7AA" };
     case "minor": return { label: "MINOR", bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE" };
     case "administrative": return { label: "ADMINISTRATIVE", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
     default: return { label: severity.toUpperCase(), bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
@@ -327,9 +328,16 @@ export function SectorSynopsisView({ itemId, fullBrief, fallbackWhatIsIt, fallba
         </div>
       )}
 
-      {/* Detailed view — full intelligence brief */}
+      {/* Detailed view — full intelligence brief, preceded by structured
+          metadata strip (severity / urgency / format / topic + scenario +
+          compliance-object tags / intersection summary). Strip self-fetches
+          and renders nothing when the item hasn't been regenerated under
+          the current contract. */}
       {showDetailed && fullBrief ? (
-        <IntelligenceBrief markdown={fullBrief} />
+        <>
+          <IntelligenceMetadataStrip itemId={itemId} />
+          <IntelligenceBrief markdown={fullBrief} />
+        </>
       ) : (
         <>
           {/* Cross-sector headline */}

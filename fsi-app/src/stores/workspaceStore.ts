@@ -28,16 +28,17 @@ interface WorkspaceState {
   setSectorWeights: (weights: Record<string, number> | null) => void;
 }
 
-// Default dev workspace
-const DEV_ORG_ID = "a0000000-0000-0000-0000-000000000001";
-const DEV_ORG_NAME = "Dietl / Rockit";
-const DEV_SECTORS = ["fine-art", "live-events", "luxury-goods", "film-tv", "automotive", "humanitarian"];
+// No hardcoded workspace defaults. AuthProvider populates orgId/orgName/
+// userRole/sectorProfile on session load via setWorkspace + setUserRole +
+// setSectorProfile. Anonymous users (and authenticated users with no org
+// membership) see the public/platform view: empty sector profile means no
+// sector-aware filtering on Regulations and a generic answer from /api/ask.
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
-  orgId: DEV_ORG_ID,
-  orgName: DEV_ORG_NAME,
-  userRole: "owner",
-  sectorProfile: DEV_SECTORS,
+  orgId: null,
+  orgName: "",
+  userRole: null,
+  sectorProfile: [],
   jurisdictionWeights: null,
   sectorWeights: null,
 

@@ -123,7 +123,7 @@ export function WeeklyBriefing({
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>{r.title}</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: r.priority === "CRITICAL" ? "#DC2626" : r.priority === "HIGH" ? "#D97706" : "#CA8A04", backgroundColor: r.priority === "CRITICAL" ? "#FEF2F2" : r.priority === "HIGH" ? "#FFFBEB" : "#FEFCE8", border: `1px solid ${r.priority === "CRITICAL" ? "#FECACA" : r.priority === "HIGH" ? "#FDE68A" : "#FEF08A"}` }}>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: r.priority === "CRITICAL" ? "#DC2626" : r.priority === "HIGH" ? "#D97706" : "#CA8A04", backgroundColor: r.priority === "CRITICAL" ? "#FEF2F2" : r.priority === "HIGH" ? "#FFF7ED" : "#FEFCE8", border: `1px solid ${r.priority === "CRITICAL" ? "#FECACA" : r.priority === "HIGH" ? "#FED7AA" : "#FEF08A"}` }}>
                     {r.priority}
                   </span>
                 </div>

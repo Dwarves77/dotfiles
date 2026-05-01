@@ -10,6 +10,7 @@ import { PRIORITY_COLORS, TOPIC_COLORS, INFO_TYPE_COLORS, INFO_TYPE_LABELS, getI
 import { ChevronDown, Share2 } from "lucide-react";
 import type { Resource } from "@/types/resource";
 import { AcronymText } from "@/components/ui/AcronymText";
+import { SourceProvenanceBadge } from "@/components/sources/SourceProvenanceBadge";
 
 interface ResourceCardProps {
   resource: Resource;
@@ -115,8 +116,8 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
             </p>
           )}
 
-          {/* Sub-jurisdiction + conflict indicators */}
-          <div className="flex flex-wrap gap-1 mb-1">
+          {/* Sub-jurisdiction + conflict indicators + source provenance */}
+          <div className="flex flex-wrap items-center gap-1 mb-1">
             {r.subJurisdictionLabel && (
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded border border-text-accent/20 bg-text-accent/10 text-text-accent">
                 {r.subJurisdictionLabel}
@@ -127,6 +128,7 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
                 {r.regulatoryConflict.type.replace("-", " ")} conflict
               </span>
             )}
+            <SourceProvenanceBadge sourceId={r.sourceId} />
           </div>
 
           {/* Tags */}

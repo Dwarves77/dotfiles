@@ -30,93 +30,46 @@ function getSupabase() {
   );
 }
 
-// ── Row → TypeScript Mapping ─────────────────────────────────
-
-function mapResource(row: any, timelines?: any[]): Resource {
-  return {
-    id: row.id,
-    cat: row.category,
-    sub: row.subcategory || "",
-    title: row.title,
-    url: row.url || "",
-    note: row.note || "",
-    type: row.type || "",
-    priority: row.priority,
-    added: row.added_date,
-    reasoning: row.reasoning || "",
-    tags: row.tags || [],
-    whatIsIt: row.what_is_it || "",
-    whyMatters: row.why_matters || "",
-    keyData: row.key_data || [],
-    fullBrief: row.full_brief || undefined,
-    timeline: (timelines || []).map((t) => ({
-      date: t.date,
-      label: t.label,
-      status: t.status || undefined,
-    })),
-    modes: row.modes || [],
-    topic: row.topic || undefined,
-    jurisdiction: row.jurisdiction || undefined,
-    isArchived: row.is_archived,
-    archiveReason: row.archive_reason || undefined,
-    archiveNote: row.archive_note || undefined,
-    archivedDate: row.archived_date || undefined,
-    replacedBy: row.archive_replacement || undefined,
-  };
-}
-
 // ── Fetch Functions ──────────────────────────────────────────
+// All reads are against the new item_* schema (Phase A.5.b). UUID
+// item ids are translated to UI-side ids (legacy_id || uuid) inline
+// via PostgREST embedded selects, so the wire shape consumed by
+// existing components is preserved.
 
-async function fetchResources(): Promise<Resource[]> {
-  const supabase = getSupabase();
-
-  const [{ data: rows }, { data: timelineRows }] = await Promise.all([
-    supabase.from("resources").select("*").eq("is_archived", false),
-    supabase.from("timelines").select("*").order("sort_order"),
-  ]);
-
-  const timelineMap = new Map<string, any[]>();
-  (timelineRows || []).forEach((t: any) => {
-    const arr = timelineMap.get(t.resource_id) || [];
-    arr.push(t);
-    timelineMap.set(t.resource_id, arr);
-  });
-
-  return (rows || []).map((row: any) =>
-    mapResource(row, timelineMap.get(row.id))
-  );
-}
-
-async function fetchArchived(): Promise<Resource[]> {
-  const supabase = getSupabase();
-  const { data: rows } = await supabase
-    .from("resources")
-    .select("*")
-    .eq("is_archived", true);
-
-  return (rows || []).map((row: any) => mapResource(row));
+// PostgREST embedded selects sometimes return the joined row as a single
+// object and sometimes (when the relationship is inferred as many-to-one
+// through an aliased FK) as a single-element array. We accept both
+// shapes and pick the legacy_id || uuid as the UI-side id.
+type EmbeddedItem = { id: string; legacy_id: string | null };
+function uiId(ii: EmbeddedItem | EmbeddedItem[] | null | undefined): string | null {
+  if (!ii) return null;
+  const obj = Array.isArray(ii) ? ii[0] : ii;
+  if (!obj) return null;
+  return obj.legacy_id || obj.id;
 }
 
 async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
   const supabase = getSupabase();
   const { data: rows } = await supabase
-    .from("changelog")
-    .select("*")
-    .order("date", { ascending: false });
+    .from("item_changelog")
+    .select("change_date, change_type, field, previous_value, new_value, impact, intelligence_items!inner(id, legacy_id)")
+    .order("change_date", { ascending: false });
 
   const result: Record<string, ChangeLogEntry[]> = {};
   (rows || []).forEach((row: any) => {
+    const id = uiId(row.intelligence_items);
+    if (!id) return;
     const entry: ChangeLogEntry = {
-      id: row.resource_id,
-      date: row.date,
-      type: row.type,
-      fields: row.fields || undefined,
-      prev: row.prev_value || undefined,
-      now: row.now_value || undefined,
+      id,
+      date: row.change_date,
+      type: row.change_type,
+      fields: row.field ? [row.field] : undefined,
+      prev: row.previous_value || undefined,
+      now: row.new_value || undefined,
       impact: row.impact || undefined,
     };
-    if (!result[row.resource_id]) result[row.resource_id] = [];
-    result[row.resource_id].push(entry);
+    if (!result[id]) result[id] = [];
+    result[id].push(entry);
   });
 
   return result;
@@ -125,20 +78,22 @@ async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
 async function fetchDisputes(): Promise<Record<string, Dispute>> {
   const supabase = getSupabase();
   const { data: rows } = await supabase
-    .from("disputes")
-    .select("*")
-    .eq("active", true);
+    .from("item_disputes")
+    .select("note, disputing_sources, intelligence_items!inner(id, legacy_id)")
+    .eq("is_active", true);
 
   const result: Record<string, Dispute> = {};
   (rows || []).forEach((row: any) => {
-    const sources = Array.isArray(row.sources)
-      ? row.sources
-      : typeof row.sources === "string"
-        ? JSON.parse(row.sources)
+    const id = uiId(row.intelligence_items);
+    if (!id) return;
+    const sources = Array.isArray(row.disputing_sources)
+      ? row.disputing_sources
+      : typeof row.disputing_sources === "string"
+        ? JSON.parse(row.disputing_sources)
         : [];
 
-    result[row.resource_id] = {
-      resource: row.resource_id,
+    result[id] = {
+      resource: id,
       note: row.note,
       sources: sources.map((s: any) =>
         typeof s === "string" ? { name: s, url: "" } : s
@@ -151,25 +106,40 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
 
 async function fetchXrefPairs(): Promise<[string, string][]> {
   const supabase = getSupabase();
-  const { data: rows } = await supabase.from("cross_references").select("*");
+  const { data: rows } = await supabase
+    .from("item_cross_references")
+    .select("source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)");
 
-  return (rows || []).map((row: any) => [row.source_id, row.target_id]);
+  const pairs: [string, string][] = [];
+  for (const row of rows || []) {
+    const s = uiId(row.source);
+    const t = uiId(row.target);
+    if (s && t) pairs.push([s, t]);
+  }
+  return pairs;
 }
 
 async function fetchSupersessions(): Promise<Supersession[]> {
   const supabase = getSupabase();
   const { data: rows } = await supabase
-    .from("supersessions")
-    .select("*")
-    .order("date", { ascending: false });
+    .from("item_supersessions")
+    .select("supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)")
+    .order("supersession_date", { ascending: false });
 
-  return (rows || []).map((row: any) => ({
-    old: row.old_id,
-    new: row.new_id,
-    date: row.date,
-    severity: row.severity as "major" | "minor" | "replacement",
-    note: row.note || "",
-  }));
+  const out: Supersession[] = [];
+  for (const row of rows || []) {
+    const oldId = uiId(row.old);
+    const newId = uiId(row.new);
+    if (!oldId || !newId) continue;
+    out.push({
+      old: oldId,
+      new: newId,
+      date: row.supersession_date,
+      severity: row.severity as "major" | "minor" | "replacement",
+      note: row.note || "",
+    });
+  }
+  return out;
 }
 
 // ── Source Fetch Functions ───────────────────────────────────
@@ -233,13 +203,18 @@ function mapSourceRow(row: any): Source {
   };
 }
 
-async function fetchSources(): Promise<Source[]> {
+async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
   const supabase = getSupabase();
-  const { data: rows } = await supabase
+  let query = supabase
     .from("sources")
     .select("*")
     .order("tier", { ascending: true });
-
+  if (!includeAdminOnly) {
+    // Workspace-facing default — hide admin_only sources from regular users.
+    // The admin dashboard fetches the unfiltered list via /api/admin/sources/all.
+    query = query.eq("admin_only", false);
+  }
+  const { data: rows } = await query;
   return (rows || []).map(mapSourceRow);
 }
 
@@ -310,7 +285,7 @@ export interface SourceData {
   openConflicts: SourceConflict[];
 }
 
-export async function fetchSourceData(): Promise<SourceData> {
+export async function fetchSourceData(includeAdminOnly = false): Promise<SourceData> {
   const emptySourceData: SourceData = { sources: [], provisionalSources: [], openConflicts: [] };
 
   if (!isSupabaseConfigured()) {
@@ -319,7 +294,7 @@ export async function fetchSourceData(): Promise<SourceData> {
 
   try {
     const [sources, provisionalSources, openConflicts] = await withTimeout(
-      Promise.all([fetchSources(), fetchProvisionalSources(), fetchOpenConflicts()]),
+      Promise.all([fetchSources(includeAdminOnly), fetchProvisionalSources(), fetchOpenConflicts()]),
       8000,
       [[], [], []] as [Source[], ProvisionalSource[], SourceConflict[]]
     );
@@ -336,38 +311,45 @@ export async function fetchSourceData(): Promise<SourceData> {
 async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resource[]; archived: Resource[] }> {
   const supabase = getSupabase();
 
-  // Fetch via workspace function
+  // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
+  // No legacy `resources` fallback after A.5.b — if the RPC returns empty,
+  // fetchDashboardData's seed fallback covers the misconfiguration case.
   const { data: items, error } = await supabase.rpc("get_workspace_intelligence", { p_org_id: orgId });
 
   if (error || !items?.length) {
-    // Fallback to legacy resources if workspace function fails
-    const legacy = await fetchResources();
-    const legacyArchived = await fetchArchived();
-    return { active: legacy, archived: legacyArchived };
+    return { active: [], archived: [] };
   }
 
-  // Fetch timelines for these items
-  const itemIds = items.map((i: any) => i.legacy_id).filter(Boolean);
+  // Build UUID → UI-id translation map from the RPC payload (each row has
+  // both id and legacy_id). The UI keys resources by UI id (legacy_id || uuid).
+  const uuidToUiId = new Map<string, string>();
+  for (const i of items) uuidToUiId.set(i.id, i.legacy_id || i.id);
+
+  // Timelines from the new schema. Key is item.id (UUID), translated to UI id
+  // for the lookup map the resource builder consumes.
+  const itemUuids = items.map((i: any) => i.id);
   const { data: timelineRows } = await supabase
-    .from("timelines")
-    .select("*")
-    .in("resource_id", itemIds)
+    .from("item_timelines")
+    .select("item_id, milestone_date, label, is_completed, sort_order")
+    .in("item_id", itemUuids)
     .order("sort_order");
 
   const timelineMap = new Map<string, any[]>();
   (timelineRows || []).forEach((t: any) => {
-    const arr = timelineMap.get(t.resource_id) || [];
+    const uiId = uuidToUiId.get(t.item_id) || t.item_id;
+    const arr = timelineMap.get(uiId) || [];
     arr.push(t);
-    timelineMap.set(t.resource_id, arr);
+    timelineMap.set(uiId, arr);
   });
 
   const active: Resource[] = [];
   const archived: Resource[] = [];
 
   for (const row of items) {
-    const timelines = row.legacy_id ? timelineMap.get(row.legacy_id) : undefined;
+    const resourceId = row.legacy_id || row.id;
+    const timelines = timelineMap.get(resourceId);
     const resource: Resource = {
-      id: row.legacy_id || row.id,
+      id: resourceId,
       cat: (row.transport_modes?.[0]) || "global",
       sub: row.category || "",
       title: row.title,
@@ -384,13 +366,18 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
       fullBrief: row.full_brief || undefined,
       domain: row.domain || 1,
       timeline: (timelines || []).map((t: any) => ({
-        date: t.date,
+        date: t.milestone_date,
         label: t.label,
-        status: t.status || undefined,
+        // is_completed BOOLEAN ↔ legacy status TEXT. The 010 migration set
+        // is_completed=true for legacy "past"|"completed" rows, so map back
+        // to "past" (the only completion-state value the TimelineEntry
+        // type accepts). Non-completed milestones leave status undefined.
+        status: t.is_completed ? ("past" as const) : undefined,
       })),
       modes: row.transport_modes || [],
       topic: row.category || undefined,
       jurisdiction: row.jurisdictions?.[0] || undefined,
+      sourceId: row.source_id || undefined,
       isArchived: row.effective_archived || false,
     };
 
@@ -425,6 +412,15 @@ export interface SectorDisplayName {
   displayName: string;
 }
 
+export interface WorkspaceOverrideRow {
+  itemId: string;
+  priorityOverride: string | null;
+  isArchived: boolean;
+  archiveReason: string | null;
+  archiveNote: string | null;
+  notes: string;
+}
+
 export interface DashboardData {
   resources: Resource[];
   archived: Resource[];
@@ -436,6 +432,7 @@ export interface DashboardData {
   synopses: SectorSynopsis[];
   intelligenceChanges: IntelligenceChange[];
   sectorDisplayNames: SectorDisplayName[];
+  overrides: WorkspaceOverrideRow[];
 }
 
 // Timeout wrapper — prevents Supabase from hanging indefinitely on Vercel
@@ -446,7 +443,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   ]);
 }
 
-export async function fetchDashboardData(): Promise<DashboardData> {
+export async function fetchDashboardData(orgId: string | null): Promise<DashboardData> {
   const seedFallback: DashboardData = {
     resources: seedResources,
     archived: seedArchived,
@@ -458,15 +455,24 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],
+    overrides: [],
   };
 
   if (!isSupabaseConfigured()) {
     return seedFallback;
   }
 
+  // Anonymous request — no org resolved from auth context. Return the
+  // public/seed view (no workspace overrides). Once auth is enforced
+  // (Phase A.4), this branch is only reachable for misconfiguration.
+  if (!orgId) {
+    return seedFallback;
+  }
+
   try {
-    // Use workspace intelligence function for resources (includes overrides)
-    const orgId = "a0000000-0000-0000-0000-000000000001"; // Default dev workspace
+    // Workspace-scoped intelligence read. orgId is the caller's auth-resolved
+    // membership; the RPC merges intelligence_items with this workspace's
+    // overrides only.
     const [{ active: resources, archived }, changelog, disputes, xrefPairs, supersessions] =
       await withTimeout(
         Promise.all([
@@ -517,7 +523,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       return allSynopses;
     }
 
-    const [allSynopses, changesResult, sectorsResult] = await Promise.all([
+    const [allSynopses, changesResult, sectorsResult, overridesResult] = await Promise.all([
       fetchAllSynopses(),
       supabase
         .from("intelligence_changes")
@@ -526,6 +532,10 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
+      supabase
+        .from("workspace_item_overrides")
+        .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes")
+        .eq("org_id", orgId),
     ]);
 
     // Build UUID→legacy_id lookup from resources already fetched
@@ -582,6 +592,16 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       }
     }
 
+    // Map workspace_item_overrides UUID item_id → UI-side id (legacy_id || uuid)
+    const overrides: WorkspaceOverrideRow[] = (overridesResult.data || []).map((o: any) => ({
+      itemId: uuidToUiId.get(o.item_id) || o.item_id,
+      priorityOverride: o.priority_override ?? null,
+      isArchived: !!o.is_archived,
+      archiveReason: o.archive_reason ?? null,
+      archiveNote: o.archive_note ?? null,
+      notes: o.notes ?? "",
+    }));
+
     return {
       resources,
       archived,
@@ -593,6 +613,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       synopses,
       intelligenceChanges,
       sectorDisplayNames,
+      overrides,
     };
   } catch (e) {
     console.error("fetchDashboardData failed, using seed fallback:", e);

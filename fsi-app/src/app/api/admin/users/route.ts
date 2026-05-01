@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { resolveOrgIdFromUserId } from "@/lib/api/org";
 
 function getServiceClient() {
   return createClient(
@@ -43,8 +44,16 @@ export async function POST(request: NextRequest) {
 
     const newUserId = userData.user.id;
 
-    // Assign to organization
-    const targetOrg = org_id || "a0000000-0000-0000-0000-000000000001"; // Default to dev org
+    // Resolve target org from caller's auth context unless caller explicitly
+    // supplies one. No silent fallback to a dev org — if neither is available,
+    // 403 so we never accidentally cross-contaminate orgs.
+    const targetOrg = org_id || (await resolveOrgIdFromUserId(supabase, auth.userId));
+    if (!targetOrg) {
+      return NextResponse.json(
+        { error: "Caller has no org membership and no org_id was supplied" },
+        { status: 403 }
+      );
+    }
     const { error: memberError } = await supabase.from("org_memberships").insert({
       org_id: targetOrg,
       user_id: newUserId,

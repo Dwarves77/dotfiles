@@ -1,6 +1,17 @@
 /* ═══════════════════════════════════════════════════════════
    Caro's Ledge — Theme System
    Light-first. Apple HIG principles. Semantic tokens only.
+
+   Source of truth for the editorial token set:
+     design_handoff_2026-04/DESIGN_SYSTEM.md
+     design_handoff_2026-04/preview/shell.css
+
+   Editorial tokens (--accent, --bg/--surface/--raised, --text/--text-2,
+   --critical-bg/-bd, etc.) are added ADDITIVELY in this file. The
+   pre-existing orange/blue token set is intentionally retained so
+   components that currently reference --color-primary keep rendering
+   unchanged. PRs 2+ migrate components onto the editorial tokens
+   one screen at a time.
    ═══════════════════════════════════════════════════════════ */
 
 /* ── LIGHT THEME (default) ── */
@@ -92,8 +103,8 @@
   --color-critical-bg: #FEF2F2;
   --color-critical-border: #FECACA;
   --color-high: #D97706;
-  --color-high-bg: #FFFBEB;
-  --color-high-border: #FDE68A;
+  --color-high-bg: #FFF7ED;       /* orange-50 — distinct from moderate yellow-50 */
+  --color-high-border: #FED7AA;   /* orange-200 */
   --color-moderate: #CA8A04;
   --color-moderate-bg: #FEFCE8;
   --color-moderate-border: #FEF08A;
@@ -173,7 +184,61 @@
   --muted-foreground: var(--color-text-muted);
   --card: var(--color-surface);
   --card-hover: var(--color-surface-raised);
-  --accent: var(--color-primary);
+
+  /* ─────────────────────────────────────────────────────
+     EDITORIAL TOKEN SET (additive — see DESIGN_SYSTEM.md)
+     Mirrors design_handoff_2026-04/preview/shell.css.
+     New components consume these; legacy components keep
+     using the orange/blue tokens above until migrated.
+     ───────────────────────────────────────────────────── */
+
+  /* Fonts (raw vars; Tailwind aliases live in globals.css @theme block) */
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-display: var(--font-anton), system-ui, sans-serif;
+
+  /* Surface aliases */
+  --bg: #FAFAF8;
+  --surface: #FFFFFF;
+  --raised: #F5F2EE;
+
+  /* Text aliases */
+  --text: #1A1A1A;
+  --text-2: #5A6B67;
+
+  /* Border aliases */
+  --border-sub: rgba(0,0,0,0.06);
+
+  /* Editorial accent — navy (replaces orange in new components) */
+  --accent: #1E3A8A;
+  --accent-hover: #172E6F;
+  --accent-bg: rgba(30,58,138,0.08);
+  --accent-bd: rgba(30,58,138,0.25);
+  --accent-strip: #EEF1F9;
+  --accent-strip-bd: #C4CEE8;
+
+  /* Oxblood — reserved for editorial moments (one per screen) */
+  --oxblood: #6E1F1A;
+
+  /* Priority palette — short aliases (values match --color-* above) */
+  --critical-bg: #FEF2F2;
+  --critical-bd: #FECACA;
+  --high-bg: #FFF7ED;       /* orange-50 — distinct from moderate yellow-50 */
+  --high-bd: #FED7AA;       /* orange-200 */
+  --moderate-bg: #FEFCE8;
+  --moderate-bd: #FEF08A;
+  --low-bg: #F0FDF4;
+  --low-bd: #BBF7D0;
+
+  /* Shadow / radius aliases */
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  --shadow-popover: 0 10px 30px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+
+  /* Masthead chrome — 3px navy → red gradient, fixed shell chrome.
+     Not part of the oxblood urgency budget. */
+  --gradient-masthead: linear-gradient(90deg, var(--accent), var(--critical));
 }
 
 /* ── DARK THEME (opt-in) ── */

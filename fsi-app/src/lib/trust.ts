@@ -28,6 +28,14 @@ import { PROMOTION_CRITERIA, DEMOTION_TRIGGERS } from "@/types/source";
 //   Timeliness:  20% — reporting early AND accurately is valuable
 //   Reliability: 20% — being consistently accessible matters
 //   Citation:    20% — being recognized by credible sources matters
+//
+// Sources with no earned data signals would all score a neutral 40
+// (20+10+10+0). That's mathematically honest but uninformative — a
+// tier-1 institutional gazette would render identically to a
+// provisional tier-7 candidate. We blend the earned score with a
+// tier-derived prior so the UI shows differentiated authority
+// immediately, and earned data takes over as it accumulates. See
+// computeOverallScore.
 
 export function computeTrustScore(metrics: TrustMetrics): TrustScore {
   const accuracy = computeAccuracyComponent(metrics);
@@ -43,6 +51,63 @@ export function computeTrustScore(metrics: TrustMetrics): TrustScore {
     citation_component: Math.round(citation * 10) / 10,
     computed_at: new Date().toISOString(),
   };
+}
+
+// ── Earned Score (0-100) ──
+// Sum of the four weighted components; what computeTrustScore.overall
+// returns. Exposed so the prior-blend caller can reuse it without
+// recomputing components.
+
+export function computeEarnedScore(metrics: TrustMetrics): number {
+  return Math.round(
+    computeAccuracyComponent(metrics) +
+    computeTimelinessComponent(metrics) +
+    computeReliabilityComponent(metrics) +
+    computeCitationComponent(metrics)
+  );
+}
+
+// ── Tier-Derived Prior (0-100) ──
+// What we'd assign if we had zero earned data. Encodes "institutional
+// authority" — tier 1 is a state gazette, tier 7 is provisional. The
+// prior decays as earned data accumulates (see computeOverallScore).
+
+const TIER_PRIORS: Record<SourceTier, number> = {
+  1: 85,
+  2: 75,
+  3: 65,
+  4: 55,
+  5: 45,
+  6: 35,
+  7: 25,
+};
+
+export function tierPrior(tier: SourceTier): number {
+  return TIER_PRIORS[tier] ?? 25;
+}
+
+// ── Bayesian-Prior-Blend Overall Score (0-100) ──
+//
+//   overall = (prior_weight × tier_prior) + ((1 − prior_weight) × earned_score)
+//   prior_weight = max(0, 1 − data_signal_count / 10)
+//   data_signal_count = independent_citers + total_checks +
+//                       confirmation_count + conflict_count
+//
+// At zero signals: overall = tier_prior. At ≥10 signals: overall =
+// earned_score. In between, smooth linear transition. A low-tier
+// source can earn up; a high-tier source can fall if it accumulates
+// conflicts or loses accessibility.
+
+export function computeOverallScore(metrics: TrustMetrics, tier: SourceTier): number {
+  const earned = computeEarnedScore(metrics);
+  const prior = tierPrior(tier);
+  const signalCount =
+    (metrics.independent_citers || 0) +
+    (metrics.total_checks || 0) +
+    (metrics.confirmation_count || 0) +
+    (metrics.conflict_count || 0);
+  const priorWeight = Math.max(0, 1 - signalCount / 10);
+  return Math.round(priorWeight * prior + (1 - priorWeight) * earned);
 }
 
 // ── Accuracy Component (0-40) ──
