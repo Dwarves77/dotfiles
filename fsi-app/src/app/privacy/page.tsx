@@ -299,7 +299,7 @@ export default function PrivacyPolicyPage() {
           <P>
             <strong>Pet Pursuit LLC</strong>
             <br />
-            [Mailing address]
+            50 Falls Road, Falls Village, CT 06031, USA
             <br />
             Privacy contact:{" "}
             <a
@@ -311,16 +311,24 @@ export default function PrivacyPolicyPage() {
             </a>
           </P>
           <P>
-            For EU/UK data subjects, our representative is: [To be designated
-            if EU users access the platform]
+            For EU/UK data subjects, our representative is: Caro&apos;s Ledge
+            is currently in early access. EU/UK GDPR Article 27 representative
+            will be designated upon onboarding of EU/UK data subjects.
           </P>
         </Section>
 
         <Section title="Data Protection Officer">
           <P>
-            [If you appoint a DPO, list contact details here. Required under
-            GDPR if you process personal data on a large scale or process
-            special categories of data.]
+            Pet Pursuit LLC has not appointed a dedicated Data Protection
+            Officer. Privacy inquiries should be directed to{" "}
+            <a
+              href="mailto:privacy@carosledge.com"
+              style={{ color: "var(--color-primary)" }}
+              className="underline"
+            >
+              privacy@carosledge.com
+            </a>
+            .
           </P>
         </Section>
       </article>
