@@ -1,12 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { Badge } from "@/components/ui/Badge";
+import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { ModeBadge } from "@/components/ui/ModeBadge";
 import { Tag } from "@/components/ui/Tag";
 import { useResourceStore } from "@/stores/resourceStore";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { PRIORITY_COLORS, TOPIC_COLORS, INFO_TYPE_COLORS, INFO_TYPE_LABELS, getInfoType } from "@/lib/constants";
+import { TOPIC_COLORS, INFO_TYPE_COLORS, INFO_TYPE_LABELS, getInfoType } from "@/lib/constants";
 import { ChevronDown, Share2 } from "lucide-react";
 import type { Resource } from "@/types/resource";
 import { AcronymText } from "@/components/ui/AcronymText";
@@ -58,9 +58,8 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
               >
                 {INFO_TYPE_LABELS[infoType]}
               </span>
-              <Badge
-                label={r.priority}
-                color={PRIORITY_COLORS[r.priority]}
+              <PriorityBadge
+                level={r.priority}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleFilter("priorities", r.priority);

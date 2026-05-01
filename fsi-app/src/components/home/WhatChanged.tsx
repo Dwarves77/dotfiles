@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { Badge } from "@/components/ui/Badge";
-import { PRIORITY_COLORS } from "@/lib/constants";
+import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
 import { ChevronDown } from "lucide-react";
 
@@ -72,7 +71,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                       <p className="text-xs font-medium text-text-primary truncate">{r.title}</p>
                       <p className="text-xs text-text-secondary truncate">{r.note}</p>
                     </div>
-                    <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
+                    <PriorityBadge level={r.priority} />
                   </button>
                 ))}
               </div>
@@ -98,7 +97,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                         <p className="text-xs font-medium text-text-primary truncate flex-1">
                           {r.title}
                         </p>
-                        <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
+                        <PriorityBadge level={r.priority} />
                       </div>
                       {changes.map((ch, i) => (
                         <div key={i} className="mb-1.5 last:mb-0">

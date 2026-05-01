@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { useResourceStore } from "@/stores/resourceStore";
 import { SectorSynopsisView } from "@/components/resource/SectorSynopsis";
-import { Badge } from "@/components/ui/Badge";
-import { PRIORITY_COLORS, INFO_TYPE_COLORS, INFO_TYPE_LABELS, getInfoType } from "@/lib/constants";
+import { PriorityBadge } from "@/components/ui/PriorityBadge";
+import { INFO_TYPE_COLORS, INFO_TYPE_LABELS, getInfoType } from "@/lib/constants";
 import { UrgencyFilterBar, MARKET_INTEL_URGENCY, RESEARCH_URGENCY } from "@/components/ui/UrgencyFilterBar";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -93,10 +93,14 @@ export function DomainItemList({ domain, emptyMessage }: DomainItemListProps) {
                     {item.title}
                   </h3>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge
-                      label={urgencyConfig?.find(o => o.value === item.priority)?.label || item.priority}
-                      color={PRIORITY_COLORS[item.priority]}
-                    />
+                    {/* TODO: badge-migration — PriorityBadge does not yet
+                        support a `label` override. The previous Badge call
+                        displayed urgencyConfig's localized label (e.g.
+                        "Tracking" / "Watching") instead of the bare priority
+                        enum. Re-introduce a `label?: string` prop on
+                        PriorityBadge if those custom labels need to come
+                        back, or render a separate inline label here. */}
+                    <PriorityBadge level={item.priority} />
                     <ChevronDown
                       size={14}
                       className={cn(

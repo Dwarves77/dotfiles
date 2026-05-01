@@ -3,10 +3,9 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { Badge } from "@/components/ui/Badge";
+import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { ModeBadge } from "@/components/ui/ModeBadge";
 import { urgencyScore } from "@/lib/scoring";
-import { PRIORITY_COLORS } from "@/lib/constants";
 import type { Resource } from "@/types/resource";
 import { ChevronDown } from "lucide-react";
 
@@ -79,7 +78,7 @@ export function TopUrgency({ resources }: TopUrgencyProps) {
                         <ModeBadge key={m} mode={m as "air" | "road" | "ocean"} />
                       ) : null
                     )}
-                    <Badge label={r.priority} color={PRIORITY_COLORS[r.priority]} />
+                    <PriorityBadge level={r.priority} />
                   </div>
                   <p className="text-xs font-medium text-text-primary truncate">{r.title}</p>
                   <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">
