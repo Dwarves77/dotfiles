@@ -135,34 +135,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* LinkedIn OAuth */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t" style={{ borderColor: "var(--color-border)" }} />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="px-2 text-xs" style={{ backgroundColor: "var(--color-background)", color: "var(--color-text-muted)" }}>or</span>
-          </div>
-        </div>
-
-        <button
-          onClick={async () => {
-            const supabase = createSupabaseBrowserClient();
-            await supabase.auth.signInWithOAuth({
-              provider: "linkedin_oidc",
-              options: { redirectTo: `${window.location.origin}/auth/callback` },
-            });
-          }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-colors"
-          style={{
-            borderColor: "var(--color-border)",
-            color: "var(--color-text-primary)",
-            backgroundColor: "var(--color-surface)",
-          }}
-        >
-          Sign in with LinkedIn
-        </button>
-
         <p
           className="text-center text-xs"
           style={{ color: "var(--color-text-muted)" }}
