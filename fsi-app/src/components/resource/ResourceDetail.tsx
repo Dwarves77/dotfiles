@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { Badge } from "@/components/ui/Badge";
 import { ModeBadge } from "@/components/ui/ModeBadge";
 import { Tag } from "@/components/ui/Tag";
 import { ImpactScores } from "./ImpactScores";

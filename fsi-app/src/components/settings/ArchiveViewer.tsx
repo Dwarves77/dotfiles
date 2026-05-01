@@ -3,8 +3,6 @@
 import { useState, useMemo } from "react";
 import { useResourceStore } from "@/stores/resourceStore";
 import { useNavigationStore } from "@/stores/navigationStore";
-import { Badge } from "@/components/ui/Badge";
-import { PRIORITY_COLORS } from "@/lib/constants";
 import { Search, RotateCcw } from "lucide-react";
 
 export function ArchiveViewer() {
