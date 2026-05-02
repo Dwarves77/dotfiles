@@ -620,3 +620,192 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     return seedFallback;
   }
 }
+
+// ── Single Item Fetch (for /regulations/[id] detail page) ────────
+/**
+ * Fetch a single intelligence_item by its UI-side id (legacy_id || uuid).
+ * Returns a Resource shaped object plus changelog/disputes/timeline for that
+ * item — everything needed to render the regulation-detail page server-side.
+ *
+ * Falls back to seed data if Supabase is not configured or the id is not
+ * found in Supabase. Returns null when nothing matches in either source.
+ */
+export async function fetchIntelligenceItem(
+  itemUiId: string
+): Promise<{
+  resource: Resource;
+  changelog: ChangeLogEntry[];
+  dispute: Dispute | null;
+  supersessions: Supersession[];
+  xrefIds: string[];
+  refByIds: string[];
+} | null> {
+  // Seed-only path
+  function fromSeed() {
+    const r = [...seedResources, ...seedArchived].find((x) => x.id === itemUiId);
+    if (!r) return null;
+    const refs = seedXrefPairs.filter(([a]) => a === itemUiId).map(([, b]) => b);
+    const refBy = seedXrefPairs.filter(([, b]) => b === itemUiId).map(([a]) => a);
+    const sups = seedSupersessions.filter(
+      (s) => s.old === itemUiId || s.new === itemUiId
+    );
+    return {
+      resource: r,
+      changelog: seedChangelog[itemUiId] || [],
+      dispute: seedDisputes[itemUiId] || null,
+      supersessions: sups,
+      xrefIds: refs,
+      refByIds: refBy,
+    };
+  }
+
+  if (!isSupabaseConfigured()) return fromSeed();
+
+  try {
+    const supabase = getSupabase();
+    // intelligence_items.id is uuid — only include the id.eq filter when
+    // the input parses as a valid uuid; otherwise PostgREST rejects the OR
+    // expression.
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        itemUiId
+      );
+    const orExpr = isUuid
+      ? `legacy_id.eq.${itemUiId},id.eq.${itemUiId}`
+      : `legacy_id.eq.${itemUiId}`;
+    const { data: row, error } = await supabase
+      .from("intelligence_items")
+      .select("*")
+      .or(orExpr)
+      .maybeSingle();
+
+    if (error || !row) return fromSeed();
+
+    const resourceId: string = row.legacy_id || row.id;
+
+    const { data: timelineRows } = await supabase
+      .from("item_timelines")
+      .select("milestone_date, label, is_completed, sort_order")
+      .eq("item_id", row.id)
+      .order("sort_order");
+
+    const resource: Resource = {
+      id: resourceId,
+      cat: row.transport_modes?.[0] || "global",
+      sub: row.category || "",
+      title: row.title,
+      url: row.source_url || "",
+      note: row.summary || "",
+      type: row.item_type || "regulation",
+      priority: (row.priority || "MODERATE") as Resource["priority"],
+      added: row.added_date,
+      reasoning: row.reasoning || "",
+      tags: row.tags || [],
+      whatIsIt: row.what_is_it || "",
+      whyMatters: row.why_matters || "",
+      keyData: row.key_data || [],
+      fullBrief: row.full_brief || undefined,
+      domain: row.domain || 1,
+      timeline: (timelineRows || []).map((t: any) => ({
+        date: t.milestone_date,
+        label: t.label,
+        status: t.is_completed ? ("past" as const) : undefined,
+      })),
+      modes: row.transport_modes || [],
+      topic: row.category || undefined,
+      jurisdiction: row.jurisdictions?.[0] || undefined,
+      sourceId: row.source_id || undefined,
+      isArchived: row.is_archived || false,
+      penaltyRange: row.penalty_range || undefined,
+      complianceDeadline: row.compliance_deadline || undefined,
+      enforcementBody: row.enforcement_body || undefined,
+      legalInstrument: row.legal_instrument || undefined,
+    };
+
+    // Changelog for this item
+    const { data: changeRows } = await supabase
+      .from("item_changelog")
+      .select("change_date, change_type, field, previous_value, new_value, impact")
+      .eq("item_id", row.id)
+      .order("change_date", { ascending: false });
+
+    const changelog: ChangeLogEntry[] = (changeRows || []).map((c: any) => ({
+      id: resourceId,
+      date: c.change_date,
+      type: c.change_type,
+      fields: c.field ? [c.field] : undefined,
+      prev: c.previous_value || undefined,
+      now: c.new_value || undefined,
+      impact: c.impact || undefined,
+    }));
+
+    // Active dispute for this item
+    const { data: disputeRow } = await supabase
+      .from("item_disputes")
+      .select("note, disputing_sources")
+      .eq("item_id", row.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    let dispute: Dispute | null = null;
+    if (disputeRow) {
+      const sources = Array.isArray(disputeRow.disputing_sources)
+        ? disputeRow.disputing_sources
+        : typeof disputeRow.disputing_sources === "string"
+          ? JSON.parse(disputeRow.disputing_sources)
+          : [];
+      dispute = {
+        resource: resourceId,
+        note: disputeRow.note,
+        sources: sources.map((s: any) =>
+          typeof s === "string" ? { name: s, url: "" } : s
+        ),
+      };
+    }
+
+    // Cross-references — fetch both directions
+    const { data: xrefOut } = await supabase
+      .from("item_cross_references")
+      .select("target:intelligence_items!target_item_id(id, legacy_id)")
+      .eq("source_item_id", row.id);
+    const { data: xrefIn } = await supabase
+      .from("item_cross_references")
+      .select("source:intelligence_items!source_item_id(id, legacy_id)")
+      .eq("target_item_id", row.id);
+
+    const xrefIds = (xrefOut || [])
+      .map((r: any) => uiId(r.target))
+      .filter(Boolean) as string[];
+    const refByIds = (xrefIn || [])
+      .map((r: any) => uiId(r.source))
+      .filter(Boolean) as string[];
+
+    // Supersessions involving this item
+    const { data: supRows } = await supabase
+      .from("item_supersessions")
+      .select(
+        "supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)"
+      )
+      .or(`old_item_id.eq.${row.id},new_item_id.eq.${row.id}`);
+
+    const supersessions: Supersession[] = (supRows || [])
+      .map((r: any) => {
+        const oldId = uiId(r.old);
+        const newId = uiId(r.new);
+        if (!oldId || !newId) return null;
+        return {
+          old: oldId,
+          new: newId,
+          date: r.supersession_date,
+          severity: r.severity as "major" | "minor" | "replacement",
+          note: r.note || "",
+        };
+      })
+      .filter(Boolean) as Supersession[];
+
+    return { resource, changelog, dispute, supersessions, xrefIds, refByIds };
+  } catch (e) {
+    console.error("fetchIntelligenceItem failed, using seed fallback:", e);
+    return fromSeed();
+  }
+}
