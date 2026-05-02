@@ -2,6 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+// Supabase auth callback. Handles:
+//   - Email-confirmation links from /signup (next=/onboarding by default)
+//   - Magic-link / OTP redirects (next=/ default)
+//   - Any future flow that wants to land on a specific path post-auth
+//
+// Phase C: signup links call here with ?next=/onboarding so a freshly verified
+// user lands directly in the onboarding wizard.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
