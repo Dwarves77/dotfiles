@@ -139,7 +139,14 @@ export default function LoginPage() {
           className="text-center text-xs"
           style={{ color: "var(--color-text-muted)" }}
         >
-          Contact your workspace admin for access.
+          Don&apos;t have an account?{" "}
+          <a
+            href="/signup"
+            className="underline"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            Create one
+          </a>
         </p>
       </div>
     </div>
