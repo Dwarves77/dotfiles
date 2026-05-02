@@ -6,13 +6,13 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useSourceStore } from "@/stores/sourceStore";
 import type { Source, ProvisionalSource, SourceConflict } from "@/types/source";
 import {
-  Users, Building, FileCheck, Plus, Trash2,
-  CheckCircle, XCircle, RefreshCw, Shield, ArrowLeft,
-  Search, Radar,
+  Plus,
+  CheckCircle, XCircle, RefreshCw,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { APP_NAME } from "@/lib/constants";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
+import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 
 interface AdminDashboardProps {
   userId: string;
@@ -24,7 +24,12 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({
   userId,
-  userEmail,
+  // userEmail is currently unused after the visual refresh — the
+  // identity row at the top of the legacy admin shell was replaced
+  // by the EditorialMasthead, which doesn't surface the email. Kept
+  // on the props interface so callers (admin/page.tsx) don't have
+  // to change.
+  userEmail: _userEmail,
   initialSources = [],
   initialProvisionalSources = [],
   initialOpenConflicts = [],
@@ -41,7 +46,12 @@ export function AdminDashboard({
     if (initialOpenConflicts.length > 0) setOpenConflicts(initialOpenConflicts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [activeTab, setActiveTab] = useState<"users" | "orgs" | "updates" | "scan" | "sources">("users");
+  // Tab IDs match the design_handoff_2026-04/preview/admin.html structure.
+  // "orgs" + "integrations" are placeholders pending Phase D multi-tenant
+  // architecture; the four operational tabs (sources, staged, scan, audit)
+  // map to existing functional code that ships now.
+  type AdminTab = "orgs" | "integrations" | "sources" | "staged" | "scan" | "audit";
+  const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
   const [members, setMembers] = useState<any[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [stagedUpdates, setStagedUpdates] = useState<any[]>([]);
@@ -159,45 +169,68 @@ export function AdminDashboard({
     setScanning(false);
   };
 
-  const tabs = [
-    { id: "users" as const, label: "Users", icon: Users, count: members.length },
-    { id: "orgs" as const, label: "Organizations", icon: Building, count: orgs.length },
-    { id: "updates" as const, label: "Staged Updates", icon: FileCheck, count: stagedUpdates.length },
-    { id: "scan" as const, label: "Regulatory Scan", icon: Radar, count: 0 },
-    { id: "sources" as const, label: "Source Registry", icon: Shield, count: 0 },
+  const tabs: { id: AdminTab; label: string; count: number }[] = [
+    { id: "orgs", label: "Organizations", count: orgs.length },
+    { id: "integrations", label: "API & integrations", count: 0 },
+    { id: "sources", label: "Source registry", count: 0 },
+    { id: "staged", label: "Staged updates", count: stagedUpdates.length },
+    { id: "scan", label: "Regulatory scan", count: 0 },
+    { id: "audit", label: "Audit log", count: 0 },
   ];
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <a
-                href="/"
-                className="flex items-center gap-1 text-xs transition-colors"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                <ArrowLeft size={12} />
-                Dashboard
-              </a>
-            </div>
-            <h1
-              className="text-xl font-bold"
-              style={{ color: "var(--color-text-primary)" }}
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+      <EditorialMasthead
+        eyebrow="Caro's Ledge · Platform Operations"
+        title="Admin"
+        meta="Organizations · integrations · sources · staged updates · regulatory scan · audit"
+      />
+
+      <div style={{ padding: "28px 36px 60px" }}>
+        {/* Navy admin-view banner */}
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            background: "var(--accent-bg)",
+            border: "1px solid var(--accent-bd)",
+            borderRadius: "var(--r-md)",
+            padding: "10px 16px",
+            marginBottom: 18,
+            fontSize: 12,
+            color: "var(--text)",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "var(--accent)",
+              flexShrink: 0,
+            }}
+          />
+          <span>
+            <b style={{ color: "var(--accent)" }}>Caro&apos;s Ledge admin view</b> — you are
+            looking at platform-wide controls. Per-org settings (members, billing) live on
+            each org owner&apos;s{" "}
+            <a
+              href="/profile"
+              style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "underline" }}
             >
-              <Shield size={18} className="inline mr-2" />
-              Admin Panel
-            </h1>
-            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-              {userEmail} · {APP_NAME}
-            </p>
-          </div>
-          <Button variant="secondary" size="sm" onClick={loadData}>
+              Profile
+            </a>
+            .
+          </span>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={loadData}
+            className="ml-auto"
+          >
             <RefreshCw size={12} />
             Refresh
           </Button>
@@ -205,175 +238,222 @@ export function AdminDashboard({
 
         {/* Tabs */}
         <div
-          className="flex gap-1 border-b mb-6"
-          style={{ borderColor: "var(--color-border-subtle)" }}
+          style={{
+            display: "flex",
+            gap: 0,
+            borderBottom: "1px solid var(--border)",
+            marginBottom: 24,
+            flexWrap: "wrap",
+          }}
         >
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer"
               style={{
-                color: activeTab === t.id ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                position: "relative",
+                padding: "12px 20px",
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: activeTab === t.id ? "var(--accent)" : "var(--text-2)",
+                borderBottom:
+                  activeTab === t.id
+                    ? "3px solid var(--accent)"
+                    : "3px solid transparent",
+                background: "transparent",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
               }}
             >
-              <t.icon size={14} />
               {t.label}
               {t.count > 0 && (
                 <span
-                  className="text-[11px] tabular-nums px-1.5 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: "var(--color-surface-raised)",
-                    color: "var(--color-text-secondary)",
+                    fontSize: 11,
+                    padding: "1px 7px",
+                    borderRadius: 999,
+                    background: "var(--raised)",
+                    color: "var(--text-2)",
+                    fontWeight: 700,
                   }}
                 >
                   {t.count}
                 </span>
               )}
-              {activeTab === t.id && (
-                <span
-                  className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                />
-              )}
             </button>
           ))}
         </div>
 
-        {/* Users Tab */}
-        {activeTab === "users" && (
+        {/* Organizations Tab */}
+        {activeTab === "orgs" && (
           <div className="space-y-4">
-            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-              Workspace Members
-            </h2>
+            <ComingSoonBanner
+              note="Multi-tenant organization management lands in Phase D. The list below shows orgs already provisioned in the database for the current admin scope. Per-org member, plan, and billing controls move to each org owner's Profile."
+            />
 
-            {/* Add member form */}
-            <div
-              className="flex gap-2 p-4 rounded-lg border"
-              style={{
-                borderColor: "var(--color-border)",
-                backgroundColor: "var(--color-surface)",
-              }}
-            >
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="Email address"
-                className="flex-1 px-3 py-2 text-sm rounded-md border outline-none"
-                style={{
-                  borderColor: "var(--color-border)",
-                  backgroundColor: "var(--color-background)",
-                  color: "var(--color-text-primary)",
-                }}
-              />
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="px-3 py-2 text-sm rounded-md border"
-                style={{
-                  borderColor: "var(--color-border)",
-                  backgroundColor: "var(--color-background)",
-                  color: "var(--color-text-primary)",
-                }}
-              >
-                <option value="owner">Owner</option>
-                <option value="admin">Admin</option>
-                <option value="member">Member</option>
-                <option value="viewer">Viewer</option>
-              </select>
-              <Button variant="primary" size="md" onClick={addMember}>
-                <Plus size={14} />
-                Add
-              </Button>
-            </div>
-
-            {/* Member list */}
-            {members.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm" style={{ color: "var(--color-text-primary)" }}>
-                  No members yet
-                </p>
-                <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
-                  Add yourself as the first member using the form above.
-                </p>
-              </div>
-            ) : (
+            {orgs.length > 0 && (
               <div className="space-y-2">
-                {members.map((m) => (
+                <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                  Organizations ({orgs.length})
+                </h2>
+                {orgs.map((org) => (
                   <div
-                    key={m.id}
-                    className="flex items-center justify-between p-3 rounded-lg border"
+                    key={org.id}
+                    className="p-4 rounded-lg border"
                     style={{
                       borderColor: "var(--color-border)",
                       backgroundColor: "var(--color-surface)",
                     }}
                   >
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
-                        {m.profiles?.email || m.user_id}
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                        {m.role} · joined {new Date(m.created_at).toLocaleDateString()}
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                          {org.name}
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                          {org.slug} · {org.plan}
+                        </p>
+                      </div>
+                      <span
+                        className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
+                        style={{
+                          color: "var(--color-primary)",
+                          backgroundColor: "var(--color-active-bg)",
+                        }}
+                      >
+                        {org.plan}
+                      </span>
                     </div>
-                    <span
-                      className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
-                      style={{
-                        color: m.role === "owner" ? "var(--color-primary)" : "var(--color-text-secondary)",
-                        backgroundColor: "var(--color-surface-raised)",
-                      }}
-                    >
-                      {m.role}
-                    </span>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Organizations Tab */}
-        {activeTab === "orgs" && (
-          <div className="space-y-4">
-            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-              Organizations
-            </h2>
-            {orgs.map((org) => (
+            {/* Workspace member shortcut — kept until Phase D Profile-side
+                management ships; covers the dev-mode path of inviting users
+                to the current workspace. */}
+            <div className="space-y-2 pt-2">
+              <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                Current workspace · members
+              </h2>
               <div
-                key={org.id}
-                className="p-4 rounded-lg border"
+                className="flex gap-2 p-4 rounded-lg border"
                 style={{
                   borderColor: "var(--color-border)",
                   backgroundColor: "var(--color-surface)",
                 }}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                      {org.name}
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                      {org.slug} · {org.plan}
-                    </p>
-                  </div>
-                  <span
-                    className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
-                    style={{
-                      color: "var(--color-primary)",
-                      backgroundColor: "var(--color-active-bg)",
-                    }}
-                  >
-                    {org.plan}
-                  </span>
-                </div>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Email address"
+                  className="flex-1 px-3 py-2 text-sm rounded-md border outline-none"
+                  style={{
+                    borderColor: "var(--color-border)",
+                    backgroundColor: "var(--color-background)",
+                    color: "var(--color-text-primary)",
+                  }}
+                />
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="px-3 py-2 text-sm rounded-md border"
+                  style={{
+                    borderColor: "var(--color-border)",
+                    backgroundColor: "var(--color-background)",
+                    color: "var(--color-text-primary)",
+                  }}
+                >
+                  <option value="owner">Owner</option>
+                  <option value="admin">Admin</option>
+                  <option value="member">Member</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+                <Button variant="primary" size="md" onClick={addMember}>
+                  <Plus size={14} />
+                  Add
+                </Button>
               </div>
-            ))}
+
+              {members.length === 0 ? (
+                <p className="text-xs px-1" style={{ color: "var(--color-text-secondary)" }}>
+                  No workspace members yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {members.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                      style={{
+                        borderColor: "var(--color-border)",
+                        backgroundColor: "var(--color-surface)",
+                      }}
+                    >
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
+                          {m.profiles?.email || m.user_id}
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                          {m.role} · joined {new Date(m.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span
+                        className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
+                        style={{
+                          color: m.role === "owner" ? "var(--color-primary)" : "var(--color-text-secondary)",
+                          backgroundColor: "var(--color-surface-raised)",
+                        }}
+                      >
+                        {m.role}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Staged Updates Tab */}
-        {activeTab === "updates" && (
+        {/* API & integrations Tab — Coming soon */}
+        {activeTab === "integrations" && (
+          <div className="space-y-4">
+            <ComingSoonBanner
+              note="Integration catalog lands in Phase D. Master catalog (SAP, CBAM Reporting API, Slack, MS Teams, outbound webhooks, Oracle TMS, Salesforce Net Zero) will be published platform-wide and per-org enablement controlled here."
+            />
+            <div
+              className="p-4 rounded-lg border"
+              style={{
+                borderColor: "var(--color-border)",
+                backgroundColor: "var(--color-surface)",
+              }}
+            >
+              <h2 className="text-sm font-semibold mb-2" style={{ color: "var(--color-text-primary)" }}>
+                Planned catalog
+              </h2>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                SAP S/4HANA · CBAM Reporting API (sandbox + production) · Slack alerting ·
+                Microsoft Teams · Outbound webhooks · Oracle TMS · Salesforce Net Zero Cloud
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Source registry Tab — wraps existing SourceHealthDashboard */}
+        {activeTab === "sources" && (
+          <div className="space-y-4">
+            <SourceHealthDashboard />
+          </div>
+        )}
+
+        {/* Staged updates Tab */}
+        {activeTab === "staged" && (
           <div className="space-y-4">
             <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
               Pending Staged Updates
@@ -570,9 +650,27 @@ export function AdminDashboard({
           </div>
         )}
 
-        {/* ── Sources Tab ── */}
-        {activeTab === "sources" && (
-          <SourceHealthDashboard />
+        {/* Audit log Tab — placeholder (audit log surface lands in Phase D) */}
+        {activeTab === "audit" && (
+          <div className="space-y-4">
+            <ComingSoonBanner
+              note="Workspace-wide audit log lands in Phase D. Action history (member changes, source approvals, staged-update decisions) is already captured at the database level and will surface here once the audit_log read endpoint ships."
+            />
+            <div
+              className="p-4 rounded-lg border"
+              style={{
+                borderColor: "var(--color-border)",
+                backgroundColor: "var(--color-surface)",
+              }}
+            >
+              <h2 className="text-sm font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>
+                Last 30 days · workspace-wide
+              </h2>
+              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                No entries to display.
+              </p>
+            </div>
+          </div>
         )}
 
         {/* Toast */}
@@ -591,6 +689,52 @@ export function AdminDashboard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Helpers ──
+
+/**
+ * ComingSoonBanner — placeholder banner for tabs whose backing service
+ * isn't online yet. Used on Organizations / API & integrations / Audit.
+ * Mirrors the navy admin-view banner above the tab strip but is amber-
+ * tinted so it reads as informational rather than navigational.
+ */
+function ComingSoonBanner({ note }: { note: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        background: "var(--high-bg)",
+        border: "1px solid var(--high-bd)",
+        borderRadius: "var(--r-md)",
+        padding: "12px 16px",
+        fontSize: 12,
+        color: "var(--text)",
+        lineHeight: 1.55,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-block",
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: "var(--high)",
+          flexShrink: 0,
+          marginTop: 5,
+        }}
+      />
+      <span>
+        <b style={{ color: "var(--high)", letterSpacing: "0.04em" }}>
+          Coming soon — Phase D
+        </b>{" "}
+        — {note}
+      </span>
     </div>
   );
 }
