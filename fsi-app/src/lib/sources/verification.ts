@@ -205,18 +205,39 @@ export const VERIFICATION_HAIKU_SYSTEM_PROMPT = `You are a source verification c
 
 Given a candidate source URL and a content excerpt, return STRICT JSON:
 {
-  "ai_relevance_score": 0-100,        // sustainability/climate/freight regulatory content relevance
-  "ai_freight_score": 0-100,          // does this jurisdiction publish things that affect freight (cargo, shipping, customs, trade, transport, supply chain)
-  "ai_trust_tier": "T1"|"T2"|"T3",    // T1 = canonical primary source (Federal Register, EUR-Lex, IMO); T2 = canonical regulator (EPA, CARB, EMSA); T3 = reputable secondary (industry assoc, standards bodies, think tanks)
+  "ai_relevance_score": 0-100,
+  "ai_freight_score": 0-100,
+  "ai_trust_tier": "T1"|"T2"|"T3",
   "rationale": "<=150 char summary"
 }
 
-Rules:
-- Tier reflects canonicalness, not jurisdictional level. CARB = T2 (same as EPA). State agencies issuing primary regulation = T2.
-- Score 100 only for explicit primary-source government/IGO regulatory publications.
-- Score < 60 means not relevant — pipeline will reject.
-- Be strict: when in doubt about freight relevance, score lower. Operator review is the safety net.
-- Output JSON only, no prose, no markdown, no code fences.`;
+Scoring guidance:
+
+ai_relevance_score — sustainability / climate / environmental / energy / transport regulatory content. Government regulators with mandates covering ANY of: emissions, air quality, water, waste, energy, climate, fuel, building codes, vehicle standards, public utilities, transport planning, customs, trade. Canonical state-level publishers (CARB, CalEPA, CEC, CPUC, leginfo.legislature.ca.gov, NYDEC, etc.) score 80-95 even when their mandate is broader than just sustainability — they ARE the canonical place where sustainability regulations live. Only score below 60 when the source is unambiguously off-topic (tourism, museums, sports, entertainment, retail not regulated for sustainability).
+
+ai_freight_score — does this jurisdiction's regulatory output operationally affect freight, cargo, shipping, transport, supply chain, or the operations that support them (warehouses, ports, distribution centers, fleets, logistics labor)? This includes INDIRECTLY freight-affecting domains:
+- Air quality / emissions standards (truck fleets, port operations)
+- Energy / fuel / alternative-fuel regulation (fuel costs, EV charging, hydrogen, SAF)
+- Public utility regulation (electric trucks, port electrification, charging infrastructure)
+- Vehicle registration / safety / inspection (commercial fleet operations)
+- Building / facility codes (warehouses, distribution centers, cold-chain)
+- Labor regulation (drivers, dock workers, warehouse staff)
+- Customs / trade / sanctions / dangerous goods
+- Transport planning / freight corridors / port master plans
+- Legislative archives where freight-affecting bills are published (e.g., leginfo.legislature.ca.gov hosts SB 253, SB 261, AB 1305 — all freight-affecting)
+
+State-level umbrella regulators (CalEPA), legislative-archive sites where regulations are codified (leginfo, ecfr), and major regulator portals (CARB, CPUC, CEC) score 60-90 freight even when not pure-freight agencies.
+
+Score below 30 ONLY when the source has no plausible operational impact on freight — tourism, recreation, cultural institutions, off-topic news.
+
+ai_trust_tier — reflects canonicalness, NOT jurisdictional level:
+- T1: canonical primary regulatory publication (Federal Register, EUR-Lex, IMO, ICAO, gazettes, official legislative archives like leginfo.legislature.ca.gov)
+- T2: canonical regulator (EPA, CARB, EMSA, CPUC, CEC, CalEPA, NYDEC, state-level primary regulators)
+- T3: reputable secondary (industry associations, standards bodies, think tanks, academic centers)
+
+Sub-state and state agencies issuing primary regulation are T2 — same as EPA. Air-quality management districts (AQMDs) issuing district rules are T2. Regional boards under state umbrellas are T2.
+
+Output JSON only, no prose, no markdown, no code fences.`;
 
 // ────────────────────────────────────────────────────────────────────────────
 // Tier thresholds (calibration constants)
@@ -227,10 +248,10 @@ Rules:
 // carry the highest reputational risk.
 
 const THRESHOLDS = {
-  AI_RELEVANCE_H: 85,        // ai_relevance_score >= this → eligible for H
-  AI_RELEVANCE_M: 60,        // below this → L (rejected)
-  AI_FREIGHT_H: 60,          // ai_freight_score >= this → eligible for H
-  AI_FREIGHT_M: 30,          // below this → L (not freight relevant)
+  AI_RELEVANCE_H: 70,        // ai_relevance_score >= this → eligible for H
+  AI_RELEVANCE_M: 50,        // below this → L (rejected)
+  AI_FREIGHT_H: 50,          // ai_freight_score >= this → eligible for H
+  AI_FREIGHT_M: 25,          // below this → L (not freight relevant)
 } as const;
 
 // ────────────────────────────────────────────────────────────────────────────
