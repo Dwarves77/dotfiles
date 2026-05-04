@@ -659,7 +659,7 @@ function PanelJurisdictions({
 }
 
 function jurisdictionLabels(ids: string[]): string[] {
-  const map = new Map(JURISDICTIONS.map((j) => [j.id, j.label]));
+  const map = new Map<string, string>(JURISDICTIONS.map((j) => [j.id, j.label]));
   return ids.map((id) => map.get(id) || id);
 }
 
