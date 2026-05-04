@@ -20,6 +20,15 @@
 -- against the final shape and pick up the new signals automatically
 -- when the sibling migrations replace the literal 0s.
 
+-- Spot-check queue: sources auto-approved by the agent (or imported in
+-- bulk) need a human eyeball pass within the 7-day window. The flag
+-- here is the "this row has been reviewed" marker so the same source
+-- never re-appears in the queue after spot-check. Defined BEFORE the
+-- RPC so the function body's column reference parses cleanly.
+ALTER TABLE sources ADD COLUMN IF NOT EXISTS spotchecked BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE sources ADD COLUMN IF NOT EXISTS spotchecked_by UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE sources ADD COLUMN IF NOT EXISTS spotchecked_at TIMESTAMPTZ NULL;
+
 CREATE OR REPLACE FUNCTION admin_attention_counts()
 RETURNS TABLE (
   provisional_sources_pending INT,
@@ -69,14 +78,6 @@ $$;
 
 COMMENT ON FUNCTION admin_attention_counts() IS
   'W2.E: Aggregated admin-attention counts across all needs-attention categories. Polled by the admin sidebar red-dot hook every 60s when the admin window is visible. Two slots (source_attribution_mismatches, coverage_gaps_critical) return 0 pending W1.C / W2.D follow-up wiring.';
-
--- Spot-check queue: sources auto-approved by the agent (or imported in
--- bulk) need a human eyeball pass within the 7-day window. The flag
--- here is the "this row has been reviewed" marker so the same source
--- never re-appears in the queue after spot-check.
-ALTER TABLE sources ADD COLUMN IF NOT EXISTS spotchecked BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE sources ADD COLUMN IF NOT EXISTS spotchecked_by UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL;
-ALTER TABLE sources ADD COLUMN IF NOT EXISTS spotchecked_at TIMESTAMPTZ NULL;
 
 COMMENT ON COLUMN sources.spotchecked IS
   'W2.E: Marks a source as having been spot-checked by a platform admin. Sources with spotchecked=FALSE created within the last 7 days are surfaced in the auto_approved_awaiting_spotcheck queue.';
