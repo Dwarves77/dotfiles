@@ -17,9 +17,10 @@
  */
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, AlertTriangle } from "lucide-react";
 import { TimelineBar } from "@/components/resource/TimelineBar";
 import { TOPIC_COLORS, JURISDICTIONS } from "@/lib/constants";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type {
   Resource,
   ChangeLogEntry,
@@ -97,6 +98,15 @@ export function RegulationDetailSurface({
 }: Props) {
   const [tab, setTab] = useState<TabKey>("summary");
 
+  // Admin-only banner gating. The flag is populated from intelligence_items
+  // migration 035 (agent_integrity_flag), surfaced through fetchIntelligenceItem,
+  // and rendered ONLY when the current viewer is an owner/admin. Members,
+  // editors, viewers, and unauthenticated visitors never see this surface.
+  const userRole = useWorkspaceStore((s) => s.userRole);
+  const isAdminViewer = userRole === "owner" || userRole === "admin";
+  const showIntegrityBanner =
+    isAdminViewer && r.agentIntegrityFlag === true && !!r.agentIntegrityPhrase;
+
   const tone = PRIORITY_TONE[r.priority] || PRIORITY_TONE.MODERATE;
   const modes = r.modes || [r.cat];
   const tags = r.tags || [];
@@ -110,6 +120,78 @@ export function RegulationDetailSurface({
 
   return (
     <div className="px-9 pt-8 pb-16 max-w-[1280px] mx-auto">
+      {/* Agent integrity banner — admins only.
+          Renders when migration 035 detected a self-flag phrase in the
+          brief body and an admin hasn't resolved it. Hidden from members /
+          editors / viewers / anonymous via the userRole gate above. */}
+      {showIntegrityBanner && (
+        <div
+          role="alert"
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-start",
+            background: "var(--high-bg, rgba(217, 119, 6, 0.08))",
+            border: "1px solid var(--high-bd, rgba(217, 119, 6, 0.3))",
+            borderLeft: "4px solid var(--high, #d97706)",
+            borderRadius: "var(--r-md)",
+            padding: "12px 16px",
+            marginBottom: 16,
+            fontSize: 13,
+            color: "var(--text)",
+            lineHeight: 1.5,
+          }}
+        >
+          <AlertTriangle
+            size={18}
+            style={{ color: "var(--high, #d97706)", flexShrink: 0, marginTop: 2 }}
+            aria-hidden="true"
+          />
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--high, #d97706)",
+                marginBottom: 4,
+              }}
+            >
+              Agent flagged integrity concern
+            </div>
+            <div style={{ color: "var(--text)" }}>
+              The agent self-flagged this brief with the phrase{" "}
+              <code
+                style={{
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  background: "rgba(217, 119, 6, 0.12)",
+                  border: "1px solid rgba(217, 119, 6, 0.25)",
+                  borderRadius: 3,
+                  padding: "1px 6px",
+                  fontSize: 12,
+                }}
+              >
+                {r.agentIntegrityPhrase}
+              </code>
+              . Resolve in{" "}
+              <a
+                href="/admin#integrity-flags"
+                style={{
+                  color: "var(--high, #d97706)",
+                  fontWeight: 700,
+                  textDecoration: "underline",
+                }}
+              >
+                /admin → Integrity flags
+              </a>
+              .
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero card */}
       <div
         style={{

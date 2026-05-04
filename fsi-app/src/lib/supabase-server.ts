@@ -720,6 +720,12 @@ export async function fetchIntelligenceItem(
       complianceDeadline: row.compliance_deadline || undefined,
       enforcementBody: row.enforcement_body || undefined,
       legalInstrument: row.legal_instrument || undefined,
+      // Agent integrity self-flag (migration 035). Only surfaced when the
+      // flag is true AND unresolved — the banner check uses both fields.
+      agentIntegrityFlag:
+        row.agent_integrity_flag === true && !row.agent_integrity_resolved_at,
+      agentIntegrityPhrase: row.agent_integrity_phrase || null,
+      agentIntegrityFlaggedAt: row.agent_integrity_flagged_at || null,
     };
 
     // Changelog for this item
