@@ -28,7 +28,10 @@ async function fetchPipelineItems(): Promise<ResearchPipelineItem[]> {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    const { data, error } = await supabase
+    // Try the full SELECT first. If migration 026 (pipeline_stage) isn't
+    // applied or the embedded source join fails, retry with a minimal
+    // SELECT so the page renders rather than going blank.
+    const full = await supabase
       .from("intelligence_items")
       .select(
         "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(name, url)"
@@ -37,26 +40,49 @@ async function fetchPipelineItems(): Promise<ResearchPipelineItem[]> {
       .order("added_date", { ascending: false })
       .limit(500);
 
-    if (error || !data) return [];
+    if (!full.error && full.data) {
+      return full.data.map((row: any) => {
+        const src = Array.isArray(row.source) ? row.source[0] : row.source;
+        return {
+          id: row.legacy_id || row.id,
+          title: row.title || "(untitled)",
+          summary: row.summary || "",
+          pipelineStage: row.pipeline_stage ?? null,
+          transportModes: row.transport_modes || [],
+          jurisdictions: row.jurisdictions || [],
+          sourceName: src?.name ?? null,
+          sourceUrl: src?.url ?? null,
+          addedDate: row.added_date ?? null,
+          owner: null,
+          partnerFlagged: false,
+        };
+      });
+    }
 
-    return data.map((row: any) => {
-      // PostgREST returns embedded relationships as either an object or a
-      // single-element array depending on FK inference. Handle both shapes.
-      const src = Array.isArray(row.source) ? row.source[0] : row.source;
-      return {
-        id: row.legacy_id || row.id,
-        title: row.title || "(untitled)",
-        summary: row.summary || "",
-        pipelineStage: row.pipeline_stage ?? null,
-        transportModes: row.transport_modes || [],
-        jurisdictions: row.jurisdictions || [],
-        sourceName: src?.name ?? null,
-        sourceUrl: src?.url ?? null,
-        addedDate: row.added_date ?? null,
-        owner: null,
-        partnerFlagged: false,
-      };
-    });
+    console.error("research/page: full select failed, retrying minimal:", full.error);
+    const minimal = await supabase
+      .from("intelligence_items")
+      .select("id, legacy_id, title, summary, transport_modes, jurisdictions, added_date")
+      .eq("is_archived", false)
+      .order("added_date", { ascending: false })
+      .limit(500);
+    if (minimal.error || !minimal.data) {
+      console.error("research/page: minimal select also failed:", minimal.error);
+      return [];
+    }
+    return minimal.data.map((row: any) => ({
+      id: row.legacy_id || row.id,
+      title: row.title || "(untitled)",
+      summary: row.summary || "",
+      pipelineStage: null,
+      transportModes: row.transport_modes || [],
+      jurisdictions: row.jurisdictions || [],
+      sourceName: null,
+      sourceUrl: null,
+      addedDate: row.added_date ?? null,
+      owner: null,
+      partnerFlagged: false,
+    }));
   } catch (e) {
     console.error("research/page fetchPipelineItems failed:", e);
     return [];

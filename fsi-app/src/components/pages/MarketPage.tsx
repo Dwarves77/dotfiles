@@ -63,8 +63,11 @@ const LIFECYCLE: Record<Resource["priority"], { tone: StatTone; label: string }>
   LOW:      { tone: "low",      label: "Informational" },
 };
 
+type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+
 export function MarketPage({ initialResources }: MarketPageProps) {
   const [tab, setTab] = useState<"tech" | "prices">("tech");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityKey | null>(null);
 
   const techItems = useMemo(
     () =>
@@ -88,12 +91,26 @@ export function MarketPage({ initialResources }: MarketPageProps) {
     LOW:      all.filter((r) => r.priority === "LOW").length,
   };
 
+  // Toggle filter on tile click; clicking the active tile clears.
+  const onTile = (p: PriorityKey) => () =>
+    setPriorityFilter((current) => (current === p ? null : p));
+
   const stripTiles = [
-    { tone: "critical" as const, eyebrow: "Watch",         helper: "Threshold breached — immediate cost impact", icon: "⚠", numeral: counts.CRITICAL, primary: true },
-    { tone: "high"     as const, eyebrow: "Elevated",      helper: "Significant movement — review models",      icon: "▲", numeral: counts.HIGH },
-    { tone: "moderate" as const, eyebrow: "Stable",        helper: "Within normal range — monitor",             icon: "◎", numeral: counts.MODERATE },
-    { tone: "low"      as const, eyebrow: "Informational", helper: "Background awareness",                       icon: "◯", numeral: counts.LOW },
+    { tone: "critical" as const, eyebrow: "Watch",         helper: "Threshold breached — immediate cost impact", icon: "⚠", numeral: counts.CRITICAL, primary: priorityFilter === null || priorityFilter === "CRITICAL", onClick: onTile("CRITICAL"), ariaLabel: `Watch · ${counts.CRITICAL} items · click to filter` },
+    { tone: "high"     as const, eyebrow: "Elevated",      helper: "Significant movement — review models",      icon: "▲", numeral: counts.HIGH,     primary: priorityFilter === "HIGH",                                  onClick: onTile("HIGH"),     ariaLabel: `Elevated · ${counts.HIGH} items · click to filter` },
+    { tone: "moderate" as const, eyebrow: "Stable",        helper: "Within normal range — monitor",             icon: "◎", numeral: counts.MODERATE, primary: priorityFilter === "MODERATE",                              onClick: onTile("MODERATE"), ariaLabel: `Stable · ${counts.MODERATE} items · click to filter` },
+    { tone: "low"      as const, eyebrow: "Informational", helper: "Background awareness",                       icon: "◯", numeral: counts.LOW,      primary: priorityFilter === "LOW",                                   onClick: onTile("LOW"),      ariaLabel: `Informational · ${counts.LOW} items · click to filter` },
   ];
+
+  // Filter items by priority if a filter is active.
+  const filteredTech = useMemo(
+    () => priorityFilter ? techItems.filter((r) => r.priority === priorityFilter) : techItems,
+    [techItems, priorityFilter]
+  );
+  const filteredPrice = useMemo(
+    () => priorityFilter ? priceItems.filter((r) => r.priority === priorityFilter) : priceItems,
+    [priceItems, priorityFilter]
+  );
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
@@ -121,8 +138,8 @@ export function MarketPage({ initialResources }: MarketPageProps) {
           <TabButton active={tab === "prices"} onClick={() => setTab("prices")}>Price Signals &amp; Trade</TabButton>
         </div>
 
-        {tab === "tech" && <TechnologyPanel items={techItems} watchCount={counts.CRITICAL} elevatedCount={counts.HIGH} />}
-        {tab === "prices" && <PriceSignalsPanel items={priceItems} watchCount={counts.CRITICAL} />}
+        {tab === "tech" && <TechnologyPanel items={filteredTech} watchCount={counts.CRITICAL} elevatedCount={counts.HIGH} />}
+        {tab === "prices" && <PriceSignalsPanel items={filteredPrice} watchCount={counts.CRITICAL} />}
       </div>
     </div>
   );

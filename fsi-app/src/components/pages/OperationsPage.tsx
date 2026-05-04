@@ -86,8 +86,11 @@ function inferChipKey(item: Resource): string | null {
   return null;
 }
 
+type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+
 export function OperationsPage({ initialResources }: OperationsPageProps) {
   const [tab, setTab] = useState<"juris" | "facility">("juris");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityKey | null>(null);
 
   // Resources flowing from intelligence_items. type is r.type, domain is r.domain.
   // Operations card surface uses item_type === "regional_data" for the jurisdiction
@@ -116,14 +119,27 @@ export function OperationsPage({ initialResources }: OperationsPageProps) {
     LOW:      opsItems.filter((r) => r.priority === "LOW").length,
   };
 
+  // Toggle filter on tile click; clicking the active tile clears.
+  const onTile = (p: PriorityKey) => () =>
+    setPriorityFilter((current) => (current === p ? null : p));
+
   const stripTiles = [
-    { tone: "critical" as const, eyebrow: "Critical", helper: "Threshold breached — immediate cost impact", icon: "⚠", numeral: counts.CRITICAL, primary: true },
-    { tone: "high"     as const, eyebrow: "High",     helper: "Plan ahead — material impact",               icon: "▲", numeral: counts.HIGH },
-    { tone: "moderate" as const, eyebrow: "Moderate", helper: "Monitor — within range",                     icon: "◎", numeral: counts.MODERATE },
-    { tone: "low"      as const, eyebrow: "Low",      helper: "Background awareness",                       icon: "◯", numeral: counts.LOW },
+    { tone: "critical" as const, eyebrow: "Critical", helper: "Threshold breached — immediate cost impact", icon: "⚠", numeral: counts.CRITICAL, primary: priorityFilter === null || priorityFilter === "CRITICAL", onClick: onTile("CRITICAL"), ariaLabel: `Critical · ${counts.CRITICAL} items · click to filter` },
+    { tone: "high"     as const, eyebrow: "High",     helper: "Plan ahead — material impact",               icon: "▲", numeral: counts.HIGH,     primary: priorityFilter === "HIGH",                                  onClick: onTile("HIGH"),     ariaLabel: `High · ${counts.HIGH} items · click to filter` },
+    { tone: "moderate" as const, eyebrow: "Moderate", helper: "Monitor — within range",                     icon: "◎", numeral: counts.MODERATE, primary: priorityFilter === "MODERATE",                              onClick: onTile("MODERATE"), ariaLabel: `Moderate · ${counts.MODERATE} items · click to filter` },
+    { tone: "low"      as const, eyebrow: "Low",      helper: "Background awareness",                       icon: "◯", numeral: counts.LOW,      primary: priorityFilter === "LOW",                                   onClick: onTile("LOW"),      ariaLabel: `Low · ${counts.LOW} items · click to filter` },
   ];
 
-  const regions = useMemo(() => groupByRegion(regionalItems), [regionalItems]);
+  // Filter regions/items by priority if a filter is active.
+  const filteredRegional = useMemo(
+    () => priorityFilter ? regionalItems.filter((r) => r.priority === priorityFilter) : regionalItems,
+    [regionalItems, priorityFilter]
+  );
+  const filteredFacility = useMemo(
+    () => priorityFilter ? facilityItems.filter((r) => r.priority === priorityFilter) : facilityItems,
+    [facilityItems, priorityFilter]
+  );
+  const regions = useMemo(() => groupByRegion(filteredRegional), [filteredRegional]);
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
@@ -153,10 +169,10 @@ export function OperationsPage({ initialResources }: OperationsPageProps) {
         </div>
 
         {tab === "juris" && (
-          <JurisdictionPanel regions={regions} totalItems={regionalItems.length} />
+          <JurisdictionPanel regions={regions} totalItems={filteredRegional.length} />
         )}
         {tab === "facility" && (
-          <FacilityPanel items={facilityItems} />
+          <FacilityPanel items={filteredFacility} />
         )}
       </div>
     </div>
