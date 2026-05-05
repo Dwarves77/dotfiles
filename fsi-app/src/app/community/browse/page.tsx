@@ -1,0 +1,336 @@
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { CommunityShell } from "@/components/community/CommunityShell";
+import {
+  BrowseGroupsGrid,
+  type BrowseRow,
+} from "@/components/community/BrowseGroupsGrid";
+import type {
+  CommunityGroupSummary,
+  CommunityMembership,
+  CommunityInvitation,
+  CommunityTopicSummary,
+} from "@/components/community/types";
+
+export const dynamic = "force-dynamic";
+
+const REGIONS = [
+  { code: "EU", label: "EU / Europe" },
+  { code: "UK", label: "United Kingdom" },
+  { code: "US", label: "United States" },
+  { code: "LATAM", label: "Latin America" },
+  { code: "APAC", label: "Asia Pacific" },
+  { code: "HK", label: "Hong Kong" },
+  { code: "MEA", label: "Middle East & Africa" },
+  { code: "GLOBAL", label: "Global / Cross-jurisdictional" },
+];
+
+/**
+ * /community/browse — public group directory.
+ *
+ * Phase C scope decision: BROWSE shows PUBLIC GROUPS ONLY. Private
+ * groups appear in the sidebar (from C3) for users who are already
+ * members. The sole entry to a private group is via invitation, so
+ * surfacing them in browse would be misleading (the join CTA would
+ * always be disabled).
+ *
+ * Data fetched server-side:
+ *   - Public groups in the requested region (community_groups RLS
+ *     reads public groups for any authenticated user — service role
+ *     not needed).
+ *   - Caller's group_id memberships (one query, scoped to user_id).
+ *   - Caller's pending invitation group_ids (one query).
+ *   - Sidebar/masthead context (memberships+groups, invitations,
+ *     topics, region counts) — same shape as /community.
+ *
+ * Membership-state derivation: TWO bulk queries (memberships +
+ * pending invitations), then an in-memory join. NOT N+1.
+ */
+export default async function CommunityBrowsePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string; privacy?: string }>;
+}) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?redirect=/community/browse");
+
+  const params = await searchParams;
+  const requestedRegion = (params?.region || "EU").toUpperCase();
+  // privacy filter is informational; browse is public-only by design.
+  const privacyFilter = (params?.privacy || "public").toLowerCase();
+
+  // ── Public groups in the active region ──────────────────────────
+  // RLS allows any authenticated caller to SELECT public groups.
+  const { data: groupsRaw } = await supabase
+    .from("community_groups")
+    .select(
+      `
+        id, name, slug, region, privacy, description,
+        member_count, weekly_post_count, last_active_at
+      `
+    )
+    .eq("privacy", "public")
+    .eq("region", requestedRegion)
+    .order("member_count", { ascending: false });
+
+  const publicGroups: (CommunityGroupSummary & { description?: string | null })[] =
+    (groupsRaw || []).map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      slug: g.slug,
+      region: g.region,
+      privacy: g.privacy as "public" | "private",
+      member_count: g.member_count ?? 0,
+      weekly_post_count: g.weekly_post_count ?? 0,
+      last_active_at: g.last_active_at,
+      description: g.description ?? null,
+    }));
+
+  // ── Caller membership & pending invitation lookups ──────────────
+  // Two bulk queries instead of N+1 per-card lookups.
+  const groupIds = publicGroups.map((g) => g.id);
+
+  const memberGroupIds = new Set<string>();
+  const pendingInviteGroupIds = new Set<string>();
+
+  if (groupIds.length > 0) {
+    const [{ data: memRows }, { data: invRows }] = await Promise.all([
+      supabase
+        .from("community_group_members")
+        .select("group_id")
+        .eq("user_id", user.id)
+        .in("group_id", groupIds),
+      supabase
+        .from("community_group_invitations")
+        .select("group_id")
+        .eq("invitee_user_id", user.id)
+        .eq("status", "pending")
+        .in("group_id", groupIds),
+    ]);
+    for (const r of memRows || []) memberGroupIds.add(r.group_id as string);
+    for (const r of invRows || []) pendingInviteGroupIds.add(r.group_id as string);
+  }
+
+  const browseRows: BrowseRow[] = publicGroups.map((g) => ({
+    group: g,
+    membershipState: memberGroupIds.has(g.id)
+      ? "member"
+      : pendingInviteGroupIds.has(g.id)
+      ? "pending-invite"
+      : "none",
+  }));
+
+  // ── Shell context (mirrors /community page.tsx) ─────────────────
+  const { data: membershipsRaw } = await supabase
+    .from("community_group_members")
+    .select(
+      `
+        group_id,
+        role,
+        starred,
+        muted,
+        joined_at,
+        community_groups (
+          id,
+          name,
+          slug,
+          region,
+          privacy,
+          member_count,
+          weekly_post_count,
+          last_active_at
+        )
+      `
+    )
+    .eq("user_id", user.id);
+
+  const memberships: CommunityMembership[] = (membershipsRaw || []).flatMap(
+    (m: any) => {
+      if (!m.community_groups) return [];
+      return [
+        {
+          group_id: m.group_id,
+          role: m.role,
+          starred: !!m.starred,
+          muted: !!m.muted,
+          joined_at: m.joined_at,
+          group: {
+            id: m.community_groups.id,
+            name: m.community_groups.name,
+            slug: m.community_groups.slug,
+            region: m.community_groups.region,
+            privacy: m.community_groups.privacy,
+            member_count: m.community_groups.member_count ?? 0,
+            weekly_post_count: m.community_groups.weekly_post_count ?? 0,
+            last_active_at: m.community_groups.last_active_at,
+          },
+        },
+      ];
+    }
+  );
+
+  const { data: invitationsRaw } = await supabase
+    .from("community_group_invitations")
+    .select(
+      `
+        id,
+        group_id,
+        inviter_user_id,
+        status,
+        created_at,
+        community_groups (
+          id, name, slug, region, privacy
+        )
+      `
+    )
+    .eq("invitee_user_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  const invitations: CommunityInvitation[] = (invitationsRaw || []).flatMap(
+    (inv: any) => {
+      if (!inv.community_groups) return [];
+      return [
+        {
+          id: inv.id,
+          group_id: inv.group_id,
+          inviter_user_id: inv.inviter_user_id,
+          created_at: inv.created_at,
+          group: {
+            id: inv.community_groups.id,
+            name: inv.community_groups.name,
+            slug: inv.community_groups.slug,
+            region: inv.community_groups.region,
+            privacy: inv.community_groups.privacy,
+          },
+        },
+      ];
+    }
+  );
+
+  const { data: topicsRaw } = await supabase
+    .from("community_topics")
+    .select("id, label, community_topic_groups ( group_id )")
+    .eq("owner_user_id", user.id);
+
+  const topics: CommunityTopicSummary[] = (topicsRaw || []).map((t: any) => ({
+    id: t.id,
+    label: t.label,
+    group_count: Array.isArray(t.community_topic_groups)
+      ? t.community_topic_groups.length
+      : 0,
+  }));
+
+  // Region counts — same approach as /community: one head-count per region.
+  const regionCounts: Record<string, number> = {};
+  await Promise.all(
+    REGIONS.map(async (r) => {
+      const { count } = await supabase
+        .from("community_groups")
+        .select("id", { count: "exact", head: true })
+        .eq("region", r.code)
+        .eq("privacy", "public");
+      regionCounts[r.code] = count ?? 0;
+    })
+  );
+
+  // Profile + employer for sidebar footer.
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("name, headshot_url")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const { data: orgRow } = await supabase
+    .from("org_memberships")
+    .select("organizations(name)")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+  const employer =
+    (orgRow?.organizations as { name?: string } | null)?.name ?? "";
+
+  const activeRegionLabel =
+    REGIONS.find((r) => r.code === requestedRegion)?.label ?? requestedRegion;
+
+  return (
+    <CommunityShell
+      currentUser={{
+        id: user.id,
+        email: user.email ?? "",
+        name: profile?.name ?? user.email?.split("@")[0] ?? "",
+        headshotUrl: profile?.headshot_url ?? null,
+        employer,
+      }}
+      memberships={memberships}
+      invitations={invitations}
+      topics={topics}
+      regions={REGIONS}
+      regionCounts={regionCounts}
+      initialRegion={requestedRegion}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <header
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 22,
+                fontWeight: 400,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: "var(--color-text-primary)",
+                margin: 0,
+              }}
+            >
+              Browse public groups · {activeRegionLabel}
+            </h2>
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--color-text-muted)",
+                margin: "4px 0 0",
+              }}
+            >
+              {browseRows.length} public group
+              {browseRows.length === 1 ? "" : "s"} visible. Private groups are
+              invitation-only and appear in your sidebar once you&apos;re a
+              member.
+            </p>
+          </div>
+          {privacyFilter !== "public" && (
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--color-text-muted)",
+                fontStyle: "italic",
+              }}
+            >
+              Filter: showing public only (private groups require invitation).
+            </span>
+          )}
+        </header>
+
+        <BrowseGroupsGrid
+          rows={browseRows}
+          emptyState={{
+            title: `No public groups in ${activeRegionLabel}`,
+            body:
+              "Try another region or check back as the directory expands.",
+          }}
+        />
+      </div>
+    </CommunityShell>
+  );
+}
