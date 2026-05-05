@@ -1,0 +1,126 @@
+══════════════════════════════════════════════════════════════
+W3 Tier 1 population runner
+Region:            APAC
+Depth:             normal
+Jurisdictions:     5
+Cost cap:          (none)
+Output:            C:\Users\jason\dotfiles\docs\W3-tier1-APAC-results.json
+Started:           2026-05-04T20:29:53.208Z
+══════════════════════════════════════════════════════════════
+
+Loading existing source URLs for idempotency...
+  219 existing eTLD+1 hosts loaded.
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: SG (Singapore)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.4s
+  [1/12] https://www.mpa.gov.sg/maritime-singapore/sustainability ... tier=L rel=- frt=- DUP → rejected
+  [2/12] https://www.mot.gov.sg/what-we-do/green-transport ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.nea.gov.sg/our-services/climate-change-energy-efficiency ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.nccs.gov.sg ... tier=M rel=85 frt=45 → rejected
+  [5/12] https://www.mse.gov.sg/policies/climate-change/carbon-pricing-act ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.ema.gov.sg/regulations-licences/regulations/acts-regulations ... tier=M rel=- frt=- → rejected
+  [7/12] https://sso.agc.gov.sg ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.customs.gov.sg ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.caas.gov.sg/legislation-regulations ... tier=L rel=45 frt=35 → rejected
+  [10/12] https://www.lta.gov.sg/content/ltagov/en/industry_innovations/technologies/electric_vehicles.html ... tier=M rel=75 frt=45 → rejected
+  [11/12] https://www.greenplan.gov.sg ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.enterprisesg.gov.sg/grow-your-business/sustainability ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 3  L: 9 (6 duplicates) — 48.5s
+  Running cost: Sonnet $0.1000 + Haiku $0.0030 = $0.1030 (1/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: HK (Hong Kong)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.3s
+  [1/12] https://www.eeb.gov.hk/en/index.html ... tier=M rel=75 frt=65 → rejected
+  [2/12] https://www.epd.gov.hk/epd/english/home/home.html ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.mardep.gov.hk/en/home.html ... tier=M rel=- frt=- → rejected
+  [4/12] https://www.td.gov.hk/en/home/index.html ... tier=L rel=45 frt=35 → rejected
+  [5/12] https://www.gld.gov.hk/egazette/english/gazette/index.php ... tier=M rel=75 frt=65 → rejected
+  [6/12] https://cnsd.gov.hk/en/index.html ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.emsd.gov.hk/en/home/index.html ... tier=M rel=72 frt=45 → rejected
+  [8/12] https://www.customs.gov.hk/en/home/index.html ... tier=M rel=75 frt=85 → rejected
+  [9/12] https://www.cedb.gov.hk/en/index.html ... tier=L rel=25 frt=15 → rejected
+  [10/12] https://www.tid.gov.hk/english/home.html ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.hkex.com.hk/Listing/Rules-and-Guidance/Environmental-Social-and-Governance?sc_lang=en ... tier=M rel=65 frt=25 → rejected
+  [12/12] https://www.hko.gov.hk/en/climate_change/climate_change_index.htm ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 6  L: 6 (0 duplicates) — 62.9s
+  Running cost: Sonnet $0.2000 + Haiku $0.0100 = $0.2100 (2/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: JP (Japan)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.8s
+  [1/12] https://www.mlit.go.jp/en/ ... tier=L rel=- frt=- DUP → rejected
+  [2/12] https://www.mlit.go.jp/en/maritime/index.html ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.env.go.jp/en/ ... tier=M rel=85 frt=45 → rejected
+  [4/12] https://www.meti.go.jp/english/policy/energy_environment/global_warming/index.html ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.enecho.meti.go.jp/en/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.customs.go.jp/english/ ... tier=L rel=45 frt=55 → rejected
+  [7/12] https://www.mof.go.jp/english/policy/customs_tariff/index.html ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.meti.go.jp/english/policy/external_economy/trade_control/index.html ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.mofa.go.jp/policy/environment/warm/cop/index.html ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.cas.go.jp/jp/seisaku/gx_jikkou_kaigi/index.html ... tier=M rel=85 frt=65 → rejected
+  [11/12] https://www.ssbj.jp/en/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.kankyo.metro.tokyo.lg.jp/en/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 2  L: 10 (3 duplicates) — 132.9s
+  Running cost: Sonnet $0.3000 + Haiku $0.0130 = $0.3130 (3/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: KR (South Korea)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 36.5s
+  [1/12] https://www.me.go.kr/home/web/main.do ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.mof.go.kr/eng/index.do ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.molit.go.kr/english/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://english.motie.go.kr/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.customs.go.kr/english/main.do ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.gir.go.kr/eng/index.do ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.kats.go.kr/main.do ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.energy.or.kr/web/kem_home_new/new_main.asp ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.krs.co.kr/eng/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.komsa.or.kr/eng/ ... tier=M rel=85 frt=75 → rejected
+  [11/12] https://www.law.go.kr/eng/engLsSc.do ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.2050cnc.go.kr/en/main ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 1  L: 11 (2 duplicates) — 100.8s
+  Running cost: Sonnet $0.4000 + Haiku $0.0140 = $0.4140 (4/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: JP-13 (Tokyo Metropolis, Japan)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33s
+  [1/12] https://www.kankyo.metro.tokyo.lg.jp/en/index.html ... tier=M rel=92 frt=35 → rejected
+  [2/12] https://www.metro.tokyo.lg.jp/english/about/transport/index.html ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.metro.tokyo.lg.jp/english/index.html ... tier=L rel=45 frt=25 → rejected
+  [4/12] https://www.mlit.go.jp/en/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.env.go.jp/en/ ... tier=M rel=85 frt=45 → rejected
+  [6/12] https://www.meti.go.jp/english/index.html ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.customs.go.jp/english/index.htm ... tier=H rel=75 frt=75 → auto-approved
+  [8/12] https://www.gikai.metro.tokyo.lg.jp/english/ ... tier=L rel=45 frt=35 → rejected
+  [9/12] https://www.keishicho.metro.tokyo.lg.jp/multilingual/english/index.html ... tier=L rel=45 frt=35 → rejected
+  [10/12] https://www.jisc.go.jp/eng/index.html ... tier=L rel=35 frt=25 → rejected
+  [11/12] https://www.jrfreight.co.jp/en/ ... tier=L rel=45 frt=75 → rejected
+  [12/12] https://www.logistics.or.jp/ ... tier=M rel=65 frt=85 → rejected
+  Tier H: 1  M: 3  L: 8 (1 duplicates) — 94.6s
+  Running cost: Sonnet $0.5000 + Haiku $0.0230 = $0.5230 (5/5 done)
+
+══════════════════════════════════════════════════════════════
+Region APAC complete.
+Processed:    5/5
+Candidates:   60
+Tier H:       1
+Tier M:       15
+Tier L:       44
+Duplicates:   12
+Haiku calls:  23
+Wall time:    439.6s
+Total cost:   $0.5230 (Sonnet $0.5000 + Haiku $0.0230)
+Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-APAC-results.json
+══════════════════════════════════════════════════════════════

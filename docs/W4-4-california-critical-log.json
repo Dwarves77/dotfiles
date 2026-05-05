@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-05-05T16:39:01.303Z",
+  "candidate_count": 4,
+  "inserted": 0,
+  "skipped_already_present": 0,
+  "inserted_with_null_source": 0,
+  "errors": 4,
+  "decisions": [
+    {
+      "legacy_id": "w4_ca_sb253",
+      "title": "California SB 253 — Climate Corporate Data Accountability Act",
+      "linked_source_id": null,
+      "note": "No matching `sources` row yet — source_id left NULL. Integrity flag system (mig 035) will flag this row for review.",
+      "outcome": "insert_failed",
+      "error": "new row for relation \"intelligence_items\" violates check constraint \"intelligence_items_severity_check\""
+    },
+    {
+      "legacy_id": "w4_ca_sb261",
+      "title": "California SB 261 — Climate-Related Financial Risk Act",
+      "linked_source_id": null,
+      "note": "No matching `sources` row yet — source_id left NULL. Integrity flag system (mig 035) will flag this row for review.",
+      "outcome": "insert_failed",
+      "error": "new row for relation \"intelligence_items\" violates check constraint \"intelligence_items_severity_check\""
+    },
+    {
+      "legacy_id": "w4_ca_ab1305",
+      "title": "California AB 1305 — Voluntary Carbon Market Disclosures Act",
+      "linked_source_id": null,
+      "note": "No matching `sources` row yet — source_id left NULL. Integrity flag system (mig 035) will flag this row for review.",
+      "outcome": "insert_failed",
+      "error": "new row for relation \"intelligence_items\" violates check constraint \"intelligence_items_severity_check\""
+    },
+    {
+      "legacy_id": "w4_ca_acf",
+      "title": "California Advanced Clean Fleets Rule (CARB)",
+      "linked_source_id": "45140924-25b6-4d2c-abe5-11a65386acdc",
+      "linked_source_name": "California Air Resources Board (CARB)",
+      "outcome": "insert_failed",
+      "error": "new row for relation \"intelligence_items\" violates check constraint \"intelligence_items_severity_check\""
+    }
+  ],
+  "follow_up_todos": [],
+  "elapsed_ms": 1817
+}

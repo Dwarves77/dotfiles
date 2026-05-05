@@ -1,0 +1,1164 @@
+══════════════════════════════════════════════════════════════
+W3 Tier 1 population runner
+Region:            US
+Depth:             normal
+Jurisdictions:     57
+Cost cap:          (none)
+Output:            C:\Users\jason\dotfiles\docs\W3-tier1-US-results.json
+Started:           2026-05-04T20:29:45.642Z
+══════════════════════════════════════════════════════════════
+
+Loading existing source URLs for idempotency...
+  219 existing eTLD+1 hosts loaded.
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US (United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.6s
+  [1/12] https://www.epa.gov/regulations-emissions-vehicles-and-engines ... tier=L rel=- frt=- DUP → rejected
+  [2/12] https://www.fmcsa.dot.gov/regulations ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.nhtsa.gov/laws-regulations/corporate-average-fuel-economy ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.transportation.gov/freight ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.federalregister.gov ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.phmsa.dot.gov/regulations ... tier=L rel=- frt=- → rejected
+  [7/12] https://railroads.dot.gov/regulations-guidance/regulations/overview-regulations ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.maritime.dot.gov/environment ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.cbp.gov/trade ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://afdc.energy.gov/laws ... tier=H rel=92 frt=85 → auto-approved
+  [11/12] https://www.epa.gov/smartway ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.ecfr.gov ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (5 duplicates) — 38.2s
+  Running cost: Sonnet $0.1000 + Haiku $0.0010 = $0.1010 (1/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-AL (Alabama, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30.6s
+  [1/12] https://adem.alabama.gov ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://www.dot.state.al.us ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.dot.state.al.us/programs/FreightPlanning.html ... tier=L rel=- frt=- → rejected
+  [4/12] https://psc.alabama.gov ... tier=M rel=75 frt=45 → rejected
+  [5/12] https://alports.com ... tier=L rel=45 frt=75 → rejected
+  [6/12] https://alison.legislature.state.al.us ... tier=M rel=85 frt=75 → rejected
+  [7/12] https://adem.alabama.gov/admin/commission.cnt ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.alea.gov ... tier=L rel=45 frt=25 → rejected
+  [9/12] https://www.madeinalabama.com ... tier=L rel=25 frt=35 → rejected
+  [10/12] https://www.epa.gov/al ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.fmcsa.dot.gov/regulations ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.federalregister.gov/agencies/environmental-protection-agency ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 3  L: 9 (2 duplicates) — 53.3s
+  Running cost: Sonnet $0.2000 + Haiku $0.0070 = $0.2070 (2/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-AK (Alaska, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.1s
+  [1/12] https://dec.alaska.gov ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://dot.alaska.gov ... tier=L rel=45 frt=35 → rejected
+  [3/12] https://dot.alaska.gov/mscve/ ... tier=H rel=75 frt=85 → auto-approved
+  [4/12] https://dot.alaska.gov/stwdplng/cip/stip/projects/STP.shtml ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://dot.alaska.gov/stwdplng/areaplans/modal_system/freightplan.shtml ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.akenergyauthority.org ... tier=M rel=75 frt=35 → rejected
+  [7/12] https://rca.alaska.gov ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://dec.alaska.gov/air/air-permit/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://dec.alaska.gov/spar/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.akleg.gov/basis/aac.asp ... tier=M rel=- frt=- → rejected
+  [11/12] https://www.aogcc.alaska.gov ... tier=L rel=- frt=- → rejected
+  [12/12] https://labor.alaska.gov ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 3  L: 8 (6 duplicates) — 85.2s
+  Running cost: Sonnet $0.3000 + Haiku $0.0110 = $0.3110 (3/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-AZ (Arizona, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.4s
+  [1/12] https://www.azdeq.gov ... tier=L rel=- frt=- → rejected
+  [2/12] https://azdot.gov ... tier=M rel=65 frt=55 → rejected
+  [3/12] https://azdot.gov/planning/transportation-programs/arizona-state-freight-plan ... tier=H rel=75 frt=85 → auto-approved
+  [4/12] https://azdot.gov/business/environmental-planning/programs/sustainable-transportation/sustainable-transportation ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://azdot.gov/business/environmental-planning/air-quality/transportation-conformity ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.azcc.gov ... tier=M rel=75 frt=45 → rejected
+  [7/12] https://azsos.gov/rules/arizona-administrative-code ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.azleg.gov ... tier=M rel=75 frt=70 → rejected
+  [9/12] https://resilient.az.gov ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.maricopa.gov/5765/Air-Quality ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.pima.gov/1427/Environmental-Quality ... tier=L rel=35 frt=15 → rejected
+  [12/12] https://azmc.org ... tier=L rel=45 frt=50 → rejected
+  Tier H: 1  M: 3  L: 8 (2 duplicates) — 80.2s
+  Running cost: Sonnet $0.4000 + Haiku $0.0170 = $0.4170 (4/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-AR (Arkansas, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.6s
+  [1/12] https://ardot.gov ... tier=M rel=65 frt=55 → rejected
+  [2/12] https://www.adeq.state.ar.us ... tier=M rel=85 frt=45 → rejected
+  [3/12] https://ee.arkansas.gov/environment/ ... tier=H rel=85 frt=65 → auto-approved
+  [4/12] https://ee.arkansas.gov ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.sos.arkansas.gov/rules-regulations/arkansas-register/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.dfa.arkansas.gov/office/taxes/excise-tax-administration/motor-fuel-tax/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.asp.arkansas.gov ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://arkleg.state.ar.us ... tier=L rel=45 frt=35 → rejected
+  [9/12] https://www.sos.arkansas.gov/rules-regulations ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.dfa.arkansas.gov/motor-vehicle/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.epa.gov/ar/enforcement-and-compliance-assurance-arkansas ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://ardot.gov/divisions/planning/statewide-planning/ ... tier=L rel=45 frt=35 → rejected
+  Tier H: 1  M: 2  L: 9 (7 duplicates) — 55.5s
+  Running cost: Sonnet $0.5000 + Haiku $0.0220 = $0.5220 (5/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-CA (California, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.3s
+  [1/12] https://ww2.arb.ca.gov ... tier=H rel=95 frt=85 → auto-approved
+  [2/12] https://ww2.arb.ca.gov/our-work/programs/sustainable-freight-transport ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://dot.ca.gov/programs/transportation-planning/division-of-transportation-planning/sustainable-freight-planning ... tier=H rel=75 frt=85 → auto-approved
+  [4/12] https://www.energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division ... tier=H rel=92 frt=78 → auto-approved
+  [5/12] https://www.cpuc.ca.gov ... tier=H rel=95 frt=75 → auto-approved
+  [6/12] https://oal.ca.gov ... tier=H rel=95 frt=85 → auto-approved
+  [7/12] https://calepa.ca.gov ... tier=H rel=92 frt=75 → auto-approved
+  [8/12] https://calsta.ca.gov ... tier=H rel=75 frt=65 → auto-approved
+  [9/12] https://www.chp.ca.gov/programs-services/programs/commercial-vehicle-section ... tier=H rel=75 frt=85 → auto-approved
+  [10/12] https://www.aqmd.gov ... tier=H rel=95 frt=75 → auto-approved
+  [11/12] https://ww2.arb.ca.gov/our-work/programs/low-carbon-fuel-standard ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://capcoa.org ... tier=M rel=85 frt=45 → rejected
+  Tier H: 9  M: 1  L: 2 (2 duplicates) — 66.4s
+  Running cost: Sonnet $0.6000 + Haiku $0.0320 = $0.6320 (6/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-CO (Colorado, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.1s
+  [1/12] https://cdphe.colorado.gov/apcd ... tier=L rel=- frt=- → rejected
+  [2/12] https://cdphe.colorado.gov/aqcc ... tier=L rel=- frt=- → rejected
+  [3/12] https://freight.colorado.gov ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.codot.gov/programs/environmental/greenhousegas ... tier=H rel=92 frt=75 → auto-approved
+  [5/12] https://energyoffice.colorado.gov ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.sos.state.co.us/CCR/Welcome.do ... tier=M rel=85 frt=75 → rejected
+  [7/12] https://www.sos.state.co.us/CCR/RegisterHome.do ... tier=M rel=75 frt=65 → rejected
+  [8/12] https://leg.colorado.gov/laws ... tier=H rel=85 frt=65 → auto-approved
+  [9/12] https://puc.colorado.gov/trans ... tier=L rel=- frt=- → rejected
+  [10/12] https://cdphe.colorado.gov/cleantrucking ... tier=L rel=- frt=- → rejected
+  [11/12] https://csp.colorado.gov/commercial-vehicle-enforcement ... tier=L rel=- frt=- → rejected
+  [12/12] https://cdle.colorado.gov/oil-public-safety ... tier=L rel=- frt=- → rejected
+  Tier H: 2  M: 2  L: 8 (0 duplicates) — 44.8s
+  Running cost: Sonnet $0.7000 + Haiku $0.0360 = $0.7360 (7/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-CT (Connecticut, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30.8s
+  [1/12] https://portal.ct.gov/deep/air/mobile-sources/heavy-duty-vehicles ... tier=H rel=88 frt=85 → auto-approved
+  [2/12] https://portal.ct.gov/dot/programs/freight ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://eregulations.ct.gov/eRegsPortal/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.cga.ct.gov/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://portal.ct.gov/pura/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://portal.ct.gov/dmv ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.ctportauthority.com/ ... tier=L rel=45 frt=65 → rejected
+  [8/12] https://portal.ct.gov/DEEP/Climate-Change/Climate-Change ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://portal.ct.gov/das ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.jud.ct.gov/lawjournal/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://portal.ct.gov/dol ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://portal.ct.gov/ceq ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (8 duplicates) — 76.0s
+  Running cost: Sonnet $0.8000 + Haiku $0.0380 = $0.8380 (8/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-DE (Delaware, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.5s
+  [1/12] https://dnrec.delaware.gov/ ... tier=H rel=88 frt=65 → auto-approved
+  [2/12] https://dnrec.delaware.gov/air/ ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://dnrec.delaware.gov/climate-coastal-energy/ ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://deldot.gov/ ... tier=L rel=- frt=- → rejected
+  [5/12] http://freight.deldot.gov/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://deldot.gov/Programs/trs/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://regulations.delaware.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://depsc.delaware.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://legis.delaware.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.wilmapco.org/ ... tier=M rel=75 frt=65 → rejected
+  [11/12] https://www.seu.delaware.gov/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.epa.gov/de/environmental-information-delaware-2 ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 1  L: 10 (6 duplicates) — 44.5s
+  Running cost: Sonnet $0.9000 + Haiku $0.0400 = $0.9400 (9/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-FL (Florida, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 32.9s
+  [1/12] https://floridadep.gov/air ... tier=H rel=88 frt=65 → auto-approved
+  [2/12] https://www.fdot.gov/rail/ ... tier=H rel=75 frt=85 → auto-approved
+  [3/12] https://www.flrules.org/ ... tier=M rel=85 frt=65 → rejected
+  [4/12] https://www.psc.state.fl.us/ ... tier=M rel=75 frt=65 → rejected
+  [5/12] https://www.fdacs.gov/Divisions-Offices/Energy ... tier=L rel=45 frt=35 → rejected
+  [6/12] https://www.fdot.gov/seaport/programs.shtm ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.fdot.gov/environment/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.ftc.state.fl.us/ ... tier=L rel=45 frt=35 → rejected
+  [9/12] https://www.leg.state.fl.us/ ... tier=M rel=85 frt=75 → rejected
+  [10/12] https://floridadep.gov/resilient-florida ... tier=L rel=- frt=- → rejected
+  [11/12] https://southeastfloridaclimatecompact.org/ ... tier=M rel=82 frt=35 → rejected
+  [12/12] https://www.flhsmv.gov/ ... tier=L rel=45 frt=55 → rejected
+  Tier H: 2  M: 4  L: 6 (2 duplicates) — 57.0s
+  Running cost: Sonnet $1.0000 + Haiku $0.0490 = $1.0490 (10/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-GA (Georgia, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 30s
+  [1/12] https://epd.georgia.gov ... tier=H rel=85 frt=65 → auto-approved
+  [2/12] https://epd.georgia.gov/air-protection-branch ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.dot.ga.gov/GDOT/pages/freight.aspx ... tier=H rel=75 frt=85 → auto-approved
+  [4/12] https://gaports.com/sustainability/ ... tier=M rel=72 frt=85 → rejected
+  [5/12] https://psc.state.ga.us ... tier=M rel=75 frt=45 → rejected
+  [6/12] https://rules.sos.georgia.gov ... tier=H rel=75 frt=65 → auto-approved
+  [7/12] https://www.legis.ga.gov ... tier=M rel=75 frt=70 → rejected
+  [8/12] https://atlantaregional.org ... tier=M rel=72 frt=65 → rejected
+  [9/12] https://www.cleanairforce.com ... tier=M rel=75 frt=45 → rejected
+  [10/12] https://gadnr.org ... tier=M rel=65 frt=25 → rejected
+  [11/12] https://dor.georgia.gov/motor-vehicles ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://agr.georgia.gov ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 3  M: 6  L: 3 (3 duplicates) — 53.2s
+  Running cost: Sonnet $1.1000 + Haiku $0.0580 = $1.1580 (11/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-HI (Hawaii, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.6s
+  [1/12] https://health.hawaii.gov/cab/hawaii-greenhouse-gas-program/ ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://hidot.hawaii.gov/ ... tier=M rel=65 frt=55 → rejected
+  [3/12] https://hidot.hawaii.gov/harbors/ ... tier=M rel=65 frt=75 → rejected
+  [4/12] https://energy.hawaii.gov/ ... tier=H rel=85 frt=65 → auto-approved
+  [5/12] https://climate.hawaii.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://planning.hawaii.gov/erp/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://puc.hawaii.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://dbedt.hawaii.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://labor.hawaii.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://dlnr.hawaii.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.capitol.hawaii.gov/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.epa.gov/hawaii ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 3  L: 8 (7 duplicates) — 46.6s
+  Running cost: Sonnet $1.2000 + Haiku $0.0620 = $1.2620 (12/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-ID (Idaho, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 29.5s
+  [1/12] https://itd.idaho.gov/freight/ ... tier=M rel=65 frt=75 → rejected
+  [2/12] https://www.deq.idaho.gov/ ... tier=M rel=85 frt=45 → rejected
+  [3/12] https://www.deq.idaho.gov/air/ ... tier=M rel=85 frt=35 → rejected
+  [4/12] https://www.deq.idaho.gov/waste-management-recycling/hazardous-waste/ ... tier=M rel=85 frt=45 → rejected
+  [5/12] https://adminrules.idaho.gov/ ... tier=L rel=45 frt=35 → rejected
+  [6/12] https://legislature.idaho.gov/statutesrules/ ... tier=M rel=75 frt=65 → rejected
+  [7/12] https://puc.idaho.gov/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://oemr.idaho.gov/ ... tier=M rel=75 frt=45 → rejected
+  [9/12] https://agri.idaho.gov/ ... tier=L rel=35 frt=25 → rejected
+  [10/12] https://labor.idaho.gov/ ... tier=L rel=45 frt=35 → rejected
+  [11/12] https://permits4idaho.com/ ... tier=L rel=35 frt=65 → rejected
+  [12/12] https://www.epa.gov/aboutepa/epa-region-10-pacific-northwest ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 6  L: 6 (1 duplicates) — 87.5s
+  Running cost: Sonnet $1.3000 + Haiku $0.0720 = $1.3720 (13/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-IL (Illinois, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 31.9s
+  [1/12] https://epa.illinois.gov ... tier=L rel=- frt=- → rejected
+  [2/12] https://pcb.illinois.gov ... tier=H rel=85 frt=65 → auto-approved
+  [3/12] https://idot.illinois.gov/transportation-system/transportation-management/planning/freight.html ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.icc.illinois.gov ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://dceo.illinois.gov ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.ilsos.gov/departments/index/register/home.html ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.ilga.gov/legislation/ilcs/ilcs.asp ... tier=L rel=- frt=- → rejected
+  [8/12] https://www2.illinois.gov/sites/ipa/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://idot.illinois.gov/transportation-system/environment/community/i-last.html ... tier=L rel=- frt=- → rejected
+  [10/12] https://labor.illinois.gov ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.cmap.illinois.gov ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.epa.gov/aboutepa/epa-region-5-great-lakes ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (6 duplicates) — 69.6s
+  Running cost: Sonnet $1.4000 + Haiku $0.0730 = $1.4730 (14/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-IN (Indiana, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 36.7s
+  [1/12] https://www.in.gov/idem/ ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://www.in.gov/indot/multimodal/freight/ ... tier=M rel=65 frt=70 → rejected
+  [3/12] https://www.in.gov/iurc/ ... tier=H rel=72 frt=65 → auto-approved
+  [4/12] https://www.in.gov/dor/motor-carrier-services/motor-carrier-services-home/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.in.gov/isp/commands/commercial-vehicle-enforcement/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://iar.iga.in.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://iga.in.gov/legislative/laws/2025/ic/titles/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.in.gov/oed/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.in.gov/idem/airquality/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.in.gov/isdh/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://greaterindiana.com/ ... tier=M rel=65 frt=70 → rejected
+  [12/12] https://iedc.in.gov/ ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 3  L: 8 (7 duplicates) — 54.1s
+  Running cost: Sonnet $1.5000 + Haiku $0.0770 = $1.5770 (15/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-IA (Iowa, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 28.6s
+  [1/12] https://iowadot.gov ... tier=L rel=45 frt=55 → rejected
+  [2/12] https://iowadot.gov/transportation-development/systems-planning/areas-planning/freight ... tier=H rel=72 frt=85 → auto-approved
+  [3/12] https://www.iowadnr.gov/environmental-protection/air-quality ... tier=H rel=85 frt=65 → auto-approved
+  [4/12] https://iuc.iowa.gov ... tier=H rel=85 frt=65 → auto-approved
+  [5/12] https://iowaagriculture.gov ... tier=M rel=65 frt=35 → rejected
+  [6/12] https://www.iowaeconomicdevelopment.com/energy ... tier=L rel=- frt=- → rejected
+  [7/12] https://rules.iowa.gov ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.legis.iowa.gov ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://iowadot.gov/transportation-development/systems-planning/areas-planning/sustainability-resiliency ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.iowadnr.gov/environmental-protection ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://governor.iowa.gov ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.epa.gov/ia ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 3  M: 1  L: 8 (6 duplicates) — 54.8s
+  Running cost: Sonnet $1.6000 + Haiku $0.0820 = $1.6820 (16/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-KS (Kansas, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.5s
+  [1/12] https://www.ksdot.gov/about/our-organization/divisions/multimodal-transportation-and-innovation/freight-and-rail ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.kcc.ks.gov/transportation ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.kcc.ks.gov/kansas-energy-office ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.kdhe.ks.gov/158/Division-of-Environment ... tier=M rel=85 frt=45 → rejected
+  [5/12] https://sos.ks.gov/publications/kansas-register.html ... tier=H rel=85 frt=65 → auto-approved
+  [6/12] https://sos.ks.gov/publications/kansas-administrative-regulations.html ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://kansashighwaypatrol.gov/find-a-troop/troop-location-map/technical-operations-bureau/troop-i/commercial-vehicle-regulations/ ... tier=H rel=75 frt=75 → auto-approved
+  [8/12] https://www.ksrevenue.gov/dovtruckingks.html ... tier=M rel=65 frt=85 → rejected
+  [9/12] https://www.kcc.ks.gov/oil-gas/rules-and-regulations ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.kcc.ks.gov/electric/renewable-energy-standard ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.epa.gov/ks ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.ksrevisor.gov/ ... tier=H rel=75 frt=55 → auto-approved
+  Tier H: 3  M: 2  L: 7 (2 duplicates) — 65.6s
+  Running cost: Sonnet $1.7000 + Haiku $0.0870 = $1.7870 (17/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-KY (Kentucky, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 36.9s
+  [1/12] https://eec.ky.gov/ ... tier=H rel=85 frt=65 → auto-approved
+  [2/12] https://eec.ky.gov/Environmental-Protection/Air/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://eec.ky.gov/Energy/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://transportation.ky.gov/Pages/Home.aspx ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://drive.ky.gov/Motor-Carriers/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://transportation.ky.gov/MultimodalFreight/Pages/KFACT.aspx ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://legislature.ky.gov/LRC/Publications/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://psc.ky.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://louisvilleky.gov/government/air-pollution-control-district ... tier=L rel=- frt=- → rejected
+  [10/12] https://labor.ky.gov/safety-and-health/Pages/default.aspx ... tier=L rel=- frt=- → rejected
+  [11/12] https://eec.ky.gov/Environmental-Protection/Waste/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://apps.legislature.ky.gov/lrcsearch ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (9 duplicates) — 56.2s
+  Running cost: Sonnet $1.8000 + Haiku $0.0880 = $1.8880 (18/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-LA (Louisiana, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31s
+  [1/12] https://www.deq.louisiana.gov ... tier=H rel=85 frt=65 → auto-approved
+  [2/12] https://dotd.la.gov ... tier=L rel=45 frt=35 → rejected
+  [3/12] https://dotd.la.gov/about/office-of-planning/transportation-planning/freight-plan/ ... tier=H rel=85 frt=90 → auto-approved
+  [4/12] https://www.dce.louisiana.gov ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.dce.louisiana.gov/page/office-of-conservation-home-page ... tier=L rel=- frt=- → rejected
+  [6/12] https://lpsc.louisiana.gov ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.doa.la.gov/doa/osr/louisiana-register/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.doa.la.gov/doa/osr/lac/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://legis.la.gov ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://revenue.louisiana.gov/TaxedFuels ... tier=L rel=- frt=- → rejected
+  [11/12] https://louisianacleanfuels.org ... tier=M rel=75 frt=65 → rejected
+  [12/12] https://www.lmta.com ... tier=M rel=- frt=- → rejected
+  Tier H: 2  M: 2  L: 8 (4 duplicates) — 43.9s
+  Running cost: Sonnet $1.9000 + Haiku $0.0920 = $1.9920 (19/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-ME (Maine, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30.2s
+  [1/12] https://www.maine.gov/dep/air/mobile/index.html ... tier=H rel=85 frt=70 → auto-approved
+  [2/12] https://www.maine.gov/dot/programs-services/freight ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www1.maine.gov/mdot/climate/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.maine.gov/energy/initiatives/clean-transportation ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.maine.gov/future/initiatives/climate/cleantransportation ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.maine.gov/mpuc/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.maine.gov/sos/cec/rules/notices/index.html ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.maine.gov/sos/rulemaking/agency-rules/department-transportation-rules ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.maine.gov/climateplan/dashboard/transportation ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.mainelegislature.org/legis/statutes/38/title38sec576-A.html ... tier=M rel=92 frt=65 → rejected
+  [11/12] https://www.maine.gov/dep/sustainability/climate/mitigation-actions.html ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://afdc.energy.gov/laws/all?state=ME ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 1  L: 10 (7 duplicates) — 39.8s
+  Running cost: Sonnet $2.0000 + Haiku $0.0940 = $2.0940 (20/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MD (Maryland, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.4s
+  [1/12] https://mde.maryland.gov/programs/air/ClimateChange/Pages/index.aspx ... tier=H rel=92 frt=65 → auto-approved
+  [2/12] https://www.mdot.maryland.gov/tso/pages/Index.aspx ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://mpa.maryland.gov/greenport/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://roads.maryland.gov/mdotsha/pages/Index.aspx?PageId=545 ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://mva.maryland.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://energy.maryland.gov/transportation/Pages/resources.aspx ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://climatechange.maryland.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://mgaleg.maryland.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.dsd.state.md.us/COMAR/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://mdta.maryland.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.labor.maryland.gov/mosh/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.psc.state.md.us/ ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (9 duplicates) — 42.4s
+  Running cost: Sonnet $2.1000 + Haiku $0.0950 = $2.1950 (21/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MA (Massachusetts, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 29.1s
+  [1/12] https://www.mass.gov/massdep-laws-rules ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.mass.gov/orgs/massachusetts-department-of-transportation ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.mass.gov/lists/energy-and-environmental-affairs-laws-regulations ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.mass.gov/orgs/department-of-energy-resources ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.massport.com/environment ... tier=M rel=75 frt=65 → rejected
+  [6/12] https://www.mass.gov/code-of-massachusetts-regulations-cmr ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.mass.gov/orgs/department-of-public-utilities ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.masscec.com/masscec-focus/clean-transportation ... tier=M rel=85 frt=72 → rejected
+  [9/12] https://www.mbta.com/sustainability ... tier=M rel=75 frt=35 → rejected
+  [10/12] https://www.sec.state.ma.us/divisions/regulations/reghome.htm ... tier=L rel=- frt=- → rejected
+  [11/12] https://malegislature.gov/Laws/GeneralLaws ... tier=H rel=75 frt=65 → auto-approved
+  [12/12] https://www.transportationandclimate.org/ ... tier=M rel=85 frt=70 → rejected
+  Tier H: 1  M: 4  L: 7 (0 duplicates) — 42.7s
+  Running cost: Sonnet $2.2000 + Haiku $0.1000 = $2.3000 (22/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MI (Michigan, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 34.5s
+  [1/12] https://www.michigan.gov/egle ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.michigan.gov/mdot/travel/mobility/freight ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.michigan.gov/mpsc ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.michigan.gov/msp/divisions/cved ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.michigan.gov/leo/bureaus-agencies/miosha ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.legislature.mi.gov ... tier=H rel=75 frt=65 → auto-approved
+  [7/12] https://ars.apps.lara.state.mi.us/AdminCode/ ... tier=M rel=75 frt=65 → rejected
+  [8/12] https://www.michigan.gov/mdot/business/truckers ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.michigan.gov/egle/about/organization/air-quality ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.michigan.gov/leo ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.michigan.gov/mdard ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.epa.gov/aboutepa/epa-region-5-great-lakes ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 1  L: 10 (1 duplicates) — 43.5s
+  Running cost: Sonnet $2.3000 + Haiku $0.1020 = $2.4020 (23/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MN (Minnesota, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.8s
+  [1/12] https://www.pca.state.mn.us/ ... tier=M rel=92 frt=65 → rejected
+  [2/12] https://www.dot.state.mn.us/freight/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.dot.state.mn.us/sustainability/ ... tier=M rel=85 frt=75 → rejected
+  [4/12] https://mn.gov/commerce/energy/ ... tier=M rel=85 frt=45 → rejected
+  [5/12] https://mn.gov/puc/ ... tier=H rel=85 frt=65 → auto-approved
+  [6/12] https://www.revisor.mn.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.dli.mn.gov/business/workplace-safety-and-health ... tier=L rel=- frt=- → rejected
+  [8/12] https://dps.mn.gov/divisions/dvs/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://metrocouncil.org/Transportation/Planning-2/Key-Transportation-Planning-Documents/Transportation-Policy-Plan.aspx ... tier=M rel=75 frt=55 → rejected
+  [10/12] https://www.mda.state.mn.us/plants-insects/ethanol-biodiesel ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.revisor.mn.gov/bills/ ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.minnesotago.org/final-plans/state-freight-plan ... tier=M rel=75 frt=85 → rejected
+  Tier H: 1  M: 5  L: 6 (3 duplicates) — 51.5s
+  Running cost: Sonnet $2.4000 + Haiku $0.1080 = $2.5080 (24/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MS (Mississippi, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 32.6s
+  [1/12] https://www.mdeq.ms.gov/about-mdeq/regulations/ ... tier=H rel=85 frt=65 → auto-approved
+  [2/12] https://mdot.ms.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.mississippi.gov/Agencies/transportation-commission ... tier=L rel=45 frt=55 → rejected
+  [4/12] https://www.sos.ms.gov/regulation-enforcement/administrative-code ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.psc.ms.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://shipmspa.com/ ... tier=L rel=45 frt=75 → rejected
+  [7/12] https://www.dps.ms.gov/highway-patrol/motor-carrier/truck-information ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.mississippi.gov/Services/economic-development ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.mid.ms.gov/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.epa.gov/air-quality-implementation-plans/mississippi-state-implementation-plan ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.fmcsa.dot.gov/registration/state-programs/mississippi ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.mdeq.ms.gov/about-mdeq/boards-commissions/commission-on-environmental-quality/ ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 0  L: 11 (3 duplicates) — 53.4s
+  Running cost: Sonnet $2.5000 + Haiku $0.1110 = $2.6110 (25/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MO (Missouri, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 29.7s
+  [1/12] https://www.modot.org ... tier=M rel=65 frt=70 → rejected
+  [2/12] https://dnr.mo.gov/air ... tier=M rel=85 frt=45 → rejected
+  [3/12] https://dnr.mo.gov/about-us/division-environmental-quality ... tier=H rel=85 frt=50 → auto-approved
+  [4/12] https://www.sos.mo.gov/adrules/csr/csr ... tier=L rel=- frt=- → rejected
+  [5/12] https://boards.mo.gov/userpages/Board.aspx?138= ... tier=L rel=- frt=- → rejected
+  [6/12] https://psc.mo.gov ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.modot.org/missouri-highways-and-transportation-commission ... tier=M rel=72 frt=75 → rejected
+  [8/12] https://labor.mo.gov/labor-standards ... tier=L rel=- frt=- → rejected
+  [9/12] https://eiera.mo.gov ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://dnr.mo.gov/energy ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.epa.gov/mo ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.sos.mo.gov/adrules/moreg/moreg ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 3  L: 8 (4 duplicates) — 99.9s
+  Running cost: Sonnet $2.6000 + Haiku $0.1150 = $2.7150 (26/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MT (Montana, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.9s
+  [1/12] https://deq.mt.gov/ ... tier=H rel=85 frt=65 → auto-approved
+  [2/12] https://deq.mt.gov/air/ ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.mdt.mt.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.mdt.mt.gov/freightplan/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.psc.mt.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://sosmt.gov/arm/ ... tier=L rel=45 frt=15 → rejected
+  [7/12] https://leg.mt.gov/bills/mca/ ... tier=H rel=85 frt=70 → auto-approved
+  [8/12] https://deq.mt.gov/energy/cleanvehicle ... tier=L rel=- frt=- → rejected
+  [9/12] https://dli.mt.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://mtrevenue.gov/taxes/fuel-taxes/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.epa.gov/aboutepa/epa-region-8-mountain-plains ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.fmcsa.dot.gov/regulations ... tier=L rel=- frt=- → rejected
+  Tier H: 2  M: 0  L: 10 (5 duplicates) — 45.6s
+  Running cost: Sonnet $2.7000 + Haiku $0.1180 = $2.8180 (27/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-NE (Nebraska, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.4s
+  [1/12] https://dwee.nebraska.gov/air ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://dot.nebraska.gov ... tier=L rel=35 frt=45 → rejected
+  [3/12] https://psc.nebraska.gov/transportation ... tier=L rel=35 frt=45 → rejected
+  [4/12] https://www.nebraska.gov/sos/rules-and-regs/regsearch/Rules/index.cgi ... tier=L rel=- frt=- → rejected
+  [5/12] https://nebraskalegislature.gov/laws/browse-statutes.php ... tier=M rel=65 frt=55 → rejected
+  [6/12] https://statepatrol.nebraska.gov/motor-carrier-services ... tier=L rel=- frt=- → rejected
+  [7/12] https://dwee.nebraska.gov/vw-settlement ... tier=L rel=- frt=- → rejected
+  [8/12] https://dwee.nebraska.gov/energy ... tier=M rel=72 frt=35 → rejected
+  [9/12] https://revenue.nebraska.gov/businesses/motor-fuels ... tier=L rel=- frt=- → rejected
+  [10/12] https://dol.nebraska.gov/Safety ... tier=L rel=45 frt=25 → rejected
+  [11/12] https://eqc.nebraska.gov ... tier=L rel=- frt=- → rejected
+  [12/12] https://afdc.energy.gov/laws/all?state=NE ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 3  L: 9 (1 duplicates) — 54.9s
+  Running cost: Sonnet $2.8000 + Haiku $0.1240 = $2.9240 (28/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-NV (Nevada, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.8s
+  [1/12] https://ndep.nv.gov ... tier=H rel=92 frt=68 → auto-approved
+  [2/12] https://www.dot.nv.gov/mobility/freight-planning ... tier=L rel=- frt=- → rejected
+  [3/12] https://ndep.nv.gov/about/boards-and-commissions/state-environmental-commission ... tier=L rel=- frt=- → rejected
+  [4/12] https://dmv.nv.gov/mcoverview.htm ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.puc.nv.gov ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://nta.nv.gov ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.leg.state.nv.us ... tier=M rel=85 frt=70 → rejected
+  [8/12] https://energy.nv.gov ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://dps.nv.gov/divisions/nhp/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.clarkcountynv.gov/government/departments/environment_and_sustainability/index.php ... tier=H rel=75 frt=55 → auto-approved
+  [11/12] https://www.washoecounty.gov/aqmd/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://afdc.energy.gov/laws/all?state=NV ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 2  M: 1  L: 9 (5 duplicates) — 48.7s
+  Running cost: Sonnet $2.9000 + Haiku $0.1270 = $3.0270 (29/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-NH (New Hampshire, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 28.9s
+  [1/12] https://www.des.nh.gov/climate-and-sustainability/climate-change ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.des.nh.gov/air ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.dot.nh.gov/projects-plans-and-programs/strategic-plans/nhs-statewide-freight-plan ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.dot.nh.gov/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.energy.nh.gov/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.puc.nh.gov/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://gc.nh.gov/rules/default.aspx ... tier=L rel=- frt=- → rejected
+  [8/12] https://gc.nh.gov/rsa/html/indexes/default.aspx ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.rggi.org/ ... tier=M rel=92 frt=45 → rejected
+  [10/12] https://www.energy.nh.gov/rules-and-regulatory/site-evaluation-committee ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.epa.gov/nh/environmental-information-new-hampshire ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.fmcsa.dot.gov/mission/field-offices/new-england-division-office ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 1  L: 11 (1 duplicates) — 33.8s
+  Running cost: Sonnet $3.0000 + Haiku $0.1280 = $3.1280 (30/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-NJ (New Jersey, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.2s
+  [1/12] https://dep.nj.gov/rules/current-rules-and-regulations/ ... tier=M rel=- frt=- → rejected
+  [2/12] https://dep.nj.gov/aqm/rules/ ... tier=M rel=- frt=- → rejected
+  [3/12] https://www.nj.gov/transportation/freight/plan/ ... tier=H rel=75 frt=85 → auto-approved
+  [4/12] https://www.nj.gov/bpu/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.nj.gov/oal/rules/accessp/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.panynj.gov/port-authority/en/about/Environmental-Initiatives.html ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.panynj.gov/port/en/our-port/sustainability/air-emissions-inventories-and-related-studies.html ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.njeda.gov/clean-energy/ ... tier=H rel=85 frt=72 → auto-approved
+  [9/12] https://cleanenergy.nj.gov/programs/electric-vehicles/ ... tier=M rel=85 frt=65 → rejected
+  [10/12] https://www.nj.gov/mvc/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://pub.njleg.gov/ ... tier=M rel=85 frt=75 → rejected
+  [12/12] https://www.nj.gov/labor/wagehour/ ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 2  M: 4  L: 6 (4 duplicates) — 46.6s
+  Running cost: Sonnet $3.1000 + Haiku $0.1320 = $3.2320 (31/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-NM (New Mexico, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 37s
+  [1/12] https://www.env.nm.gov/air-quality/ ... tier=H rel=88 frt=72 → auto-approved
+  [2/12] https://www.env.nm.gov/boards-commissions/environmental-improvement-board/ ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.env.nm.gov/climate-change-bureau/clean-fuel-program/ ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.env.nm.gov/climate-change-bureau/transportation/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.dot.nm.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.emnrd.nm.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.cabq.gov/airquality/air-quality-control-board ... tier=H rel=85 frt=65 → auto-approved
+  [8/12] https://www.prc.nm.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.srca.nm.gov/new-mexico-administrative-code/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.nmlegis.gov/ ... tier=H rel=75 frt=65 → auto-approved
+  [11/12] https://www.emnrd.nm.gov/ocd/ ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.mvd.newmexico.gov/ ... tier=M rel=65 frt=55 → rejected
+  Tier H: 3  M: 1  L: 8 (7 duplicates) — 52.4s
+  Running cost: Sonnet $3.2000 + Haiku $0.1360 = $3.3360 (32/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-NY (New York, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.4s
+  [1/12] https://dec.ny.gov/regulatory ... tier=H rel=92 frt=75 → auto-approved
+  [2/12] https://dec.ny.gov/news/environmental-notice-bulletin ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.dot.ny.gov/divisions/operating/osss/truck/regulations ... tier=H rel=75 frt=85 → auto-approved
+  [4/12] https://www.nyserda.ny.gov ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.dos.ny.gov/info/nyregister.html ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.dps.ny.gov ... tier=H rel=85 frt=65 → auto-approved
+  [7/12] https://www.nyc.gov/html/dot/html/motorist/trucks.shtml ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.nyc.gov/site/dep/environment/climate-and-sustainability.page ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.nyc.gov/site/bic/industries/vehicle-emissions-law.page ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.panynj.gov/port-authority/en/about/Environmental-Initiatives.html ... tier=L rel=- frt=- → rejected
+  [11/12] https://edc.nyc ... tier=L rel=- frt=- → rejected
+  [12/12] https://climate.ny.gov ... tier=H rel=92 frt=65 → auto-approved
+  Tier H: 4  M: 0  L: 8 (3 duplicates) — 65.3s
+  Running cost: Sonnet $3.3000 + Haiku $0.1400 = $3.4400 (33/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-NC (North Carolina, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 40.2s
+  [1/12] https://www.deq.nc.gov/about/divisions/air-quality ... tier=H rel=92 frt=72 → auto-approved
+  [2/12] https://www.ncdot.gov/initiatives-policies/Transportation/freight/Pages/about.aspx ... tier=M rel=65 frt=75 → rejected
+  [3/12] https://www.ncdot.gov/initiatives-policies/environmental/climate-change/Pages/default.aspx ... tier=H rel=85 frt=72 → auto-approved
+  [4/12] https://www.deq.nc.gov/about/divisions/air-quality/air-quality-planning/air-quality-rules-regulations ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.deq.nc.gov/about/boards-and-commissions/environmental-management-commission ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.ncuc.gov/ ... tier=M rel=75 frt=45 → rejected
+  [7/12] https://www.oah.nc.gov/rules-division/north-carolina-register ... tier=H rel=85 frt=65 → auto-approved
+  [8/12] https://www.ncleg.gov/Laws/GeneralStatuteSections/Chapter136 ... tier=H rel=75 frt=75 → auto-approved
+  [9/12] https://www.deq.nc.gov/vw ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.ncports.com/ ... tier=L rel=45 frt=85 → rejected
+  [11/12] https://www.labor.nc.gov/safety-and-health ... tier=L rel=45 frt=35 → rejected
+  [12/12] https://governor.nc.gov/executive-orders ... tier=L rel=- frt=- → rejected
+  Tier H: 4  M: 2  L: 6 (1 duplicates) — 63.6s
+  Running cost: Sonnet $3.4000 + Haiku $0.1480 = $3.5480 (34/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-ND (North Dakota, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 31.3s
+  [1/12] https://deq.nd.gov/ ... tier=H rel=85 frt=55 → auto-approved
+  [2/12] https://www.dot.nd.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.statepatrol.nd.gov/motor-carrier-operations ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.psc.nd.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.ndic.nd.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.dmr.nd.gov/oilgas/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.legis.nd.gov/ ... tier=H rel=85 frt=65 → auto-approved
+  [8/12] https://www.commerce.nd.gov/energy ... tier=L rel=- frt=- → rejected
+  [9/12] https://afdc.energy.gov/laws/all?state=ND ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.epa.gov/nd ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.fmcsa.dot.gov/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.ndmca.org/ ... tier=L rel=25 frt=45 → rejected
+  Tier H: 2  M: 0  L: 10 (7 duplicates) — 45.4s
+  Running cost: Sonnet $3.5000 + Haiku $0.1510 = $3.6510 (35/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-OH (Ohio, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 33.5s
+  [1/12] https://epa.ohio.gov/divisions-and-offices/air-pollution-control ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.transportation.ohio.gov ... tier=L rel=- frt=- → rejected
+  [3/12] https://puco.ohio.gov ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.registerofohio.state.oh.us ... tier=L rel=- frt=- → rejected
+  [5/12] https://codes.ohio.gov ... tier=H rel=82 frt=72 → auto-approved
+  [6/12] https://info.bwc.ohio.gov/for-employers/rules-and-policies ... tier=L rel=- frt=- → rejected
+  [7/12] https://ohiodnr.gov/wps/portal/gov/odnr/discover-and-learn/safety-conservation/mineral-resources-management ... tier=L rel=- frt=- → rejected
+  [8/12] https://opsb.ohio.gov ... tier=L rel=- frt=- → rejected
+  [9/12] https://agri.ohio.gov ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.noaca.org/regional-planning/transportation-planning/freight-planning ... tier=L rel=- frt=- → rejected
+  [11/12] https://morpc.org ... tier=M rel=75 frt=55 → rejected
+  [12/12] https://www.legislature.ohio.gov ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 1  L: 10 (0 duplicates) — 51.0s
+  Running cost: Sonnet $3.6000 + Haiku $0.1530 = $3.7530 (36/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-OK (Oklahoma, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32s
+  [1/12] https://www.deq.ok.gov ... tier=L rel=- frt=- → rejected
+  [2/12] https://oklahoma.gov/occ/divisions/transportation.html ... tier=M rel=65 frt=45 → rejected
+  [3/12] https://oklahoma.gov/occ/divisions/petroleum-storage-tanks.html ... tier=L rel=- frt=- → rejected
+  [4/12] https://oklahoma.gov/odot.html ... tier=L rel=45 frt=55 → rejected
+  [5/12] https://www.sos.ok.gov/oar/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://ee.ok.gov ... tier=M rel=75 frt=45 → rejected
+  [7/12] https://oklahoma.gov/occ/divisions/oil-gas.html ... tier=L rel=35 frt=15 → rejected
+  [8/12] https://oktax.state.ok.us ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.labor.ok.gov ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.deq.ok.gov/divisions/aqd/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.pikepass.com ... tier=L rel=35 frt=45 → rejected
+  [12/12] https://www.rules.ok.gov ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 2  L: 10 (0 duplicates) — 71.3s
+  Running cost: Sonnet $3.7000 + Haiku $0.1580 = $3.8580 (37/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-OR (Oregon, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 37.1s
+  [1/12] https://www.oregon.gov/deq/Pages/index.aspx ... tier=H rel=92 frt=72 → auto-approved
+  [2/12] https://www.oregon.gov/deq/ghgp/cfp/pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.oregon.gov/deq/rulemaking/Pages/CTR2025.aspx ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.oregon.gov/odot/Pages/index.aspx ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.oregon.gov/odot/planning/pages/oregon-freight-plan-update.aspx ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.oregon.gov/odot/mct/pages/default.aspx ... tier=L rel=- frt=- → rejected
+  [7/12] https://secure.sos.state.or.us/oard/html/oarRules.html ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.oregonlegislature.gov/bills_laws/Pages/ORS.aspx ... tier=H rel=75 frt=65 → auto-approved
+  [9/12] https://www.oregon.gov/energy/Pages/index.aspx ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://energystrategy.oregon.gov/transportation-actions ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://osha.oregon.gov/rules/pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.oregon.gov/puc/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 2  M: 0  L: 10 (8 duplicates) — 53.9s
+  Running cost: Sonnet $3.8000 + Haiku $0.1600 = $3.9600 (38/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-PA (Pennsylvania, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.7s
+  [1/12] https://www.pa.gov/agencies/dep.html ... tier=H rel=92 frt=68 → auto-approved
+  [2/12] https://www.pacodeandbulletin.gov/ ... tier=H rel=75 frt=65 → auto-approved
+  [3/12] https://www.pa.gov/agencies/penndot.html ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.puc.pa.gov/motor-carrier/ ... tier=H rel=75 frt=65 → auto-approved
+  [5/12] https://www.puc.pa.gov/pipeline-safety/jurisdiction-regulations/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.pa.gov/agencies/dep/programs-and-services/advisory-committees/environmental-quality-board.html ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.pa.gov/agencies/dep/programs-and-services/air.html ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.pa.gov/agencies/dep/programs-and-services/energy-programs-office.html ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.irrc.state.pa.us/ ... tier=M rel=75 frt=45 → rejected
+  [10/12] https://www.paturnpike.com/ ... tier=L rel=45 frt=55 → rejected
+  [11/12] https://www.epa.gov/aboutepa/epa-region-3-mid-atlantic ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.dli.pa.gov/ ... tier=L rel=- frt=- → rejected
+  Tier H: 3  M: 1  L: 8 (5 duplicates) — 53.2s
+  Running cost: Sonnet $3.9000 + Haiku $0.1650 = $4.0650 (39/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-RI (Rhode Island, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.4s
+  [1/12] https://dem.ri.gov ... tier=M rel=82 frt=45 → rejected
+  [2/12] https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change ... tier=H rel=88 frt=65 → auto-approved
+  [3/12] https://www.dot.ri.gov ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://energy.ri.gov ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://climatechange.ri.gov ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://ripuc.ri.gov ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://rules.sos.ri.gov ... tier=L rel=- frt=- → rejected
+  [8/12] https://planning.ri.gov/planning-areas/transportation-0 ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.dot.ri.gov/EnvironmentalDivision/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.rilegislature.gov ... tier=H rel=85 frt=65 → auto-approved
+  [11/12] https://www.epa.gov/ri ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://energy.ri.gov/transportation/policy-guides-and-other-resources ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 2  M: 1  L: 9 (8 duplicates) — 45.2s
+  Running cost: Sonnet $4.0000 + Haiku $0.1680 = $4.1680 (40/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-SC (South Carolina, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33s
+  [1/12] https://des.sc.gov/programs/bureau-air-quality ... tier=H rel=85 frt=65 → auto-approved
+  [2/12] https://www.scdot.org/ ... tier=L rel=45 frt=55 → rejected
+  [3/12] https://www.scspa.com/ ... tier=L rel=45 frt=85 → rejected
+  [4/12] https://www.psc.sc.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.ors.sc.gov/energy ... tier=L rel=- frt=- → rejected
+  [6/12] https://scor.sc.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.scstatehouse.gov/coderegs/statmast.php ... tier=M rel=72 frt=45 → rejected
+  [8/12] https://www.scsos.com/regulations ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.epa.gov/sc ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.sccommerce.com/ ... tier=L rel=25 frt=35 → rejected
+  [11/12] https://llr.sc.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.scdps.gov/ohsjp/mcs ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 1  L: 10 (4 duplicates) — 80.4s
+  Running cost: Sonnet $4.1000 + Haiku $0.1730 = $4.2730 (41/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-SD (South Dakota, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.1s
+  [1/12] https://dot.sd.gov ... tier=L rel=45 frt=55 → rejected
+  [2/12] https://dot.sd.gov/projects-studies/planning/carbon-reduction-strategy ... tier=H rel=72 frt=55 → auto-approved
+  [3/12] https://dot.sd.gov/projects-studies/planning/freight-plan/ ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://danr.sd.gov/Environment/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://puc.sd.gov ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://sdtruckinfo.sd.gov ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://sdsos.gov/general-information/administrative-rules/search/ ... tier=L rel=45 frt=35 → rejected
+  [8/12] https://rules.sd.gov ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://sdlegislature.gov/Statutes ... tier=M rel=85 frt=75 → rejected
+  [10/12] https://dlr.sd.gov ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.epa.gov/sd/environmental-information-south-dakota ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://highways.dot.gov/field-offices/south-dakota ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 1  L: 10 (7 duplicates) — 53.8s
+  Running cost: Sonnet $4.2000 + Haiku $0.1770 = $4.3770 (42/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-TN (Tennessee, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  11 valid candidates, 5 web_search calls, 36.9s
+  [1/11] https://www.tn.gov/environment.html ... tier=H rel=82 frt=65 → auto-approved
+  [2/11] https://www.tn.gov/environment/air.html ... tier=L rel=- frt=- DUP → rejected
+  [3/11] https://www.tn.gov/tdot.html ... tier=L rel=- frt=- DUP → rejected
+  [4/11] https://www.tn.gov/tdot/long-range-planning-home/air-quality-planning/carbon-reduction-program.html ... tier=L rel=- frt=- DUP → rejected
+  [5/11] https://sos.tn.gov/publications/services/administrative-register ... tier=L rel=- frt=- DUP → rejected
+  [6/11] https://publications.tnsosfiles.com/rules/1200/1200-03/1200-03.htm ... tier=M rel=88 frt=72 → rejected
+  [7/11] https://www.tn.gov/environment/program-areas/energy/state-energy-office--seo-/programs-projects/programs-and-projects/sustainable-transportation-and-alternative-fuels.html ... tier=L rel=- frt=- DUP → rejected
+  [8/11] https://www.tncleanfuels.org/ ... tier=M rel=75 frt=65 → rejected
+  [9/11] https://www.tva.com/ ... tier=L rel=- frt=- → rejected
+  [10/11] https://www.epa.gov/aboutepa/epa-region-4-southeast ... tier=L rel=- frt=- → rejected
+  [11/11] https://law.justia.com/codes/tennessee/title-68/chapter-201/ ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 2  L: 8 (5 duplicates) — 48.0s
+  Running cost: Sonnet $4.3000 + Haiku $0.1800 = $4.4800 (43/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-TX (Texas, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.2s
+  [1/12] https://www.tceq.texas.gov/rules/current.html ... tier=H rel=88 frt=72 → auto-approved
+  [2/12] https://www.tceq.texas.gov/airquality/terp ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.txdot.gov/projects/planning/freight-planning.html ... tier=H rel=75 frt=85 → auto-approved
+  [4/12] https://www.rrc.texas.gov/alternative-fuels/ ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.rrc.texas.gov/oil-and-gas/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.sos.texas.gov/texreg/index.shtml ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.txdot.gov/business/freight-logistics/rail.html ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.dps.texas.gov/section/commercial-vehicle-enforcement ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://porthouston.com/about-us/sustainability/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.glo.texas.gov/energy-and-minerals/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://comptroller.texas.gov/economy/fiscal-notes/energy.php ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.h-gac.com/freight-planning ... tier=M rel=75 frt=85 → rejected
+  Tier H: 2  M: 1  L: 9 (5 duplicates) — 48.1s
+  Running cost: Sonnet $4.4000 + Haiku $0.1830 = $4.5830 (44/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-UT (Utah, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.2s
+  [1/12] https://deq.utah.gov/division-air-quality ... tier=H rel=92 frt=68 → auto-approved
+  [2/12] https://deq.utah.gov/air-quality/utah-air-quality-board ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.udot.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://inlandportauthority.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://deq.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://psc.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://adminrules.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://le.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://dpu.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://tax.utah.gov ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://govops.utah.gov/resource-stewardship/air-quality-solutions/state-fleet/ ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://wfrc.org ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (11 duplicates) — 41.6s
+  Running cost: Sonnet $4.5000 + Haiku $0.1840 = $4.6840 (45/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-VT (Vermont, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.6s
+  [1/12] https://vtrans.vermont.gov ... tier=L rel=- frt=- → rejected
+  [2/12] https://dec.vermont.gov/air-quality ... tier=L rel=- frt=- → rejected
+  [3/12] https://climatechange.vermont.gov ... tier=L rel=- frt=- → rejected
+  [4/12] https://puc.vermont.gov ... tier=L rel=- frt=- → rejected
+  [5/12] https://publicservice.vermont.gov ... tier=L rel=- frt=- → rejected
+  [6/12] https://anr.vermont.gov ... tier=L rel=- frt=- → rejected
+  [7/12] https://dmv.vermont.gov/CVO ... tier=L rel=- frt=- → rejected
+  [8/12] https://secure.vermont.gov/SOS/rules/index.php ... tier=M rel=72 frt=35 → rejected
+  [9/12] https://labor.vermont.gov/vosha ... tier=L rel=- frt=- → rejected
+  [10/12] https://legislature.vermont.gov ... tier=H rel=85 frt=65 → auto-approved
+  [11/12] https://agriculture.vermont.gov ... tier=L rel=- frt=- → rejected
+  [12/12] https://nescoe.com ... tier=M rel=75 frt=45 → rejected
+  Tier H: 1  M: 2  L: 9 (0 duplicates) — 47.2s
+  Running cost: Sonnet $4.6000 + Haiku $0.1870 = $4.7870 (46/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-VA (Virginia, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31s
+  [1/12] https://www.deq.virginia.gov/laws-regulations ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.vdot.virginia.gov/travel-traffic/freight/ ... tier=H rel=72 frt=75 → auto-approved
+  [3/12] https://www.portofvirginia.com/gateway/sustainability/ ... tier=M rel=72 frt=88 → rejected
+  [4/12] https://www.dmv.virginia.gov/businesses/motor-carriers ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://townhall.virginia.gov/L/ListAgencies.cfm ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://law.lis.virginia.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.drpt.virginia.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.deq.virginia.gov/laws-regulations/air ... tier=L rel=- frt=- → rejected
+  [9/12] https://energy.virginia.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.doli.virginia.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://vtrc.virginia.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.vdacs.virginia.gov/regulations-weights-and-measures.shtml ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 1  L: 10 (7 duplicates) — 42.4s
+  Running cost: Sonnet $4.7000 + Haiku $0.1890 = $4.8890 (47/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-WA (Washington, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.9s
+  [1/12] https://ecology.wa.gov/air-climate ... tier=H rel=92 frt=68 → auto-approved
+  [2/12] https://ecology.wa.gov/air-climate/climate-commitment-act ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://wsdot.wa.gov/construction-planning/statewide-plans/freight-rail-plans/freight-system-plan ... tier=H rel=92 frt=95 → auto-approved
+  [4/12] https://apps.leg.wa.gov/wac/ ... tier=H rel=85 frt=75 → auto-approved
+  [5/12] https://pscleanair.gov ... tier=M rel=92 frt=75 → rejected
+  [6/12] https://www.nwseaportalliance.com/environment/clean-air ... tier=M rel=85 frt=95 → rejected
+  [7/12] https://www.portseattle.org/page/northwest-ports-clean-air-strategy ... tier=M rel=88 frt=92 → rejected
+  [8/12] https://apps.leg.wa.gov/rcw/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.commerce.wa.gov/growing-the-economy/energy/ ... tier=H rel=85 frt=65 → auto-approved
+  [10/12] https://www.utc.wa.gov ... tier=H rel=75 frt=65 → auto-approved
+  [11/12] https://lni.wa.gov ... tier=L rel=45 frt=55 → rejected
+  [12/12] https://efsec.wa.gov ... tier=M rel=85 frt=35 → rejected
+  Tier H: 5  M: 4  L: 3 (2 duplicates) — 62.4s
+  Running cost: Sonnet $4.8000 + Haiku $0.1990 = $4.9990 (48/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-WV (West Virginia, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 34.5s
+  [1/12] https://dep.wv.gov/daq/pages/default.aspx ... tier=H rel=92 frt=68 → auto-approved
+  [2/12] https://dep.wv.gov ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://transportation.wv.gov/DMV/Motor-Carriers/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://transportation.wv.gov/highways/maintenance/hauling_permits/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://transportation.wv.gov/Pages/default.aspx ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.psc.state.wv.us/ ... tier=M rel=75 frt=50 → rejected
+  [7/12] https://code.wvlegislature.gov/ ... tier=L rel=45 frt=55 → rejected
+  [8/12] https://www.wvlegislature.gov/ ... tier=H rel=75 frt=55 → auto-approved
+  [9/12] https://dep.wv.gov/daq/planning/Pages/TransportationConformity.aspx ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://statepolice.wv.gov/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://tax.wv.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://energy.wv.gov/ ... tier=M rel=75 frt=35 → rejected
+  Tier H: 2  M: 2  L: 8 (6 duplicates) — 51.6s
+  Running cost: Sonnet $4.9000 + Haiku $0.2040 = $5.1040 (49/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-WI (Wisconsin, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.6s
+  [1/12] https://dnr.wisconsin.gov/topic/AirQuality ... tier=H rel=85 frt=65 → auto-approved
+  [2/12] https://wisconsindot.gov ... tier=H rel=75 frt=65 → auto-approved
+  [3/12] https://www.wisdotplans.gov/plan/state-freight-plan ... tier=H rel=85 frt=90 → auto-approved
+  [4/12] https://wisconsindot.gov/Pages/doing-bus/local-gov/astnce-pgms/aid/carbon.aspx ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://docs.legis.wisconsin.gov/code/register ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://psc.wi.gov ... tier=M rel=75 frt=45 → rejected
+  [7/12] https://psc.wi.gov/Pages/Programs/EnergyInnovation.aspx ... tier=L rel=- frt=- → rejected
+  [8/12] https://dnr.wisconsin.gov/climatechange/solutions ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://docs.legis.wisconsin.gov/code/admin_code ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://doa.wi.gov ... tier=L rel=45 frt=25 → rejected
+  [11/12] https://www.revenue.wi.gov/Pages/Businesses/specialtytax-alternatefuel.aspx ... tier=L rel=- frt=- → rejected
+  [12/12] https://dnr.wisconsin.gov/topic/AirQuality/diesel ... tier=L rel=- frt=- → rejected
+  Tier H: 3  M: 1  L: 8 (4 duplicates) — 49.5s
+  Running cost: Sonnet $5.0000 + Haiku $0.2090 = $5.2090 (50/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-WY (Wyoming, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 28.7s
+  [1/12] https://www.dot.state.wy.us/ ... tier=L rel=45 frt=55 → rejected
+  [2/12] https://deq.wyoming.gov/aqd/ ... tier=H rel=85 frt=65 → auto-approved
+  [3/12] https://deq.wyoming.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://rules.wyo.gov/ ... tier=H rel=75 frt=65 → auto-approved
+  [5/12] https://psc.wyo.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://wyoleg.gov/ ... tier=M rel=75 frt=65 → rejected
+  [7/12] https://wyomingeqc.wyo.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://lands.wyo.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://revenue.wyo.gov/ ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://highways.dot.gov/wyoming-department-transportation ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.epa.gov/aboutepa/epa-region-8-mountain-and-plains ... tier=L rel=- frt=- → rejected
+  [12/12] https://afdc.energy.gov/laws/all?state=WY ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 2  M: 1  L: 9 (6 duplicates) — 41.5s
+  Running cost: Sonnet $5.1000 + Haiku $0.2130 = $5.3130 (51/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-DC (District of Columbia, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  11 valid candidates, 5 web_search calls, 34.8s
+  [1/11] https://doee.dc.gov ... tier=M rel=88 frt=45 → rejected
+  [2/11] https://freight.ddot.dc.gov ... tier=M rel=75 frt=95 → rejected
+  [3/11] https://ddot.dc.gov ... tier=M rel=65 frt=45 → rejected
+  [4/11] https://www.dcregs.dc.gov ... tier=H rel=85 frt=65 → auto-approved
+  [5/11] https://code.dccouncil.gov ... tier=H rel=75 frt=65 → auto-approved
+  [6/11] https://dcpsc.org ... tier=M rel=82 frt=68 → rejected
+  [7/11] https://doee.dc.gov/page/environmental-services-administration ... tier=L rel=- frt=- DUP → rejected
+  [8/11] https://dpw.dc.gov ... tier=L rel=- frt=- DUP → rejected
+  [9/11] https://www.wmata.com ... tier=L rel=35 frt=25 → rejected
+  [10/11] https://www.mwcog.org/transportation/ ... tier=M rel=- frt=- → rejected
+  [11/11] https://www.epa.gov/sips-dc ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 2  M: 5  L: 4 (3 duplicates) — 52.0s
+  Running cost: Sonnet $5.2000 + Haiku $0.2200 = $5.4200 (52/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-PR (Puerto Rico, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.2s
+  [1/12] https://www.jca.pr.gov ... tier=L rel=- frt=- → rejected
+  [2/12] https://energia.pr.gov ... tier=M rel=92 frt=65 → rejected
+  [3/12] https://dtop.pr.gov ... tier=M rel=70 frt=65 → rejected
+  [4/12] https://ac.dtop.pr.gov ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.prpa.pr.gov ... tier=M rel=75 frt=85 → rejected
+  [6/12] https://www.drna.pr.gov ... tier=M rel=85 frt=45 → rejected
+  [7/12] https://bvirtualogp.pr.gov ... tier=L rel=- frt=- → rejected
+  [8/12] https://hacienda.pr.gov ... tier=L rel=35 frt=25 → rejected
+  [9/12] https://www.epa.gov/pr ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.cbp.gov/about/contact/ports/PR ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.dcms.uscg.mil/Our-Organization/Assistant-Commandant-for-Prevention-Policy-CG-5P/Inspections-Compliance-CG-5PC/Office-of-Port-and-Facility-Compliance/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://highways.dot.gov/field-offices/puerto-rico ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 4  L: 8 (2 duplicates) — 60.9s
+  Running cost: Sonnet $5.3000 + Haiku $0.2250 = $5.5250 (53/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-VI (US Virgin Islands, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 32.5s
+  [1/12] https://dpnr.vi.gov ... tier=M rel=75 frt=45 → rejected
+  [2/12] https://dpnr.vi.gov/environmental-protection/ ... tier=H rel=85 frt=65 → auto-approved
+  [3/12] https://www.viport.com ... tier=L rel=45 frt=65 → rejected
+  [4/12] https://energy.vi.gov ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.viwapa.vi ... tier=M rel=75 frt=45 → rejected
+  [6/12] https://psc.vi.gov ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://legvi.org ... tier=M rel=65 frt=35 → rejected
+  [8/12] https://viwma.org ... tier=M rel=75 frt=45 → rejected
+  [9/12] https://www.epa.gov/vi ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.cbp.gov/contact/ports/vi ... tier=L rel=- frt=- → rejected
+  [11/12] https://usvieda.org ... tier=L rel=25 frt=15 → rejected
+  [12/12] https://www.vidol.gov ... tier=M rel=- frt=- → rejected
+  Tier H: 1  M: 5  L: 6 (3 duplicates) — 73.3s
+  Running cost: Sonnet $5.4000 + Haiku $0.2320 = $5.6320 (54/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-GU (Guam, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.3s
+  [1/12] https://epa.guam.gov ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.portofguam.com ... tier=L rel=35 frt=65 → rejected
+  [3/12] https://cqa.guam.gov ... tier=L rel=45 frt=65 → rejected
+  [4/12] https://energy.guam.gov ... tier=M rel=- frt=- → rejected
+  [5/12] https://guamlegislature.gov/public-laws/ ... tier=L rel=45 frt=25 → rejected
+  [6/12] https://guamcourts.org/compileroflaws/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://guampowerauthority.com ... tier=M rel=75 frt=45 → rejected
+  [8/12] https://puc.guam.gov ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.guamairport.com ... tier=L rel=35 frt=25 → rejected
+  [10/12] https://www.epa.gov/guam ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.dcms.uscg.mil/Our-Organization/Assistant-Commandant-for-Prevention-Policy-CG-5P/Marine-Safety-Security-and-Stewardship/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://dol.guam.gov ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 2  L: 10 (0 duplicates) — 133.8s
+  Running cost: Sonnet $5.5000 + Haiku $0.2370 = $5.7370 (55/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-MP (Northern Mariana Islands, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.7s
+  [1/12] https://www.deq.gov.mp/ ... tier=M rel=75 frt=35 → rejected
+  [2/12] https://becq-dcrm.opendata.arcgis.com/ ... tier=M rel=72 frt=45 → rejected
+  [3/12] https://www.cnmiports.com/ ... tier=L rel=45 frt=55 → rejected
+  [4/12] https://www.cucgov.org/ ... tier=M rel=65 frt=35 → rejected
+  [5/12] https://opd.gov.mp/ ... tier=M rel=72 frt=35 → rejected
+  [6/12] https://cnmileg.net/ ... tier=L rel=45 frt=55 → rejected
+  [7/12] https://cnmilaw.org/admin.php ... tier=L rel=45 frt=35 → rejected
+  [8/12] https://labor.gov.mp/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://dlnr.cnmi.gov/ ... tier=M rel=65 frt=25 → rejected
+  [10/12] https://www.epa.gov/npdes-permits/commonwealth-northern-mariana-islands-npdes-permits ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.doi.gov/oia/islands/cnmi ... tier=L rel=35 frt=15 → rejected
+  [12/12] https://www.cbp.gov/contact/ports/saipan ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 5  L: 7 (1 duplicates) — 65.5s
+  Running cost: Sonnet $5.6000 + Haiku $0.2460 = $5.8460 (56/57 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: US-AS (American Samoa, United States)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 29.5s
+  [1/12] https://www.asepa.gov ... tier=M rel=85 frt=35 → rejected
+  [2/12] https://portadministration.as.gov ... tier=L rel=35 frt=65 → rejected
+  [3/12] https://www.americansamoa.gov/territorial-energy-office ... tier=M rel=75 frt=35 → rejected
+  [4/12] https://www.aspower.com ... tier=M rel=65 frt=35 → rejected
+  [5/12] https://www.americansamoa.gov/odapm ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.americansamoa.gov/generalmemorandums ... tier=L rel=35 frt=15 → rejected
+  [7/12] https://www.americansamoa.gov/commerce ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.americansamoa.gov/public-works ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.epa.gov/pi ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.doi.gov/oia ... tier=L rel=35 frt=15 → rejected
+  [11/12] https://www.cbp.gov/contact/ports/honolulu ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.americansamoa.gov/fono ... tier=L rel=25 frt=15 → rejected
+  Tier H: 0  M: 3  L: 9 (2 duplicates) — 49.9s
+  Running cost: Sonnet $5.7000 + Haiku $0.2530 = $5.9530 (57/57 done)
+
+══════════════════════════════════════════════════════════════
+Region US complete.
+Processed:    57/57
+Candidates:   682
+Tier H:       91
+Tier M:       113
+Tier L:       478
+Duplicates:   235
+Haiku calls:  253
+Wall time:    3238.5s
+Total cost:   $5.9530 (Sonnet $5.7000 + Haiku $0.2530)
+Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-US-results.json
+══════════════════════════════════════════════════════════════

@@ -166,20 +166,16 @@ export default async function CommunityPage({
   ];
 
   const regionCounts: Record<string, number> = {};
-  await Promise.all(
-    REGIONS.map(async (r) => {
-      const { count } = await supabase
-        .from("community_groups")
-        .select("id", { count: "exact", head: true })
-        .eq("region", r.code);
-      regionCounts[r.code] = count ?? 0;
-    })
-  );
+  for (const r of REGIONS) regionCounts[r.code] = 0;
+  const { data: regionRows } = await supabase.rpc("community_region_counts");
+  for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
+    regionCounts[row.region] = Number(row.count) || 0;
+  }
 
   // ── User profile (for sidebar footer) ───────────────────────────
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("name, headshot_url")
+    .select("name, headshot_url, is_platform_admin")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -205,6 +201,7 @@ export default async function CommunityPage({
         name: profile?.name ?? user.email?.split("@")[0] ?? "",
         headshotUrl: profile?.headshot_url ?? null,
         employer,
+        isPlatformAdmin: !!profile?.is_platform_admin,
       }}
       memberships={memberships}
       invitations={invitations}

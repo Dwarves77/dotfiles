@@ -308,7 +308,11 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 // ── Workspace Intelligence Fetch ────────────────────────────
 // Uses get_workspace_intelligence() to get items with workspace overrides
 
-async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resource[]; archived: Resource[] }> {
+async function fetchWorkspaceResources(orgId: string): Promise<{
+  active: Resource[];
+  archived: Resource[];
+  uuidToUiId: Map<string, string>;
+}> {
   const supabase = getSupabase();
 
   // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
@@ -317,7 +321,7 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
   const { data: items, error } = await supabase.rpc("get_workspace_intelligence", { p_org_id: orgId });
 
   if (error || !items?.length) {
-    return { active: [], archived: [] };
+    return { active: [], archived: [], uuidToUiId: new Map() };
   }
 
   // Build UUID → UI-id translation map from the RPC payload (each row has
@@ -388,7 +392,7 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
     }
   }
 
-  return { active, archived };
+  return { active, archived, uuidToUiId };
 }
 
 // ── Master Fetch ─────────────────────────────────────────────
@@ -473,24 +477,35 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     // Workspace-scoped intelligence read. orgId is the caller's auth-resolved
     // membership; the RPC merges intelligence_items with this workspace's
     // overrides only.
-    const [{ active: resources, archived }, changelog, disputes, xrefPairs, supersessions] =
-      await withTimeout(
-        Promise.all([
-          fetchWorkspaceResources(orgId),
-          fetchChangelog(),
-          fetchDisputes(),
-          fetchXrefPairs(),
-          fetchSupersessions(),
-        ]),
-        8000, // 8 second timeout
-        [
-          { active: seedResources, archived: seedArchived },
-          seedChangelog,
-          seedDisputes,
-          seedXrefPairs,
-          seedSupersessions,
-        ] as [{ active: typeof seedResources; archived: typeof seedArchived }, typeof seedChangelog, typeof seedDisputes, typeof seedXrefPairs, typeof seedSupersessions]
-      );
+    const [
+      { active: resources, archived, uuidToUiId },
+      changelog,
+      disputes,
+      xrefPairs,
+      supersessions,
+    ] = await withTimeout(
+      Promise.all([
+        fetchWorkspaceResources(orgId),
+        fetchChangelog(),
+        fetchDisputes(),
+        fetchXrefPairs(),
+        fetchSupersessions(),
+      ]),
+      8000, // 8 second timeout
+      [
+        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
+        seedChangelog,
+        seedDisputes,
+        seedXrefPairs,
+        seedSupersessions,
+      ] as [
+        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
+        typeof seedChangelog,
+        typeof seedDisputes,
+        typeof seedXrefPairs,
+        typeof seedSupersessions,
+      ]
+    );
 
     // If Supabase returned empty, use seed data
     if (!resources.length) {
@@ -538,22 +553,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .eq("org_id", orgId),
     ]);
 
-    // Build UUID→legacy_id lookup from resources already fetched
-    // The UI uses r.id = legacy_id || uuid. Synopses use item_id = uuid.
-    // We need to map synopsis item_ids to the IDs the UI uses.
-    const uuidToUiId = new Map<string, string>();
-    for (const r of resources) {
-      // r.id is already legacy_id || uuid (set in fetchWorkspaceResources)
-      // We need to find the UUID for each resource to map synopses
-    }
-    // Fetch the UUID→legacy_id mapping directly
-    const { data: idMap } = await supabase
-      .from("intelligence_items")
-      .select("id, legacy_id")
-      .eq("is_archived", false);
-    for (const row of idMap || []) {
-      uuidToUiId.set(row.id, row.legacy_id || row.id);
-    }
+    // UUID→UI-id map already built by fetchWorkspaceResources from the
+    // get_workspace_intelligence RPC payload — synopses + changes +
+    // overrides use it to translate item_id (uuid) into the UI-side id
+    // (legacy_id || uuid) the resource list is keyed by.
 
     // Map synopses using the UUID→UI_ID lookup
     const synopses: SectorSynopsis[] = allSynopses.map((r: any) => ({

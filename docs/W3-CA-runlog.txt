@@ -1,0 +1,306 @@
+══════════════════════════════════════════════════════════════
+W3 Tier 1 population runner
+Region:            CA
+Depth:             normal
+Jurisdictions:     14
+Cost cap:          (none)
+Output:            C:\Users\jason\dotfiles\docs\W3-tier1-CA-results.json
+Started:           2026-05-04T20:29:50.945Z
+══════════════════════════════════════════════════════════════
+
+Loading existing source URLs for idempotency...
+  219 existing eTLD+1 hosts loaded.
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA (Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.1s
+  [1/12] https://tc.canada.ca/en ... tier=H rel=85 frt=75 → auto-approved
+  [2/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://gazette.gc.ca/accueil-home-eng.html ... tier=H rel=85 frt=75 → auto-approved
+  [4/12] https://natural-resources.canada.ca/energy-efficiency ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.cbsa-asfc.gc.ca/menu-eng.html ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://otc-cta.gc.ca/eng/home ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://tc.canada.ca/en/marine-transportation ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://laws-lois.justice.gc.ca/eng/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://pollution-waste.canada.ca/environmental-protection-registry ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.cer-rec.gc.ca/en/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.scc.ca/en ... tier=L rel=- frt=- → rejected
+  [12/12] https://tc.canada.ca/en/rail-transportation ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 2  M: 0  L: 10 (8 duplicates) — 43.7s
+  Running cost: Sonnet $0.1000 + Haiku $0.0020 = $0.1020 (1/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-ON (Ontario, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 35.4s
+  [1/12] https://www.ontario.ca/page/ministry-environment-conservation-parks ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://ero.ontario.ca/ ... tier=M rel=85 frt=45 → rejected
+  [3/12] https://www.ontario.ca/page/ministry-of-transportation ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.ontario.ca/page/emissions-performance-standards-program ... tier=M rel=92 frt=45 → rejected
+  [5/12] https://www.oeb.ca/ ... tier=M rel=85 frt=65 → rejected
+  [6/12] https://tc.canada.ca/en/corporate-services/acts-regulations ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://natural-resources.canada.ca/energy-efficiency/transportation-alternative-fuels ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.cbsa-asfc.gc.ca/menu-eng.html ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.ontario.ca/page/ontario-regulation-and-legislation ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.metrolinx.com/en/ ... tier=L rel=35 frt=25 → rejected
+  [12/12] https://www.ontario.ca/page/ministry-labour-immigration-training-skills-development ... tier=L rel=45 frt=25 → rejected
+  Tier H: 0  M: 4  L: 8 (4 duplicates) — 54.8s
+  Running cost: Sonnet $0.2000 + Haiku $0.0080 = $0.2080 (2/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-QC (Quebec, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 34.5s
+  [1/12] https://www.environnement.gouv.qc.ca/index_en.asp ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.transports.gouv.qc.ca/en/Pages/default.aspx ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.publicationsduquebec.gouv.qc.ca/gazette-officielle/ ... tier=M rel=85 frt=70 → rejected
+  [4/12] https://www.legisquebec.gouv.qc.ca/en ... tier=M rel=75 frt=65 → rejected
+  [5/12] https://www.regie-energie.qc.ca/fr/la-regie/qui-sommes-nous/about-regie-de-lenergie ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.mrnf.gouv.qc.ca/en/energy/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.cnesst.gouv.qc.ca/en ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.economie.gouv.qc.ca/en/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.mobiliteinfra.gouv.qc.ca/en ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.ctq.gouv.qc.ca/en/home/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://tc.canada.ca/en ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 2  L: 10 (2 duplicates) — 87.2s
+  Running cost: Sonnet $0.3000 + Haiku $0.0100 = $0.3100 (3/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-BC (British Columbia, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.4s
+  [1/12] https://www2.gov.bc.ca/gov/content/environment/climate-change ... tier=M rel=88 frt=72 → rejected
+  [2/12] https://www2.gov.bc.ca/gov/content/industry/electricity-alternative-energy/transportation-energies/renewable-low-carbon-fuels ... tier=M rel=92 frt=85 → rejected
+  [3/12] https://www2.gov.bc.ca/gov/content/transportation/transportation-reports-and-reference/transportation-acts-regulations ... tier=M rel=85 frt=75 → rejected
+  [4/12] https://www.bclaws.gov.bc.ca/ ... tier=M rel=85 frt=75 → rejected
+  [5/12] https://obcctc.ca/ ... tier=M rel=85 frt=95 → rejected
+  [6/12] https://www.portvancouver.com/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.cvse.ca/ ... tier=M rel=75 frt=85 → rejected
+  [8/12] https://metrovancouver.org/services/air-quality ... tier=M rel=75 frt=65 → rejected
+  [9/12] https://www.projects.eao.gov.bc.ca/ ... tier=M rel=75 frt=65 → rejected
+  [10/12] https://www.worksafebc.com/ ... tier=L rel=45 frt=35 → rejected
+  [11/12] https://www.bcuc.com/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.canlii.org/en/bc/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 58.8s
+  Running cost: Sonnet $0.4000 + Haiku $0.0190 = $0.4190 (4/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-AB (Alberta, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 31.4s
+  [1/12] https://www.alberta.ca/environment-and-protected-areas ... tier=M rel=82 frt=45 → rejected
+  [2/12] https://www.aer.ca ... tier=M rel=75 frt=25 → rejected
+  [3/12] https://qp.alberta.ca ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.alberta.ca/transportation-and-economic-corridors ... tier=M rel=75 frt=65 → rejected
+  [5/12] https://www.auc.ab.ca ... tier=M rel=85 frt=65 → rejected
+  [6/12] https://open.alberta.ca ... tier=L rel=35 frt=25 → rejected
+  [7/12] https://www.alberta.ca/technology-innovation-and-emissions-reduction-regulation ... tier=M rel=92 frt=65 → rejected
+  [8/12] https://www.alberta.ca/renewable-fuels-standard-resources ... tier=M rel=85 frt=75 → rejected
+  [9/12] https://amta.ca ... tier=M rel=65 frt=85 → rejected
+  [10/12] https://www.eralberta.ca ... tier=M rel=85 frt=45 → rejected
+  [11/12] https://www.cer-rec.gc.ca/en/data-analysis/energy-markets/provincial-territorial-energy-profiles/provincial-territorial-energy-profiles-alberta.html ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://qp.alberta.ca/documents/OHS/OHSCode.pdf ... tier=L rel=35 frt=45 → rejected
+  Tier H: 0  M: 8  L: 4 (1 duplicates) — 66.6s
+  Running cost: Sonnet $0.5000 + Haiku $0.0290 = $0.5290 (5/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-MB (Manitoba, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31s
+  [1/12] https://www.gov.mb.ca/sd/ ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://www.gov.mb.ca/mti/mcd/ ... tier=M rel=75 frt=85 → rejected
+  [3/12] https://www.gov.mb.ca/mti/index.html ... tier=M rel=75 frt=65 → rejected
+  [4/12] https://www.pubmanitoba.ca/v1/ ... tier=M rel=75 frt=45 → rejected
+  [5/12] http://www.cecmanitoba.ca/ ... tier=M rel=75 frt=35 → rejected
+  [6/12] https://web2.gov.mb.ca/laws/index.php ... tier=M rel=75 frt=55 → rejected
+  [7/12] https://www.trucking.mb.ca/ ... tier=L rel=45 frt=75 → rejected
+  [8/12] https://www.efficiencymanitoba.ca/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.hydro.mb.ca/ ... tier=L rel=45 frt=35 → rejected
+  [10/12] https://www.canlii.org/en/mb/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://tc.canada.ca/en/transport-canada ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 6  L: 6 (2 duplicates) — 83.0s
+  Running cost: Sonnet $0.6000 + Haiku $0.0370 = $0.6370 (6/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-SK (Saskatchewan, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 36.6s
+  [1/12] https://www.saskatchewan.ca/government/government-structure/ministries/environment ... tier=M rel=72 frt=35 → rejected
+  [2/12] https://www.saskatchewan.ca/business/environmental-protection-and-sustainability/a-made-in-saskatchewan-climate-change-strategy/legislation-and-regulations ... tier=M rel=85 frt=45 → rejected
+  [3/12] https://www.saskatchewan.ca/government/government-structure/ministries/highways ... tier=L rel=45 frt=55 → rejected
+  [4/12] https://sgi.sk.ca/legislation ... tier=L rel=45 frt=35 → rejected
+  [5/12] https://www.saskatchewan.ca/trucking ... tier=M rel=65 frt=75 → rejected
+  [6/12] https://www.saskatchewan.ca/government/government-structure/ministries/energy-and-resources ... tier=L rel=45 frt=15 → rejected
+  [7/12] https://publications.saskatchewan.ca/ ... tier=M rel=75 frt=65 → rejected
+  [8/12] https://www.saskatchewan.ca/government/government-structure/ministries/finance ... tier=M rel=65 frt=45 → rejected
+  [9/12] https://sasktrucking.com/ ... tier=L rel=35 frt=55 → rejected
+  [10/12] https://tc.canada.ca/en/road-transportation ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.canlii.org/en/sk/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 5  L: 7 (2 duplicates) — 68.4s
+  Running cost: Sonnet $0.7000 + Haiku $0.0460 = $0.7460 (7/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-NS (Nova Scotia, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 35.5s
+  [1/12] https://novascotia.ca/nse/ ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://climatechange.novascotia.ca/ ... tier=M rel=75 frt=35 → rejected
+  [3/12] https://novascotia.ca/just/regulations/index.htm ... tier=M rel=85 frt=70 → rejected
+  [4/12] https://novascotia.ca/government/public-works/ ... tier=M rel=72 frt=68 → rejected
+  [5/12] https://nserbt.ca/nseb/about/about-nova-scotia-energy-board ... tier=M rel=85 frt=45 → rejected
+  [6/12] https://novascotia.ca/lae/healthandsafety/ ... tier=L rel=45 frt=25 → rejected
+  [7/12] https://jrta.ca/ ... tier=M rel=75 frt=45 → rejected
+  [8/12] https://www.portofhalifax.ca/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.wcb.ns.ca/ ... tier=L rel=25 frt=15 → rejected
+  [10/12] https://nslegislature.ca/legislation/statutes ... tier=L rel=- frt=- → rejected
+  [11/12] https://tc.canada.ca/en/corporate-services/organizational-structure/ministerial-portfolio/transport-canada-regional-offices/atlantic-region ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.canada.ca/en/environment-climate-change/corporate/organization/atlantic.html ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 6  L: 6 (1 duplicates) — 61.6s
+  Running cost: Sonnet $0.8000 + Haiku $0.0540 = $0.8540 (8/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-NB (New Brunswick, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.4s
+  [1/12] https://www.gnb.ca/en/org/environment-local-government.html ... tier=M rel=75 frt=45 → rejected
+  [2/12] https://laws.gnb.ca/en ... tier=M rel=75 frt=45 → rejected
+  [3/12] https://www.gnb.ca/en/org/transportation-infrastructure.html ... tier=M rel=72 frt=68 → rejected
+  [4/12] https://nbeub.ca/ ... tier=M rel=85 frt=65 → rejected
+  [5/12] https://www2.snb.ca/content/snb/en/categories/trucking.html ... tier=L rel=- frt=- → rejected
+  [6/12] https://www2.gnb.ca/content/gnb/en/departments/public-safety.html ... tier=L rel=45 frt=35 → rejected
+  [7/12] https://www.gnb.ca/en/topic/driving-transportation/commercial-transportation.html ... tier=M rel=75 frt=85 → rejected
+  [8/12] https://tc.canada.ca/en/corporate-services/regions/atlantic-region ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.cer-rec.gc.ca/en/data-analysis/energy-markets/provincial-territorial-energy-profiles/provincial-territorial-energy-profiles-new-brunswick.html ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://natural-resources.canada.ca/energy-efficiency/transportation-alternative-fuels/freight/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.canlii.org/en/nb/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 5  L: 7 (3 duplicates) — 49.7s
+  Running cost: Sonnet $0.9000 + Haiku $0.0600 = $0.9600 (9/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-NL (Newfoundland and Labrador, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33s
+  [1/12] https://www.gov.nl.ca/ecc/ ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.cnlopb.ca/ ... tier=L rel=45 frt=15 → rejected
+  [3/12] http://www.pub.nl.ca/ ... tier=M rel=75 frt=65 → rejected
+  [4/12] https://www.gov.nl.ca/iet/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.gov.nl.ca/ti/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.assembly.nl.ca/legislation/ ... tier=M rel=- frt=- → rejected
+  [7/12] https://www.gov.nl.ca/ecc/env-assessment/ ... tier=M rel=85 frt=45 → rejected
+  [8/12] https://www.gov.nl.ca/ecc/env-protection/science/aqms/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://tc.canada.ca/en/corporate-services/contact-us/transport-canada-regional-offices ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.cer-rec.gc.ca/en/data-analysis/energy-markets/provincial-territorial-energy-profiles/provincial-territorial-energy-profiles-newfoundland-labrador.html ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://natural-resources.canada.ca/climate-change/regional-energy-resource-tables/newfoundland-labrador-regional-energy-resource-table-framework-collaboration-path-net-zero ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 3  L: 9 (3 duplicates) — 193.2s
+  Running cost: Sonnet $1.0000 + Haiku $0.0630 = $1.0630 (10/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-PE (Prince Edward Island, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 29.9s
+  [1/12] https://www.princeedwardisland.ca/en/topic/environment-energy-and-climate-action ... tier=M rel=75 frt=55 → rejected
+  [2/12] https://www.princeedwardisland.ca/en/legislation/transportation-and-infrastructure/655 ... tier=L rel=0 frt=0 → rejected
+  [3/12] https://www.princeedwardisland.ca/en/information/transportation-infrastructure-and-energy/commercial-vehicle-inspections ... tier=L rel=45 frt=65 → rejected
+  [4/12] https://www.princeedwardisland.ca/en/royalgazette ... tier=L rel=0 frt=0 → rejected
+  [5/12] https://www.princeedwardisland.ca/en/legislation/communities-land-and-environment/528 ... tier=L rel=0 frt=0 → rejected
+  [6/12] https://www.princeedwardisland.ca/en/topic/climate-change ... tier=M rel=75 frt=45 → rejected
+  [7/12] https://www.princeedwardisland.ca/en/information/transportation-and-infrastructure/sustainable-transportation ... tier=L rel=45 frt=35 → rejected
+  [8/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://tc.canada.ca/en ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.cbsa-asfc.gc.ca/menu-eng.html ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://oee.nrcan.gc.ca/corporate/statistics/neud/dpa/menus/trends/comprehensive/trends_tran_pei.cfm ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.csagroup.org ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 2  L: 10 (4 duplicates) — 52.9s
+  Running cost: Sonnet $1.1000 + Haiku $0.0700 = $1.1700 (11/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-YT (Yukon, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.6s
+  [1/12] https://yukon.ca/en/climate-change-yukon ... tier=L rel=- frt=- → rejected
+  [2/12] https://yukon.ca/en/waste-and-recycling/pollution/air-quality-yukon ... tier=L rel=- frt=- → rejected
+  [3/12] https://yukon.ca/en/department-highways-public-works ... tier=L rel=- frt=- → rejected
+  [4/12] https://yukon.ca/en/department-energy-mines-resources ... tier=L rel=- frt=- → rejected
+  [5/12] https://legislation.yukon.ca/2020_yukon_gazette.html ... tier=L rel=- frt=- → rejected
+  [6/12] https://laws.yukon.ca/ ... tier=M rel=75 frt=65 → rejected
+  [7/12] https://yukonassembly.ca/house-business/progress-bills ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.yesab.ca/ ... tier=M rel=75 frt=35 → rejected
+  [9/12] https://tc.canada.ca/en ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.cbsa-asfc.gc.ca/menu-eng.html ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://wcb.yk.ca/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 2  L: 10 (3 duplicates) — 52.3s
+  Running cost: Sonnet $1.2000 + Haiku $0.0720 = $1.2720 (12/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-NT (Northwest Territories, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.4s
+  [1/12] https://www.gov.nt.ca/ecc/en ... tier=M rel=75 frt=35 → rejected
+  [2/12] https://www.gov.nt.ca/en/department/infrastructure ... tier=L rel=35 frt=45 → rejected
+  [3/12] https://www.justice.gov.nt.ca/en/northwest-territories-gazette/ ... tier=M rel=65 frt=55 → rejected
+  [4/12] https://www.justice.gov.nt.ca/en/legislation/ ... tier=L rel=45 frt=35 → rejected
+  [5/12] https://www.orogo.gov.nt.ca/en ... tier=L rel=55 frt=15 → rejected
+  [6/12] https://nwtpublicutilitiesboard.ca/ ... tier=M rel=75 frt=65 → rejected
+  [7/12] https://www.fin.gov.nt.ca/en/services/licences-taxes-and-fees/fuel-tax ... tier=M rel=75 frt=65 → rejected
+  [8/12] https://www.gov.nt.ca/en/department/iti ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.cer-rec.gc.ca/en/data-analysis/energy-markets/provincial-territorial-energy-profiles/provincial-territorial-energy-profiles-northwest-territories.html ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://tc.canada.ca/en ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://natural-resources.canada.ca/energy-efficiency/energy-efficiency-regulations/introduction-regulations ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 4  L: 8 (4 duplicates) — 62.5s
+  Running cost: Sonnet $1.3000 + Haiku $0.0790 = $1.3790 (13/14 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CA-NU (Nunavut, Canada)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 34.4s
+  [1/12] https://www.gov.nu.ca/en/environment-and-wildlife/climate-change-secretariat ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.nunavutlegislation.ca/en ... tier=L rel=45 frt=25 → rejected
+  [3/12] https://www.nirb.ca ... tier=M rel=75 frt=35 → rejected
+  [4/12] https://www.nwb-oen.ca ... tier=M rel=75 frt=35 → rejected
+  [5/12] https://www.qec.nu.ca ... tier=M rel=75 frt=35 → rejected
+  [6/12] https://www.nunavutmarinecouncil.com/resources/legislation-and-policies/ ... tier=M rel=75 frt=65 → rejected
+  [7/12] https://www.gov.nu.ca/en/community-and-government-services ... tier=L rel=- frt=- → rejected
+  [8/12] https://tc.canada.ca/en/marine-transportation/navigation-marine-conditions/arctic-ice-regime-shipping-system-airss ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.ccg-gcc.gc.ca/en/canadian-coast-guard/programs-and-services/marine-communications-and-traffic-services ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.canada.ca/en/environment-climate-change.html ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.rcaanc-cirnac.gc.ca/eng/1100100028084/1613953257887 ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.nunavut.ca/en ... tier=M rel=75 frt=35 → rejected
+  Tier H: 0  M: 5  L: 7 (2 duplicates) — 66.3s
+  Running cost: Sonnet $1.4000 + Haiku $0.0850 = $1.4850 (14/14 done)
+
+══════════════════════════════════════════════════════════════
+Region CA complete.
+Processed:    14/14
+Candidates:   168
+Tier H:       2
+Tier M:       60
+Tier L:       106
+Duplicates:   39
+Haiku calls:  85
+Wall time:    1000.9s
+Total cost:   $1.4850 (Sonnet $1.4000 + Haiku $0.0850)
+Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-CA-results.json
+══════════════════════════════════════════════════════════════

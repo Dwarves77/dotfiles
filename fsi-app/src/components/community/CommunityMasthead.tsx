@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { NotificationsBell } from "./NotificationsBell";
 
 const SCOPES = ["All", "Posts", "Groups", "People"] as const;
 type Scope = (typeof SCOPES)[number];
@@ -65,6 +66,15 @@ export function CommunityMasthead({ onSearchSubmit }: CommunityMastheadProps) {
         >
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
               display: "flex",
               alignItems: "center",
               gap: 10,
@@ -129,6 +139,8 @@ export function CommunityMasthead({ onSearchSubmit }: CommunityMastheadProps) {
             >
               Search
             </button>
+          </div>
+          <NotificationsBell />
           </div>
 
           {/* Scope chips */}

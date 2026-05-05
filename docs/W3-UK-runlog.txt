@@ -1,0 +1,126 @@
+══════════════════════════════════════════════════════════════
+W3 Tier 1 population runner
+Region:            UK
+Depth:             normal
+Jurisdictions:     5
+Cost cap:          (none)
+Output:            C:\Users\jason\dotfiles\docs\W3-tier1-UK-results.json
+Started:           2026-05-04T20:29:49.768Z
+══════════════════════════════════════════════════════════════
+
+Loading existing source URLs for idempotency...
+  219 existing eTLD+1 hosts loaded.
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: GB (United Kingdom)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.4s
+  [1/12] https://www.gov.uk/government/organisations/department-for-transport ... tier=L rel=- frt=- DUP → rejected
+  [2/12] https://www.gov.uk/government/organisations/maritime-and-coastguard-agency ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.gov.uk/government/publications/participating-in-the-uk-ets ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.gov.uk/government/organisations/environment-agency ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.theccc.org.uk ... tier=M rel=92 frt=45 → rejected
+  [7/12] https://www.gov.uk/government/organisations/driver-and-vehicle-standards-agency ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.legislation.gov.uk ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.gov.uk/government/organisations/hm-revenue-customs ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.orr.gov.uk ... tier=H rel=75 frt=65 → auto-approved
+  [12/12] https://www.bsigroup.com ... tier=M rel=75 frt=65 → rejected
+  Tier H: 1  M: 2  L: 9 (9 duplicates) — 46.0s
+  Running cost: Sonnet $0.1000 + Haiku $0.0030 = $0.1030 (1/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: GB-ENG (England, United Kingdom)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32s
+  [1/12] https://www.gov.uk/government/organisations/department-for-transport ... tier=L rel=- frt=- DUP → rejected
+  [2/12] https://www.gov.uk/government/organisations/driver-and-vehicle-standards-agency ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.gov.uk/government/organisations/environment-agency ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.gov.uk/government/organisations/uk-emissions-trading-scheme-authority ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.gov.uk/government/collections/carbon-border-adjustment-mechanism ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.gov.uk/government/organisations/maritime-and-coastguard-agency ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.orr.gov.uk ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.theccc.org.uk ... tier=M rel=85 frt=45 → rejected
+  [9/12] https://www.gov.uk/government/organisations/department-for-energy-security-and-net-zero ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.hse.gov.uk ... tier=L rel=35 frt=25 → rejected
+  [11/12] https://www.legislation.gov.uk ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.gov.uk/government/organisations/traffic-commissioners ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 1  L: 11 (9 duplicates) — 40.8s
+  Running cost: Sonnet $0.2000 + Haiku $0.0050 = $0.2050 (2/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: GB-SCT (Scotland, United Kingdom)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.8s
+  [1/12] https://www.transport.gov.scot/ ... tier=M rel=75 frt=65 → rejected
+  [2/12] https://www.transport.gov.scot/our-approach/industry-guidance/freight-transport/ ... tier=M rel=75 frt=85 → rejected
+  [3/12] https://www.gov.scot/policies/climate-change/ ... tier=M rel=92 frt=45 → rejected
+  [4/12] https://www.sepa.org.uk/regulations/ ... tier=M rel=85 frt=65 → rejected
+  [5/12] https://www.parliament.scot/chamber-and-committees/committees/current-and-previous-committees/session-6-net-zero-energy-and-transport-committee ... tier=M rel=92 frt=78 → rejected
+  [6/12] https://www.legislation.gov.uk/browse/scotland ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.gov.scot/policies/energy-infrastructure/ ... tier=M rel=85 frt=45 → rejected
+  [8/12] https://www.gov.scot/policies/transport-policy/ ... tier=M rel=85 frt=72 → rejected
+  [9/12] https://www.transport.gov.scot/public-transport/rail/rail-policy-and-strategy/ ... tier=M rel=85 frt=75 → rejected
+  [10/12] https://www.parliament.scot/bills-and-laws ... tier=M rel=85 frt=65 → rejected
+  [11/12] https://sustainablescotlandnetwork.org/ssn-manual/policy-and-legislation ... tier=M rel=75 frt=25 → rejected
+  [12/12] https://www.theccc.org.uk/scottish-parliament/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 10  L: 2 (1 duplicates) — 67.3s
+  Running cost: Sonnet $0.3000 + Haiku $0.0150 = $0.3150 (3/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: GB-WLS (Wales, United Kingdom)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30.2s
+  [1/12] https://www.gov.wales/transport ... tier=M rel=75 frt=65 → rejected
+  [2/12] https://www.gov.wales/climate-change ... tier=M rel=92 frt=35 → rejected
+  [3/12] https://senedd.wales/senedd-business/legislation/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://naturalresources.wales/?lang=en ... tier=M rel=75 frt=35 → rejected
+  [5/12] https://tfw.wales ... tier=L rel=35 frt=25 → rejected
+  [6/12] https://law.gov.wales ... tier=M rel=75 frt=45 → rejected
+  [7/12] https://www.legislation.gov.uk/wsi ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.futuregenerations.wales ... tier=M rel=75 frt=35 → rejected
+  [9/12] https://www.gov.uk/government/organisations/department-for-transport ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.hse.gov.uk ... tier=L rel=35 frt=25 → rejected
+  [11/12] https://www.gov.uk/government/organisations/driver-and-vehicle-licensing-agency ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.orr.gov.uk ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 5  L: 7 (4 duplicates) — 51.9s
+  Running cost: Sonnet $0.4000 + Haiku $0.0220 = $0.4220 (4/5 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: GB-NIR (Northern Ireland, United Kingdom)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 28.2s
+  [1/12] https://www.daera-ni.gov.uk ... tier=M rel=75 frt=45 → rejected
+  [2/12] https://www.daera-ni.gov.uk/northern-ireland-environment-agency ... tier=M rel=85 frt=45 → rejected
+  [3/12] https://www.infrastructure-ni.gov.uk ... tier=H rel=75 frt=65 → auto-approved
+  [4/12] https://www.economy-ni.gov.uk ... tier=M rel=65 frt=45 → rejected
+  [5/12] https://www.uregni.gov.uk ... tier=H rel=85 frt=65 → auto-approved
+  [6/12] https://www.legislation.gov.uk/nisr ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.thegazette.co.uk/Belfast ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.niassembly.gov.uk/assembly-business/legislation/ ... tier=M rel=75 frt=45 → rejected
+  [9/12] https://www.theccc.org.uk ... tier=M rel=85 frt=45 → rejected
+  [10/12] https://www.gov.uk/government/organisations/department-for-transport ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.gov.uk/government/organisations/hm-revenue-customs ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.hseni.gov.uk ... tier=M rel=75 frt=45 → rejected
+  Tier H: 2  M: 6  L: 4 (3 duplicates) — 49.1s
+  Running cost: Sonnet $0.5000 + Haiku $0.0300 = $0.5300 (5/5 done)
+
+══════════════════════════════════════════════════════════════
+Region UK complete.
+Processed:    5/5
+Candidates:   60
+Tier H:       3
+Tier M:       24
+Tier L:       33
+Duplicates:   26
+Haiku calls:  30
+Wall time:    255.2s
+Total cost:   $0.5300 (Sonnet $0.5000 + Haiku $0.0300)
+Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-UK-results.json
+══════════════════════════════════════════════════════════════

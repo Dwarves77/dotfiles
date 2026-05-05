@@ -19,12 +19,12 @@
  */
 
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { fetchIntelligenceItem } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { JURISDICTIONS } from "@/lib/constants";
-import { getAppData } from "@/lib/data";
 
 export const revalidate = 60;
 
@@ -43,13 +43,70 @@ export default async function RegulationDetailPage({
 
   const { resource: r, changelog, dispute, supersessions, xrefIds, refByIds } = detail;
 
-  // Light lookup for related-items list — uses the workspace dataset
-  // already cached by getAppData() so we don't N+1 to fetch each title.
-  const all = await getAppData().catch(() => null);
+  // Targeted lookup for related-items list — only fetch the titles +
+  // priorities for the cross-referenced and superseded items, not the
+  // full workspace payload. xrefIds/refByIds/supersession ids are UI-side
+  // ids (legacy_id || uuid), so we look up each via legacy_id OR id.
   const resourceLookup: Record<string, { id: string; title: string; priority: string }> = {};
-  if (all) {
-    for (const x of [...all.resources, ...all.archived]) {
-      resourceLookup[x.id] = { id: x.id, title: x.title, priority: x.priority };
+  const relatedIds = Array.from(
+    new Set<string>([
+      ...xrefIds,
+      ...refByIds,
+      ...supersessions.flatMap((s) => [s.old, s.new]),
+    ])
+  ).filter(Boolean);
+
+  if (
+    relatedIds.length > 0 &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      const uuidRe =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const uuidIds = relatedIds.filter((rid) => uuidRe.test(rid));
+      const legacyIds = relatedIds.filter((rid) => !uuidRe.test(rid));
+
+      const queries = [];
+      if (legacyIds.length > 0) {
+        queries.push(
+          supabase
+            .from("intelligence_items")
+            .select("id, legacy_id, title, priority")
+            .in("legacy_id", legacyIds)
+        );
+      }
+      if (uuidIds.length > 0) {
+        queries.push(
+          supabase
+            .from("intelligence_items")
+            .select("id, legacy_id, title, priority")
+            .in("id", uuidIds)
+        );
+      }
+      const results = await Promise.all(queries);
+      for (const result of results) {
+        for (const row of (result.data ?? []) as Array<{
+          id: string;
+          legacy_id: string | null;
+          title: string;
+          priority: string;
+        }>) {
+          const uiId: string = row.legacy_id || row.id;
+          resourceLookup[uiId] = {
+            id: uiId,
+            title: row.title,
+            priority: row.priority,
+          };
+        }
+      }
+    } catch {
+      // Soft-fail — RegulationDetailSurface tolerates a missing lookup
+      // by falling back to raw ids in the related-items list.
     }
   }
 
