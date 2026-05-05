@@ -20,6 +20,9 @@ interface AdminDashboardProps {
   initialSources?: Source[];
   initialProvisionalSources?: ProvisionalSource[];
   initialOpenConflicts?: SourceConflict[];
+  initialOrgs?: any[];
+  initialMembers?: any[];
+  initialStagedUpdates?: any[];
 }
 
 export function AdminDashboard({
@@ -33,6 +36,9 @@ export function AdminDashboard({
   initialSources = [],
   initialProvisionalSources = [],
   initialOpenConflicts = [],
+  initialOrgs = [],
+  initialMembers = [],
+  initialStagedUpdates = [],
 }: AdminDashboardProps) {
   // Hydrate the source store with the admin-context unfiltered list. Mirror of
   // the Dashboard pattern at src/components/Dashboard.tsx (lines 247-253). The
@@ -52,24 +58,24 @@ export function AdminDashboard({
   // map to existing functional code that ships now.
   type AdminTab = "orgs" | "integrations" | "sources" | "staged" | "scan" | "audit";
   const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
-  const [members, setMembers] = useState<any[]>([]);
-  const [orgs, setOrgs] = useState<any[]>([]);
-  const [stagedUpdates, setStagedUpdates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<any[]>(initialMembers);
+  const [orgs, setOrgs] = useState<any[]>(initialOrgs);
+  const [stagedUpdates, setStagedUpdates] = useState<any[]>(initialStagedUpdates);
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState("member");
   const [toast, setToast] = useState("");
 
   const supabase = createSupabaseBrowserClient();
 
+  // Manual refresh — re-runs the same three reads the server hydrated us
+  // with at first paint. Used by the Refresh button and after add-member /
+  // approve-update side effects.
   const loadData = useCallback(async () => {
-    setLoading(true);
-
     try {
       const [orgRes, memberRes, updateRes] = await Promise.all([
-        supabase.from("organizations").select("*"),
-        supabase.from("org_memberships").select("*"),
-        supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }),
+        supabase.from("organizations").select("id, name, slug, plan, created_at"),
+        supabase.from("org_memberships").select("id, org_id, user_id, role, created_at"),
+        supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
       ]);
 
       setOrgs(orgRes.data || []);
@@ -78,10 +84,7 @@ export function AdminDashboard({
     } catch {
       // RLS may block some queries — still show the UI
     }
-    setLoading(false);
   }, [supabase]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   const showToast = (msg: string) => {
     setToast(msg);

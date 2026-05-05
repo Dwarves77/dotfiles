@@ -26,13 +26,17 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { JURISDICTIONS } from "@/lib/constants";
 
-export const revalidate = 60;
+// Note: previous `export const revalidate = 60` was a no-op —
+// fetchIntelligenceItem doesn't read cookies, but the lookup query path
+// below uses createClient with anon key. Keeping the page dynamic for
+// honesty; ISR refactor tracked in docs/PERF-WAVE-2.md.
 
 export default async function RegulationDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const t0 = Date.now();
   const { slug } = await params;
   const id = decodeURIComponent(slug);
 
@@ -118,6 +122,8 @@ export default async function RegulationDetailPage({
     : null;
   const reviewed = r.lastVerifiedDate ? `Reviewed ${formatDate(r.lastVerifiedDate)}` : null;
   const metaParts = [r.id, effective, reviewed].filter(Boolean) as string[];
+
+  console.log(`[perf] /regulations/${id} data ${Date.now() - t0}ms`);
 
   return (
     <>

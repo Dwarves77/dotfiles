@@ -51,6 +51,7 @@ export default async function CommunityBrowsePage({
 }: {
   searchParams: Promise<{ region?: string; privacy?: string }>;
 }) {
+  const t0 = Date.now();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -254,6 +255,8 @@ export default async function CommunityBrowsePage({
 
   const activeRegionLabel =
     REGIONS.find((r) => r.code === requestedRegion)?.label ?? requestedRegion;
+
+  console.log(`[perf] /community/browse data ${Date.now() - t0}ms`);
 
   return (
     <CommunityShell

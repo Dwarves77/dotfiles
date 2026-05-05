@@ -27,6 +27,7 @@ export default async function CommunityPage({
 }: {
   searchParams: Promise<{ region?: string }>;
 }) {
+  const t0 = Date.now();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -192,6 +193,8 @@ export default async function CommunityPage({
 
   const params = await searchParams;
   const initialRegion = params?.region?.toUpperCase() || "EU";
+
+  console.log(`[perf] /community data ${Date.now() - t0}ms`);
 
   return (
     <CommunityShell

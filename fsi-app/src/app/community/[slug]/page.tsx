@@ -44,6 +44,7 @@ export default async function GroupDetailPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ region?: string }>;
 }) {
+  const t0 = Date.now();
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
@@ -207,6 +208,8 @@ export default async function GroupDetailPage({
 
   const sp = await searchParams;
   const initialRegion = sp?.region?.toUpperCase() || group.region;
+
+  console.log(`[perf] /community/${slug} data ${Date.now() - t0}ms`);
 
   const membershipForHeader = myMembership
     ? {

@@ -20,10 +20,15 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
 
-export const revalidate = 60;
+// Note: previous `export const revalidate = 60` was a no-op — getAppData()
+// reads cookies via resolveOrgIdFromCookies(), which forces dynamic
+// rendering and disables ISR. ISR-friendly anon/authed split is tracked
+// in docs/PERF-WAVE-2.md as a Phase D item.
 
 export default async function Home() {
+  const t0 = Date.now();
   const data = await getAppData();
+  console.log(`[perf] / data ${Date.now() - t0}ms`);
 
   const dateStr = new Date().toLocaleDateString("en-US", {
     year: "numeric",

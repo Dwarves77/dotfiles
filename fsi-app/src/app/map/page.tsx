@@ -1,10 +1,10 @@
-import { getAppData } from "@/lib/data";
+import { getMapData } from "@/lib/data";
 import { MapPageView } from "@/components/map/MapPageView";
 
-export const revalidate = 60;
-
 export default async function MapRoute() {
-  const data = await getAppData();
+  const t0 = Date.now();
+  const data = await getMapData();
+  console.log(`[perf] /map data ${Date.now() - t0}ms`);
 
   return (
     <MapPageView

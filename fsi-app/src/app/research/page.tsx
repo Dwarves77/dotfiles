@@ -67,6 +67,8 @@ async function fetchPipelineItems(): Promise<ResearchPipelineItem[]> {
 }
 
 export default async function Research() {
+  const t0 = Date.now();
   const items = await fetchPipelineItems();
+  console.log(`[perf] /research data ${Date.now() - t0}ms`);
   return <ResearchView items={items} />;
 }
