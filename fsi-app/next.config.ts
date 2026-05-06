@@ -6,6 +6,25 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // PR-D IA refactor (2026-05-06): /events and /vendors moved under
+  // /community/* per design intent (visual-reconciliation §3.8). 308
+  // permanent redirects preserve any external bookmarks while the
+  // route files at /events and /vendors are also kept as
+  // server-component redirects for defense-in-depth.
+  async redirects() {
+    return [
+      {
+        source: "/events",
+        destination: "/community/events",
+        permanent: true,
+      },
+      {
+        source: "/vendors",
+        destination: "/community/vendors",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 // Bundle analyzer runs only when ANALYZE=true is set on the build command.

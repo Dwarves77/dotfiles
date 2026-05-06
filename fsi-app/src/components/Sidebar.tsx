@@ -6,21 +6,23 @@ import { cn } from "@/lib/cn";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import {
   LayoutDashboard, Scale, TrendingUp, Globe,
-  GraduationCap, MessageSquare, MapPin, Settings,
-  Shield, User,
+  GraduationCap, MessageSquare, MapPin,
   Menu, X,
 } from "lucide-react";
 import { useState } from "react";
 import { UserMenu } from "@/components/auth/UserMenu";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
-import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
+
+// PR-D IA refactor (2026-05-06): Profile / Admin / Settings moved out
+// of the main rail into the user-footer dropdown (UserMenu) anchored
+// at the bottom of the rail. UserMenu already exposes Workspace
+// Profile, Admin Panel (admin-only), and Settings — so removing the
+// rail entries collapses the navigation grammar to product-vs-account
+// per design intent (visual-reconciliation §4 IA grammar).
 
 interface NavItem {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  /** When true, only render for users with role owner|admin. */
-  adminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -30,9 +32,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/research", label: "Research", icon: GraduationCap },
   { href: "/operations", label: "Operations", icon: Globe },
   { href: "/map", label: "Map", icon: MapPin },
-  { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 // Routes whose server components run Supabase queries on render. Auto-
@@ -41,10 +40,6 @@ const NAV_ITEMS: NavItem[] = [
 // prefetch on these data-heavy targets to keep nav-hover from prewarming
 // every workspace surface at once. Click latency is preserved by Next's
 // in-flight RSC dedupe and by the pages' own server-render speed.
-//
-// Left at default auto-prefetch (cheap targets):
-//   - /profile  (not investigated as data-heavy)
-//   - /settings (ISR via `export const revalidate = 60`)
 const NO_PREFETCH_HREFS = new Set<string>([
   "/",
   "/regulations",
@@ -52,21 +47,12 @@ const NO_PREFETCH_HREFS = new Set<string>([
   "/research",
   "/operations",
   "/map",
-  "/admin",
   "/community",
 ]);
 
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const userRole = useWorkspaceStore((s) => s.userRole);
-  const isAdmin = userRole === "owner" || userRole === "admin";
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
-
-  // Admin attention badge (W2.E). The hook itself short-circuits for
-  // non-admin / unauthenticated users — the dot below additionally gates
-  // on `isAdmin` so a stale value can never leak to a non-admin row.
-  const { total: adminAttentionTotal } = useAdminAttention();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -100,54 +86,28 @@ export function Sidebar() {
 
       {/* Main nav */}
       <nav className="py-2 px-2 space-y-0.5">
-        {visibleNavItems.map(({ href, label, icon: Icon, adminOnly }) => {
-          const showAttentionDot =
-            adminOnly && isAdmin && adminAttentionTotal > 0;
-          const dotTitle = showAttentionDot
-            ? `${adminAttentionTotal} item${
-                adminAttentionTotal === 1 ? "" : "s"
-              } need attention`
-            : undefined;
-          return (
-            <Link
-              key={href}
-              href={href}
-              prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
-              onClick={() => setMobileOpen(false)}
-              title={dotTitle}
-              className={cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
-                isActive(href)
-                  ? "font-semibold"
-                  : "hover:bg-[var(--color-bg-raised)]"
-              )}
-              style={{
-                color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
-                fontWeight: isActive(href) ? 600 : 400,
-              }}
-            >
-              <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
-              {label}
-              {showAttentionDot && (
-                <span
-                  aria-label={dotTitle}
-                  role="status"
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 10,
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: "var(--color-critical)",
-                    boxShadow: "0 0 0 2px var(--color-bg-surface)",
-                  }}
-                />
-              )}
-            </Link>
-          );
-        })}
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
+              isActive(href)
+                ? "font-semibold"
+                : "hover:bg-[var(--color-bg-raised)]"
+            )}
+            style={{
+              color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+              backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
+              fontWeight: isActive(href) ? 600 : 400,
+            }}
+          >
+            <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
+            {label}
+          </Link>
+        ))}
       </nav>
 
       {/* Spacer — pushes community to middle area */}
