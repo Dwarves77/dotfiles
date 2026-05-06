@@ -16,12 +16,19 @@
  *   - Default Summary panel: AI summary block + What changed + Why it matters
  */
 
-import { useState } from "react";
-import { Sparkles, AlertTriangle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Sparkles, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { TimelineBar } from "@/components/resource/TimelineBar";
 import { ImpactScores } from "@/components/resource/ImpactScores";
 import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
 import { scoreResource } from "@/lib/scoring";
+import {
+  extractOperationalBriefing,
+  extractSeverityLabel,
+  headingSlug,
+  type ExtractedSection,
+  type SeverityLabel,
+} from "@/lib/agent/extract-sections";
 import {
   TOPIC_COLORS,
   JURISDICTIONS,
@@ -66,6 +73,45 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "notes", label: "Team notes" },
 ];
 
+// Maps an Issues-Requiring-Immediate-Action severity label (from the
+// agent's space-separated severity convention — see system-prompt.ts
+// lines 223-230) to a UI tone token. Used for the elevated callout at
+// the top of the operational briefing expander (Task C).
+//
+// CRITICAL/HIGH/MODERATE/LOW priority tokens already exist in
+// PRIORITY_TONE; severity labels are a parallel vocabulary so they get
+// their own map keyed on the label text the agent emits.
+const SEVERITY_LABEL_TONE: Record<
+  SeverityLabel,
+  { bg: string; bd: string; color: string }
+> = {
+  "ACTION REQUIRED": {
+    bg: "var(--critical-bg)",
+    bd: "var(--critical-bd)",
+    color: "var(--critical)",
+  },
+  "COST ALERT": {
+    bg: "var(--high-bg)",
+    bd: "var(--high-bd)",
+    color: "var(--high)",
+  },
+  "WINDOW CLOSING": {
+    bg: "var(--critical-bg)",
+    bd: "var(--critical-bd)",
+    color: "var(--critical)",
+  },
+  "COMPETITIVE EDGE": {
+    bg: "var(--accent-bg)",
+    bd: "var(--accent-bd)",
+    color: "var(--accent)",
+  },
+  MONITORING: {
+    bg: "var(--moderate-bg)",
+    bd: "var(--moderate-bd)",
+    color: "var(--moderate)",
+  },
+};
+
 const PRIORITY_TONE: Record<
   string,
   { bg: string; bd: string; color: string; label: string }
@@ -106,6 +152,22 @@ export function RegulationDetailSurface({
   resourceLookup,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("summary");
+  // Pending scroll-to-anchor inside the Full text tab. When the Tier 2
+  // expander's "Read full ... in regulatory analysis" link is clicked,
+  // we switch tab to "full" AND set this anchor, which the Full text
+  // panel consumes (see useEffect inside FullTextPanel).
+  const [pendingFullSectionAnchor, setPendingFullSectionAnchor] = useState<
+    string | null
+  >(null);
+
+  /** Switch tab and (optionally) scroll the Full text panel to a
+   * heading slug once it renders. Slug is the headingSlug() value of the
+   * heading text — IntelligenceBrief composes its own per-render briefId
+   * prefix, and the Full text panel resolves the prefix at scroll time. */
+  function navigateToFullSection(slug: string) {
+    setPendingFullSectionAnchor(slug);
+    setTab("full");
+  }
 
   // Admin-only banner gating. The flag is populated from intelligence_items
   // migration 035 (agent_integrity_flag), surfaced through fetchIntelligenceItem,
@@ -447,6 +509,7 @@ export function RegulationDetailSurface({
               r={r}
               changelog={changelog}
               dispute={dispute}
+              onNavigateToFullSection={navigateToFullSection}
             />
           )}
           {tab === "exposure" && (
@@ -475,7 +538,11 @@ export function RegulationDetailSurface({
           {tab === "full" && (
             <BriefSection title="Full text">
               {r.fullBrief ? (
-                <IntelligenceBrief markdown={r.fullBrief} />
+                <FullTextPanel
+                  markdown={r.fullBrief}
+                  pendingAnchorSlug={pendingFullSectionAnchor}
+                  onAnchorConsumed={() => setPendingFullSectionAnchor(null)}
+                />
               ) : r.url ? (
                 <p style={{ fontSize: 14, lineHeight: 1.7, margin: 0 }}>
                   Full regulatory text is hosted at the source —{" "}
@@ -819,14 +886,26 @@ function SummaryPanel({
   r,
   changelog,
   dispute,
+  onNavigateToFullSection,
 }: {
   r: Resource;
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
+  onNavigateToFullSection: (slug: string) => void;
 }) {
+  // Tier 2 — Operational briefing extraction. Computed at render-time
+  // from full_brief markdown. For non-regulatory_fact_document briefs
+  // (technology_profile, operations_profile, etc.) the three target
+  // sections won't appear in the markdown, so the briefing returns all
+  // null and the expander is omitted (per audit section 6).
+  const operationalBriefing = useMemo(
+    () => (r.fullBrief ? extractOperationalBriefing(r.fullBrief) : null),
+    [r.fullBrief]
+  );
+
   return (
     <>
-      {/* AI summary block */}
+      {/* AI summary block — Tier 1 (~100 word AI summary) */}
       {(r.whatIsIt || r.note) && (
         <div
           style={{
@@ -866,6 +945,18 @@ function SummaryPanel({
             {r.whatIsIt || r.note}
           </p>
         </div>
+      )}
+
+      {/* Tier 2 — Operational briefing.
+          Renders only for regulatory_fact_document briefs that have at
+          least one of the three target sections populated. Non-regulatory
+          briefs (technology_profile, etc.) don't have these sections in
+          their markdown so we collapse the affordance entirely. */}
+      {operationalBriefing && (
+        <OperationalBriefingExpander
+          briefing={operationalBriefing}
+          onNavigateToFullSection={onNavigateToFullSection}
+        />
       )}
 
       {/* Impact assessment — gradient bars */}
@@ -1011,6 +1102,375 @@ function SummaryPanel({
       )}
     </>
   );
+}
+
+// ── Tier 2 (Operational Briefing) components ───────────────────────────────
+
+/** Tier 2 expander.
+ *
+ * Closed: a compact button-style affordance with subtitle.
+ * Open: severity callout (when an Immediate Action paragraph leads with a
+ * severity label) plus three stacked subsections, each linking to its
+ * full counterpart in the Full text tab via onNavigateToFullSection. */
+function OperationalBriefingExpander({
+  briefing,
+  onNavigateToFullSection,
+}: {
+  briefing: {
+    immediateAction: ExtractedSection | null;
+    whatItIsWhyItApplies: ExtractedSection | null;
+    complianceChain: ExtractedSection | null;
+  };
+  onNavigateToFullSection: (slug: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const sections: Array<{
+    key: "immediateAction" | "whatItIsWhyItApplies" | "complianceChain";
+    label: string;
+    section: ExtractedSection | null;
+  }> = [
+    {
+      key: "immediateAction",
+      label: "Issues requiring immediate action",
+      section: briefing.immediateAction,
+    },
+    {
+      key: "whatItIsWhyItApplies",
+      label: "What this regulation is and why it applies",
+      section: briefing.whatItIsWhyItApplies,
+    },
+    {
+      key: "complianceChain",
+      label: "How the workspace sits in the compliance chain",
+      section: briefing.complianceChain,
+    },
+  ];
+
+  // Suppress the expander entirely when none of the three sections has
+  // substantive content. This is the non-regulatory_fact_document case
+  // (technology_profile etc.) where Tier 2 doesn't apply.
+  const hasAnyContent = sections.some((s) => s.section?.hasContent);
+  if (!hasAnyContent) return null;
+
+  // Severity callout uses the first paragraph of Immediate Action. The
+  // callout is the elevated "ACTION REQUIRED — first sentence" block at
+  // the top of the open expander (Task C).
+  const immediateFirstP =
+    briefing.immediateAction?.firstParagraphs?.[0] ?? "";
+  const severity = extractSeverityLabel(immediateFirstP);
+
+  return (
+    <div
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border-sub)",
+        borderRadius: "var(--r-md)",
+        padding: open ? "16px 20px 18px" : "12px 16px",
+        marginBottom: 16,
+        boxShadow: "var(--shadow)",
+        transition: "padding 200ms ease",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          background: "transparent",
+          border: 0,
+          padding: 0,
+          cursor: "pointer",
+          fontFamily: "inherit",
+          textAlign: "left",
+          color: "var(--text)",
+        }}
+        aria-expanded={open}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 13,
+            fontWeight: 700,
+            color: "var(--text)",
+          }}
+        >
+          <Sparkles size={14} style={{ color: "var(--accent)" }} aria-hidden />
+          Read operational briefing
+        </span>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            color: "var(--text-2)",
+            fontSize: 12,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              color: "var(--muted)",
+              fontWeight: 500,
+            }}
+          >
+            {open ? "Collapse" : "What to do, when, who's affected · 30-second scan"}
+          </span>
+          {open ? (
+            <ChevronDown size={14} aria-hidden />
+          ) : (
+            <ChevronRight size={14} aria-hidden />
+          )}
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          {/* Severity callout — Task C. Only shown when the Immediate
+              Action section's first paragraph leads with a recognised
+              severity label per the agent's emission convention. */}
+          {severity.label && (
+            <SeverityCallout
+              label={severity.label}
+              text={firstSentence(severity.rest) || severity.rest}
+            />
+          )}
+
+          {sections.map(({ key, label, section }) =>
+            section?.hasContent ? (
+              <OperationalBriefingSubsection
+                key={key}
+                label={label}
+                section={section}
+                showSeverity={key === "immediateAction" && !!severity.label}
+                onNavigateToFullSection={onNavigateToFullSection}
+              />
+            ) : null
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OperationalBriefingSubsection({
+  label,
+  section,
+  showSeverity,
+  onNavigateToFullSection,
+}: {
+  label: string;
+  section: ExtractedSection;
+  showSeverity: boolean;
+  onNavigateToFullSection: (slug: string) => void;
+}) {
+  const slug = headingSlug(section.heading);
+  // First paragraph: when the Immediate Action subsection rendered a
+  // severity callout above, strip the leading severity label from the
+  // body paragraph so we don't duplicate the callout text.
+  const paragraphs = section.firstParagraphs.map((p, i) => {
+    if (i === 0 && showSeverity) {
+      const stripped = extractSeverityLabel(p);
+      return stripped.label ? stripped.rest : p;
+    }
+    return p;
+  });
+
+  return (
+    <section style={{ marginTop: 14 }}>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: "var(--text-2)",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      {paragraphs.map((p, i) => (
+        <p
+          key={i}
+          style={{
+            fontSize: 13.5,
+            lineHeight: 1.65,
+            color: "var(--text)",
+            margin: i === 0 ? "0 0 8px" : "0 0 8px",
+          }}
+        >
+          {/* Strip leading bold markdown markers so the paragraph reads
+              as prose — the markdown renderer is in Tier 3, the Tier 2
+              preview is plain text. */}
+          {stripLightMarkdown(p)}
+        </p>
+      ))}
+      <button
+        type="button"
+        onClick={() => onNavigateToFullSection(slug)}
+        style={{
+          background: "transparent",
+          border: 0,
+          padding: 0,
+          fontFamily: "inherit",
+          fontSize: 12,
+          fontWeight: 600,
+          color: "var(--accent)",
+          cursor: "pointer",
+          letterSpacing: "0.02em",
+        }}
+      >
+        Read full {label.toLowerCase()} in regulatory analysis →
+      </button>
+    </section>
+  );
+}
+
+function SeverityCallout({
+  label,
+  text,
+}: {
+  label: SeverityLabel;
+  text: string;
+}) {
+  const tone = SEVERITY_LABEL_TONE[label];
+  return (
+    <div
+      role="note"
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        background: tone.bg,
+        border: `1px solid ${tone.bd}`,
+        borderLeft: `4px solid ${tone.color}`,
+        borderRadius: "var(--r-sm)",
+        padding: "10px 14px",
+        marginBottom: 4,
+      }}
+    >
+      <AlertTriangle
+        size={16}
+        style={{ color: tone.color, flexShrink: 0, marginTop: 2 }}
+        aria-hidden
+      />
+      <div style={{ flex: 1 }}>
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: tone.color,
+            marginBottom: 4,
+          }}
+        >
+          {label}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            lineHeight: 1.55,
+            color: "var(--text)",
+          }}
+        >
+          {stripLightMarkdown(text)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Tier 3 wrapper — renders the IntelligenceBrief markdown and, when a
+ * Tier 2 deep-link queues a section anchor, scrolls to the matching
+ * heading id once the markdown has rendered.
+ *
+ * IntelligenceBrief composes heading ids as `${briefId}-${slug}` (its
+ * briefId is a per-render useId() value). We don't have access to that
+ * briefId here, so we resolve the actual element by querying the
+ * intelligence-brief root for an element whose id ends with `-${slug}`. */
+function FullTextPanel({
+  markdown,
+  pendingAnchorSlug,
+  onAnchorConsumed,
+}: {
+  markdown: string;
+  pendingAnchorSlug: string | null;
+  onAnchorConsumed: () => void;
+}) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!pendingAnchorSlug) return;
+    // Defer one frame so the markdown DOM has rendered before we query.
+    const raf = requestAnimationFrame(() => {
+      const root = rootRef.current;
+      if (!root) return;
+      // IntelligenceBrief composes heading ids as `${briefId}-${slug}`;
+      // the briefId is a per-render useId() value we don't have access
+      // to here, so we match by id-suffix.
+      const target = root.querySelector(
+        `[id$="-${cssEscape(pendingAnchorSlug)}"]`
+      ) as HTMLElement | null;
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Brief flash-highlight to anchor the eye on arrival.
+        const prev = target.style.backgroundColor;
+        target.style.transition = "background-color 600ms ease";
+        target.style.backgroundColor = "var(--accent-bg)";
+        window.setTimeout(() => {
+          target.style.backgroundColor = prev;
+        }, 1200);
+      }
+      onAnchorConsumed();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [pendingAnchorSlug, onAnchorConsumed]);
+
+  return (
+    <div ref={rootRef}>
+      <IntelligenceBrief markdown={markdown} />
+    </div>
+  );
+}
+
+/** Tiny CSS.escape() shim. CSS.escape is widely supported but not in
+ * older test runtimes — we fall back to simple alnum/hyphen escaping
+ * because headingSlug already produces alnum/hyphen strings. */
+function cssEscape(s: string): string {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(s);
+  }
+  return s.replace(/[^a-zA-Z0-9-_]/g, (ch) => `\\${ch}`);
+}
+
+/** Strip light markdown markers (bold/italic/inline-code) for the Tier 2
+ * plain-text preview. We don't run a full markdown parser here — Tier 3
+ * is where ReactMarkdown does the real rendering. */
+function stripLightMarkdown(s: string): string {
+  if (!s) return s;
+  return s
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/_([^_]+)_/g, "$1");
+}
+
+/** Pull the first sentence out of a paragraph. Used for the severity
+ * callout body so we don't dump the entire first paragraph into the
+ * elevated callout — that paragraph also renders below as the first
+ * paragraph of the Immediate Action subsection. */
+function firstSentence(text: string): string {
+  if (!text) return text;
+  const m = /^([\s\S]+?[.!?])(\s|$)/.exec(text);
+  return m ? m[1] : text;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
