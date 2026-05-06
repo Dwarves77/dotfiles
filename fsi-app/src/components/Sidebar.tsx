@@ -35,6 +35,27 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+// Routes whose server components run Supabase queries on render. Auto-
+// prefetch on a hover-sweep across the sidebar can fan out 6-8 parallel
+// RSC renders, each firing 3-15 PostgREST round-trips. We disable
+// prefetch on these data-heavy targets to keep nav-hover from prewarming
+// every workspace surface at once. Click latency is preserved by Next's
+// in-flight RSC dedupe and by the pages' own server-render speed.
+//
+// Left at default auto-prefetch (cheap targets):
+//   - /profile  (not investigated as data-heavy)
+//   - /settings (ISR via `export const revalidate = 60`)
+const NO_PREFETCH_HREFS = new Set<string>([
+  "/",
+  "/regulations",
+  "/market",
+  "/research",
+  "/operations",
+  "/map",
+  "/admin",
+  "/community",
+]);
+
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -91,6 +112,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
               onClick={() => setMobileOpen(false)}
               title={dotTitle}
               className={cn(
@@ -135,6 +157,7 @@ export function Sidebar() {
       <div className="px-2 py-2 border-t border-b" style={{ borderColor: "var(--color-border)" }}>
         <Link
           href="/community"
+          prefetch={false}
           onClick={() => setMobileOpen(false)}
           className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",

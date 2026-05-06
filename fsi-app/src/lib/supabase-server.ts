@@ -363,9 +363,19 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 }
 
 // ── Workspace Intelligence Fetch ────────────────────────────
-// Uses get_workspace_intelligence() to get items with workspace overrides
+// Uses get_workspace_intelligence() (full) or get_workspace_intelligence_slim()
+// (list-view) to get items with workspace overrides applied.
+//
+// `slim=true` invokes the migration-047 sibling RPC that omits full_brief,
+// operational_impact, open_questions, reasoning — fields no list surface
+// renders. Saves ~3.19 MB / 184 rows on the wire (full_brief alone). Used
+// by fetchResourcesOnly / fetchMapData. The full path is retained for the
+// Dashboard home, which still consumes those fields.
 
-async function fetchWorkspaceResources(orgId: string): Promise<{
+async function fetchWorkspaceResources(
+  orgId: string,
+  options: { slim?: boolean } = {}
+): Promise<{
   active: Resource[];
   archived: Resource[];
   uuidToUiId: Map<string, string>;
@@ -375,7 +385,10 @@ async function fetchWorkspaceResources(orgId: string): Promise<{
   // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
   // No legacy `resources` fallback after A.5.b — if the RPC returns empty,
   // fetchDashboardData's seed fallback covers the misconfiguration case.
-  const { data: items, error } = await supabase.rpc("get_workspace_intelligence", { p_org_id: orgId });
+  const rpcName = options.slim
+    ? "get_workspace_intelligence_slim"
+    : "get_workspace_intelligence";
+  const { data: items, error } = await supabase.rpc(rpcName, { p_org_id: orgId });
 
   if (error || !items?.length) {
     return { active: [], archived: [], uuidToUiId: new Map() };
@@ -424,6 +437,9 @@ async function fetchWorkspaceResources(orgId: string): Promise<{
       whatIsIt: row.what_is_it || "",
       whyMatters: row.why_matters || "",
       keyData: row.key_data || [],
+      // full_brief is only present on the full RPC. The slim RPC drops the
+      // column; row.full_brief is undefined and Resource.fullBrief stays
+      // undefined — list surfaces never read it.
       fullBrief: row.full_brief || undefined,
       domain: row.domain || 1,
       timeline: (timelines || []).map((t: any) => ({
@@ -706,7 +722,9 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
   if (!isSupabaseConfigured() || !orgId) return seedFallback;
 
   try {
-    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId);
+    // Slim RPC — drops full_brief/operational_impact/open_questions/reasoning
+    // from the wire. None are rendered by /regulations, /operations, /market.
+    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { slim: true });
     if (!active.length) return seedFallback;
 
     const supabase = getSupabase();
@@ -762,7 +780,8 @@ export async function fetchMapData(orgId: string | null): Promise<{
   try {
     const [{ active, archived }, changelog, disputes, xrefPairs, supersessions] = await withTimeout(
       Promise.all([
-        fetchWorkspaceResources(orgId),
+        // Slim RPC — /map renders pins/lines, never full_brief.
+        fetchWorkspaceResources(orgId, { slim: true }),
         fetchChangelog(),
         fetchDisputes(),
         fetchXrefPairs(),
