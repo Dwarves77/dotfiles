@@ -50,9 +50,14 @@ export default async function AdminPage() {
       .select(
         "id, org_id, user_id, role, created_at, user:user_profiles(name, headshot_url)"
       ),
+    // Slim staged_updates select — drop full_brief (~17KB/row) and the
+    // proposed_changes JSONB envelope columns the admin panel doesn't
+    // render. Was `select("*")` shipping every column on every admin page
+    // load. AdminDashboard renders id, update_type, created_at, reason,
+    // and proposed_changes (JSONB — kept; the panel drills into it).
     supabase
       .from("staged_updates")
-      .select("*")
+      .select("id, update_type, created_at, reason, proposed_changes, status")
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(100),

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { APP_DATA_TAG } from "@/lib/data";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -145,6 +147,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: rejectError.message }, { status: 500 });
       }
 
+      // Invalidate the workspace data cache so admins see the rejected
+      // row removed from the queue immediately, not after the 60s TTL.
+      revalidateTag(APP_DATA_TAG, "max");
+
       return NextResponse.json(
         { success: true, action, id },
         { headers: rateLimitHeaders(auth.userId) }
@@ -198,6 +204,11 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+
+      // Invalidate the workspace data cache — the new/updated
+      // intelligence_item should appear on /, /regulations, /map etc.
+      // immediately, not after the 60s TTL.
+      revalidateTag(APP_DATA_TAG, "max");
 
       return NextResponse.json(
         {

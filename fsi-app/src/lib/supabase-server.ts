@@ -125,9 +125,13 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
 
 async function fetchXrefPairs(): Promise<[string, string][]> {
   const supabase = getSupabase();
+  // .limit(500) defensively. Currently ~50 pairs; bounds the read as the
+  // table grows so a runaway link-detection job can't blow up the dashboard
+  // data path.
   const { data: rows } = await supabase
     .from("item_cross_references")
-    .select("source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)");
+    .select("source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)")
+    .limit(500);
 
   const pairs: [string, string][] = [];
   for (const row of rows || []) {
@@ -140,10 +144,13 @@ async function fetchXrefPairs(): Promise<[string, string][]> {
 
 async function fetchSupersessions(): Promise<Supersession[]> {
   const supabase = getSupabase();
+  // .limit(500) defensively, ordered most-recent-first so the first 500
+  // are the supersessions the UI cares about.
   const { data: rows } = await supabase
     .from("item_supersessions")
     .select("supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)")
-    .order("supersession_date", { ascending: false });
+    .order("supersession_date", { ascending: false })
+    .limit(500);
 
   const out: Supersession[] = [];
   for (const row of rows || []) {
@@ -598,34 +605,24 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       return seedFallback;
     }
 
-    // Fetch synopses (paginated — PostgREST caps at 1000 per request), changes, and sector names
+    // Fetch changes + sector names + overrides (no synopses).
+    // intelligence_summaries is shelved per CLAUDE.md sector-activation
+    // note (the 2,325 rows are pre-Phase-B.2.5 contract output, kept but
+    // unrendered). The dashboard data path used to do 1-3 paginated reads
+    // of this table on every request and feed the result to a store
+    // nothing renders — pure waste. Skipping it removes those round-trips
+    // and ~500KB of wire on every dashboard render. SectorSynopsisView
+    // renders against full_brief, not synopses, per the sector-activation
+    // shelving decision; that path is unaffected.
     const supabase = getSupabase();
+    const allSynopses: Array<{
+      item_id: string;
+      sector: string;
+      summary: string;
+      urgency_score: number | null;
+    }> = [];
 
-    async function fetchAllSynopses() {
-      const allSynopses: any[] = [];
-      let from = 0;
-      const batchSize = 1000;
-
-      while (true) {
-        const { data, error } = await supabase
-          .from("intelligence_summaries")
-          .select("item_id, sector, summary, urgency_score")
-          .range(from, from + batchSize - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-
-        allSynopses.push(...data);
-
-        if (data.length < batchSize) break;
-        from += batchSize;
-      }
-
-      return allSynopses;
-    }
-
-    const [allSynopses, changesResult, sectorsResult, overridesResult] = await Promise.all([
-      fetchAllSynopses(),
+    const [changesResult, sectorsResult, overridesResult] = await Promise.all([
       supabase
         .from("intelligence_changes")
         .select("item_id, change_type, change_severity, change_summary")
@@ -832,6 +829,54 @@ export async function fetchMapData(orgId: string | null): Promise<{
   }
 }
 
+/**
+ * Slim variant for the /settings surface: resources + archived +
+ * supersessions only. SettingsPage consumes only these (sector picker,
+ * archive viewer, supersession history); everything else getAppData
+ * returned was dead weight here.
+ *
+ * Cost: ~3 queries (workspace RPC + supersessions + timelines via the
+ * RPC's internal JOIN). Compared to ~14 for fetchDashboardData.
+ */
+export async function fetchSettingsData(orgId: string | null): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  supersessions: Supersession[];
+}> {
+  const seedFallback = {
+    resources: seedResources,
+    archived: seedArchived,
+    supersessions: seedSupersessions,
+  };
+
+  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+
+  try {
+    const [{ active, archived }, supersessions] = await withTimeout(
+      Promise.all([
+        // Slim RPC — settings reads names/priorities/dates, not full_brief.
+        fetchWorkspaceResources(orgId, { slim: true }),
+        fetchSupersessions(),
+      ]),
+      8000,
+      [
+        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
+        seedSupersessions,
+      ] as [
+        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
+        typeof seedSupersessions,
+      ]
+    );
+
+    if (!active.length) return seedFallback;
+
+    return { resources: active, archived, supersessions };
+  } catch (e) {
+    console.error("fetchSettingsData failed, using seed fallback:", e);
+    return seedFallback;
+  }
+}
+
 // ── Single Item Fetch (for /regulations/[id] detail page) ────────
 /**
  * Fetch a single intelligence_item by its UI-side id (legacy_id || uuid).
@@ -987,22 +1032,32 @@ export async function fetchIntelligenceItem(
       };
     }
 
-    // Cross-references — fetch both directions
-    const { data: xrefOut } = await supabase
+    // Cross-references — single query covering both directions via OR.
+    // Previously this fired two sequential SELECTs for xrefOut + xrefIn;
+    // PostgREST's .or() handles the union in one round-trip.
+    const { data: xrefRows } = await supabase
       .from("item_cross_references")
-      .select("target:intelligence_items!target_item_id(id, legacy_id)")
-      .eq("source_item_id", row.id);
-    const { data: xrefIn } = await supabase
-      .from("item_cross_references")
-      .select("source:intelligence_items!source_item_id(id, legacy_id)")
-      .eq("target_item_id", row.id);
+      .select(
+        "source_item_id, target_item_id, source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)"
+      )
+      .or(`source_item_id.eq.${row.id},target_item_id.eq.${row.id}`);
 
-    const xrefIds = (xrefOut || [])
-      .map((r: any) => uiId(r.target))
-      .filter(Boolean) as string[];
-    const refByIds = (xrefIn || [])
-      .map((r: any) => uiId(r.source))
-      .filter(Boolean) as string[];
+    const xrefIds: string[] = [];
+    const refByIds: string[] = [];
+    for (const r of (xrefRows || []) as Array<{
+      source_item_id: string;
+      target_item_id: string;
+      source: EmbeddedItem | EmbeddedItem[] | null;
+      target: EmbeddedItem | EmbeddedItem[] | null;
+    }>) {
+      if (r.source_item_id === row.id) {
+        const t = uiId(r.target);
+        if (t) xrefIds.push(t);
+      } else if (r.target_item_id === row.id) {
+        const s = uiId(r.source);
+        if (s) refByIds.push(s);
+      }
+    }
 
     // Supersessions involving this item
     const { data: supRows } = await supabase
