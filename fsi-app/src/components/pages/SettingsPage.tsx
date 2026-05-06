@@ -9,16 +9,25 @@ import { ArchiveViewer } from "@/components/settings/ArchiveViewer";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
 
 // ───────────────────────────────────────────────────────────────────────────
-// SettingsPage (Phase C)
-// Tabbed settings shell. Tabs (per design preview + Phase C addition):
-//   General · Dashboard · Exports · Data & supersessions · Archive · Notifications
+// SettingsPage (Phase C, PR-D IA refactor 2026-05-06)
+// Tabbed settings shell. Tabs (post-refactor, per design intent —
+// dashboard-v3.html and visual-reconciliation §3.10):
+//   General · Dashboard · Exports · Data & supersessions · Archive
 //
-// Phase C is pragmatic about splitting the existing monolithic
-// DashboardSettings — General/Dashboard/Exports all live inside the existing
-// component as sections. Each tab below renders the part that maps to it. We
-// scope the current full DashboardSettings to its own card on the General
-// tab to preserve existing behavior, while the Notifications tab is brand
-// new and powered by NotificationPreferences.
+// PR-D moved Notifications out of its own tab into a section inside
+// the General tab — the design preview groups Notifications + briefing
+// schedule under General. NotificationPreferences is the same component
+// it was before; it now renders as a section within the General panel
+// rather than under its own tab.
+//
+// Backward compat: settings#notifications hash now resolves to
+// "general" (with NotificationPreferences in-frame) rather than 404'ing
+// to an unknown tab. The hash-to-tab mapping below treats the legacy
+// notifications hash as an alias for general.
+//
+// Phase C remains pragmatic about splitting the monolithic
+// DashboardSettings — General/Dashboard/Exports all render the existing
+// component as sections. Each tab below renders the part that maps to it.
 // ───────────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -33,8 +42,7 @@ type TabKey =
   | "dashboard"
   | "exports"
   | "data"
-  | "archive"
-  | "notifications";
+  | "archive";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "general", label: "General" },
@@ -42,8 +50,14 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "exports", label: "Exports" },
   { key: "data", label: "Data & supersessions" },
   { key: "archive", label: "Archive" },
-  { key: "notifications", label: "Notifications" },
 ];
+
+// Legacy hash aliases: post-PR-D, #notifications resolves to General
+// (where the NotificationPreferences section now lives) rather than
+// 404'ing the user.
+const LEGACY_HASH_ALIASES: Record<string, TabKey> = {
+  notifications: "general",
+};
 
 export function SettingsPage({
   initialResources,
@@ -51,11 +65,14 @@ export function SettingsPage({
   supersessions,
   userId,
 }: Props) {
-  // Pick initial tab from URL hash if present (settings#notifications etc.)
+  // Pick initial tab from URL hash if present. Legacy aliases (e.g.
+  // #notifications) resolve to their post-PR-D parent tab (General).
   const initialTab: TabKey = useMemo(() => {
     if (typeof window === "undefined") return "general";
-    const h = window.location.hash.replace(/^#/, "") as TabKey;
-    return TABS.some((t) => t.key === h) ? h : "general";
+    const h = window.location.hash.replace(/^#/, "");
+    if (TABS.some((t) => t.key === h)) return h as TabKey;
+    if (h in LEGACY_HASH_ALIASES) return LEGACY_HASH_ALIASES[h];
+    return "general";
   }, []);
   const [tab, setTab] = useState<TabKey>(initialTab);
 
@@ -95,7 +112,7 @@ export function SettingsPage({
           className="text-sm mt-1"
           style={{ color: "var(--color-text-secondary)" }}
         >
-          General · dashboard · exports · data · archive · notifications
+          General · dashboard · exports · data · archive
         </p>
 
         {/* Tabs */}
@@ -125,9 +142,29 @@ export function SettingsPage({
 
         {/* Panels */}
         {tab === "general" && (
-          <Card>
-            <DashboardSettings />
-          </Card>
+          <div className="space-y-5">
+            <Card>
+              <DashboardSettings />
+            </Card>
+            {/* PR-D IA refactor: Notifications relocated from a
+                standalone tab into a General section. The component
+                contract (NotificationPreferences) is unchanged — it
+                still loads/saves via the same /api/notifications path
+                and takes the same userId prop. */}
+            <Card
+              title="Notifications"
+              meta="In-app channel only in Phase C · email + push ship in Phase D"
+            >
+              <p
+                className="text-sm mb-4"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                Choose what gets your attention. We&apos;re conservative by
+                default — higher-volume notifications are off until you opt in.
+              </p>
+              <NotificationPreferences userId={userId} />
+            </Card>
+          </div>
         )}
 
         {tab === "dashboard" && (
@@ -183,22 +220,6 @@ export function SettingsPage({
             } · still recoverable`}
           >
             <ArchiveViewer />
-          </Card>
-        )}
-
-        {tab === "notifications" && (
-          <Card
-            title="Notifications"
-            meta="In-app channel only in Phase C · email + push ship in Phase D"
-          >
-            <p
-              className="text-sm mb-4"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Choose what gets your attention. We&apos;re conservative by
-              default — higher-volume notifications are off until you opt in.
-            </p>
-            <NotificationPreferences userId={userId} />
           </Card>
         )}
       </div>

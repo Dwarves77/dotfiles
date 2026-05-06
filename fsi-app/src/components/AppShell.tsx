@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { AskAssistant } from "@/components/AskAssistant";
+import { BackToTop } from "@/components/BackToTop";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const NO_SIDEBAR_ROUTES = ["/login", "/auth"];
@@ -39,6 +40,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </footer>
       </div>
       {user && <AskAssistant />}
+      {/* PR-D F8: jump-to-top FAB. Component already existed; PR-D
+          mounts it in the shell so every authenticated surface gets
+          it after 400px scroll. Self-gates via internal scrollY listener. */}
+      <BackToTop />
     </div>
   );
 }
