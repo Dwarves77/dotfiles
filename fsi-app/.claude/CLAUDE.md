@@ -27,6 +27,26 @@ The cost of skipping this discipline has been logged: PR-A1's investigation prev
 
 Reference for the pattern: `fsi-app/scripts/pr-a1-investigate.mjs` (read-only investigation), `fsi-app/scripts/pr-a1-execute.mjs` (per-step authorized writes with inline verification), `docs/pr-a1-investigation-2026-05-06.json` and `docs/pr-a1-execute-log.json` (the durable artifacts each phase produced).
 
+## Code-vs-data state separation (in force from 2026-05-06)
+
+Code state and data state are separate stores with separate change mechanisms.
+
+- **Code changes** land via PR merge to master, then deploy to Vercel.
+- **Data changes** land via writes scripts executed with service-role privileges against Supabase. **Data changes are durable on script execution, not on PR merge.**
+
+The PR captures audit trail and governance for the writes (scripts, verification logs, rationale, source citations). The data itself lives in the database regardless of PR merge state.
+
+Rollback implications:
+- Code reverts (`git revert` + redeploy) do NOT undo data layer effects.
+- Data rollback requires a separate writes script that explicitly reverses prior changes, executed with the same service-role privileges and the same verification discipline.
+- A closed-without-merge PR for a writes script still leaves the data changes durable. The PR was the audit trail; the data is the effect.
+
+This separation is why writes scripts in `fsi-app/scripts/` live in the repo even though they're one-shot tools. They're the audit record of every data layer change, retrievable for forensics or rollback construction.
+
+Worked example: PR-A1 (PR #31). The writes script ran during the investigate-execute cycle and updated 4 California intelligence_items, 2 California sources, and 2 sub-national retags (l7, NYC LL97). These changes are live in production right now, regardless of PR #31's merge state. PR #31 commits the scripts, JSON logs, and CLAUDE.md update; it does not commit the data, which already exists.
+
+Implication for smoke testing: any check of the form "visit `/map`, confirm California shows 4 items" should pass _right now_, before any merge of PR #31. If it doesn't, that surfaces a surface-layer consumption bug, not a data layer issue.
+
 ## Tech Stack
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
 - Supabase (PostgreSQL) — live; 25 migrations applied; data model documented in `supabase/migrations/`.
