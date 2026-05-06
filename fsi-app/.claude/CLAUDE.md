@@ -11,6 +11,42 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 - Source trust: 7-tier hierarchy, trust scoring (accuracy 40% / timeliness 20% / reliability 20% / citation 20%)
 - Promotion requires ALL criteria met + human review. Demotion triggered by ANY single condition.
 
+## Dispatch Discipline: Verification Before Authorization (in force from 2026-05-06)
+
+**Any dispatch that includes a downstream effect — database write, agent run, materialization, surface migration, deploy, source-of-truth content publication — must define the verification check inline before the dispatch is authorized.** The dispatch defines what "I did X" means and how to confirm X actually happened. No dispatch ships without this contract.
+
+The PR-A1 California test pattern (commit landing in `arch/pr-a1-california-test-pattern`) is the canonical example: a read-only investigation phase ran first and surfaced that ~80% of the dispatched writes were already done, were duplicates, or were wrong on their premises. The investigation produced six explicit decisions for Jason to authorize before any write touched the database. Each authorized write then ran with its own per-step read-back verification check; if any check had failed, the script would have halted before the next step.
+
+The shape every dispatch with a downstream effect must have:
+1. **Inline verification check.** "After step N, query Y. The dispatch is verified if Y returns Z. Halt and surface if it doesn't."
+2. **Read-only investigation first when state is uncertain.** If the dispatch's premises are not provable from the current branch state alone, the first deliverable is a read-only investigation report. Writes wait on Jason's authorization based on what investigation reveals.
+3. **Per-step verification, not batch.** Each downstream effect verifies its own outcome before the next runs. Failure halts; failure does not silently roll forward.
+4. **Honest divergence reporting.** When investigation findings contradict dispatch premises, surface the divergence as findings, not as in-flight work to overrule. Jason decides whether to revise scope or proceed.
+
+The cost of skipping this discipline has been logged: PR-A1's investigation prevented a duplicate CARB source row, an unnecessary update to the deprecated `jurisdictions` column, and a search for a staged_updates drift remediation that didn't exist. Across two prior sessions before this rule landed, two perf waves shipped speculative changes against unverified premises; one regressed (the code-split wave, +1.4 kB per route).
+
+Reference for the pattern: `fsi-app/scripts/pr-a1-investigate.mjs` (read-only investigation), `fsi-app/scripts/pr-a1-execute.mjs` (per-step authorized writes with inline verification), `docs/pr-a1-investigation-2026-05-06.json` and `docs/pr-a1-execute-log.json` (the durable artifacts each phase produced).
+
+## Code-vs-data state separation (in force from 2026-05-06)
+
+Code state and data state are separate stores with separate change mechanisms.
+
+- **Code changes** land via PR merge to master, then deploy to Vercel.
+- **Data changes** land via writes scripts executed with service-role privileges against Supabase. **Data changes are durable on script execution, not on PR merge.**
+
+The PR captures audit trail and governance for the writes (scripts, verification logs, rationale, source citations). The data itself lives in the database regardless of PR merge state.
+
+Rollback implications:
+- Code reverts (`git revert` + redeploy) do NOT undo data layer effects.
+- Data rollback requires a separate writes script that explicitly reverses prior changes, executed with the same service-role privileges and the same verification discipline.
+- A closed-without-merge PR for a writes script still leaves the data changes durable. The PR was the audit trail; the data is the effect.
+
+This separation is why writes scripts in `fsi-app/scripts/` live in the repo even though they're one-shot tools. They're the audit record of every data layer change, retrievable for forensics or rollback construction.
+
+Worked example: PR-A1 (PR #31). The writes script ran during the investigate-execute cycle and updated 4 California intelligence_items, 2 California sources, and 2 sub-national retags (l7, NYC LL97). These changes are live in production right now, regardless of PR #31's merge state. PR #31 commits the scripts, JSON logs, and CLAUDE.md update; it does not commit the data, which already exists.
+
+Implication for smoke testing: any check of the form "visit `/map`, confirm California shows 4 items" should pass _right now_, before any merge of PR #31. If it doesn't, that surfaces a surface-layer consumption bug, not a data layer issue.
+
 ## Tech Stack
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
 - Supabase (PostgreSQL) — live; 25 migrations applied; data model documented in `supabase/migrations/`.

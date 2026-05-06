@@ -1,0 +1,364 @@
+{
+  "generatedAt": "2026-05-06T19:03:18.218Z",
+  "step1_schema": {
+    "legacy_jurisdictions_distinct_sample": [
+      "asia",
+      "brazil",
+      "canada",
+      "eu",
+      "global",
+      "india",
+      "japan",
+      "latam",
+      "meaf",
+      "uae",
+      "uk",
+      "us"
+    ],
+    "jurisdiction_iso_distinct_sample": [
+      "AE",
+      "AU",
+      "BR",
+      "CA",
+      "CL",
+      "CN",
+      "EU",
+      "GB",
+      "GLOBAL",
+      "IMO",
+      "IN",
+      "JP",
+      "MX",
+      "SG",
+      "US",
+      "US-CA"
+    ],
+    "schema_unbounded": true,
+    "note": "Both columns are TEXT[]. No schema migration required to accept 'us-ca' or 'US-CA'. Legacy `jurisdictions` uses lowercase free-text; canonical `jurisdiction_iso` uses ISO 3166-1/2 uppercase codes. Sub-national tagging belongs in jurisdiction_iso per migration 033's design."
+  },
+  "step2_california_baseline": {
+    "four_items": [
+      {
+        "legacy_id": "w4_ca_ab1305",
+        "title": "California AB 1305 — Voluntary Carbon Market Disclosures Act",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ],
+        "source_id": null,
+        "priority": "CRITICAL",
+        "item_type": "regulation",
+        "is_archived": false
+      },
+      {
+        "legacy_id": "w4_ca_acf",
+        "title": "California Advanced Clean Fleets Rule (CARB)",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ],
+        "source_id": "45140924-25b6-4d2c-abe5-11a65386acdc",
+        "priority": "LOW",
+        "item_type": "regulation",
+        "is_archived": false
+      },
+      {
+        "legacy_id": "w4_ca_sb253",
+        "title": "California SB 253 — Climate Corporate Data Accountability Act",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ],
+        "source_id": null,
+        "priority": "CRITICAL",
+        "item_type": "regulation",
+        "is_archived": false
+      },
+      {
+        "legacy_id": "w4_ca_sb261",
+        "title": "California SB 261 — Climate-Related Financial Risk Act",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ],
+        "source_id": null,
+        "priority": "CRITICAL",
+        "item_type": "regulation",
+        "is_archived": false
+      }
+    ],
+    "missing_ids": [],
+    "candidates_outside_four": [
+      {
+        "legacy_id": "a6",
+        "title": "ICAO Carbon Calculator",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "priority": "MODERATE"
+      },
+      {
+        "legacy_id": "india-s-national-logistics-policy-carbon-intensity-standards",
+        "title": "India's National Logistics Policy Carbon Intensity Standards",
+        "jurisdictions": [
+          "india"
+        ],
+        "jurisdiction_iso": [
+          "IN"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "l7",
+        "title": "CARB Advanced Clean Trucks",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US"
+        ],
+        "priority": "LOW"
+      },
+      {
+        "legacy_id": "uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+        "title": "UK Streamlined Energy and Carbon Reporting (SECR) Amendment",
+        "jurisdictions": [
+          "uk"
+        ],
+        "jurisdiction_iso": [
+          "GB"
+        ],
+        "priority": "MODERATE"
+      },
+      {
+        "legacy_id": "sg-singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+        "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+        "jurisdictions": [
+          "singapore"
+        ],
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "priority": "MODERATE"
+      },
+      {
+        "legacy_id": "carbon-allowance-price-intelligence",
+        "title": "Carbon Allowance Price Intelligence",
+        "jurisdictions": [],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+        "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+        "jurisdictions": [
+          "singapore"
+        ],
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "china-s-national-carbon-market-extension-to-transportation-sector",
+        "title": "China's National Carbon Market Extension to Transportation Sector",
+        "jurisdictions": [
+          "china"
+        ],
+        "jurisdiction_iso": [
+          "CN"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+        "title": "Singapore Maritime Decarbonisation Blueprint Implementation Regulations",
+        "jurisdictions": [
+          "singapore"
+        ],
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "r16",
+        "title": "Carbon Trust",
+        "jurisdictions": [
+          "uk"
+        ],
+        "jurisdiction_iso": [
+          "GB"
+        ],
+        "priority": "LOW"
+      },
+      {
+        "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+        "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "tyndall-centre-for-climate-research-transport-decarbonisation",
+        "title": "Tyndall Centre for Climate Research — Transport Decarbonisation",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "priority": "LOW"
+      },
+      {
+        "legacy_id": "o4",
+        "title": "CII (Carbon Intensity Indicator)",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "marine-fuel-decarbonisation-pathways",
+        "title": "Marine Fuel Decarbonisation Pathways",
+        "jurisdictions": [],
+        "jurisdiction_iso": [
+          "IMO"
+        ],
+        "priority": "LOW"
+      },
+      {
+        "legacy_id": "r36",
+        "title": "Maritime Carbon Intelligence",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "priority": "LOW"
+      },
+      {
+        "legacy_id": "g6",
+        "title": "UK DfT Decarbonisation",
+        "jurisdictions": [
+          "uk"
+        ],
+        "jurisdiction_iso": [
+          "GB"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "legacy_id": "o11",
+        "title": "Lloyd's Register Decarbonisation Hub",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "priority": "LOW"
+      },
+      {
+        "legacy_id": "t5",
+        "title": "World Bank Carbon Pricing Dashboard",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "priority": "HIGH"
+      }
+    ],
+    "already_us_ca_tagged_count": 4,
+    "already_us_ca_tagged": [
+      {
+        "legacy_id": "w4_ca_sb253",
+        "title": "California SB 253 — Climate Corporate Data Accountability Act",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ]
+      },
+      {
+        "legacy_id": "w4_ca_sb261",
+        "title": "California SB 261 — Climate-Related Financial Risk Act",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ]
+      },
+      {
+        "legacy_id": "w4_ca_ab1305",
+        "title": "California AB 1305 — Voluntary Carbon Market Disclosures Act",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ]
+      },
+      {
+        "legacy_id": "w4_ca_acf",
+        "title": "California Advanced Clean Fleets Rule (CARB)",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US-CA"
+        ]
+      }
+    ]
+  },
+  "step3_source_registry": {
+    "matches": [
+      {
+        "id": "45140924-25b6-4d2c-abe5-11a65386acdc",
+        "name": "California Air Resources Board (CARB)",
+        "url": "https://ww2.arb.ca.gov",
+        "tier": 2,
+        "status": "active",
+        "jurisdictions": [],
+        "jurisdiction_iso": [
+          "US-CA"
+        ],
+        "admin_only": false
+      }
+    ],
+    "count": 1
+  },
+  "step4_staged_updates_audit": {
+    "total_approved": 24,
+    "approved_unmaterialized": 0,
+    "unmaterialized_list": [],
+    "total_materialized": 24,
+    "drift_cases": [],
+    "drift_count": 0
+  }
+}
