@@ -63,20 +63,88 @@ export default async function CommunityBrowsePage({
   // privacy filter is informational; browse is public-only by design.
   const privacyFilter = (params?.privacy || "public").toLowerCase();
 
-  // ── Public groups in the active region ──────────────────────────
-  // RLS allows any authenticated caller to SELECT public groups.
-  const { data: groupsRaw } = await supabase
-    .from("community_groups")
-    .select(
-      `
-        id, name, slug, region, privacy, description,
-        member_count, weekly_post_count, last_active_at
-      `
-    )
-    .eq("privacy", "public")
-    .eq("region", requestedRegion)
-    .order("member_count", { ascending: false });
+  // ── Phase 1: parallel fetch (5 queries) ─────────────────────────
+  // The public-groups query and all four "shell context" reads that
+  // depend only on user.id are independent of each other. Sequential
+  // execution previously cost ~5 round-trips; one Promise.all collapses
+  // it into a single wall-clock window. Five queries stays under the
+  // Supabase per-connection pool ceiling.
+  //
+  // Reads:
+  //   1) groupsRaw       — public groups in the requested region
+  //   2) membershipsRaw  — caller's group_members rows + groups
+  //   3) invitationsRaw  — caller's pending invitations + groups
+  //   4) topicsRaw       — caller's topics + topic_groups
+  //   5) regionRows      — RPC: per-region group counts (public only)
+  const t0Phase1 = Date.now();
+  const [
+    { data: groupsRaw },
+    { data: membershipsRaw },
+    { data: invitationsRaw },
+    { data: topicsRaw },
+    { data: regionRows },
+  ] = await Promise.all([
+    supabase
+      .from("community_groups")
+      .select(
+        `
+          id, name, slug, region, privacy, description,
+          member_count, weekly_post_count, last_active_at
+        `
+      )
+      .eq("privacy", "public")
+      .eq("region", requestedRegion)
+      .order("member_count", { ascending: false }),
+    supabase
+      .from("community_group_members")
+      .select(
+        `
+          group_id,
+          role,
+          starred,
+          muted,
+          joined_at,
+          community_groups (
+            id,
+            name,
+            slug,
+            region,
+            privacy,
+            member_count,
+            weekly_post_count,
+            last_active_at
+          )
+        `
+      )
+      .eq("user_id", user.id),
+    supabase
+      .from("community_group_invitations")
+      .select(
+        `
+          id,
+          group_id,
+          inviter_user_id,
+          status,
+          created_at,
+          community_groups (
+            id, name, slug, region, privacy
+          )
+        `
+      )
+      .eq("invitee_user_id", user.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("community_topics")
+      .select("id, label, community_topic_groups ( group_id )")
+      .eq("owner_user_id", user.id),
+    supabase.rpc("community_region_counts", { p_privacy: "public" }),
+  ]);
+  console.log(
+    `[perf] /community/browse phase1 ${Date.now() - t0Phase1}ms`
+  );
 
+  // ── Reshape public groups ───────────────────────────────────────
   const publicGroups: (CommunityGroupSummary & { description?: string | null })[] =
     (groupsRaw || []).map((g: any) => ({
       id: g.id,
@@ -90,29 +158,73 @@ export default async function CommunityBrowsePage({
       description: g.description ?? null,
     }));
 
-  // ── Caller membership & pending invitation lookups ──────────────
-  // Two bulk queries instead of N+1 per-card lookups.
+  // ── Phase 2: parallel fetch (up to 4 queries) ───────────────────
+  // The two membership-state lookups depend on publicGroups.id[] from
+  // Phase 1, so they sit in a second batch. Profile + orgRow are
+  // independent of Phase 1 too — but we keep them here so each batch
+  // stays small and predictable. All four queries are user.id-scoped
+  // and well under the pool ceiling.
+  //
+  // Reads:
+  //   1) memRows  — caller's memberships filtered to publicGroups.id[]
+  //   2) invRows  — caller's pending invites filtered to publicGroups.id[]
+  //   3) profile  — sidebar footer
+  //   4) orgRow   — sidebar footer (employer)
   const groupIds = publicGroups.map((g) => g.id);
+  const t0Phase2 = Date.now();
+
+  // When there are no public groups in this region we skip the two
+  // groupIds-scoped lookups (an .in("group_id", []) would be wasteful).
+  // profile + orgRow still run so the sidebar footer renders.
+  const memQ =
+    groupIds.length > 0
+      ? supabase
+          .from("community_group_members")
+          .select("group_id")
+          .eq("user_id", user.id)
+          .in("group_id", groupIds)
+      : null;
+  const invQ =
+    groupIds.length > 0
+      ? supabase
+          .from("community_group_invitations")
+          .select("group_id")
+          .eq("invitee_user_id", user.id)
+          .eq("status", "pending")
+          .in("group_id", groupIds)
+      : null;
+
+  const [memRes, invRes, profileRes, orgRes] = await Promise.all([
+    memQ,
+    invQ,
+    supabase
+      .from("user_profiles")
+      .select("name, headshot_url, is_platform_admin")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("org_memberships")
+      .select("organizations(name)")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  console.log(
+    `[perf] /community/browse phase2 ${Date.now() - t0Phase2}ms`
+  );
+
+  const memRows = memRes?.data ?? [];
+  const invRows = invRes?.data ?? [];
+  const profile = profileRes.data;
+  const orgRow = orgRes.data;
 
   const memberGroupIds = new Set<string>();
   const pendingInviteGroupIds = new Set<string>();
-
-  if (groupIds.length > 0) {
-    const [{ data: memRows }, { data: invRows }] = await Promise.all([
-      supabase
-        .from("community_group_members")
-        .select("group_id")
-        .eq("user_id", user.id)
-        .in("group_id", groupIds),
-      supabase
-        .from("community_group_invitations")
-        .select("group_id")
-        .eq("invitee_user_id", user.id)
-        .eq("status", "pending")
-        .in("group_id", groupIds),
-    ]);
-    for (const r of memRows || []) memberGroupIds.add(r.group_id as string);
-    for (const r of invRows || []) pendingInviteGroupIds.add(r.group_id as string);
+  for (const r of memRows as { group_id: string }[]) {
+    memberGroupIds.add(r.group_id);
+  }
+  for (const r of invRows as { group_id: string }[]) {
+    pendingInviteGroupIds.add(r.group_id);
   }
 
   const browseRows: BrowseRow[] = publicGroups.map((g) => ({
@@ -124,30 +236,7 @@ export default async function CommunityBrowsePage({
       : "none",
   }));
 
-  // ── Shell context (mirrors /community page.tsx) ─────────────────
-  const { data: membershipsRaw } = await supabase
-    .from("community_group_members")
-    .select(
-      `
-        group_id,
-        role,
-        starred,
-        muted,
-        joined_at,
-        community_groups (
-          id,
-          name,
-          slug,
-          region,
-          privacy,
-          member_count,
-          weekly_post_count,
-          last_active_at
-        )
-      `
-    )
-    .eq("user_id", user.id);
-
+  // ── Reshape shell-context payloads ──────────────────────────────
   const memberships: CommunityMembership[] = (membershipsRaw || []).flatMap(
     (m: any) => {
       if (!m.community_groups) return [];
@@ -173,24 +262,6 @@ export default async function CommunityBrowsePage({
     }
   );
 
-  const { data: invitationsRaw } = await supabase
-    .from("community_group_invitations")
-    .select(
-      `
-        id,
-        group_id,
-        inviter_user_id,
-        status,
-        created_at,
-        community_groups (
-          id, name, slug, region, privacy
-        )
-      `
-    )
-    .eq("invitee_user_id", user.id)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
   const invitations: CommunityInvitation[] = (invitationsRaw || []).flatMap(
     (inv: any) => {
       if (!inv.community_groups) return [];
@@ -212,11 +283,6 @@ export default async function CommunityBrowsePage({
     }
   );
 
-  const { data: topicsRaw } = await supabase
-    .from("community_topics")
-    .select("id, label, community_topic_groups ( group_id )")
-    .eq("owner_user_id", user.id);
-
   const topics: CommunityTopicSummary[] = (topicsRaw || []).map((t: any) => ({
     id: t.id,
     label: t.label,
@@ -226,30 +292,14 @@ export default async function CommunityBrowsePage({
   }));
 
   // Region counts — single RPC aggregation (migration 042). The browse
-  // surface is public-only, so we pass p_privacy='public' to scope the
-  // counts to the same groups the directory renders.
+  // surface is public-only, so we passed p_privacy='public' above to
+  // scope the counts to the same groups the directory renders.
   const regionCounts: Record<string, number> = {};
   for (const r of REGIONS) regionCounts[r.code] = 0;
-  const { data: regionRows } = await supabase.rpc("community_region_counts", {
-    p_privacy: "public",
-  });
   for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
     regionCounts[row.region] = Number(row.count) || 0;
   }
 
-  // Profile + employer for sidebar footer.
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("name, headshot_url, is_platform_admin")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const { data: orgRow } = await supabase
-    .from("org_memberships")
-    .select("organizations(name)")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
   const employer =
     (orgRow?.organizations as { name?: string } | null)?.name ?? "";
 
