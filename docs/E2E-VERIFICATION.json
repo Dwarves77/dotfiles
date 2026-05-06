@@ -1,0 +1,303 @@
+{
+  "ran_at": "2026-05-06T01:49:11.319Z",
+  "base_url": "http://localhost:3000",
+  "project_ref": "kwrsbpiseruzbfwjpvsp",
+  "admin_user_id": "a0764ff3-bba8-4442-b0a6-65f054796798",
+  "groups": [
+    {
+      "id": "A",
+      "name": "Polish wave fixes (audit verification)",
+      "tests": [
+        {
+          "id": "A1",
+          "name": "UUID slug coverage — every materialized item has legacy_id",
+          "expected": "0",
+          "actual": "0",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "A2",
+          "name": "ACF dedup — orphan ACF UUID deleted",
+          "expected": "0",
+          "actual": "0",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "A3",
+          "name": "r10 archived with reason",
+          "expected": "is_archived=true AND archive_reason is non-null",
+          "actual": "is_archived=true, archive_reason=\"source_url_unverifiable_no_replacement_found\"",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "legacy_id=r10, id=206cada4-5731-43ef-8908-56389645ba0e"
+        },
+        {
+          "id": "A4",
+          "name": "UUID → slug redirect for live item",
+          "expected": "307 → /regulations/w4_ca_sb253",
+          "actual": "200 → (no location)",
+          "pass": false,
+          "skip": false,
+          "verdict": "fail",
+          "details": "Looked up id=42b8bfee-92ea-4cde-bfe9-a25eb7cb49d9 for legacy_id=w4_ca_sb253"
+        },
+        {
+          "id": "A5",
+          "name": "Jurisdiction display shows 'California' on SB 253",
+          "expected": "'California' present, no 'Jurisdiction: United States' label",
+          "actual": "California=true, USmislabel=false",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "Body length 108567"
+        },
+        {
+          "id": "A6",
+          "name": "Priority vocab — 'IMMEDIATE ACTION' editorial label rendered",
+          "expected": "'IMMEDIATE ACTION' present (CRITICAL not in user-visible <span>)",
+          "actual": "editorial=true, raw_critical_span=false",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "Body length 1464269"
+        },
+        {
+          "id": "A7",
+          "name": "Filter chip toggle-to-isolate (browser-only)",
+          "expected": "interactive JS behavior",
+          "actual": "skipped",
+          "pass": false,
+          "skip": true,
+          "verdict": "skip",
+          "details": "Requires browser test (filter chip click handler)."
+        },
+        {
+          "id": "A8",
+          "name": "Sector-match tooltip text present",
+          "expected": "'matching your sector profile' string present",
+          "actual": "present",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "Body length 1463977"
+        },
+        {
+          "id": "A9",
+          "name": "Empty effective-date hidden",
+          "expected": "no '—' placeholder paired with EFFECTIVE label",
+          "actual": "no empty card",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "Tested legacy_id=w4_ca_sb253"
+        },
+        {
+          "id": "A10",
+          "name": "AI Ask bar mounted on dashboard",
+          "expected": "'Ask AI' control text present in DOM",
+          "actual": "absent",
+          "pass": false,
+          "skip": false,
+          "verdict": "fail",
+          "details": "Interactive chat behavior is browser-only; this verifies the component is mounted."
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Block C community features (E2E)",
+      "tests": [
+        {
+          "id": "B1",
+          "name": "Create test community group",
+          "expected": "group + owner row created",
+          "actual": "group_id=b33324e3-791a-40a0-a7f3-b69cfc0d7cec",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "slug=e2e-test-1778032134161, owner=a0764ff3-bba8-4442-b0a6-65f054796798"
+        },
+        {
+          "id": "B2",
+          "name": "POST /api/community/posts — create top-level post",
+          "expected": "201 + post.id present",
+          "actual": "201; post_id=077f9a59-1f01-4cad-a7ca-bc2a10779059",
+          "pass": false,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B3",
+          "name": "GET /api/community/posts — read post back",
+          "expected": "200 + posts[] contains created post",
+          "actual": "200; 1 posts; found=true",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B4",
+          "name": "PATCH /api/community/posts/{id} — edit body",
+          "expected": "200 + body updated to 'Edited test post body'",
+          "actual": "200; readback body=\"Edited test post body\"",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B5",
+          "name": "POST /api/community/posts/{id}/replies — create reply",
+          "expected": "201 + reply.id present",
+          "actual": "201; reply_id=760b53d0-1f4e-47dc-aa5b-fa9495590be7",
+          "pass": false,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B6",
+          "name": "GET /api/community/posts/{id}/replies — list replies",
+          "expected": "200 + replies[] contains created reply",
+          "actual": "200; 1 replies; found=true",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B7",
+          "name": "POST /api/community/posts/{id}/reactions — expected 501",
+          "expected": "501 Not Implemented (documented stub per C5 spec)",
+          "actual": "501",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "error=\"Reactions not yet supported\""
+        },
+        {
+          "id": "B8",
+          "name": "GET /api/community/notifications — list",
+          "expected": "200 + { notifications:[], unread_count:number }",
+          "actual": "200; notifications=0; unread=0",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B9",
+          "name": "GET /api/community/notifications/preferences",
+          "expected": "200 + prefs object",
+          "actual": "200; keys=preferences,channel_status",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B10",
+          "name": "POST /api/community/moderation/reports — file report",
+          "expected": "201/200 + report_id present",
+          "actual": "200; report_id=19f7d75d-c543-4011-a51b-6cf4684bf28e",
+          "pass": false,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B11",
+          "name": "GET /api/community/moderation/reports?status=open — list",
+          "expected": "200 + reports[] contains filed report",
+          "actual": "200; 1 reports; found=true",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B12",
+          "name": "POST /api/community/moderation/reports/{id} — dismiss",
+          "expected": "200 + status flipped to 'dismissed'",
+          "actual": "200; readback status=dismissed",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B13",
+          "name": "POST /api/community/posts/{id}/promote — staged kind",
+          "expected": "201 + promotion_id + staged_update_id; staged row in DB",
+          "actual": "201; promotion_id=851e8d60-7ff9-410e-85a7-bb77a00107e5, staged_id=e2dc44a1-d69e-42ca-9d98-cd3a85156738, db_row=true",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "B14",
+          "name": "Realtime hook (browser-only)",
+          "expected": "subscribe to realtime channel",
+          "actual": "skipped",
+          "pass": false,
+          "skip": true,
+          "verdict": "skip",
+          "details": "Requires browser-based realtime channel test. Hooks themselves are pure module imports verified at compile time."
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Sanity checks on merged work",
+      "tests": [
+        {
+          "id": "C1",
+          "name": "Migration 044 — integrity-flag retune (≤ 5 unresolved)",
+          "expected": "≤ 5 (was 57; should be ~2 post-retune)",
+          "actual": "1",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": ""
+        },
+        {
+          "id": "C2",
+          "name": "Migration 045 + EU inserts — 3 EU items present",
+          "expected": "3",
+          "actual": "3",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "legacy_ids: eu-battery-regulation-2023-1542, eu-hdv-co2-standards-2019-1242, eu-net-zero-industry-act-2024-1735"
+        },
+        {
+          "id": "C3",
+          "name": "Community DB has data — group + post counts",
+          "expected": "any data (informational)",
+          "actual": "groups=1, posts=2",
+          "pass": true,
+          "skip": false,
+          "verdict": "pass",
+          "details": "Counts captured for downstream visibility (no threshold)."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total": 27,
+    "passed": 20,
+    "failed": 5,
+    "skipped": 2,
+    "fail_rate_pct": 18.5
+  }
+}

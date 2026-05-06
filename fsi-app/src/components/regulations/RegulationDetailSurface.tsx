@@ -19,6 +19,9 @@
 import { useState } from "react";
 import { Sparkles, AlertTriangle } from "lucide-react";
 import { TimelineBar } from "@/components/resource/TimelineBar";
+import { ImpactScores } from "@/components/resource/ImpactScores";
+import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
+import { scoreResource } from "@/lib/scoring";
 import {
   TOPIC_COLORS,
   JURISDICTIONS,
@@ -369,14 +372,20 @@ export function RegulationDetailSurface({
         {effective.value && effective.value !== "—" && (
           <Stat label="Effective" value={effective.value} sub={effective.sub} />
         )}
-        <Stat
-          label="Penalty rate"
-          value={r.penaltyRange || "—"}
-          critical
-          sub={r.enforcementBody}
-        />
-        <Stat label="Your exposure" value={yourExposure} sub="Workspace data pending" />
-        <Stat label="Lanes affected" value={lanesAffected} sub="Of active lanes" />
+        {r.penaltyRange && r.penaltyRange !== "—" && (
+          <Stat
+            label="Penalty rate"
+            value={r.penaltyRange}
+            critical
+            sub={r.enforcementBody}
+          />
+        )}
+        {yourExposure && yourExposure !== "—" && (
+          <Stat label="Your exposure" value={yourExposure} sub="Workspace data pending" />
+        )}
+        {lanesAffected && lanesAffected !== "—" && (
+          <Stat label="Lanes affected" value={lanesAffected} sub="Of active lanes" />
+        )}
       </div>
 
       {/* Tabs */}
@@ -466,11 +475,7 @@ export function RegulationDetailSurface({
           {tab === "full" && (
             <BriefSection title="Full text">
               {r.fullBrief ? (
-                <div
-                  style={{ fontSize: 14, lineHeight: 1.7, color: "var(--text)", whiteSpace: "pre-wrap" }}
-                >
-                  {r.fullBrief}
-                </div>
+                <IntelligenceBrief markdown={r.fullBrief} />
               ) : r.url ? (
                 <p style={{ fontSize: 14, lineHeight: 1.7, margin: 0 }}>
                   Full regulatory text is hosted at the source —{" "}
@@ -862,6 +867,19 @@ function SummaryPanel({
           </p>
         </div>
       )}
+
+      {/* Impact assessment — gradient bars */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border-sub)",
+          borderRadius: "var(--r-md)",
+          padding: "16px 20px",
+          marginBottom: 16,
+        }}
+      >
+        <ImpactScores scores={r.impactScores ?? scoreResource(r)} />
+      </div>
 
       {/* What changed */}
       {changelog.length > 0 && (
