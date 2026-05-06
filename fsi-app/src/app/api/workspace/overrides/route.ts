@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
+import { APP_DATA_TAG } from "@/lib/data";
 
 function getServiceClient() {
   return createClient(
@@ -97,6 +99,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Invalidate workspace data cache so the user sees their priority /
+  // archive override applied on the next render — not after the 60s TTL.
+  revalidateTag(APP_DATA_TAG, "max");
+
   return NextResponse.json(
     { override: data },
     { headers: rateLimitHeaders(auth.userId) }
@@ -152,6 +158,9 @@ export async function DELETE(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Invalidate workspace data cache — same reasoning as the POST path.
+  revalidateTag(APP_DATA_TAG, "max");
 
   return NextResponse.json(
     { success: true },

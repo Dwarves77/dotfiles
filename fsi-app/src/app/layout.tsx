@@ -10,6 +10,7 @@ const anton = Anton({
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppShell } from "@/components/AppShell";
+import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
 import "./theme.css";
 import "./globals.css";
 
@@ -26,11 +27,16 @@ export const metadata: Metadata = {
     "Sustainability intelligence platform for international freight forwarding. Monitors regulatory, technology, and market developments across air, road, and ocean transport.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Resolve auth + workspace + sectors server-side (cached per-request via
+  // React.cache). AuthProvider seeds its initial state from these props
+  // and skips the mount-time refetch that previously fired on every page.
+  // Eliminates 2 client round-trips per render.
+  const bootstrap = await resolveServerBootstrap();
   return (
     <html
       lang="en"
@@ -47,7 +53,13 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <AuthProvider>
+        <AuthProvider
+          initialUser={bootstrap.user}
+          initialOrgId={bootstrap.orgId}
+          initialOrgName={bootstrap.orgName}
+          initialRole={bootstrap.role}
+          initialSectors={bootstrap.sectors}
+        >
           <ThemeInitializer />
           <AppShell>{children}</AppShell>
         </AuthProvider>

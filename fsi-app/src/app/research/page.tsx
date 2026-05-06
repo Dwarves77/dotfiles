@@ -1,7 +1,15 @@
 import { ResearchView, type ResearchPipelineItem } from "@/components/research/ResearchView";
 import { createClient } from "@supabase/supabase-js";
 
-export const revalidate = 60;
+// Note: previous `export const revalidate = 60` removed.
+// Per docs/ISR-WRITE-INVESTIGATION.md, /research was the *only* page with
+// a working ISR declaration (no cookie reads in its data path), and it
+// generated ~200K ISR writes over the prior 30 days. Vercel's edge ISR
+// buckets cache entries by the full request envelope (cookies, vary
+// headers), so each distinct session cookie produced its own cache
+// bucket, each requiring its own 60s revalidation regeneration. Pipeline
+// data is not freshness-critical at 60s granularity — pipeline_stage
+// updates are daily-or-slower. Going dynamic is correct here.
 
 /**
  * Fetch a slim view of intelligence_items for the Research surface.
@@ -28,8 +36,9 @@ async function fetchPipelineItems(): Promise<ResearchPipelineItem[]> {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    // TODO(perf): wire a "load more" UI cursor so the initial paint
-    // stays fast on growing pipelines. Today the cap is .limit(150).
+    // Initial paint cap of 100 — keeps wire payload + parse cost light.
+    // TODO(perf): wire a "load more" UI cursor so users can fetch
+    // beyond the first 100 as the pipeline grows.
     const { data, error } = await supabase
       .from("intelligence_items")
       .select(
@@ -37,7 +46,7 @@ async function fetchPipelineItems(): Promise<ResearchPipelineItem[]> {
       )
       .eq("is_archived", false)
       .order("added_date", { ascending: false })
-      .limit(150);
+      .limit(100);
 
     if (error || !data) {
       console.error("research/page fetchPipelineItems failed:", error);
