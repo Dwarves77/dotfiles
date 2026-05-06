@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { CommunityShell } from "@/components/community/CommunityShell";
 import { GroupHeader } from "@/components/community/GroupHeader";
+import { PostList } from "@/components/community/PostList";
 import type {
   CommunityGroupSummary,
   CommunityMembership,
@@ -43,6 +44,7 @@ export default async function GroupDetailPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ region?: string }>;
 }) {
+  const t0 = Date.now();
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
@@ -183,19 +185,15 @@ export default async function GroupDetailPage({
   }));
 
   const regionCounts: Record<string, number> = {};
-  await Promise.all(
-    REGIONS.map(async (r) => {
-      const { count } = await supabase
-        .from("community_groups")
-        .select("id", { count: "exact", head: true })
-        .eq("region", r.code);
-      regionCounts[r.code] = count ?? 0;
-    })
-  );
+  for (const r of REGIONS) regionCounts[r.code] = 0;
+  const { data: regionRows } = await supabase.rpc("community_region_counts");
+  for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
+    regionCounts[row.region] = Number(row.count) || 0;
+  }
 
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("name, headshot_url")
+    .select("name, headshot_url, is_platform_admin")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -210,6 +208,8 @@ export default async function GroupDetailPage({
 
   const sp = await searchParams;
   const initialRegion = sp?.region?.toUpperCase() || group.region;
+
+  console.log(`[perf] /community/${slug} data ${Date.now() - t0}ms`);
 
   const membershipForHeader = myMembership
     ? {
@@ -226,6 +226,7 @@ export default async function GroupDetailPage({
         name: profile?.name ?? user.email?.split("@")[0] ?? "",
         headshotUrl: profile?.headshot_url ?? null,
         employer,
+        isPlatformAdmin: !!profile?.is_platform_admin,
       }}
       memberships={memberships}
       invitations={invitations}
@@ -259,41 +260,15 @@ export default async function GroupDetailPage({
         </section>
       )}
 
-      {/* Feed slot — posts ship in C5 */}
-      <section
-        aria-label="Group posts"
-        style={{
-          background: "var(--color-bg-surface)",
-          border: "1px dashed var(--color-border)",
-          borderRadius: 6,
-          padding: "48px 24px",
-          textAlign: "center",
-        }}
-      >
-        <h3
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 18,
-            fontWeight: 400,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            color: "var(--color-text-primary)",
-            margin: "0 0 8px",
-          }}
-        >
-          Group feed
-        </h3>
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--color-text-secondary)",
-            margin: 0,
-            lineHeight: 1.55,
-          }}
-        >
-          Posts arriving with C5 — check back soon.
-        </p>
-      </section>
+      <PostList
+        groupId={group.id}
+        currentUserId={user.id}
+        isGroupMember={!!myMembership}
+        isGroupAdmin={
+          myMembership?.role === "admin" ||
+          myMembership?.role === "moderator"
+        }
+      />
     </CommunityShell>
   );
 }

@@ -1,0 +1,95 @@
+
+> fsi-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.31:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 1902ms
+[perf] getAppData 1019ms
+[perf] / data 1020ms
+ GET / 200 in 3.4s (compile: 1708ms, proxy.ts: 612ms, render: 1118ms)
+[perf] getAppData 836ms
+[perf] / data 836ms
+ GET / 200 in 1185ms (compile: 8ms, proxy.ts: 304ms, render: 873ms)
+[perf] getResourcesOnly 288ms
+[perf] /regulations data 288ms
+ GET /regulations 200 in 1028ms (compile: 323ms, proxy.ts: 322ms, render: 382ms)
+[perf] getResourcesOnly 303ms
+[perf] /regulations data 303ms
+ GET /regulations 200 in 672ms (compile: 6ms, proxy.ts: 284ms, render: 382ms)
+[perf] getResourcesOnly 351ms
+[perf] /operations data 351ms
+ GET /operations 200 in 952ms (compile: 278ms, proxy.ts: 270ms, render: 405ms)
+[perf] getResourcesOnly 260ms
+[perf] /operations data 260ms
+ GET /operations 200 in 558ms (compile: 6ms, proxy.ts: 254ms, render: 298ms)
+[perf] getAppData 735ms
+[perf] / data 735ms
+ GET / 200 in 1127ms (compile: 6ms, proxy.ts: 343ms, render: 779ms)
+[perf] getAppData 708ms
+[perf] / data 708ms
+ GET / 200 in 1029ms (compile: 4ms, proxy.ts: 272ms, render: 753ms)
+[perf] getAppData 692ms
+[perf] / data 692ms
+ GET / 200 in 999ms (compile: 6ms, proxy.ts: 256ms, render: 737ms)
+[perf] getResourcesOnly 350ms
+[perf] /regulations data 350ms
+ GET /regulations 200 in 712ms (compile: 6ms, proxy.ts: 283ms, render: 423ms)
+[perf] getResourcesOnly 269ms
+[perf] /regulations data 269ms
+ GET /regulations 200 in 596ms (compile: 8ms, proxy.ts: 246ms, render: 342ms)
+[perf] getResourcesOnly 285ms
+[perf] /regulations data 286ms
+ GET /regulations 200 in 663ms (compile: 7ms, proxy.ts: 282ms, render: 375ms)
+[perf] getResourcesOnly 288ms
+[perf] /operations data 288ms
+ GET /operations 200 in 568ms (compile: 4ms, proxy.ts: 235ms, render: 328ms)
+[perf] getResourcesOnly 349ms
+[perf] /operations data 349ms
+ GET /operations 200 in 639ms (compile: 6ms, proxy.ts: 248ms, render: 385ms)
+[perf] getResourcesOnly 291ms
+[perf] /operations data 292ms
+ GET /operations 200 in 670ms (compile: 7ms, proxy.ts: 331ms, render: 332ms)
+[perf] getResourcesOnly 312ms
+[perf] /market data 312ms
+ GET /market 200 in 913ms (compile: 293ms, proxy.ts: 265ms, render: 355ms)
+[perf] getResourcesOnly 288ms
+[perf] /market data 288ms
+ GET /market 200 in 600ms (compile: 4ms, proxy.ts: 272ms, render: 324ms)
+[perf] getResourcesOnly 363ms
+[perf] /market data 363ms
+ GET /market 200 in 665ms (compile: 4ms, proxy.ts: 249ms, render: 412ms)
+[perf] getMapData 592ms
+[perf] /map data 592ms
+ GET /map 200 in 1425ms (compile: 533ms, proxy.ts: 241ms, render: 651ms)
+[perf] getMapData 255ms
+[perf] /map data 255ms
+ GET /map 200 in 555ms (compile: 6ms, proxy.ts: 258ms, render: 291ms)
+[perf] getMapData 269ms
+[perf] /map data 270ms
+ GET /map 200 in 695ms (compile: 7ms, proxy.ts: 383ms, render: 305ms)
+[perf] /research data 209ms
+ GET /research 200 in 794ms (compile: 220ms, proxy.ts: 280ms, render: 293ms)
+[perf] /research data 232ms
+ GET /research 200 in 598ms (compile: 6ms, proxy.ts: 277ms, render: 315ms)
+[perf] /research data 230ms
+ GET /research 200 in 609ms (compile: 4ms, proxy.ts: 299ms, render: 307ms)
+ GET /admin 200 in 879ms (compile: 303ms, proxy.ts: 270ms, render: 305ms)
+ GET /admin 200 in 606ms (compile: 6ms, proxy.ts: 328ms, render: 272ms)
+ GET /admin 200 in 573ms (compile: 4ms, proxy.ts: 268ms, render: 301ms)
+[perf] /community data 1106ms
+ GET /community 200 in 1657ms (compile: 271ms, proxy.ts: 253ms, render: 1133ms)
+[perf] /community data 1227ms
+ GET /community 200 in 1573ms (compile: 4ms, proxy.ts: 325ms, render: 1243ms)
+[perf] /community data 1002ms
+ GET /community 200 in 1292ms (compile: 6ms, proxy.ts: 268ms, render: 1018ms)
+[perf] /community/browse data 1290ms
+ GET /community/browse 200 in 1805ms (compile: 237ms, proxy.ts: 249ms, render: 1319ms)
+[perf] /community/browse data 1153ms
+ GET /community/browse 200 in 1432ms (compile: 6ms, proxy.ts: 257ms, render: 1169ms)
+[perf] /community/browse data 1203ms
+ GET /community/browse 200 in 1516ms (compile: 5ms, proxy.ts: 291ms, render: 1220ms)

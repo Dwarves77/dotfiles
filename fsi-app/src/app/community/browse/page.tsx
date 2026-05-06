@@ -51,6 +51,7 @@ export default async function CommunityBrowsePage({
 }: {
   searchParams: Promise<{ region?: string; privacy?: string }>;
 }) {
+  const t0 = Date.now();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -224,23 +225,22 @@ export default async function CommunityBrowsePage({
       : 0,
   }));
 
-  // Region counts — same approach as /community: one head-count per region.
+  // Region counts — single RPC aggregation (migration 042). The browse
+  // surface is public-only, so we pass p_privacy='public' to scope the
+  // counts to the same groups the directory renders.
   const regionCounts: Record<string, number> = {};
-  await Promise.all(
-    REGIONS.map(async (r) => {
-      const { count } = await supabase
-        .from("community_groups")
-        .select("id", { count: "exact", head: true })
-        .eq("region", r.code)
-        .eq("privacy", "public");
-      regionCounts[r.code] = count ?? 0;
-    })
-  );
+  for (const r of REGIONS) regionCounts[r.code] = 0;
+  const { data: regionRows } = await supabase.rpc("community_region_counts", {
+    p_privacy: "public",
+  });
+  for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
+    regionCounts[row.region] = Number(row.count) || 0;
+  }
 
   // Profile + employer for sidebar footer.
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("name, headshot_url")
+    .select("name, headshot_url, is_platform_admin")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -256,6 +256,8 @@ export default async function CommunityBrowsePage({
   const activeRegionLabel =
     REGIONS.find((r) => r.code === requestedRegion)?.label ?? requestedRegion;
 
+  console.log(`[perf] /community/browse data ${Date.now() - t0}ms`);
+
   return (
     <CommunityShell
       currentUser={{
@@ -264,6 +266,7 @@ export default async function CommunityBrowsePage({
         name: profile?.name ?? user.email?.split("@")[0] ?? "",
         headshotUrl: profile?.headshot_url ?? null,
         employer,
+        isPlatformAdmin: !!profile?.is_platform_admin,
       }}
       memberships={memberships}
       invitations={invitations}

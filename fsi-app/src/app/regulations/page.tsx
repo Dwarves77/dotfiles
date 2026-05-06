@@ -2,7 +2,9 @@
  * Regulations index (`/regulations`) — server component.
  *
  * Replaces the previous Dashboard.tsx delegation (case "regulations").
- * Fetches data via getAppData() and composes:
+ * Fetches data via getResourcesOnly() (slim fetcher — only resources +
+ * overrides, no changelog/disputes/xrefs/supersessions/synopses) and
+ * composes:
  *   - <EditorialMasthead> with title="Regulations", meta="<n> tracked · <j>
  *     jurisdictions · last sync ~"
  *   - <DashboardHero> 4-up tile strip in the masthead's belowSlot
@@ -12,15 +14,15 @@
  * Layout matches design_handoff_2026-04/preview/regulations.html.
  */
 
-import { getAppData } from "@/lib/data";
+import { getResourcesOnly } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
 
-export const revalidate = 60;
-
 export default async function RegulationsPage() {
-  const data = await getAppData();
+  const t0 = Date.now();
+  const data = await getResourcesOnly();
+  console.log(`[perf] /regulations data ${Date.now() - t0}ms`);
 
   const jurisdictionsCount = new Set(
     data.resources.map((r) => r.jurisdiction || "global")

@@ -1,10 +1,19 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
-      "Bash(git fetch:*)",
-      "Bash(git checkout:*)",
-      "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep",
+      "PowerShell",
+      "Agent",
+      "TodoWrite",
+      "WebFetch",
+      "WebSearch",
+      "Skill"
     ]
   }
 }

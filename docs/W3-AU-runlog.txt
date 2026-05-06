@@ -1,0 +1,206 @@
+══════════════════════════════════════════════════════════════
+W3 Tier 1 population runner
+Region:            AU
+Depth:             normal
+Jurisdictions:     9
+Cost cap:          (none)
+Output:            C:\Users\jason\dotfiles\docs\W3-tier1-AU-results.json
+Started:           2026-05-04T20:29:57.549Z
+══════════════════════════════════════════════════════════════
+
+Loading existing source URLs for idempotency...
+  219 existing eTLD+1 hosts loaded.
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU (Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30s
+  [1/12] https://www.infrastructure.gov.au ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.dcceew.gov.au ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.cleanenergyregulator.gov.au ... tier=M rel=92 frt=45 → rejected
+  [4/12] https://www.nhvr.gov.au ... tier=H rel=75 frt=85 → auto-approved
+  [5/12] https://www.ntc.gov.au ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.climatechangeauthority.gov.au ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.amsa.gov.au ... tier=H rel=75 frt=70 → auto-approved
+  [8/12] https://www.casa.gov.au ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.legislation.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.bitre.gov.au ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.abf.gov.au ... tier=L rel=- frt=- → rejected
+  [12/12] https://austroads.gov.au ... tier=L rel=- frt=- → rejected
+  Tier H: 2  M: 1  L: 9 (1 duplicates) — 212.8s
+  Running cost: Sonnet $0.1000 + Haiku $0.0030 = $0.1030 (1/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-NSW (New South Wales, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 35.8s
+  [1/12] https://www.transport.nsw.gov.au/operations/freight-hub ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.epa.nsw.gov.au/licensing-and-regulation ... tier=H rel=85 frt=70 → auto-approved
+  [3/12] https://www.environment.nsw.gov.au/about-us/policy-and-law/legislation ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.energy.nsw.gov.au/nsw-plans-and-progress/regulation-and-policy ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://legislation.nsw.gov.au ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.safework.nsw.gov.au/legal-obligations/legislation ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.portauthoritynsw.com.au ... tier=M rel=75 frt=85 → rejected
+  [8/12] https://www.nhvr.gov.au/law-policies ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.ipart.nsw.gov.au/Home/Industries/Energy ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.planning.nsw.gov.au/policy-and-legislation/environmental-assessment ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.onrsr.com.au/law-and-policy/legislation ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.climatechange.environment.nsw.gov.au ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 1  L: 10 (5 duplicates) — 79.2s
+  Running cost: Sonnet $0.2000 + Haiku $0.0050 = $0.2050 (2/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-VIC (Victoria, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 32.1s
+  [1/12] https://www.vic.gov.au/freight-victoria ... tier=L rel=- frt=- DUP → rejected
+  [2/12] https://www.epa.vic.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.deeca.vic.gov.au ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.climatechange.vic.gov.au ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.vic.gov.au/environmentally-sustainable-transport ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://ports.vic.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.vicports.vic.gov.au ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.gazette.vic.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.legislation.vic.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.worksafe.vic.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.nhvr.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.esc.vic.gov.au ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 0  L: 12 (9 duplicates) — 77.1s
+  Running cost: Sonnet $0.3000 + Haiku $0.0050 = $0.3050 (3/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-QLD (Queensland, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.8s
+  [1/12] https://www.tmr.qld.gov.au/business-industry/transport-sectors/freight/freight ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.msq.qld.gov.au/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.detsi.qld.gov.au/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.legislation.qld.gov.au/ ... tier=H rel=75 frt=65 → auto-approved
+  [5/12] https://www.publications.qld.gov.au/ ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://www.qtlc.com.au/ ... tier=M rel=65 frt=85 → rejected
+  [7/12] https://www.nhvr.gov.au/ ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.energyandclimate.qld.gov.au/ ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://environment.qld.gov.au/management/policy-regulation ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.gpcl.com.au/ ... tier=L rel=45 frt=75 → rejected
+  [11/12] https://www.nqbp.com.au/ ... tier=M rel=72 frt=85 → rejected
+  [12/12] https://www.stateoftheenvironment.detsi.qld.gov.au/climate-change/indicators/transport-sector-greenhouse-gas-emissions ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 2  L: 9 (3 duplicates) — 52.0s
+  Running cost: Sonnet $0.4000 + Haiku $0.0090 = $0.4090 (4/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-WA (Western Australia, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30.9s
+  [1/12] https://www.transport.wa.gov.au ... tier=L rel=45 frt=35 → rejected
+  [2/12] https://www.mainroads.wa.gov.au/heavy-vehicles/ ... tier=L rel=45 frt=75 → rejected
+  [3/12] https://www.epa.wa.gov.au ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.wa.gov.au/organisation/department-of-water-and-environmental-regulation ... tier=M rel=78 frt=35 → rejected
+  [5/12] https://www.climateaction.wa.gov.au ... tier=M rel=- frt=- → rejected
+  [6/12] https://www.fremantleports.com.au ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.worksafe.wa.gov.au ... tier=L rel=45 frt=35 → rejected
+  [8/12] https://www.legislation.wa.gov.au ... tier=H rel=75 frt=65 → auto-approved
+  [9/12] https://www.infrastructure.wa.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.dpird.wa.gov.au/environment-and-sustainability/climate-weather/climate-change/ ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.cleanenergyregulator.gov.au ... tier=M rel=92 frt=45 → rejected
+  [12/12] https://www.infrastructure.gov.au ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 3  L: 8 (2 duplicates) — 113.3s
+  Running cost: Sonnet $0.5000 + Haiku $0.0150 = $0.5150 (5/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-SA (South Australia, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31s
+  [1/12] https://dit.sa.gov.au ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.epa.sa.gov.au ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.environment.sa.gov.au ... tier=M rel=75 frt=25 → rejected
+  [4/12] https://www.energymining.sa.gov.au ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.legislation.sa.gov.au ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.safework.sa.gov.au ... tier=L rel=- frt=- → rejected
+  [7/12] https://safreightcouncil.com.au ... tier=L rel=35 frt=75 → rejected
+  [8/12] https://www.nhvr.gov.au/law-policies/notices-and-permit-based-schemes/state-notices/south-australia ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://www.infrastructure.sa.gov.au ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.escosa.sa.gov.au ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.flindersports.com.au ... tier=L rel=45 frt=75 → rejected
+  [12/12] https://www.dcceew.gov.au ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 1  L: 11 (1 duplicates) — 74.7s
+  Running cost: Sonnet $0.6000 + Haiku $0.0180 = $0.6180 (6/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-TAS (Tasmania, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 36.5s
+  [1/12] https://www.recfit.tas.gov.au ... tier=H rel=92 frt=55 → auto-approved
+  [2/12] https://epa.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://www.transport.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.stategrowth.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://tasports.com.au ... tier=L rel=45 frt=75 → rejected
+  [6/12] https://www.mast.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://www.economicregulator.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.legislation.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://gazette.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.stateplanningoffice.tas.gov.au ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.nhvr.gov.au/road-access/tasmania ... tier=L rel=- frt=- → rejected
+  [12/12] https://nre.tas.gov.au ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (8 duplicates) — 64.6s
+  Running cost: Sonnet $0.7000 + Haiku $0.0200 = $0.7200 (7/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-ACT (Australian Capital Territory, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 35s
+  [1/12] https://www.legislation.act.gov.au/ ... tier=H rel=85 frt=70 → auto-approved
+  [2/12] https://www.act.gov.au/directorates-and-agencies/city-and-environment-directorate ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.accesscanberra.act.gov.au/city-services/environment-protection-authority ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.transport.act.gov.au/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.accesscanberra.act.gov.au/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.worksafe.act.gov.au/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.nhvr.gov.au/law-policies ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://www.infrastructure.gov.au/infrastructure-transport-vehicles/transport-strategy-policy ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.dcceew.gov.au/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.climatechangeauthority.gov.au/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://arena.gov.au/ ... tier=M rel=75 frt=35 → rejected
+  [12/12] https://www.freightaustralia.gov.au/ ... tier=L rel=- frt=- → rejected
+  Tier H: 1  M: 1  L: 10 (1 duplicates) — 159.7s
+  Running cost: Sonnet $0.8000 + Haiku $0.0220 = $0.8220 (8/9 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AU-NT (Northern Territory, Australia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.3s
+  [1/12] https://dli.nt.gov.au/ ... tier=L rel=- frt=- → rejected
+  [2/12] https://ntepa.nt.gov.au/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://climatechange.nt.gov.au/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://nt.gov.au/about-government/gazettes ... tier=L rel=- frt=- → rejected
+  [5/12] https://legislation.nt.gov.au/ ... tier=H rel=75 frt=65 → auto-approved
+  [6/12] https://worksafe.nt.gov.au/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://utilicom.nt.gov.au/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://infrastructure.nt.gov.au/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://industry.nt.gov.au/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.infrastructure.gov.au/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.ntc.gov.au/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.amsa.gov.au/ ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 1  M: 0  L: 11 (1 duplicates) — 98.0s
+  Running cost: Sonnet $0.9000 + Haiku $0.0230 = $0.9230 (9/9 done)
+
+══════════════════════════════════════════════════════════════
+Region AU complete.
+Processed:    9/9
+Candidates:   108
+Tier H:       8
+Tier M:       9
+Tier L:       91
+Duplicates:   31
+Haiku calls:  23
+Wall time:    931.3s
+Total cost:   $0.9230 (Sonnet $0.9000 + Haiku $0.0230)
+Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-AU-results.json
+══════════════════════════════════════════════════════════════

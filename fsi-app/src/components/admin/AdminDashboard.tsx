@@ -25,6 +25,9 @@ interface AdminDashboardProps {
   initialSources?: Source[];
   initialProvisionalSources?: ProvisionalSource[];
   initialOpenConflicts?: SourceConflict[];
+  initialOrgs?: any[];
+  initialMembers?: any[];
+  initialStagedUpdates?: any[];
 }
 
 export function AdminDashboard({
@@ -38,6 +41,9 @@ export function AdminDashboard({
   initialSources = [],
   initialProvisionalSources = [],
   initialOpenConflicts = [],
+  initialOrgs = [],
+  initialMembers = [],
+  initialStagedUpdates = [],
 }: AdminDashboardProps) {
   // Hydrate the source store with the admin-context unfiltered list. Mirror of
   // the Dashboard pattern at src/components/Dashboard.tsx (lines 247-253). The
@@ -84,10 +90,6 @@ export function AdminDashboard({
   const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
   const [issueFilter, setIssueFilter] = useState<string | null>(null);
 
-  // IssuesQueue → tab navigation. When a tap-through targets a tab that
-  // hasn't shipped yet ("integrity-flags" pre-W2.C, "coverage-matrix"
-  // pre-W2.D), fall back to the closest live tab so the click never
-  // dead-ends. Future Ws can drop these mappings as their tabs land.
   const resolveAdminTab = (tab: string): AdminTab => {
     if (KNOWN_RENDERED_TABS.includes(tab as AdminTab)) return tab as AdminTab;
     return "orgs";
@@ -96,27 +98,25 @@ export function AdminDashboard({
     setActiveTab(resolveAdminTab(tab));
     setIssueFilter(filter ?? null);
   };
-  const [members, setMembers] = useState<any[]>([]);
-  const [orgs, setOrgs] = useState<any[]>([]);
-  const [stagedUpdates, setStagedUpdates] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>(initialMembers);
+  const [orgs, setOrgs] = useState<any[]>(initialOrgs);
+  const [stagedUpdates, setStagedUpdates] = useState<any[]>(initialStagedUpdates);
   const [integrityFlagCount, setIntegrityFlagCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState("member");
   const [toast, setToast] = useState("");
 
   const supabase = createSupabaseBrowserClient();
 
+  // Manual refresh — re-runs the same three reads the server hydrated us
+  // with at first paint. Used by the Refresh button and after add-member /
+  // approve-update side effects.
   const loadData = useCallback(async () => {
-    setLoading(true);
-
     try {
       const [orgRes, memberRes, updateRes, flagRes] = await Promise.all([
-        supabase.from("organizations").select("*"),
-        supabase.from("org_memberships").select("*"),
-        supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }),
-        // Tab strip count — head:true keeps payload at zero rows. RLS may
-        // block this for non-admins; failure path falls through to 0.
+        supabase.from("organizations").select("id, name, slug, plan, created_at"),
+        supabase.from("org_memberships").select("id, org_id, user_id, role, created_at"),
+        supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
         supabase
           .from("intelligence_items")
           .select("id", { count: "exact", head: true })
@@ -131,10 +131,7 @@ export function AdminDashboard({
     } catch {
       // RLS may block some queries — still show the UI
     }
-    setLoading(false);
   }, [supabase]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   const showToast = (msg: string) => {
     setToast(msg);

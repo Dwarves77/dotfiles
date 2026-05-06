@@ -50,10 +50,13 @@ function uiId(ii: EmbeddedItem | EmbeddedItem[] | null | undefined): string | nu
 
 async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
   const supabase = getSupabase();
+  // Bound: only the most recent ~100 entries; WhatChanged renders only the
+  // newest diffs and the table grows monotonically.
   const { data: rows } = await supabase
     .from("item_changelog")
     .select("change_date, change_type, field, previous_value, new_value, impact, intelligence_items!inner(id, legacy_id)")
-    .order("change_date", { ascending: false });
+    .order("change_date", { ascending: false })
+    .limit(100);
 
   const result: Record<string, ChangeLogEntry[]> = {};
   (rows || []).forEach((row: any) => {
@@ -77,10 +80,13 @@ async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
 
 async function fetchDisputes(): Promise<Record<string, Dispute>> {
   const supabase = getSupabase();
+  // Bound: only active disputes; the surface only renders these, so
+  // limit at 100 to keep the read predictable as the table grows.
   const { data: rows } = await supabase
     .from("item_disputes")
     .select("note, disputing_sources, intelligence_items!inner(id, legacy_id)")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .limit(100);
 
   const result: Record<string, Dispute> = {};
   (rows || []).forEach((row: any) => {
@@ -203,11 +209,62 @@ function mapSourceRow(row: any): Source {
   };
 }
 
+// Slim column projection — mapSourceRow reads ~30 of these. Avoids the
+// implicit `*` payload (~50 columns × ~500 rows on the admin path).
+const SOURCE_COLUMNS = [
+  "id",
+  "name",
+  "url",
+  "description",
+  "tier",
+  "tier_at_creation",
+  "intelligence_types",
+  "domains",
+  "jurisdictions",
+  "transport_modes",
+  "update_frequency",
+  "last_checked",
+  "last_substantive_change",
+  "next_scheduled_check",
+  "status",
+  "paywalled",
+  "access_method",
+  "api_endpoint",
+  "rss_feed_url",
+  "confirmation_count",
+  "conflict_count",
+  "conflict_total",
+  "accuracy_rate",
+  "avg_lead_time_days",
+  "lead_time_samples",
+  "consecutive_accessible",
+  "total_checks",
+  "successful_checks",
+  "accessibility_rate",
+  "last_accessible",
+  "last_inaccessible",
+  "independent_citers",
+  "total_citations",
+  "highest_citing_tier",
+  "self_citation_count",
+  "trust_score_overall",
+  "trust_score_accuracy",
+  "trust_score_timeliness",
+  "trust_score_reliability",
+  "trust_score_citation",
+  "trust_score_computed_at",
+  "tier_history",
+  "cited_by",
+  "notes",
+  "created_at",
+  "updated_at",
+].join(", ");
+
 async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
   const supabase = getSupabase();
   let query = supabase
     .from("sources")
-    .select("*")
+    .select(SOURCE_COLUMNS)
     .order("tier", { ascending: true });
   if (!includeAdminOnly) {
     // Workspace-facing default — hide admin_only sources from regular users.
@@ -308,7 +365,11 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 // ── Workspace Intelligence Fetch ────────────────────────────
 // Uses get_workspace_intelligence() to get items with workspace overrides
 
-async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resource[]; archived: Resource[] }> {
+async function fetchWorkspaceResources(orgId: string): Promise<{
+  active: Resource[];
+  archived: Resource[];
+  uuidToUiId: Map<string, string>;
+}> {
   const supabase = getSupabase();
 
   // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
@@ -317,7 +378,7 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
   const { data: items, error } = await supabase.rpc("get_workspace_intelligence", { p_org_id: orgId });
 
   if (error || !items?.length) {
-    return { active: [], archived: [] };
+    return { active: [], archived: [], uuidToUiId: new Map() };
   }
 
   // Build UUID → UI-id translation map from the RPC payload (each row has
@@ -388,7 +449,7 @@ async function fetchWorkspaceResources(orgId: string): Promise<{ active: Resourc
     }
   }
 
-  return { active, archived };
+  return { active, archived, uuidToUiId };
 }
 
 // ── Master Fetch ─────────────────────────────────────────────
@@ -473,24 +534,35 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     // Workspace-scoped intelligence read. orgId is the caller's auth-resolved
     // membership; the RPC merges intelligence_items with this workspace's
     // overrides only.
-    const [{ active: resources, archived }, changelog, disputes, xrefPairs, supersessions] =
-      await withTimeout(
-        Promise.all([
-          fetchWorkspaceResources(orgId),
-          fetchChangelog(),
-          fetchDisputes(),
-          fetchXrefPairs(),
-          fetchSupersessions(),
-        ]),
-        8000, // 8 second timeout
-        [
-          { active: seedResources, archived: seedArchived },
-          seedChangelog,
-          seedDisputes,
-          seedXrefPairs,
-          seedSupersessions,
-        ] as [{ active: typeof seedResources; archived: typeof seedArchived }, typeof seedChangelog, typeof seedDisputes, typeof seedXrefPairs, typeof seedSupersessions]
-      );
+    const [
+      { active: resources, archived, uuidToUiId },
+      changelog,
+      disputes,
+      xrefPairs,
+      supersessions,
+    ] = await withTimeout(
+      Promise.all([
+        fetchWorkspaceResources(orgId),
+        fetchChangelog(),
+        fetchDisputes(),
+        fetchXrefPairs(),
+        fetchSupersessions(),
+      ]),
+      8000, // 8 second timeout
+      [
+        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
+        seedChangelog,
+        seedDisputes,
+        seedXrefPairs,
+        seedSupersessions,
+      ] as [
+        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
+        typeof seedChangelog,
+        typeof seedDisputes,
+        typeof seedXrefPairs,
+        typeof seedSupersessions,
+      ]
+    );
 
     // If Supabase returned empty, use seed data
     if (!resources.length) {
@@ -528,7 +600,8 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       supabase
         .from("intelligence_changes")
         .select("item_id, change_type, change_severity, change_summary")
-        .order("detected_at", { ascending: false }),
+        .order("detected_at", { ascending: false })
+        .limit(100),
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
@@ -538,22 +611,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .eq("org_id", orgId),
     ]);
 
-    // Build UUID→legacy_id lookup from resources already fetched
-    // The UI uses r.id = legacy_id || uuid. Synopses use item_id = uuid.
-    // We need to map synopsis item_ids to the IDs the UI uses.
-    const uuidToUiId = new Map<string, string>();
-    for (const r of resources) {
-      // r.id is already legacy_id || uuid (set in fetchWorkspaceResources)
-      // We need to find the UUID for each resource to map synopses
-    }
-    // Fetch the UUID→legacy_id mapping directly
-    const { data: idMap } = await supabase
-      .from("intelligence_items")
-      .select("id, legacy_id")
-      .eq("is_archived", false);
-    for (const row of idMap || []) {
-      uuidToUiId.set(row.id, row.legacy_id || row.id);
-    }
+    // UUID→UI-id map already built by fetchWorkspaceResources from the
+    // get_workspace_intelligence RPC payload — synopses + changes +
+    // overrides use it to translate item_id (uuid) into the UI-side id
+    // (legacy_id || uuid) the resource list is keyed by.
 
     // Map synopses using the UUID→UI_ID lookup
     const synopses: SectorSynopsis[] = allSynopses.map((r: any) => ({
@@ -617,6 +678,124 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     };
   } catch (e) {
     console.error("fetchDashboardData failed, using seed fallback:", e);
+    return seedFallback;
+  }
+}
+
+// ── Slim Fetch Variants (perf wave 2) ────────────────────────
+/**
+ * Slim variant of fetchDashboardData: only resources + workspace overrides.
+ * Skips changelog, disputes, xrefs, supersessions, synopses, changes,
+ * sector display names. Used by pages that consume only `data.resources`
+ * (and optionally `data.overrides`): /operations, /market, /regulations.
+ *
+ * Cost: 2 queries (workspace RPC + workspace_item_overrides) + 1 timeline
+ * read inside fetchWorkspaceResources. Compared to ~15 for fetchDashboardData.
+ */
+export async function fetchResourcesOnly(orgId: string | null): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  overrides: WorkspaceOverrideRow[];
+}> {
+  const seedFallback = {
+    resources: seedResources,
+    archived: seedArchived,
+    overrides: [] as WorkspaceOverrideRow[],
+  };
+
+  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+
+  try {
+    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId);
+    if (!active.length) return seedFallback;
+
+    const supabase = getSupabase();
+    const { data: overridesData } = await supabase
+      .from("workspace_item_overrides")
+      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes")
+      .eq("org_id", orgId);
+
+    const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
+      itemId: uuidToUiId.get(o.item_id) || o.item_id,
+      priorityOverride: o.priority_override ?? null,
+      isArchived: !!o.is_archived,
+      archiveReason: o.archive_reason ?? null,
+      archiveNote: o.archive_note ?? null,
+      notes: o.notes ?? "",
+    }));
+
+    return { resources: active, archived, overrides };
+  } catch (e) {
+    console.error("fetchResourcesOnly failed, using seed fallback:", e);
+    return seedFallback;
+  }
+}
+
+/**
+ * Slim variant for the /map surface: resources + relationship payload
+ * the map view consumes (changelog, disputes, xrefPairs, supersessions).
+ * Drops sources/provisional/conflicts/synopses/intelligenceChanges/
+ * sectorDisplayNames/overrides.
+ *
+ * Cost: 5 queries (workspace RPC + 4 relationship reads). Compared to
+ * ~15 for fetchDashboardData.
+ */
+export async function fetchMapData(orgId: string | null): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  changelog: Record<string, ChangeLogEntry[]>;
+  disputes: Record<string, Dispute>;
+  xrefPairs: [string, string][];
+  supersessions: Supersession[];
+}> {
+  const seedFallback = {
+    resources: seedResources,
+    archived: seedArchived,
+    changelog: seedChangelog,
+    disputes: seedDisputes,
+    xrefPairs: seedXrefPairs,
+    supersessions: seedSupersessions,
+  };
+
+  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+
+  try {
+    const [{ active, archived }, changelog, disputes, xrefPairs, supersessions] = await withTimeout(
+      Promise.all([
+        fetchWorkspaceResources(orgId),
+        fetchChangelog(),
+        fetchDisputes(),
+        fetchXrefPairs(),
+        fetchSupersessions(),
+      ]),
+      8000,
+      [
+        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
+        seedChangelog,
+        seedDisputes,
+        seedXrefPairs,
+        seedSupersessions,
+      ] as [
+        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
+        typeof seedChangelog,
+        typeof seedDisputes,
+        typeof seedXrefPairs,
+        typeof seedSupersessions,
+      ]
+    );
+
+    if (!active.length) return seedFallback;
+
+    return {
+      resources: active,
+      archived,
+      changelog,
+      disputes,
+      xrefPairs,
+      supersessions,
+    };
+  } catch (e) {
+    console.error("fetchMapData failed, using seed fallback:", e);
     return seedFallback;
   }
 }

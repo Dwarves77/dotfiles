@@ -1,0 +1,586 @@
+══════════════════════════════════════════════════════════════
+W3 Tier 1 population runner
+Region:            EU
+Depth:             normal
+Jurisdictions:     28
+Cost cap:          (none)
+Output:            C:\Users\jason\dotfiles\docs\W3-tier1-EU-results.json
+Started:           2026-05-04T20:29:47.994Z
+══════════════════════════════════════════════════════════════
+
+Loading existing source URLs for idempotency...
+  219 existing eTLD+1 hosts loaded.
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: EU (European Union)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.4s
+  [1/12] https://transport.ec.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [2/12] https://climate.ec.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [3/12] https://eur-lex.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.eea.europa.eu/themes/transport ... tier=L rel=- frt=- DUP → rejected
+  [5/12] https://www.emsa.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [6/12] https://taxation-customs.ec.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [7/12] https://energy.ec.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [8/12] https://environment.ec.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [9/12] https://policy.trade.ec.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [10/12] https://www.era.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [11/12] https://www.easa.europa.eu ... tier=L rel=- frt=- DUP → rejected
+  [12/12] https://www.cencenelec.eu ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 0  L: 12 (11 duplicates) — 47.8s
+  Running cost: Sonnet $0.1000 + Haiku $0.0000 = $0.1000 (1/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: AT (Austria)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.6s
+  [1/12] https://www.bmk.gv.at/en.html ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.umweltbundesamt.at/en/ ... tier=M rel=85 frt=35 → rejected
+  [3/12] https://www.ris.bka.gv.at ... tier=M rel=85 frt=65 → rejected
+  [4/12] https://www.bmf.gv.at/en/the-ministry/internal-organisation/Tax-Authority-Austria/Office-for-National-Emissions-Trading.html ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.asfinag.at/en/toll/go-toll/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.e-control.at/en/ ... tier=M rel=75 frt=35 → rejected
+  [7/12] https://www.energyagency.at/en/ ... tier=M rel=75 frt=35 → rejected
+  [8/12] https://www.bmluk.gv.at/en/ ... tier=M rel=75 frt=35 → rejected
+  [9/12] https://www.austrian-standards.at/en/ ... tier=M rel=72 frt=35 → rejected
+  [10/12] https://www.zoll.gv.at/en/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.wko.at/transport-verkehr ... tier=L rel=- frt=- → rejected
+  [12/12] https://transport.ec.europa.eu/index_en ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 6  L: 6 (1 duplicates) — 73.4s
+  Running cost: Sonnet $0.2000 + Haiku $0.0060 = $0.2060 (2/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: BE (Belgium)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.1s
+  [1/12] https://mobilit.belgium.be/en ... tier=M rel=75 frt=70 → rejected
+  [2/12] https://www.belgisch-staatsblad.be ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.health.belgium.be/en/environment/climate ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.climat.be ... tier=M rel=- frt=- → rejected
+  [5/12] https://financien.belgium.be/en/customs_excises ... tier=M rel=75 frt=72 → rejected
+  [6/12] https://www.veka.be/en ... tier=L rel=- frt=- → rejected
+  [7/12] https://awac.be ... tier=M rel=85 frt=55 → rejected
+  [8/12] https://environnement.brussels/en ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.vlaanderen.be/departement-mobiliteit-en-openbare-werken ... tier=M rel=75 frt=70 → rejected
+  [10/12] https://www.portofantwerpbruges.com ... tier=L rel=45 frt=75 → rejected
+  [11/12] https://www.irceline.be/en ... tier=M rel=85 frt=65 → rejected
+  [12/12] https://www.nbn.be/en ... tier=M rel=65 frt=35 → rejected
+  Tier H: 0  M: 7  L: 5 (0 duplicates) — 70.3s
+  Running cost: Sonnet $0.3000 + Haiku $0.0130 = $0.3130 (3/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: BG (Bulgaria)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30.6s
+  [1/12] https://www.moew.government.bg/en/ ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://eea.government.bg/en/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.mtc.government.bg/en ... tier=M rel=65 frt=55 → rejected
+  [4/12] https://www.me.government.bg/en/ ... tier=M rel=85 frt=45 → rejected
+  [5/12] https://rta.government.bg/en ... tier=L rel=35 frt=45 → rejected
+  [6/12] https://www.marad.bg/en/ ... tier=M rel=72 frt=68 → rejected
+  [7/12] https://customs.bg/wps/portal/agency-en/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.dker.bg/en/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://dv.parliament.bg/ ... tier=M rel=- frt=- → rejected
+  [10/12] https://www.bds-bg.org/en/ ... tier=L rel=45 frt=35 → rejected
+  [11/12] https://www.nap.bg/en ... tier=L rel=- frt=- → rejected
+  [12/12] https://bghauliers.eu/en/en-home/ ... tier=L rel=45 frt=75 → rejected
+  Tier H: 0  M: 5  L: 7 (0 duplicates) — 75.1s
+  Running cost: Sonnet $0.4000 + Haiku $0.0200 = $0.4200 (4/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: HR (Croatia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.7s
+  [1/12] https://narodne-novine.nn.hr ... tier=M rel=85 frt=70 → rejected
+  [2/12] https://mmpi.gov.hr ... tier=M rel=75 frt=75 → rejected
+  [3/12] https://mingor.gov.hr ... tier=M rel=75 frt=45 → rejected
+  [4/12] https://mingo.gov.hr ... tier=M rel=75 frt=55 → rejected
+  [5/12] https://www.azo.hr ... tier=L rel=- frt=- → rejected
+  [6/12] https://carina.gov.hr ... tier=M rel=75 frt=80 → rejected
+  [7/12] https://www.porezna-uprava.hr ... tier=L rel=35 frt=15 → rejected
+  [8/12] https://www.hakom.hr ... tier=L rel=35 frt=15 → rejected
+  [9/12] https://www.fzoeu.hr ... tier=M rel=85 frt=35 → rejected
+  [10/12] https://www.voda.hr ... tier=M rel=75 frt=35 → rejected
+  [11/12] https://www.hzn.hr ... tier=M rel=65 frt=45 → rejected
+  [12/12] https://www.hgk.hr ... tier=L rel=35 frt=75 → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 78.0s
+  Running cost: Sonnet $0.5000 + Haiku $0.0310 = $0.5310 (5/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CY (Cyprus)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 31.7s
+  [1/12] https://www.shipping.gov.cy/ ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.cpa.gov.cy/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.moa.gov.cy/moa/environment/environmentnew.nsf/index_en/index_en ... tier=M rel=- frt=- → rejected
+  [4/12] https://www.mcw.gov.cy/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.mcw.gov.cy/mcw/drt/drt.nsf/index_en/index_en ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.cera.org.cy/ ... tier=M rel=85 frt=45 → rejected
+  [7/12] https://www.moa.gov.cy/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.mof.gov.cy/mof/gpo/gazette.nsf/officialgazette-en/officialgazette-en ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.customs.gov.cy/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://csc-cy.org/ ... tier=L rel=45 frt=35 → rejected
+  [11/12] https://www.cea.org.cy/en/ ... tier=M rel=75 frt=25 → rejected
+  [12/12] https://www.mcit.gov.cy/mcit/dca/dca.nsf/index_en/index_en ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 3  L: 9 (0 duplicates) — 131.6s
+  Running cost: Sonnet $0.6000 + Haiku $0.0340 = $0.6340 (6/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: CZ (Czechia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 35.5s
+  [1/12] https://md.gov.cz/?lang=en-GB ... tier=M rel=75 frt=70 → rejected
+  [2/12] https://mzp.gov.cz/en ... tier=L rel=- frt=- → rejected
+  [3/12] https://mpo.gov.cz/en/ ... tier=M rel=72 frt=45 → rejected
+  [4/12] https://www.chmi.cz/?tab=1&l=en ... tier=M rel=75 frt=35 → rejected
+  [5/12] https://celnisprava.gov.cz/en/Pages/default.aspx ... tier=L rel=45 frt=55 → rejected
+  [6/12] https://eru.gov.cz/en ... tier=M rel=85 frt=45 → rejected
+  [7/12] https://unmz.gov.cz/en/ ... tier=M rel=65 frt=35 → rejected
+  [8/12] https://www.agentura-cas.cz/en ... tier=L rel=45 frt=35 → rejected
+  [9/12] https://www.e-sbirka.cz/ ... tier=M rel=85 frt=75 → rejected
+  [10/12] https://www.cizp.cz/ ... tier=M rel=85 frt=45 → rejected
+  [11/12] https://www.sfzp.cz/en/ ... tier=M rel=75 frt=35 → rejected
+  [12/12] https://www.czso.cz/csu/czso/home ... tier=L rel=45 frt=35 → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 75.8s
+  Running cost: Sonnet $0.7000 + Haiku $0.0450 = $0.7450 (7/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: DK (Denmark)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31s
+  [1/12] https://www.dma.dk/environment-and-climate ... tier=M rel=85 frt=75 → rejected
+  [2/12] https://eng.mst.dk/air-noise-waste/air/reducing-shipping-emissions/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://ens.dk/en ... tier=M rel=95 frt=45 → rejected
+  [4/12] https://danishbusinessauthority.dk/inclusion-maritime-sector-eu-ets ... tier=M rel=92 frt=88 → rejected
+  [5/12] https://www.danishroadtrafficauthority.dk/ ... tier=M rel=85 frt=80 → rejected
+  [6/12] https://www.en.trafikstyrelsen.dk/ ... tier=M rel=65 frt=45 → rejected
+  [7/12] https://www.trm.dk/en/ ... tier=M rel=65 frt=75 → rejected
+  [8/12] https://kefm.dk/en/ ... tier=M rel=92 frt=68 → rejected
+  [9/12] https://toldst.dk/en-us ... tier=M rel=75 frt=72 → rejected
+  [10/12] https://www.retsinformation.dk/ ... tier=M rel=85 frt=75 → rejected
+  [11/12] https://www.ds.dk/en ... tier=M rel=65 frt=35 → rejected
+  [12/12] https://www.danishshipping.dk/en ... tier=M rel=75 frt=70 → rejected
+  Tier H: 0  M: 11  L: 1 (0 duplicates) — 66.9s
+  Running cost: Sonnet $0.8000 + Haiku $0.0560 = $0.8560 (8/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: EE (Estonia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 29.6s
+  [1/12] https://kliimaministeerium.ee/en ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://www.transpordiamet.ee/en ... tier=M rel=75 frt=65 → rejected
+  [3/12] https://keskkonnaamet.ee/en ... tier=M rel=85 frt=45 → rejected
+  [4/12] https://www.riigiteataja.ee/en ... tier=M rel=85 frt=65 → rejected
+  [5/12] https://www.emta.ee/en ... tier=L rel=45 frt=35 → rejected
+  [6/12] https://www.keskkonnaagentuur.ee/en ... tier=M rel=82 frt=45 → rejected
+  [7/12] https://www.ttja.ee/en ... tier=L rel=45 frt=25 → rejected
+  [8/12] https://www.konkurentsiamet.ee/en ... tier=L rel=35 frt=25 → rejected
+  [9/12] https://www.evs.ee/en ... tier=M rel=55 frt=25 → rejected
+  [10/12] https://www.ts.ee/en/ ... tier=L rel=45 frt=65 → rejected
+  [11/12] https://www.evr.ee/en ... tier=L rel=35 frt=45 → rejected
+  [12/12] https://www.konkurentsiamet.ee/en/energy ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 6  L: 6 (0 duplicates) — 64.9s
+  Running cost: Sonnet $0.9000 + Haiku $0.0670 = $0.9670 (9/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: FI (Finland)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 26.5s
+  [1/12] https://www.traficom.fi/en/transport ... tier=L rel=- frt=- → rejected
+  [2/12] https://lvm.fi/en/home ... tier=M rel=75 frt=70 → rejected
+  [3/12] https://vayla.fi/en ... tier=L rel=- frt=- → rejected
+  [4/12] https://ym.fi/en/front-page ... tier=M rel=85 frt=65 → rejected
+  [5/12] https://energiavirasto.fi/en/frontpage ... tier=M rel=92 frt=45 → rejected
+  [6/12] https://tulli.fi/en ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.syke.fi/en ... tier=M rel=85 frt=35 → rejected
+  [8/12] https://www.finlex.fi/en ... tier=M rel=85 frt=65 → rejected
+  [9/12] https://stat.fi/en ... tier=L rel=35 frt=15 → rejected
+  [10/12] https://tukes.fi/en ... tier=L rel=- frt=- → rejected
+  [11/12] https://tem.fi/en/frontpage ... tier=L rel=45 frt=35 → rejected
+  [12/12] https://www.fintraffic.fi/en ... tier=L rel=45 frt=25 → rejected
+  Tier H: 0  M: 5  L: 7 (0 duplicates) — 57.4s
+  Running cost: Sonnet $1.0000 + Haiku $0.0750 = $1.0750 (10/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: FR (France)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 38.4s
+  [1/12] https://www.ecologie.gouv.fr/direction-generale-des-infrastructures-des-transports-et-des-mobilites-dgitm ... tier=M rel=85 frt=75 → rejected
+  [2/12] https://www.legifrance.gouv.fr/jorf/index ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.ademe.fr ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.ecologie.gouv.fr/direction-generale-lenergie-et-du-climat-dgec ... tier=M rel=92 frt=72 → rejected
+  [5/12] https://www.hautconseilclimat.fr/en/ ... tier=M rel=85 frt=25 → rejected
+  [6/12] https://www.citepa.org/en/ ... tier=M rel=85 frt=45 → rejected
+  [7/12] https://www.douane.gouv.fr ... tier=M rel=75 frt=70 → rejected
+  [8/12] https://www.cre.fr ... tier=M rel=85 frt=65 → rejected
+  [9/12] https://www.autorite-transports.fr ... tier=M rel=70 frt=65 → rejected
+  [10/12] https://www.statistiques.developpement-durable.gouv.fr ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.afnor.org/climat-et-decarbonation/secteur-transport-logistique/ ... tier=M rel=75 frt=80 → rejected
+  [12/12] https://www.legifrance.gouv.fr ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 74.5s
+  Running cost: Sonnet $1.1000 + Haiku $0.0830 = $1.1830 (11/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: DE (Germany)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 37.4s
+  [1/12] https://www.umweltbundesamt.de/en/topics/transport ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://www.bmv.de/EN ... tier=M rel=85 frt=75 → rejected
+  [3/12] https://www.balm.bund.de/EN/Home/home_node.html ... tier=L rel=- frt=- DUP → rejected
+  [4/12] https://www.kba.de/EN/DasKBA_en/daskba_node_en.html ... tier=M rel=75 frt=70 → rejected
+  [5/12] https://www.bmwk.de/Navigation/EN/Home/home.html ... tier=M rel=85 frt=65 → rejected
+  [6/12] https://www.recht.bund.de/en/home/home_node.html ... tier=L rel=- frt=- → rejected
+  [7/12] https://www.gesetze-im-internet.de/Teilliste_translations.html ... tier=L rel=45 frt=25 → rejected
+  [8/12] https://www.toll-collect.de/en/toll_collect/bezahlen/maut_tarife/maut_tarife.html ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.bundesnetzagentur.de/EN/General/Bundesnetzagentur/start.html ... tier=M rel=75 frt=45 → rejected
+  [10/12] https://www.zoll.de/EN/Home/home_node.html ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.din.de/en ... tier=M rel=75 frt=45 → rejected
+  [12/12] https://www.expertenrat-klima.de/en/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 6  L: 6 (1 duplicates) — 79.0s
+  Running cost: Sonnet $1.2000 + Haiku $0.0900 = $1.2900 (12/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: GR (Greece)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.1s
+  [1/12] https://ypen.gov.gr/en/ ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.ynanp.gr/en/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.mit.gov.gr/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.et.gr/ ... tier=M rel=75 frt=65 → rejected
+  [5/12] https://www.aade.gr/en/customs ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.raaey.gr/en/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://necca.gov.gr/en/home/ ... tier=M rel=82 frt=25 → rejected
+  [8/12] https://www.hcg.gr/en/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.statistics.gr/en/home/ ... tier=L rel=45 frt=25 → rejected
+  [10/12] https://www.ugs.gr/en/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.shortsea.gr/en/ ... tier=L rel=45 frt=65 → rejected
+  [12/12] https://climate.ec.europa.eu/ ... tier=L rel=- frt=- DUP → rejected
+  Tier H: 0  M: 2  L: 10 (1 duplicates) — 57.6s
+  Running cost: Sonnet $1.3000 + Haiku $0.0940 = $1.3940 (13/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: HU (Hungary)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 32.2s
+  [1/12] https://magyarkozlony.hu/ ... tier=M rel=85 frt=65 → rejected
+  [2/12] https://njt.hu/ ... tier=M rel=75 frt=55 → rejected
+  [3/12] https://energiaügyiminiszterium.hu/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://ekm.gov.hu/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://nav.gov.hu/en ... tier=L rel=45 frt=35 → rejected
+  [6/12] https://www.mekh.hu/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://klima.kormany.hu/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.mkfe.hu/en/ ... tier=L rel=45 frt=75 → rejected
+  [9/12] https://internet.kozut.hu/en/ ... tier=M rel=65 frt=70 → rejected
+  [10/12] https://agrarium.gov.hu/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.ksh.hu/ ... tier=L rel=45 frt=25 → rejected
+  [12/12] https://kormany.hu/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 3  L: 9 (0 duplicates) — 89.5s
+  Running cost: Sonnet $1.4000 + Haiku $0.1000 = $1.5000 (14/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: IE (Ireland)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 30.2s
+  [1/12] https://www.epa.ie ... tier=M rel=92 frt=35 → rejected
+  [2/12] https://www.gov.ie/en/organisation/department-of-transport/ ... tier=M rel=85 frt=75 → rejected
+  [3/12] https://www.gov.ie/en/department-of-climate-energy-and-the-environment/ ... tier=M rel=92 frt=45 → rejected
+  [4/12] https://www.irishstatutebook.ie ... tier=M rel=75 frt=65 → rejected
+  [5/12] https://www.climatecouncil.ie ... tier=M rel=75 frt=35 → rejected
+  [6/12] https://www.revenue.ie/en/customs/index.aspx ... tier=L rel=45 frt=35 → rejected
+  [7/12] https://www.seai.ie ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.nora.ie ... tier=M rel=65 frt=45 → rejected
+  [9/12] https://www.cru.ie ... tier=M rel=85 frt=35 → rejected
+  [10/12] https://enterprise.gov.ie ... tier=L rel=45 frt=25 → rejected
+  [11/12] https://www.gov.ie/en/collection/b7a5f-marine-survey-office/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.nsai.ie ... tier=L rel=45 frt=35 → rejected
+  Tier H: 0  M: 7  L: 5 (0 duplicates) — 58.2s
+  Running cost: Sonnet $1.5000 + Haiku $0.1100 = $1.6100 (15/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: IT (Italy)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.9s
+  [1/12] https://www.mit.gov.it/en ... tier=M rel=75 frt=70 → rejected
+  [2/12] https://www.mase.gov.it ... tier=M rel=85 frt=65 → rejected
+  [3/12] https://www.gazzettaufficiale.it ... tier=M rel=85 frt=65 → rejected
+  [4/12] https://www.autorita-trasporti.it/en ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.isprambiente.gov.it/en ... tier=M rel=78 frt=32 → rejected
+  [6/12] https://www.adm.gov.it/portale/en/web/guest/home ... tier=L rel=45 frt=55 → rejected
+  [7/12] https://www.mit.gov.it/temi/porti-e-navigazione/autorita-di-sistema-portuale ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.arera.it/en/index.htm ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.gse.it/en ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.ansf.it ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.uni.com/en/ ... tier=L rel=45 frt=25 → rejected
+  [12/12] https://www.istat.it/en/ ... tier=L rel=45 frt=20 → rejected
+  Tier H: 0  M: 4  L: 8 (0 duplicates) — 65.8s
+  Running cost: Sonnet $1.6000 + Haiku $0.1170 = $1.7170 (16/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: LV (Latvia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.9s
+  [1/12] https://www.sam.gov.lv/en ... tier=M rel=75 frt=75 → rejected
+  [2/12] https://www.varam.gov.lv/en/global-climate-change ... tier=M rel=75 frt=35 → rejected
+  [3/12] https://www.lvgmc.lv/en ... tier=M rel=72 frt=35 → rejected
+  [4/12] https://www.vid.gov.lv/en/customs ... tier=L rel=35 frt=55 → rejected
+  [5/12] https://www.csdd.lv/en ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.saeima.lv/en ... tier=M rel=75 frt=65 → rejected
+  [7/12] https://www.vestnesis.lv ... tier=M rel=75 frt=65 → rejected
+  [8/12] https://likumi.lv ... tier=M rel=75 frt=55 → rejected
+  [9/12] https://www.kem.gov.lv/en ... tier=M rel=85 frt=45 → rejected
+  [10/12] https://www.vvd.gov.lv/en ... tier=M rel=85 frt=45 → rejected
+  [11/12] https://www.laff.lv ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.lvceli.lv/en ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 112.3s
+  Running cost: Sonnet $1.7000 + Haiku $0.1260 = $1.8260 (17/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: LT (Lithuania)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 34.7s
+  [1/12] https://sumin.lrv.lt/en/ ... tier=L rel=- frt=- → rejected
+  [2/12] https://am.lrv.lt/en/ ... tier=L rel=- frt=- → rejected
+  [3/12] https://enmin.lrv.lt/en/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://ltsa.lrv.lt/en/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://muitine.lrv.lt/en/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://gamta.lt/en ... tier=M rel=85 frt=65 → rejected
+  [7/12] https://apva.lrv.lt/en/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.regula.lt/en/Pages/default.aspx ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.e-tar.lt/portal/en/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://e-seimas.lrs.lt/portal/legalAct/lt/ ... tier=L rel=- frt=- → rejected
+  [11/12] https://lakd.lrv.lt/en/ ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.lsd.lt/index.php?-1060261099 ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 1  L: 11 (0 duplicates) — 45.9s
+  Running cost: Sonnet $1.8000 + Haiku $0.1270 = $1.9270 (18/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: LU (Luxembourg)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 36.1s
+  [1/12] https://mmtp.gouvernement.lu/en.html ... tier=M rel=75 frt=65 → rejected
+  [2/12] https://transports.public.lu/en.html ... tier=M rel=75 frt=65 → rejected
+  [3/12] https://mecb.gouvernement.lu/en.html ... tier=M rel=85 frt=65 → rejected
+  [4/12] https://aev.gouvernement.lu/fr.html ... tier=M rel=85 frt=45 → rejected
+  [5/12] https://environnement.public.lu/fr.html ... tier=M rel=85 frt=35 → rejected
+  [6/12] https://do.gouvernement.lu/en.html ... tier=M rel=65 frt=70 → rejected
+  [7/12] https://logistics.public.lu/en.html ... tier=L rel=45 frt=55 → rejected
+  [8/12] https://legilux.public.lu/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://itm.gouvernement.lu/en.html ... tier=L rel=45 frt=35 → rejected
+  [10/12] https://www.klima-agence.lu/en/ ... tier=M rel=75 frt=35 → rejected
+  [11/12] https://www.ilr.lu/en ... tier=M rel=75 frt=65 → rejected
+  [12/12] https://acf.gouvernement.lu/fr.html ... tier=M rel=65 frt=75 → rejected
+  Tier H: 0  M: 9  L: 3 (0 duplicates) — 79.5s
+  Running cost: Sonnet $1.9000 + Haiku $0.1380 = $2.0380 (19/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: MT (Malta)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 33.1s
+  [1/12] https://www.transport.gov.mt ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.transport.gov.mt/maritime/merchant-shipping-40 ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.transport.gov.mt/maritime/local-waters/maritime-pollution-prevention-and-control/environmental-regulations-6212 ... tier=L rel=- frt=- → rejected
+  [4/12] https://climateaction.gov.mt ... tier=L rel=- frt=- → rejected
+  [5/12] https://era.org.mt ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.rews.org.mt ... tier=M rel=75 frt=25 → rejected
+  [7/12] https://mtca.gov.mt ... tier=L rel=- frt=- → rejected
+  [8/12] https://sustainability.gov.mt ... tier=L rel=- frt=- → rejected
+  [9/12] https://legislation.mt ... tier=M rel=75 frt=55 → rejected
+  [10/12] https://www.gov.mt/en/Government/DOI/Official%20Publications/Pages/Malta-Government-Gazette.aspx ... tier=L rel=- frt=- → rejected
+  [11/12] https://commerce.gov.mt ... tier=L rel=- frt=- → rejected
+  [12/12] https://ewa.org.mt ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 2  L: 10 (0 duplicates) — 46.3s
+  Running cost: Sonnet $2.0000 + Haiku $0.1400 = $2.1400 (20/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: NL (Netherlands)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 5 web_search calls, 35.8s
+  [1/12] https://www.emissionsauthority.nl/ ... tier=M rel=95 frt=85 → rejected
+  [2/12] https://www.government.nl/ministries/ministry-of-infrastructure-and-water-management ... tier=M rel=85 frt=75 → rejected
+  [3/12] https://english.ilent.nl/ ... tier=M rel=85 frt=75 → rejected
+  [4/12] https://english.rvo.nl/ ... tier=M rel=72 frt=45 → rejected
+  [5/12] https://wetten.overheid.nl/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.pbl.nl/en ... tier=M rel=85 frt=45 → rejected
+  [7/12] https://www.belastingdienst.nl/wps/wcm/connect/bldcontenten/belastingdienst/customs/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://english.nvwa.nl/ ... tier=L rel=45 frt=35 → rejected
+  [9/12] https://www.portofrotterdam.com/en ... tier=M rel=75 frt=85 → rejected
+  [10/12] https://www.acm.nl/en ... tier=L rel=- frt=- → rejected
+  [11/12] https://www.kimnet.nl/english ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.nen.nl/en/ ... tier=M rel=75 frt=45 → rejected
+  Tier H: 0  M: 7  L: 5 (0 duplicates) — 91.8s
+  Running cost: Sonnet $2.1000 + Haiku $0.1480 = $2.2480 (21/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: PL (Poland)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 35.9s
+  [1/12] https://www.gov.pl/web/climate ... tier=M rel=85 frt=45 → rejected
+  [2/12] https://www.gov.pl/web/infrastructure ... tier=L rel=35 frt=25 → rejected
+  [3/12] https://www.kobize.pl/en ... tier=M rel=95 frt=65 → rejected
+  [4/12] https://www.ure.gov.pl/en ... tier=M rel=85 frt=45 → rejected
+  [5/12] https://www.itd.gov.pl/en ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.utk.gov.pl/en ... tier=L rel=- frt=- → rejected
+  [7/12] https://puesc.gov.pl/en ... tier=M rel=75 frt=70 → rejected
+  [8/12] https://isap.sejm.gov.pl ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.gddkia.gov.pl/en/ ... tier=M rel=65 frt=75 → rejected
+  [10/12] https://www.pkn.pl/en ... tier=M rel=65 frt=45 → rejected
+  [11/12] https://www.gios.gov.pl/en/ ... tier=M rel=85 frt=45 → rejected
+  [12/12] https://www.nfosigw.gov.pl/en/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 7  L: 5 (0 duplicates) — 82.1s
+  Running cost: Sonnet $2.2000 + Haiku $0.1560 = $2.3560 (22/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: PT (Portugal)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 35.6s
+  [1/12] https://apambiente.pt/en ... tier=M rel=92 frt=65 → rejected
+  [2/12] https://apc.gov.pt ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.dgrm.pt/en ... tier=M rel=75 frt=65 → rejected
+  [4/12] https://www.imt-ip.pt ... tier=M rel=75 frt=72 → rejected
+  [5/12] https://www.dgeg.gov.pt ... tier=M rel=85 frt=45 → rejected
+  [6/12] https://www.ense-epe.pt ... tier=M rel=85 frt=75 → rejected
+  [7/12] https://www.erse.pt ... tier=M rel=85 frt=45 → rejected
+  [8/12] https://dre.pt ... tier=M rel=85 frt=75 → rejected
+  [9/12] https://www.portaldasfinancas.gov.pt ... tier=L rel=25 frt=35 → rejected
+  [10/12] https://www.igamaot.gov.pt ... tier=M rel=82 frt=35 → rejected
+  [11/12] https://www.infraestruturasdeportugal.pt ... tier=L rel=45 frt=55 → rejected
+  [12/12] https://www.ipq.pt ... tier=L rel=45 frt=35 → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 77.0s
+  Running cost: Sonnet $2.3000 + Haiku $0.1670 = $2.4670 (23/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: RO (Romania)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.5s
+  [1/12] https://www.mt.ro/ ... tier=L rel=- frt=- → rejected
+  [2/12] https://www.mmediu.ro/ ... tier=M rel=85 frt=35 → rejected
+  [3/12] https://www.anpm.ro/ ... tier=L rel=- frt=- → rejected
+  [4/12] https://www.arr.ro/ ... tier=M rel=65 frt=75 → rejected
+  [5/12] https://www.gnm.ro/ ... tier=M rel=85 frt=45 → rejected
+  [6/12] https://www.anre.ro/ ... tier=L rel=- frt=- → rejected
+  [7/12] https://energie.gov.ro/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.monitoruloficial.ro/ ... tier=L rel=45 frt=15 → rejected
+  [9/12] https://www.customs.ro/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.anaf.ro/ ... tier=M rel=- frt=- → rejected
+  [11/12] https://www.rna.ro/ ... tier=M rel=75 frt=70 → rejected
+  [12/12] https://www.arf.ro/ ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 5  L: 7 (0 duplicates) — 92.4s
+  Running cost: Sonnet $2.4000 + Haiku $0.1720 = $2.5720 (24/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: SK (Slovakia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 33.4s
+  [1/12] https://www.mindop.sk/en/ ... tier=M rel=75 frt=70 → rejected
+  [2/12] https://nsat.sk/en/home/ ... tier=M rel=75 frt=65 → rejected
+  [3/12] https://www.minzp.sk/en/ ... tier=M rel=85 frt=45 → rejected
+  [4/12] https://www.sazp.sk/en/ ... tier=L rel=- frt=- → rejected
+  [5/12] https://www.urso.gov.sk/en/ ... tier=M rel=75 frt=45 → rejected
+  [6/12] https://www.mhsr.sk/en ... tier=M rel=72 frt=45 → rejected
+  [7/12] https://www.financnasprava.sk/en/ ... tier=L rel=35 frt=45 → rejected
+  [8/12] https://www.ssc.sk/en/ ... tier=L rel=- frt=- → rejected
+  [9/12] https://www.slov-lex.sk/domov ... tier=M rel=75 frt=65 → rejected
+  [10/12] https://www.nrsr.sk/web/ ... tier=L rel=35 frt=15 → rejected
+  [11/12] https://www.siea.sk/en/ ... tier=M rel=85 frt=65 → rejected
+  [12/12] https://www.unms.sk/?lang=en ... tier=M rel=- frt=- → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 79.9s
+  Running cost: Sonnet $2.5000 + Haiku $0.1810 = $2.6810 (25/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: SI (Slovenia)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 34s
+  [1/12] https://www.gov.si/en/state-authorities/ministries/ministry-of-the-environment-climate-and-energy/ ... tier=M rel=85 frt=65 → rejected
+  [2/12] https://www.arso.gov.si/en/ ... tier=M rel=85 frt=45 → rejected
+  [3/12] https://www.uradni-list.si/ ... tier=M rel=85 frt=65 → rejected
+  [4/12] https://www.fu.gov.si/en/ ... tier=L rel=35 frt=45 → rejected
+  [5/12] https://www.agen-rs.si/web/en ... tier=M rel=82 frt=35 → rejected
+  [6/12] https://www.gov.si/en/state-authorities/ministries/ministry-of-natural-resources-and-spatial-planning/ ... tier=M rel=72 frt=28 → rejected
+  [7/12] https://www.gov.si/en/state-authorities/inspectorates/inspectorate-of-the-republic-of-slovenia-for-the-environment-and-energy/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.avp-rs.si/en/ ... tier=L rel=35 frt=25 → rejected
+  [9/12] https://www.gov.si/en/state-authorities/directorates/directorate-for-transport/ ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.luka-kp.si/eng/ ... tier=L rel=45 frt=75 → rejected
+  [11/12] https://kazalci.arso.gov.si/en/content/sustainable-freight-transport-2 ... tier=M rel=85 frt=45 → rejected
+  [12/12] https://www.gov.si/en/registries/projects/the-recovery-and-resilience-plan/about-the-recovery-and-resilience-plan/green-transition/sustainable-mobility/ ... tier=M rel=85 frt=75 → rejected
+  Tier H: 0  M: 7  L: 5 (0 duplicates) — 72.4s
+  Running cost: Sonnet $2.6000 + Haiku $0.1910 = $2.7910 (26/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: ES (Spain)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 31.4s
+  [1/12] https://www.boe.es ... tier=M rel=85 frt=75 → rejected
+  [2/12] https://www.mitma.gob.es ... tier=L rel=- frt=- → rejected
+  [3/12] https://www.miteco.gob.es ... tier=M rel=88 frt=45 → rejected
+  [4/12] https://www.puertos.es/en ... tier=M rel=65 frt=85 → rejected
+  [5/12] https://www.mitma.gob.es/marina-mercante ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.idae.es ... tier=M rel=85 frt=45 → rejected
+  [7/12] https://otle.transportes.gob.es ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/sistema-espanol-de-inventario-sei-.html ... tier=M rel=92 frt=68 → rejected
+  [9/12] https://www.agenciatributaria.es ... tier=L rel=- frt=- → rejected
+  [10/12] https://www.cnmc.es ... tier=L rel=35 frt=25 → rejected
+  [11/12] https://www.une.org ... tier=L rel=- frt=- → rejected
+  [12/12] https://www.mitma.gob.es/transporte-terrestre ... tier=L rel=- frt=- → rejected
+  Tier H: 0  M: 5  L: 7 (0 duplicates) — 57.9s
+  Running cost: Sonnet $2.7000 + Haiku $0.1970 = $2.8970 (27/28 done)
+
+══════════════════════════════════════════════════════════════
+Jurisdiction: SE (Sweden)
+Depth: normal
+Running discovery (Sonnet claude-sonnet-4-6)...
+  12 valid candidates, 4 web_search calls, 30.2s
+  [1/12] https://www.transportstyrelsen.se/en/ ... tier=M rel=75 frt=70 → rejected
+  [2/12] https://www.trafikverket.se/en/startpage/ ... tier=M rel=75 frt=65 → rejected
+  [3/12] https://www.energimyndigheten.se/en/ ... tier=M rel=92 frt=68 → rejected
+  [4/12] https://www.naturvardsverket.se/en/ ... tier=M rel=85 frt=55 → rejected
+  [5/12] https://www.svenskforfattningssamling.se/ ... tier=L rel=- frt=- → rejected
+  [6/12] https://www.riksdagen.se/en/documents-and-laws/ ... tier=M rel=75 frt=65 → rejected
+  [7/12] https://www.government.se/government-policy/transport-and-infrastructure/ ... tier=L rel=- frt=- → rejected
+  [8/12] https://www.tullverket.se/en/ ... tier=M rel=75 frt=70 → rejected
+  [9/12] https://www.trafa.se/en/ ... tier=M rel=65 frt=70 → rejected
+  [10/12] https://www.av.se/en/ ... tier=L rel=35 frt=25 → rejected
+  [11/12] https://www.sis.se/en/ ... tier=M rel=72 frt=45 → rejected
+  [12/12] https://www.sjofartsverket.se/en/ ... tier=L rel=45 frt=55 → rejected
+  Tier H: 0  M: 8  L: 4 (0 duplicates) — 63.5s
+  Running cost: Sonnet $2.8000 + Haiku $0.2070 = $3.0070 (28/28 done)
+
+══════════════════════════════════════════════════════════════
+Region EU complete.
+Processed:    28/28
+Candidates:   336
+Tier H:       0
+Tier M:       164
+Tier L:       172
+Duplicates:   14
+Haiku calls:  207
+Wall time:    2066.9s
+Total cost:   $3.0070 (Sonnet $2.8000 + Haiku $0.2070)
+Wrote:        C:\Users\jason\dotfiles\docs\W3-tier1-EU-results.json
+══════════════════════════════════════════════════════════════

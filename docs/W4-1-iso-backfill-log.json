@@ -1,0 +1,638 @@
+{
+  "generated_at": "2026-05-05T16:34:27.361Z",
+  "extended_mapping_count": 40,
+  "total_candidate_rows": 41,
+  "updated": 41,
+  "fell_back_to_global": 13,
+  "errors": 0,
+  "decisions": [
+    {
+      "id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+      "legacy_id": "g12",
+      "title": "ECLAC (UN Latin America)",
+      "legacy_jurisdictions": [
+        "latam"
+      ],
+      "source_host": "cepal.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+      "legacy_id": "g13",
+      "title": "Brazil Logística Reversa",
+      "legacy_jurisdictions": [
+        "latam"
+      ],
+      "source_host": "gov.br",
+      "derived_iso": [
+        "BR"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "6373df1e-1461-478e-b480-70dee471d597",
+      "legacy_id": "g14",
+      "title": "Mexico SEMARNAT",
+      "legacy_jurisdictions": [
+        "latam"
+      ],
+      "source_host": "dof.gob.mx",
+      "derived_iso": [
+        "MX"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+      "legacy_id": "g15",
+      "title": "Colombian Ministry of Transport",
+      "legacy_jurisdictions": [
+        "latam"
+      ],
+      "source_host": "mintransporte.gov.co",
+      "derived_iso": [
+        "CO"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "content"
+      ]
+    },
+    {
+      "id": "b680a0b8-239c-4556-b627-aebddbbfae60",
+      "legacy_id": "g16",
+      "title": "IDB Sustainable LatAm Transport",
+      "legacy_jurisdictions": [
+        "latam"
+      ],
+      "source_host": "iadb.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "cec7d711-13b2-41f0-8016-76c988f116ab",
+      "legacy_id": "g17",
+      "title": "MPA Singapore Green Shipping",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "mpa.gov.sg",
+      "derived_iso": [
+        "SG"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "68e05861-c953-485d-b081-cb6777dcfd99",
+      "legacy_id": "g18",
+      "title": "Japan MLIT",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "mlit.go.jp",
+      "derived_iso": [
+        "JP"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "b293a2b6-c882-44dc-8efc-a801ed6a160b",
+      "legacy_id": "g19",
+      "title": "South Korea MOF",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "mof.go.kr",
+      "derived_iso": [
+        "KR",
+        "EU",
+        "SG",
+        "AU",
+        "DK"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+      "legacy_id": "g20",
+      "title": "Singapore Green Plan 2030",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "greenplan.gov.sg",
+      "derived_iso": [
+        "SG"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "legacy_id": "g21",
+      "title": "ADB Sustainable Transport",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "adb.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "935680f5-6915-4241-a9b5-7e450143bc0f",
+      "legacy_id": "g22",
+      "title": "China CCICED",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "english.mee.gov.cn",
+      "derived_iso": [
+        "CN"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "7566f099-a143-4cd8-8172-06307f8f187d",
+      "legacy_id": "g23",
+      "title": "Australia Climate Change Authority",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "climatechangeauthority.gov.au",
+      "derived_iso": [
+        "AU"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "ad5b78ea-ddf1-4df0-a532-0d2829df96cf",
+      "legacy_id": "g24",
+      "title": "ASEAN Transport Strategic Plan",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "asean.org",
+      "derived_iso": [
+        "SG",
+        "ID",
+        "MY",
+        "PH"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "content"
+      ]
+    },
+    {
+      "id": "b0d9737e-5e8a-4a81-89bb-921c172219fd",
+      "legacy_id": "g25",
+      "title": "DP World Sustainability",
+      "legacy_jurisdictions": [
+        "meaf"
+      ],
+      "source_host": "dpworld.com",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "8ff93a7e-5256-4d31-959b-2172de16ae8f",
+      "legacy_id": "g26",
+      "title": "IRENA Abu Dhabi",
+      "legacy_jurisdictions": [
+        "meaf"
+      ],
+      "source_host": "irena.org",
+      "derived_iso": [
+        "EU",
+        "AE"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "content"
+      ]
+    },
+    {
+      "id": "c1626e9c-032f-451d-b037-b0437a43a3bb",
+      "legacy_id": "ss1",
+      "title": "EU PPWD 94/62/EC",
+      "legacy_jurisdictions": [],
+      "source_host": null,
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "8ef75b0c-9216-4fd4-864e-753810bd3e74",
+      "legacy_id": "ss2",
+      "title": "CSRD 250+ employees threshold",
+      "legacy_jurisdictions": [],
+      "source_host": null,
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "f9c3cc30-761d-4fd9-ab85-ddb5247c1bd2",
+      "legacy_id": "ss3",
+      "title": "EPA 2009 Endangerment Finding",
+      "legacy_jurisdictions": [],
+      "source_host": null,
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "608e6dae-c5c7-4ba0-be68-a3fa602d0fe9",
+      "legacy_id": "ss4",
+      "title": "IMO 2018 GHG Strategy (50% by 2050)",
+      "legacy_jurisdictions": [],
+      "source_host": null,
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "3b2a3a17-0953-4eb2-a307-da1a0aa8d2bc",
+      "legacy_id": "ss5",
+      "title": "Voluntary IMO GHG measures only",
+      "legacy_jurisdictions": [],
+      "source_host": null,
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "afc851b1-4413-4d8a-8462-8b726b11ce45",
+      "legacy_id": null,
+      "title": "Marine Fuel Decarbonisation Pathways",
+      "legacy_jurisdictions": [],
+      "source_host": "imo.org",
+      "derived_iso": [
+        "IMO"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "663f593c-8834-45c9-bddd-05c334538c54",
+      "legacy_id": null,
+      "title": "Maritime Chokepoint Monitoring",
+      "legacy_jurisdictions": [],
+      "source_host": "iea.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host"
+      ]
+    },
+    {
+      "id": "262ac5f2-4fbe-4968-bde7-f5f68821cc59",
+      "legacy_id": null,
+      "title": "Critical Minerals & EV Supply Chain",
+      "legacy_jurisdictions": [],
+      "source_host": "irena.org",
+      "derived_iso": [
+        "CL",
+        "CN",
+        "AU"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "content"
+      ]
+    },
+    {
+      "id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+      "legacy_id": null,
+      "title": "India Regional Operations Profile",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "transportpolicy.net",
+      "derived_iso": [
+        "IN"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "content"
+      ]
+    },
+    {
+      "id": "5b8f3e8a-8096-4392-9c66-1c7d7b0e6385",
+      "legacy_id": null,
+      "title": "Packaging Material Input Costs",
+      "legacy_jurisdictions": [],
+      "source_host": "fred.stlouisfed.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+      "legacy_id": null,
+      "title": "Sustainable Aviation Fuel (SAF) Production & Pricing",
+      "legacy_jurisdictions": [],
+      "source_host": "iata.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "f6774c49-f277-4882-ba29-b911985a427a",
+      "legacy_id": null,
+      "title": "Hydrogen & Ammonia as Maritime Fuel",
+      "legacy_jurisdictions": [],
+      "source_host": "futurefuels.imo.org",
+      "derived_iso": [
+        "IMO"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host"
+      ]
+    },
+    {
+      "id": "66835398-477c-470a-a9a5-7e6d22cf4ad7",
+      "legacy_id": null,
+      "title": "Singapore Regional Operations Profile",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "mot.gov.sg",
+      "derived_iso": [
+        "SG"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "c26f4ac6-cd91-4bc8-b0c2-84766f9072f6",
+      "legacy_id": null,
+      "title": "Carbon Allowance Price Intelligence",
+      "legacy_jurisdictions": [],
+      "source_host": "carbonpricingdashboard.worldbank.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host"
+      ]
+    },
+    {
+      "id": "e9ed1215-57dc-4082-a28e-6c49673aabae",
+      "legacy_id": null,
+      "title": "Japan Regional Operations Profile",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "mlit.go.jp",
+      "derived_iso": [
+        "JP",
+        "KR"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+      "legacy_id": null,
+      "title": "Solar & Battery Energy Storage for Warehouses",
+      "legacy_jurisdictions": [],
+      "source_host": "nrel.gov",
+      "derived_iso": [
+        "US"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "14fea5cd-fbbd-426e-9b66-8bcf05ae730c",
+      "legacy_id": null,
+      "title": "Australia Regional Operations Profile",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "climatechangeauthority.gov.au",
+      "derived_iso": [
+        "AU"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "5ea46db2-00e5-4eda-90d1-11f7e97ec4db",
+      "legacy_id": null,
+      "title": "Trade Restrictions & Industrial Policy",
+      "legacy_jurisdictions": [],
+      "source_host": "eur-lex.europa.eu",
+      "derived_iso": [
+        "EU"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host"
+      ]
+    },
+    {
+      "id": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+      "legacy_id": null,
+      "title": "Autonomous & Connected Freight Technology",
+      "legacy_jurisdictions": [],
+      "source_host": "itf-oecd.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "0658844a-5f65-4444-89fb-bf73a22bafc6",
+      "legacy_id": null,
+      "title": "Dubai / UAE Regional Operations Profile",
+      "legacy_jurisdictions": [
+        "meaf"
+      ],
+      "source_host": "u.ae",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": true,
+      "strategies_hit": []
+    },
+    {
+      "id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+      "legacy_id": null,
+      "title": "Crude Oil & Jet Fuel Price Intelligence",
+      "legacy_jurisdictions": [],
+      "source_host": "eia.gov",
+      "derived_iso": [
+        "US",
+        "SG"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "6304a9f0-6340-4c6d-90b6-a7321190bb42",
+      "legacy_id": null,
+      "title": "Melbourne NABERS & Victorian Building Efficiency Standards",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "energy.vic.gov.au",
+      "derived_iso": [
+        "AU",
+        "GB"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+      "legacy_id": null,
+      "title": "Battery & Electric Vehicle Technology",
+      "legacy_jurisdictions": [],
+      "source_host": "iea.org",
+      "derived_iso": [
+        "GLOBAL"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host"
+      ]
+    },
+    {
+      "id": "c4ad4cc5-ab5f-4e21-a422-bf12b5f992b4",
+      "legacy_id": null,
+      "title": "China (PRC) Regional Operations Profile",
+      "legacy_jurisdictions": [
+        "asia"
+      ],
+      "source_host": "npc.gov.cn",
+      "derived_iso": [
+        "CN"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "b8da154a-149e-483a-9198-7039850006fc",
+      "legacy_id": null,
+      "title": "LNG & Natural Gas Price Intelligence",
+      "legacy_jurisdictions": [],
+      "source_host": "eia.gov",
+      "derived_iso": [
+        "US",
+        "JP",
+        "NL"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    },
+    {
+      "id": "053123bc-2c11-45ec-a5a1-83828b666b11",
+      "legacy_id": null,
+      "title": "Brazil Regional Operations Profile",
+      "legacy_jurisdictions": [
+        "latam"
+      ],
+      "source_host": "antt.gov.br",
+      "derived_iso": [
+        "BR"
+      ],
+      "fell_back_to_global": false,
+      "strategies_hit": [
+        "host",
+        "content"
+      ]
+    }
+  ],
+  "elapsed_ms": 6662
+}

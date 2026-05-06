@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-05-05T16:39:00.779Z",
+  "status": "ok",
+  "carb_source": {
+    "id": "45140924-25b6-4d2c-abe5-11a65386acdc",
+    "name": "California Air Resources Board (CARB)",
+    "url": "https://ww2.arb.ca.gov"
+  },
+  "audit_loaded": true,
+  "audit_item_ids_in_audit": [
+    "956bad5c-80b0-411b-8fd5-726cc0d4a333"
+  ],
+  "candidates": 2,
+  "updated": 2,
+  "skipped_already_correct": 0,
+  "skipped_other_correct_source": 0,
+  "errors": 0,
+  "decisions": [
+    {
+      "item_id": "4688fc47-9c55-45ef-91e6-3524df3d95a7",
+      "legacy_id": null,
+      "title": "California Advanced Clean Fleets Rule",
+      "source_url": "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-fleets-rule",
+      "previous_source_id": null,
+      "in_audit": false,
+      "action": "rewired_to_carb",
+      "new_source_id": "45140924-25b6-4d2c-abe5-11a65386acdc"
+    },
+    {
+      "item_id": "956bad5c-80b0-411b-8fd5-726cc0d4a333",
+      "legacy_id": "l7",
+      "title": "CARB Advanced Clean Trucks",
+      "source_url": "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-trucks",
+      "previous_source_id": "e568e55d-5436-4f5b-9508-35091b9d5bcc",
+      "in_audit": true,
+      "action": "rewired_to_carb",
+      "new_source_id": "45140924-25b6-4d2c-abe5-11a65386acdc"
+    }
+  ],
+  "elapsed_ms": 1074
+}
