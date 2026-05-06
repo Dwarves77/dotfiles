@@ -21,13 +21,17 @@ Not a regulation tracker — a source monitoring system covering 7 intelligence 
 
 **Rule: no perf dispatch without measurement evidence.** Before any "perf wave," "code-split," "lazy-load," or "reduce X" dispatch, the first deliverable is a measurement that justifies the lever. If the measurement says the lever does not move the bottleneck, the dispatch is wrong and gets rewritten — not executed anyway. The full workflow lives in [docs/PERF-PLAYBOOK.md](../../docs/PERF-PLAYBOOK.md).
 
-The instruments are wired and ready:
-- **Vercel Speed Insights** (`<SpeedInsights />` in `src/app/layout.tsx`) — real-user LCP/FCP/INP/CLS/TTFB per route. Read at https://vercel.com/dwarves77s-projects/carosledge/speed-insights.
-- **Vercel Analytics** (`<Analytics />` in `src/app/layout.tsx`) — page traffic + custom events. Read at https://vercel.com/dwarves77s-projects/carosledge/analytics.
+### Live now (free, build-time)
 - **`@next/bundle-analyzer`** — run `npm run analyze` to produce per-chunk composition reports at `.next/analyze/`.
-- **`scripts/measure-bundles.mjs`** — run `npm run perf:bundles` after a build for a grep-able per-route entry-vs-async chunk inventory. Snapshot before and after a perf change to confirm direction.
+- **`scripts/measure-bundles.mjs`** — run `npm run perf:bundles` after a build for a grep-able per-route entry-vs-async chunk inventory. Snapshot before and after a perf change to confirm direction. Baseline at `docs/perf-snapshot-2026-05-06.txt`.
 
-Anti-patterns logged in the playbook from past failures:
+### Deferred until traffic warrants it
+- **Vercel Speed Insights** (real-user Web Vitals) — deferred, not rejected. Single-tenant pre-pilot traffic is too sparse to drive decisions. Reactivate when daily sessions per top route reach ~100+ and at least one perf question on the table genuinely requires RUM. Cost at reactivation: $10/month/project on Pro.
+- **Vercel Analytics** (page traffic + custom events) — same posture, same reactivation criteria, same $10/month at Plus tier. Typically enabled together with Speed Insights.
+
+The deferral criterion is **traffic volume, not budget**. When the platform onboards a second org or the Dietl/Rockit pilot expands, revisit. Until then, build-time analysis is the right tool.
+
+### Anti-patterns (logged in the playbook from past failures)
 - The 2026-05-06 code-split wave: wrapped 6 heavy client components in `next/dynamic({ ssr: true })` from server pages. Net effect was +1.4 kB regression per route because `ssr: true` from a server component does NOT defer chunks in App Router; deferral requires `ssr: false` in a client-component shim, which violates SSR. Read `docs/PERF-PLAYBOOK.md` § "Anti-patterns" before reaching for `dynamic()`.
 
 **When to skip the playbook**: clear bug fixes (e.g., the ISR Writes burn was a single misconfigured `revalidate=60` line), correctness-driven work that happens to also affect perf, or architectural changes whose math-confirmed gain is the proof. Perf-FIRST work follows the playbook.

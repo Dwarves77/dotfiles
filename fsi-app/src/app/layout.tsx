@@ -7,8 +7,6 @@ const anton = Anton({
   variable: "--font-anton",
   display: "swap",
 });
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppShell } from "@/components/AppShell";
@@ -65,8 +63,6 @@ export default async function RootLayout({
           <ThemeInitializer />
           <AppShell>{children}</AppShell>
         </AuthProvider>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );

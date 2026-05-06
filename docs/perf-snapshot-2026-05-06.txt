@@ -7,22 +7,22 @@ Per-route client bundle inventory
 
 Route                            |   Entry (First Load) | Route-specific entry |     All client (entry+async)
 ---------------------------------|----------------------|----------------------|------------------------------
-/                                 |             318.6 kB |              33.5 kB |                     352.3 kB
-/admin                            |             419.2 kB |             134.0 kB |                     452.8 kB
-/community                        |             318.8 kB |              33.6 kB |                     352.4 kB
-/community/browse                 |             325.9 kB |              40.8 kB |                     359.6 kB
-/login                            |             288.6 kB |               3.4 kB |                     322.3 kB
-/map                              |             303.1 kB |              18.0 kB |                     336.8 kB
-/market                           |             304.9 kB |              19.7 kB |                     338.5 kB
-/onboarding                       |             311.6 kB |              26.5 kB |                     345.3 kB
-/operations                       |             306.1 kB |              21.0 kB |                     339.8 kB
-/profile                          |             304.1 kB |              18.9 kB |                     337.8 kB
-/regulations                      |             310.5 kB |              25.3 kB |                     344.2 kB
-/regulations/[slug]               |             462.9 kB |             177.7 kB |                     496.6 kB
-/research                         |             304.1 kB |              19.0 kB |                     337.8 kB
-/settings                         |             322.5 kB |              37.4 kB |                     356.2 kB
+/                                 |             312.1 kB |              33.5 kB |                     345.8 kB
+/admin                            |             412.6 kB |             134.0 kB |                     446.3 kB
+/community                        |             312.2 kB |              33.6 kB |                     345.9 kB
+/community/browse                 |             319.4 kB |              40.8 kB |                     353.0 kB
+/login                            |             282.0 kB |               3.4 kB |                     315.7 kB
+/map                              |             296.6 kB |              18.0 kB |                     330.3 kB
+/market                           |             298.3 kB |              19.7 kB |                     332.0 kB
+/onboarding                       |             305.1 kB |              26.5 kB |                     338.7 kB
+/operations                       |             299.6 kB |              21.0 kB |                     333.2 kB
+/profile                          |             297.5 kB |              18.9 kB |                     331.2 kB
+/regulations                      |             303.9 kB |              25.3 kB |                     337.6 kB
+/regulations/[slug]               |             456.3 kB |             177.7 kB |                     490.0 kB
+/research                         |             297.6 kB |              19.0 kB |                     331.3 kB
+/settings                         |             316.0 kB |              37.4 kB |                     349.7 kB
 
-Shared layout chunks: 3 files, 285.1 kB (counted once in Entry totals above)
+Shared layout chunks: 3 files, 278.6 kB (counted once in Entry totals above)
 
 Reading guide:
   - Entry is what users pay before hydration. This is the metric to drive down.

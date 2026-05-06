@@ -14,37 +14,11 @@ Two consecutive sessions optimized in the dark. PR #29 (perf wave) shipped real 
 
 The negative result was the right outcome of the experiment. The wrong part was running the experiment without first checking whether the bottleneck it targeted was the actual bottleneck. The instruments we needed already exist on Vercel and in the npm ecosystem; we just hadn't installed them.
 
-## The three instruments
+## The instruments
 
-### 1. Vercel Speed Insights (production user latencies)
+### Live now (free, build-time)
 
-Wired in `src/app/layout.tsx` via `<SpeedInsights />`. Reports real-user Web Vitals per route to the Vercel dashboard. Free with Pro plan up to 25K events/month.
-
-What it tells you:
-- **LCP** (Largest Contentful Paint) — when the main content visible above the fold finishes rendering.
-- **FCP** (First Contentful Paint) — when ANYTHING first appears on screen.
-- **INP** (Interaction to Next Paint) — how laggy the page feels during input.
-- **CLS** (Cumulative Layout Shift) — how much content jumps during load.
-- **TTFB** (Time to First Byte) — server response time.
-
-Where to read it: `https://vercel.com/dwarves77s-projects/carosledge/speed-insights`.
-
-What to look at FIRST when something feels slow:
-- Compare TTFB vs LCP. If TTFB is 2s and LCP is 2.4s, the bottleneck is server (Supabase queries, RSC payload, server-side rendering). Bundle/JS work won't fix it.
-- If TTFB is 200ms and LCP is 4s, the bottleneck is client (JS parse + execute, render-blocking resources, hydration). THEN bundle work might help.
-- If INP is bad on a route with heavy interactions, the bottleneck is render thread blocking, not initial load.
-
-### 2. Vercel Analytics (page-level traffic + custom events)
-
-Wired in `src/app/layout.tsx` via `<Analytics />`. Tracks page views, referrers, top routes. Free with Pro plan up to 25K events/month.
-
-What it tells you:
-- Which routes actually get traffic. Optimizing `/community/moderation` over `/regulations/[slug]` is wrong if 95% of users live on `/regulations/[slug]`.
-- Custom event tracking is available via `track()` from `@vercel/analytics`. Use it sparingly — only when you need to measure a specific user action that Speed Insights doesn't already cover (e.g., "AI bar response time," "tab switch latency").
-
-Where to read it: `https://vercel.com/dwarves77s-projects/carosledge/analytics`.
-
-### 3. @next/bundle-analyzer (composition of each chunk)
+#### 1. `@next/bundle-analyzer` (composition of each chunk)
 
 Wired in `next.config.ts` behind `ANALYZE=true`. Run with `npm run analyze`. Outputs static HTML reports to `.next/analyze/` showing exactly which dependencies make up each chunk.
 
@@ -55,22 +29,56 @@ What it tells you:
 
 Use it BEFORE proposing what to split or replace. Use `npm run perf:bundles` for the grep-able tabular companion view.
 
-### 4. `scripts/measure-bundles.mjs` (per-route entry vs total inventory)
+#### 2. `scripts/measure-bundles.mjs` (per-route entry vs total inventory)
 
 Run with `npm run perf:bundles` after a build. Prints a clean diffable table of every tracked route showing Entry (First Load JS), route-specific entry, and All client (entry + async chunks). Snapshot before and after a perf change to confirm direction.
 
 This is complementary to the analyzer — analyzer is GUI for composition, this script is CLI for trends.
+
+### Deferred until traffic warrants it
+
+#### Vercel Speed Insights (real-user Web Vitals)
+
+**Status: deferred, not rejected.** Reports real-user LCP / FCP / INP / CLS / TTFB per route to the Vercel dashboard.
+
+Why deferred: Speed Insights is a real-user-monitoring (RUM) tool. Its value scales with user traffic. At current platform usage (single-tenant pre-pilot), the data would be too sparse to drive decisions — a handful of sessions per route per day produces noise, not signal. Build-time bundle analysis already gives us evidence-grounded perf decisions for the architecture we ship.
+
+Reactivation criteria — **enable when ALL of these hold:**
+- Real user traffic on production reaches a level where p75 figures stabilize across days (rule of thumb: ~100+ distinct daily sessions per top route).
+- Likely trigger: after Dietl/Rockit pilot expands beyond initial sandbox accounts, or when the platform onboards a second org.
+- A specific perf question is on the table that ONLY RUM can answer (e.g., "are real users experiencing slow LCP on cellular networks in EU?").
+
+Cost at reactivation: Speed Insights Plus is $10/month/project on Pro tier as of 2026-05.
+
+How to reactivate: `npm install @vercel/speed-insights`, add `<SpeedInsights />` to `src/app/layout.tsx` body, redeploy. Read at `https://vercel.com/dwarves77s-projects/carosledge/speed-insights`.
+
+#### Vercel Analytics (page traffic + custom events)
+
+**Status: deferred, not rejected.** Tracks page views, referrers, top routes, and custom events.
+
+Why deferred: same reasoning as Speed Insights — RUM-class data needs traffic to be statistically meaningful. With sparse usage, the dashboard would mostly mirror what we already know from access logs.
+
+Reactivation criteria: same as Speed Insights. The two should typically be enabled together — they share the traffic threshold.
+
+Cost at reactivation: Web Analytics Plus is $10/month/project on Pro tier as of 2026-05. Free Web Analytics tier exists with hard limits but is better skipped — if you want the data, pay for the unrestricted tier when you turn it on.
+
+How to reactivate: `npm install @vercel/analytics`, add `<Analytics />` to `src/app/layout.tsx` body, redeploy. Read at `https://vercel.com/dwarves77s-projects/carosledge/analytics`.
+
+### When you're ready to flip RUM on
+
+Don't add Speed Insights and Analytics speculatively to "have data later." They cost recurring money and add ~6.5 kB to the shared layout chunk. Add them when you have a specific perf question RUM is the right tool to answer, and traffic is sufficient to give the answer signal — not noise.
 
 ## The standard workflow for a perf dispatch
 
 1. **State the symptom.** "Page X feels slow," "Vercel Usage shows ISR Writes spiking," "build takes too long," etc. Don't propose a fix yet.
 
 2. **Read the instruments first.**
-   - Speed Insights for LCP/FCP/INP/CLS/TTFB on the slow route.
-   - Analytics to confirm the route actually has traffic worth optimizing.
-   - Bundle analyzer + `perf:bundles` if the symptom looks bundle-related.
-   - Vercel Usage tab for ISR/Function/Image quotas.
-   - `console.log("[perf] ...")` server timing logs from production logs if the symptom is server-side.
+   - Bundle analyzer (`npm run analyze`) + `perf:bundles` if the symptom looks bundle-related.
+   - Vercel Usage tab for ISR / Function / Image quotas — this is the cost surface.
+   - `console.log("[perf] ...")` server timing logs from production logs if the symptom is server-side. Most slow-page reports today resolve here, not in the bundle.
+   - Vercel Function logs for cold-start vs warm-execution timing differences.
+   - If RUM is enabled (deferred — see "The instruments" section): Speed Insights for LCP/FCP/INP/CLS/TTFB, Analytics to confirm the route has traffic worth optimizing.
+   - If RUM is NOT yet enabled and the question genuinely requires real-user data: that's the trigger to evaluate enabling RUM, not to optimize blind.
 
 3. **Identify the actual bottleneck.** Map the slow metric to a layer:
    - Server: Supabase round-trips, RSC payload size, ISR misses, no caching.
