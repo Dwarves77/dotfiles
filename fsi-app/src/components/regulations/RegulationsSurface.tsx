@@ -57,6 +57,10 @@ interface RegulationsSurfaceProps {
   // platform total" tooltip on the count heading. Null when Supabase is
   // not reachable — heading degrades to the matched count alone.
   platformTotal?: number | null;
+  // Initial priority filter from ?priority=CRITICAL etc. Drives the
+  // dashboard tile → regulations deep link. Falls back to "all priorities
+  // active" when null/invalid.
+  initialPriorityFilter?: string | null;
 }
 
 // Column titles use the shared PRIORITY_DISPLAY_LABEL editorial vocabulary
@@ -89,6 +93,7 @@ export function RegulationsSurface({
   initialArchived,
   initialOverrides = [],
   platformTotal = null,
+  initialPriorityFilter = null,
 }: RegulationsSurfaceProps) {
   const {
     resources: platformResources,
@@ -102,8 +107,19 @@ export function RegulationsSurface({
   const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
 
   const [search, setSearch] = useState("");
+  // Honor ?priority=CRITICAL etc. on first paint so dashboard tile clicks
+  // land on the priority-filtered kanban. Validates against the closed
+  // PriorityKey vocabulary; anything else falls back to "all priorities".
+  const initialPrioritySet = useMemo<Set<string>>(() => {
+    const upper = (initialPriorityFilter || "").toUpperCase();
+    if (PRIORITIES.includes(upper as PriorityKey)) {
+      return new Set([upper]);
+    }
+    return new Set(PRIORITIES);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [activePriorities, setActivePriorities] = useState<Set<string>>(
-    new Set(PRIORITIES)
+    initialPrioritySet
   );
   const [activeTopics, setActiveTopics] = useState<Set<string>>(new Set());
   const [activeRegions, setActiveRegions] = useState<Set<string>>(new Set());

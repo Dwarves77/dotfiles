@@ -20,8 +20,13 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
 
-export default async function RegulationsPage() {
+export default async function RegulationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ priority?: string }>;
+}) {
   const t0 = Date.now();
+  const { priority: priorityParam } = await searchParams;
   const data = await getResourcesOnly();
 
   // Resolve the platform-total regulation count for the count tooltip.
@@ -72,6 +77,7 @@ export default async function RegulationsPage() {
         initialArchived={data.archived}
         initialOverrides={data.overrides}
         platformTotal={platformTotal}
+        initialPriorityFilter={priorityParam ?? null}
       />
     </>
   );

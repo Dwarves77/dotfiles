@@ -169,7 +169,11 @@ export function OperationsPage({ initialResources }: OperationsPageProps) {
         </div>
 
         {tab === "juris" && (
-          <JurisdictionPanel regions={regions} totalItems={filteredRegional.length} />
+          <JurisdictionPanel
+            regions={regions}
+            totalItems={filteredRegional.length}
+            priorityFilter={priorityFilter}
+          />
         )}
         {tab === "facility" && (
           <FacilityPanel items={filteredFacility} />
@@ -229,7 +233,22 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 // ── By Jurisdiction Panel ──
 
-function JurisdictionPanel({ regions, totalItems }: { regions: RegionGroup[]; totalItems: number }) {
+function JurisdictionPanel({
+  regions,
+  totalItems,
+  priorityFilter,
+}: {
+  regions: RegionGroup[];
+  totalItems: number;
+  priorityFilter: PriorityKey | null;
+}) {
+  // When the priority tile is active, the side-rail "X jurisdictions"
+  // count drops because regions with no items at that priority drop out
+  // of the group-by. Make that explicit in the copy so the user doesn't
+  // wonder where the missing jurisdictions went.
+  const priorityLabel = priorityFilter
+    ? priorityFilter.charAt(0) + priorityFilter.slice(1).toLowerCase()
+    : null;
   return (
     <section
       className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] grid-cols-1"
@@ -269,7 +288,10 @@ function JurisdictionPanel({ regions, totalItems }: { regions: RegionGroup[]; to
       <aside className="space-y-3 hidden lg:block">
         <SideCard label="Coverage">
           <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-            <b>{regions.length} jurisdictions</b> with data. {totalItems === 0 ? "Worker has not yet ingested regional_data items." : "Coverage expands as the source monitoring system ingests regional_data items."}
+            <b>{regions.length} jurisdictions</b>
+            {priorityLabel ? ` at ${priorityLabel} priority` : " with data"}.
+            {" "}
+            {totalItems === 0 ? "Worker has not yet ingested regional_data items." : priorityLabel ? "Clear the priority tile to see all coverage." : "Coverage expands as the source monitoring system ingests regional_data items."}
           </p>
         </SideCard>
         <SideCard label="Methodology">

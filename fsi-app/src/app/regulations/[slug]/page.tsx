@@ -55,16 +55,23 @@ export default async function RegulationDetailPage({
   // Note: redirect() throws a Next-internal NEXT_REDIRECT error to
   // perform the redirect, so it must be called OUTSIDE the try/catch
   // (otherwise the catch swallows the redirect).
+  // RLS doesn't grant anon access to direct base-table SELECTs on
+  // intelligence_items, so this lookup uses the service-role key (server
+  // file, never exposed to client). Without it, every UUID lookup
+  // returned null and the redirect never fired — every old UUID URL 404'd.
   let redirectTo: string | null = null;
   if (
     UUID_RE.test(id) &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   ) {
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        process.env.SUPABASE_SERVICE_ROLE_KEY ||
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false } }
       );
       const { data: byId } = await supabase
         .from("intelligence_items")
@@ -104,12 +111,18 @@ export default async function RegulationDetailPage({
   if (
     relatedIds.length > 0 &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   ) {
     try {
+      // Service-role for the related-items lookup — same RLS reasoning as
+      // the UUID redirect above. The lookup is by id/legacy_id only,
+      // returns title + priority, no sensitive fields.
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        process.env.SUPABASE_SERVICE_ROLE_KEY ||
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false } }
       );
       const uuidRe =
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
