@@ -3,39 +3,68 @@
 /**
  * MarketPage — /market route.
  *
- * Matches design_handoff_2026-04/preview/market-intel.html:
- *   - EditorialMasthead
- *   - Watch / Elevated / Stable / Informational legend
- *   - 4-up StatStrip with Watch primary tile
+ * Matches design_handoff_2026-04/preview/market-intel.html and the
+ * Wave 2 PR-G dispatch (Market Intel content pattern + F11b template
+ * propagation):
+ *
+ * Page chrome:
+ *   - EditorialMasthead with title, meta, legend, 4-up StatStrip
  *   - AiPromptBar with market chips
  *   - Tabs: "Technology Readiness" | "Price Signals & Trade"
  *
- * Data sources (from intelligence_items):
- *   - Tech tab: items where item_type IN ("technology", "innovation").
- *     Grouped by category column (Resource.topic).
- *   - Price Signals tab: items where item_type === "market_signal".
- *     Grouped by category, surfaced as price-row cards with the
- *     "Why this matters to your business" call-out (item.whyMatters).
+ * Each tab body shares the SAME structural template (this is the F11b
+ * parity contract — Tech Readiness mirrors Price Signals & Trade):
+ *   - Two-column layout (main + 320px right rail)
+ *   - Main column:
+ *       PolicySignals (POLICY ACCELERATION SIGNALS, sourced badges per CC3)
+ *       FreightRelevanceCallout (yellow Dietl/Rockit-specific framing)
+ *       KeyMetricsRow (KEY METRICS rows with delta indicators)
+ *       CostTrajectoryChart (multi-line per cargo vertical)
+ *       Category accordions (existing item feed)
+ *   - Right rail:
+ *       WatchlistSidebar (highest-lifecycle items)
+ *       OwnersContent (per-owner feed)
+ *       Watch / Methodology side cards (preserved from prior pattern)
  *
- * Lifecycle labels (Watch / Elevated / Stable / Informational) map from
- * the existing severity/priority field per the design_handoff lifecycle
- * table:
+ * Data sources (from intelligence_items via Resource):
+ *   - Tech tab: items where item_type IN ("technology", "innovation")
+ *     OR domain === 2. Grouped by category column (Resource.topic).
+ *   - Price Signals tab: items where item_type === "market_signal"
+ *     OR domain === 4. Grouped by category, surfaced as price-row cards.
+ *
+ * URL params:
+ *   - ?priority=CRITICAL|HIGH|MODERATE|LOW pre-filters the StatStrip
+ *     toggle. Powers the dashboard hero callout deep link (PR-G F4/F5).
+ *   - ?tab=tech|prices selects the active tab (default: tech).
+ *
+ * Lifecycle labels mapping from priority:
  *   CRITICAL → Watch
  *   HIGH     → Elevated
  *   MODERATE → Stable
  *   LOW      → Informational
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronDown, AlertTriangle } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { WatchlistSidebar } from "@/components/market/WatchlistSidebar";
+import { KeyMetricsRow } from "@/components/market/KeyMetricsRow";
+import { CostTrajectoryChart } from "@/components/market/CostTrajectoryChart";
+import { PolicySignals } from "@/components/market/PolicySignals";
+import { FreightRelevanceCallout } from "@/components/market/FreightRelevanceCallout";
+import { OwnersContent } from "@/components/market/OwnersContent";
 import type { Resource } from "@/types/resource";
 
 interface MarketPageProps {
   initialResources: Resource[];
 }
+
+type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+type TabKey = "tech" | "prices";
 
 const LEGEND: Array<{ tone: StatTone; label: string; helper: string }> = [
   { tone: "critical", label: "Watch",         helper: "Threshold breached" },
@@ -54,8 +83,6 @@ const TONE_COLOR: Record<StatTone, string> = {
   muted: "var(--text-2)",
 };
 
-// Lifecycle label mapping from priority. Watch is the urgency-equivalent
-// of CRITICAL on this surface; Elevated/Stable/Informational follow.
 const LIFECYCLE: Record<Resource["priority"], { tone: StatTone; label: string }> = {
   CRITICAL: { tone: "critical", label: "Watch" },
   HIGH:     { tone: "high",     label: "Elevated" },
@@ -63,11 +90,37 @@ const LIFECYCLE: Record<Resource["priority"], { tone: StatTone; label: string }>
   LOW:      { tone: "low",      label: "Informational" },
 };
 
-type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+function isPriorityKey(s: string | null): s is PriorityKey {
+  return s === "CRITICAL" || s === "HIGH" || s === "MODERATE" || s === "LOW";
+}
+function isTabKey(s: string | null): s is TabKey {
+  return s === "tech" || s === "prices";
+}
 
 export function MarketPage({ initialResources }: MarketPageProps) {
-  const [tab, setTab] = useState<"tech" | "prices">("tech");
-  const [priorityFilter, setPriorityFilter] = useState<PriorityKey | null>(null);
+  const searchParams = useSearchParams();
+
+  const initialPriority = isPriorityKey(searchParams.get("priority"))
+    ? (searchParams.get("priority") as PriorityKey)
+    : null;
+  const initialTab: TabKey = isTabKey(searchParams.get("tab"))
+    ? (searchParams.get("tab") as TabKey)
+    : "tech";
+
+  const [tab, setTab] = useState<TabKey>(initialTab);
+  const [priorityFilter, setPriorityFilter] = useState<PriorityKey | null>(
+    initialPriority
+  );
+
+  // Re-sync state when the URL changes (e.g. dashboard hero callout).
+  useEffect(() => {
+    const p = searchParams.get("priority");
+    if (isPriorityKey(p)) setPriorityFilter(p);
+    const t = searchParams.get("tab");
+    if (isTabKey(t)) setTab(t);
+  }, [searchParams]);
+
+  const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
 
   const techItems = useMemo(
     () =>
@@ -91,7 +144,6 @@ export function MarketPage({ initialResources }: MarketPageProps) {
     LOW:      all.filter((r) => r.priority === "LOW").length,
   };
 
-  // Toggle filter on tile click; clicking the active tile clears.
   const onTile = (p: PriorityKey) => () =>
     setPriorityFilter((current) => (current === p ? null : p));
 
@@ -102,7 +154,6 @@ export function MarketPage({ initialResources }: MarketPageProps) {
     { tone: "low"      as const, eyebrow: "Informational", helper: "Background awareness",                       icon: "◯", numeral: counts.LOW,      primary: priorityFilter === "LOW",                                   onClick: onTile("LOW"),      ariaLabel: `Informational · ${counts.LOW} items · click to filter` },
   ];
 
-  // Filter items by priority if a filter is active.
   const filteredTech = useMemo(
     () => priorityFilter ? techItems.filter((r) => r.priority === priorityFilter) : techItems,
     [techItems, priorityFilter]
@@ -138,71 +189,61 @@ export function MarketPage({ initialResources }: MarketPageProps) {
           <TabButton active={tab === "prices"} onClick={() => setTab("prices")}>Price Signals &amp; Trade</TabButton>
         </div>
 
-        {tab === "tech" && <TechnologyPanel items={filteredTech} watchCount={counts.CRITICAL} elevatedCount={counts.HIGH} />}
-        {tab === "prices" && <PriceSignalsPanel items={filteredPrice} watchCount={counts.CRITICAL} />}
+        {tab === "tech" && (
+          <SectionTemplate
+            section="tech"
+            heading="Energy & Technology Innovation"
+            subhead="Category-level tracking across transport energy and technology. Cost curves, deployment status, and policy signals."
+            items={filteredTech}
+            sectorProfile={sectorProfile}
+            watchCount={counts.CRITICAL}
+            elevatedCount={counts.HIGH}
+            renderCategoryBody={(items) => <TechBody items={items} />}
+          />
+        )}
+        {tab === "prices" && (
+          <SectionTemplate
+            section="prices"
+            heading="Geopolitical & Market Signals"
+            subhead="Commodity prices, carbon markets, trade restrictions, critical minerals, and shipping chokepoint monitoring."
+            items={filteredPrice}
+            sectorProfile={sectorProfile}
+            watchCount={counts.CRITICAL}
+            elevatedCount={counts.HIGH}
+            renderCategoryBody={(items) => <PriceBody items={items} />}
+            categoryHeaderHasWatch
+          />
+        )}
       </div>
     </div>
   );
 }
 
-// ── Legend ──
+// ── Shared section template (F11b parity) ─────────────────────────────
+//
+// Both tabs render the same structure. Differences are scoped to the
+// renderCategoryBody callback (per-row content) and the heading text.
 
-function Legend() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 18,
-        flexWrap: "wrap",
-        padding: "6px 0 0",
-        fontSize: 11,
-        color: "var(--text-2)",
-      }}
-    >
-      {LEGEND.map((l) => (
-        <span key={l.label} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-          <span style={{ color: TONE_COLOR[l.tone] }}>●</span>
-          <b style={{ fontWeight: 800, letterSpacing: "0.06em" }}>{l.label}</b>
-          <span>{l.helper}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-// ── Tab Button ──
-
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      type="button"
-      style={{
-        padding: "12px 18px",
-        fontSize: 13,
-        fontWeight: 700,
-        color: active ? "var(--accent)" : "var(--text-2)",
-        borderBottom: active ? "3px solid var(--accent)" : "3px solid transparent",
-        background: "transparent",
-        cursor: "pointer",
-        marginBottom: -1,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-// ── Technology Readiness Panel ──
-
-function TechnologyPanel({
+function SectionTemplate({
+  section,
+  heading,
+  subhead,
   items,
+  sectorProfile,
   watchCount,
   elevatedCount,
+  renderCategoryBody,
+  categoryHeaderHasWatch = false,
 }: {
+  section: "tech" | "prices";
+  heading: string;
+  subhead: string;
   items: Resource[];
+  sectorProfile?: string[];
   watchCount: number;
   elevatedCount: number;
+  renderCategoryBody: (items: Resource[]) => React.ReactNode;
+  categoryHeaderHasWatch?: boolean;
 }) {
   const groups = useMemo(() => groupByCategory(items), [items]);
 
@@ -212,15 +253,48 @@ function TechnologyPanel({
       style={{ alignItems: "start" }}
     >
       <div>
-        <PanelHead
-          title="Energy & Technology Innovation"
-          subtitle="Category-level tracking across transport energy and technology. Cost curves, deployment status, and policy signals."
+        <PanelHead title={heading} subtitle={subhead} />
+
+        {/* POLICY ACCELERATION SIGNALS — sourced badges per CC3 */}
+        <PolicySignals items={items} />
+
+        {/* FREIGHT FORWARDING RELEVANCE — yellow callout */}
+        <FreightRelevanceCallout
+          section={section}
+          sectorProfile={sectorProfile}
         />
 
+        {/* KEY METRICS rows with delta indicators + period selector */}
+        <KeyMetricsRow items={items} />
+
+        {/* COST TRAJECTORY chart (multi-vertical) */}
+        <CostTrajectoryChart verticals={sectorProfile} />
+
+        {/* Category accordions — preserved from prior MarketPage */}
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--muted)",
+            margin: "20px 0 10px",
+          }}
+        >
+          Categories
+        </div>
         {groups.length === 0 ? (
           <EmptyState
-            title="Technology intelligence not yet ingested"
-            body="Battery, SAF, hydrogen, marine fuels, and other technology categories will populate as the worker writes item_type = 'technology' or 'innovation' records."
+            title={
+              section === "tech"
+                ? "Technology intelligence not yet ingested"
+                : "Price signals not yet ingested"
+            }
+            body={
+              section === "tech"
+                ? "Battery, SAF, hydrogen, marine fuels, and other technology categories will populate as the worker writes item_type = 'technology' or 'innovation' records."
+                : "Energy prices, carbon markets, critical minerals, trade restrictions, and chokepoints will populate as the worker writes item_type = 'market_signal' records."
+            }
           />
         ) : (
           <div className="space-y-3">
@@ -230,8 +304,9 @@ function TechnologyPanel({
                 title={g.category}
                 items={g.items}
                 defaultOpen={i === 0}
-                renderBody={(items) => <TechBody items={items} />}
+                renderBody={renderCategoryBody}
                 modeBadges={Array.from(new Set(g.items.flatMap((it) => it.modes || [])))}
+                showWatchIcon={categoryHeaderHasWatch}
               />
             ))}
           </div>
@@ -239,13 +314,17 @@ function TechnologyPanel({
       </div>
 
       <aside className="space-y-3 hidden lg:block">
+        <WatchlistSidebar items={items} />
+        <OwnersContent items={items} section={section} />
+
         {watchCount + elevatedCount > 0 ? (
           <SideCard label="Watch this week" tone="alert">
             <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: "var(--high)", marginBottom: 6 }}>
               {watchCount + elevatedCount} {watchCount + elevatedCount === 1 ? "alert" : "alerts"}
             </div>
             <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-              {watchCount} watch-level item{watchCount === 1 ? "" : "s"} and {elevatedCount} elevated movement{elevatedCount === 1 ? "" : "s"} across tracked technologies.
+              {watchCount} watch-level item{watchCount === 1 ? "" : "s"} and {elevatedCount} elevated movement{elevatedCount === 1 ? "" : "s"} across tracked
+              {section === "tech" ? " technologies" : " price signals"}.
             </p>
           </SideCard>
         ) : (
@@ -257,13 +336,17 @@ function TechnologyPanel({
         )}
         <SideCard label="Methodology">
           <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-            TRL bands per IEA. Lifecycle labels mapped from priority tier — Watch (critical), Elevated (high), Stable (moderate), Informational (low). Sources updated daily, weekly, or quarterly as marked.
+            {section === "tech"
+              ? "TRL bands per IEA. Lifecycle labels mapped from priority tier — Watch (critical), Elevated (high), Stable (moderate), Informational (low). Sources updated daily, weekly, or quarterly as marked."
+              : "Price levels and trade signals sourced from primary regulators (EUR-Lex, CARB, UK DfT, Federal Register) and tier-1 commodity dashboards. Lifecycle labels mapped from priority tier."}
           </p>
         </SideCard>
       </aside>
     </section>
   );
 }
+
+// ── Per-tab content body renderers ────────────────────────────────────
 
 function TechBody({ items }: { items: Resource[] }) {
   return (
@@ -294,123 +377,12 @@ function TechBody({ items }: { items: Resource[] }) {
   );
 }
 
-// ── Price Signals & Trade Panel ──
-
-function PriceSignalsPanel({ items, watchCount }: { items: Resource[]; watchCount: number }) {
-  const groups = useMemo(() => groupByCategory(items), [items]);
-
+function PriceBody({ items }: { items: Resource[] }) {
   return (
-    <section
-      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] grid-cols-1"
-      style={{ alignItems: "start" }}
-    >
-      <div>
-        <PanelHead
-          title="Geopolitical & Market Signals"
-          subtitle="Commodity prices, carbon markets, trade restrictions, critical minerals, and shipping chokepoint monitoring."
-        />
-
-        {groups.length === 0 ? (
-          <EmptyState
-            title="Price signals not yet ingested"
-            body="Energy prices, carbon markets, critical minerals, trade restrictions, and chokepoints will populate as the worker writes item_type = 'market_signal' records."
-          />
-        ) : (
-          <div className="space-y-3">
-            {groups.map((g, i) => (
-              <PriceCategoryAccordion key={g.category} group={g} defaultOpen={i === 0} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <aside className="space-y-3 hidden lg:block">
-        {watchCount > 0 ? (
-          <SideCard label={watchCount === 1 ? "1 threshold breached" : `${watchCount} thresholds breached`} tone="alert">
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: "var(--high)", marginBottom: 6 }}>
-              {watchCount}
-            </div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-              Items at watch level — review carrier surcharge and customer pass-through clauses.
-            </p>
-          </SideCard>
-        ) : (
-          <SideCard label="No active breaches">
-            <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-              All tracked price signals are within normal range.
-            </p>
-          </SideCard>
-        )}
-      </aside>
-    </section>
-  );
-}
-
-function PriceCategoryAccordion({ group, defaultOpen }: { group: { category: string; items: Resource[] }; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(!!defaultOpen);
-  const hasWatch = group.items.some((i) => i.priority === "CRITICAL");
-
-  return (
-    <div
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border-sub)",
-        borderRadius: "var(--r-md)",
-        boxShadow: "var(--shadow)",
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          padding: "14px 20px",
-          width: "100%",
-          background: "transparent",
-          border: 0,
-          cursor: "pointer",
-          textAlign: "left",
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-        }}
-      >
-        <span
-          style={{
-            fontSize: 9,
-            fontWeight: 800,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--muted)",
-            padding: "3px 8px",
-            background: "var(--bg)",
-            border: "1px solid var(--border-sub)",
-            borderRadius: 3,
-          }}
-        >
-          {categoryTag(group.category)}
-        </span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{prettifyCategory(group.category)}</span>
-        {hasWatch && (
-          <AlertTriangle size={14} style={{ color: "var(--high)", marginLeft: "auto", marginRight: 8 }} />
-        )}
-        <ChevronDown
-          size={18}
-          style={{
-            color: "var(--muted)",
-            transform: open ? "rotate(180deg)" : undefined,
-            transition: "transform 180ms ease",
-            marginLeft: hasWatch ? 0 : "auto",
-          }}
-        />
-      </button>
-
-      {open && (
-        <div style={{ padding: "0 14px 14px" }}>
-          {group.items.map((it) => (
-            <PriceRow key={it.id} item={it} />
-          ))}
-        </div>
-      )}
+    <div style={{ padding: "0 0 4px" }}>
+      {items.map((it) => (
+        <PriceRow key={it.id} item={it} />
+      ))}
     </div>
   );
 }
@@ -467,7 +439,51 @@ function PriceRow({ item }: { item: Resource }) {
   );
 }
 
-// ── Shared UI helpers ──
+// ── Legend / Tab / Shared UI helpers ──
+
+function Legend() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 18,
+        flexWrap: "wrap",
+        padding: "6px 0 0",
+        fontSize: 11,
+        color: "var(--text-2)",
+      }}
+    >
+      {LEGEND.map((l) => (
+        <span key={l.label} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+          <span style={{ color: TONE_COLOR[l.tone] }}>●</span>
+          <b style={{ fontWeight: 800, letterSpacing: "0.06em" }}>{l.label}</b>
+          <span>{l.helper}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      type="button"
+      style={{
+        padding: "12px 18px",
+        fontSize: 13,
+        fontWeight: 700,
+        color: active ? "var(--accent)" : "var(--text-2)",
+        borderBottom: active ? "3px solid var(--accent)" : "3px solid transparent",
+        background: "transparent",
+        cursor: "pointer",
+        marginBottom: -1,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function PanelHead({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -536,14 +552,17 @@ function CategoryAccordion({
   defaultOpen,
   renderBody,
   modeBadges,
+  showWatchIcon,
 }: {
   title: string;
   items: Resource[];
   defaultOpen?: boolean;
   renderBody: (items: Resource[]) => React.ReactNode;
   modeBadges?: string[];
+  showWatchIcon?: boolean;
 }) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const hasWatch = items.some((i) => i.priority === "CRITICAL");
 
   // Worst priority for the badge.
   const priorityRank = { CRITICAL: 0, HIGH: 1, MODERATE: 2, LOW: 3 } as const;
@@ -603,14 +622,19 @@ function CategoryAccordion({
             {top && <LifecyclePill priority={top.priority} />}
           </div>
         </span>
-        <ChevronDown
-          size={18}
-          style={{
-            color: "var(--muted)",
-            transform: open ? "rotate(180deg)" : undefined,
-            transition: "transform 180ms ease",
-          }}
-        />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          {showWatchIcon && hasWatch && (
+            <AlertTriangle size={14} style={{ color: "var(--high)" }} />
+          )}
+          <ChevronDown
+            size={18}
+            style={{
+              color: "var(--muted)",
+              transform: open ? "rotate(180deg)" : undefined,
+              transition: "transform 180ms ease",
+            }}
+          />
+        </span>
       </button>
 
       {open && (
@@ -694,7 +718,20 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 function groupByCategory(items: Resource[]): { category: string; items: Resource[] }[] {
   const map = new Map<string, Resource[]>();
   for (const it of items) {
-    const key = it.topic || it.sub || "Uncategorized";
+    // Prefer explicit topic, fall back to sub. When both are missing,
+    // group items by their item-type-derived label rather than the
+    // generic "Uncategorized" string. The previous "Uncategorized" key
+    // turned every untagged technology and market_signal item into
+    // a single noisy bucket; bucketing by item_type keeps the
+    // grouping honest and surfaces the root cause (missing topic
+    // backfill) at the data layer rather than the render layer.
+    const fallback =
+      it.type === "technology" || it.type === "innovation"
+        ? "Technology"
+        : it.type === "market_signal"
+          ? "Market signal"
+          : "Other";
+    const key = it.topic || it.sub || fallback;
     const arr = map.get(key) || [];
     arr.push(it);
     map.set(key, arr);
@@ -707,10 +744,4 @@ function prettifyCategory(s: string): string {
     .split(/[_\-\s]+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
-}
-
-function categoryTag(s: string): string {
-  // Short pill text for the price-cat header, e.g. "Energy prices".
-  const t = prettifyCategory(s);
-  return t.length > 24 ? t.slice(0, 22) + "…" : t;
 }

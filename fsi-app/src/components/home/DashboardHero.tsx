@@ -14,6 +14,14 @@
  *
  * This is the dashboard-only variant. Other pages use the standard
  * 4-equal-column StatStrip from src/components/ui/StatStrip.tsx.
+ *
+ * F4 + F5 wire-up (PR-G, 2026-05-06):
+ * Tiles deep-link to /market?priority={CRITICAL|HIGH|MODERATE|LOW}.
+ * The Watch / Elevated / Stable / Informational lifecycle taxonomy on
+ * /market is the same Critical / High / Moderate / Low priority taxonomy
+ * surfaced here, so the click filter resolves cleanly. MarketPage reads
+ * the `priority` URL param via next/navigation useSearchParams and
+ * pre-applies it to the StatStrip filter on mount.
  */
 
 import { useMemo } from "react";
@@ -85,9 +93,9 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
             key={tile.tone}
             type="button"
             onClick={() =>
-              router.push(`/regulations?priority=${tile.priority}`)
+              router.push(`/market?priority=${tile.priority}`)
             }
-            aria-label={`${tile.eyebrow} — ${tile.numeral} items · open in Regulations`}
+            aria-label={`${tile.eyebrow} — ${tile.numeral} items · open in Market Intelligence`}
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             style={{
               position: "relative",
