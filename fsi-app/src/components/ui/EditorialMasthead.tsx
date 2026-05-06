@@ -50,7 +50,15 @@ function isoWeekNumber(date: Date): number {
 
 function defaultEyebrow(now: Date = new Date()): string {
   const weekNo = isoWeekNumber(now);
-  const dayName = new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(now);
+  // Lock locale AND timezone so the eyebrow is identical between SSR
+  // (Vercel Node, en-US default, server local TZ) and client hydration
+  // (browser locale + browser TZ). Without this, /research and every
+  // other Phase C surface using EditorialMasthead fires React #418
+  // hydration errors near UTC midnight or under non-en-US browsers.
+  const dayName = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(now);
   return `VOL IV · NO. ${weekNo} · ${dayName.toUpperCase()}`;
 }
 

@@ -17,7 +17,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Toast } from "@/components/ui/Toast";
 import { SectionHeader } from "@/components/shell/SectionHeader";
-import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { WeeklyBriefing } from "@/components/home/WeeklyBriefing";
 import { WhatChanged } from "@/components/home/WhatChanged";
 import { Supersessions } from "@/components/home/Supersessions";
@@ -118,17 +117,11 @@ export function HomeSurface({
 
   return (
     <div className="px-9 pt-8 pb-16 max-w-[1280px] mx-auto">
-      {/* AI Prompt Bar */}
-      <div className="mb-8">
-        <AiPromptBar
-          placeholder="Ask anything about your regulations — e.g. What's due in the next 30 days?"
-          chips={[
-            "What's due in 30 days?",
-            "What changed this week?",
-            "CBAM obligations Q2",
-          ]}
-        />
-      </div>
+      {/* AI prompt bar removed from Dashboard per Phase D placement rule.
+          The Weekly Briefing already curates "what should I know" in
+          editorial format. AI inquiry surfaces live on the regulatory and
+          operational pages: /regulations, /regulations/[slug], /market,
+          /research, /operations, /map. */}
 
       {/* This Week — Weekly Briefing (1.3fr) + What Changed (1fr) */}
       <section style={{ marginBottom: 40 }}>

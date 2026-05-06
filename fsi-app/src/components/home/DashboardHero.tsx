@@ -17,8 +17,8 @@
  */
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import type { Resource } from "@/types/resource";
-import { useNavigationStore } from "@/stores/navigationStore";
 
 // TODO: replace with computed timeline once milestones data is reliable.
 // Per design brief: preview specificity is what makes the helper feel
@@ -31,24 +31,24 @@ interface DashboardHeroProps {
 
 interface HeroTile {
   tone: "critical" | "high" | "moderate" | "low";
+  priority: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
   eyebrow: string;
   numeral: number;
   label: string;
   helper?: string;
-  ids: Resource[];
 }
 
 export function DashboardHero({ resources }: DashboardHeroProps) {
-  const { pushFocusView } = useNavigationStore();
+  const router = useRouter();
 
   const tiles = useMemo<HeroTile[]>(() => {
     const filterBy = (pri: "CRITICAL" | "HIGH" | "MODERATE" | "LOW") =>
       resources.filter((r) => r.priority === pri);
     return [
-      { tone: "critical", eyebrow: "Immediate action", numeral: filterBy("CRITICAL").length, label: "Critical — within 90 days", helper: CRITICAL_HELPER_COPY, ids: filterBy("CRITICAL") },
-      { tone: "high",     eyebrow: "High",             numeral: filterBy("HIGH").length,     label: "Action — 6 mo",            ids: filterBy("HIGH") },
-      { tone: "moderate", eyebrow: "Moderate",         numeral: filterBy("MODERATE").length, label: "Monitor — 6–12 mo",        ids: filterBy("MODERATE") },
-      { tone: "low",      eyebrow: "Low",              numeral: filterBy("LOW").length,      label: "Awareness only",            ids: filterBy("LOW") },
+      { tone: "critical", priority: "CRITICAL", eyebrow: "Immediate action", numeral: filterBy("CRITICAL").length, label: "Critical — within 90 days", helper: CRITICAL_HELPER_COPY },
+      { tone: "high",     priority: "HIGH",     eyebrow: "High",             numeral: filterBy("HIGH").length,     label: "Action — 6 mo" },
+      { tone: "moderate", priority: "MODERATE", eyebrow: "Moderate",         numeral: filterBy("MODERATE").length, label: "Monitor — 6–12 mo" },
+      { tone: "low",      priority: "LOW",      eyebrow: "Low",              numeral: filterBy("LOW").length,      label: "Awareness only" },
     ];
   }, [resources]);
 
@@ -85,12 +85,9 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
             key={tile.tone}
             type="button"
             onClick={() =>
-              pushFocusView({
-                title: `${tile.eyebrow} — ${tile.numeral} items`,
-                resourceIds: tile.ids.map((r) => r.id),
-              })
+              router.push(`/regulations?priority=${tile.priority}`)
             }
-            aria-label={`${tile.eyebrow} — ${tile.numeral} items`}
+            aria-label={`${tile.eyebrow} — ${tile.numeral} items · open in Regulations`}
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             style={{
               position: "relative",

@@ -21,6 +21,7 @@ import { Sparkles, AlertTriangle } from "lucide-react";
 import { TimelineBar } from "@/components/resource/TimelineBar";
 import { ImpactScores } from "@/components/resource/ImpactScores";
 import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
+import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { scoreResource } from "@/lib/scoring";
 import {
   TOPIC_COLORS,
@@ -386,6 +387,20 @@ export function RegulationDetailSurface({
         {lanesAffected && lanesAffected !== "—" && (
           <Stat label="Lanes affected" value={lanesAffected} sub="Of active lanes" />
         )}
+      </div>
+
+      {/* AI inquiry bar — most natural place for "what does this mean for
+          my workspace" follow-ups about a specific regulation. Placeholder
+          and chips are regulation-aware. */}
+      <div style={{ marginBottom: 16 }}>
+        <AiPromptBar
+          placeholder={`Ask anything about ${r.title} — e.g. what does this mean for my workspace?`}
+          chips={[
+            "What does this mean for me?",
+            "When does this hit force?",
+            "Who's affected in my supply chain?",
+          ]}
+        />
       </div>
 
       {/* Tabs */}

@@ -30,6 +30,19 @@ function getSupabase() {
   );
 }
 
+// Service-role client. Bypasses RLS — server-only, never expose to the
+// client. Used for reads where the org-scoped RPC isn't a fit (e.g. the
+// regulation detail page resolves a single item by UUID OR legacy_id, and
+// the anon client can't see base-table rows directly).
+function getServiceSupabase() {
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+    auth: { persistSession: false },
+  });
+}
+
 // ── Fetch Functions ──────────────────────────────────────────
 // All reads are against the new item_* schema (Phase A.5.b). UUID
 // item ids are translated to UI-side ids (legacy_id || uuid) inline
@@ -860,7 +873,11 @@ export async function fetchIntelligenceItem(
   if (!isSupabaseConfigured()) return fromSeed();
 
   try {
-    const supabase = getSupabase();
+    // Single-item detail page reads by id OR legacy_id. RLS doesn't grant
+    // anon access to direct base-table SELECTs on intelligence_items
+    // (only the org-scoped get_workspace_intelligence RPC bypasses RLS),
+    // so this path uses the service-role client. Server-only.
+    const supabase = getServiceSupabase();
     // intelligence_items.id is uuid — only include the id.eq filter when
     // the input parses as a valid uuid; otherwise PostgREST rejects the OR
     // expression.
