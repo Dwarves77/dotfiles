@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 
 interface NavItem {
   href: string;
@@ -40,6 +41,11 @@ export function Sidebar() {
   const userRole = useWorkspaceStore((s) => s.userRole);
   const isAdmin = userRole === "owner" || userRole === "admin";
   const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+
+  // Admin attention badge (W2.E). The hook itself short-circuits for
+  // non-admin / unauthenticated users — the dot below additionally gates
+  // on `isAdmin` so a stale value can never leak to a non-admin row.
+  const { total: adminAttentionTotal } = useAdminAttention();
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -73,27 +79,53 @@ export function Sidebar() {
 
       {/* Main nav */}
       <nav className="py-2 px-2 space-y-0.5">
-        {visibleNavItems.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
-              isActive(href)
-                ? "font-semibold"
-                : "hover:bg-[var(--color-bg-raised)]"
-            )}
-            style={{
-              color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-              backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
-              fontWeight: isActive(href) ? 600 : 400,
-            }}
-          >
-            <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
-            {label}
-          </Link>
-        ))}
+        {visibleNavItems.map(({ href, label, icon: Icon, adminOnly }) => {
+          const showAttentionDot =
+            adminOnly && isAdmin && adminAttentionTotal > 0;
+          const dotTitle = showAttentionDot
+            ? `${adminAttentionTotal} item${
+                adminAttentionTotal === 1 ? "" : "s"
+              } need attention`
+            : undefined;
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileOpen(false)}
+              title={dotTitle}
+              className={cn(
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
+                isActive(href)
+                  ? "font-semibold"
+                  : "hover:bg-[var(--color-bg-raised)]"
+              )}
+              style={{
+                color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
+                fontWeight: isActive(href) ? 600 : 400,
+              }}
+            >
+              <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
+              {label}
+              {showAttentionDot && (
+                <span
+                  aria-label={dotTitle}
+                  role="status"
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 10,
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "var(--color-critical)",
+                    boxShadow: "0 0 0 2px var(--color-bg-surface)",
+                  }}
+                />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* Spacer — pushes community to middle area */}

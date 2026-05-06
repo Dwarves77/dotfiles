@@ -1,0 +1,719 @@
+{
+  "ran_at": "2026-05-04T19:24:42.615Z",
+  "jurisdiction_iso": "US-CA",
+  "depth": "deep",
+  "discovery": {
+    "candidate_count": 20,
+    "web_search_calls": 9,
+    "sonnet_cost_usd_estimated": 0.15,
+    "candidates": [
+      {
+        "name": "California Air Resources Board (CARB)",
+        "url": "https://ww2.arb.ca.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 99,
+        "rationale": "Primary CA regulator for freight emissions: Truck & Bus Regulation, Advanced Clean Trucks, Advanced Clean Fleets, drayage ZEV mandates, TRU rules, Low Carbon Fuel Standard, cap-and-trade."
+      },
+      {
+        "name": "California Air Resources Board – Laws and Regulations Portal",
+        "url": "https://ww2.arb.ca.gov/resources/documents/laws-and-regulations",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 97,
+        "rationale": "Canonical sub-portal publishing CARB's CCR Title 13/17 regulations, executive orders, district rules, and rulemaking history directly affecting heavy-duty freight vehicles."
+      },
+      {
+        "name": "California Environmental Protection Agency (CalEPA)",
+        "url": "https://calepa.ca.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 62,
+        "rationale": "Cabinet-level parent of CARB, SWRCB, DTSC, and OEHHA; coordinates statewide environmental enforcement including freight-related air, water, and hazmat programs."
+      },
+      {
+        "name": "California Energy Commission (CEC)",
+        "url": "https://www.energy.ca.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 72,
+        "rationale": "Administers Clean Transportation Program and Low Carbon Fuel Production Program; sets ZEV infrastructure policy and LCFS-adjacent fuel standards affecting freight operators."
+      },
+      {
+        "name": "California Energy Commission – Fuels and Transportation Division",
+        "url": "https://www.energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 78,
+        "rationale": "Canonical sub-portal for CEC's freight-relevant programs: ZEV infrastructure funding, Clean Transportation Program grants for MHD vehicles, hydrogen fueling, and LCFS fuel production."
+      },
+      {
+        "name": "California Office of Administrative Law (OAL) – California Regulatory Notice Register & CCR",
+        "url": "https://oal.ca.gov",
+        "type": "gazette",
+        "language": "en",
+        "freight_relevance_score": 55,
+        "rationale": "Publishes the official California Code of Regulations and weekly Regulatory Notice Register—the canonical gazette where all CARB, CEC, and other freight-relevant rulemakings are formally noticed."
+      },
+      {
+        "name": "California State Water Resources Control Board (SWRCB)",
+        "url": "https://www.waterboards.ca.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 45,
+        "rationale": "Issues Industrial General Permit (NPDES stormwater) covering trucking terminals, warehouses, ports, and railyards; also regulates ballast water and port facility runoff."
+      },
+      {
+        "name": "California Highway Patrol (CHP) – Commercial Vehicle Section",
+        "url": "https://www.chp.ca.gov/programs-services/programs/commercial-vehicle-section",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 70,
+        "rationale": "Canonical CA regulator for commercial vehicle safety, HOS, weight/size limits, BIT terminal inspections, motor carrier CA-number registration, and intrastate ELD rules."
+      },
+      {
+        "name": "California Department of Motor Vehicles (DMV) – Motor Carrier Permits",
+        "url": "https://www.dmv.ca.gov/portal/business-industry-and-employer-resources/motor-carrier-permits/",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 55,
+        "rationale": "Issues California Motor Carrier Permits (MCP) required for freight operators on CA highways; manages CARB registration linkage and Employer Pull Notice program for driver records."
+      },
+      {
+        "name": "California Department of Industrial Relations – Cal/OSHA (Division of Occupational Safety and Health)",
+        "url": "https://www.dir.ca.gov/dosh/",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 52,
+        "rationale": "Canonical CA labor/safety regulator for freight workers; enforces CCR Title 8 standards covering warehouse operations, heat illness, forklift safety, AB 701 warehouse quotas, and hazmat handling."
+      },
+      {
+        "name": "California Public Utilities Commission (CPUC)",
+        "url": "https://www.cpuc.ca.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 58,
+        "rationale": "Regulates freight railroad safety, intrastate rail carriers, and Clean Miles Standard for transport fleets; also sets GHG/ZEV electrification requirements for passenger and common carriers."
+      },
+      {
+        "name": "South Coast Air Quality Management District (SCAQMD)",
+        "url": "https://www.aqmd.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 82,
+        "rationale": "Largest CA local air district; issues rules directly affecting freight fleets in LA/OC/SB/Riverside counties—including Rule 2305 (Warehouse Indirect Source Rule) and fleet electrification mandates."
+      },
+      {
+        "name": "Bay Area Air Quality Management District (BAAQMD)",
+        "url": "https://www.baaqmd.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 68,
+        "rationale": "Issues freight-relevant stationary and mobile source rules for the nine-county Bay Area, including port and railyard indirect source and idling regulations supplementing CARB rules."
+      },
+      {
+        "name": "San Joaquin Valley Air Pollution Control District (SJVAPCD)",
+        "url": "https://www.valleyair.org",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 65,
+        "rationale": "Issues fleet rules and Indirect Source Review (Rule 9510) covering warehouses and distribution centers in the Central Valley; supplements CARB truck/bus regulation enforcement."
+      },
+      {
+        "name": "California Department of Transportation (Caltrans)",
+        "url": "https://dot.ca.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 50,
+        "rationale": "Regulates legal truck access, size/weight permits, freight corridor planning, and sustainable freight infrastructure policy including ZEV freight route planning under SB 1."
+      },
+      {
+        "name": "California State Transportation Agency (CalSTA)",
+        "url": "https://calsta.ca.gov",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 45,
+        "rationale": "Cabinet agency overseeing Caltrans, CPUC rail, DMV, CHP, and port-related freight policy coordination; issues state freight policy guidance and sustainable freight action plan."
+      },
+      {
+        "name": "California Legislature – Legislative Information (leginfo)",
+        "url": "https://leginfo.legislature.ca.gov",
+        "type": "gazette",
+        "language": "en",
+        "freight_relevance_score": 48,
+        "rationale": "Official source for California statutes (Health & Safety Code, Vehicle Code, Public Resources Code) underlying all freight-sustainability mandates including AB 32, SB 375, AB 2061."
+      },
+      {
+        "name": "Port of Los Angeles – Environmental Programs",
+        "url": "https://www.portoflosangeles.org/environment",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 80,
+        "rationale": "Largest US container port; publishes Clean Air Action Plan (CAAP), Clean Truck Program, and Shore Power mandates—primary source for drayage ZEV and port-freight emissions requirements."
+      },
+      {
+        "name": "Port of Long Beach – Environmental Stewardship",
+        "url": "https://www.polb.com/environment/",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 79,
+        "rationale": "Co-publishes Clean Air Action Plan with POLA; issues independent Green Port Policy, tariff-embedded clean truck and vessel speed reduction requirements affecting freight operators."
+      },
+      {
+        "name": "California Air Resources Board – Low Carbon Fuel Standard (LCFS) Program",
+        "url": "https://ww2.arb.ca.gov/our-work/programs/low-carbon-fuel-standard",
+        "type": "regulator",
+        "language": "en",
+        "freight_relevance_score": 88,
+        "rationale": "Canonical sub-portal for LCFS—California's primary fuel carbon-intensity mandate covering diesel, biodiesel, renewable natural gas, hydrogen, and electricity used in freight transport."
+      }
+    ]
+  },
+  "verification": {
+    "haiku_calls": 23,
+    "haiku_cost_usd_estimated": 0.023,
+    "results": [
+      {
+        "url": "https://ww2.arb.ca.gov",
+        "name": "California Air Resources Board (CARB)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T2",
+        "rationale": "CARB is California's canonical air-quality regulator with direct freight impact via truck/bus regulation, ZEV standards, emissions caps, and heavy-duty vehicle programs.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=95,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 2806
+      },
+      {
+        "url": "https://ww2.arb.ca.gov/resources/documents/laws-and-regulations",
+        "name": "California Air Resources Board – Laws and Regulations Portal",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 75,
+        "ai_trust_tier": "T2",
+        "rationale": "CARB canonical regulator; air quality laws directly affect truck emissions & port ops; Title 13 motor vehicle regs operationally impact freight fleets.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=95,frt=75,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 3395
+      },
+      {
+        "url": "https://calepa.ca.gov",
+        "name": "California Environmental Protection Agency (CalEPA)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 75,
+        "ai_trust_tier": "T2",
+        "rationale": "CalEPA is canonical CA environmental regulator. Umbrella agency housing CARB, DTSC, SWRCB—all with freight-material mandates (emissions, hazmat, water). Primary T2 source.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=92,frt=75,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 3702
+      },
+      {
+        "url": "https://www.energy.ca.gov",
+        "name": "California Energy Commission (CEC)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 75,
+        "ai_trust_tier": "T2",
+        "rationale": "CEC is CA's primary energy agency; canonical regulator of appliance/building efficiency, clean transportation, power plants, renewables. Clean Transportation Program directly affects freight electrifi",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=92,frt=75,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 4703
+      },
+      {
+        "url": "https://www.energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division",
+        "name": "California Energy Commission – Fuels and Transportation Division",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T2",
+        "rationale": "CEC Fuels & Transportation Division — canonical state regulator of vehicle standards, alternative fuels, ZEV infrastructure, low-carbon fuel production. Directly operationalizes freight via heavy-duty",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=95,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://oal.ca.gov",
+        "name": "California Office of Administrative Law (OAL) – California Regulatory Notice Register & CCR",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T1",
+        "rationale": "California's canonical regulatory publication & codification authority. Publishes CCR & Notice Register where all state agency regulations—including freight, emissions, energy, vehicle standards—are o",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=95,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.waterboards.ca.gov",
+        "name": "California State Water Resources Control Board (SWRCB)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 75,
+        "ai_freight_score": 35,
+        "ai_trust_tier": "T2",
+        "rationale": "Primary water regulator with sustainability mandate. Indirect freight impact via water quality, groundwater, agricultural discharge permitting affecting supply chains.",
+        "tier": "M",
+        "would_action": "queued-provisional",
+        "rejection_reason": null,
+        "triggers": [
+          "M_default(rel=75,frt=35,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.chp.ca.gov/programs-services/programs/commercial-vehicle-section",
+        "name": "California Highway Patrol (CHP) – Commercial Vehicle Section",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 75,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T2",
+        "rationale": "CHP Commercial Vehicle Section is canonical CA regulator for motor carrier safety, vehicle registration, hazmat transport, and commercial fleet compliance—directly operationally affecting freight.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=75,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.dmv.ca.gov/portal/business-industry-and-employer-resources/motor-carrier-permits/",
+        "name": "California Department of Motor Vehicles (DMV) – Motor Carrier Permits",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 75,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T2",
+        "rationale": "CA DMV motor carrier permits directly regulate commercial freight operations, fleet compliance, hazmat transport. Primary state regulator of carrier registration and vehicle standards affecting freigh",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=75,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.dir.ca.gov/dosh/",
+        "name": "California Department of Industrial Relations – Cal/OSHA (Division of Occupational Safety and Health)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 35,
+        "ai_freight_score": 25,
+        "ai_trust_tier": "T2",
+        "rationale": "Cal/OSHA is canonical state regulator (T2) but primary mandate is occupational safety/health, not sustainability/climate/environmental. Indirect freight relevance via driver/warehouse worker safety on",
+        "tier": "L",
+        "would_action": "rejected",
+        "rejection_reason": "ai_relevance_low",
+        "triggers": [
+          "ai_relevance_low(35)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.cpuc.ca.gov",
+        "name": "California Public Utilities Commission (CPUC)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 75,
+        "ai_trust_tier": "T2",
+        "rationale": "Canonical CA utility regulator. Direct freight impact: electric vehicle charging, port electrification, clean miles standard, energy/fuel regulation. Primary regulatory publisher.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=92,frt=75,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 3146
+      },
+      {
+        "url": "https://www.aqmd.gov",
+        "name": "South Coast Air Quality Management District (SCAQMD)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T2",
+        "rationale": "SCAQMD is canonical air-quality regulator for South Coast CA. Emissions standards, permitting, & INVEST CLEAN zero-emission goods-movement program directly operationalize freight compliance.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=95,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.baaqmd.gov",
+        "name": "Bay Area Air Quality Management District (BAAQMD)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 75,
+        "ai_trust_tier": "T2",
+        "rationale": "BAAQMD is canonical regional air-quality regulator under CA delegation. Rules, permits, emissions standards directly operationalize freight via mobile/portable equipment, refinery rules, clean transpo",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=92,frt=75,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.valleyair.org",
+        "name": "San Joaquin Valley Air Pollution Control District (SJVAPCD)",
+        "head_status": 200,
+        "domain_confidence": "low",
+        "domain_pattern": null,
+        "ai_relevance_score": 92,
+        "ai_freight_score": 65,
+        "ai_trust_tier": "T2",
+        "rationale": "SJVAPCD is canonical air-quality regulator with direct freight impact via emissions standards, equipment rules, diesel equipment incentive programs affecting commercial fleets & equipment.",
+        "tier": "M",
+        "would_action": "queued-provisional",
+        "rejection_reason": "domain_unknown",
+        "triggers": [
+          "domain_unknown"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://dot.ca.gov",
+        "name": "California Department of Transportation (Caltrans)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 65,
+        "ai_freight_score": 55,
+        "ai_trust_tier": "T2",
+        "rationale": "Caltrans is CA's canonical transport authority; homepage shows freight investment & mass transit programs but lacks detailed regulatory content.",
+        "tier": "M",
+        "would_action": "queued-provisional",
+        "rejection_reason": null,
+        "triggers": [
+          "M_default(rel=65,frt=55,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 2908
+      },
+      {
+        "url": "https://calsta.ca.gov",
+        "name": "California State Transportation Agency (CalSTA)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 75,
+        "ai_freight_score": 70,
+        "ai_trust_tier": "T2",
+        "rationale": "CalSTA is canonical CA transport regulator overseeing Caltrans, CHP, DMV, HSR. Manages roads, trains, water transport. Direct operational impact on freight via vehicle standards, infrastructure, safet",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=75,frt=70,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 3780
+      },
+      {
+        "url": "https://leginfo.legislature.ca.gov",
+        "name": "California Legislature – Legislative Information (leginfo)",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T1",
+        "rationale": "Canonical primary legislative archive hosting all CA bills & codes. Hosts freight-affecting SB253, SB261, AB1305, vehicle, labor, energy regulations.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=92,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 2515
+      },
+      {
+        "url": "https://www.portoflosangeles.org/environment",
+        "name": "Port of Los Angeles – Environmental Programs",
+        "head_status": 200,
+        "domain_confidence": "low",
+        "domain_pattern": null,
+        "ai_relevance_score": 85,
+        "ai_freight_score": 90,
+        "ai_trust_tier": "T2",
+        "rationale": "Port authority primary source on air quality, emissions, alternative fuels, water quality, sustainability—direct operational impact on cargo, vessels, trucks, warehousing. Canonical regulator for LA p",
+        "tier": "M",
+        "would_action": "queued-provisional",
+        "rejection_reason": "domain_unknown",
+        "triggers": [
+          "domain_unknown"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 6000
+      },
+      {
+        "url": "https://www.polb.com/environment/",
+        "name": "Port of Long Beach – Environmental Stewardship",
+        "head_status": 200,
+        "domain_confidence": "low",
+        "domain_pattern": null,
+        "ai_relevance_score": 85,
+        "ai_freight_score": 95,
+        "ai_trust_tier": "T2",
+        "rationale": "Port of Long Beach is canonical California port authority with direct operational control over major freight/cargo hub. Environmental stewardship page governs air quality, emissions, vessel operations",
+        "tier": "M",
+        "would_action": "queued-provisional",
+        "rejection_reason": "domain_unknown",
+        "triggers": [
+          "domain_unknown"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 1797
+      },
+      {
+        "url": "https://ww2.arb.ca.gov/our-work/programs/low-carbon-fuel-standard",
+        "name": "California Air Resources Board – Low Carbon Fuel Standard (LCFS) Program",
+        "head_status": 200,
+        "domain_confidence": "high",
+        "domain_pattern": "us-gov",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 85,
+        "ai_trust_tier": "T2",
+        "rationale": "CARB canonical regulator; LCFS directly regulates fuel carbon intensity for transportation fuels, operationally impacting freight fuel costs and alternative-fuel adoption.",
+        "tier": "H",
+        "would_action": "auto-approved",
+        "rejection_reason": null,
+        "triggers": [
+          "H_clear(rel=95,frt=85,dom=high)"
+        ],
+        "haiku_called": true,
+        "haiku_error": null,
+        "head_error": null,
+        "content_fetched": true,
+        "content_length": 2832
+      }
+    ]
+  },
+  "tier_distribution": {
+    "H": 14,
+    "M": 5,
+    "L": 1
+  },
+  "control_check": {
+    "known_good": [
+      {
+        "name": "California Air Resources Board",
+        "url": "https://ww2.arb.ca.gov/",
+        "discovered": true,
+        "tier": "H",
+        "ai_trust_tier": "T2",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 85,
+        "pass": true
+      },
+      {
+        "name": "California Public Utilities Commission",
+        "url": "https://www.cpuc.ca.gov/",
+        "discovered": true,
+        "tier": "H",
+        "ai_trust_tier": "T2",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 75,
+        "pass": true
+      },
+      {
+        "name": "California Environmental Protection Agency",
+        "url": "https://calepa.ca.gov/",
+        "discovered": true,
+        "tier": "H",
+        "ai_trust_tier": "T2",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 75,
+        "pass": true
+      },
+      {
+        "name": "California Energy Commission",
+        "url": "https://www.energy.ca.gov/",
+        "discovered": true,
+        "tier": "H",
+        "ai_trust_tier": "T2",
+        "ai_relevance_score": 92,
+        "ai_freight_score": 75,
+        "pass": true
+      },
+      {
+        "name": "CARB Rulemaking",
+        "url": "https://ww2.arb.ca.gov/rulemaking",
+        "discovered": true,
+        "tier": "H",
+        "ai_trust_tier": "T2",
+        "ai_relevance_score": 95,
+        "ai_freight_score": 85,
+        "pass": true
+      }
+    ],
+    "known_irrelevant": [
+      {
+        "name": "Visit California (tourism)",
+        "url": "https://www.visitcalifornia.com/",
+        "expected_tier": "L",
+        "tier": "L",
+        "ai_trust_tier": "T3",
+        "ai_relevance_score": 5,
+        "ai_freight_score": 0,
+        "pass": true
+      },
+      {
+        "name": "Los Angeles County Museum of Art",
+        "url": "https://www.lacma.org/",
+        "expected_tier": "L",
+        "tier": "L",
+        "ai_trust_tier": "T3",
+        "ai_relevance_score": 5,
+        "ai_freight_score": 2,
+        "pass": true
+      },
+      {
+        "name": "California DMV (borderline)",
+        "url": "https://www.dmv.ca.gov/",
+        "expected_tier": "M",
+        "tier": "M",
+        "ai_trust_tier": "T2",
+        "ai_relevance_score": 65,
+        "ai_freight_score": 55,
+        "pass": true
+      }
+    ]
+  },
+  "calibration_notes": [
+    "California Air Resources Board scored 95/85 (rel/frt) — tier H confirmed. Threshold correctly placed.",
+    "California Public Utilities Commission scored 92/75 (rel/frt) — tier H confirmed. Threshold correctly placed.",
+    "California Environmental Protection Agency scored 92/75 (rel/frt) — tier H confirmed. Threshold correctly placed.",
+    "California Energy Commission scored 92/75 (rel/frt) — tier H confirmed. Threshold correctly placed.",
+    "CARB Rulemaking scored 95/85 (rel/frt) — tier H confirmed. Threshold correctly placed.",
+    "Visit California (tourism) scored 5/0 — tier L as expected. Threshold well-calibrated for this case.",
+    "Los Angeles County Museum of Art scored 5/2 — tier L as expected. Threshold well-calibrated for this case.",
+    "California DMV (borderline) scored 65/55 — tier M as expected. Threshold well-calibrated for this case."
+  ]
+}

@@ -536,6 +536,14 @@ export interface Source {
   intelligence_types: IntelligenceType[];
   domains: IntelligenceDomain[];
   jurisdictions: string[];         // Which jurisdictions this source covers
+  /**
+   * ISO 3166-1 alpha-2 / ISO 3166-2 / supranational codes for the
+   * source's coverage area. Coexists with `jurisdictions` during
+   * the 60-day dual-write window introduced in migration 033.
+   * Optional because legacy read paths and pre-033 rows may not
+   * populate it.
+   */
+  jurisdiction_iso?: string[];
   transport_modes: string[];       // Which transport modes this source is relevant to
 
   // Monitoring

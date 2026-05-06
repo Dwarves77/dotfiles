@@ -1,0 +1,733 @@
+{
+  "generated_at": "2026-05-04T01:19:01.683Z",
+  "elapsed_ms": 3971,
+  "matching_strategy": "1) intelligence_items.legacy_id = proposed_changes.legacy_id (UNIQUE); 2) fallback intelligence_items.source_url+title = proposed_changes.source_url+title; 3) trust staged_updates.materialized_at column when set (post-034).",
+  "counts": {
+    "total_approved_new_item": 24,
+    "matched": 0,
+    "orphans": 24,
+    "trusted_via_materialized_column": 0
+  },
+  "orphans": [
+    {
+      "id": "01283125-57aa-4d12-bc94-505bc7ea6b0b",
+      "title": "Canada Clean Fuel Regulations Phase 2",
+      "source_url": "https://www.canada.ca/en/environment-climate-change/services/managing-pollution/energy-production/fuel-regulations/clean-fuel-regulations.html",
+      "approved_at": "2026-04-05T04:37:18.413+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.canada.ca/en/environment-climate-change/services/managing-pollution/energy-production/fuel-regulations/clean-fuel-regulations.html",
+        "title": "Canada Clean Fuel Regulations Phase 2",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "77e63ad6-8eb2-4357-ad18-a8bef8f1a830",
+      "title": "India Green Credit Programme for Transport",
+      "source_url": "https://pib.gov.in/PressReleasePage.aspx?PRID=1976582",
+      "approved_at": "2026-04-05T04:37:20.361+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://pib.gov.in/PressReleasePage.aspx?PRID=1976582",
+        "title": "India Green Credit Programme for Transport",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "a8cd7a71-1926-4c93-a901-78f1ccdee3aa",
+      "title": "Australia National Electric Vehicle Strategy",
+      "source_url": "https://www.infrastructure.gov.au/sites/default/files/documents/national-electric-vehicle-strategy.pdf",
+      "approved_at": "2026-04-05T04:37:21.554+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.infrastructure.gov.au/sites/default/files/documents/national-electric-vehicle-strategy.pdf",
+        "title": "Australia National Electric Vehicle Strategy",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "1a28bcd2-7ec4-432a-affe-a16e95f97cb8",
+      "title": "UK Streamlined Energy and Carbon Reporting (SECR) Amendment",
+      "source_url": "https://www.gov.uk/guidance/streamlined-energy-and-carbon-reporting",
+      "approved_at": "2026-04-05T04:37:22.658+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.gov.uk/guidance/streamlined-energy-and-carbon-reporting",
+        "title": "UK Streamlined Energy and Carbon Reporting (SECR) Amendment",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "e044bf3e-c024-41a2-8d7b-d29960ef4757",
+      "title": "Brazil National Policy on Alternative Fuels (PNCA)",
+      "source_url": "https://www.gov.br/anp/pt-br/assuntos/producao-de-biocombustiveis/pnca",
+      "approved_at": "2026-04-05T04:37:23.67+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.gov.br/anp/pt-br/assuntos/producao-de-biocombustiveis/pnca",
+        "title": "Brazil National Policy on Alternative Fuels (PNCA)",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "b631762e-c0af-4542-83d4-ae694813cebf",
+      "title": "California Advanced Clean Fleets Rule",
+      "source_url": "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-fleets-rule",
+      "approved_at": "2026-04-05T04:37:25.367+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-fleets-rule",
+        "title": "California Advanced Clean Fleets Rule",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "24d352f8-51bb-4325-8673-cd4110311d05",
+      "title": "EU Alternative Fuels Infrastructure Regulation (AFIR)",
+      "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj",
+      "approved_at": "2026-04-05T04:37:27.022+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj",
+        "title": "EU Alternative Fuels Infrastructure Regulation (AFIR)",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "b898affc-e508-4c57-bb8a-4cd4f19b0933",
+      "title": "IMO 2023 Revised GHG Strategy",
+      "source_url": "https://www.imo.org/en/MediaCentre/PressBriefings/pages/Revised-GHG-reduction-strategy-for-global-shipping-adopted-.aspx",
+      "approved_at": "2026-04-05T04:37:28.427+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "jurisdictions",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.imo.org/en/MediaCentre/PressBriefings/pages/Revised-GHG-reduction-strategy-for-global-shipping-adopted-.aspx",
+        "title": "IMO 2023 Revised GHG Strategy",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "290842a1-43cb-43e4-8dc4-ffe58fb32704",
+      "title": "UAE National Hydrogen Strategy - Transport Sector Requirements",
+      "source_url": "https://www.uae.gov.ae/en/about-the-uae/strategies-initiatives-and-awards/federal-governments-strategies-and-plans/national-hydrogen-strategy",
+      "approved_at": "2026-04-05T04:48:21.849+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.uae.gov.ae/en/about-the-uae/strategies-initiatives-and-awards/federal-governments-strategies-and-plans/national-hydrogen-strategy",
+        "title": "UAE National Hydrogen Strategy - Transport Sector Requirements",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "8d2050af-4dec-4986-924b-16a237aab871",
+      "title": "Japan Green Transformation (GX) Freight Transport Standards",
+      "source_url": "https://www.meti.go.jp/english/policy/energy_environment/global_warming/gx-freight-standards.html",
+      "approved_at": "2026-04-05T04:48:27.24+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.meti.go.jp/english/policy/energy_environment/global_warming/gx-freight-standards.html",
+        "title": "Japan Green Transformation (GX) Freight Transport Standards",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "9f35085c-3404-405d-b321-dc45d3ebdf57",
+      "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+      "source_url": "https://www.mpa.gov.sg/news-and-media/press-releases/2024/10/green-finance-incentive-scheme",
+      "approved_at": "2026-04-05T04:48:38.759+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.mpa.gov.sg/news-and-media/press-releases/2024/10/green-finance-incentive-scheme",
+        "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "ed6f4dcc-ca05-45b5-8d86-ec4eb5e936c4",
+      "title": "US EPA Clean Ports Program - Port Emissions Standards",
+      "source_url": "https://www.epa.gov/ports-initiative/clean-ports-program",
+      "approved_at": "2026-04-05T04:48:42.32+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.epa.gov/ports-initiative/clean-ports-program",
+        "title": "US EPA Clean Ports Program - Port Emissions Standards",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "3c67f32d-532c-4cb2-9034-1f9b56e62235",
+      "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Sector Implementation",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2464",
+      "approved_at": "2026-04-05T04:50:27.035+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2464",
+        "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Sector Implementation",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "811ed2e2-f10a-4510-8be6-7e47301bc1af",
+      "title": "South Korea K-Taxonomy for Sustainable Transport Activities",
+      "source_url": "https://www.me.go.kr/eng/web/index.do?menuId=16",
+      "approved_at": "2026-04-05T04:52:30.896+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.me.go.kr/eng/web/index.do?menuId=16",
+        "title": "South Korea K-Taxonomy for Sustainable Transport Activities",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "7c93efa8-0dbc-4cde-902e-c6a2593cb12a",
+      "title": "UAE National Hydrogen Strategy Implementation Decree for Logistics",
+      "source_url": "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/federal-governments-strategies-and-plans/uae-hydrogen-strategy",
+      "approved_at": "2026-04-05T04:54:27.446+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/federal-governments-strategies-and-plans/uae-hydrogen-strategy",
+        "title": "UAE National Hydrogen Strategy Implementation Decree for Logistics",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "4dd4f5a8-c613-4ebf-85eb-31b462ba3d0c",
+      "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+      "source_url": "https://www.mas.gov.sg/news/media-releases/2023/mas-enhances-green-finance-incentive-scheme",
+      "approved_at": "2026-04-05T04:54:29.313+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.mas.gov.sg/news/media-releases/2023/mas-enhances-green-finance-incentive-scheme",
+        "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "dcc516e3-01dd-478a-bd3c-3cdbec896e8f",
+      "title": "Japan's Updated Top Runner Program for Heavy-Duty Vehicles",
+      "source_url": "https://www.meti.go.jp/policy/energy_environment/energy_efficiency/transportation/toprunner.html",
+      "approved_at": "2026-04-05T04:54:30.54+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.meti.go.jp/policy/energy_environment/energy_efficiency/transportation/toprunner.html",
+        "title": "Japan's Updated Top Runner Program for Heavy-Duty Vehicles",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "bfec4de4-98e4-4ca2-8a5c-a529e0dc62f8",
+      "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Provisions",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2464",
+      "approved_at": "2026-04-05T04:54:32.191+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2464",
+        "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Provisions",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "fb4e3e45-533a-4b50-8ecd-36200888dc4f",
+      "title": "UAE National Net Zero by 2050 Transport Sector Roadmap",
+      "source_url": "https://www.moccae.gov.ae/en/media-centre/news/uae-net-zero-transport-roadmap-2023",
+      "approved_at": "2026-04-05T05:04:48.639+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.moccae.gov.ae/en/media-centre/news/uae-net-zero-transport-roadmap-2023",
+        "title": "UAE National Net Zero by 2050 Transport Sector Roadmap",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "ff6c3b94-31bd-43cd-82d7-0c194bf567ab",
+      "title": "India's National Logistics Policy Carbon Intensity Standards",
+      "source_url": "https://commerce.gov.in/trade/national-logistics-policy-carbon-standards/",
+      "approved_at": "2026-04-05T05:04:51.953+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://commerce.gov.in/trade/national-logistics-policy-carbon-standards/",
+        "title": "India's National Logistics Policy Carbon Intensity Standards",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "c91010cf-8a10-4223-9a13-e6772aaf3298",
+      "title": "Singapore Maritime Decarbonisation Blueprint Implementation Regulations",
+      "source_url": "https://www.mpa.gov.sg/media-centre/details/mpa-releases-detailed-implementation-plan-for-maritime-decarbonisation",
+      "approved_at": "2026-04-05T05:04:53.728+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.mpa.gov.sg/media-centre/details/mpa-releases-detailed-implementation-plan-for-maritime-decarbonisation",
+        "title": "Singapore Maritime Decarbonisation Blueprint Implementation Regulations",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "c6d89b6d-ca2f-4e73-9ea2-40fcc018131f",
+      "title": "Japan's Green Transformation (GX) League Transport Requirements",
+      "source_url": "https://www.meti.go.jp/press/2023/10/20231027004.html",
+      "approved_at": "2026-04-05T05:04:55.247+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.meti.go.jp/press/2023/10/20231027004.html",
+        "title": "Japan's Green Transformation (GX) League Transport Requirements",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "79d2466e-7b83-42f7-9ffb-de69dfd0037c",
+      "title": "China's National Carbon Market Extension to Transportation Sector",
+      "source_url": "https://www.mee.gov.cn/xxgk2018/xxgk/xxgk15/202312/t20231215_1060234.html",
+      "approved_at": "2026-04-05T05:04:57.047+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://www.mee.gov.cn/xxgk2018/xxgk/xxgk15/202312/t20231215_1060234.html",
+        "title": "China's National Carbon Market Extension to Transportation Sector",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    },
+    {
+      "id": "583532e6-b6a4-48b6-8d62-7558dc6054e2",
+      "title": "EU Emissions Trading System (ETS) Extension to Maritime Transport",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023L0958",
+      "approved_at": "2026-04-05T05:04:59.042+00:00",
+      "approved_by": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "age_in_days": 29,
+      "materialization_error": null,
+      "payload_summary": {
+        "keys": [
+          "title",
+          "domain",
+          "status",
+          "summary",
+          "priority",
+          "item_type",
+          "source_url",
+          "source_name",
+          "why_matters",
+          "jurisdictions",
+          "key_deadlines",
+          "transport_modes",
+          "entry_into_force"
+        ],
+        "legacy_id": null,
+        "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023L0958",
+        "title": "EU Emissions Trading System (ETS) Extension to Maritime Transport",
+        "domain": 1,
+        "item_type": "regulation"
+      }
+    }
+  ]
+}
