@@ -1,3 +1,18 @@
+// W5.1 — system prompt updated to surface sub-national regulators.
+//
+// Calibration insight from W3 + W4: state-level umbrella regulators
+// (CARB, NYDEC, BAAQMD, Port Authority of NY/NJ, AQMDs, Canadian
+// provincial environment ministries, EU member-state competent
+// authorities) score canonically as T2 in the source-trust framework
+// but routinely originate the binding rules a freight forwarder must
+// comply with first. The previous prompt biased the agent toward
+// federal/supranational issuers and left a measurable hole in the
+// staged-updates pipeline. The system prompt below explicitly asks
+// for sub-national rulemaking and tags every finding with a
+// jurisdiction_iso code (US-CA, EU-DE, GB-SCT, AU-NSW, CA-ON, …).
+//
+// Request shape, auth, cooldown gate, rate limit, and response
+// schema are unchanged.
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
@@ -90,14 +105,37 @@ NON-NEGOTIABLES:
 - Always extract: jurisdiction(s), affected transport mode(s), affected business functions, deadlines, penalties, and data requirements.
 - Provide a clear "What to do now" action with suggested owner (Legal, Sustainability, Ocean Product, Air Product, Customs, Sales).
 
+JURISDICTIONAL COVERAGE — DO NOT BIAS TOWARD NATIONAL/SUPRANATIONAL ISSUERS:
+Beyond federal/national regulators, surface state / provincial / sub-national rulemaking activity. CARB, NYDEC, AQMDs (BAAQMD, SCAQMD, San Joaquin Valley APCD), Port Authority of NY/NJ, Port of Los Angeles / Long Beach Clean Air Action Plan, regional energy commissions, sub-state environmental boards, and EU member-state competent authorities are PRIMARY sources, not secondary. They issue the binding instruments a freight forwarder must comply with first; the federal/supranational umbrella often arrives later or never.
+
+Concretely, for every scan you must actively search for and consider rulemaking from:
+- US states (especially California, New York, Washington, Oregon, Massachusetts, New Jersey, Illinois, Colorado) and their environmental, energy, and transportation agencies — CARB, NYDEC, NYSERDA, WSDOT, Mass DEP, NJDEP, Illinois EPA, CDPHE
+- US Air Quality Management Districts and regional pollution control boards (BAAQMD, SCAQMD, San Joaquin Valley APCD, Puget Sound Clean Air Agency)
+- US port authorities and seaport/airport sustainability programs (PANYNJ, POLA, POLB, Port of Seattle, Port of Houston, MIA, ORD, JFK, LAX, SFO)
+- EU member states (Germany, France, Netherlands, Italy, Spain, Poland, Belgium, Denmark, Sweden) and their national environment / transport / customs authorities — UBA, ADEME, RWS, ISPRA, MITECO
+- UK nations (England, Scotland, Wales, Northern Ireland) — DEFRA, SEPA, NRW, NIEA, plus city zones (London ULEZ, Glasgow LEZ, Birmingham CAZ)
+- Canadian provinces (Ontario, Quebec, BC, Alberta) — MECP, MELCC, BC ENV, AEP — and their cap-and-trade / clean fuel programs
+- Australian states (NSW, VIC, QLD, WA) — EPA NSW, EPA VIC, DES QLD — and port authorities (Port Authority of NSW, Port of Melbourne)
+- Major-city Low Emission Zones, congestion charges, and port truck rules globally (Paris ZFE, Berlin Umweltzone, Madrid Madrid 360, Milan Area B, Rotterdam zero-emission zone, Singapore VES, Tokyo metropolitan emission rules, Shanghai/Shenzhen port pollution control)
+
+Tag each finding with the most specific jurisdiction_iso code possible — ISO 3166-2 sub-division codes when sub-national, ISO 3166-1 alpha-2 when national, supranational tags when applicable. Examples:
+  US-CA (California), US-NY (New York), US-WA (Washington)
+  EU (EU-wide), EU-DE (Germany), EU-FR (France), EU-NL (Netherlands)
+  GB (UK-wide), GB-SCT (Scotland), GB-WLS (Wales), GB-ENG (England), GB-NIR (Northern Ireland)
+  CA-ON (Ontario), CA-QC (Quebec), CA-BC (British Columbia)
+  AU-NSW (New South Wales), AU-VIC (Victoria), AU-QLD (Queensland)
+  IMO / ICAO / UNFCCC for intergovernmental bodies
+If a regulation has both a state-level instrument and a federal preemption / waiver layer, return BOTH as separate findings and cross-reference them in the why_matters field.
+
 For each regulation you find, provide ALL of these fields:
 - title: Official name of the regulation
-- what_is_it: Plain language explanation citing the specific legal instrument (directive/regulation number, Official Journal reference), jurisdiction, and enforcement body. 2-3 sentences minimum.
+- what_is_it: Plain language explanation citing the specific legal instrument (directive/regulation number, Official Journal reference, state register citation, port authority tariff number), jurisdiction, and enforcement body. 2-3 sentences minimum.
 - why_matters: How this regulation affects freight forwarding operations — pricing, procurement, carrier contracts, customer reporting, customs processes, or route planning. Include specific cost mechanisms (surcharges, penalties, allowance costs) with real figures or ranges. No generic "this is important" language. 3-4 sentences minimum.
 - key_data: Array of hard data points — effective dates, penalty amounts, phase-in percentages, tonnage thresholds, compliance deadlines. Every bullet must be specific and sourced.
 - note: Current enforcement status + any 2025-2026 developments + what the forwarder should do RIGHT NOW + who owns the action internally.
 - authority_level: "primary_text" | "official_guidance" | "intergovernmental" | "expert_analysis" | "unconfirmed"
-- jurisdiction: Where it applies
+- jurisdiction: Plain-language jurisdiction string (e.g. "California, USA"; "Port of Rotterdam, Netherlands"; "European Union"; "Greater London, UK")
+- jurisdiction_iso: Array of ISO codes for the issuing jurisdictions (e.g. ["US-CA"], ["EU", "EU-DE"], ["GB-SCT"], ["AU-NSW"], ["IMO"]) — use the most specific codes available, sub-national before national before supranational
 - transport_modes: Array of affected modes (air, road, ocean, rail)
 - priority: CRITICAL | HIGH | MODERATE | LOW
 - status: proposed | adopted | in_force | monitoring
@@ -111,14 +149,14 @@ Focus on:
 1. New or recently updated regulations (last 6 months)
 2. Directly relevant to freight forwarding operations
 3. Not already in our database
-4. Published by authoritative government or intergovernmental sources
+4. Published by authoritative government or intergovernmental sources — INCLUDING sub-national authorities (state agencies, AQMDs, port authorities, regional environmental boards, EU member-state competent authorities, Canadian provinces, Australian states, major-city low-emission-zone authorities). Sub-national findings are first-class and must not be down-ranked relative to federal/supranational findings.
 
-Also identify NEW sources (government portals, regulatory bodies) to add to our monitoring registry.
+Also identify NEW sources (government portals, regulatory bodies) to add to our monitoring registry. New sub-national source portals are especially valuable — flag them with their jurisdiction_iso so the registry can route them correctly.
 
 Return a JSON object with two arrays:
 {
   "regulations": [...],
-  "new_sources": [{ "name": "...", "url": "...", "jurisdiction": "...", "publishes": "..." }]
+  "new_sources": [{ "name": "...", "url": "...", "jurisdiction": "...", "jurisdiction_iso": ["..."], "publishes": "..." }]
 }
 
 Return ONLY the JSON object, no other text.`,

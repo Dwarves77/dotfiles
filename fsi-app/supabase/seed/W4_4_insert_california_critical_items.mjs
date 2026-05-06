@@ -92,7 +92,7 @@ const ITEMS = [
     item_type: "regulation",
     domain: 1, // Carbon pricing & climate disclosure
     priority: "CRITICAL",
-    severity: "high",
+    severity: null,
     status: "in_force",
     confidence: "confirmed",
     source_url:
@@ -131,7 +131,7 @@ const ITEMS = [
     item_type: "regulation",
     domain: 1,
     priority: "CRITICAL",
-    severity: "high",
+    severity: null,
     status: "in_force",
     confidence: "confirmed",
     source_url:
@@ -170,7 +170,7 @@ const ITEMS = [
     item_type: "regulation",
     domain: 1,
     priority: "CRITICAL",
-    severity: "high",
+    severity: null,
     status: "in_force",
     confidence: "confirmed",
     source_url:
@@ -214,7 +214,7 @@ const ITEMS = [
     item_type: "regulation",
     domain: 2, // Vehicle / fuel mandates
     priority: "CRITICAL",
-    severity: "critical",
+    severity: null,
     status: "in_force",
     confidence: "confirmed",
     source_url:

@@ -1,0 +1,57 @@
+======================================================================
+CA CRITICAL BRIEFS — Regenerate via Sonnet
+======================================================================
+Targets: w4_ca_sb253, w4_ca_sb261, w4_ca_ab1305, w4_ca_acf
+Dry run: false
+Browserless: yes
+
+
+── w4_ca_sb253 ──
+  id=42b8bfee type=regulation priority=CRITICAL
+  source_url=https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202320240SB253
+  fetch: 200 render=2270ms text=26014
+  pool: 40 sources
+  sonnet: 134419ms in=18172 out=7127 cost=$0.161
+  parse: brief=26795 sev=ACTION REQUIRED fmt=regulatory_fact_document src=1
+  integrity: N/A (column missing)
+  ✓ done in 137939ms
+
+── w4_ca_sb261 ──
+  id=2d2cd311 type=regulation priority=CRITICAL
+  source_url=https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202320240SB261
+  fetch: 200 render=2399ms text=17044
+  pool: 40 sources
+  sonnet: 135658ms in=16371 out=7122 cost=$0.156
+  parse: brief=30146 sev=ACTION REQUIRED fmt=regulatory_fact_document src=1
+  integrity: N/A (column missing)
+  ✓ done in 139264ms
+
+── w4_ca_ab1305 ──
+  id=69d5dacb type=regulation priority=CRITICAL
+  source_url=https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202320240AB1305
+  fetch: 200 render=1953ms text=10582
+  pool: 40 sources
+  sonnet: 125738ms in=15089 out=6413 cost=$0.141
+  parse: brief=27628 sev=ACTION REQUIRED fmt=regulatory_fact_document src=1
+  integrity: N/A (column missing)
+  ✓ done in 128666ms
+
+── w4_ca_acf ──
+  id=ccee10a4 type=regulation priority=CRITICAL
+  source_url=https://ww2.arb.ca.gov/our-work/programs/advanced-clean-fleets
+  fetch: 200 render=3420ms text=3453
+  pool: 40 sources
+  sonnet: 118984ms in=13529 out=5861 cost=$0.129
+  parse: brief=22372 sev=MONITORING fmt=regulatory_fact_document src=4
+  integrity: N/A (column missing)
+  ✓ done in 123404ms
+
+======================================================================
+RUN COMPLETE
+======================================================================
+OK:          4/4
+Failed:      0
+Total cost:  $0.59
+Total time:  8m 49s
+
+Report written: C:\Users\jason\dotfiles\docs\CA-BRIEFS-RESULTS.md

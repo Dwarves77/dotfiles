@@ -13,6 +13,11 @@ import {
 import { Button } from "@/components/ui/Button";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { IssuesQueue } from "@/components/admin/IssuesQueue";
+import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
+import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
+import { BulkImportView } from "@/components/admin/BulkImportView";
+import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
 
 interface AdminDashboardProps {
   userId: string;
@@ -56,11 +61,47 @@ export function AdminDashboard({
   // "orgs" + "integrations" are placeholders pending Phase D multi-tenant
   // architecture; the four operational tabs (sources, staged, scan, audit)
   // map to existing functional code that ships now.
-  type AdminTab = "orgs" | "integrations" | "sources" | "staged" | "scan" | "audit";
+  //
+  // "integrity-flags" and "coverage-matrix" are reserved for W2.C and W2.D
+  // respectively. They appear as targets in the IssuesQueue tap-throughs;
+  // when the IssuesQueue navigates to one before its tab body ships we
+  // gracefully fall back to a sibling tab (see resolveAdminTab below).
+  type AdminTab =
+    | "orgs"
+    | "integrations"
+    | "sources"
+    | "staged"
+    | "scan"
+    | "audit"
+    | "integrity-flags"
+    | "coverage-matrix"
+    | "bulk-import";
+  const KNOWN_RENDERED_TABS: ReadonlyArray<AdminTab> = [
+    "orgs",
+    "integrations",
+    "sources",
+    "staged",
+    "scan",
+    "audit",
+    "integrity-flags",
+    "coverage-matrix",
+    "bulk-import",
+  ];
   const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
+  const [issueFilter, setIssueFilter] = useState<string | null>(null);
+
+  const resolveAdminTab = (tab: string): AdminTab => {
+    if (KNOWN_RENDERED_TABS.includes(tab as AdminTab)) return tab as AdminTab;
+    return "orgs";
+  };
+  const handleIssueNavigate = (tab: string, filter?: string) => {
+    setActiveTab(resolveAdminTab(tab));
+    setIssueFilter(filter ?? null);
+  };
   const [members, setMembers] = useState<any[]>(initialMembers);
   const [orgs, setOrgs] = useState<any[]>(initialOrgs);
   const [stagedUpdates, setStagedUpdates] = useState<any[]>(initialStagedUpdates);
+  const [integrityFlagCount, setIntegrityFlagCount] = useState<number>(0);
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState("member");
   const [toast, setToast] = useState("");
@@ -72,15 +113,21 @@ export function AdminDashboard({
   // approve-update side effects.
   const loadData = useCallback(async () => {
     try {
-      const [orgRes, memberRes, updateRes] = await Promise.all([
+      const [orgRes, memberRes, updateRes, flagRes] = await Promise.all([
         supabase.from("organizations").select("id, name, slug, plan, created_at"),
         supabase.from("org_memberships").select("id, org_id, user_id, role, created_at"),
         supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
+        supabase
+          .from("intelligence_items")
+          .select("id", { count: "exact", head: true })
+          .eq("agent_integrity_flag", true)
+          .is("agent_integrity_resolved_at", null),
       ]);
 
       setOrgs(orgRes.data || []);
       setMembers(memberRes.data || []);
       setStagedUpdates(updateRes.data || []);
+      setIntegrityFlagCount(flagRes.count ?? 0);
     } catch {
       // RLS may block some queries — still show the UI
     }
@@ -177,6 +224,9 @@ export function AdminDashboard({
     { id: "integrations", label: "API & integrations", count: 0 },
     { id: "sources", label: "Source registry", count: 0 },
     { id: "staged", label: "Staged updates", count: stagedUpdates.length },
+    { id: "integrity-flags", label: "Integrity flags", count: integrityFlagCount },
+    { id: "coverage-matrix", label: "Coverage matrix", count: 0 },
+    { id: "bulk-import", label: "Bulk add sources", count: 0 },
     { id: "scan", label: "Regulatory scan", count: 0 },
     { id: "audit", label: "Audit log", count: 0 },
   ];
@@ -190,6 +240,12 @@ export function AdminDashboard({
       />
 
       <div style={{ padding: "28px 36px 60px" }}>
+        {/* Issues queue (W2.E) — aggregated needs-attention list above
+            the rest of the admin shell. Tap-throughs switch the active
+            tab via handleIssueNavigate; sub-tab filters are captured in
+            issueFilter for the target tab to consume. */}
+        <IssuesQueue onNavigate={handleIssueNavigate} />
+
         {/* Navy admin-view banner */}
         <div
           style={{
@@ -451,6 +507,12 @@ export function AdminDashboard({
         {/* Source registry Tab — wraps existing SourceHealthDashboard */}
         {activeTab === "sources" && (
           <div className="space-y-4">
+            {issueFilter && (
+              <IssueFilterCaption
+                label={issueFilterLabel(issueFilter)}
+                onClear={() => setIssueFilter(null)}
+              />
+            )}
             <SourceHealthDashboard />
           </div>
         )}
@@ -458,6 +520,12 @@ export function AdminDashboard({
         {/* Staged updates Tab */}
         {activeTab === "staged" && (
           <div className="space-y-4">
+            {issueFilter && (
+              <IssueFilterCaption
+                label={issueFilterLabel(issueFilter)}
+                onClear={() => setIssueFilter(null)}
+              />
+            )}
             <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
               Pending Staged Updates
             </h2>
@@ -569,6 +637,53 @@ export function AdminDashboard({
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* Integrity flags Tab — W2.C
+            Surfaces intelligence_items.agent_integrity_flag rows from
+            migration 035. Component owns its own data fetching + actions
+            against /api/admin/integrity-flags. */}
+        {activeTab === "integrity-flags" && (
+          <div className="space-y-4">
+            {issueFilter && (
+              <IssueFilterCaption
+                label={issueFilterLabel(issueFilter)}
+                onClear={() => setIssueFilter(null)}
+              />
+            )}
+            <IntegrityFlagsView />
+          </div>
+        )}
+
+        {activeTab === "coverage-matrix" && (
+          <div className="space-y-4">
+            {issueFilter && (
+              <IssueFilterCaption
+                label={issueFilterLabel(issueFilter)}
+                onClear={() => setIssueFilter(null)}
+              />
+            )}
+            <CoverageMatrixView
+              onAction={(action) => {
+                if (action.kind === "bulk-add") {
+                  setActiveTab("bulk-import");
+                  setIssueFilter(`coverage:${action.jurisdictionIso}`);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {activeTab === "bulk-import" && (
+          <div className="space-y-4">
+            {issueFilter && (
+              <IssueFilterCaption
+                label={issueFilterLabel(issueFilter)}
+                onClear={() => setIssueFilter(null)}
+              />
+            )}
+            <BulkImportView />
           </div>
         )}
 

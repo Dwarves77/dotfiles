@@ -179,6 +179,12 @@ export interface Resource {
   urgencyScore?: number;
   impactScores?: ImpactScores;
   impactReasoning?: ImpactReasoning;
+
+  // Agent integrity self-flag — populated from migration 035 columns.
+  // Surfaced only to admin viewers via the RegulationDetailSurface banner.
+  agentIntegrityFlag?: boolean;
+  agentIntegrityPhrase?: string | null;
+  agentIntegrityFlaggedAt?: string | null;
 }
 
 // ── Verification ──

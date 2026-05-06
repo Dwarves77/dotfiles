@@ -1,0 +1,91 @@
+{
+  "generated_at": "2026-05-04T01:18:54.740Z",
+  "totals": {
+    "intelligence_items_total": 164,
+    "items_with_source_id": 147,
+    "items_with_null_source_id": 17,
+    "items_with_null_source_id_but_have_source_url": 8,
+    "total_mismatches": 2
+  },
+  "pivot_by_linked_source": [
+    {
+      "linked_source_name": "UK Legislation",
+      "linked_source_id": "a514027a-39c4-4ca0-a88b-0b2f828deb34",
+      "linked_source_etld": "legislation.gov.uk",
+      "total_mismatched_items": 1,
+      "mismatched_etld_breakdown": [
+        {
+          "etld": "gov.uk",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "linked_source_name": "US EPA Emissions Regulations",
+      "linked_source_id": "e568e55d-5436-4f5b-9508-35091b9d5bcc",
+      "linked_source_etld": "epa.gov",
+      "total_mismatched_items": 1,
+      "mismatched_etld_breakdown": [
+        {
+          "etld": "arb.ca.gov",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "suggested_action_counts": {
+    "manual_review": 1,
+    "create_new_source": 1
+  },
+  "mismatches": [
+    {
+      "item_id": "5c75e081-0757-42a8-8b35-bf67125d3522",
+      "legacy_id": "g6",
+      "item_title": "UK DfT Decarbonisation",
+      "item_source_url": "https://www.gov.uk/government/organisations/department-for-transport",
+      "item_source_host": "gov.uk",
+      "item_source_etld": "gov.uk",
+      "linked_source_id": "a514027a-39c4-4ca0-a88b-0b2f828deb34",
+      "linked_source_name": "UK Legislation",
+      "linked_source_url": "https://www.legislation.gov.uk",
+      "linked_source_host": "legislation.gov.uk",
+      "linked_source_etld": "legislation.gov.uk",
+      "reason": "host_etld_mismatch",
+      "suggested_action": "manual_review",
+      "manual_review_reason": "multiple_candidate_sources",
+      "candidate_source_ids": [
+        "a2c63c9d-86df-47b9-b6a4-500210c58797",
+        "dd4d41e2-100a-46dc-9273-8d2c95be347a",
+        "80a70899-559b-4f6d-8c70-5e243800ecbe",
+        "0cd629a2-84fb-4e80-a0a5-546a92a5e2c6"
+      ],
+      "candidate_source_names": [
+        "UK MEES — Minimum Energy Efficiency Standards",
+        "UK Government (GOV.UK) — Department for Energy Security and Net Zero",
+        "UK Department for Transport (GOV.UK)",
+        "UK Department for Transport / GOV.UK"
+      ]
+    },
+    {
+      "item_id": "956bad5c-80b0-411b-8fd5-726cc0d4a333",
+      "legacy_id": "l7",
+      "item_title": "CARB Advanced Clean Trucks",
+      "item_source_url": "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-trucks",
+      "item_source_host": "ww2.arb.ca.gov",
+      "item_source_etld": "arb.ca.gov",
+      "linked_source_id": "e568e55d-5436-4f5b-9508-35091b9d5bcc",
+      "linked_source_name": "US EPA Emissions Regulations",
+      "linked_source_url": "https://www.epa.gov/regulations-emissions-vehicles-and-engines",
+      "linked_source_host": "epa.gov",
+      "linked_source_etld": "epa.gov",
+      "reason": "host_etld_mismatch",
+      "suggested_action": "create_new_source",
+      "proposed_source": {
+        "name": "California Air Resources Board (CARB)",
+        "url": "https://arb.ca.gov",
+        "type": "regulator",
+        "tier": "T2"
+      }
+    }
+  ]
+}
