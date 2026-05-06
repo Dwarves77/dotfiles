@@ -1,0 +1,299 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "step1_fetch_stale",
+      "ok": true,
+      "detail": "fetched 12 stale rows (expected 12)",
+      "at": "2026-05-06T22:02:05.126Z"
+    },
+    {
+      "name": "step1_verify_5c34450f",
+      "ok": true,
+      "detail": "status=needs_more_data tier=1 juris=EU",
+      "at": "2026-05-06T22:02:09.904Z"
+    },
+    {
+      "name": "step1_verify_b3d0118b",
+      "ok": true,
+      "detail": "status=confirmed tier=2 juris=US",
+      "at": "2026-05-06T22:02:11.746Z"
+    },
+    {
+      "name": "step1_verify_f0f9aae2",
+      "ok": true,
+      "detail": "status=rejected tier=null juris=SG",
+      "at": "2026-05-06T22:02:13.029Z"
+    },
+    {
+      "name": "step1_verify_f763a37a",
+      "ok": true,
+      "detail": "status=confirmed tier=2 juris=JP",
+      "at": "2026-05-06T22:02:16.064Z"
+    },
+    {
+      "name": "step1_verify_8ecfb01f",
+      "ok": true,
+      "detail": "status=needs_more_data tier=2 juris=SG",
+      "at": "2026-05-06T22:02:18.354Z"
+    },
+    {
+      "name": "step1_verify_c55fbf5f",
+      "ok": true,
+      "detail": "status=rejected tier=null juris=JP",
+      "at": "2026-05-06T22:02:18.856Z"
+    },
+    {
+      "name": "step1_verify_6a219de3",
+      "ok": true,
+      "detail": "status=rejected tier=null juris=AE",
+      "at": "2026-05-06T22:02:27.460Z"
+    },
+    {
+      "name": "step1_verify_f383bef9",
+      "ok": true,
+      "detail": "status=rejected tier=null juris=KR",
+      "at": "2026-05-06T22:02:28.455Z"
+    },
+    {
+      "name": "step1_verify_3af5f538",
+      "ok": true,
+      "detail": "status=confirmed tier=2 juris=CN",
+      "at": "2026-05-06T22:02:31.443Z"
+    },
+    {
+      "name": "step1_verify_f94f522d",
+      "ok": true,
+      "detail": "status=confirmed tier=2 juris=JP",
+      "at": "2026-05-06T22:02:34.475Z"
+    },
+    {
+      "name": "step1_verify_99babef4",
+      "ok": true,
+      "detail": "status=confirmed tier=2 juris=SG",
+      "at": "2026-05-06T22:02:37.923Z"
+    },
+    {
+      "name": "step1_verify_1f3fc668",
+      "ok": true,
+      "detail": "status=confirmed tier=2 juris=AE",
+      "at": "2026-05-06T22:02:45.561Z"
+    },
+    {
+      "name": "step1_final_stale_count",
+      "ok": true,
+      "detail": "0 stale pending_review rows remain (expected 0)",
+      "at": "2026-05-06T22:02:45.830Z"
+    },
+    {
+      "name": "step2_backfill_verify",
+      "ok": true,
+      "detail": "0 of 12 still NULL on discovered_for_jurisdiction (expected 0)",
+      "at": "2026-05-06T22:02:45.936Z"
+    },
+    {
+      "name": "step3_dubai_uae_update",
+      "ok": true,
+      "detail": "2 rows updated",
+      "at": "2026-05-06T22:02:46.213Z"
+    },
+    {
+      "name": "step3_verify_dubai-uae-regional-operations-profile",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"AE\"]",
+      "at": "2026-05-06T22:02:46.326Z"
+    },
+    {
+      "name": "step3_verify_g25",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"AE\"]",
+      "at": "2026-05-06T22:02:46.327Z"
+    },
+    {
+      "name": "step3_no_remaining_under_global",
+      "ok": true,
+      "detail": "0 retag candidates still under GLOBAL (expected 0)",
+      "at": "2026-05-06T22:02:46.428Z"
+    },
+    {
+      "name": "step4_insert_specific_source",
+      "ok": true,
+      "detail": "id=b32c0e41-bfbd-4bea-a1a7-732d6b02a4ad",
+      "at": "2026-05-06T22:02:46.802Z"
+    },
+    {
+      "name": "step4_battery_link_update",
+      "ok": true,
+      "detail": "linked",
+      "at": "2026-05-06T22:02:46.929Z"
+    },
+    {
+      "name": "step4_battery_verify",
+      "ok": true,
+      "detail": "source_id=b32c0e41-bfbd-4bea-a1a7-732d6b02a4ad sources_used.length=1",
+      "at": "2026-05-06T22:02:47.039Z"
+    }
+  ],
+  "reclass_results": [
+    {
+      "id": "5c34450f-447e-43fb-9a9e-551b22ef5dd7",
+      "url": "https://ec.europa.eu/info/business-economy-euro/company-reporting-and-auditing/company-reporting/corporate-sustainability-reporting_en",
+      "name": "EU Corporate Sustainability Reporting Portal",
+      "discovered_for_jurisdiction": "EU",
+      "decision": "M",
+      "decision_reason": "M_default(rel=92,frt=45)",
+      "ai": {
+        "ai_relevance_score": 92,
+        "ai_freight_score": 45,
+        "ai_trust_tier": "T1",
+        "rationale": "Official EU Commission portal on CSRD & sustainability reporting standards. High relevance to environmental/sustainability regulation. Moderate freight impact via supply chain disclosure requirements "
+      },
+      "new_status": "needs_more_data"
+    },
+    {
+      "id": "b3d0118b-2de7-477f-a17d-fa43c03d1b36",
+      "url": "https://www.epa.gov/transportation-air-pollution-and-climate-change",
+      "name": "EPA Clean Transportation Portal",
+      "discovered_for_jurisdiction": "US",
+      "decision": "H",
+      "decision_reason": "H_clear(rel=95,frt=75)",
+      "ai": {
+        "ai_relevance_score": 95,
+        "ai_freight_score": 75,
+        "ai_trust_tier": "T2",
+        "rationale": "EPA canonical regulator for US transportation emissions & air quality. Direct authority over vehicle standards, fuel economy, carbon pollution from transport. Primary source for freight vehicle compli"
+      },
+      "new_status": "confirmed"
+    },
+    {
+      "id": "f0f9aae2-6464-4aab-9c46-4863f69519f2",
+      "url": "https://www.mpa.gov.sg/sustainability",
+      "name": "Maritime and Port Authority of Singapore Sustainability Hub",
+      "discovered_for_jurisdiction": "SG",
+      "decision": "L",
+      "decision_reason": "reachability",
+      "ai": null,
+      "new_status": "rejected"
+    },
+    {
+      "id": "f763a37a-6beb-44a8-9113-afae27c83fec",
+      "url": "https://www.meti.go.jp/english/policy/energy_environment/global_warming/index.html",
+      "name": "Japan METI Green Transformation Portal",
+      "discovered_for_jurisdiction": "JP",
+      "decision": "H",
+      "decision_reason": "H_clear(rel=92,frt=72)",
+      "ai": {
+        "ai_relevance_score": 92,
+        "ai_freight_score": 72,
+        "ai_trust_tier": "T2",
+        "rationale": "Japan's canonical national energy/climate ministry portal. Strong decarbonization, GX policy, carbon footprinting. Freight impact through supply chain carbon standards & transport transition finance."
+      },
+      "new_status": "confirmed"
+    },
+    {
+      "id": "8ecfb01f-85a6-4ec4-b060-7594e095be53",
+      "url": "https://www.mas.gov.sg/development/sustainable-finance",
+      "name": "Singapore Monetary Authority Green Finance Portal",
+      "discovered_for_jurisdiction": "SG",
+      "decision": "M",
+      "decision_reason": "M_default(rel=75,frt=45)",
+      "ai": {
+        "ai_relevance_score": 75,
+        "ai_freight_score": 45,
+        "ai_trust_tier": "T2",
+        "rationale": "MAS is canonical regulator with sustainability mandate, but page content unavailable; SG context confirms T2 status despite access failure."
+      },
+      "new_status": "needs_more_data"
+    },
+    {
+      "id": "c55fbf5f-11fa-4044-895b-55b66c066b81",
+      "url": "https://www.meti.go.jp/policy/energy_environment/energy_efficiency/transportation/",
+      "name": "Japan METI Transportation Efficiency Standards",
+      "discovered_for_jurisdiction": "JP",
+      "decision": "L",
+      "decision_reason": "reachability",
+      "ai": null,
+      "new_status": "rejected"
+    },
+    {
+      "id": "6a219de3-1dcb-4005-8816-64039df587c8",
+      "url": "https://www.moei.gov.ae/en/home.aspx",
+      "name": "UAE Ministry of Energy and Infrastructure",
+      "discovered_for_jurisdiction": "AE",
+      "decision": "L",
+      "decision_reason": "reachability",
+      "ai": null,
+      "new_status": "rejected"
+    },
+    {
+      "id": "f383bef9-06b8-410d-b824-c96d3ff43a5f",
+      "url": "https://www.me.go.kr/eng/web/index.do?menuId=16",
+      "name": "Korea Ministry of Environment K-Taxonomy Portal",
+      "discovered_for_jurisdiction": "KR",
+      "decision": "L",
+      "decision_reason": "reachability",
+      "ai": null,
+      "new_status": "rejected"
+    },
+    {
+      "id": "3af5f538-ae2c-4454-94f2-a5e2d4b44cd5",
+      "url": "https://www.mee.gov.cn",
+      "name": "Ministry of Ecology and Environment of China",
+      "discovered_for_jurisdiction": "CN",
+      "decision": "H",
+      "decision_reason": "H_clear(rel=92,frt=65)",
+      "ai": {
+        "ai_relevance_score": 92,
+        "ai_freight_score": 65,
+        "ai_trust_tier": "T2",
+        "rationale": "China's canonical national Ministry of Ecology and Environment. Primary regulator for emissions, air quality, water, waste, energy standards. Operationally affects freight via vehicle emission standar"
+      },
+      "new_status": "confirmed"
+    },
+    {
+      "id": "f94f522d-5352-47cc-ab68-0d81ee1b9e56",
+      "url": "https://www.meti.go.jp",
+      "name": "Ministry of Economy, Trade and Industry Japan",
+      "discovered_for_jurisdiction": "JP",
+      "decision": "H",
+      "decision_reason": "H_clear(rel=75,frt=65)",
+      "ai": {
+        "ai_relevance_score": 75,
+        "ai_freight_score": 65,
+        "ai_trust_tier": "T2",
+        "rationale": "METI is Japan's primary industrial/energy ministry with broad sustainability, energy, climate mandates. Navigation hub; regulatory content on energy, environment, logistics. Primary regulator but home"
+      },
+      "new_status": "confirmed"
+    },
+    {
+      "id": "99babef4-1ac0-48cf-a2b6-8f3b06ccf863",
+      "url": "https://www.mpa.gov.sg",
+      "name": "Maritime and Port Authority of Singapore",
+      "discovered_for_jurisdiction": "SG",
+      "decision": "H",
+      "decision_reason": "H_clear(rel=85,frt=90)",
+      "ai": {
+        "ai_relevance_score": 85,
+        "ai_freight_score": 90,
+        "ai_trust_tier": "T2",
+        "rationale": "MPA is Singapore's canonical maritime & port regulator with direct operational authority over shipping, cargo, emissions (IMO 2020 fuel), and decarbonization mandates."
+      },
+      "new_status": "confirmed"
+    },
+    {
+      "id": "1f3fc668-7d84-43d1-97c2-c3e8803f1209",
+      "url": "https://www.moccae.gov.ae",
+      "name": "Ministry of Climate Change and Environment UAE",
+      "discovered_for_jurisdiction": "AE",
+      "decision": "H",
+      "decision_reason": "H_clear(rel=92,frt=65)",
+      "ai": {
+        "ai_relevance_score": 92,
+        "ai_freight_score": 65,
+        "ai_trust_tier": "T2",
+        "rationale": "UAE national ministry with explicit climate, environment, and sustainability mandate. Covers air quality, waste, chemicals, biodiversity, emissions. Import/export controls affect freight operations."
+      },
+      "new_status": "confirmed"
+    }
+  ]
+}

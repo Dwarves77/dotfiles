@@ -1,0 +1,237 @@
+{
+  "generatedAt": "2026-05-06T22:03:58.136Z",
+  "staleAgeDefinition": "status='pending_review' AND created_at < '2026-04-06T22:03:58.135Z' (30-day cutoff)",
+  "step1_stale_provisionals": {
+    "count": 0,
+    "expected": 12,
+    "match": false,
+    "rows": [],
+    "total_pending_review_all_ages": 384
+  },
+  "step2_w2f_mapping": {
+    "endpoint": "POST /api/admin/sources/verify",
+    "pure_module": "src/lib/sources/verification.ts (verifyCandidate)",
+    "semantics": "W2.F triages each candidate URL into H/M/L tiers via Haiku. H → INSERT INTO sources (auto-approved). M → INSERT INTO provisional_sources (queued-provisional). L → audit log only. Re-running on stale provisional rows requires either (a) calling verifyCandidate directly with the existing URL/name from the stale row, then if H is the outcome, promoting/marking the stale row reviewed, or (b) calling /api/admin/sources/promote with admin auth. Direct verifyCandidate path keeps the script self-contained and uses the same Haiku classifier the production endpoint uses.",
+    "re_run_strategy": "For each stale row: (i) call verifyCandidate with skipDuplicateCheck=true (existing provisional row would otherwise re-trip duplicate logic), (ii) inspect the returned tier, (iii) update the stale row in-place — set status='confirmed' if H, refresh recommended_tier from Haiku output, mark reviewed_at NOW(). The stale row is what gets refreshed; W2.F doesn't normally touch existing provisional rows, so we adapt its logic for re-classification while staying within the helper module."
+  },
+  "step3_dubai_uae": {
+    "global_tagged_total": 74,
+    "dubai_uae_keyword_match_count": 6,
+    "true_ae_retag_count": 0,
+    "exceeds_threshold_5": false,
+    "matches": [
+      {
+        "id": "b88753be-8ed4-4392-9cee-9f472c208513",
+        "legacy_id": "warehouse-solar-bess-roi-analysis",
+        "title": "Warehouse Solar & BESS ROI Analysis",
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "jurisdictions": [
+          "global"
+        ],
+        "keyword_hits": [
+          "Dubai",
+          "DEWA"
+        ],
+        "classification": "INCIDENTAL_GLOBAL",
+        "classification_reason": "Keyword appears as one example among multiple jurisdictions; primary scope is global. Skip retag.",
+        "snippet": "ale solar LCOE of $30–50/MWh; US IRA 30% ITC; Dubai DEWA net metering; UK SEG export tariff; and BESS payback of 5–8 years. **None of these figures are directly reproduced in the NREL programme page retrieved as the source.** Each is addressed below: - **Utility-scale LCOE $30–50"
+      },
+      {
+        "id": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+        "legacy_id": "industrial-electricity-tariff-benchmarks-by-jurisdiction",
+        "title": "Industrial Electricity Tariff Benchmarks by Jurisdiction",
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "jurisdictions": [
+          "global"
+        ],
+        "keyword_hits": [
+          "Dubai",
+          "DEWA",
+          "UAE"
+        ],
+        "classification": "INCIDENTAL_GLOBAL",
+        "classification_reason": "Keyword appears as one example among multiple jurisdictions; primary scope is global. Skip retag.",
+        "snippet": "confirmed from pool sources | SGD | — | Research gap — see note | | Dubai / UAE | Not confirmed from pool sources | AED | — | Research gap — see note | | Hong Kong | Not confirmed from pool sources | HKD | — | Research gap — see note | **Research gap — Asia and Middle East:** The"
+      },
+      {
+        "id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+        "legacy_id": "green-building-certification-standards-for-logistics",
+        "title": "Green Building Certification Standards for Logistics",
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "jurisdictions": [
+          "global"
+        ],
+        "keyword_hits": [
+          "UAE",
+          "Abu Dhabi"
+        ],
+        "classification": "INCIDENTAL_GLOBAL",
+        "classification_reason": "Keyword appears as one example among multiple jurisdictions; primary scope is global. Skip retag.",
+        "snippet": "cility decisions in Singapore | | UAE (Abu Dhabi) | Estidama Pearl — mandatory for new buildings | In force | New construction in Abu Dhabi | | USA (New York City) | Local Law 84/97 — benchmarking (LL84) and carbon emissions caps (LL97) | In force | Buildings >25,000 sqft in NYC"
+      },
+      {
+        "id": "b26de8fc-a6b6-46e5-8f9d-7ea9c96e7b09",
+        "legacy_id": "r19",
+        "title": "Supply Chain Digital",
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "jurisdictions": [
+          "global"
+        ],
+        "keyword_hits": [
+          "UAE",
+          "Emirates"
+        ],
+        "classification": "INCIDENTAL_GLOBAL",
+        "classification_reason": "Keyword appears as one example among multiple jurisdictions; primary scope is global. Skip retag.",
+        "snippet": "rce content (Tier 5 — news reporting, not binding authority):** - *\"UAE Quits OPEC: What This Means for Global Supply Chains\"* — The United Arab Emirates has announced its departure from OPEC. For a workspace with air-primary transport and Asia and Americas trade lanes, jet fuel"
+      },
+      {
+        "id": "08b0a1b3-ff0f-4bcb-9b8e-bc05a7c2cb47",
+        "legacy_id": "g27",
+        "title": "UN SDGs 9 & 13",
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "jurisdictions": [
+          "global"
+        ],
+        "keyword_hits": [
+          "UAE"
+        ],
+        "classification": "INCIDENTAL_GLOBAL",
+        "classification_reason": "Keyword appears as one example among multiple jurisdictions; primary scope is global. Skip retag.",
+        "snippet": "de lanes (US, EU member states, Brazil, Japan, Singapore, UAE) have filed revised NDCs. These commitments are the upstream trigger for new domestic transport emissions regulations. The workspace should monitor NDC implementation legislation in each key jurisdiction. *Source: UNFC"
+      },
+      {
+        "id": "7d2f8d88-46b6-4998-a10e-75093500f46c",
+        "legacy_id": "c4",
+        "title": "ISO 14083",
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "jurisdictions": [
+          "global"
+        ],
+        "keyword_hits": [
+          "Emirates"
+        ],
+        "classification": "INCIDENTAL_GLOBAL",
+        "classification_reason": "Keyword appears as one example among multiple jurisdictions; primary scope is global. Skip retag.",
+        "snippet": "a Cargo, Air France-KLM Cargo, Emirates SkyCargo, Cathay Cargo) are increasingly providing shipment-level or fleet-average emission factors. Charter and specialist air operators serving live events and fine art verticals may not yet have this data available. *[Carrier-specific da"
+      }
+    ],
+    "true_ae_retag_candidates": []
+  },
+  "step4_battery_brief": {
+    "candidates": [
+      {
+        "id": "ac349a70-606d-4eb3-ac19-5a4a0facd07c",
+        "legacy_id": "eu-battery-regulation-2023-1542",
+        "title": "EU Battery Regulation (Regulation (EU) 2023/1542)",
+        "item_type": "regulation",
+        "regeneration_skill_version": "2026-04-29",
+        "brief_length": 36030,
+        "sourceLineCount": 0,
+        "httpUrlCount": 14,
+        "footnoteCount": 0,
+        "markdownLinkCount": 0,
+        "hasCitationsSection": true,
+        "total_citation_signals": 0
+      },
+      {
+        "id": "b88753be-8ed4-4392-9cee-9f472c208513",
+        "legacy_id": "warehouse-solar-bess-roi-analysis",
+        "title": "Warehouse Solar & BESS ROI Analysis",
+        "item_type": "research_finding",
+        "regeneration_skill_version": "2026-04-29",
+        "brief_length": 22948,
+        "sourceLineCount": 0,
+        "httpUrlCount": 33,
+        "footnoteCount": 0,
+        "markdownLinkCount": 0,
+        "hasCitationsSection": true,
+        "total_citation_signals": 0
+      },
+      {
+        "id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+        "legacy_id": "solar-battery-energy-storage-for-warehouses",
+        "title": "Solar & Battery Energy Storage for Warehouses",
+        "item_type": "technology",
+        "regeneration_skill_version": "2026-04-29",
+        "brief_length": 18283,
+        "sourceLineCount": 0,
+        "httpUrlCount": 11,
+        "footnoteCount": 0,
+        "markdownLinkCount": 0,
+        "hasCitationsSection": true,
+        "total_citation_signals": 0
+      },
+      {
+        "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+        "legacy_id": "battery-electric-vehicle-technology",
+        "title": "Battery & Electric Vehicle Technology",
+        "item_type": "technology",
+        "regeneration_skill_version": "2026-04-29",
+        "brief_length": 16696,
+        "sourceLineCount": 0,
+        "httpUrlCount": 8,
+        "footnoteCount": 0,
+        "markdownLinkCount": 0,
+        "hasCitationsSection": true,
+        "total_citation_signals": 0
+      }
+    ],
+    "likely_failing_candidate": {
+      "id": "ac349a70-606d-4eb3-ac19-5a4a0facd07c",
+      "legacy_id": "eu-battery-regulation-2023-1542",
+      "title": "EU Battery Regulation (Regulation (EU) 2023/1542)",
+      "item_type": "regulation",
+      "regeneration_skill_version": "2026-04-29",
+      "brief_length": 36030,
+      "sourceLineCount": 0,
+      "httpUrlCount": 14,
+      "footnoteCount": 0,
+      "markdownLinkCount": 0,
+      "hasCitationsSection": true,
+      "total_citation_signals": 0
+    },
+    "src_zero_confirmed": true,
+    "brief_excerpt_first_2k": "# EU Battery Regulation (Regulation (EU) 2023/1542)\n## Regulatory Fact Document\n\n---\n\n# Purpose and Scope of This Document\n\nThis document analyses Regulation (EU) 2023/1542 of the European Parliament and of the Council of 12 July 2023 concerning batteries and waste batteries (\"the Battery Regulation\"), published in the Official Journal of the European Union L 191, 28 July 2023, currently in force in its consolidated version of 31 July 2025.\n\nThe brief is anchored to a workspace operating as a **freight forwarder** across the Americas, Europe, and Asia trade lanes, with cargo verticals spanning live events, fine art, luxury goods, film and TV, high-value automotive, and humanitarian. Air transport is the primary mode; road is secondary; ocean is tertiary.\n\n**Convention note:** This document applies the Integrity Rule throughout. Sections are populated only where the regulation's text, as provided in the source content, furnishes grounded claims. Sections requiring legal confirmation are explicitly labelled. No delegated acts, implementing regulations, or Commission guidance documents beyond the regulation's own text have been provided in the source pool; where those instruments would be required to complete an analysis, the gap is labelled explicitly.\n\n**Scope limitation:** The source content provided is the preamble and early recitals of the Battery Regulation. The operative articles (beyond recital cross-references) were not fully provided. Where article-level specificity is needed, the relevant article number is cited from the regulation's structure as identified in the recitals; however, any analysis dependent on operative article text that was not supplied is labelled as a **research gap requiring primary-text verification**.\n\n*Source: Regulation (EU) 2023/1542, European Parliament and Council, 12 July 2023, OJ L 191/1, 28 July 2023. https://eur-lex.europa.eu/eli/reg/2023/1542/oj*\n\n---\n\n# What This Regulation Is and Why It Applies to the Workspace\n\n## What the R",
+    "brief_excerpt_last_1k": "https://eur-lex.europa.eu/search.html?qid=&text=2023%2F1542&scope=EURLEX&type=quick&lang=en&andText=false | 1 | The regulation delegates substantial authority to the Commission; delegated acts set the application dates for carbon footprint declarations, battery passports, and maximum thresholds. Required to complete the regulatory timeline. |\n| European Commission – DG ENV Batteries webpage | https://environment.ec.europa.eu/topics/waste-and-recycling/batteries_en | 2 | Commission implementation guidance, FAQ, and stakeholder documents on the Battery Regulation; provides regulator-level interpretation of operator obligations. |\n| European Commission – Battery Regulation FAQ and guidance notes | https://environment.ec.europa.eu/topics/waste-and-recycling/batteries/batteries-regulation-faq_en | 2 | Regulator guidance on economic operator definitions, including importer and fulfilment service provider scope; resolves Legal Confirmation Required items where official guidance exists. |\n\n---",
+    "structured_post_state": {
+      "source_id": "b32c0e41-bfbd-4bea-a1a7-732d6b02a4ad",
+      "sources_used_count": 1,
+      "inline_source_lines_in_brief": 29,
+      "citations_resolved": true
+    }
+  },
+  "step5_backfill_target": {
+    "stale_rows_with_null_discovered_for_jurisdiction": 0,
+    "expected": 12,
+    "match": false,
+    "total_null_in_table": 3
+  },
+  "halt_diagnostics": {
+    "stale_count_off": true,
+    "dubai_count_exceeds_5": false,
+    "battery_root_cause_in_system_prompt": false,
+    "backfill_count_off": true
+  },
+  "post_execution_outcomes": {
+    "stale_pending_review_count": 0,
+    "stale_pending_review_zero_after_execute": true,
+    "dubai_uae_remaining_under_global": 0,
+    "dubai_uae_zero_after_execute": true,
+    "battery_citations_resolved": true,
+    "backfill_null_count_on_stale_rows": 0,
+    "backfill_zero_after_execute": true
+  }
+}
