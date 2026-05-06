@@ -34,33 +34,103 @@ export default async function CommunityPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/community");
 
-  // ── User's group memberships ────────────────────────────────────
-  // RLS scopes this to the caller's own rows (community_group_members
-  // self-select policy). We embed community_groups for name/region/
-  // privacy/member_count needed by the sidebar.
-  const { data: membershipsRaw } = await supabase
-    .from("community_group_members")
-    .select(
-      `
-        group_id,
-        role,
-        starred,
-        muted,
-        joined_at,
-        community_groups (
+  // ── Parallel data fetch ─────────────────────────────────────────
+  // All six reads below are independent (each scoped only by user.id
+  // or unconditional via RPC). Running them sequentially cost ~5-6
+  // round-trips; batching into a single Promise.all collapses that to
+  // one wall-clock window. Six queries is at Supabase's pool ceiling
+  // for a single connection — safe here because each query touches a
+  // different table and is short-lived.
+  //
+  // Reads:
+  //   1) memberships  — caller's group_members rows + embedded groups
+  //   2) invitations  — pending invitations addressed to caller
+  //   3) topics       — caller's topics + topic_groups counts
+  //   4) regionRows   — RPC: per-region group counts visible to caller
+  //   5) profile      — sidebar footer (name, headshot, admin flag)
+  //   6) orgRow       — sidebar footer (employer/org name)
+  const t0Fetch = Date.now();
+  const [
+    { data: membershipsRaw },
+    { data: invitationsRaw },
+    { data: topicsRaw },
+    { data: regionRows },
+    { data: profile },
+    { data: orgRow },
+  ] = await Promise.all([
+    supabase
+      .from("community_group_members")
+      .select(
+        `
+          group_id,
+          role,
+          starred,
+          muted,
+          joined_at,
+          community_groups (
+            id,
+            name,
+            slug,
+            region,
+            privacy,
+            member_count,
+            weekly_post_count,
+            last_active_at
+          )
+        `
+      )
+      .eq("user_id", user.id),
+    supabase
+      .from("community_group_invitations")
+      .select(
+        `
           id,
-          name,
-          slug,
-          region,
-          privacy,
-          member_count,
-          weekly_post_count,
-          last_active_at
-        )
-      `
-    )
-    .eq("user_id", user.id);
+          group_id,
+          inviter_user_id,
+          status,
+          created_at,
+          community_groups (
+            id,
+            name,
+            slug,
+            region,
+            privacy
+          )
+        `
+      )
+      .eq("invitee_user_id", user.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("community_topics")
+      .select(
+        `
+          id,
+          label,
+          created_at,
+          community_topic_groups ( group_id )
+        `
+      )
+      .eq("owner_user_id", user.id)
+      .order("created_at", { ascending: true }),
+    supabase.rpc("community_region_counts"),
+    supabase
+      .from("user_profiles")
+      .select("name, headshot_url, is_platform_admin")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("org_memberships")
+      .select("organizations(name)")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  console.log(
+    `[perf] /community parallel-fetch ${Date.now() - t0Fetch}ms`
+  );
 
+  // ── Reshape memberships ─────────────────────────────────────────
   const memberships = (membershipsRaw || []).flatMap((m: any) => {
     if (!m.community_groups) return [];
     return [
@@ -84,29 +154,7 @@ export default async function CommunityPage({
     ];
   });
 
-  // ── Pending invitations ─────────────────────────────────────────
-  const { data: invitationsRaw } = await supabase
-    .from("community_group_invitations")
-    .select(
-      `
-        id,
-        group_id,
-        inviter_user_id,
-        status,
-        created_at,
-        community_groups (
-          id,
-          name,
-          slug,
-          region,
-          privacy
-        )
-      `
-    )
-    .eq("invitee_user_id", user.id)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
+  // ── Reshape invitations ─────────────────────────────────────────
   const invitations = (invitationsRaw || []).flatMap((inv: any) => {
     if (!inv.community_groups) return [];
     return [
@@ -126,23 +174,10 @@ export default async function CommunityPage({
     ];
   });
 
-  // ── Topics ──────────────────────────────────────────────────────
+  // ── Reshape topics ──────────────────────────────────────────────
   // RLS restricts community_topics to the owner. We pull the topic
   // rows + a count of joined groups via the junction; rendering is
   // sidebar-only for this PR.
-  const { data: topicsRaw } = await supabase
-    .from("community_topics")
-    .select(
-      `
-        id,
-        label,
-        created_at,
-        community_topic_groups ( group_id )
-      `
-    )
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true });
-
   const topics = (topicsRaw || []).map((t: any) => ({
     id: t.id,
     label: t.label,
@@ -151,7 +186,7 @@ export default async function CommunityPage({
       : 0,
   }));
 
-  // ── Region counts ───────────────────────────────────────────────
+  // ── Region counts (reshape) ─────────────────────────────────────
   // Counts of groups VISIBLE TO THIS USER per region — RLS already
   // limits the result to public groups + private groups where caller
   // is a member, so a plain head-count is enough.
@@ -168,26 +203,12 @@ export default async function CommunityPage({
 
   const regionCounts: Record<string, number> = {};
   for (const r of REGIONS) regionCounts[r.code] = 0;
-  const { data: regionRows } = await supabase.rpc("community_region_counts");
   for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
     regionCounts[row.region] = Number(row.count) || 0;
   }
 
-  // ── User profile (for sidebar footer) ───────────────────────────
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("name, headshot_url, is_platform_admin")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   // Workspace label (employer/org) — best-effort; the sidebar footer
   // shows the user's primary org name.
-  const { data: orgRow } = await supabase
-    .from("org_memberships")
-    .select("organizations(name)")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
   const employer =
     (orgRow?.organizations as { name?: string } | null)?.name ?? "";
 

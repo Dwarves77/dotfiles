@@ -1,0 +1,1617 @@
+{
+  "ran_at": "2026-05-06T00:47:56.900Z",
+  "total_flagged": 57,
+  "classifications": {
+    "source_url_broken": 1,
+    "factual_gap": 3,
+    "missing_regulation": 15,
+    "stale_info": 0,
+    "over_flag": 1,
+    "other": 37
+  },
+  "cost_estimate": {
+    "regenerate_count": 3,
+    "cost_per_regenerate_usd": 0.15,
+    "estimated_total_usd": 0.45
+  },
+  "patterns_detected": [
+    "15 flags identified missing regulations in jurisdiction `EU`.",
+    "55 flags share phrase \"integrity rule\" — review trigger sensitivity for that pattern."
+  ],
+  "items": [
+    {
+      "id": "6373df1e-1461-478e-b480-70dee471d597",
+      "legacy_id": "g14",
+      "title": "Mexico SEMARNAT",
+      "source_url": "https://www.dof.gob.mx/normasOficiales/9549/semarnat/semarnat.html",
+      "source_name": "Diario Oficial de la Federación (DOF) — Gobierno de México",
+      "source_root_url": "https://www.dof.gob.mx/normasOficiales/9549/semarnat/semarnat.html",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: dof.gob.mx, brief len: 30634.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 30634,
+      "jurisdiction_iso": [
+        "MX"
+      ]
+    },
+    {
+      "id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+      "legacy_id": "g12",
+      "title": "ECLAC (UN Latin America)",
+      "source_url": "https://www.cepal.org/en/publications/41229-freight-transport-road-tools-and-strategies-energy-efficiency-and-sustainability",
+      "source_name": "ECLAC / CEPAL – United Nations",
+      "source_root_url": "https://www.cepal.org/en/publications/41229-freight-transport-road-tools-and-strategies-energy-efficiency-and-sustainability",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: cepal.org, brief len: 15337.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 15337,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "262ac5f2-4fbe-4968-bde7-f5f68821cc59",
+      "legacy_id": null,
+      "title": "Critical Minerals & EV Supply Chain",
+      "source_url": "https://www.irena.org/Energy-Transition/Technology/Critical-materials",
+      "source_name": "International Renewable Energy Agency (IRENA)",
+      "source_root_url": "https://www.irena.org/Energy-Transition/Technology/Critical-materials",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: irena.org, brief len: 18335.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 18335,
+      "jurisdiction_iso": [
+        "CL",
+        "CN",
+        "AU"
+      ]
+    },
+    {
+      "id": "b0d9737e-5e8a-4a81-89bb-921c172219fd",
+      "legacy_id": "g25",
+      "title": "DP World Sustainability",
+      "source_url": "https://www.dpworld.com/en/sustainability/reporting",
+      "source_name": "DP World (dpworld.com)",
+      "source_root_url": "https://www.dpworld.com/en/sustainability/reporting",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: dpworld.com, brief len: 17428.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 17428,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "206cada4-5731-43ef-8908-56389645ba0e",
+      "legacy_id": "r10",
+      "title": "Journal of Sustainable Transport",
+      "source_url": "https://www.tandfonline.com/journals/ujst20",
+      "source_name": "Taylor & Francis (Taylor and Francis Group)",
+      "source_root_url": "https://www.tandfonline.com/journals/ujst20",
+      "phrase": "replace the source URL",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "a",
+      "issue_label": "source-url-broken",
+      "action": "manual_review",
+      "rationale": "Source URL host \"tandfonline.com\" is non-canonical for a \"replace the source url\" flag, but no replacement URL found in the brief.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_replacement_url_candidate_in_brief",
+      "brief_length": 4846,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "ad5b78ea-ddf1-4df0-a532-0d2829df96cf",
+      "legacy_id": "g24",
+      "title": "ASEAN Transport Strategic Plan",
+      "source_url": "https://asean.org/our-communities/economic-community/transport/",
+      "source_name": "ASEAN Main Portal (asean.org)",
+      "source_root_url": "https://asean.org/our-communities/economic-community/transport/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: asean.org, brief len: 18880.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 18880,
+      "jurisdiction_iso": [
+        "SG",
+        "ID",
+        "MY",
+        "PH"
+      ]
+    },
+    {
+      "id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+      "legacy_id": "g15",
+      "title": "Colombian Ministry of Transport",
+      "source_url": "https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible/",
+      "source_name": "Ministerio de Transporte de Colombia",
+      "source_root_url": "https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: mintransporte.gov.co, brief len: 11461.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 11461,
+      "jurisdiction_iso": [
+        "CO"
+      ]
+    },
+    {
+      "id": "cec7d711-13b2-41f0-8016-76c988f116ab",
+      "legacy_id": "g17",
+      "title": "MPA Singapore Green Shipping",
+      "source_url": "https://www.mpa.gov.sg/media-centre/details/no.-12-of-2024---revisions-to-the-maritime-singapore-green-initiative---green-ship-programme-for-singapore-registered-ships",
+      "source_name": "Maritime and Port Authority of Singapore (MPA)",
+      "source_root_url": "https://www.mpa.gov.sg/media-centre/details/no.-12-of-2024---revisions-to-the-maritime-singapore-green-initiative---green-ship-programme-for-singapore-registered-ships",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: mpa.gov.sg, brief len: 16919.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 16919,
+      "jurisdiction_iso": [
+        "SG"
+      ]
+    },
+    {
+      "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+      "legacy_id": null,
+      "title": "Battery & Electric Vehicle Technology",
+      "source_url": "https://www.iea.org/reports/global-ev-outlook-2024/trends-in-electric-vehicle-batteries",
+      "source_name": "International Energy Agency (IEA)",
+      "source_root_url": "https://www.iea.org/reports/global-ev-outlook-2024/trends-in-electric-vehicle-batteries",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: iea.org, brief len: 16696.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 16696,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "68e05861-c953-485d-b081-cb6777dcfd99",
+      "legacy_id": "g18",
+      "title": "Japan MLIT",
+      "source_url": "https://www.mlit.go.jp/en/maritime/index.html",
+      "source_name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT) – Maritime Bureau",
+      "source_root_url": "https://www.mlit.go.jp/en/maritime/index.html",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: mlit.go.jp, brief len: 19491.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 19491,
+      "jurisdiction_iso": [
+        "JP"
+      ]
+    },
+    {
+      "id": "14fea5cd-fbbd-426e-9b66-8bcf05ae730c",
+      "legacy_id": null,
+      "title": "Australia Regional Operations Profile",
+      "source_url": "https://www.climatechangeauthority.gov.au/",
+      "source_name": null,
+      "source_root_url": null,
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: climatechangeauthority.gov.au, brief len: 20454.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 20454,
+      "jurisdiction_iso": [
+        "AU"
+      ]
+    },
+    {
+      "id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+      "legacy_id": null,
+      "title": "Crude Oil & Jet Fuel Price Intelligence",
+      "source_url": "https://www.eia.gov/todayinenergy/prices.php",
+      "source_name": "U.S. Energy Information Administration (EIA)",
+      "source_root_url": "https://www.eia.gov/todayinenergy/prices.php",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: eia.gov, brief len: 14832.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 14832,
+      "jurisdiction_iso": [
+        "US",
+        "SG"
+      ]
+    },
+    {
+      "id": "05e2d1c1-7e87-443a-9178-a475d4d6c3b9",
+      "legacy_id": "g7",
+      "title": "Germany BMDV",
+      "source_url": "https://www.bundesregierung.de/breg-en/federal-government/ministries/federal-ministry-transport",
+      "source_name": "German Federal Government (Bundesregierung)",
+      "source_root_url": "https://www.bundesregierung.de/breg-en/federal-government/ministries/federal-ministry-transport",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: bundesregierung.de, brief len: 9269.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 9269,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "legacy_id": "g21",
+      "title": "ADB Sustainable Transport",
+      "source_url": "https://www.adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+      "source_name": "Asian Development Bank (ADB)",
+      "source_root_url": "https://www.adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: adb.org, brief len: 17216.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 17216,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "66835398-477c-470a-a9a5-7e6d22cf4ad7",
+      "legacy_id": null,
+      "title": "Singapore Regional Operations Profile",
+      "source_url": "https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",
+      "source_name": "Singapore Ministry of Transport (MOT)",
+      "source_root_url": "https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: mot.gov.sg, brief len: 17609.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 17609,
+      "jurisdiction_iso": [
+        "SG"
+      ]
+    },
+    {
+      "id": "e0b4adbc-ed9f-4085-a92a-a44ea3f04299",
+      "legacy_id": "g10",
+      "title": "NREL Transportation",
+      "source_url": "https://www.nrel.gov/transportation/research",
+      "source_name": "National Renewable Energy Laboratory (NREL) / U.S. Department of Energy",
+      "source_root_url": "https://www.nrel.gov/transportation/research",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: nrel.gov, brief len: 14889.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 14889,
+      "jurisdiction_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "abd83595-cb54-4ccc-b80b-2f9421596465",
+      "legacy_id": "r5",
+      "title": "Stockholm Environment Institute",
+      "source_url": "https://www.sei.org/about-sei/",
+      "source_name": "Stockholm Environment Institute (SEI)",
+      "source_root_url": "https://www.sei.org/about-sei/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: sei.org, brief len: 7896.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 7896,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "c1cab7e2-606f-45f1-a229-46c0e7002dfa",
+      "legacy_id": "r3",
+      "title": "Fraunhofer IML",
+      "source_url": "https://www.iml.fraunhofer.de/en/institute_profile.html",
+      "source_name": "Fraunhofer Institute for Material Flow and Logistics (IML)",
+      "source_root_url": "https://www.iml.fraunhofer.de/en/institute_profile.html",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/1542\" which is not in intelligence_items. (+1 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/1542",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1542/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "Regulation (EU) 2020/1056",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2020/1056/oj"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 16861,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+      "legacy_id": null,
+      "title": "India Regional Operations Profile",
+      "source_url": "https://www.transportpolicy.net/standard/india-regulatory-background/",
+      "source_name": "International Council on Clean Transportation (ICCT)",
+      "source_root_url": "https://www.transportpolicy.net/standard/india-regulatory-background/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: transportpolicy.net, brief len: 22718.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 22718,
+      "jurisdiction_iso": [
+        "IN"
+      ]
+    },
+    {
+      "id": "d4a1a8ec-88ca-47cb-b8d6-5a10454e0605",
+      "legacy_id": "l4",
+      "title": "CER (European Railways)",
+      "source_url": "https://www.cer.be/",
+      "source_name": "CER – Community of European Railway and Infrastructure Companies",
+      "source_root_url": "https://www.cer.be/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2019/1242\" which is not in intelligence_items. (+1 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2019/1242",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2019/1242/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "Regulation (EU) 2024/1610",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1610/oj"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 23220,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "bf54dc59-ad47-4e2e-9984-cc4cd0206435",
+      "legacy_id": "g1",
+      "title": "EU Fit for 55 Package",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52021DC0550",
+      "source_name": "EUR-Lex (Official Journal of the European Union)",
+      "source_root_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52021DC0550",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/2405\" which is not in intelligence_items. (+7 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/2405",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/2405/oj",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "additional_candidates": [
+          {
+            "name": "Regulation (EU) 2023/1805",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1805/oj"
+          },
+          {
+            "name": "Regulation (EU) 2023/956",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2023/956/oj"
+          },
+          {
+            "name": "Regulation (EU) 2019/1242",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2019/1242/oj"
+          },
+          {
+            "name": "Regulation (EU) 2024/1610",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1610/oj"
+          },
+          {
+            "name": "Regulation (EU) 2023/1804",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+          },
+          {
+            "name": "EU ETS",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          },
+          {
+            "name": "CBAM",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 38465,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "9e113196-9223-4dae-8292-f68ab2a080e6",
+      "legacy_id": "r33",
+      "title": "Lloyd's Register Fleet Analytics",
+      "source_url": "https://www.lr.org/en/sustainability/decarbonisation/",
+      "source_name": null,
+      "source_root_url": null,
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: lr.org, brief len: 4409.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 4409,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "9546c01a-dec6-46cc-88d7-56c7f30a7764",
+      "legacy_id": "r26",
+      "title": "E-Fuel Alliance",
+      "source_url": "https://www.efuel-alliance.eu/initiative",
+      "source_name": "eFuel Alliance e.V.",
+      "source_root_url": "https://www.efuel-alliance.eu/initiative",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/2405\" which is not in intelligence_items. (+5 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/2405",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/2405/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "Regulation (EU) 2023/1805",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1805/oj"
+          },
+          {
+            "name": "Regulation (EU) 2019/1242",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2019/1242/oj"
+          },
+          {
+            "name": "Regulation (EU) 2024/1610",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1610/oj"
+          },
+          {
+            "name": "Regulation (EU) 2023/1804",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+          },
+          {
+            "name": "ReFuelEU",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 17785,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "0e6e82cb-84fc-49ab-8078-c6500e13ee82",
+      "legacy_id": "r16",
+      "title": "Carbon Trust",
+      "source_url": "https://find-and-update.company-information.service.gov.uk/company/04190230",
+      "source_name": "Companies House / GOV.UK",
+      "source_root_url": "https://find-and-update.company-information.service.gov.uk/company/04190230",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "b",
+      "issue_label": "factual-gap",
+      "action": "regenerate",
+      "rationale": "Verification-class phrase \"integrity rule\" with canonical host find-and-update.company-information.service.gov.uk. Brief needs regen for missing facts.",
+      "auto_action_safe": true,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": null,
+      "brief_length": 11211,
+      "jurisdiction_iso": [
+        "GB"
+      ]
+    },
+    {
+      "id": "be729a3a-df16-4010-a269-ba1dbf7a8692",
+      "legacy_id": "r20",
+      "title": "JOC (Journal of Commerce)",
+      "source_url": "https://www.joc.com/about",
+      "source_name": "Journal of Commerce (S&P Global)",
+      "source_root_url": "https://www.joc.com/about",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: joc.com, brief len: 7581.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 7581,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "053123bc-2c11-45ec-a5a1-83828b666b11",
+      "legacy_id": null,
+      "title": "Brazil Regional Operations Profile",
+      "source_url": "https://www.antt.gov.br",
+      "source_name": "ANTT — Agência Nacional de Transportes Terrestres, Governo Federal do Brasil",
+      "source_root_url": "https://www.antt.gov.br",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: antt.gov.br, brief len: 21924.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 21924,
+      "jurisdiction_iso": [
+        "BR"
+      ]
+    },
+    {
+      "id": "50c34d98-2ff2-4c72-a472-9b558bec9dd2",
+      "legacy_id": "r7",
+      "title": "Erasmus Smart Port",
+      "source_url": "https://www.erim.eur.nl/centres/smartporterasmus/",
+      "source_name": "Erasmus University Rotterdam – ERIM",
+      "source_root_url": "https://www.erim.eur.nl/centres/smartporterasmus/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: erim.eur.nl, brief len: 9054.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 9054,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "f3cee01b-77bf-4770-badb-c8020186e63c",
+      "legacy_id": "r29",
+      "title": "NREL Transportation R&D",
+      "source_url": "https://www.nrel.gov/transportation/research",
+      "source_name": "National Renewable Energy Laboratory (NREL) / National Laboratory of the Rockies (NLR)",
+      "source_root_url": "https://www.nrel.gov/transportation/research",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: nrel.gov, brief len: 10728.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 10728,
+      "jurisdiction_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "29132ca6-9172-45ab-95c2-e7fd7b8aa62a",
+      "legacy_id": "g5",
+      "title": "European Clean Trucking Alliance",
+      "source_url": "https://clean-trucking.eu/about-us/",
+      "source_name": "European Clean Trucking Alliance (ECTA)",
+      "source_root_url": "https://clean-trucking.eu/about-us/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2024/1610\" which is not in intelligence_items. (+2 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2024/1610",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1610/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "Regulation (EU) 2019/1242",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2019/1242/oj"
+          },
+          {
+            "name": "Regulation (EU) 2023/1804",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 18627,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "e77f9426-15a8-4364-93ff-ecaf93e32868",
+      "legacy_id": null,
+      "title": "United Kingdom Regional Operations Profile",
+      "source_url": "https://assets.publishing.service.gov.uk/media/62ced7d6e90e071e74883888/Decarbonising-transport-one-year-on-review.pdf",
+      "source_name": "UK Department for Transport via assets.publishing.service.gov.uk",
+      "source_root_url": "https://assets.publishing.service.gov.uk/media/62ced7d6e90e071e74883888/Decarbonising-transport-one-year-on-review.pdf",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"EU ETS\" which is not in intelligence_items. ",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "EU ETS",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "additional_candidates": []
+      },
+      "needs_human_review_because": null,
+      "brief_length": 23870,
+      "jurisdiction_iso": [
+        "GB"
+      ]
+    },
+    {
+      "id": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+      "legacy_id": null,
+      "title": "Autonomous & Connected Freight Technology",
+      "source_url": "https://www.itf-oecd.org/managing-transition-driverless-road-freight-transport",
+      "source_name": "International Transport Forum (ITF/OECD)",
+      "source_root_url": "https://www.itf-oecd.org/managing-transition-driverless-road-freight-transport",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: itf-oecd.org, brief len: 16369.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 16369,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "0d59991d-2c66-44f5-bcb8-713e8cd03b3a",
+      "legacy_id": "r9",
+      "title": "Transportation Research Part E",
+      "source_url": "https://www.sciencedirect.com/journal/transportation-research-part-e-logistics-and-transportation-review",
+      "source_name": null,
+      "source_root_url": null,
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: sciencedirect.com, brief len: 4443.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 4443,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "627da433-864b-4d60-98e6-3248726a3738",
+      "legacy_id": "r4",
+      "title": "World Resources Institute",
+      "source_url": "https://www.wri.org/research",
+      "source_name": "World Resources Institute (WRI)",
+      "source_root_url": "https://www.wri.org/research",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: wri.org, brief len: 6924.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 6924,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "45dab7a6-ac61-48b2-a9af-24be8568ba02",
+      "legacy_id": "r8",
+      "title": "Cranfield Sustainable Logistics",
+      "source_url": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management/research-projects-current-and-past",
+      "source_name": "Cranfield University – School of Management",
+      "source_root_url": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management/research-projects-current-and-past",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: cranfield.ac.uk, brief len: 15054.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 15054,
+      "jurisdiction_iso": [
+        "GB"
+      ]
+    },
+    {
+      "id": "f6774c49-f277-4882-ba29-b911985a427a",
+      "legacy_id": null,
+      "title": "Hydrogen & Ammonia as Maritime Fuel",
+      "source_url": "https://futurefuels.imo.org/fuel-type/hydrogen/",
+      "source_name": "International Maritime Organization (IMO)",
+      "source_root_url": "https://futurefuels.imo.org/fuel-type/hydrogen/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "b",
+      "issue_label": "factual-gap",
+      "action": "regenerate",
+      "rationale": "Verification-class phrase \"integrity rule\" with canonical host futurefuels.imo.org. Brief needs regen for missing facts.",
+      "auto_action_safe": true,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": null,
+      "brief_length": 20400,
+      "jurisdiction_iso": [
+        "IMO"
+      ]
+    },
+    {
+      "id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+      "legacy_id": null,
+      "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+      "source_url": "https://rules.cityofnewyork.us/rule/annual-greenhouse-gas-ghg-emissions-limits-for-buildings/",
+      "source_name": "NYC Office of Administrative Trials and Hearings / NYC Rules portal",
+      "source_root_url": "https://rules.cityofnewyork.us/rule/annual-greenhouse-gas-ghg-emissions-limits-for-buildings/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: rules.cityofnewyork.us, brief len: 23945.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 23945,
+      "jurisdiction_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "85a44451-3aec-4375-93ed-e1eaaacc2f89",
+      "legacy_id": "a8",
+      "title": "Aviation Week: Sustainability",
+      "source_url": "https://aviationweek.com/special-topics/sustainability",
+      "source_name": "Aviation Week Network (Informa)",
+      "source_root_url": "https://aviationweek.com/special-topics/sustainability",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/2405\" which is not in intelligence_items. (+3 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/2405",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/2405/oj",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "additional_candidates": [
+          {
+            "name": "Directive (EU) 2003/87",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/dir/2003/87/oj"
+          },
+          {
+            "name": "EU ETS",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          },
+          {
+            "name": "ReFuelEU",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 23801,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "afc851b1-4413-4d8a-8462-8b726b11ce45",
+      "legacy_id": null,
+      "title": "Marine Fuel Decarbonisation Pathways",
+      "source_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+      "source_name": "International Maritime Organization (IMO)",
+      "source_root_url": "https://www.imo.org/en/mediacentre/hottopics/pages/cutting-ghg-emissions.aspx",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "b",
+      "issue_label": "factual-gap",
+      "action": "regenerate",
+      "rationale": "Verification-class phrase \"integrity rule\" with canonical host imo.org. Brief needs regen for missing facts.",
+      "auto_action_safe": true,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": null,
+      "brief_length": 20268,
+      "jurisdiction_iso": [
+        "IMO"
+      ]
+    },
+    {
+      "id": "b26de8fc-a6b6-46e5-8f9d-7ea9c96e7b09",
+      "legacy_id": "r19",
+      "title": "Supply Chain Digital",
+      "source_url": "https://supplychaindigital.com/",
+      "source_name": "BizClik Media (Supply Chain Digital)",
+      "source_root_url": "https://supplychaindigital.com/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: supplychaindigital.com, brief len: 16019.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 16019,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "5faf8f8c-8054-4724-8c11-6e2c8fb12c95",
+      "legacy_id": "r13",
+      "title": "GreenBiz Supply Chain",
+      "source_url": "https://www.greenbiz.com/collections/supply-chain",
+      "source_name": "GreenBiz (Trellis Group)",
+      "source_root_url": "https://www.greenbiz.com/collections/supply-chain",
+      "phrase": "if X was intended",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "e",
+      "issue_label": "over-flag",
+      "action": "clear_flag",
+      "rationale": "Matched phrase \"if x was intended\" appears in legitimate prose context, not as a self-flag.",
+      "auto_action_safe": true,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": null,
+      "brief_length": 2954,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "38322420-45a2-474a-b910-23b2dd215c49",
+      "legacy_id": "c8",
+      "title": "ISSB IFRS S2",
+      "source_url": "https://www.ifrs.org/groups/international-sustainability-standards-board/",
+      "source_name": "IFRS / ISSB Sustainability Standards",
+      "source_root_url": "https://www.ifrs.org/sustainability/knowledge-hub/introduction-to-issb-and-ifrs-sustainability-disclosure-standards/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/2405\" which is not in intelligence_items. (+3 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/2405",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/2405/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "Directive (EU) 2023/958",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/dir/2023/958/oj"
+          },
+          {
+            "name": "EU ETS",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          },
+          {
+            "name": "CBAM",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 27290,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "bf734379-188e-48b6-b3ff-76e70c85ccfa",
+      "legacy_id": "o10",
+      "title": "ESPO (European Sea Ports Organisation)",
+      "source_url": "https://www.ecoports.com/",
+      "source_name": "European Sea Ports Organisation (ESPO) / EcoPorts",
+      "source_root_url": "https://www.ecoports.com/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/1804\" which is not in intelligence_items. (+1 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/1804",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "Regulation (EU) 2023/1805",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1805/oj"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 14572,
+      "jurisdiction_iso": [
+        "EU"
+      ]
+    },
+    {
+      "id": "8ff93a7e-5256-4d31-959b-2172de16ae8f",
+      "legacy_id": "g26",
+      "title": "IRENA Abu Dhabi",
+      "source_url": "https://www.irena.org/news/pressreleases/2012/Jun/IRENA-Headquarters-Agreement-signed-with-the-United-Arab-Emirates",
+      "source_name": "International Renewable Energy Agency (IRENA)",
+      "source_root_url": "https://www.irena.org/news/pressreleases/2012/Jun/IRENA-Headquarters-Agreement-signed-with-the-United-Arab-Emirates",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: irena.org, brief len: 9338.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 9338,
+      "jurisdiction_iso": [
+        "EU",
+        "AE"
+      ]
+    },
+    {
+      "id": "41b43061-e8cd-4257-be32-8a15c12a1d00",
+      "legacy_id": "r36",
+      "title": "Maritime Carbon Intelligence",
+      "source_url": "https://maritimecarbonintelligence.com/contact-us/",
+      "source_name": "Maritime Carbon Intelligence",
+      "source_root_url": "https://maritimecarbonintelligence.com/contact-us/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"EU ETS\" which is not in intelligence_items. ",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "EU ETS",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": []
+      },
+      "needs_human_review_because": null,
+      "brief_length": 15035,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "5e0af336-e997-47ae-a235-b7b155d742bb",
+      "legacy_id": "t7",
+      "title": "GEF (Global Environment Facility)",
+      "source_url": "https://fiftrustee.worldbank.org/en/about/unit/dfi/fiftrustee/fund-detail/gef",
+      "source_name": "World Bank — Financial Intermediary Funds Trustee",
+      "source_root_url": "https://fiftrustee.worldbank.org/en/about/unit/dfi/fiftrustee/fund-detail/gef",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: fiftrustee.worldbank.org, brief len: 8321.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 8321,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "5b8f3e8a-8096-4392-9c66-1c7d7b0e6385",
+      "legacy_id": null,
+      "title": "Packaging Material Input Costs",
+      "source_url": "https://fred.stlouisfed.org/series/WPU066",
+      "source_name": "U.S. Bureau of Labor Statistics / Federal Reserve Bank of St. Louis (FRED)",
+      "source_root_url": "https://fred.stlouisfed.org/series/WPU066",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: fred.stlouisfed.org, brief len: 13113.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 13113,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "8c0049b4-7f91-4fcd-90ff-99de2cbf8df5",
+      "legacy_id": "g30",
+      "title": "World Bank Transport",
+      "source_url": "https://ieg.worldbankgroup.org/topic/transport",
+      "source_name": "World Bank Independent Evaluation Group (IEG)",
+      "source_root_url": "https://ieg.worldbankgroup.org/topic/transport",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: ieg.worldbankgroup.org, brief len: 13491.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 13491,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "c0a2dfb3-e394-4e88-8acd-60a714339c4a",
+      "legacy_id": "o11",
+      "title": "Lloyd's Register Decarbonisation Hub",
+      "source_url": "https://www.lrfoundation.org.uk/programmes/lloyds-register-maritime-decarbonisation-hub",
+      "source_name": "Lloyd's Register Foundation (lrfoundation.org.uk)",
+      "source_root_url": "https://www.lrfoundation.org.uk/programmes/lloyds-register-maritime-decarbonisation-hub",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: lrfoundation.org.uk, brief len: 13897.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 13897,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "6d562d34-e6c4-4901-8579-4482b5af647d",
+      "legacy_id": "r11",
+      "title": "The Loadstar: Green Tech",
+      "source_url": "https://theloadstar.com/section/green-tech/",
+      "source_name": null,
+      "source_root_url": null,
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Directive (EU) 2023/959\" which is not in intelligence_items. (+2 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Directive (EU) 2023/959",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/dir/2023/959/oj",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "additional_candidates": [
+          {
+            "name": "Directive (EU) 2003/87",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/dir/2003/87/oj"
+          },
+          {
+            "name": "EU ETS",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 19401,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+      "legacy_id": null,
+      "title": "Industrial Electricity Tariff Benchmarks by Jurisdiction",
+      "source_url": "https://www.iea.org/data-and-statistics/data-product/energy-prices",
+      "source_name": "IEA Energy Prices Database",
+      "source_root_url": "https://www.iea.org/data-and-statistics/data-product/energy-prices",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: iea.org, brief len: 21997.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 21997,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "88927b29-7af5-467d-a0c0-f5ff3069b8a5",
+      "legacy_id": "r18",
+      "title": "Splash247 Green",
+      "source_url": "https://splash247.com/category/sector/environment/",
+      "source_name": "Splash247 (Asia Shipping Media)",
+      "source_root_url": "https://splash247.com/category/sector/environment/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: splash247.com, brief len: 20064.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 20064,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "46c528f5-c366-4738-98f5-db9accea8780",
+      "legacy_id": "t4",
+      "title": "UNCTAD Sustainable Transport",
+      "source_url": "https://unctad.org/topic/transport-and-trade-logistics",
+      "source_name": "UNCTAD (UN Trade and Development)",
+      "source_root_url": "https://unctad.org/topic/transport-and-trade-logistics",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"EU ETS\" which is not in intelligence_items. ",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "EU ETS",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": []
+      },
+      "needs_human_review_because": null,
+      "brief_length": 18411,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "e948b3a9-6784-4eaa-97b7-d955fd4edc1e",
+      "legacy_id": "r35",
+      "title": "ICCT",
+      "source_url": "https://theicct.org/",
+      "source_name": "ICCT Freight",
+      "source_root_url": "https://theicct.org/sector/freight/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: theicct.org, brief len: 14418.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 14418,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+      "legacy_id": null,
+      "title": "LA EWEO — Existing Buildings Energy & Water Efficiency",
+      "source_url": "https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf",
+      "source_name": "City of Los Angeles City Clerk",
+      "source_root_url": "https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "f",
+      "issue_label": "other",
+      "action": "human_review",
+      "rationale": "Phrase \"integrity rule\" did not match any heuristic conclusively. Host: cityclerk.lacity.org, brief len: 18722.",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": null,
+      "needs_human_review_because": "no_heuristic_matched",
+      "brief_length": 18722,
+      "jurisdiction_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+      "legacy_id": "r15",
+      "title": "Environmental Finance",
+      "source_url": "https://www.undp.org/publications/international-guidebook-environmental-finance-tools",
+      "source_name": "United Nations Development Programme (UNDP)",
+      "source_root_url": "https://www.undp.org/publications/international-guidebook-environmental-finance-tools",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/956\" which is not in intelligence_items. (+5 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/956",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/956/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "Directive (EU) 2023/959",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/dir/2023/959/oj"
+          },
+          {
+            "name": "Directive (EU) 2023/958",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/dir/2023/958/oj"
+          },
+          {
+            "name": "Directive (EU) 2003/87",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/eli/dir/2003/87/oj"
+          },
+          {
+            "name": "EU ETS",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          },
+          {
+            "name": "CBAM",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 31953,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "4de1e28e-f221-40fd-818b-f5382533caa0",
+      "legacy_id": "r14",
+      "title": "Reuters Sustainable Business",
+      "source_url": "https://www.reuters.com/sustainability/",
+      "source_name": null,
+      "source_root_url": null,
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"Regulation (EU) 2023/956\" which is not in intelligence_items. (+2 more candidates)",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "Regulation (EU) 2023/956",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/eli/reg/2023/956/oj",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": [
+          {
+            "name": "EU ETS",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          },
+          {
+            "name": "CBAM",
+            "jurisdiction_iso": "EU",
+            "source_url": "https://eur-lex.europa.eu/"
+          }
+        ]
+      },
+      "needs_human_review_because": null,
+      "brief_length": 5190,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "e360e82f-c710-47c5-b14f-8a20bb0ccd7a",
+      "legacy_id": "t3",
+      "title": "OECD Environment",
+      "source_url": "https://www.oecd.org/environment/",
+      "source_name": "OECD (Organisation for Economic Co-operation and Development)",
+      "source_root_url": "https://www.oecd.org/environment/",
+      "phrase": "integrity rule",
+      "flagged_at": "2026-05-04T18:23:57.184295+00:00",
+      "flagged_days_ago": 1,
+      "issue_type": "c",
+      "issue_label": "missing-regulation",
+      "action": "insert_new_item",
+      "rationale": "Brief references \"EU ETS\" which is not in intelligence_items. ",
+      "auto_action_safe": false,
+      "proposed_url": null,
+      "missing_regulation": {
+        "name": "EU ETS",
+        "jurisdiction_iso": "EU",
+        "source_url": "https://eur-lex.europa.eu/",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "additional_candidates": []
+      },
+      "needs_human_review_because": null,
+      "brief_length": 16865,
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    }
+  ]
+}
