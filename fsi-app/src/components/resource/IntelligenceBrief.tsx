@@ -10,6 +10,36 @@ interface IntelligenceBriefProps {
   markdown: string;
 }
 
+/** Strip the leading numeric prefix some agent outputs emit on their
+ * section headings (the ACF outlier per BRIEF-STRUCTURE-AUDIT.md uses
+ * `## 1. Section Name` instead of the spec's `# Section Name`). Keeping
+ * heading text and ids consistent across the numbered-H2 outlier and
+ * the unnumbered-H1 mainline lets Tier 2 deep-links resolve cleanly. */
+function stripNumericPrefix(s: string): string {
+  return s.replace(/^\s*\d+\s*[.)]\s*/, "");
+}
+
+/** Doc-title heuristic. The undocumented preamble convention (audit
+ * section 5) renders the regulation title as an H1 and "Regulatory Fact
+ * Document" as the only H2 above the numbered sections. We tone these
+ * two down so they read as document metadata, not content. */
+function isDocTitleHeading(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (t === "regulatory fact document") return true;
+  if (/\bregulatory fact document\b\s*$/.test(t)) return true;
+  return false;
+}
+
+/** Heading id helper. Strips the numeric prefix first so an ACF-style
+ * `## 3. Issues Requiring Immediate Action` resolves to the same slug
+ * (`issues-requiring-immediate-action`) as the mainline H1 form. */
+function headingTextToSlug(text: string): string {
+  return stripNumericPrefix(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 // Extract section headings from markdown for TOC
 function extractTOC(markdown: string): { id: string; title: string; level: number }[] {
   const headingRegex = /^(#{1,3})\s+(.+)$/gm;
@@ -17,8 +47,12 @@ function extractTOC(markdown: string): { id: string; title: string; level: numbe
   let match;
   while ((match = headingRegex.exec(markdown)) !== null) {
     const level = match[1].length;
-    const title = match[2].replace(/\*\*/g, "").trim();
-    const id = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const titleRaw = match[2].replace(/\*\*/g, "").trim();
+    const title = stripNumericPrefix(titleRaw);
+    // Skip the undocumented doc-title H1 and "Regulatory Fact Document"
+    // preamble from the TOC — they're metadata, not navigable content.
+    if (isDocTitleHeading(title)) continue;
+    const id = headingTextToSlug(titleRaw);
     if (level <= 2) toc.push({ id, title, level });
   }
   return toc;
@@ -35,24 +69,53 @@ function riskBadge(text: string): string | null {
 
 function createComponents(briefId: string): Components {
   return {
-    // H1 — Document title
+    // H1 — Section heading (or undocumented doc-title preamble).
+    // Doc-title headings render as quiet metadata (smaller, muted)
+    // because they're document framing, not section content.
     h1: ({ children }) => {
       const text = String(children);
-      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const id = headingTextToSlug(text);
+      const label = stripNumericPrefix(text);
+      if (isDocTitleHeading(label)) {
+        return (
+          <h1
+            id={`${briefId}-${id}`}
+            className="text-[12px] font-medium uppercase tracking-widest mt-4 mb-2"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {label}
+          </h1>
+        );
+      }
       return (
         <h1
           id={`${briefId}-${id}`}
           className="text-[17px] font-bold text-text-primary mt-6 mb-3 pb-2 border-b-2 border-[var(--color-primary)]/30"
         >
-          {children}
+          {label}
         </h1>
       );
     },
 
-    // H2 — Major sections: cream background band, large top margin (#1, #4)
+    // H2 — Major sections: cream background band, large top margin.
+    // ACF-style numbered-H2 sections (`## 3. Section Name`) get the
+    // numeric prefix stripped from the rendered heading and the id, so
+    // Tier 2 deep-links resolve to the same slug regardless of variant.
     h2: ({ children }) => {
       const text = String(children);
-      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const id = headingTextToSlug(text);
+      const label = stripNumericPrefix(text);
+      if (isDocTitleHeading(label)) {
+        return (
+          <h2
+            id={`${briefId}-${id}`}
+            className="text-[11px] font-medium uppercase tracking-widest mt-2 mb-4"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {label}
+          </h2>
+        );
+      }
       return (
         <h2
           id={`${briefId}-${id}`}
@@ -62,7 +125,7 @@ function createComponents(briefId: string): Components {
             borderLeft: "3px solid var(--color-primary)",
           }}
         >
-          {children}
+          {label}
         </h2>
       );
     },
