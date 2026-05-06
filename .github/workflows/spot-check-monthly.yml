@@ -1,0 +1,90 @@
+name: Spot-check monthly recurring
+
+# Gap-1 — recurring monthly spot-check of recently auto-approved tier-H
+# sources. Hits POST /api/admin/spot-check/recurring on the deployed app
+# with the worker secret. The endpoint:
+#   - samples 20 random tier-H verifications from the past 30 days
+#   - re-classifies each via Haiku at the current thresholds (75/55)
+#   - returns JSON with confirm/should-be-M/should-be-L/unreachable counts
+#   - returns HTTP 502 (NOT 200) when false_positive_rate_pct > 5
+#
+# When the endpoint returns 502, this workflow fails — surfacing the
+# alert in the GitHub Actions UI and triggering whatever notification
+# routing the team has on Actions failures.
+#
+# Required secrets (Repo → Settings → Secrets and variables → Actions):
+#   APP_URL        — Production base URL, e.g. https://your-app.vercel.app (no trailing slash)
+#   WORKER_SECRET  — Same value as the WORKER_SECRET env var on the deployed app
+#
+# Schedule: 03:00 UTC on the 1st of every month. Also runnable on demand
+# from the Actions tab via workflow_dispatch.
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+
+jobs:
+  spot-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify required secrets
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+        run: |
+          missing=0
+          if [ -z "$APP_URL" ]; then
+            echo "::error::APP_URL secret is not set."
+            missing=1
+          fi
+          if [ -z "$WORKER_SECRET" ]; then
+            echo "::error::WORKER_SECRET secret is not set."
+            missing=1
+          fi
+          [ "$missing" -eq 0 ]
+
+      - name: Call /api/admin/spot-check/recurring
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+        run: |
+          set -u
+          base="${APP_URL%/}"
+          target="$base/api/admin/spot-check/recurring"
+
+          echo "Calling $target"
+
+          tmp_body=$(mktemp)
+          status=$(curl -sS -o "$tmp_body" -w "%{http_code}" \
+            --max-time 240 \
+            --retry 1 --retry-delay 10 --retry-connrefused \
+            -X POST \
+            -H "x-worker-secret: $WORKER_SECRET" \
+            -H "Content-Type: application/json" \
+            "$target") || curl_exit=$?
+
+          echo "HTTP status: $status"
+          echo "Response body:"
+          cat "$tmp_body"
+          echo
+
+          if [ "${curl_exit:-0}" -ne 0 ]; then
+            echo "::error::curl failed with exit code $curl_exit"
+            exit "$curl_exit"
+          fi
+
+          # The endpoint deliberately returns 502 when the false-positive
+          # rate exceeds 5%. That's how this workflow surfaces an alert.
+          if [ "$status" -eq 502 ]; then
+            echo "::error::Spot-check FP rate exceeds 5% threshold — see response body above for details."
+            exit 1
+          fi
+
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Spot-check returned non-2xx status: $status"
+            exit 1
+          fi
+
+          echo "✓ Recurring spot-check completed within calibration target."

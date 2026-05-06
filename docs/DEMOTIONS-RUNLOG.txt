@@ -1,0 +1,11 @@
+[start] applying 3 known demotions from Gap 1 spot-check
+[demote] DPNR – Division of Environmental Protection (3cab0b63-605b-47ef-9e4c-6af94680c10c)
+  [provisional] inserted new row c0a93052-471a-4973-8969-93edb8c07dc2
+  [suspend] sources.3cab0b63-605b-47ef-9e4c-6af94680c10c status='suspended', processing_paused=true
+[demote] Maryland Department of the Environment (MDE) – Air & Climate Change Program (9fefb65c-1e41-4c6b-a7a1-03982884604f)
+  [provisional] inserted new row 15dda23c-6a8b-4111-8daa-47783b4b0031
+  [suspend] sources.9fefb65c-1e41-4c6b-a7a1-03982884604f status='suspended', processing_paused=true
+[demote] Virginia Department of Transportation (VDOT) (76852e81-0c81-49ef-bc2c-eee80337db3f)
+  [provisional] inserted new row 8ce2c6b1-98ce-4f74-aa79-a8b6c4252e35
+  [suspend] sources.76852e81-0c81-49ef-bc2c-eee80337db3f status='suspended', processing_paused=true
+[done] demoted=3 skipped=0 errors=0
