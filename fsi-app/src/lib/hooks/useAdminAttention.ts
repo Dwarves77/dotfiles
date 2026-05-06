@@ -130,6 +130,12 @@ export function useAdminAttention(): UseAdminAttention {
       return;
     }
 
+    // Fire an immediate fetch the moment `enabled` flips true so the badge
+    // populates without waiting on visibility/poll cadence. workspaceStore
+    // hydration lands after first paint, so without this the queue stays
+    // empty on the initial admin landing.
+    fetchCounts();
+
     // Skip polling when document is hidden at mount; the visibility
     // listener below will start it when the tab becomes visible again.
     const visible =
@@ -149,7 +155,7 @@ export function useAdminAttention(): UseAdminAttention {
       document.removeEventListener("visibilitychange", handleVisibility);
       stopPolling();
     };
-  }, [enabled, startPolling, stopPolling]);
+  }, [enabled, fetchCounts, startPolling, stopPolling]);
 
   return {
     counts,

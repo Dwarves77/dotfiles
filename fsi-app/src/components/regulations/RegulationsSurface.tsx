@@ -31,10 +31,13 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
 import {
   PRIORITIES,
+  PRIORITY_DISPLAY_LABEL,
+  PRIORITY_DISPLAY_LABEL_SHORT,
   TOPICS,
   TOPIC_COLORS,
   JURISDICTIONS,
   MODES,
+  type PriorityKey,
 } from "@/lib/constants";
 import type { Resource } from "@/types/resource";
 
@@ -49,17 +52,26 @@ interface RegulationsSurfaceProps {
     archiveNote: string | null;
     notes: string;
   }[];
+  // Platform-total regulation count (regardless of sector profile). Used
+  // to render the "<matched> matching your sector profile · <total>
+  // platform total" tooltip on the count heading. Null when Supabase is
+  // not reachable — heading degrades to the matched count alone.
+  platformTotal?: number | null;
 }
 
+// Column titles use the shared PRIORITY_DISPLAY_LABEL editorial vocabulary
+// so kanban headers, filter chips, sidebar badges, and stat tiles all
+// speak one language. The lower-case `tone` is the visual key into
+// TONE_VARS only.
 const PRIORITY_COLUMNS: Array<{
-  key: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+  key: PriorityKey;
   title: string;
   tone: "critical" | "high" | "moderate" | "low";
 }> = [
-  { key: "CRITICAL", title: "Immediate Action",   tone: "critical" },
-  { key: "HIGH",     title: "Action — 6 mo",      tone: "high" },
-  { key: "MODERATE", title: "Monitor — 6–12 mo",  tone: "moderate" },
-  { key: "LOW",      title: "Awareness only",     tone: "low" },
+  { key: "CRITICAL", title: PRIORITY_DISPLAY_LABEL.CRITICAL, tone: "critical" },
+  { key: "HIGH",     title: PRIORITY_DISPLAY_LABEL.HIGH,     tone: "high" },
+  { key: "MODERATE", title: PRIORITY_DISPLAY_LABEL.MODERATE, tone: "moderate" },
+  { key: "LOW",      title: PRIORITY_DISPLAY_LABEL.LOW,      tone: "low" },
 ];
 
 const TONE_VARS: Record<
@@ -76,6 +88,7 @@ export function RegulationsSurface({
   initialResources,
   initialArchived,
   initialOverrides = [],
+  platformTotal = null,
 }: RegulationsSurfaceProps) {
   const {
     resources: platformResources,
@@ -174,11 +187,35 @@ export function RegulationsSurface({
     return { pri: priC, topic: topC, region: regC, mode: modC };
   }, [regulatory]);
 
-  function toggle(set: Set<string>, val: string, setter: (s: Set<string>) => void) {
-    const next = new Set(set);
-    if (next.has(val)) next.delete(val);
-    else next.add(val);
-    setter(next);
+  // Isolate-on-click semantics for priority, topic, and mode chips per
+  // the audit. First click on a chip narrows to that chip alone; clicking
+  // the same chip again restores the full set. Clicking a different chip
+  // isolates to that one. Empty `allValues` means "no filter active" —
+  // we re-create that state by clearing the set.
+  //
+  // Behaviour matrix:
+  //   Set is empty (no filter)    + click X → isolate to {X}
+  //   Set is {X} (only X)         + click X → clear (back to no filter)
+  //   Set is {X} (only X)         + click Y → isolate to {Y}
+  //   Set has many                 + click X → isolate to {X}
+  function isolate(set: Set<string>, val: string, setter: (s: Set<string>) => void) {
+    if (set.size === 1 && set.has(val)) {
+      setter(new Set());
+    } else {
+      setter(new Set([val]));
+    }
+  }
+
+  // Priority filters use a slightly different convention because the
+  // initial state is "all priorities active". When user clicks one,
+  // isolate to it; clicking it again restores ALL priorities.
+  function isolatePriority(p: PriorityKey) {
+    setActivePriorities((prev) => {
+      if (prev.size === 1 && prev.has(p)) {
+        return new Set(PRIORITIES);
+      }
+      return new Set([p]);
+    });
   }
 
   return (
@@ -280,9 +317,7 @@ export function RegulationsSurface({
                   label={m.label}
                   active={activeModes.has(m.id)}
                   count={counts.mode[m.id]}
-                  onClick={() =>
-                    toggle(activeModes, m.id, setActiveModes)
-                  }
+                  onClick={() => isolate(activeModes, m.id, setActiveModes)}
                 />
               ))}
             </FilterRow>
@@ -294,7 +329,7 @@ export function RegulationsSurface({
                 return (
                   <button
                     key={p}
-                    onClick={() => toggle(activePriorities, p, setActivePriorities)}
+                    onClick={() => isolatePriority(p)}
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -321,7 +356,7 @@ export function RegulationsSurface({
                         display: "inline-block",
                       }}
                     />
-                    {p}
+                    {PRIORITY_DISPLAY_LABEL_SHORT[p]}
                     {counts.pri[p] !== undefined && (
                       <span style={{ opacity: 0.7, fontWeight: 600 }}>
                         {counts.pri[p]}
@@ -339,7 +374,7 @@ export function RegulationsSurface({
                   active={activeTopics.has(t.id)}
                   count={counts.topic[t.id]}
                   color={TOPIC_COLORS[t.id]}
-                  onClick={() => toggle(activeTopics, t.id, setActiveTopics)}
+                  onClick={() => isolate(activeTopics, t.id, setActiveTopics)}
                 />
               ))}
             </FilterRow>
@@ -350,7 +385,9 @@ export function RegulationsSurface({
                   label={j.label}
                   active={activeRegions.has(j.id)}
                   count={counts.region[j.id]}
-                  onClick={() => toggle(activeRegions, j.id, setActiveRegions)}
+                  onClick={() =>
+                    isolate(activeRegions, j.id, setActiveRegions)
+                  }
                 />
               ))}
             </FilterRow>
@@ -358,7 +395,12 @@ export function RegulationsSurface({
         )}
       </div>
 
-      {/* Result count headline */}
+      {/* Result count headline.
+          Tooltip surfaces the gap the audit flagged: the page count is
+          sector-filtered ("123 matching your sector profile"), while
+          the platform total ("182 regulations tracked") is what the
+          masthead meta line shows. Tooltip + footnote keep both numbers
+          honest. */}
       <div
         style={{
           display: "flex",
@@ -369,15 +411,36 @@ export function RegulationsSurface({
         }}
       >
         <div
+          title={
+            platformTotal !== null
+              ? `${filtered.length} matching your sector profile · ${platformTotal} platform total`
+              : undefined
+          }
           style={{
             fontFamily: "var(--font-display)",
             fontSize: 22,
             letterSpacing: "0.04em",
             textTransform: "uppercase",
             color: "var(--text)",
+            cursor: platformTotal !== null ? "help" : "default",
           }}
         >
           <b style={{ color: "var(--accent)" }}>{filtered.length}</b> Regulations
+          {platformTotal !== null && platformTotal !== filtered.length && (
+            <span
+              style={{
+                fontFamily: "inherit",
+                fontSize: 11,
+                letterSpacing: "0.06em",
+                textTransform: "none",
+                color: "var(--muted)",
+                marginLeft: 12,
+                fontWeight: 400,
+              }}
+            >
+              of {platformTotal} platform total
+            </span>
+          )}
         </div>
       </div>
 

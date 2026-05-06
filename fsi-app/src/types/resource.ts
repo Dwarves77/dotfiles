@@ -127,6 +127,11 @@ export interface Resource {
   topic?: string;
   jurisdiction?: string;
 
+  // ISO 3166-1/-2 + supranational jurisdiction codes from migration 033.
+  // Preferred over the legacy `jurisdiction` (single string) when present.
+  // Example: ["US-CA"] for SB 253, ["EU"] for FuelEU Maritime.
+  jurisdictionIso?: string[];
+
   // Sub-jurisdiction (state, country within region, etc.)
   subJurisdiction?: string;        // e.g. "us-ca", "eu-norway", "asia-singapore"
   subJurisdictionLabel?: string;   // e.g. "California", "Norway", "Singapore"

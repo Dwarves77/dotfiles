@@ -14,6 +14,7 @@
  * Layout matches design_handoff_2026-04/preview/regulations.html.
  */
 
+import { createClient } from "@supabase/supabase-js";
 import { getResourcesOnly } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
@@ -22,6 +23,33 @@ import { RegulationsSurface } from "@/components/regulations/RegulationsSurface"
 export default async function RegulationsPage() {
   const t0 = Date.now();
   const data = await getResourcesOnly();
+
+  // Resolve the platform-total regulation count for the count tooltip.
+  // The audit flagged the gap between "123 REGULATIONS" (sector-filtered)
+  // and "182 regulations tracked" (platform total) — we surface both
+  // numbers via a tooltip on the count heading. Falls back gracefully
+  // to null if Supabase isn't reachable.
+  let platformTotal: number | null = null;
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      const { count } = await supabase
+        .from("intelligence_items")
+        .select("id", { count: "exact", head: true })
+        .eq("domain", 1)
+        .eq("is_archived", false);
+      if (typeof count === "number") platformTotal = count;
+    } catch {
+      // soft-fail: heading just shows the matched-count without tooltip
+    }
+  }
+
   console.log(`[perf] /regulations data ${Date.now() - t0}ms`);
 
   const jurisdictionsCount = new Set(
@@ -43,6 +71,7 @@ export default async function RegulationsPage() {
         initialResources={data.resources}
         initialArchived={data.archived}
         initialOverrides={data.overrides}
+        platformTotal={platformTotal}
       />
     </>
   );

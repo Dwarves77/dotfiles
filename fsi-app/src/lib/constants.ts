@@ -317,6 +317,31 @@ export const CONFIDENCE_LEVELS = ["confirmed", "unconfirmed"] as const;
 // ── Priority Levels ──
 export const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
 
+// ── Priority Display Labels (editorial vocabulary) ──
+// The DB enum stays CRITICAL/HIGH/MODERATE/LOW. Display surfaces use
+// the editorial-style labels below. This vocabulary is shared by the
+// regulations kanban column titles, filter chips, sidebar badges, and
+// stat tiles so the platform speaks one language.
+//
+// Use PRIORITY_DISPLAY_LABEL when there is room for a full action
+// statement; PRIORITY_DISPLAY_LABEL_SHORT is for compact contexts
+// (chips, table cells).
+export type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+
+export const PRIORITY_DISPLAY_LABEL: Record<PriorityKey, string> = {
+  CRITICAL: "IMMEDIATE ACTION",
+  HIGH: "ACTION 6 MO",
+  MODERATE: "MONITOR 6-12 MO",
+  LOW: "AWARENESS ONLY",
+};
+
+export const PRIORITY_DISPLAY_LABEL_SHORT: Record<PriorityKey, string> = {
+  CRITICAL: "Immediate",
+  HIGH: "6 MO",
+  MODERATE: "6-12 MO",
+  LOW: "Awareness",
+};
+
 // ── Color Maps ──
 export const PRIORITY_COLORS: Record<string, string> = {
   CRITICAL: "var(--critical)",

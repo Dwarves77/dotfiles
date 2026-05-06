@@ -19,7 +19,13 @@
 import { useState } from "react";
 import { Sparkles, AlertTriangle } from "lucide-react";
 import { TimelineBar } from "@/components/resource/TimelineBar";
-import { TOPIC_COLORS, JURISDICTIONS } from "@/lib/constants";
+import {
+  TOPIC_COLORS,
+  JURISDICTIONS,
+  PRIORITY_DISPLAY_LABEL_SHORT,
+  type PriorityKey,
+} from "@/lib/constants";
+import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type {
   Resource,
@@ -65,25 +71,25 @@ const PRIORITY_TONE: Record<
     bg: "var(--critical-bg)",
     bd: "var(--critical-bd)",
     color: "var(--critical)",
-    label: "Critical",
+    label: PRIORITY_DISPLAY_LABEL_SHORT.CRITICAL,
   },
   HIGH: {
     bg: "var(--high-bg)",
     bd: "var(--high-bd)",
     color: "var(--high)",
-    label: "High",
+    label: PRIORITY_DISPLAY_LABEL_SHORT.HIGH,
   },
   MODERATE: {
     bg: "var(--moderate-bg)",
     bd: "var(--moderate-bd)",
     color: "var(--moderate)",
-    label: "Moderate",
+    label: PRIORITY_DISPLAY_LABEL_SHORT.MODERATE,
   },
   LOW: {
     bg: "var(--low-bg)",
     bd: "var(--low-bd)",
     color: "var(--low)",
-    label: "Low",
+    label: PRIORITY_DISPLAY_LABEL_SHORT.LOW,
   },
 };
 
@@ -110,8 +116,21 @@ export function RegulationDetailSurface({
   const tone = PRIORITY_TONE[r.priority] || PRIORITY_TONE.MODERATE;
   const modes = r.modes || [r.cat];
   const tags = r.tags || [];
-  const jurisLabel =
-    JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label || r.jurisdiction || "Global";
+
+  // Prefer the migration 033 jurisdiction_iso column (supports US-CA,
+  // EU, GB-SCT, etc.) and only fall back to the legacy `jurisdiction`
+  // single-string when ISO data isn't yet populated. This keeps SB 253
+  // showing "California, United States" instead of just "United States".
+  const jurisdictionLabels =
+    r.jurisdictionIso && r.jurisdictionIso.length > 0
+      ? r.jurisdictionIso.map(isoToDisplayLabel)
+      : r.jurisdiction
+      ? [
+          JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label ||
+            r.jurisdiction,
+        ]
+      : ["Global"];
+  const jurisLabel = jurisdictionLabels.join(" · ");
 
   // 4-stat strip values
   const effective = nextDeadline(r);
@@ -343,7 +362,13 @@ export function RegulationDetailSurface({
         <style>{`
           @media (max-width: 1100px) { .cl-detail-stat-strip { grid-template-columns: 1fr 1fr !important; } }
         `}</style>
-        <Stat label="Effective" value={effective.value} sub={effective.sub} />
+        {/* The effective stat tile is hidden when there's no real
+            value — an empty card with a red border looks broken per
+            the audit. Show only when nextDeadline returns something
+            meaningful. */}
+        {effective.value && effective.value !== "—" && (
+          <Stat label="Effective" value={effective.value} sub={effective.sub} />
+        )}
         <Stat
           label="Penalty rate"
           value={r.penaltyRange || "—"}
@@ -489,13 +514,28 @@ export function RegulationDetailSurface({
 
         {/* Right rail */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <DeadlineCard effective={effective} />
+          {/* Hide the next-deadline card when nextDeadline returns "—"
+              (no future milestones, no compliance deadline). The empty
+              red-bordered card was the audit-flagged "looks broken"
+              surface. */}
+          {effective.value && effective.value !== "—" && (
+            <DeadlineCard effective={effective} />
+          )}
           <SideCard label="Identification">
             <KV k="ID" v={r.id} />
             <KV k="Type" v={r.type} />
             {r.legalInstrument && <KV k="Instrument" v={r.legalInstrument} />}
             {r.enforcementBody && <KV k="Publisher" v={r.enforcementBody} />}
-            <KV k="Effective" v={r.complianceDeadline || effective.sub} />
+            {/* Skip effective KV when there's no real deadline data.
+                "—" / "No deadline on record" was rendering as visual
+                noise per the audit. */}
+            {r.complianceDeadline ||
+            (effective.value && effective.value !== "—") ? (
+              <KV
+                k="Effective"
+                v={r.complianceDeadline || effective.sub}
+              />
+            ) : null}
             {r.lastVerifiedDate && <KV k="Reviewed" v={r.lastVerifiedDate} />}
           </SideCard>
           <SideCard label="Coverage">
@@ -505,7 +545,13 @@ export function RegulationDetailSurface({
           </SideCard>
           <SideCard label="Owners">
             <KV k="Owner" v={r.actionOwner || "Unassigned"} />
-            <KV k="Priority" v={r.priority} />
+            <KV
+              k="Priority"
+              v={
+                PRIORITY_DISPLAY_LABEL_SHORT[r.priority as PriorityKey] ||
+                r.priority
+              }
+            />
           </SideCard>
           {(xrefIds.length > 0 || refByIds.length > 0 || supersessions.length > 0) && (
             <SideCard label="Related">
