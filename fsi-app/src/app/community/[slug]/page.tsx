@@ -53,20 +53,72 @@ export default async function GroupDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?redirect=/community/${slug}`);
 
-  // ── Fetch the group ─────────────────────────────────────────────
+  // ── Phase 1: parallel fetch (5 queries) ─────────────────────────
+  // The group lookup (by slug) and four shell-context reads are all
+  // independent — none of the shell items needs the resolved group.
+  // Sequential execution previously cost ~5 round-trips; one
+  // Promise.all collapses them into one wall-clock window. Five
+  // queries stays under the Supabase per-connection pool ceiling.
+  //
+  // Reads:
+  //   1) groupRow        — group lookup by slug (RLS-gated)
+  //   2) membershipsRaw  — caller's group_members rows + groups
+  //   3) invitationsRaw  — caller's pending invitations + groups
+  //   4) topicsRaw       — caller's topics + topic_groups
+  //   5) regionRows      — RPC: per-region group counts
+  const t0Phase1 = Date.now();
+  const [
+    { data: groupRow },
+    { data: membershipsRaw },
+    { data: invitationsRaw },
+    { data: topicsRaw },
+    { data: regionRows },
+  ] = await Promise.all([
+    supabase
+      .from("community_groups")
+      .select(
+        `
+          id, name, slug, region, privacy, description,
+          member_count, weekly_post_count, last_active_at, owner_user_id
+        `
+      )
+      .eq("slug", slug)
+      .maybeSingle(),
+    supabase
+      .from("community_group_members")
+      .select(
+        `
+          group_id, role, starred, muted, joined_at,
+          community_groups (
+            id, name, slug, region, privacy,
+            member_count, weekly_post_count, last_active_at
+          )
+        `
+      )
+      .eq("user_id", user.id),
+    supabase
+      .from("community_group_invitations")
+      .select(
+        `
+          id, group_id, inviter_user_id, status, created_at,
+          community_groups ( id, name, slug, region, privacy )
+        `
+      )
+      .eq("invitee_user_id", user.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("community_topics")
+      .select("id, label, community_topic_groups ( group_id )")
+      .eq("owner_user_id", user.id),
+    supabase.rpc("community_region_counts"),
+  ]);
+  console.log(
+    `[perf] /community/${slug} phase1 ${Date.now() - t0Phase1}ms`
+  );
+
   // RLS will not return a private group the caller cannot read, so a
   // null result here is indistinguishable (by design) from a bad slug.
-  const { data: groupRow } = await supabase
-    .from("community_groups")
-    .select(
-      `
-        id, name, slug, region, privacy, description,
-        member_count, weekly_post_count, last_active_at, owner_user_id
-      `
-    )
-    .eq("slug", slug)
-    .maybeSingle();
-
   if (!groupRow) {
     notFound();
   }
@@ -83,13 +135,41 @@ export default async function GroupDetailPage({
     description: groupRow.description ?? null,
   };
 
-  // ── Caller membership ───────────────────────────────────────────
-  const { data: myMembership } = await supabase
-    .from("community_group_members")
-    .select("role, starred, muted")
-    .eq("group_id", group.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // ── Phase 2: parallel fetch (3 queries) ─────────────────────────
+  // myMembership requires the resolved group.id from Phase 1, so it
+  // sits in a second batch alongside the two sidebar-footer reads.
+  //
+  // Reads:
+  //   1) myMembership — caller's row in this group (depends on group.id)
+  //   2) profile      — sidebar footer (name, headshot, admin flag)
+  //   3) orgRow       — sidebar footer (employer/org name)
+  const t0Phase2 = Date.now();
+  const [
+    { data: myMembership },
+    { data: profile },
+    { data: orgRow },
+  ] = await Promise.all([
+    supabase
+      .from("community_group_members")
+      .select("role, starred, muted")
+      .eq("group_id", group.id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("user_profiles")
+      .select("name, headshot_url, is_platform_admin")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("org_memberships")
+      .select("organizations(name)")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  console.log(
+    `[perf] /community/${slug} phase2 ${Date.now() - t0Phase2}ms`
+  );
 
   // For private groups, RLS already gated SELECT to members. The
   // assertion below is belt-and-braces in case a future RLS edit
@@ -98,21 +178,7 @@ export default async function GroupDetailPage({
     notFound();
   }
 
-  // ── Shell context ──────────────────────────────────────────────
-  // Same fetches as /community page.tsx — kept in sync deliberately.
-  const { data: membershipsRaw } = await supabase
-    .from("community_group_members")
-    .select(
-      `
-        group_id, role, starred, muted, joined_at,
-        community_groups (
-          id, name, slug, region, privacy,
-          member_count, weekly_post_count, last_active_at
-        )
-      `
-    )
-    .eq("user_id", user.id);
-
+  // ── Reshape shell-context payloads ──────────────────────────────
   const memberships: CommunityMembership[] = (membershipsRaw || []).flatMap(
     (m: any) => {
       if (!m.community_groups) return [];
@@ -138,18 +204,6 @@ export default async function GroupDetailPage({
     }
   );
 
-  const { data: invitationsRaw } = await supabase
-    .from("community_group_invitations")
-    .select(
-      `
-        id, group_id, inviter_user_id, status, created_at,
-        community_groups ( id, name, slug, region, privacy )
-      `
-    )
-    .eq("invitee_user_id", user.id)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
   const invitations: CommunityInvitation[] = (invitationsRaw || []).flatMap(
     (inv: any) => {
       if (!inv.community_groups) return [];
@@ -171,11 +225,6 @@ export default async function GroupDetailPage({
     }
   );
 
-  const { data: topicsRaw } = await supabase
-    .from("community_topics")
-    .select("id, label, community_topic_groups ( group_id )")
-    .eq("owner_user_id", user.id);
-
   const topics: CommunityTopicSummary[] = (topicsRaw || []).map((t: any) => ({
     id: t.id,
     label: t.label,
@@ -186,23 +235,10 @@ export default async function GroupDetailPage({
 
   const regionCounts: Record<string, number> = {};
   for (const r of REGIONS) regionCounts[r.code] = 0;
-  const { data: regionRows } = await supabase.rpc("community_region_counts");
   for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
     regionCounts[row.region] = Number(row.count) || 0;
   }
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("name, headshot_url, is_platform_admin")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const { data: orgRow } = await supabase
-    .from("org_memberships")
-    .select("organizations(name)")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
   const employer =
     (orgRow?.organizations as { name?: string } | null)?.name ?? "";
 
