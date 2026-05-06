@@ -246,11 +246,16 @@ Output JSON only, no prose, no markdown, no code fences.`;
 // pilot will calibrate; expect the M→H boundary to shift but the L→M
 // boundary (60/30) to stay roughly fixed since false positives there
 // carry the highest reputational risk.
+//
+// Tightened 2026-05-06 from 70/50 to 75/55 after Gap 1 spot-check audit.
+// False-positive rate at 70/50 was 15% (3/20 random sample). Per
+// regional-data audit recommendation. See docs/SPOT-CHECK-RESULTS.json
+// and docs/GAP-1-RESOLUTION.md.
 
 const THRESHOLDS = {
-  AI_RELEVANCE_H: 70,        // ai_relevance_score >= this → eligible for H
+  AI_RELEVANCE_H: 75,        // ai_relevance_score >= this → eligible for H (was 70 pre-2026-05-06)
   AI_RELEVANCE_M: 50,        // below this → L (rejected)
-  AI_FREIGHT_H: 50,          // ai_freight_score >= this → eligible for H
+  AI_FREIGHT_H: 55,          // ai_freight_score >= this → eligible for H (was 50 pre-2026-05-06)
   AI_FREIGHT_M: 25,          // below this → L (not freight relevant)
 } as const;
 
