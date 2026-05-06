@@ -20,11 +20,15 @@
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { JURISDICTIONS } from "@/lib/constants";
+import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Note: previous `export const revalidate = 60` was a no-op —
 // fetchIntelligenceItem doesn't read cookies, but the lookup query path
@@ -39,6 +43,43 @@ export default async function RegulationDetailPage({
   const t0 = Date.now();
   const { slug } = await params;
   const id = decodeURIComponent(slug);
+
+  // UUID → slug redirect. When the URL is a raw uuid AND the matching
+  // intelligence_items row has a legacy_id, redirect (307) to the
+  // human-readable slug URL. If the row has no legacy_id we fall through
+  // and render at the uuid URL — graceful degradation. Per the audit:
+  // post-migration-045 every active item should have a legacy_id, so
+  // the fallback path is a thin safety net for rows materialized after
+  // 045 but before the orchestrator's slug-generation step runs.
+  //
+  // Note: redirect() throws a Next-internal NEXT_REDIRECT error to
+  // perform the redirect, so it must be called OUTSIDE the try/catch
+  // (otherwise the catch swallows the redirect).
+  let redirectTo: string | null = null;
+  if (
+    UUID_RE.test(id) &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      const { data: byId } = await supabase
+        .from("intelligence_items")
+        .select("legacy_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (byId?.legacy_id) {
+        redirectTo = `/regulations/${encodeURIComponent(byId.legacy_id)}`;
+      }
+      // No legacy_id — fall through to render-by-uuid below.
+    } catch {
+      // Soft-fail; fetchIntelligenceItem still tries by uuid.
+    }
+  }
+  if (redirectTo) redirect(redirectTo);
 
   const detail = await fetchIntelligenceItem(id);
   if (!detail) {
@@ -114,8 +155,16 @@ export default async function RegulationDetailPage({
     }
   }
 
+  // Eyebrow jurisdiction label — prefer ISO data (e.g. ["US-CA"] →
+  // "California, United States") so the masthead matches the detail
+  // surface metadata. Fall back to the legacy `jurisdiction` string
+  // when ISO data isn't yet populated.
   const jurisLabel =
-    JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label || r.jurisdiction || "Global";
+    r.jurisdictionIso && r.jurisdictionIso.length > 0
+      ? r.jurisdictionIso.map(isoToDisplayLabel).join(" · ")
+      : JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label ||
+        r.jurisdiction ||
+        "Global";
 
   const effective = r.complianceDeadline
     ? `Effective ${formatDate(r.complianceDeadline)}`

@@ -115,7 +115,17 @@ export function AdminDashboard({
     try {
       const [orgRes, memberRes, updateRes, flagRes] = await Promise.all([
         supabase.from("organizations").select("id, name, slug, plan, created_at"),
-        supabase.from("org_memberships").select("id, org_id, user_id, role, created_at"),
+        // Embed user_profiles via the user_id FK so the member list
+        // can show "Jason Losh" instead of a raw uuid. The relation alias
+        // `user:user_profiles` joins on user_profiles.user_id when
+        // PostgREST's foreign-key inference picks it up. Older accounts
+        // without a user_profiles row will surface `user: null` — the
+        // render path falls back to a truncated user_id in that case.
+        supabase
+          .from("org_memberships")
+          .select(
+            "id, org_id, user_id, role, created_at, user:user_profiles(name, headshot_url)"
+          ),
         supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
         supabase
           .from("intelligence_items")
@@ -446,34 +456,62 @@ export function AdminDashboard({
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {members.map((m) => (
-                    <div
-                      key={m.id}
-                      className="flex items-center justify-between p-3 rounded-lg border"
-                      style={{
-                        borderColor: "var(--color-border)",
-                        backgroundColor: "var(--color-surface)",
-                      }}
-                    >
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
-                          {m.profiles?.email || m.user_id}
-                        </p>
-                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                          {m.role} · joined {new Date(m.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <span
-                        className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
+                  {members.map((m) => {
+                    // Display: prefer user_profiles.name (joined via the
+                    // user_id FK in loadData); fall back to a short uuid
+                    // for older accounts that have no user_profiles row,
+                    // and to "(no profile)" if the embed object is null
+                    // entirely. Auth.users.email isn't readable via
+                    // anon-RLS, so it can't be the fallback here.
+                    const profileName: string | null =
+                      (m.user && typeof m.user === "object" && "name" in m.user
+                        ? (m.user as { name?: string | null }).name ?? null
+                        : null) || null;
+                    const displayName =
+                      profileName ||
+                      (m.user_id
+                        ? `${m.user_id.slice(0, 8)}…`
+                        : "(no profile)");
+                    return (
+                      <div
+                        key={m.id}
+                        className="flex items-center justify-between p-3 rounded-lg border"
                         style={{
-                          color: m.role === "owner" ? "var(--color-primary)" : "var(--color-text-secondary)",
-                          backgroundColor: "var(--color-surface-raised)",
+                          borderColor: "var(--color-border)",
+                          backgroundColor: "var(--color-surface)",
                         }}
                       >
-                        {m.role}
-                      </span>
-                    </div>
-                  ))}
+                        <div>
+                          <p
+                            className="text-sm font-medium"
+                            style={{ color: "var(--color-text-primary)" }}
+                            title={m.user_id}
+                          >
+                            {displayName}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{ color: "var(--color-text-muted)" }}
+                          >
+                            {m.role} · joined{" "}
+                            {new Date(m.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span
+                          className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
+                          style={{
+                            color:
+                              m.role === "owner"
+                                ? "var(--color-primary)"
+                                : "var(--color-text-secondary)",
+                            backgroundColor: "var(--color-surface-raised)",
+                          }}
+                        >
+                          {m.role}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

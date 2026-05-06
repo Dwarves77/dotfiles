@@ -2,11 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
+import { AskAssistant } from "@/components/AskAssistant";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const NO_SIDEBAR_ROUTES = ["/login", "/auth"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const hideSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
 
   if (hideSidebar) {
@@ -35,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <p className="text-[10px]">For informational purposes only. Not legal advice. Regulations move fast, always verify with official sources before acting.</p>
         </footer>
       </div>
+      {user && <AskAssistant />}
     </div>
   );
 }

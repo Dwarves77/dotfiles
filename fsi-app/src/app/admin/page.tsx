@@ -42,9 +42,14 @@ export default async function AdminPage() {
     supabase
       .from("organizations")
       .select("id, name, slug, plan, created_at"),
+    // Same embed pattern as AdminDashboard.loadData — pulls
+    // user_profiles.name via the user_id FK so the member list
+    // renders names instead of raw uuids on first paint.
     supabase
       .from("org_memberships")
-      .select("id, org_id, user_id, role, created_at"),
+      .select(
+        "id, org_id, user_id, role, created_at, user:user_profiles(name, headshot_url)"
+      ),
     supabase
       .from("staged_updates")
       .select("*")

@@ -893,6 +893,9 @@ export async function fetchIntelligenceItem(
       modes: row.transport_modes || [],
       topic: row.category || undefined,
       jurisdiction: row.jurisdictions?.[0] || undefined,
+      jurisdictionIso: Array.isArray(row.jurisdiction_iso)
+        ? row.jurisdiction_iso
+        : undefined,
       sourceId: row.source_id || undefined,
       isArchived: row.is_archived || false,
       penaltyRange: row.penalty_range || undefined,

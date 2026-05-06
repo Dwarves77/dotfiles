@@ -19,17 +19,29 @@ export function AskAssistant() {
   const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
   const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
 
-  // Listen for open-ask-assistant events from AiPromptBar
+  // Listen for open-ask-assistant events from AiPromptBar.
+  // The event may carry { question } in detail; if present we auto-submit.
   useEffect(() => {
-    const handler = () => setIsOpen(true);
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ question?: string }>;
+      const q = ce.detail?.question?.trim();
+      setIsOpen(true);
+      if (q) {
+        setInput(q);
+        setTimeout(() => {
+          handleAskWithQuestion(q);
+        }, 0);
+      }
+    };
     window.addEventListener("open-ask-assistant", handler);
     return () => window.removeEventListener("open-ask-assistant", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAsk = async () => {
-    if (!input.trim() || loading) return;
+  const handleAskWithQuestion = async (rawQuestion: string) => {
+    const question = rawQuestion.trim();
+    if (!question || loading) return;
 
-    const question = input.trim();
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: question }]);
     setLoading(true);
@@ -72,6 +84,8 @@ export function AskAssistant() {
     setLoading(false);
     setTimeout(() => messagesEnd.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
+
+  const handleAsk = () => handleAskWithQuestion(input);
 
   if (!isOpen) {
     return (

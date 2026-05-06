@@ -53,6 +53,19 @@ interface ResearchViewProps {
   items: ResearchPipelineItem[];
 }
 
+// ── Date helpers ──
+
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function formatDateUTC(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
 // ── Stage metadata ──
 
 type Stage = "draft" | "active_review" | "published" | "archived";
@@ -628,13 +641,7 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
   const tone = STAGE_PILL_TONE[stage];
   const region = regionLabel(item.jurisdictions);
   const mode = modeLabel(item.transportModes);
-  const dateStr = item.addedDate
-    ? new Date(item.addedDate).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
-    : "—";
+  const dateStr = item.addedDate ? formatDateUTC(item.addedDate) : "—";
 
   return (
     <div
