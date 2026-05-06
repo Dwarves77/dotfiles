@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             flexShrink: 0,
           }}
         />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto w-full max-w-[1280px] mx-auto">
           {children}
         </main>
         <footer className="px-6 py-3 text-center" style={{ borderTop: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}>
