@@ -126,7 +126,10 @@ export function AdminDashboard({
           .select(
             "id, org_id, user_id, role, created_at, user:user_profiles(name, headshot_url)"
           ),
-        supabase.from("staged_updates").select("*").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
+        // Slim staged_updates select — same column list as the server
+        // initial fetch in app/admin/page.tsx. Drops full_brief + other
+        // wide columns the panel doesn't render.
+        supabase.from("staged_updates").select("id, update_type, created_at, reason, proposed_changes, status").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
         supabase
           .from("intelligence_items")
           .select("id", { count: "exact", head: true })
