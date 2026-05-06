@@ -1,0 +1,77 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "leginfo_insert",
+      "ok": true,
+      "detail": "id=0cbbbbf7-cfea-419b-b4f7-eb050da2f63b tier=1 name=California Legislative Information (Leginfo)",
+      "at": "2026-05-06T20:03:05.027Z"
+    },
+    {
+      "name": "leginfo_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-CA\"]",
+      "at": "2026-05-06T20:03:05.165Z"
+    },
+    {
+      "name": "carb_tier_update",
+      "ok": true,
+      "detail": "tier set to 1",
+      "at": "2026-05-06T20:03:05.432Z"
+    },
+    {
+      "name": "carb_tier_verify",
+      "ok": true,
+      "detail": "tier=1 name=California Air Resources Board (CARB)",
+      "at": "2026-05-06T20:03:05.691Z"
+    },
+    {
+      "name": "ca_trio_source_relink",
+      "ok": true,
+      "detail": "3 rows updated to source_id=0cbbbbf7-cfea-419b-b4f7-eb050da2f63b",
+      "at": "2026-05-06T20:03:06.012Z"
+    },
+    {
+      "name": "ca_trio_source_verify",
+      "ok": true,
+      "detail": "[{\"id\":\"w4_ca_ab1305\",\"src\":\"0cbbbbf7-cfea-419b-b4f7-eb050da2f63b\"},{\"id\":\"w4_ca_sb253\",\"src\":\"0cbbbbf7-cfea-419b-b4f7-eb050da2f63b\"},{\"id\":\"w4_ca_sb261\",\"src\":\"0cbbbbf7-cfea-419b-b4f7-eb050da2f63b\"}]",
+      "at": "2026-05-06T20:03:06.297Z"
+    },
+    {
+      "name": "acf_priority_update",
+      "ok": true,
+      "detail": "set HIGH",
+      "at": "2026-05-06T20:03:06.469Z"
+    },
+    {
+      "name": "acf_priority_verify",
+      "ok": true,
+      "detail": "priority=HIGH",
+      "at": "2026-05-06T20:03:06.605Z"
+    },
+    {
+      "name": "l7_jurisdiction_update",
+      "ok": true,
+      "detail": "set ['US-CA']",
+      "at": "2026-05-06T20:03:06.792Z"
+    },
+    {
+      "name": "l7_jurisdiction_verify",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-CA\"]",
+      "at": "2026-05-06T20:03:06.945Z"
+    },
+    {
+      "name": "ll97_jurisdiction_update",
+      "ok": true,
+      "detail": "set ['US-NY']",
+      "at": "2026-05-06T20:03:07.281Z"
+    },
+    {
+      "name": "ll97_jurisdiction_verify",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-NY\"]",
+      "at": "2026-05-06T20:03:07.560Z"
+    }
+  ]
+}
