@@ -308,7 +308,11 @@ export function ResearchView({ items }: ResearchViewProps) {
         >
           {([
             { id: "pipeline" as const, label: "Pipeline" },
-            { id: "sources" as const, label: "Source coverage" },
+            // Source coverage tab is hidden until the source registry rollup
+            // endpoint exists. The COVERAGE_MATRIX values below are stub
+            // placeholders that would mislead workspace users. Re-enable by
+            // restoring this entry once the rollup endpoint lands.
+            // { id: "sources" as const, label: "Source coverage" },
           ]).map((t) => (
             <button
               key={t.id}
