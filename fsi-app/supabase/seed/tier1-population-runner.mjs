@@ -1148,7 +1148,12 @@ async function insertProvisional(supabase, candidate, ai, jurisdictionIso, rejec
     status: "pending_review",
     provisional_tier: 7,
     recommended_tier: recommended,
-    jurisdictions: [jurisdictionIso],
+    // FIXED 2026-05-06: provisional_sources has no `jurisdictions` column.
+    // jurisdiction lives on `discovered_for_jurisdiction` (set above) per
+    // migration 040. The previous code referenced a non-existent column,
+    // causing all 385 W3 tier-M inserts to fail silently — captured in
+    // source_verifications.verification_log but never surfaced as aggregate
+    // failure. Backfill ran via supabase/seed/backfill-missing-provisionals.mjs.
     reviewer_notes:
       `Auto-queued ${new Date().toISOString().slice(0, 10)} ` +
       `(jurisdiction ${jurisdictionIso}): ${rejectionReason ?? "uncertain"}. ` +

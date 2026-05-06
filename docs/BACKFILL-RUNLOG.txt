@@ -1,0 +1,24 @@
+Backfill missing provisional_sources from W3 tier-M audit log
+======================================================================
+Found 385 orphan tier-M audit rows to backfill
+
+Pre-loaded 12 existing provisional URLs for dedupe
+
+[1/385] inserted 6902be31-0ab1-4d2b-9f3e-6e277defbceb for https://www.nccs.gov.sg
+[51/385] inserted c706b682-f09c-4967-8bb9-982f8fcb2c6f for https://www.futuregenerations.wales
+[101/385] inserted cc72b88e-a593-48a6-b369-5740d8922f3b for https://www.komsa.or.kr/eng/
+[151/385] inserted 64289e48-b7b4-4edb-9697-3bc8c67a90a4 for https://danishbusinessauthority.dk/inclusion-maritime-sector-eu-ets
+[201/385] inserted 8d30b97a-9a30-4e10-a900-510163a27c5f for https://www.citepa.org/en/
+[251/385] inserted 0cafe7fc-4711-45b0-aea2-a495d5da40f0 for https://www.sam.gov.lv/en
+[301/385] inserted fc0f4c83-ac42-4088-ad43-efb83a089e38 for https://www.gddkia.gov.pl/en/
+[351/385] inserted 170e0fae-c18e-4744-a16e-ae7a952cde46 for https://www.puertos.es/en
+
+======================================================================
+Backfill complete
+======================================================================
+Total orphan rows:              385
+Inserted into provisional:      381
+Skipped (URL already exists):   4
+Failed (other error):           0
+======================================================================
+Report: C:\Users\jason\dotfiles\docs\BACKFILL-MISSING-PROVISIONALS-RESULTS.json
