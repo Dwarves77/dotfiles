@@ -405,19 +405,27 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
 
       {open && (
         <div style={{ padding: "4px 20px 20px", borderTop: "1px solid var(--border-sub)" }}>
-          {/* Chip grid */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
-              margin: "14px 0",
-            }}
-          >
-            {chips.map((c) => (
-              <ChipCell key={c.key} def={c} />
-            ))}
-          </div>
+          {chips.every((c) => c.items.length === 0) ? (
+            <div style={{ margin: "14px 0" }}>
+              <ComingSoonBanner
+                note="Operations data points (solar, electricity, labor, EV charging, green building) for this jurisdiction will populate here as the source monitoring system ingests them."
+              />
+            </div>
+          ) : (
+            /* Chip grid — only renders when at least one chip has real data. */
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 12,
+                margin: "14px 0",
+              }}
+            >
+              {chips.map((c) => (
+                <ChipCell key={c.key} def={c} />
+              ))}
+            </div>
+          )}
 
           {/* Active regulations */}
           {activeRegs.length > 0 && (
@@ -470,9 +478,10 @@ function ChipCell({ def }: { def: { key: string; label: string; icon: typeof Sun
         </div>
       </div>
       {empty ? (
-        <div style={{ fontSize: 12, color: "var(--muted)", fontStyle: "italic" }}>
-          Not yet ingested.
-        </div>
+        // Empty chip in a partially-populated region: render dimmed header
+        // only (no per-cell placeholder text). The region-level
+        // ComingSoonBanner handles the fully-empty case.
+        null
       ) : (
         <>
           <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.4, marginBottom: 4, color: "var(--text)" }}>
@@ -700,6 +709,51 @@ function FacilityCategoryCard({ group, defaultOpen }: { group: { cat: string; it
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── ComingSoonBanner ──
+//
+// Inlined copy of the Admin "Coming soon — Phase D" banner pattern from
+// AdminDashboard.tsx (used for tabs whose backing service isn't online
+// yet). Inlined here per the no-premature-abstractions guidance — same
+// visual treatment (high-tone amber strip + dot + bold label + note),
+// no shared-component extraction.
+function ComingSoonBanner({ note }: { note: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+        background: "var(--high-bg)",
+        border: "1px solid var(--high-bd)",
+        borderRadius: "var(--r-md)",
+        padding: "12px 16px",
+        fontSize: 12,
+        color: "var(--text)",
+        lineHeight: 1.55,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-block",
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: "var(--high)",
+          flexShrink: 0,
+          marginTop: 5,
+        }}
+      />
+      <span>
+        <b style={{ color: "var(--high)", letterSpacing: "0.04em" }}>
+          Coming soon — Phase D
+        </b>{" "}
+        — {note}
+      </span>
     </div>
   );
 }
