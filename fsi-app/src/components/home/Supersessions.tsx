@@ -1,95 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { cn } from "@/lib/cn";
-import { useNavigationStore } from "@/stores/navigationStore";
+import Link from "next/link";
 import type { Resource, Supersession } from "@/types/resource";
-import { ChevronDown, GitBranch } from "lucide-react";
 
 interface SupersessionsProps {
   supersessions: Supersession[];
   resourceMap: Map<string, Resource>;
 }
 
-const SEVERITY_COLORS: Record<string, string> = {
-  major: "#FF3B30",
-  minor: "#FF9500",
-  replacement: "#5856D6",
-};
+/** Trim a long title to a short ID-like label for the strip card.
+ *  The supersession seed already includes oldTitle/newTitle as the
+ *  human-friendly short labels (e.g. "MEPC.304(72)") — fall back to
+ *  the resource title only when oldTitle/newTitle is missing. */
+function shortLabel(raw: string | undefined, fallback: string | undefined, id: string): string {
+  const candidate = (raw && raw.trim()) || (fallback && fallback.trim()) || id;
+  if (candidate.length > 32) return candidate.slice(0, 30).trim() + "…";
+  return candidate;
+}
 
 export function Supersessions({ supersessions, resourceMap }: SupersessionsProps) {
-  const { navigateToResource, pushFocusView } = useNavigationStore();
-  const [open, setOpen] = useState(false);
-
   if (supersessions.length === 0) return null;
 
+  const cards = supersessions.slice(0, 10);
+
   return (
-    <div className="cl-card">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
-      >
-        <div className="text-left">
-          <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
-            Replaced Regulations ({supersessions.length})
-          </h3>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            Regulations that have been replaced by newer versions
-          </p>
-        </div>
-        <ChevronDown
-          size={14}
-          strokeWidth={2}
-          className={cn(
-            "text-text-secondary transition-transform duration-300",
-            open && "rotate-180"
-          )}
-          style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
-        />
-      </button>
-      {open && (
-        <div className="px-4 pb-4 space-y-2">
-          {supersessions.map((s, i) => {
-            const oldR = resourceMap.get(s.old);
-            const newR = resourceMap.get(s.new);
-            const sevColor = SEVERITY_COLORS[s.severity] || "var(--color-text-secondary)";
-            return (
-              <div
-                key={i}
-                className="border border-border-subtle rounded-lg bg-surface-card hover:border-border-light transition-all duration-200 p-4 space-y-2"
-                style={{
-                  borderLeftWidth: 3,
-                  borderLeftColor: sevColor,
-                  transitionTimingFunction: "var(--ease-out-expo)",
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs font-semibold uppercase px-1.5 py-0.5 rounded border"
-                    style={{ color: sevColor, borderColor: `${sevColor}30` }}
-                  >
-                    {s.severity}
-                  </span>
-                  <span className="text-xs text-text-secondary tabular-nums">{s.date}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-text-secondary line-through">
-                    {s.oldTitle || oldR?.title || s.old}
-                  </span>
-                  <span className="text-xs text-text-secondary">&rarr;</span>
-                  <button
-                    onClick={() => navigateToResource(s.new)}
-                    className="text-xs text-text-primary hover:text-text-accent cursor-pointer transition-colors font-medium underline"
-                  >
-                    {s.newTitle || newR?.title || s.new}
-                  </button>
-                </div>
-                <p className="text-xs text-text-secondary leading-relaxed">{s.note}</p>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div
+      className="cl-rep-row"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(5, 1fr)",
+        gap: 10,
+      }}
+    >
+      <style>{`
+        @media (max-width: 900px) { .cl-rep-row { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 480px) { .cl-rep-row { grid-template-columns: 1fr !important; } }
+      `}</style>
+      {cards.map((s, i) => {
+        const oldR = resourceMap.get(s.old);
+        const newR = resourceMap.get(s.new);
+        const oldLabel = shortLabel(s.oldTitle, oldR?.title, s.old);
+        const newLabel = shortLabel(s.newTitle, newR?.title, s.new);
+        const dateLabel = s.date ? s.date.slice(0, 7) : "";
+        const successorHref = newR ? `/regulations/${s.new}` : null;
+        const card = (
+          <div
+            style={{
+              background: "var(--color-bg-surface)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
+              padding: "12px 14px",
+              position: "relative",
+              boxShadow: "var(--shadow-card)",
+              height: "100%",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 12,
+                color: "var(--color-text-muted)",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              →
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: "var(--color-text-primary)",
+                lineHeight: 1.3,
+                paddingRight: 18,
+              }}
+            >
+              {oldLabel}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--color-text-muted)",
+                marginTop: 3,
+                lineHeight: 1.4,
+              }}
+            >
+              By {newLabel}
+              {dateLabel ? <><br />{dateLabel}</> : null}
+            </div>
+          </div>
+        );
+        return successorHref ? (
+          <Link
+            key={i}
+            href={successorHref}
+            style={{ textDecoration: "none", color: "inherit", display: "block" }}
+          >
+            {card}
+          </Link>
+        ) : (
+          <div key={i}>{card}</div>
+        );
+      })}
     </div>
   );
 }

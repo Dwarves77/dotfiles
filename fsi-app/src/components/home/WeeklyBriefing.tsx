@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/export/download";
 import { toBriefingEmail } from "@/lib/export/htmlReport";
 import { toBriefingSlack } from "@/lib/export/slackFormat";
-import { urgencyScore, matchResourceSector, buildSectorContext } from "@/lib/scoring";
+import { urgencyScore, buildSectorContext } from "@/lib/scoring";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
-import { ALL_SECTORS } from "@/lib/constants";
 import type { Resource, ChangeLogEntry, Dispute } from "@/types/resource";
-import { ChevronDown, FileText, Hash } from "lucide-react";
+import { FileText, Hash } from "lucide-react";
 
 interface WeeklyBriefingProps {
   resources: Resource[];
@@ -18,6 +16,47 @@ interface WeeklyBriefingProps {
   disputes: Record<string, Dispute>;
   auditDate: string;
   onToast: (msg: string) => void;
+}
+
+const PRIORITY_COLOR: Record<string, string> = {
+  CRITICAL: "var(--color-critical)",
+  HIGH: "var(--color-high)",
+  MODERATE: "var(--color-moderate)",
+  LOW: "var(--color-low)",
+};
+
+const PRIORITY_KIND: Record<string, "crit" | "high" | "mod" | "low"> = {
+  CRITICAL: "crit",
+  HIGH: "high",
+  MODERATE: "mod",
+  LOW: "low",
+};
+
+/** Compute the day-count side-meta for a resource. Prefers complianceDeadline,
+ *  falls back to the next future timeline milestone. Returns a short label
+ *  ("18 days", "Q1 '27", "—") plus the priority kind for color. */
+function dayCountMeta(r: Resource): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const candidates: string[] = [];
+  if (r.complianceDeadline) candidates.push(r.complianceDeadline);
+  if (r.timeline) {
+    for (const t of r.timeline) {
+      if (t.date) candidates.push(t.date);
+    }
+  }
+  for (const raw of candidates) {
+    const d = new Date(raw + (raw.length === 10 ? "T00:00:00" : ""));
+    if (Number.isNaN(d.getTime())) continue;
+    const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+    if (diff < 0) continue;
+    if (diff <= 365) return `${diff} day${diff === 1 ? "" : "s"}`;
+    // > 1 year out — quarterly label
+    const q = Math.floor(d.getMonth() / 3) + 1;
+    const yy = String(d.getFullYear()).slice(-2);
+    return `Q${q} '${yy}`;
+  }
+  return "—";
 }
 
 export function WeeklyBriefing({
@@ -28,34 +67,16 @@ export function WeeklyBriefing({
   onToast,
 }: WeeklyBriefingProps) {
   const { sectorProfile, sectorWeights } = useWorkspaceStore();
-  const [weeklyBriefingExpanded, setWeeklyBriefingExpanded] = useState(false);
   const date = new Date().toISOString().slice(0, 10);
-
   const sectorCtx = buildSectorContext({ sectorProfile, sectorWeights });
 
   const briefing = useMemo(() => {
     const newR = resources.filter((r) => r.added === auditDate);
-    const top5 = [...resources].sort((a, b) => urgencyScore(b, null, sectorCtx) - urgencyScore(a, null, sectorCtx)).slice(0, 5);
-    const disputedEntries = Object.entries(disputes)
-      .filter(([, d]) => d.note)
-      .map(([id, d]) => ({ id, ...d, r: resources.find((x) => x.id === id) }))
-      .filter((x) => x.r);
-
-    // Group top items by sector for multi-sector workspaces
-    const bySector: Record<string, typeof top5> = {};
-    if (sectorProfile.length > 1) {
-      for (const r of top5) {
-        const matched = matchResourceSector(r, sectorProfile);
-        const key = matched
-          ? ALL_SECTORS.find((s) => s.id === matched)?.label || matched
-          : "General";
-        if (!bySector[key]) bySector[key] = [];
-        bySector[key].push(r);
-      }
-    }
-
-    return { newR, top5, disputedEntries, bySector };
-  }, [resources, disputes, auditDate, sectorCtx, sectorProfile]);
+    const top5 = [...resources]
+      .sort((a, b) => urgencyScore(b, null, sectorCtx) - urgencyScore(a, null, sectorCtx))
+      .slice(0, 5);
+    return { newR, top5 };
+  }, [resources, auditDate, sectorCtx]);
 
   const handleDownload = (format: "html" | "slack") => {
     if (format === "html") {
@@ -68,149 +89,138 @@ export function WeeklyBriefing({
     onToast("File downloaded");
   };
 
+  const summary = `Tracking ${resources.length} regulatory resources across ${
+    new Set(resources.map((r) => r.jurisdiction || "global")).size
+  } jurisdictions.${briefing.newR.length > 0 ? ` ${briefing.newR.length} new this week.` : ""}`;
+
   return (
-    <div className="cl-card">
-      {/* Header */}
-      <button
-        onClick={() => setWeeklyBriefingExpanded(!weeklyBriefingExpanded)}
-        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer"
+    <div
+      className="cl-card"
+      style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 0 }}
+    >
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          letterSpacing: "-0.01em",
+          color: "var(--color-text-primary)",
+          paddingBottom: 12,
+          marginBottom: 12,
+          borderBottom: "1px solid var(--color-border)",
+        }}
       >
-        <div className="text-left">
-          <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
-            Weekly Briefing
-          </h3>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            {(() => { const d = new Date(date + "T12:00:00"); return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); })()}
-          </p>
-        </div>
-        <ChevronDown
-          size={14}
-          strokeWidth={2}
-          className={cn(
-            "text-text-secondary transition-transform duration-300",
-            weeklyBriefingExpanded && "rotate-180"
-          )}
-          style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
-        />
-      </button>
-
-      {/* Expanded Content */}
-      {weeklyBriefingExpanded && (
-        <div className="px-4 pb-4 space-y-4">
-          {/* Executive Summary */}
-          <div>
-            <p className="text-xs text-text-primary/80 leading-relaxed">
-              Tracking {resources.length} regulatory resources across{" "}
-              {new Set(resources.map((r) => r.jurisdiction || "global")).size} jurisdictions.
-              {briefing.newR.length > 0 && ` ${briefing.newR.length} new this week.`}
-              {briefing.disputedEntries.length > 0 &&
-                ` ${briefing.disputedEntries.length} disputed items requiring attention.`}
-            </p>
-          </div>
-
-          {/* Top Priority Items — clickable talking points */}
-          <div>
-            <span className="text-xs font-semibold tracking-wider uppercase block mb-2" style={{ color: "var(--color-text-secondary)" }}>
-              Top Priority This Week
-            </span>
-            {briefing.top5.map((r) => (
+        Top priority this week — {briefing.top5.length} item{briefing.top5.length === 1 ? "" : "s"}
+      </div>
+      <p
+        style={{
+          fontSize: 13.5,
+          lineHeight: 1.55,
+          color: "var(--color-text-secondary)",
+          margin: "0 0 14px",
+        }}
+      >
+        {summary}
+      </p>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        {briefing.top5.map((r, i) => {
+          const meta = dayCountMeta(r);
+          const kind = PRIORITY_KIND[r.priority] || "mod";
+          const metaColor =
+            kind === "crit"
+              ? "var(--color-critical)"
+              : kind === "high"
+              ? "var(--color-high)"
+              : kind === "mod"
+              ? "var(--color-moderate)"
+              : "var(--color-text-muted)";
+          return (
+            <li
+              key={r.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "4px 1fr auto",
+                gap: 14,
+                padding: "11px 0",
+                borderTop: i === 0 ? "0" : "1px solid var(--color-border)",
+                paddingTop: i === 0 ? 4 : 11,
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  alignSelf: "stretch",
+                  borderRadius: 2,
+                  background: PRIORITY_COLOR[r.priority] || "var(--color-text-muted)",
+                }}
+              />
               <Link
-                key={r.id}
                 href={`/regulations/${r.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="block w-full text-left mb-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-[var(--color-surface-raised)] no-underline"
-                style={{ borderLeft: `3px solid ${r.priority === "CRITICAL" ? "#DC2626" : r.priority === "HIGH" ? "#D97706" : "#2563EB"}` }}
+                style={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  display: "block",
+                  minWidth: 0,
+                }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>{r.title}</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: r.priority === "CRITICAL" ? "#DC2626" : r.priority === "HIGH" ? "#D97706" : "#CA8A04", backgroundColor: r.priority === "CRITICAL" ? "#FEF2F2" : r.priority === "HIGH" ? "#FFF7ED" : "#FEFCE8", border: `1px solid ${r.priority === "CRITICAL" ? "#FECACA" : r.priority === "HIGH" ? "#FED7AA" : "#FEF08A"}` }}>
-                    {r.priority}
-                  </span>
-                </div>
-                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>{r.note}</p>
-                {r.reasoning && (
-                  <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--color-primary)" }}>{r.reasoning}</p>
-                )}
-              </Link>
-            ))}
-          </div>
-
-          {/* Disputed */}
-          {briefing.disputedEntries.length > 0 && (
-            <div>
-              <span className="text-xs font-semibold tracking-wider uppercase text-[#FF9500] block mb-2">
-                Disputed Items
-              </span>
-              {briefing.disputedEntries.map((x) => (
                 <div
-                  key={x.id}
-                  className="border-l-2 border-[#FF9500] pl-2 mb-2 hover:bg-[var(--color-surface-raised)] rounded-r-md transition-colors p-1"
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--color-text-primary)",
+                    lineHeight: 1.3,
+                  }}
                 >
-                  <Link
-                    href={`/regulations/${x.id}`}
-                    className="block no-underline"
-                  >
-                    <p className="text-xs font-medium text-text-primary">{x.r!.title}</p>
-                    <p className="text-xs text-text-secondary">
-                      {x.note}
-                    </p>
-                  </Link>
-                  {x.sources?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {(x.sources as any[]).map((s: any, i: number) => {
-                        const name = typeof s === "string" ? s : s.name;
-                        const url = typeof s === "string" ? null : s.url;
-                        return url ? (
-                          <a
-                            key={i}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs px-1.5 py-0.5 rounded-md border border-[#FF9500]/20 text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors"
-                          >
-                            {name}
-                          </a>
-                        ) : (
-                          <span
-                            key={i}
-                            className="text-xs px-1.5 py-0.5 rounded-md border border-[#FF9500]/20 text-[#FF9500]"
-                          >
-                            {name}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {r.title}
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Download buttons */}
-          <div className="flex gap-2 pt-2 border-t border-border-subtle">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload("html");
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
-            >
-              <FileText size={11} strokeWidth={2} />
-              Download HTML
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload("slack");
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
-            >
-              <Hash size={11} strokeWidth={2} />
-              Download Slack
-            </button>
-          </div>
-        </div>
-      )}
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--color-text-muted)",
+                    marginTop: 2,
+                  }}
+                >
+                  {r.note}
+                </div>
+              </Link>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontVariantNumeric: "tabular-nums",
+                  whiteSpace: "nowrap",
+                  color: metaColor,
+                }}
+              >
+                {meta}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginTop: 16,
+          paddingTop: 14,
+          borderTop: "1px solid var(--color-border)",
+        }}
+      >
+        <button
+          onClick={() => handleDownload("html")}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
+        >
+          <FileText size={11} strokeWidth={2} />
+          Download HTML
+        </button>
+        <button
+          onClick={() => handleDownload("slack")}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
+        >
+          <Hash size={11} strokeWidth={2} />
+          Download Slack
+        </button>
+      </div>
     </div>
   );
 }
