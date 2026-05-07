@@ -1,0 +1,126 @@
+{
+  "generatedAt": "2026-05-07T14:10:12.022Z",
+  "per_state": {
+    "NY": {
+      "iso": "US-NY",
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "legacy_id": "united-states-regional-operations-profile",
+          "title": "United States Regional Operations Profile",
+          "jurisdiction_iso": [
+            "US"
+          ],
+          "source_id": "439ae53e-4446-4537-a173-3909b13bf875",
+          "priority": "LOW",
+          "item_type": "regional_data",
+          "summary_excerpt": "US federal and state-level operational environment. Federal-state regulatory divergence on emissions. Owner: Sustainability + Operations."
+        },
+        {
+          "legacy_id": "l8",
+          "title": "Drive Electric: Zero-Emission Freight",
+          "jurisdiction_iso": [
+            "US"
+          ],
+          "source_id": "b0e4cf0c-e6b2-48fb-b887-a6a4c7ae0fd9",
+          "priority": "MODERATE",
+          "item_type": "initiative",
+          "summary_excerpt": "US federal ZEV infrastructure funding and grant programmes."
+        },
+        {
+          "legacy_id": "r22",
+          "title": "EcoEnclose Blog",
+          "jurisdiction_iso": [
+            "US"
+          ],
+          "source_id": null,
+          "priority": "LOW",
+          "item_type": "regulation",
+          "summary_excerpt": "Sustainable packaging innovations for goods and merchandise."
+        },
+        {
+          "legacy_id": "nashville-building-energy-programs",
+          "title": "Nashville Building Energy Programs",
+          "jurisdiction_iso": [
+            "US"
+          ],
+          "source_id": "c2267c50-0bdb-4717-8145-6606c11d77ea",
+          "priority": "LOW",
+          "item_type": "regulation",
+          "summary_excerpt": "MONITORING. No mandatory benchmarking for private buildings in Nashville. Voluntary program available. Monitor for expansion. Owner: Operations."
+        },
+        {
+          "legacy_id": "la-eweo-existing-buildings-energy-water-efficiency",
+          "title": "LA EWEO — Existing Buildings Energy & Water Efficiency",
+          "jurisdiction_iso": [
+            "US"
+          ],
+          "source_id": "3c5327fb-3124-48da-b075-a5874d1f2008",
+          "priority": "LOW",
+          "item_type": "regulation",
+          "summary_excerpt": "MONITORING. EWEO benchmarking ongoing. LA developing BPS emissions caps. Provide utility data to landlord when requested. Review lease for retrofit cost pass-through. Owner: Operations."
+        }
+      ]
+    },
+    "WA": {
+      "iso": "US-WA",
+      "candidate_count": 2,
+      "candidates": [
+        {
+          "legacy_id": "g11",
+          "title": "CEC North American Env Policy",
+          "jurisdiction_iso": [
+            "US"
+          ],
+          "source_id": "ca5b4543-e6cd-446c-b41a-ed9a1205b4fb",
+          "priority": "LOW",
+          "item_type": "framework",
+          "summary_excerpt": "Canada-Mexico-US trilateral environmental cooperation."
+        },
+        {
+          "legacy_id": "r31",
+          "title": "Port of Los Angeles Green",
+          "jurisdiction_iso": [
+            "US"
+          ],
+          "source_id": "2dd40334-abc1-4bd7-a4bf-b6fe7f75d038",
+          "priority": "HIGH",
+          "item_type": "regulation",
+          "summary_excerpt": "World's busiest port for event equipment; Clean Air Action Plan."
+        }
+      ]
+    },
+    "TX": {
+      "iso": "US-TX",
+      "candidate_count": 2,
+      "candidates": [
+        {
+          "legacy_id": "crude-oil-jet-fuel-price-intelligence",
+          "title": "Crude Oil & Jet Fuel Price Intelligence",
+          "jurisdiction_iso": [
+            "US",
+            "SG"
+          ],
+          "source_id": "0091e1d0-afb5-4d0c-bf1a-b2c3faedda7c",
+          "priority": "HIGH",
+          "item_type": "market_signal",
+          "summary_excerpt": "Brent crude, WTI, and jet fuel spot prices by hub (Singapore MOPS, NWE, US Gulf). Direct input to air and ocean freight surcharges. Owner: Sustainability + Operations."
+        },
+        {
+          "legacy_id": "lng-natural-gas-price-intelligence",
+          "title": "LNG & Natural Gas Price Intelligence",
+          "jurisdiction_iso": [
+            "US",
+            "JP",
+            "NL"
+          ],
+          "source_id": "b0cece2a-bb98-4ac7-85d4-e53994767ef9",
+          "priority": "HIGH",
+          "item_type": "market_signal",
+          "summary_excerpt": "Dutch TTF and JKM (Japan-Korea Marker) natural gas prices. TTF is Europe's benchmark gas price driving EU electricity costs and energy policy urgency. Owner: Sustainability + Operations."
+        }
+      ]
+    }
+  },
+  "total_active_rows_scanned": 184
+}

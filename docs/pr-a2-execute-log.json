@@ -1,0 +1,65 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "nysdec_tier_update",
+      "ok": true,
+      "detail": "tier set to 1",
+      "at": "2026-05-07T14:12:00.366Z"
+    },
+    {
+      "name": "nysdec_tier_verify",
+      "ok": true,
+      "detail": "tier=1 status=active name=New York State Department of Environmental Conservation (NYSDEC)",
+      "at": "2026-05-07T14:12:00.666Z"
+    },
+    {
+      "name": "wa_ecology_tier_update",
+      "ok": true,
+      "detail": "tier set to 1",
+      "at": "2026-05-07T14:12:00.784Z"
+    },
+    {
+      "name": "wa_ecology_tier_verify",
+      "ok": true,
+      "detail": "tier=1 status=active name=Washington State Department of Ecology – Air & Climate Division",
+      "at": "2026-05-07T14:12:00.901Z"
+    },
+    {
+      "name": "tceq_tier_update",
+      "ok": true,
+      "detail": "tier set to 1",
+      "at": "2026-05-07T14:12:01.024Z"
+    },
+    {
+      "name": "tceq_tier_verify",
+      "ok": true,
+      "detail": "tier=1 status=active name=Texas Commission on Environmental Quality (TCEQ)",
+      "at": "2026-05-07T14:12:01.180Z"
+    },
+    {
+      "name": "ny_leg_insert",
+      "ok": true,
+      "detail": "id=179972a0-c1db-4868-9d74-2bf527906eb7 tier=1 name=New York State Senate / Assembly Legislative Information",
+      "at": "2026-05-07T14:12:01.420Z"
+    },
+    {
+      "name": "ny_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-NY\"]",
+      "at": "2026-05-07T14:12:01.525Z"
+    },
+    {
+      "name": "tx_leg_insert",
+      "ok": true,
+      "detail": "id=4bd7d688-d76c-401c-86da-55c17bad7445 tier=1 name=Texas Legislature Online",
+      "at": "2026-05-07T14:12:01.749Z"
+    },
+    {
+      "name": "tx_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-TX\"]",
+      "at": "2026-05-07T14:12:01.852Z"
+    }
+  ]
+}

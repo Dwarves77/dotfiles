@@ -1,0 +1,221 @@
+{
+  "generatedAt": "2026-05-07T14:12:17.167Z",
+  "step1_schema": {
+    "legacy_jurisdictions_distinct_sample": [
+      "asia",
+      "australia",
+      "brazil",
+      "canada",
+      "china",
+      "eu",
+      "global",
+      "india",
+      "japan",
+      "latam",
+      "meaf",
+      "singapore",
+      "south korea",
+      "uae",
+      "uk",
+      "us"
+    ],
+    "jurisdiction_iso_distinct_sample": [
+      "AE",
+      "AU",
+      "BR",
+      "CA",
+      "CL",
+      "CN",
+      "CO",
+      "DK",
+      "EU",
+      "GB",
+      "GLOBAL",
+      "ID",
+      "IMO",
+      "IN",
+      "JP",
+      "KR",
+      "MX",
+      "MY",
+      "NL",
+      "PH",
+      "SG",
+      "US",
+      "US-CA"
+    ],
+    "schema_unbounded": true,
+    "note": "Both columns TEXT[]; sub-national tagging belongs in jurisdiction_iso. Confirms PR-A1 schema baseline still holds."
+  },
+  "step2_per_state": {
+    "NY": {
+      "code": "NY",
+      "iso": "US-NY",
+      "name": "New York",
+      "existing_sources": [
+        {
+          "id": "8ea87818-aec3-4402-8df1-3a67f9903e69",
+          "name": "New York State Department of Environmental Conservation (NYSDEC)",
+          "url": "https://dec.ny.gov/regulatory",
+          "tier": 1,
+          "status": "active",
+          "jurisdictions": [],
+          "jurisdiction_iso": [
+            "US-NY"
+          ],
+          "admin_only": false
+        },
+        {
+          "id": "179972a0-c1db-4868-9d74-2bf527906eb7",
+          "name": "New York State Senate / Assembly Legislative Information",
+          "url": "https://www.nysenate.gov/legislation",
+          "tier": 1,
+          "status": "active",
+          "jurisdictions": [],
+          "jurisdiction_iso": [
+            "US-NY"
+          ],
+          "admin_only": false
+        }
+      ],
+      "existing_sources_count": 2,
+      "already_tagged": [
+        {
+          "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+          "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+          "jurisdictions": [
+            "us"
+          ],
+          "jurisdiction_iso": [
+            "US-NY"
+          ],
+          "source_id": "7f8d6310-97cc-4c6a-ab93-ac984e9d737c",
+          "priority": "HIGH"
+        }
+      ],
+      "already_tagged_count": 1,
+      "retag_candidates": [],
+      "retag_candidate_count": 0,
+      "halt_threshold_exceeded": false,
+      "candidates_lacking_source_id": 0
+    },
+    "WA": {
+      "code": "WA",
+      "iso": "US-WA",
+      "name": "Washington",
+      "existing_sources": [
+        {
+          "id": "c610702c-4ced-4c2d-8316-153edd9e8a76",
+          "name": "Washington State Register (WSR) / Washington Administrative Code (WAC)",
+          "url": "https://apps.leg.wa.gov/wac/",
+          "tier": 1,
+          "status": "active",
+          "jurisdictions": [],
+          "jurisdiction_iso": [
+            "US-WA"
+          ],
+          "admin_only": false
+        },
+        {
+          "id": "d57b213b-01d7-443b-817d-9f03943aa3a9",
+          "name": "Washington State Department of Ecology – Air & Climate Division",
+          "url": "https://ecology.wa.gov/air-climate",
+          "tier": 1,
+          "status": "active",
+          "jurisdictions": [],
+          "jurisdiction_iso": [
+            "US-WA"
+          ],
+          "admin_only": false
+        },
+        {
+          "id": "4d5ba9b0-0cda-4534-9171-71177ed7b975",
+          "name": "Washington State Department of Transportation (WSDOT) – Freight & Rail Division",
+          "url": "https://wsdot.wa.gov/construction-planning/statewide-plans/freight-rail-plans/freight-system-plan",
+          "tier": 2,
+          "status": "active",
+          "jurisdictions": [],
+          "jurisdiction_iso": [
+            "US-WA"
+          ],
+          "admin_only": false
+        }
+      ],
+      "existing_sources_count": 3,
+      "already_tagged": [],
+      "already_tagged_count": 0,
+      "retag_candidates": [],
+      "retag_candidate_count": 0,
+      "halt_threshold_exceeded": false,
+      "candidates_lacking_source_id": 0
+    },
+    "TX": {
+      "code": "TX",
+      "iso": "US-TX",
+      "name": "Texas",
+      "existing_sources": [
+        {
+          "id": "4bd7d688-d76c-401c-86da-55c17bad7445",
+          "name": "Texas Legislature Online",
+          "url": "https://capitol.texas.gov",
+          "tier": 1,
+          "status": "active",
+          "jurisdictions": [],
+          "jurisdiction_iso": [
+            "US-TX"
+          ],
+          "admin_only": false
+        },
+        {
+          "id": "be57a794-e82a-4c91-b182-6a1ad1cccab2",
+          "name": "Texas Commission on Environmental Quality (TCEQ)",
+          "url": "https://www.tceq.texas.gov/rules/current.html",
+          "tier": 1,
+          "status": "active",
+          "jurisdictions": [],
+          "jurisdiction_iso": [
+            "US-TX"
+          ],
+          "admin_only": false
+        }
+      ],
+      "existing_sources_count": 2,
+      "already_tagged": [],
+      "already_tagged_count": 0,
+      "retag_candidates": [],
+      "retag_candidate_count": 0,
+      "halt_threshold_exceeded": false,
+      "candidates_lacking_source_id": 0
+    }
+  },
+  "step3_collision_check": {
+    "total_candidates_across_states": 0,
+    "collisions": [],
+    "collision_count": 0
+  },
+  "step4_summary": {
+    "halts_triggered": [],
+    "proceed_decisions": {
+      "NY": {
+        "retag_count": 0,
+        "already_tagged_count": 1,
+        "existing_sources_count": 2,
+        "new_sources_needed": 0
+      },
+      "WA": {
+        "retag_count": 0,
+        "already_tagged_count": 0,
+        "existing_sources_count": 3,
+        "new_sources_needed": 0
+      },
+      "TX": {
+        "retag_count": 0,
+        "already_tagged_count": 0,
+        "existing_sources_count": 2,
+        "new_sources_needed": 0
+      }
+    },
+    "new_sources_to_insert": 0,
+    "clear_to_proceed": true
+  }
+}
