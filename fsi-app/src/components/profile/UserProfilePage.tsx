@@ -309,31 +309,60 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           />
         </div>
 
-        {/* Tabs */}
+        {/* Tabs — phaseC: false tabs render with a lock icon + "Coming soon"
+            affordance so users see them as gated, not broken. They remain
+            clickable (the panel area renders the existing PanelComingSoon),
+            but the visual state communicates intent. */}
         <div
           className="flex flex-wrap gap-0 border-b mt-8 mb-6"
           style={{ borderColor: "var(--color-border)" }}
         >
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
-              style={{
-                color:
-                  tab === t.key
+          {TABS.map((t) => {
+            const gated = !t.phaseC;
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                title={
+                  gated
+                    ? "Coming soon — Phase D (multi-tenant workspaces)"
+                    : undefined
+                }
+                aria-label={
+                  gated ? `${t.label} — coming soon, Phase D` : t.label
+                }
+                className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors inline-flex items-center gap-1.5"
+                style={{
+                  color: active
                     ? "var(--color-primary)"
-                    : "var(--color-text-secondary)",
-                borderBottom: `3px solid ${
-                  tab === t.key
-                    ? "var(--color-primary)"
-                    : "transparent"
-                }`,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+                    : gated
+                      ? "var(--color-text-muted)"
+                      : "var(--color-text-secondary)",
+                  borderBottom: `3px solid ${
+                    active ? "var(--color-primary)" : "transparent"
+                  }`,
+                  opacity: gated && !active ? 0.75 : 1,
+                }}
+              >
+                {gated && <Lock size={11} aria-hidden="true" />}
+                {t.label}
+                {gated && (
+                  <span
+                    className="ml-1 px-1.5 py-0.5 text-[9px] font-semibold normal-case tracking-normal rounded"
+                    style={{
+                      backgroundColor: "var(--color-surface)",
+                      border: "1px solid var(--color-border-subtle)",
+                      color: "var(--color-text-muted)",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    Soon
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Error banner */}

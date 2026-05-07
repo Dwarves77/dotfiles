@@ -455,8 +455,9 @@ function MembershipsPreview({
   memberships: CommunityMembership[];
   currentUserName: string;
 }) {
-  // Until group-detail and feed land in later PRs, surface a small
-  // welcome preview of the user's groups so the body is not blank.
+  // Group-detail feeds are live at /community/[slug]. Sort starred-first,
+  // then alphabetical, and surface a cross-link to the most recently
+  // active group so users have a clear next click.
   const sorted = useMemo(
     () =>
       [...memberships].sort((a, b) => {
@@ -465,6 +466,18 @@ function MembershipsPreview({
       }),
     [memberships]
   );
+
+  // Most recently active group (by group.last_active_at) — used for the
+  // "Jump back in" cross-link when one is available.
+  const recentlyActive = useMemo(() => {
+    const withActivity = memberships.filter((m) => m.group.last_active_at);
+    if (withActivity.length === 0) return null;
+    return [...withActivity].sort(
+      (a, b) =>
+        new Date(b.group.last_active_at).getTime() -
+        new Date(a.group.last_active_at).getTime()
+    )[0];
+  }, [memberships]);
 
   return (
     <section>
@@ -485,10 +498,28 @@ function MembershipsPreview({
         style={{
           fontSize: 12,
           color: "var(--color-text-muted)",
-          margin: "0 0 16px",
+          margin: "0 0 12px",
         }}
       >
-        Group feeds and post composer ship in the next PR. For now: pick a group from the sidebar.
+        Pick a group from the sidebar, or{" "}
+        <Link
+          href="/community/browse"
+          style={{ color: "var(--color-primary)", textDecoration: "underline" }}
+        >
+          browse all groups
+        </Link>
+        {recentlyActive && (
+          <>
+            {" · "}
+            <Link
+              href={`/community/${recentlyActive.group.slug}`}
+              style={{ color: "var(--color-primary)", textDecoration: "underline" }}
+            >
+              jump back into {recentlyActive.group.name}
+            </Link>
+          </>
+        )}
+        .
       </p>
       <ul
         style={{

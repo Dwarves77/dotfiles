@@ -355,6 +355,22 @@ export function ResearchView({ items }: ResearchViewProps) {
               {t.label}
             </button>
           ))}
+          {/* Single-line user-visible note for the deferred Source coverage tab.
+              Per Decision 2, the tab itself stays hidden until the source
+              registry rollup endpoint lands; this signpost tells users it's
+              coming so they don't assume the surface is missing. */}
+          <span
+            style={{
+              marginLeft: "auto",
+              alignSelf: "center",
+              padding: "0 4px",
+              fontSize: 11,
+              color: "var(--text-2)",
+              fontStyle: "italic",
+            }}
+          >
+            Source coverage matrix arriving with registry rollup, ETA Phase D
+          </span>
         </div>
 
         {tab === "pipeline" && (
