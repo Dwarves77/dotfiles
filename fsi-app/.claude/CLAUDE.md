@@ -47,7 +47,26 @@ Worked example: PR-A1 (PR #31). The writes script ran during the investigate-exe
 
 Implication for smoke testing: any check of the form "visit `/map`, confirm California shows 4 items" should pass _right now_, before any merge of PR #31. If it doesn't, that surfaces a surface-layer consumption bug, not a data layer issue.
 
-## Tech Stack
+## Reuse-before-construction (in force from 2026-05-07)
+
+Before constructing a new component, abstraction, or utility, search the codebase for an existing one that serves the role. The default is reuse-with-adaptation, not net-new construction.
+
+When investigation finds an existing piece that can serve, adapt it. When it doesn't, construct. The investigation phase already required by verification-before-authorization is the natural place to identify reuse opportunities — the question "does this already exist?" should be near the top of every investigation.
+
+Construct only when:
+- No existing component serves the role
+- Existing component is mismatched in scope (forcing it would create coupling that's worse than constructing fresh)
+- Cost of adapting exceeds cost of constructing
+
+Worked examples from Wave 2 (2026-05-06):
+- PR-D dispatch said "create UserFooterDropdown component"; investigation found `UserMenu` already serves that exact role. Refactor reduced to removing duplicate rail entries.
+- PR-D dispatch said "scope F8 jump-to-top FAB"; investigation found `BackToTop` component already existed with full scroll logic. Two-line mount in AppShell.
+- PR-E dispatch said "build sector taxonomy"; investigation found `ALL_SECTORS` (40 sectors with keyword arrays) already in `lib/constants.ts` plus `matchResourceSector()` filter. Chips wired to existing data, not inert UI.
+- PR #37 cleanups dispatch identified W2.F orchestration mapping by searching existing code rather than building a new orchestrator.
+
+Cost saved across Wave 2: ~40 minutes of net-new component design plus the ongoing maintenance cost of duplicates.
+
+This principle pairs with verification-before-authorization. Investigation surfaces what exists. Reuse adapts what's there. Construction is the last resort, not the first instinct.
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
 - Supabase (PostgreSQL) — live; 25 migrations applied; data model documented in `supabase/migrations/`.
 - Zustand stores (resourceStore, navigationStore, settingsStore, exportStore, sourceStore)
