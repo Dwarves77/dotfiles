@@ -23,6 +23,7 @@ import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import { getJurisdiction } from "@/lib/scoring";
 import { JURISDICTIONS } from "@/lib/constants";
+import type { RegionCoverage } from "@/lib/coverage-gaps";
 
 const MapView = dynamic(
   () => import("@/components/map/MapView").then((m) => m.MapView),
@@ -51,6 +52,13 @@ interface MapPageViewProps {
   disputes: Record<string, Dispute>;
   xrefPairs: [string, string][];
   supersessions: Supersession[];
+  /**
+   * Per-region coverage rollup, fetched server-side via getCoverageGaps()
+   * (see lib/coverage-gaps.ts). Optional so the surface degrades to an
+   * empty state if the page hasn't passed it yet — Map's PR-J / other
+   * in-flight surface PRs may have updated the prop signature elsewhere.
+   */
+  coverageGaps?: RegionCoverage[];
 }
 
 type Mode = "all" | "ocean" | "air" | "road" | "facility";
@@ -91,7 +99,22 @@ const TONE_BD: Record<Tone, string> = {
 // ── Component ──
 
 export function MapPageView(props: MapPageViewProps) {
-  const { resources, changelog, disputes, xrefPairs, supersessions } = props;
+  const { resources, changelog, disputes, xrefPairs, supersessions, coverageGaps } = props;
+
+  // Sort the coverage rollup by gap severity (highest gap count first) and
+  // surface only the top 5 regions on the side rail. Memo so the sort
+  // happens once per coverageGaps reference.
+  const coverageGapsRanked = useMemo(() => {
+    const list = Array.isArray(coverageGaps) ? coverageGaps : [];
+    return [...list]
+      .sort((a, b) => {
+        if (b.gap !== a.gap) return b.gap - a.gap;
+        // Tiebreaker: highest partial first, then alphabetical region name.
+        if (b.partial !== a.partial) return b.partial - a.partial;
+        return a.region.name.localeCompare(b.region.name);
+      })
+      .slice(0, 5);
+  }, [coverageGaps]);
 
   const [mode, setMode] = useState<Mode>("all");
   const [styleMode, setStyleMode] = useState<StyleMode>("real");
@@ -540,19 +563,67 @@ export function MapPageView(props: MapPageViewProps) {
               )}
             </SideCard>
 
-            {/* Coverage gaps */}
+            {/* Coverage gaps — data-driven from sources table.
+                Top 5 regions by gap severity (highest gap count first). */}
             <SideCard label="Coverage gaps">
-              <p
-                style={{
-                  fontSize: 12.5,
-                  lineHeight: 1.55,
-                  margin: 0,
-                  color: "var(--text)",
-                }}
-              >
-                <b>Africa</b> — sub-Saharan transport regulators not yet covered.
-                Flagged by 2 design partners. Latam ocean partial.
-              </p>
+              {coverageGapsRanked.length === 0 ? (
+                <p
+                  style={{
+                    fontSize: 12.5,
+                    lineHeight: 1.55,
+                    margin: 0,
+                    color: "var(--text-2)",
+                  }}
+                >
+                  Coverage snapshot unavailable.
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {coverageGapsRanked.map((row, idx) => {
+                    const href = `/map?region-filter=${encodeURIComponent(
+                      row.region.id
+                    )}`;
+                    return (
+                      <a
+                        key={row.region.id}
+                        href={href}
+                        aria-label={`Filter map to ${row.region.name} (${row.gap} gaps of ${row.total})`}
+                        style={{
+                          display: "block",
+                          padding: "10px 0",
+                          borderTop:
+                            idx === 0 ? "0" : "1px solid var(--border-sub)",
+                          textDecoration: "none",
+                          color: "inherit",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            color: "var(--text)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {row.region.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: "var(--text-2)",
+                            marginTop: 3,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {row.covered} of {row.total} priority jurisdictions
+                          covered, {row.gap} {row.gap === 1 ? "gap" : "gaps"}
+                          {row.partial > 0 ? ` · ${row.partial} partial` : ""}
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
             </SideCard>
           </aside>
         </div>
