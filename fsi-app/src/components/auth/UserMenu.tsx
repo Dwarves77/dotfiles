@@ -6,6 +6,7 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { LogOut, User, ChevronDown, Shield, Settings, Sun, Moon } from "lucide-react";
 import { useNavigationStore } from "@/stores/navigationStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 
 function ThemeToggle() {
   const theme = useSettingsStore((s) => s.theme);
@@ -32,24 +33,45 @@ export function UserMenu() {
   const userRole = useWorkspaceStore((s) => s.userRole);
   const [open, setOpen] = useState(false);
 
+  // Wave 2 follow-up: admin-attention dot was orphaned when PR-D removed
+  // the Admin rail entry. Restored here on the dropdown's "Admin Panel"
+  // entry. The hook is a no-op for non-admins (returns total = 0 and
+  // never fires a network request), so we can call it unconditionally.
+  const { total: adminAttentionTotal } = useAdminAttention();
+
   if (!user) return null;
 
   const displayName = user.email?.split("@")[0] || "User";
   const isAdmin = userRole === "owner" || userRole === "admin";
+  const showAdminDot = isAdmin && adminAttentionTotal > 0;
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer"
+        className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer"
         style={{
           color: "var(--color-text-secondary)",
           backgroundColor: open ? "var(--color-surface-raised)" : "transparent",
         }}
+        aria-label={
+          showAdminDot
+            ? `Open user menu (${adminAttentionTotal} admin item${
+                adminAttentionTotal === 1 ? "" : "s"
+              } need attention)`
+            : "Open user menu"
+        }
       >
         <User size={14} />
         <span className="hidden sm:inline">{displayName}</span>
         <ChevronDown size={12} />
+        {showAdminDot && (
+          <span
+            aria-hidden="true"
+            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+            style={{ backgroundColor: "var(--color-error)" }}
+          />
+        )}
       </button>
 
       {open && (
@@ -113,9 +135,29 @@ export function UserMenu() {
                   style={{ color: "var(--color-text-secondary)" }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  aria-label={
+                    showAdminDot
+                      ? `Admin Panel — ${adminAttentionTotal} item${
+                          adminAttentionTotal === 1 ? "" : "s"
+                        } need attention`
+                      : "Admin Panel"
+                  }
                 >
                   <Shield size={14} />
-                  Admin Panel
+                  <span className="flex-1">Admin Panel</span>
+                  {showAdminDot && (
+                    <span
+                      className="inline-flex items-center justify-center text-[10px] font-semibold px-1.5 rounded-full"
+                      style={{
+                        minWidth: 16,
+                        height: 16,
+                        backgroundColor: "var(--color-error)",
+                        color: "#fff",
+                      }}
+                    >
+                      {adminAttentionTotal > 99 ? "99+" : adminAttentionTotal}
+                    </span>
+                  )}
                 </a>
               )}
               <a
