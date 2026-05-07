@@ -628,7 +628,7 @@ function FacilityPanel({ items }: { items: Resource[] }) {
           </p>
         </div>
       ) : (
-        groups.map((g, i) => <FacilityCategoryCard key={g.cat} group={g} defaultOpen={i === 0} />)
+        groups.map((g) => <FacilityCategoryCard key={g.cat} group={g} defaultOpen={false} />)
       )}
     </section>
   );
