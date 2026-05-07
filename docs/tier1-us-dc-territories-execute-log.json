@@ -1,0 +1,320 @@
+{
+  "completed": true,
+  "finalSnapshot": {
+    "US-DC": [
+      {
+        "id": "16c23231-33d2-4b7b-b021-c0d0ca201a52",
+        "name": "DC Municipal Regulations & DC Register (dcregs.dc.gov)",
+        "url": "https://www.dcregs.dc.gov",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+        "name": "Council of the District of Columbia – D.C. Law Library",
+        "url": "https://code.dccouncil.gov",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "5f12cb79-ec17-4725-8514-aa5bcf938f08",
+        "name": "DC Department of Energy & Environment (DOEE)",
+        "url": "https://doee.dc.gov/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "US-PR": [
+      {
+        "id": "3d828dbb-4eda-44fc-84e4-ed92ae7b4220",
+        "name": "Puerto Rico Department of Natural and Environmental Resources (DRNA)",
+        "url": "https://www.drna.pr.gov/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "4ae80922-49e4-429b-97af-5ed4012fb42b",
+        "name": "Legislative Assembly of Puerto Rico (Oficina de Servicios Legislativos)",
+        "url": "https://www.oslpr.org/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "US-VI": [
+      {
+        "id": "3cab0b63-605b-47ef-9e4c-6af94680c10c",
+        "name": "DPNR – Division of Environmental Protection",
+        "url": "https://dpnr.vi.gov/environmental-protection/",
+        "tier": 2,
+        "status": "suspended"
+      },
+      {
+        "id": "ac7d233a-3e85-40ec-a454-47a6c987f4a2",
+        "name": "Legislature of the Virgin Islands",
+        "url": "https://www.legvi.org/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "US-GU": [
+      {
+        "id": "5b770846-a00b-4af2-8325-89f2b73bdb04",
+        "name": "Guam Environmental Protection Agency (GEPA)",
+        "url": "https://epa.guam.gov/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "ef56e193-1110-4015-b199-e275d8e810ce",
+        "name": "Guam Legislature (I Liheslaturan Guåhan)",
+        "url": "https://www.guamlegislature.com/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "US-AS": [
+      {
+        "id": "ac6ff2e4-c03f-48b1-a757-721e7420ff2f",
+        "name": "American Samoa Environmental Protection Agency (AS-EPA)",
+        "url": "https://www.epa.as.gov/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "2f0e6c2d-29a4-47d7-b467-3708bd2a2001",
+        "name": "American Samoa Fono (Legislature)",
+        "url": "https://www.americansamoa.gov/legislature",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "US-MP": [
+      {
+        "id": "5457d581-d325-4742-b07c-3eedaab29cae",
+        "name": "CNMI Bureau of Environmental and Coastal Quality (BECQ)",
+        "url": "https://becq.cnmi.gov/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "45c66e48-2428-4636-b2a3-74ec1e64e737",
+        "name": "Commonwealth of the Northern Mariana Islands Legislature",
+        "url": "https://www.cnmileg.gov.mp/",
+        "tier": 1,
+        "status": "active"
+      }
+    ]
+  },
+  "log": [
+    {
+      "name": "dpnr_sanity_check",
+      "ok": true,
+      "detail": "status=suspended processing_paused=true tier=2 jurisdiction_iso=[\"US-VI\"]",
+      "at": "2026-05-07T16:09:08.516Z"
+    },
+    {
+      "name": "dc_doee_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:08.665Z"
+    },
+    {
+      "name": "dc_doee_insert",
+      "ok": true,
+      "detail": "id=5f12cb79-ec17-4725-8514-aa5bcf938f08 tier=1 name=DC Department of Energy & Environment (DOEE)",
+      "at": "2026-05-07T16:09:08.857Z"
+    },
+    {
+      "name": "dc_doee_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-DC\"] url=https://doee.dc.gov/",
+      "at": "2026-05-07T16:09:08.970Z"
+    },
+    {
+      "name": "pr_drna_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:09.090Z"
+    },
+    {
+      "name": "pr_drna_insert",
+      "ok": true,
+      "detail": "id=3d828dbb-4eda-44fc-84e4-ed92ae7b4220 tier=1 name=Puerto Rico Department of Natural and Environmental Resources (DRNA)",
+      "at": "2026-05-07T16:09:09.231Z"
+    },
+    {
+      "name": "pr_drna_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-PR\"] url=https://www.drna.pr.gov/",
+      "at": "2026-05-07T16:09:09.340Z"
+    },
+    {
+      "name": "pr_legislature_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:09.461Z"
+    },
+    {
+      "name": "pr_legislature_insert",
+      "ok": true,
+      "detail": "id=4ae80922-49e4-429b-97af-5ed4012fb42b tier=1 name=Legislative Assembly of Puerto Rico (Oficina de Servicios Legislativos)",
+      "at": "2026-05-07T16:09:09.602Z"
+    },
+    {
+      "name": "pr_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-PR\"] url=https://www.oslpr.org/",
+      "at": "2026-05-07T16:09:09.714Z"
+    },
+    {
+      "name": "vi_legislature_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:09.870Z"
+    },
+    {
+      "name": "vi_legislature_insert",
+      "ok": true,
+      "detail": "id=ac7d233a-3e85-40ec-a454-47a6c987f4a2 tier=1 name=Legislature of the Virgin Islands",
+      "at": "2026-05-07T16:09:09.993Z"
+    },
+    {
+      "name": "vi_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-VI\"] url=https://www.legvi.org/",
+      "at": "2026-05-07T16:09:10.116Z"
+    },
+    {
+      "name": "gu_gepa_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:10.238Z"
+    },
+    {
+      "name": "gu_gepa_insert",
+      "ok": true,
+      "detail": "id=5b770846-a00b-4af2-8325-89f2b73bdb04 tier=1 name=Guam Environmental Protection Agency (GEPA)",
+      "at": "2026-05-07T16:09:10.380Z"
+    },
+    {
+      "name": "gu_gepa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-GU\"] url=https://epa.guam.gov/",
+      "at": "2026-05-07T16:09:10.492Z"
+    },
+    {
+      "name": "gu_legislature_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:10.605Z"
+    },
+    {
+      "name": "gu_legislature_insert",
+      "ok": true,
+      "detail": "id=ef56e193-1110-4015-b199-e275d8e810ce tier=1 name=Guam Legislature (I Liheslaturan Guåhan)",
+      "at": "2026-05-07T16:09:10.752Z"
+    },
+    {
+      "name": "gu_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-GU\"] url=https://www.guamlegislature.com/",
+      "at": "2026-05-07T16:09:10.866Z"
+    },
+    {
+      "name": "as_epa_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:10.981Z"
+    },
+    {
+      "name": "as_epa_insert",
+      "ok": true,
+      "detail": "id=ac6ff2e4-c03f-48b1-a757-721e7420ff2f tier=1 name=American Samoa Environmental Protection Agency (AS-EPA)",
+      "at": "2026-05-07T16:09:11.263Z"
+    },
+    {
+      "name": "as_epa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-AS\"] url=https://www.epa.as.gov/",
+      "at": "2026-05-07T16:09:11.372Z"
+    },
+    {
+      "name": "as_fono_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:11.486Z"
+    },
+    {
+      "name": "as_fono_insert",
+      "ok": true,
+      "detail": "id=2f0e6c2d-29a4-47d7-b467-3708bd2a2001 tier=1 name=American Samoa Fono (Legislature)",
+      "at": "2026-05-07T16:09:11.610Z"
+    },
+    {
+      "name": "as_fono_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-AS\"] url=https://www.americansamoa.gov/legislature",
+      "at": "2026-05-07T16:09:11.724Z"
+    },
+    {
+      "name": "mp_becq_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:11.838Z"
+    },
+    {
+      "name": "mp_becq_insert",
+      "ok": true,
+      "detail": "id=5457d581-d325-4742-b07c-3eedaab29cae tier=1 name=CNMI Bureau of Environmental and Coastal Quality (BECQ)",
+      "at": "2026-05-07T16:09:11.961Z"
+    },
+    {
+      "name": "mp_becq_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-MP\"] url=https://becq.cnmi.gov/",
+      "at": "2026-05-07T16:09:12.081Z"
+    },
+    {
+      "name": "mp_legislature_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-07T16:09:12.192Z"
+    },
+    {
+      "name": "mp_legislature_insert",
+      "ok": true,
+      "detail": "id=45c66e48-2428-4636-b2a3-74ec1e64e737 tier=1 name=Commonwealth of the Northern Mariana Islands Legislature",
+      "at": "2026-05-07T16:09:12.369Z"
+    },
+    {
+      "name": "mp_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-MP\"] url=https://www.cnmileg.gov.mp/",
+      "at": "2026-05-07T16:09:12.515Z"
+    },
+    {
+      "name": "insert_count_cap",
+      "ok": true,
+      "detail": "inserted 10 rows (expected 10)",
+      "at": "2026-05-07T16:09:12.515Z"
+    },
+    {
+      "name": "dpnr_post_state_check",
+      "ok": true,
+      "detail": "status=suspended processing_paused=true tier=2 jurisdiction_iso=[\"US-VI\"]",
+      "at": "2026-05-07T16:09:12.624Z"
+    }
+  ],
+  "insertedIds": [
+    "5f12cb79-ec17-4725-8514-aa5bcf938f08",
+    "3d828dbb-4eda-44fc-84e4-ed92ae7b4220",
+    "4ae80922-49e4-429b-97af-5ed4012fb42b",
+    "ac7d233a-3e85-40ec-a454-47a6c987f4a2",
+    "5b770846-a00b-4af2-8325-89f2b73bdb04",
+    "ef56e193-1110-4015-b199-e275d8e810ce",
+    "ac6ff2e4-c03f-48b1-a757-721e7420ff2f",
+    "2f0e6c2d-29a4-47d7-b467-3708bd2a2001",
+    "5457d581-d325-4742-b07c-3eedaab29cae",
+    "45c66e48-2428-4636-b2a3-74ec1e64e737"
+  ]
+}
