@@ -1,0 +1,225 @@
+{
+  "generated_at": "2026-05-07T16:07:06.680Z",
+  "candidate_count": 2,
+  "inserted": 2,
+  "halted": false,
+  "errors": 0,
+  "decisions": [
+    {
+      "legacy_id": "eu_clean_trucking_2024_1610",
+      "title": "EU 2024/1610 — CO₂ emission performance standards for new heavy-duty vehicles",
+      "outcome": "inserted",
+      "new_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+      "linked_source_id": "13f9585a-1f19-4b07-a0f7-df65ae0f5712",
+      "brief_status": "stub"
+    },
+    {
+      "legacy_id": "eu_ets_directive_2023_959",
+      "title": "EU 2023/959 — Directive amending the EU Emissions Trading System",
+      "outcome": "inserted",
+      "new_id": "15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050",
+      "linked_source_id": "13f9585a-1f19-4b07-a0f7-df65ae0f5712",
+      "brief_status": "stub"
+    }
+  ],
+  "cross_reference_scan": {
+    "eu_clean_trucking_2024_1610": [
+      {
+        "needle": "2024/1610",
+        "legacy_id": "l4",
+        "title": "CER (European Railways)",
+        "excerpt": "eavy-duty vehicles (Regulation (EU) 2019/1242 as amended by 2024/1610). These are separate regulatory instruments already in force or phasing in. CER's modal shift agend"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "g1",
+        "title": "EU Fit for 55 Package",
+        "excerpt": "re Regulation (EU) 2019/1242 as amended by Regulation (EU) 2024/1610 sets CO₂ emission performance standards for new heavy-duty vehicles. The 2024 amendment strengthene"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "r26",
+        "title": "E-Fuel Alliance",
+        "excerpt": "ds (Regulation (EU) 2019/1242 as amended by Regulation (EU) 2024/1610) and the Alternative Fuels Infrastructure Regulation (AFIR, Regulation (EU) 2023/1804). eFuels for"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "l2",
+        "title": "Euro 7 Standard",
+        "excerpt": "ng in EV fleets to meet CO2 standards under Regulation (EU) 2024/1610 (the amended heavy-duty CO2 standards) will still face Euro 7 non-exhaust requirements. This is a n"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "r6",
+        "title": "TNO Mobility & Logistics",
+        "excerpt": "es (Regulation (EU) 2019/1242 as amended by Regulation (EU) 2024/1610) and the Alternative Fuels Infrastructure Regulation (Regulation (EU) 2023/1804) — were shaped in p"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "eu-hdv-co2-standards-2019-1242",
+        "title": "EU HDV CO2 Emission Standards (Regulation (EU) 2019/1242)",
+        "excerpt": "— as subsequently strengthened by amending Regulation (EU) 2024/1610. The analysis is filtered through the workspace's operational profile: a freight forwarder operatin"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "l1",
+        "title": "EU CO2 Standards for Heavy Trucks",
+        "excerpt": "rs Regulation (EU) 2019/1242, as amended by Regulation (EU) 2024/1610, which sets binding fleet-wide CO₂ emission performance standards for new heavy-duty vehicles sold"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "l5",
+        "title": "European Clean Trucking Alliance",
+        "excerpt": "heavy-duty vehicles, was amended in 2024 by Regulation (EU) 2024/1610, which strengthened the standards materially. The amended regulation sets trajectory targets requir"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "g4",
+        "title": "EUR-Lex",
+        "excerpt": "ds for Heavy-Duty Vehicles — Regulations (EU) 2019/1242 and 2024/1610 **What it does:** Sets CO2 emission performance standards for new heavy-duty vehicles (trucks, bus"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "g5",
+        "title": "European Clean Trucking Alliance",
+        "excerpt": "acy operational weight is already in force: Regulation (EU) 2024/1610, adopted 14 May 2024, amended the original 2019 CO₂ standards for new heavy-duty vehicles by streng"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "r28",
+        "title": "H2 Accelerate",
+        "excerpt": "argets for heavy-duty vehicles. Separately, Regulation (EU) 2024/1610 amended the CO2 standards for new heavy-duty vehicles, tightening fleet-average emission requiremen"
+      },
+      {
+        "needle": "2024/1610",
+        "legacy_id": "l3",
+        "title": "EU AFIR (Alt Fuels Infrastructure)",
+        "excerpt": "s — Regulation (EU) 2019/1242 as amended by Regulation (EU) 2024/1610). AFIR covers: - **Electric vehicle recharging** for light-duty vehicles (cars and vans) and heav"
+      },
+      {
+        "needle": "Clean Trucking",
+        "legacy_id": "l5",
+        "title": "European Clean Trucking Alliance",
+        "excerpt": "# European Clean Trucking Alliance (ECTA) **Market Signal Brief** | April 2026 **Item type:** initiative **Primary source:**"
+      },
+      {
+        "needle": "Clean Trucking",
+        "legacy_id": "g5",
+        "title": "European Clean Trucking Alliance",
+        "excerpt": "# Market Signal Brief: European Clean Trucking Alliance (ECTA) ## Purpose and Scope of This Document This brief covers the European Clean Trucki"
+      },
+      {
+        "needle": "HDV CO2",
+        "legacy_id": "l4",
+        "title": "CER (European Railways)",
+        "excerpt": "arly if road cost escalation materialises from the existing HDV CO2 standards trajectory. - Workspaces that have not mapped rail intermodal options for their European"
+      },
+      {
+        "needle": "HDV CO2",
+        "legacy_id": "r6",
+        "title": "TNO Mobility & Logistics",
+        "excerpt": "charging infrastructure deployment timelines. *(Source: EU HDV CO2 Regulation 2024/1610, EUR-Lex, op. cit.; AFIR 2023/1804, EUR-Lex, op. cit.)* - *Effect on road-mode"
+      },
+      {
+        "needle": "HDV CO2",
+        "legacy_id": "eu-hdv-co2-standards-2019-1242",
+        "title": "EU HDV CO2 Emission Standards (Regulation (EU) 2019/1242)",
+        "excerpt": "emission performance standards for new heavy-duty vehicles (HDV CO2 Regulation) — as subsequently strengthened by amending Regulation (EU) 2024/1610. The analysis is f"
+      },
+      {
+        "needle": "HDV CO2",
+        "legacy_id": "g4",
+        "title": "EUR-Lex",
+        "excerpt": "viation, UCC/ICS2, EU Transport Emissions Accounting, AFIR, HDV CO2 standards). Assign internal ownership. **Gap from current baseline:** Not assessable from available"
+      },
+      {
+        "needle": "HDV CO2",
+        "legacy_id": "r28",
+        "title": "H2 Accelerate",
+        "excerpt": "freight carrier base will be subject to the EU's tightening HDV CO2 standards from 2030, and hydrogen is one pathway carriers may use to comply.\" - \"We can discuss the"
+      },
+      {
+        "needle": "HDV CO₂",
+        "legacy_id": "g1",
+        "title": "EU Fit for 55 Package",
+        "excerpt": "y (ReFuelEU Aviation, FuelEU Maritime, EU ETS maritime, and HDV CO₂ standards as a purchaser of road freight capacity), and faces indirect exposure through CBAM, CSRD"
+      },
+      {
+        "needle": "HDV CO₂",
+        "legacy_id": "r26",
+        "title": "E-Fuel Alliance",
+        "excerpt": "nsport. Road vehicles are addressed separately under the EU HDV CO₂ standards (Regulation (EU) 2019/1242 as amended by Regulation (EU) 2024/1610) and the Alternative F"
+      },
+      {
+        "needle": "HDV CO₂",
+        "legacy_id": "l5",
+        "title": "European Clean Trucking Alliance",
+        "excerpt": "gal instruments: 1. **Regulation (EU) 2024/1610** (amended HDV CO₂ standards): The 45% reduction milestone applies from 2030 for new truck registrations. Carriers pur"
+      },
+      {
+        "needle": "HDV CO₂",
+        "legacy_id": "g5",
+        "title": "European Clean Trucking Alliance",
+        "excerpt": "d-coaches_en | 2 | Regulator implementation page confirming HDV CO₂ standards as in force; provides accessible summary of binding targets for operational briefing purp"
+      },
+      {
+        "needle": "HDV CO₂",
+        "legacy_id": "l3",
+        "title": "EU AFIR (Alt Fuels Infrastructure)",
+        "excerpt": "ogressive pressure to operate zero-emission vehicles as the HDV CO₂ standards tighten through 2030 and 2035. AFIR's infrastructure deadlines (hydrogen HRS every 200 km"
+      }
+    ],
+    "eu_ets_directive_2023_959": [
+      {
+        "needle": "2023/959",
+        "legacy_id": "o2",
+        "title": "FuelEU Maritime",
+        "excerpt": ". EU ETS (Directive 2003/87/EC as amended by Directive (EU) 2023/959) targets emissions *quantity* through allowance surrender. FuelEU Maritime targets fuel *quality* ("
+      },
+      {
+        "needle": "2023/959",
+        "legacy_id": "o3",
+        "title": "EU ETS for Shipping",
+        "excerpt": "(EU ETS) as extended to maritime transport under Directive 2023/959/EU, which amended the foundational ETS Directive 2003/87/EC. It applies to all large ships (≥5,000"
+      },
+      {
+        "needle": "2023/959",
+        "legacy_id": "r11",
+        "title": "The Loadstar: Green Tech",
+        "excerpt": "s extended to cover maritime transport under Directive (EU) 2023/959, amending Directive 2003/87/EC. The extension entered the compliance phase in 2024, with a phased o"
+      },
+      {
+        "needle": "2023/959",
+        "legacy_id": "r15",
+        "title": "Environmental Finance",
+        "excerpt": "sion gap. | | EU ETS for Maritime Shipping — Directive (EU) 2023/959 and amending texts | https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023L0959 | 1 | Bin"
+      }
+    ]
+  },
+  "follow_up_todos": [
+    {
+      "action": "regenerate_via_admin_ui",
+      "reason": "Hand-written stub. Run /api/agent/run on this item via admin UI to write a polished agent brief into full_brief.",
+      "item_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+      "legacy_id": "eu_clean_trucking_2024_1610",
+      "title": "EU 2024/1610 — CO₂ emission performance standards for new heavy-duty vehicles",
+      "source_url": "https://eur-lex.europa.eu/eli/reg/2024/1610/oj/eng"
+    },
+    {
+      "action": "regenerate_via_admin_ui",
+      "reason": "Hand-written stub. Run /api/agent/run on this item via admin UI to write a polished agent brief into full_brief.",
+      "item_id": "15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050",
+      "legacy_id": "eu_ets_directive_2023_959",
+      "title": "EU 2023/959 — Directive amending the EU Emissions Trading System",
+      "source_url": "https://eur-lex.europa.eu/eli/dir/2023/959/oj/eng"
+    }
+  ],
+  "linked_source": {
+    "id": "13f9585a-1f19-4b07-a0f7-df65ae0f5712",
+    "name": "Publications Office of the European Union / EUR-Lex",
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202500040",
+    "tier": 1,
+    "all_eurlex_candidates_count": 16
+  },
+  "elapsed_ms": 3145
+}
