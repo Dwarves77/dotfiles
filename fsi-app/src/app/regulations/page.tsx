@@ -15,10 +15,48 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 import { getResourcesOnly } from "@/lib/data";
+import { APP_DATA_TAG } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
+
+/**
+ * Hotfix-3 Fix #3 (2026-05-07): platform-total count is workspace-agnostic
+ * and identical for every viewer until items are archived. Cached for 60s
+ * with the same APP_DATA_TAG used by getAppData — staged-update approval
+ * and workspace-override mutation routes already call
+ * revalidateTag(APP_DATA_TAG) so this stays consistent without a new tag.
+ * Per audit doc § 4: this was the one server-side wart on /regulations.
+ */
+const cachedPlatformTotal = unstable_cache(
+  async (): Promise<number | null> => {
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ) {
+      return null;
+    }
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      const { count } = await supabase
+        .from("intelligence_items")
+        .select("id", { count: "exact", head: true })
+        .eq("domain", 1)
+        .eq("is_archived", false);
+      return typeof count === "number" ? count : null;
+    } catch {
+      // soft-fail: heading just shows the matched-count without tooltip
+      return null;
+    }
+  },
+  ["regulations-platform-total-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
 
 export default async function RegulationsPage({
   searchParams,
@@ -32,28 +70,9 @@ export default async function RegulationsPage({
   // Resolve the platform-total regulation count for the count tooltip.
   // The audit flagged the gap between "123 REGULATIONS" (sector-filtered)
   // and "182 regulations tracked" (platform total) — we surface both
-  // numbers via a tooltip on the count heading. Falls back gracefully
-  // to null if Supabase isn't reachable.
-  let platformTotal: number | null = null;
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      );
-      const { count } = await supabase
-        .from("intelligence_items")
-        .select("id", { count: "exact", head: true })
-        .eq("domain", 1)
-        .eq("is_archived", false);
-      if (typeof count === "number") platformTotal = count;
-    } catch {
-      // soft-fail: heading just shows the matched-count without tooltip
-    }
-  }
+  // numbers via a tooltip on the count heading. Cached via unstable_cache
+  // (60s TTL, APP_DATA_TAG revalidation) per Hotfix-3 Fix #3.
+  const platformTotal = await cachedPlatformTotal();
 
   console.log(`[perf] /regulations data ${Date.now() - t0}ms`);
 

@@ -1,0 +1,33 @@
+
+> fsi-app@0.1.0 perf:bundles
+> node scripts/measure-bundles.mjs
+
+
+Per-route client bundle inventory
+
+Route                            |   Entry (First Load) | Route-specific entry |     All client (entry+async)
+---------------------------------|----------------------|----------------------|------------------------------
+/                                 |             312.5 kB |              33.4 kB |                     346.2 kB
+/admin                            |             413.5 kB |             134.4 kB |                     447.2 kB
+/community                        |             313.3 kB |              34.3 kB |                     347.0 kB
+/community/browse                 |             320.5 kB |              41.4 kB |                     354.2 kB
+/login                            |             282.5 kB |               3.4 kB |                     316.2 kB
+/map                              |             295.0 kB |              15.9 kB |                     328.7 kB
+/market                           |             311.0 kB |              31.9 kB |                     344.7 kB
+/onboarding                       |             305.6 kB |              26.5 kB |                     339.2 kB
+/operations                       |             301.3 kB |              22.2 kB |                     334.9 kB
+/profile                          |             308.3 kB |              29.2 kB |                     342.0 kB
+/regulations                      |             323.8 kB |              44.7 kB |                     357.4 kB
+/regulations/[slug]               |             469.3 kB |             190.2 kB |                     502.9 kB
+/research                         |             301.3 kB |              22.2 kB |                     334.9 kB
+/settings                         |             310.3 kB |              31.2 kB |                     344.0 kB
+
+Shared layout chunks: 3 files, 279.1 kB (counted once in Entry totals above)
+
+Reading guide:
+  - Entry is what users pay before hydration. This is the metric to drive down.
+  - Route-specific entry is the portion unique to this route (Entry minus shared).
+  - All client includes async chunks (next/dynamic, lazy()). For the wrap pattern in
+    server components with ssr:true, async chunks are typically still in Entry —
+    deferral requires ssr:false in a client component shim.
+
