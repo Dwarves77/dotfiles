@@ -1,15 +1,58 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import type { Resource, Supersession } from "@/types/resource";
 import { DashboardSettings } from "@/components/settings/DashboardSettings";
-import { DataSummary } from "@/components/settings/DataSummary";
-import { SupersessionHistory } from "@/components/settings/SupersessionHistory";
-import { ArchiveViewer } from "@/components/settings/ArchiveViewer";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
 import { BriefingScheduleSection } from "@/components/settings/BriefingScheduleSection";
-import { SavedSearchesSection } from "@/components/settings/SavedSearchesSection";
-import { HelpSection } from "@/components/settings/HelpSection";
+
+// Hotfix-3 Fix #1 (2026-05-07): tab-deferred panels for /settings.
+// SettingsPage is a `"use client"` shell — `dynamic({ ssr: false })`
+// from inside a client component DOES move chunks out of the entry per
+// the App Router chunking model. This is the inverse of the failed
+// 2026-05-06 wave (which used `ssr: true` from server pages and didn't
+// defer). General tab components (DashboardSettings, NotificationPreferences,
+// BriefingScheduleSection) stay statically imported because General is
+// the default tab on first paint. Non-default tab bodies are deferred.
+//
+// Each deferred panel ships as a separate async chunk loaded only when
+// the user clicks the corresponding tab.
+const DataSummary = dynamic(
+  () =>
+    import("@/components/settings/DataSummary").then((m) => ({
+      default: m.DataSummary,
+    })),
+  { ssr: false }
+);
+const SupersessionHistory = dynamic(
+  () =>
+    import("@/components/settings/SupersessionHistory").then((m) => ({
+      default: m.SupersessionHistory,
+    })),
+  { ssr: false }
+);
+const ArchiveViewer = dynamic(
+  () =>
+    import("@/components/settings/ArchiveViewer").then((m) => ({
+      default: m.ArchiveViewer,
+    })),
+  { ssr: false }
+);
+const SavedSearchesSection = dynamic(
+  () =>
+    import("@/components/settings/SavedSearchesSection").then((m) => ({
+      default: m.SavedSearchesSection,
+    })),
+  { ssr: false }
+);
+const HelpSection = dynamic(
+  () =>
+    import("@/components/settings/HelpSection").then((m) => ({
+      default: m.HelpSection,
+    })),
+  { ssr: false }
+);
 
 // ───────────────────────────────────────────────────────────────────────────
 // SettingsPage (Phase C, PR-D IA refactor 2026-05-06)
