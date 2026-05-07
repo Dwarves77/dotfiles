@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { downloadFile } from "@/lib/export/download";
 import { toBriefingEmail } from "@/lib/export/htmlReport";
 import { toBriefingSlack } from "@/lib/export/slackFormat";
 import { urgencyScore, matchResourceSector, buildSectorContext } from "@/lib/scoring";
-import { useNavigationStore } from "@/stores/navigationStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { ALL_SECTORS } from "@/lib/constants";
 import type { Resource, ChangeLogEntry, Dispute } from "@/types/resource";
@@ -27,9 +27,8 @@ export function WeeklyBriefing({
   auditDate,
   onToast,
 }: WeeklyBriefingProps) {
-  const { pushFocusView } = useNavigationStore();
   const { sectorProfile, sectorWeights } = useWorkspaceStore();
-  const [expanded, setExpanded] = useState(false);
+  const [weeklyBriefingExpanded, setWeeklyBriefingExpanded] = useState(false);
   const date = new Date().toISOString().slice(0, 10);
 
   const sectorCtx = buildSectorContext({ sectorProfile, sectorWeights });
@@ -73,7 +72,7 @@ export function WeeklyBriefing({
     <div className="cl-card">
       {/* Header */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setWeeklyBriefingExpanded(!weeklyBriefingExpanded)}
         className="w-full flex items-center justify-between px-5 py-4 cursor-pointer"
       >
         <div className="text-left">
@@ -89,14 +88,14 @@ export function WeeklyBriefing({
           strokeWidth={2}
           className={cn(
             "text-text-secondary transition-transform duration-300",
-            expanded && "rotate-180"
+            weeklyBriefingExpanded && "rotate-180"
           )}
           style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
         />
       </button>
 
       {/* Expanded Content */}
-      {expanded && (
+      {weeklyBriefingExpanded && (
         <div className="px-4 pb-4 space-y-4">
           {/* Executive Summary */}
           <div>
@@ -115,10 +114,11 @@ export function WeeklyBriefing({
               Top Priority This Week
             </span>
             {briefing.top5.map((r) => (
-              <button
+              <Link
                 key={r.id}
-                onClick={(e) => { e.stopPropagation(); pushFocusView({ title: r.title, resourceIds: [r.id] }); }}
-                className="w-full text-left mb-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-[var(--color-surface-raised)]"
+                href={`/regulations/${r.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="block w-full text-left mb-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-[var(--color-surface-raised)] no-underline"
                 style={{ borderLeft: `3px solid ${r.priority === "CRITICAL" ? "#DC2626" : r.priority === "HIGH" ? "#D97706" : "#2563EB"}` }}
               >
                 <div className="flex items-center justify-between">
@@ -131,7 +131,7 @@ export function WeeklyBriefing({
                 {r.reasoning && (
                   <p className="text-[11px] mt-0.5 italic" style={{ color: "var(--color-primary)" }}>{r.reasoning}</p>
                 )}
-              </button>
+              </Link>
             ))}
           </div>
 
@@ -142,15 +142,19 @@ export function WeeklyBriefing({
                 Disputed Items
               </span>
               {briefing.disputedEntries.map((x) => (
-                <button
+                <div
                   key={x.id}
-                  onClick={(e) => { e.stopPropagation(); pushFocusView({ title: x.r!.title, resourceIds: [x.id] }); }}
-                  className="w-full text-left border-l-2 border-[#FF9500] pl-2 mb-2 cursor-pointer hover:bg-[var(--color-surface-raised)] rounded-r-md transition-colors p-1"
+                  className="border-l-2 border-[#FF9500] pl-2 mb-2 hover:bg-[var(--color-surface-raised)] rounded-r-md transition-colors p-1"
                 >
-                  <p className="text-xs font-medium text-text-primary">{x.r!.title}</p>
-                  <p className="text-xs text-text-secondary">
-                    {x.note}
-                  </p>
+                  <Link
+                    href={`/regulations/${x.id}`}
+                    className="block no-underline"
+                  >
+                    <p className="text-xs font-medium text-text-primary">{x.r!.title}</p>
+                    <p className="text-xs text-text-secondary">
+                      {x.note}
+                    </p>
+                  </Link>
                   {x.sources?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {(x.sources as any[]).map((s: any, i: number) => {
@@ -162,7 +166,6 @@ export function WeeklyBriefing({
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
                             className="text-xs px-1.5 py-0.5 rounded-md border border-[#FF9500]/20 text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors"
                           >
                             {name}
@@ -178,7 +181,7 @@ export function WeeklyBriefing({
                       })}
                     </div>
                   )}
-                </button>
+                </div>
               ))}
             </div>
           )}
