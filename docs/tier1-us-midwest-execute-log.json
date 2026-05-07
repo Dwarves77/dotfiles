@@ -1,0 +1,630 @@
+{
+  "completed": true,
+  "insertCount": 24,
+  "estimate": 24,
+  "halt_insert_limit": 28,
+  "results": {
+    "ok_odeq": "c81301f7-b043-474c-8eac-d02ff3b90542",
+    "ok_legislature": "ef2643ee-a501-4d4a-ac0e-899e884cf8fd",
+    "ks_kdhe": "98831f47-0e27-4b1c-8f32-4023aede92ef",
+    "ks_legislature": "0ff45df5-eb3b-4bed-b1ff-9dffa44e7725",
+    "ne_ndee": "9af7f2c3-1538-44d9-bf74-988868410c6a",
+    "ne_legislature": "a927b18c-f5f4-4fa3-a5cf-6982ed7b6e36",
+    "sd_denr": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+    "sd_legislature": "1138f3cd-dbe0-4ed0-97c3-80d76b797054",
+    "mn_mpca": "f9f787e4-bcfa-4026-8719-abec5de462a4",
+    "mn_legislature": "c5177c00-fc69-4823-a9bb-c15c03fc6935",
+    "ia_dnr": "75281c05-63e9-4a29-9baf-65c198f99249",
+    "ia_legislature": "8de70bd9-d0ac-4d11-8c54-ccf006184f34",
+    "mo_legislature": "014cd242-606b-4200-a699-b2d8180c487f",
+    "ar_adeq": "f6a642dd-25c6-4a67-ab6d-86df394a2ee9",
+    "ar_legislature": "6033c43e-82ff-4acf-b38d-5810178ebc7f",
+    "la_legislature": "61321847-144d-4560-99e6-057f433f7aef",
+    "ms_legislature": "0455a9ec-27df-4953-ac85-75185e133a2e",
+    "wi_legislature": "e6342fcd-872c-4fd7-9f3c-79c107414f58",
+    "il_iepa": "645a64c5-10b6-40f6-867c-acd30f22bfa0",
+    "il_legislature": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+    "in_idem": "147ee8c6-ac78-4941-ab6d-6e65e829541b",
+    "in_legislature": "196fb848-7740-4d1b-9add-20a8d355b53c",
+    "mi_egle": "559687e8-45cb-4ed6-a78e-ed58ca63d3be",
+    "oh_epa": "8c05c435-6fc6-4b4c-9fb0-cc845ed78501",
+    "oh_legislature": "593a9a84-46ad-440a-a1f7-746a155e8736"
+  },
+  "per_state_post_state": {
+    "US-OK": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "Oklahoma Department of Environmental Quality (ODEQ)",
+          "url": "https://www.deq.ok.gov/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        },
+        {
+          "name": "Oklahoma Legislature",
+          "url": "https://www.oklegislature.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-KS": {
+      "count": 4,
+      "rows": [
+        {
+          "name": "Kansas Legislature – Kansas Statutes Annotated (KSA) Revisor of Statutes",
+          "url": "https://www.ksrevisor.gov/",
+          "types": [
+            "GUIDE"
+          ]
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "url": "https://sos.ks.gov/publications/kansas-register.html",
+          "types": [
+            "GUIDE"
+          ]
+        },
+        {
+          "name": "Kansas Legislature",
+          "url": "https://www.kslegislature.org/",
+          "types": [
+            "legislation"
+          ]
+        },
+        {
+          "name": "Kansas Department of Health and Environment (KDHE)",
+          "url": "https://www.kdheks.gov/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        }
+      ]
+    },
+    "US-NE": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "Nebraska Department of Environment and Energy (NDEE)",
+          "url": "https://dee.ne.gov/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        },
+        {
+          "name": "Nebraska Legislature",
+          "url": "https://nebraskalegislature.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-ND": {
+      "count": 1,
+      "rows": [
+        {
+          "name": "North Dakota Legislative Assembly – North Dakota Century Code & Administrative Code",
+          "url": "https://www.legis.nd.gov/",
+          "types": [
+            "GUIDE"
+          ]
+        }
+      ]
+    },
+    "US-SD": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+          "url": "https://denr.sd.gov/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        },
+        {
+          "name": "South Dakota Legislature",
+          "url": "https://sdlegislature.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-MN": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "Minnesota Pollution Control Agency (MPCA)",
+          "url": "https://www.pca.state.mn.us/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        },
+        {
+          "name": "Minnesota Legislature",
+          "url": "https://www.leg.mn.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-IA": {
+      "count": 1,
+      "rows": [
+        {
+          "name": "Iowa Legislature",
+          "url": "https://www.legis.iowa.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-MO": {
+      "count": 1,
+      "rows": [
+        {
+          "name": "Missouri General Assembly",
+          "url": "https://www.senate.mo.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-AR": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "Arkansas General Assembly",
+          "url": "https://www.arkleg.state.ar.us/",
+          "types": [
+            "legislation"
+          ]
+        },
+        {
+          "name": "Arkansas Department of Environmental Quality (ADEQ / DEQ)",
+          "url": "https://www.adeq.state.ar.us/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        }
+      ]
+    },
+    "US-LA": {
+      "count": 1,
+      "rows": [
+        {
+          "name": "Louisiana State Legislature",
+          "url": "https://www.legis.la.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-MS": {
+      "count": 1,
+      "rows": [
+        {
+          "name": "Mississippi Legislature",
+          "url": "https://www.legislature.ms.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-WI": {
+      "count": 1,
+      "rows": [
+        {
+          "name": "Wisconsin State Legislature",
+          "url": "https://docs.legis.wisconsin.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-IL": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "Illinois Environmental Protection Agency (IEPA)",
+          "url": "https://epa.illinois.gov/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        },
+        {
+          "name": "Illinois General Assembly",
+          "url": "https://www.ilga.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    },
+    "US-IN": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "Indiana General Assembly",
+          "url": "https://iga.in.gov/",
+          "types": [
+            "legislation"
+          ]
+        },
+        {
+          "name": "Indiana Department of Environmental Management (IDEM)",
+          "url": "https://www.in.gov/idem/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        }
+      ]
+    },
+    "US-MI": {
+      "count": 2,
+      "rows": [
+        {
+          "name": "Michigan Legislature – Michigan Compiled Laws (MCL) & Administrative Code",
+          "url": "https://www.legislature.mi.gov",
+          "types": [
+            "GUIDE"
+          ]
+        },
+        {
+          "name": "Michigan Department of Environment, Great Lakes, and Energy (EGLE)",
+          "url": "https://www.michigan.gov/egle",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        }
+      ]
+    },
+    "US-OH": {
+      "count": 3,
+      "rows": [
+        {
+          "name": "Ohio Laws – Ohio Administrative Code & Ohio Revised Code (LSC)",
+          "url": "https://codes.ohio.gov",
+          "types": [
+            "GUIDE"
+          ]
+        },
+        {
+          "name": "Ohio Environmental Protection Agency (Ohio EPA)",
+          "url": "https://epa.ohio.gov/",
+          "types": [
+            "regulation",
+            "guidance"
+          ]
+        },
+        {
+          "name": "Ohio General Assembly",
+          "url": "https://www.legislature.ohio.gov/",
+          "types": [
+            "legislation"
+          ]
+        }
+      ]
+    }
+  },
+  "log": [
+    {
+      "name": "plan_size_check",
+      "ok": true,
+      "detail": "plan.length=25 HALT_INSERT_LIMIT=28 ESTIMATE=24",
+      "at": "2026-05-07T16:09:34.869Z"
+    },
+    {
+      "name": "ok_odeq_insert",
+      "ok": true,
+      "detail": "id=c81301f7-b043-474c-8eac-d02ff3b90542 tier=1 name=Oklahoma Department of Environmental Quality (ODEQ)",
+      "at": "2026-05-07T16:09:35.360Z"
+    },
+    {
+      "name": "ok_odeq_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-OK\"]",
+      "at": "2026-05-07T16:09:35.461Z"
+    },
+    {
+      "name": "ok_legislature_insert",
+      "ok": true,
+      "detail": "id=ef2643ee-a501-4d4a-ac0e-899e884cf8fd tier=1 name=Oklahoma Legislature",
+      "at": "2026-05-07T16:09:35.681Z"
+    },
+    {
+      "name": "ok_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-OK\"]",
+      "at": "2026-05-07T16:09:35.831Z"
+    },
+    {
+      "name": "ks_kdhe_insert",
+      "ok": true,
+      "detail": "id=98831f47-0e27-4b1c-8f32-4023aede92ef tier=1 name=Kansas Department of Health and Environment (KDHE)",
+      "at": "2026-05-07T16:09:36.065Z"
+    },
+    {
+      "name": "ks_kdhe_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-KS\"]",
+      "at": "2026-05-07T16:09:36.174Z"
+    },
+    {
+      "name": "ks_legislature_insert",
+      "ok": true,
+      "detail": "id=0ff45df5-eb3b-4bed-b1ff-9dffa44e7725 tier=1 name=Kansas Legislature",
+      "at": "2026-05-07T16:09:36.394Z"
+    },
+    {
+      "name": "ks_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-KS\"]",
+      "at": "2026-05-07T16:09:36.495Z"
+    },
+    {
+      "name": "ne_ndee_insert",
+      "ok": true,
+      "detail": "id=9af7f2c3-1538-44d9-bf74-988868410c6a tier=1 name=Nebraska Department of Environment and Energy (NDEE)",
+      "at": "2026-05-07T16:09:36.727Z"
+    },
+    {
+      "name": "ne_ndee_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-NE\"]",
+      "at": "2026-05-07T16:09:36.831Z"
+    },
+    {
+      "name": "ne_legislature_insert",
+      "ok": true,
+      "detail": "id=a927b18c-f5f4-4fa3-a5cf-6982ed7b6e36 tier=1 name=Nebraska Legislature",
+      "at": "2026-05-07T16:09:37.043Z"
+    },
+    {
+      "name": "ne_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-NE\"]",
+      "at": "2026-05-07T16:09:37.146Z"
+    },
+    {
+      "name": "sd_denr_insert",
+      "ok": true,
+      "detail": "id=a15d423a-00b9-4e0f-b2d7-00c4a95c98d1 tier=1 name=South Dakota Department of Agriculture and Natural Resources (DANR)",
+      "at": "2026-05-07T16:09:37.364Z"
+    },
+    {
+      "name": "sd_denr_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-SD\"]",
+      "at": "2026-05-07T16:09:37.467Z"
+    },
+    {
+      "name": "sd_legislature_insert",
+      "ok": true,
+      "detail": "id=1138f3cd-dbe0-4ed0-97c3-80d76b797054 tier=1 name=South Dakota Legislature",
+      "at": "2026-05-07T16:09:37.774Z"
+    },
+    {
+      "name": "sd_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-SD\"]",
+      "at": "2026-05-07T16:09:37.871Z"
+    },
+    {
+      "name": "mn_mpca_insert",
+      "ok": true,
+      "detail": "id=f9f787e4-bcfa-4026-8719-abec5de462a4 tier=1 name=Minnesota Pollution Control Agency (MPCA)",
+      "at": "2026-05-07T16:09:38.110Z"
+    },
+    {
+      "name": "mn_mpca_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-MN\"]",
+      "at": "2026-05-07T16:09:38.225Z"
+    },
+    {
+      "name": "mn_legislature_insert",
+      "ok": true,
+      "detail": "id=c5177c00-fc69-4823-a9bb-c15c03fc6935 tier=1 name=Minnesota Legislature",
+      "at": "2026-05-07T16:09:38.447Z"
+    },
+    {
+      "name": "mn_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-MN\"]",
+      "at": "2026-05-07T16:09:38.549Z"
+    },
+    {
+      "name": "ia_dnr_already_exists",
+      "ok": true,
+      "detail": "id=75281c05-63e9-4a29-9baf-65c198f99249 tier=2 status=active iso=[\"US-IA\"]",
+      "at": "2026-05-07T16:09:38.660Z"
+    },
+    {
+      "name": "ia_legislature_insert",
+      "ok": true,
+      "detail": "id=8de70bd9-d0ac-4d11-8c54-ccf006184f34 tier=1 name=Iowa Legislature",
+      "at": "2026-05-07T16:09:38.880Z"
+    },
+    {
+      "name": "ia_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-IA\"]",
+      "at": "2026-05-07T16:09:38.981Z"
+    },
+    {
+      "name": "mo_legislature_insert",
+      "ok": true,
+      "detail": "id=014cd242-606b-4200-a699-b2d8180c487f tier=1 name=Missouri General Assembly",
+      "at": "2026-05-07T16:09:39.201Z"
+    },
+    {
+      "name": "mo_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-MO\"]",
+      "at": "2026-05-07T16:09:39.302Z"
+    },
+    {
+      "name": "ar_adeq_insert",
+      "ok": true,
+      "detail": "id=f6a642dd-25c6-4a67-ab6d-86df394a2ee9 tier=1 name=Arkansas Department of Environmental Quality (ADEQ / DEQ)",
+      "at": "2026-05-07T16:09:39.534Z"
+    },
+    {
+      "name": "ar_adeq_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-AR\"]",
+      "at": "2026-05-07T16:09:39.638Z"
+    },
+    {
+      "name": "ar_legislature_insert",
+      "ok": true,
+      "detail": "id=6033c43e-82ff-4acf-b38d-5810178ebc7f tier=1 name=Arkansas General Assembly",
+      "at": "2026-05-07T16:09:39.850Z"
+    },
+    {
+      "name": "ar_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-AR\"]",
+      "at": "2026-05-07T16:09:39.975Z"
+    },
+    {
+      "name": "la_legislature_insert",
+      "ok": true,
+      "detail": "id=61321847-144d-4560-99e6-057f433f7aef tier=1 name=Louisiana State Legislature",
+      "at": "2026-05-07T16:09:40.200Z"
+    },
+    {
+      "name": "la_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-LA\"]",
+      "at": "2026-05-07T16:09:40.338Z"
+    },
+    {
+      "name": "ms_legislature_insert",
+      "ok": true,
+      "detail": "id=0455a9ec-27df-4953-ac85-75185e133a2e tier=1 name=Mississippi Legislature",
+      "at": "2026-05-07T16:09:40.560Z"
+    },
+    {
+      "name": "ms_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-MS\"]",
+      "at": "2026-05-07T16:09:40.688Z"
+    },
+    {
+      "name": "wi_legislature_insert",
+      "ok": true,
+      "detail": "id=e6342fcd-872c-4fd7-9f3c-79c107414f58 tier=1 name=Wisconsin State Legislature",
+      "at": "2026-05-07T16:09:40.912Z"
+    },
+    {
+      "name": "wi_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-WI\"]",
+      "at": "2026-05-07T16:09:41.012Z"
+    },
+    {
+      "name": "il_iepa_insert",
+      "ok": true,
+      "detail": "id=645a64c5-10b6-40f6-867c-acd30f22bfa0 tier=1 name=Illinois Environmental Protection Agency (IEPA)",
+      "at": "2026-05-07T16:09:41.248Z"
+    },
+    {
+      "name": "il_iepa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-IL\"]",
+      "at": "2026-05-07T16:09:41.345Z"
+    },
+    {
+      "name": "il_legislature_insert",
+      "ok": true,
+      "detail": "id=253eb63a-a009-46ad-86d0-86eaa6f47977 tier=1 name=Illinois General Assembly",
+      "at": "2026-05-07T16:09:41.563Z"
+    },
+    {
+      "name": "il_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-IL\"]",
+      "at": "2026-05-07T16:09:41.663Z"
+    },
+    {
+      "name": "in_idem_insert",
+      "ok": true,
+      "detail": "id=147ee8c6-ac78-4941-ab6d-6e65e829541b tier=1 name=Indiana Department of Environmental Management (IDEM)",
+      "at": "2026-05-07T16:09:41.934Z"
+    },
+    {
+      "name": "in_idem_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-IN\"]",
+      "at": "2026-05-07T16:09:42.044Z"
+    },
+    {
+      "name": "in_legislature_insert",
+      "ok": true,
+      "detail": "id=196fb848-7740-4d1b-9add-20a8d355b53c tier=1 name=Indiana General Assembly",
+      "at": "2026-05-07T16:09:42.285Z"
+    },
+    {
+      "name": "in_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-IN\"]",
+      "at": "2026-05-07T16:09:42.387Z"
+    },
+    {
+      "name": "mi_egle_insert",
+      "ok": true,
+      "detail": "id=559687e8-45cb-4ed6-a78e-ed58ca63d3be tier=1 name=Michigan Department of Environment, Great Lakes, and Energy (EGLE)",
+      "at": "2026-05-07T16:09:42.607Z"
+    },
+    {
+      "name": "mi_egle_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-MI\"]",
+      "at": "2026-05-07T16:09:42.713Z"
+    },
+    {
+      "name": "oh_epa_insert",
+      "ok": true,
+      "detail": "id=8c05c435-6fc6-4b4c-9fb0-cc845ed78501 tier=1 name=Ohio Environmental Protection Agency (Ohio EPA)",
+      "at": "2026-05-07T16:09:42.961Z"
+    },
+    {
+      "name": "oh_epa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-OH\"]",
+      "at": "2026-05-07T16:09:43.061Z"
+    },
+    {
+      "name": "oh_legislature_insert",
+      "ok": true,
+      "detail": "id=593a9a84-46ad-440a-a1f7-746a155e8736 tier=1 name=Ohio General Assembly",
+      "at": "2026-05-07T16:09:43.280Z"
+    },
+    {
+      "name": "oh_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-OH\"]",
+      "at": "2026-05-07T16:09:43.379Z"
+    }
+  ]
+}
