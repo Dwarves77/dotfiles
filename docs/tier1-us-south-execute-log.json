@@ -1,0 +1,108 @@
+{
+  "completed": true,
+  "total_inserts": 7,
+  "log": [
+    {
+      "name": "al_adem_insert",
+      "ok": true,
+      "detail": "id=adc88972-f034-4e4b-9e23-bb6e89571730 tier=1 name=Alabama Department of Environmental Management (ADEM)",
+      "at": "2026-05-07T16:05:47.361Z"
+    },
+    {
+      "name": "al_adem_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-AL\"] name=Alabama Department of Environmental Management (ADEM)",
+      "at": "2026-05-07T16:05:47.472Z"
+    },
+    {
+      "name": "al_leg_insert",
+      "ok": true,
+      "detail": "id=c8b87abd-146d-4e79-8c91-d14ad8943681 tier=1 name=Alabama State Legislature",
+      "at": "2026-05-07T16:05:47.683Z"
+    },
+    {
+      "name": "al_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-AL\"] name=Alabama State Legislature",
+      "at": "2026-05-07T16:05:47.792Z"
+    },
+    {
+      "name": "tn_leg_insert",
+      "ok": true,
+      "detail": "id=f6843bed-0120-477c-9cdf-4df8df6048be tier=1 name=Tennessee General Assembly",
+      "at": "2026-05-07T16:05:48.007Z"
+    },
+    {
+      "name": "tn_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-TN\"] name=Tennessee General Assembly",
+      "at": "2026-05-07T16:05:48.133Z"
+    },
+    {
+      "name": "ky_leg_insert",
+      "ok": true,
+      "detail": "id=987ad67e-288c-4cf0-afdd-4fab324aa4ab tier=1 name=Kentucky General Assembly (Legislative Research Commission)",
+      "at": "2026-05-07T16:05:48.361Z"
+    },
+    {
+      "name": "ky_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-KY\"] name=Kentucky General Assembly (Legislative Research Commission)",
+      "at": "2026-05-07T16:05:48.487Z"
+    },
+    {
+      "name": "sc_dhec_insert",
+      "ok": true,
+      "detail": "id=47281d66-21df-4e22-a209-d033a082e8cb tier=1 name=South Carolina Department of Health and Environmental Control (DHEC)",
+      "at": "2026-05-07T16:05:48.725Z"
+    },
+    {
+      "name": "sc_dhec_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-SC\"] name=South Carolina Department of Health and Environmental Control (DHEC)",
+      "at": "2026-05-07T16:05:48.847Z"
+    },
+    {
+      "name": "sc_leg_insert",
+      "ok": true,
+      "detail": "id=58ffd350-38b1-429a-9f82-aaa96cc7b193 tier=1 name=South Carolina General Assembly (SC Statehouse)",
+      "at": "2026-05-07T16:05:49.071Z"
+    },
+    {
+      "name": "sc_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-SC\"] name=South Carolina General Assembly (SC Statehouse)",
+      "at": "2026-05-07T16:05:49.183Z"
+    },
+    {
+      "name": "va_leg_insert",
+      "ok": true,
+      "detail": "id=83bb800b-13fa-4096-99af-5c6bfaa57b61 tier=1 name=Virginia Legislative Information System (LIS)",
+      "at": "2026-05-07T16:05:49.431Z"
+    },
+    {
+      "name": "va_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-VA\"] name=Virginia Legislative Information System (LIS)",
+      "at": "2026-05-07T16:05:49.534Z"
+    },
+    {
+      "name": "tn_nashville_pre_read",
+      "ok": true,
+      "detail": "pre jurisdiction_iso=[\"US\"] title=Nashville Building Energy Programs",
+      "at": "2026-05-07T16:05:49.648Z"
+    },
+    {
+      "name": "tn_nashville_retag_update",
+      "ok": true,
+      "detail": "set ['US-TN']",
+      "at": "2026-05-07T16:05:49.763Z"
+    },
+    {
+      "name": "tn_nashville_retag_verify",
+      "ok": true,
+      "detail": "pre=[\"US\"] post=[\"US-TN\"]",
+      "at": "2026-05-07T16:05:49.917Z"
+    }
+  ]
+}
