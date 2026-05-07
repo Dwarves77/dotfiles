@@ -1,0 +1,107 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "refueleu_skip",
+      "ok": true,
+      "detail": "a3 left untouched per Jason's call (intentional no-op)",
+      "at": "2026-05-07T16:52:42.565Z"
+    },
+    {
+      "name": "afir_main_pre_state",
+      "ok": true,
+      "detail": "main id=ff95b385-6cb2-453a-94e6-b9fc84d7f851 full_brief=0 chars source_id=NULL priority=HIGH",
+      "at": "2026-05-07T16:52:43.311Z"
+    },
+    {
+      "name": "afir_l3_pre_state",
+      "ok": true,
+      "detail": "l3 id=68fba573-aeaf-4a7b-adfa-d4932f926757 full_brief=25201 chars source_id=5a81a775-3ea6-4e5b-a468-7b5cf7dbd215",
+      "at": "2026-05-07T16:52:43.311Z"
+    },
+    {
+      "name": "afir_drift_guards_ok",
+      "ok": true,
+      "detail": "main empty + l3 full: pre-conditions match investigation",
+      "at": "2026-05-07T16:52:43.311Z"
+    },
+    {
+      "name": "afir_xref_pre_state",
+      "ok": true,
+      "detail": "1 outbound xrefs from l3 found: [{\"id\":\"a1896fc4-a834-49cb-bacb-c5c3579728a9\",\"source_item_id\":\"68fba573-aeaf-4a7b-adfa-d4932f926757\",\"target_item_id\":\"bf54dc59-ad47-4e2e-9984-cc4cd0206435\",\"relationship\":\"related\"}]",
+      "at": "2026-05-07T16:52:43.442Z"
+    },
+    {
+      "name": "afir_xref_target_validate",
+      "ok": true,
+      "detail": "1/1 target rows resolved: [{\"id\":\"bf54dc59-ad47-4e2e-9984-cc4cd0206435\",\"legacy_id\":\"g1\"}]",
+      "at": "2026-05-07T16:52:43.722Z"
+    },
+    {
+      "name": "afir_promote_update",
+      "ok": true,
+      "detail": "update issued",
+      "at": "2026-05-07T16:52:43.897Z"
+    },
+    {
+      "name": "afir_promote",
+      "ok": true,
+      "detail": "main full_brief=25201 chars, source_id=5a81a775-3ea6-4e5b-a468-7b5cf7dbd215 (l3 had 5a81a775-3ea6-4e5b-a468-7b5cf7dbd215), priority=HIGH, item_type=regulation",
+      "at": "2026-05-07T16:52:44.216Z"
+    },
+    {
+      "name": "afir_xref_repoint",
+      "ok": true,
+      "detail": "1 xref(s) repointed l3 → main (ff95b385-6cb2-453a-94e6-b9fc84d7f851)",
+      "at": "2026-05-07T16:52:44.350Z"
+    },
+    {
+      "name": "afir_xref_targets_still_valid",
+      "ok": true,
+      "detail": "1/1 xref target rows still resolve",
+      "at": "2026-05-07T16:52:44.467Z"
+    },
+    {
+      "name": "afir_l3_delete_issued",
+      "ok": true,
+      "detail": "delete issued",
+      "at": "2026-05-07T16:52:44.620Z"
+    },
+    {
+      "name": "afir_l3_delete",
+      "ok": true,
+      "detail": "row gone",
+      "at": "2026-05-07T16:52:44.868Z"
+    },
+    {
+      "name": "cbam_pre_state",
+      "ok": true,
+      "detail": "t1 id=51b2c91e-776f-42f5-a799-a957312d4e56 priority=CRITICAL; dup id=5ea46db2-00e5-4eda-90d1-11f7e97ec4db is_archived=false item_type=market_signal",
+      "at": "2026-05-07T16:52:45.324Z"
+    },
+    {
+      "name": "cbam_t1_xref_count_pre",
+      "ok": true,
+      "detail": "5 xrefs touching t1 (expected 5)",
+      "at": "2026-05-07T16:52:45.437Z"
+    },
+    {
+      "name": "cbam_archive_update",
+      "ok": true,
+      "detail": "archive update issued",
+      "at": "2026-05-07T16:52:45.544Z"
+    },
+    {
+      "name": "cbam_trade_archive",
+      "ok": true,
+      "detail": "is_archived=true, archive_reason=duplicate, note_len=143, archived_date=2026-05-07",
+      "at": "2026-05-07T16:52:45.878Z"
+    },
+    {
+      "name": "cbam_t1_xref_count_post",
+      "ok": true,
+      "detail": "5 xrefs touching t1 (pre=5, expected 5)",
+      "at": "2026-05-07T16:52:46.131Z"
+    }
+  ]
+}
