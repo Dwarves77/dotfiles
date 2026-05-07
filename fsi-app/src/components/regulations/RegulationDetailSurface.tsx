@@ -3,25 +3,36 @@
 /**
  * RegulationDetailSurface — client subcomponent for /regulations/[id].
  *
- * Owns tab state (Summary / Exposure / Penalty calculator / Timeline /
- * Full text / Sources / Notes) and renders the matching panel below.
- * The hero card, 4-stat strip, and right-rail metadata are rendered
- * here too because they share state with the action buttons.
+ * Tabs (post Decision #12 rationalization, PR-F):
+ *   Summary · Exposure · Penalty calculator · Timeline · Sources
+ *
+ *   - Team notes: dropped (no collaboration data path).
+ *   - Full text: merged into Summary as inline bottom-most section.
+ *     PR #24's navigateToFullSection helper is rewired to scroll within
+ *     Summary to the inline Full text section, instead of switching tabs.
  *
  * Layout matches design_handoff_2026-04/preview/regulation-detail.html:
  *   - Hero card with mode chips, title row + pills, deck, tag chips, actions
  *   - 4-stat strip: Effective / Penalty rate / Your exposure / Lanes
  *   - Tab bar (3px accent underline on active tab)
  *   - Layout grid: main panel (1fr) + 320px right rail
- *   - Default Summary panel: AI summary block + What changed + Why it matters
+ *   - Summary panel content order: AI summary · Tier 2 expander (PR #24) ·
+ *     inline horizontal Timeline · Impact scores · What changed ·
+ *     Why it matters · Key data · Recommended actions · Disputed ·
+ *     Full text (inline, anchored as `synopsis-full-text`)
+ *   - Right rail: Affected lanes · Owner & team · Identification · Coverage ·
+ *     Linked items
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { TimelineBar } from "@/components/resource/TimelineBar";
 import { ImpactScores } from "@/components/resource/ImpactScores";
 import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
+import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
+import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
+import { LinkedItemsCard } from "@/components/regulations/LinkedItemsCard";
 import { scoreResource } from "@/lib/scoring";
 import {
   extractOperationalBriefing,
@@ -55,23 +66,21 @@ interface Props {
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
 }
 
+// Decision #12: dropped "notes" (no collaboration data path) and "full"
+// (merged into Summary as inline bottom-most section).
 type TabKey =
   | "summary"
   | "exposure"
   | "calculator"
   | "timeline"
-  | "full"
-  | "sources"
-  | "notes";
+  | "sources";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "summary", label: "Summary" },
   { key: "exposure", label: "Exposure" },
   { key: "calculator", label: "Penalty calculator" },
   { key: "timeline", label: "Timeline" },
-  { key: "full", label: "Full text" },
   { key: "sources", label: "Sources" },
-  { key: "notes", label: "Team notes" },
 ];
 
 // Maps an Issues-Requiring-Immediate-Action severity label (from the
@@ -153,22 +162,28 @@ export function RegulationDetailSurface({
   resourceLookup,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("summary");
-  // Pending scroll-to-anchor inside the Full text tab. When the Tier 2
-  // expander's "Read full ... in regulatory analysis" link is clicked,
-  // we switch tab to "full" AND set this anchor, which the Full text
-  // panel consumes (see useEffect inside FullTextPanel).
+  // Pending scroll-to-anchor inside the inline Full text section
+  // (Decision #12: Full text moved from a sibling tab to the bottom of
+  // Summary). When PR #24's Tier 2 expander deep-link button is clicked,
+  // we set this anchor, switch to the Summary tab if needed, and the
+  // FullTextPanel inside SummaryPanel consumes it.
   const [pendingFullSectionAnchor, setPendingFullSectionAnchor] = useState<
     string | null
   >(null);
 
-  /** Switch tab and (optionally) scroll the Full text panel to a
-   * heading slug once it renders. Slug is the headingSlug() value of the
-   * heading text — IntelligenceBrief composes its own per-render briefId
-   * prefix, and the Full text panel resolves the prefix at scroll time. */
-  function navigateToFullSection(slug: string) {
+  /** Scroll to a heading slug inside the inline Full text section at
+   * the bottom of Summary. Used by PR #24's Tier 2 expander deep-link
+   * buttons. Slug is the headingSlug() value of the heading text —
+   * IntelligenceBrief composes its own per-render briefId prefix, and
+   * the Full text panel resolves the prefix at scroll time.
+   *
+   * Pre-Decision-#12 this switched tab to "full"; post-Decision-#12 the
+   * Full text section lives inside Summary, so we ensure Summary is
+   * active and pass the anchor downstream. */
+  const navigateToFullSection = useCallback((slug: string) => {
     setPendingFullSectionAnchor(slug);
-    setTab("full");
-  }
+    setTab("summary");
+  }, []);
 
   // Admin-only banner gating. The flag is populated from intelligence_items
   // migration 035 (agent_integrity_flag), surfaced through fetchIntelligenceItem,
@@ -498,7 +513,6 @@ export function RegulationDetailSurface({
               }}
             >
               {t.label}
-              {t.key === "notes" && " (0)"}
             </button>
           );
         })}
@@ -525,6 +539,8 @@ export function RegulationDetailSurface({
               changelog={changelog}
               dispute={dispute}
               onNavigateToFullSection={navigateToFullSection}
+              pendingFullSectionAnchor={pendingFullSectionAnchor}
+              onAnchorConsumed={() => setPendingFullSectionAnchor(null)}
             />
           )}
           {tab === "exposure" && (
@@ -550,29 +566,6 @@ export function RegulationDetailSurface({
               )}
             </BriefSection>
           )}
-          {tab === "full" && (
-            <BriefSection title="Full text">
-              {r.fullBrief ? (
-                <FullTextPanel
-                  markdown={r.fullBrief}
-                  pendingAnchorSlug={pendingFullSectionAnchor}
-                  onAnchorConsumed={() => setPendingFullSectionAnchor(null)}
-                />
-              ) : r.url ? (
-                <p style={{ fontSize: 14, lineHeight: 1.7, margin: 0 }}>
-                  Full regulatory text is hosted at the source —{" "}
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>
-                    open original document
-                  </a>
-                  .
-                </p>
-              ) : (
-                <p style={{ fontSize: 14, color: "var(--muted)", margin: 0 }}>
-                  No long-form text on record yet.
-                </p>
-              )}
-            </BriefSection>
-          )}
           {tab === "sources" && (
             <BriefSection title="Sources">
               {r.url ? (
@@ -591,31 +584,27 @@ export function RegulationDetailSurface({
               )}
             </BriefSection>
           )}
-          {tab === "notes" && (
-            <PlaceholderPanel
-              title="Team notes"
-              copy="Threaded team notes for this regulation. Connect once collaboration data lands."
-            />
-          )}
         </div>
 
-        {/* Right rail */}
+        {/* Right rail. Order (PR-F):
+              · Next deadline (existing — only when real)
+              · Affected lanes (PR-F new — F22)
+              · Owner & team (PR-F new — F23)
+              · Identification (existing)
+              · Coverage (existing)
+              · Linked items (PR-F new — F22, replaces "Related" SideCard)
+        */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Hide the next-deadline card when nextDeadline returns "—"
-              (no future milestones, no compliance deadline). The empty
-              red-bordered card was the audit-flagged "looks broken"
-              surface. */}
           {effective.value && effective.value !== "—" && (
             <DeadlineCard effective={effective} />
           )}
+          <AffectedLanesCard resource={r} />
+          <OwnerTeamCard resource={r} />
           <SideCard label="Identification">
             <KV k="ID" v={r.id} />
             <KV k="Type" v={r.type} />
             {r.legalInstrument && <KV k="Instrument" v={r.legalInstrument} />}
             {r.enforcementBody && <KV k="Publisher" v={r.enforcementBody} />}
-            {/* Skip effective KV when there's no real deadline data.
-                "—" / "No deadline on record" was rendering as visual
-                noise per the audit. */}
             {r.complianceDeadline ||
             (effective.value && effective.value !== "—") ? (
               <KV
@@ -624,14 +613,6 @@ export function RegulationDetailSurface({
               />
             ) : null}
             {r.lastVerifiedDate && <KV k="Reviewed" v={r.lastVerifiedDate} />}
-          </SideCard>
-          <SideCard label="Coverage">
-            <KV k="Jurisdiction" v={jurisLabel || "Global"} />
-            <KV k="Modes" v={modes.map((m) => m.toUpperCase()).join(", ")} />
-            {r.topic && <KV k="Topic" v={r.topic} />}
-          </SideCard>
-          <SideCard label="Owners">
-            <KV k="Owner" v={r.actionOwner || "Unassigned"} />
             <KV
               k="Priority"
               v={
@@ -640,30 +621,18 @@ export function RegulationDetailSurface({
               }
             />
           </SideCard>
-          {(xrefIds.length > 0 || refByIds.length > 0 || supersessions.length > 0) && (
-            <SideCard label="Related">
-              {[...xrefIds, ...refByIds].slice(0, 6).map((id) => {
-                const ref = resourceLookup[id];
-                if (!ref) return null;
-                return (
-                  <a
-                    key={id}
-                    href={`/regulations/${encodeURIComponent(id)}`}
-                    style={{
-                      display: "block",
-                      fontSize: 12.5,
-                      lineHeight: 1.55,
-                      color: "var(--text)",
-                      textDecoration: "none",
-                      padding: "4px 0",
-                    }}
-                  >
-                    {ref.title}
-                  </a>
-                );
-              })}
-            </SideCard>
-          )}
+          <SideCard label="Coverage">
+            <KV k="Jurisdiction" v={jurisLabel || "Global"} />
+            <KV k="Modes" v={modes.map((m) => m.toUpperCase()).join(", ")} />
+            {r.topic && <KV k="Topic" v={r.topic} />}
+          </SideCard>
+          <LinkedItemsCard
+            xrefIds={xrefIds}
+            refByIds={refByIds}
+            supersessions={supersessions}
+            selfId={r.id}
+            resourceLookup={resourceLookup}
+          />
         </aside>
       </div>
     </div>
@@ -902,11 +871,15 @@ function SummaryPanel({
   changelog,
   dispute,
   onNavigateToFullSection,
+  pendingFullSectionAnchor,
+  onAnchorConsumed,
 }: {
   r: Resource;
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
   onNavigateToFullSection: (slug: string) => void;
+  pendingFullSectionAnchor: string | null;
+  onAnchorConsumed: () => void;
 }) {
   // Tier 2 — Operational briefing extraction. Computed at render-time
   // from full_brief markdown. For non-regulatory_fact_document briefs
@@ -972,6 +945,22 @@ function SummaryPanel({
           briefing={operationalBriefing}
           onNavigateToFullSection={onNavigateToFullSection}
         />
+      )}
+
+      {/* Inline horizontal Timeline — PR-F (F22).
+          Reuses TimelineBar from /components/resource/TimelineBar.tsx
+          (already horizontal with milestones, dates, and countdown).
+          Sits in the Summary content flow between the Tier 2 operational
+          briefing and the impact bars so users see the regulation
+          lifecycle inline before drilling into impact / changelog detail.
+          Hidden when no timeline data — honest empty pattern. */}
+      {r.timeline && r.timeline.length > 0 && (
+        <BriefSection title="Timeline">
+          <TimelineBar
+            items={r.timeline}
+            color={TOPIC_COLORS[r.topic || ""] || undefined}
+          />
+        </BriefSection>
       )}
 
       {/* Impact assessment — gradient bars */}
@@ -1112,6 +1101,38 @@ function SummaryPanel({
                 )
               )}
             </div>
+          )}
+        </BriefSection>
+      )}
+
+      {/* Inline Full text — Decision #12 merge.
+          Pre-#12 this lived behind a separate "Full text" tab. Now it's
+          the bottom-most section of Summary. PR #24's
+          navigateToFullSection helper still scrolls to a heading slug
+          inside this panel — see the rewire in RegulationDetailSurface
+          (it now sets the anchor and ensures the Summary tab is active,
+          rather than switching tabs to "full"). */}
+      {(r.fullBrief || r.url) && (
+        <BriefSection title="Full text">
+          {r.fullBrief ? (
+            <FullTextPanel
+              markdown={r.fullBrief}
+              pendingAnchorSlug={pendingFullSectionAnchor}
+              onAnchorConsumed={onAnchorConsumed}
+            />
+          ) : (
+            <p style={{ fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+              Full regulatory text is hosted at the source —{" "}
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--accent)" }}
+              >
+                open original document
+              </a>
+              .
+            </p>
           )}
         </BriefSection>
       )}
