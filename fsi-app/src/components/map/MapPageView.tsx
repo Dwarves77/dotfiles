@@ -9,7 +9,6 @@
  *   - Mode-filter toolbar
  *   - 70/30 layout: Leaflet map (left) + side rail (right)
  *   - Side rail: Active heat pulse card · By jurisdiction list · Coverage gaps
- *   - Real / Abstract toggle (top-right of map shell)
  *
  * MapView (Leaflet) is dynamic-imported with ssr:false. Jurisdiction
  * aggregation is done locally over `resources` so the side rail is
@@ -62,7 +61,6 @@ interface MapPageViewProps {
 }
 
 type Mode = "all" | "ocean" | "air" | "road" | "facility";
-type StyleMode = "real" | "abstract";
 
 // ── Urgency tone helpers ──
 
@@ -117,7 +115,6 @@ export function MapPageView(props: MapPageViewProps) {
   }, [coverageGaps]);
 
   const [mode, setMode] = useState<Mode>("all");
-  const [styleMode, setStyleMode] = useState<StyleMode>("real");
   // Side-rail jurisdiction selection. We bump a counter alongside the id so
   // clicking the same row twice still triggers MapView's drill effect (the
   // id alone wouldn't change). Kept local; MapView owns the actual drill
@@ -319,100 +316,19 @@ export function MapPageView(props: MapPageViewProps) {
               height: 640,
             }}
           >
-            {/* Real / Abstract toggle.
-                Anchored top-LEFT so it does not overlap MapView's own
-                Split/Map/List view-toggle, which sits top-right inside the
-                same shell. Higher z-index than the leaflet pane stack
-                (Leaflet zoom controls and panes are <= 1000) so the toggle
-                stays clickable above the map and the Map Key panel. */}
-            <div
-              style={{
-                position: "absolute",
-                top: 12,
-                left: 12,
-                zIndex: 1100,
-                display: "flex",
-                gap: 0,
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 999,
-                padding: 3,
-                boxShadow: "var(--shadow)",
-                pointerEvents: "auto",
-              }}
-            >
-              {(["real", "abstract"] as StyleMode[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStyleMode(s)}
-                  style={{
-                    fontFamily: "inherit",
-                    fontSize: 11,
-                    padding: "5px 12px",
-                    background: styleMode === s ? "var(--accent)" : "transparent",
-                    border: 0,
-                    color: styleMode === s ? "#fff" : "var(--text-2)",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    borderRadius: 999,
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
+            <div style={{ position: "absolute", inset: 0 }}>
+              <MapView
+                resources={filteredResources}
+                changelog={changelog}
+                disputes={disputes}
+                xrefPairs={xrefPairs}
+                supersessions={supersessions}
+                resourceMap={resourceMap}
+                onToast={() => {}}
+                externalSelectJurId={pendingSelectJur.id}
+                externalSelectNonce={pendingSelectJur.nonce}
+              />
             </div>
-
-            {styleMode === "real" ? (
-              <div style={{ position: "absolute", inset: 0 }}>
-                <MapView
-                  resources={filteredResources}
-                  changelog={changelog}
-                  disputes={disputes}
-                  xrefPairs={xrefPairs}
-                  supersessions={supersessions}
-                  resourceMap={resourceMap}
-                  onToast={() => {}}
-                  externalSelectJurId={pendingSelectJur.id}
-                  externalSelectNonce={pendingSelectJur.nonce}
-                />
-              </div>
-            ) : (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "var(--raised)",
-                  color: "var(--text-2)",
-                  fontSize: 12,
-                  textAlign: "center",
-                  padding: 40,
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: 22,
-                      letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                      color: "var(--text)",
-                      marginBottom: 8,
-                    }}
-                  >
-                    Abstract view
-                  </div>
-                  <p style={{ margin: 0, maxWidth: "48ch" }}>
-                    Flat editorial styling lands in a follow-up. Switch to
-                    <b style={{ color: "var(--text)" }}> Real</b> to see the live
-                    Leaflet map.
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Side rail */}
