@@ -95,6 +95,14 @@ export function MapPageView(props: MapPageViewProps) {
 
   const [mode, setMode] = useState<Mode>("all");
   const [styleMode, setStyleMode] = useState<StyleMode>("real");
+  // Side-rail jurisdiction selection. We bump a counter alongside the id so
+  // clicking the same row twice still triggers MapView's drill effect (the
+  // id alone wouldn't change). Kept local; MapView owns the actual drill
+  // state and treats this prop as a fire-and-act trigger.
+  const [pendingSelectJur, setPendingSelectJur] = useState<{
+    id: string | null;
+    nonce: number;
+  }>({ id: null, nonce: 0 });
 
   // Filter resources by mode.
   const filteredResources = useMemo(() => {
@@ -156,8 +164,17 @@ export function MapPageView(props: MapPageViewProps) {
     return rows;
   }, [filteredResources]);
 
-  // Active heat — top 3 critical jurisdictions.
+  // Active heat — jurisdictions whose top-priority is "critical" (i.e.
+  // jurisdictions with at least one CRITICAL item) AND total CRITICAL-
+  // priority items across all jurisdictions. We surface BOTH counts on
+  // the Active-heat card so the metric the per-jurisdiction drill panel
+  // shows ("N CRITICAL" = items with priority=CRITICAL in that
+  // jurisdiction) is clearly reconciled against the global header.
   const criticalRows = jurisdictionRows.filter((r) => r.tone === "critical");
+  const criticalItemCount = useMemo(
+    () => filteredResources.filter((r) => r.priority === "CRITICAL").length,
+    [filteredResources]
+  );
 
   const totalActiveCount = filteredResources.length;
   const liveJurisdictions = jurisdictionRows.length;
@@ -279,13 +296,18 @@ export function MapPageView(props: MapPageViewProps) {
               height: 640,
             }}
           >
-            {/* Real / Abstract toggle */}
+            {/* Real / Abstract toggle.
+                Anchored top-LEFT so it does not overlap MapView's own
+                Split/Map/List view-toggle, which sits top-right inside the
+                same shell. Higher z-index than the leaflet pane stack
+                (Leaflet zoom controls and panes are <= 1000) so the toggle
+                stays clickable above the map and the Map Key panel. */}
             <div
               style={{
                 position: "absolute",
                 top: 12,
-                right: 12,
-                zIndex: 500,
+                left: 12,
+                zIndex: 1100,
                 display: "flex",
                 gap: 0,
                 background: "var(--surface)",
@@ -293,6 +315,7 @@ export function MapPageView(props: MapPageViewProps) {
                 borderRadius: 999,
                 padding: 3,
                 boxShadow: "var(--shadow)",
+                pointerEvents: "auto",
               }}
             >
               {(["real", "abstract"] as StyleMode[]).map((s) => (
@@ -327,6 +350,8 @@ export function MapPageView(props: MapPageViewProps) {
                   supersessions={supersessions}
                   resourceMap={resourceMap}
                   onToast={() => {}}
+                  externalSelectJurId={pendingSelectJur.id}
+                  externalSelectNonce={pendingSelectJur.nonce}
                 />
               </div>
             ) : (
@@ -369,7 +394,13 @@ export function MapPageView(props: MapPageViewProps) {
 
           {/* Side rail */}
           <aside>
-            {/* Active heat pulse card */}
+            {/* Active heat pulse card.
+                Two distinct metrics, both surfaced and labelled to reconcile
+                with the per-jurisdiction "N CRITICAL" badge in the drill panel:
+                  - criticalRows.length     = jurisdictions with any CRITICAL item
+                  - criticalItemCount       = total CRITICAL-priority items across
+                                              all jurisdictions (the sum of the
+                                              per-jurisdiction CRITICAL badges) */}
             <SideCard
               tone={criticalRows.length > 0 ? "high" : undefined}
               label="Active heat"
@@ -380,10 +411,26 @@ export function MapPageView(props: MapPageViewProps) {
                   fontSize: 30,
                   lineHeight: 1,
                   color: "var(--high)",
-                  marginBottom: 6,
+                  marginBottom: 4,
                 }}
               >
-                {criticalRows.length} critical
+                {criticalRows.length}{" "}
+                <span style={{ fontSize: 14, letterSpacing: "0.04em" }}>
+                  jurisdiction{criticalRows.length === 1 ? "" : "s"} with critical
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "var(--text-2)",
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
+                {criticalItemCount} critical item
+                {criticalItemCount === 1 ? "" : "s"} total
               </div>
               <p
                 style={{
@@ -419,8 +466,16 @@ export function MapPageView(props: MapPageViewProps) {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {jurisdictionRows.slice(0, 12).map((row, idx) => (
-                    <div
+                    <button
                       key={row.id}
+                      type="button"
+                      onClick={() =>
+                        setPendingSelectJur((prev) => ({
+                          id: row.id,
+                          nonce: prev.nonce + 1,
+                        }))
+                      }
+                      aria-label={`Open ${row.label} detail panel`}
                       style={{
                         display: "grid",
                         gridTemplateColumns: "26px 1fr auto",
@@ -428,7 +483,16 @@ export function MapPageView(props: MapPageViewProps) {
                         padding: "10px 0",
                         borderTop:
                           idx === 0 ? "0" : "1px solid var(--border-sub)",
+                        borderLeft: "0",
+                        borderRight: "0",
+                        borderBottom: "0",
+                        background: "transparent",
                         alignItems: "center",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        font: "inherit",
+                        color: "inherit",
+                        width: "100%",
                       }}
                     >
                       <span
@@ -470,7 +534,7 @@ export function MapPageView(props: MapPageViewProps) {
                       >
                         {row.count}
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
