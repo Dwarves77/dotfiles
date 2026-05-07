@@ -1,0 +1,385 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "nv_leg_insert",
+      "ok": true,
+      "detail": "id=6c2490a4-15d1-4d17-addc-d67d14c409c9 tier=1 name=Nevada Legislature – Nevada Revised Statutes (NRS) & Legislative Counsel Bureau",
+      "at": "2026-05-07T16:10:10.252Z"
+    },
+    {
+      "name": "nv_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-NV\"]",
+      "at": "2026-05-07T16:10:10.430Z"
+    },
+    {
+      "name": "az_adeq_insert",
+      "ok": true,
+      "detail": "id=acee8946-987f-4392-8ee7-44d1d7c25bfb tier=1 name=Arizona Department of Environmental Quality (ADEQ)",
+      "at": "2026-05-07T16:10:10.874Z"
+    },
+    {
+      "name": "az_adeq_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-AZ\"]",
+      "at": "2026-05-07T16:10:11.023Z"
+    },
+    {
+      "name": "az_leg_insert",
+      "ok": true,
+      "detail": "id=bedb8f15-e9d2-4877-8902-ae5152b055fd tier=1 name=Arizona State Legislature",
+      "at": "2026-05-07T16:10:11.279Z"
+    },
+    {
+      "name": "az_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-AZ\"]",
+      "at": "2026-05-07T16:10:11.405Z"
+    },
+    {
+      "name": "id_deq_insert",
+      "ok": true,
+      "detail": "id=36978885-cb83-4af3-816d-4d3536a5cce8 tier=1 name=Idaho Department of Environmental Quality (DEQ)",
+      "at": "2026-05-07T16:10:11.643Z"
+    },
+    {
+      "name": "id_deq_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-ID\"]",
+      "at": "2026-05-07T16:10:11.752Z"
+    },
+    {
+      "name": "id_leg_insert",
+      "ok": true,
+      "detail": "id=55a4cd0c-7d3f-4084-bf96-2b29aa5cbc15 tier=1 name=Idaho Legislature – Idaho Statutes & Idaho Administrative Code",
+      "at": "2026-05-07T16:10:11.991Z"
+    },
+    {
+      "name": "id_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-ID\"]",
+      "at": "2026-05-07T16:10:12.148Z"
+    },
+    {
+      "name": "wy_leg_insert",
+      "ok": true,
+      "detail": "id=e775a938-dca3-49c9-87f7-5d98237a1cc0 tier=1 name=Wyoming Legislature – Wyoming Statutes",
+      "at": "2026-05-07T16:10:12.412Z"
+    },
+    {
+      "name": "wy_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-WY\"]",
+      "at": "2026-05-07T16:10:12.540Z"
+    },
+    {
+      "name": "ut_leg_insert",
+      "ok": true,
+      "detail": "id=1c4df84e-8c9a-4c11-b6e1-605ed46dd0bc tier=1 name=Utah State Legislature – Utah Code & Utah Administrative Code",
+      "at": "2026-05-07T16:10:12.820Z"
+    },
+    {
+      "name": "ut_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-UT\"]",
+      "at": "2026-05-07T16:10:12.933Z"
+    },
+    {
+      "name": "ak_dec_insert",
+      "ok": true,
+      "detail": "id=e13722ed-be7f-4e56-a264-ec08a747f4cb tier=1 name=Alaska Department of Environmental Conservation (DEC)",
+      "at": "2026-05-07T16:10:13.173Z"
+    },
+    {
+      "name": "ak_dec_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-AK\"]",
+      "at": "2026-05-07T16:10:13.299Z"
+    },
+    {
+      "name": "ak_leg_insert",
+      "ok": true,
+      "detail": "id=9c108fc0-afce-4645-bdaa-92f48a966ad5 tier=1 name=Alaska State Legislature – Alaska Statutes",
+      "at": "2026-05-07T16:10:13.657Z"
+    },
+    {
+      "name": "ak_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-AK\"]",
+      "at": "2026-05-07T16:10:13.759Z"
+    },
+    {
+      "name": "hi_doh_insert",
+      "ok": true,
+      "detail": "id=319197ff-6f89-40ee-a7a6-f20ec57a55ad tier=1 name=Hawai‘i Department of Health – Clean Air Branch & Environmental Health Administration",
+      "at": "2026-05-07T16:10:13.982Z"
+    },
+    {
+      "name": "hi_doh_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-HI\"]",
+      "at": "2026-05-07T16:10:14.112Z"
+    },
+    {
+      "name": "hi_leg_insert",
+      "ok": true,
+      "detail": "id=084892de-00f7-47a1-8776-4df6c8f980d9 tier=1 name=Hawai‘i State Legislature – Hawai‘i Revised Statutes",
+      "at": "2026-05-07T16:10:14.357Z"
+    },
+    {
+      "name": "hi_leg_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"US-HI\"]",
+      "at": "2026-05-07T16:10:14.468Z"
+    },
+    {
+      "name": "final_snapshot",
+      "ok": true,
+      "detail": "24 rows in West region scope",
+      "rows": [
+        {
+          "id": "f26a771c-88b0-41c4-ad64-8b94969810e7",
+          "name": "Alaska DOT&PF – Measurement Standards & Commercial Vehicle Compliance (MSCVC)",
+          "url": "https://dot.alaska.gov/mscve/",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-AK"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "9c108fc0-afce-4645-bdaa-92f48a966ad5",
+          "name": "Alaska State Legislature – Alaska Statutes",
+          "url": "https://www.akleg.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-AK"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "e13722ed-be7f-4e56-a264-ec08a747f4cb",
+          "name": "Alaska Department of Environmental Conservation (DEC)",
+          "url": "https://dec.alaska.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-AK"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "bedb8f15-e9d2-4877-8902-ae5152b055fd",
+          "name": "Arizona State Legislature",
+          "url": "https://www.azleg.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-AZ"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "acee8946-987f-4392-8ee7-44d1d7c25bfb",
+          "name": "Arizona Department of Environmental Quality (ADEQ)",
+          "url": "https://azdeq.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-AZ"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "9d18cbab-7ec3-49ea-8e7e-c1ce3f6d328d",
+          "name": "ADOT – Arizona State Freight Plan",
+          "url": "https://azdot.gov/planning/transportation-programs/arizona-state-freight-plan",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-AZ"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+          "name": "Colorado Department of Transportation – GHG Transportation Planning Program",
+          "url": "https://www.codot.gov/programs/environmental/greenhousegas",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-CO"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "00b6cd1a-61a5-4023-ad7b-0835fdc16fe7",
+          "name": "Colorado General Assembly",
+          "url": "https://leg.colorado.gov/laws",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-CO"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "319197ff-6f89-40ee-a7a6-f20ec57a55ad",
+          "name": "Hawai‘i Department of Health – Clean Air Branch & Environmental Health Administration",
+          "url": "https://health.hawaii.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-HI"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "084892de-00f7-47a1-8776-4df6c8f980d9",
+          "name": "Hawai‘i State Legislature – Hawai‘i Revised Statutes",
+          "url": "https://www.capitol.hawaii.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-HI"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "36978885-cb83-4af3-816d-4d3536a5cce8",
+          "name": "Idaho Department of Environmental Quality (DEQ)",
+          "url": "https://www.deq.idaho.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-ID"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "55a4cd0c-7d3f-4084-bf96-2b29aa5cbc15",
+          "name": "Idaho Legislature – Idaho Statutes & Idaho Administrative Code",
+          "url": "https://legislature.idaho.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-ID"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "5993fd5f-ce69-4d3e-b3c1-737dd8fd5754",
+          "name": "Montana Department of Environmental Quality (DEQ)",
+          "url": "https://deq.mt.gov/",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-MT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "e0e9d808-bc39-4317-8107-883943d86a71",
+          "name": "Montana Legislature – Montana Code Annotated (MCA)",
+          "url": "https://leg.mt.gov/bills/mca/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-MT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "55ac3187-6b19-4cfe-86d3-6e2dd291d400",
+          "name": "New Mexico Legislature – New Mexico Statutes Annotated (NMSA) and Session Laws",
+          "url": "https://www.nmlegis.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-NM"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "198a631e-1b2d-4e17-9dc6-3ea113ff7eed",
+          "name": "New Mexico Environment Department (NMED) – Air Quality Bureau",
+          "url": "https://www.env.nm.gov/air-quality/",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-NM"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "4bfde4f6-cffc-4bff-88b9-9c94c9db5db8",
+          "name": "Nevada Division of Environmental Protection (NDEP)",
+          "url": "https://ndep.nv.gov",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-NV"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "6c2490a4-15d1-4d17-addc-d67d14c409c9",
+          "name": "Nevada Legislature – Nevada Revised Statutes (NRS) & Legislative Counsel Bureau",
+          "url": "https://www.leg.state.nv.us/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-NV"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "b98250ab-296c-4967-be19-ac27e83d1fb9",
+          "name": "Oregon Department of Environmental Quality (DEQ)",
+          "url": "https://www.oregon.gov/deq/Pages/index.aspx",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-OR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "6abf5dce-b873-47ad-a834-115ddd65e210",
+          "name": "Oregon Legislature – Oregon Revised Statutes (ORS) & Legislative Information System",
+          "url": "https://www.oregonlegislature.gov/bills_laws/Pages/ORS.aspx",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-OR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "1c4df84e-8c9a-4c11-b6e1-605ed46dd0bc",
+          "name": "Utah State Legislature – Utah Code & Utah Administrative Code",
+          "url": "https://le.utah.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-UT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "28ecc6b0-436b-4bf4-889f-fb2673497562",
+          "name": "Utah Division of Air Quality (UDAQ) – Utah Department of Environmental Quality",
+          "url": "https://deq.utah.gov/division-air-quality",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-UT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "e775a938-dca3-49c9-87f7-5d98237a1cc0",
+          "name": "Wyoming Legislature – Wyoming Statutes",
+          "url": "https://www.wyoleg.gov/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "US-WY"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "91845d5f-3057-4f6d-8eb3-590d936a2767",
+          "name": "Wyoming Department of Environmental Quality (DEQ) – Air Quality Division",
+          "url": "https://deq.wyoming.gov/aqd/",
+          "tier": 2,
+          "jurisdiction_iso": [
+            "US-WY"
+          ],
+          "status": "active"
+        }
+      ],
+      "at": "2026-05-07T16:10:14.605Z"
+    }
+  ]
+}
