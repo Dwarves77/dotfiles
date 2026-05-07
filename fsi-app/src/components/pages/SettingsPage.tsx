@@ -7,6 +7,9 @@ import { DataSummary } from "@/components/settings/DataSummary";
 import { SupersessionHistory } from "@/components/settings/SupersessionHistory";
 import { ArchiveViewer } from "@/components/settings/ArchiveViewer";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
+import { BriefingScheduleSection } from "@/components/settings/BriefingScheduleSection";
+import { SavedSearchesSection } from "@/components/settings/SavedSearchesSection";
+import { HelpSection } from "@/components/settings/HelpSection";
 
 // ───────────────────────────────────────────────────────────────────────────
 // SettingsPage (Phase C, PR-D IA refactor 2026-05-06)
@@ -41,22 +44,28 @@ type TabKey =
   | "general"
   | "dashboard"
   | "exports"
+  | "saved"
   | "data"
-  | "archive";
+  | "archive"
+  | "help";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "general", label: "General" },
   { key: "dashboard", label: "Dashboard" },
   { key: "exports", label: "Exports" },
+  { key: "saved", label: "Saved searches" },
   { key: "data", label: "Data & supersessions" },
   { key: "archive", label: "Archive" },
+  { key: "help", label: "Help" },
 ];
 
 // Legacy hash aliases: post-PR-D, #notifications resolves to General
 // (where the NotificationPreferences section now lives) rather than
-// 404'ing the user.
+// 404'ing the user. PR-L adds: #briefing → General (where the briefing
+// schedule restoration now lives).
 const LEGACY_HASH_ALIASES: Record<string, TabKey> = {
   notifications: "general",
+  briefing: "general",
 };
 
 export function SettingsPage({
@@ -164,6 +173,16 @@ export function SettingsPage({
               </p>
               <NotificationPreferences userId={userId} />
             </Card>
+            {/* PR-L Settings restoration (Decision #14, F9): Briefing
+                schedule lives under General per the design preview. The
+                component reads/writes workspace_settings.alert_config,
+                preserving any existing keys. */}
+            <Card
+              title="Briefing schedule"
+              meta="Cadence · time · jurisdictions · delivery"
+            >
+              <BriefingScheduleSection />
+            </Card>
           </div>
         )}
 
@@ -220,6 +239,29 @@ export function SettingsPage({
             } · still recoverable`}
           >
             <ArchiveViewer />
+          </Card>
+        )}
+
+        {/* PR-L Settings restoration (Decision #14, F10): SAVED SEARCHES.
+            L1 surface persists to localStorage; surface a candidate
+            backend split for L2 (saved_searches table). */}
+        {tab === "saved" && (
+          <Card
+            title="Saved searches"
+            meta="Named filter combinations · stored locally"
+          >
+            <SavedSearchesSection />
+          </Card>
+        )}
+
+        {/* PR-L Settings restoration (Decision #14, F14): HELP card with
+            documentation links, support contact, and version info. */}
+        {tab === "help" && (
+          <Card
+            title="Help"
+            meta="Documentation · support · version"
+          >
+            <HelpSection />
           </Card>
         )}
       </div>

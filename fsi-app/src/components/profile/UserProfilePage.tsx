@@ -5,6 +5,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { JURISDICTIONS, MODES } from "@/lib/constants";
 import { SectorSelector } from "@/components/profile/SectorSelector";
+import { AtAGlanceBlock } from "@/components/profile/AtAGlanceBlock";
+import { QuickLinksSection } from "@/components/profile/QuickLinksSection";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import {
@@ -14,6 +16,7 @@ import {
   Lock,
   ShieldCheck,
   ArrowLeft,
+  Crown,
 } from "lucide-react";
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -66,6 +69,7 @@ interface UserProfileRow {
   work_email: string | null;
   verifier_status: "none" | "pending" | "approved" | "rejected" | null;
   verifier_application: string | null;
+  created_at: string | null;
 }
 
 const EMPTY_PROFILE: UserProfileRow = {
@@ -83,11 +87,15 @@ const EMPTY_PROFILE: UserProfileRow = {
   work_email: null,
   verifier_status: "none",
   verifier_application: null,
+  created_at: null,
 };
 
 export function UserProfilePage({ userId, userEmail }: Props) {
   const supabase = createSupabaseBrowserClient();
   const { setSectorProfile } = useWorkspaceStore();
+  const userRole = useWorkspaceStore((s) => s.userRole);
+  const orgName = useWorkspaceStore((s) => s.orgName);
+  const isOwner = userRole === "owner";
 
   const [tab, setTab] = useState<TabKey>("personal");
   const [profile, setProfile] = useState<UserProfileRow>({
@@ -201,7 +209,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
       className="min-h-screen"
       style={{ backgroundColor: "var(--color-background)" }}
     >
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
         {/* Header */}
         <a
           href="/"
@@ -230,6 +238,44 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           Personal details · sector profile · jurisdictions · verifier
           credentials
         </p>
+
+        {/* PR-L: "You are Owner" callout (Decision #15, F20).
+            Renders for workspace owners only. Members and admins see the
+            normal stat strip path. */}
+        {isOwner && (
+          <div
+            className="mt-5 rounded-md border flex items-center gap-3 px-4 py-3"
+            style={{
+              borderColor: "var(--color-primary)",
+              backgroundColor: "var(--color-active-bg)",
+            }}
+          >
+            <span
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full"
+              style={{
+                backgroundColor: "var(--color-surface)",
+                color: "var(--color-primary)",
+              }}
+            >
+              <Crown size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div
+                className="text-sm font-semibold"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                You are Owner of {orgName || "this workspace"}
+              </div>
+              <p
+                className="text-xs mt-0.5"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                Owners control workspace settings, invitations, billing,
+                and platform admin access.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Stat strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
@@ -305,71 +351,88 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           </div>
         )}
 
-        {/* Panels */}
-        {tab === "personal" && (
-          <PanelPersonal
-            profile={profile}
-            saving={savingTab === "personal"}
-            onSave={(patch) => persist(patch, "personal", "Personal profile saved")}
-          />
-        )}
-        {tab === "sectors" && (
-          <PanelSectors
-            profile={profile}
-            saving={savingTab === "sectors"}
-            onSave={(sectors) =>
-              persist({ sectors }, "sectors", "Sector profile saved")
-            }
-          />
-        )}
-        {tab === "jurisdictions" && (
-          <PanelJurisdictions
-            profile={profile}
-            saving={savingTab === "jurisdictions"}
-            onSave={(juris, modes) =>
-              persist(
-                { jurisdictions: juris, transport_modes: modes },
-                "jurisdictions",
-                "Jurisdictions and modes saved"
-              )
-            }
-          />
-        )}
-        {tab === "verifier" && (
-          <PanelVerifier
-            profile={profile}
-            saving={savingTab === "verifier"}
-            onApply={(applicationText) =>
-              persist(
-                {
-                  verifier_status: "pending",
-                  verifier_application: applicationText,
-                },
-                "verifier",
-                "Application submitted"
-              )
-            }
-          />
-        )}
-        {tab === "activity" && <PanelActivity />}
-        {tab === "organization" && (
-          <PanelComingSoon
-            title="Workspace organization"
-            description="Multi-tenant workspaces ship in Phase D. Until then, your account is its own workspace."
-          />
-        )}
-        {tab === "members" && (
-          <PanelComingSoon
-            title="Members & roles"
-            description="Inviting teammates and assigning roles ships in Phase D alongside multi-tenant workspaces."
-          />
-        )}
-        {tab === "billing" && (
-          <PanelComingSoon
-            title="Billing & plan"
-            description="Plans, seats, and invoicing ship in Phase D. Phase C accounts have full read-only access."
-          />
-        )}
+        {/* PR-L: 2-column grid — main panel area on the left, AT A GLANCE
+            + QUICK LINKS rails on the right (Decision #15, F6 + F7). On
+            small screens the rails stack below the panels. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6">
+          <div className="min-w-0">
+            {/* Panels */}
+            {tab === "personal" && (
+              <PanelPersonal
+                profile={profile}
+                saving={savingTab === "personal"}
+                onSave={(patch) => persist(patch, "personal", "Personal profile saved")}
+              />
+            )}
+            {tab === "sectors" && (
+              <PanelSectors
+                profile={profile}
+                saving={savingTab === "sectors"}
+                onSave={(sectors) =>
+                  persist({ sectors }, "sectors", "Sector profile saved")
+                }
+              />
+            )}
+            {tab === "jurisdictions" && (
+              <PanelJurisdictions
+                profile={profile}
+                saving={savingTab === "jurisdictions"}
+                onSave={(juris, modes) =>
+                  persist(
+                    { jurisdictions: juris, transport_modes: modes },
+                    "jurisdictions",
+                    "Jurisdictions and modes saved"
+                  )
+                }
+              />
+            )}
+            {tab === "verifier" && (
+              <PanelVerifier
+                profile={profile}
+                saving={savingTab === "verifier"}
+                onApply={(applicationText) =>
+                  persist(
+                    {
+                      verifier_status: "pending",
+                      verifier_application: applicationText,
+                    },
+                    "verifier",
+                    "Application submitted"
+                  )
+                }
+              />
+            )}
+            {tab === "activity" && <PanelActivity />}
+            {tab === "organization" && (
+              <PanelComingSoon
+                title="Workspace organization"
+                description="Multi-tenant workspaces ship in Phase D. Until then, your account is its own workspace."
+              />
+            )}
+            {tab === "members" && (
+              <PanelComingSoon
+                title="Members & roles"
+                description="Inviting teammates and assigning roles ships in Phase D alongside multi-tenant workspaces."
+              />
+            )}
+            {tab === "billing" && (
+              <PanelComingSoon
+                title="Billing & plan"
+                description="Plans, seats, and invoicing ship in Phase D. Phase C accounts have full read-only access."
+              />
+            )}
+          </div>
+
+          {/* Right rail */}
+          <aside className="space-y-4">
+            <AtAGlanceBlock
+              userId={userId}
+              verifierStatus={profile.verifier_status ?? null}
+              profileCreatedAt={profile.created_at ?? null}
+            />
+            <QuickLinksSection />
+          </aside>
+        </div>
       </div>
 
       <Toast
