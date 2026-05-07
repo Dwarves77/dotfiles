@@ -1,0 +1,443 @@
+{
+  "completed": true,
+  "total_inserts": 26,
+  "inserted_ids": {
+    "on_env": "5a5afc4f-b319-4429-a340-554ca046c251",
+    "on_legislature": "b6b32cb2-0575-4fd7-ba88-3ee7409f4ef1",
+    "qc_env": "586ebf7c-0146-4d0e-871d-db604490e358",
+    "qc_legislature": "874767f5-887e-47a1-ab4d-b12924bc6188",
+    "bc_env": "69b7cfb9-77f8-4d85-a0f4-ea0711d69328",
+    "bc_legislature": "3cb91963-21a2-418e-bc33-fa391fd96d38",
+    "ab_env": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+    "ab_legislature": "f27f1e92-54b0-4f47-be25-4301025888a7",
+    "mb_env": "44602a3b-a647-4e78-86d0-08820066a81b",
+    "mb_legislature": "2f7e1fcf-17b4-40e3-9770-2f54afd14ce9",
+    "sk_env": "e720fc6b-fdaf-4f76-b54a-99d1995e2f0b",
+    "sk_legislature": "f011d2e9-c1b9-40de-92e2-4490b7f8b14f",
+    "ns_env": "500b249e-fc60-4cd5-bc38-96c1502191fd",
+    "ns_legislature": "ed8bd0e6-3dc6-4bea-9a08-5032eaad4cd8",
+    "nb_env": "4663bf16-d7f0-41cf-befd-c38da3549ab8",
+    "nb_legislature": "9e3f5b77-0a9d-41c4-9703-cdcb55999ce4",
+    "nl_env": "5a08fec4-cecd-4cb8-8b25-45e034d94980",
+    "nl_legislature": "b1c023a0-c95e-4ec4-b300-7901f36d8ab1",
+    "pe_env": "a30cd6aa-ca17-4a1e-8421-664d2d294bc2",
+    "pe_legislature": "b92386d4-9e79-4854-9a0f-8f9c7c79de13",
+    "yt_env": "067b8575-fced-469b-be59-1efdac06c018",
+    "yt_legislature": "23a9f77a-1106-43fd-bb6b-79a973449339",
+    "nt_env": "b737a500-8b9c-4928-84fb-b1028bd37852",
+    "nt_legislature": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+    "nu_env": "fe91a469-56c6-4142-8212-d55697432c09",
+    "nu_legislature": "24f4b92e-6a76-4773-91b4-4463e9f19da9"
+  },
+  "eccc_note": "ECCC has no row in the sources table. The dispatch's halt condition for ECCC unexpected state cannot trigger because the row does not exist. Two CA-tagged federal rows (Transport Canada T2, Canada Gazette T1) were preserved unchanged — verified pre and post.",
+  "log": [
+    {
+      "name": "ca_federal_snapshot_pre",
+      "ok": true,
+      "detail": "count=2 rows=[Transport Canada(t2/active); Canada Gazette(t1/active)]",
+      "at": "2026-05-07T21:38:46.557Z"
+    },
+    {
+      "name": "ca_eccc_absence_expected",
+      "ok": true,
+      "detail": "no ECCC row in sources table — expected per investigation; no federal modification possible",
+      "at": "2026-05-07T21:38:46.561Z"
+    },
+    {
+      "name": "on_env_insert",
+      "ok": true,
+      "detail": "id=5a5afc4f-b319-4429-a340-554ca046c251 tier=1 name=Ontario Ministry of the Environment, Conservation and Parks",
+      "at": "2026-05-07T21:38:46.859Z"
+    },
+    {
+      "name": "on_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-ON\"] url=https://www.ontario.ca/page/ministry-environment-conservation-parks",
+      "at": "2026-05-07T21:38:46.956Z"
+    },
+    {
+      "name": "on_legislature_insert",
+      "ok": true,
+      "detail": "id=b6b32cb2-0575-4fd7-ba88-3ee7409f4ef1 tier=1 name=Legislative Assembly of Ontario",
+      "at": "2026-05-07T21:38:47.184Z"
+    },
+    {
+      "name": "on_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-ON\"] url=https://www.ola.org/",
+      "at": "2026-05-07T21:38:47.304Z"
+    },
+    {
+      "name": "qc_env_insert",
+      "ok": true,
+      "detail": "id=586ebf7c-0146-4d0e-871d-db604490e358 tier=1 name=Ministère de l'Environnement, de la Lutte contre les changements climatiques, de la Faune et des Parcs (MELCCFP)",
+      "at": "2026-05-07T21:38:47.547Z"
+    },
+    {
+      "name": "qc_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-QC\"] url=https://www.environnement.gouv.qc.ca/",
+      "at": "2026-05-07T21:38:47.645Z"
+    },
+    {
+      "name": "qc_legislature_insert",
+      "ok": true,
+      "detail": "id=874767f5-887e-47a1-ab4d-b12924bc6188 tier=1 name=Assemblée nationale du Québec",
+      "at": "2026-05-07T21:38:47.882Z"
+    },
+    {
+      "name": "qc_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-QC\"] url=https://www.assnat.qc.ca/",
+      "at": "2026-05-07T21:38:47.984Z"
+    },
+    {
+      "name": "bc_env_insert",
+      "ok": true,
+      "detail": "id=69b7cfb9-77f8-4d85-a0f4-ea0711d69328 tier=1 name=British Columbia Ministry of Environment and Climate Change Strategy",
+      "at": "2026-05-07T21:38:48.231Z"
+    },
+    {
+      "name": "bc_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-BC\"] url=https://www2.gov.bc.ca/gov/content/environment",
+      "at": "2026-05-07T21:38:48.337Z"
+    },
+    {
+      "name": "bc_legislature_insert",
+      "ok": true,
+      "detail": "id=3cb91963-21a2-418e-bc33-fa391fd96d38 tier=1 name=Legislative Assembly of British Columbia",
+      "at": "2026-05-07T21:38:49.151Z"
+    },
+    {
+      "name": "bc_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-BC\"] url=https://www.leg.bc.ca/",
+      "at": "2026-05-07T21:38:49.259Z"
+    },
+    {
+      "name": "ab_env_insert",
+      "ok": true,
+      "detail": "id=ce9bbe0c-557b-4c93-92f2-1f0711a529ee tier=1 name=Alberta Environment and Protected Areas",
+      "at": "2026-05-07T21:38:49.475Z"
+    },
+    {
+      "name": "ab_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-AB\"] url=https://www.alberta.ca/environment-and-parks.aspx",
+      "at": "2026-05-07T21:38:49.575Z"
+    },
+    {
+      "name": "ab_legislature_insert",
+      "ok": true,
+      "detail": "id=f27f1e92-54b0-4f47-be25-4301025888a7 tier=1 name=Legislative Assembly of Alberta",
+      "at": "2026-05-07T21:38:49.777Z"
+    },
+    {
+      "name": "ab_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-AB\"] url=https://www.assembly.ab.ca/",
+      "at": "2026-05-07T21:38:49.874Z"
+    },
+    {
+      "name": "mb_env_insert",
+      "ok": true,
+      "detail": "id=44602a3b-a647-4e78-86d0-08820066a81b tier=1 name=Manitoba Environment and Climate Change",
+      "at": "2026-05-07T21:38:50.085Z"
+    },
+    {
+      "name": "mb_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-MB\"] url=https://www.gov.mb.ca/sd/",
+      "at": "2026-05-07T21:38:50.185Z"
+    },
+    {
+      "name": "mb_legislature_insert",
+      "ok": true,
+      "detail": "id=2f7e1fcf-17b4-40e3-9770-2f54afd14ce9 tier=1 name=Legislative Assembly of Manitoba",
+      "at": "2026-05-07T21:38:50.436Z"
+    },
+    {
+      "name": "mb_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-MB\"] url=https://www.gov.mb.ca/legislature/",
+      "at": "2026-05-07T21:38:50.541Z"
+    },
+    {
+      "name": "sk_env_insert",
+      "ok": true,
+      "detail": "id=e720fc6b-fdaf-4f76-b54a-99d1995e2f0b tier=1 name=Saskatchewan Ministry of Environment",
+      "at": "2026-05-07T21:38:50.747Z"
+    },
+    {
+      "name": "sk_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-SK\"] url=https://www.saskatchewan.ca/government/government-structure/ministries/environment",
+      "at": "2026-05-07T21:38:50.845Z"
+    },
+    {
+      "name": "sk_legislature_insert",
+      "ok": true,
+      "detail": "id=f011d2e9-c1b9-40de-92e2-4490b7f8b14f tier=1 name=Legislative Assembly of Saskatchewan",
+      "at": "2026-05-07T21:38:51.059Z"
+    },
+    {
+      "name": "sk_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-SK\"] url=https://www.legassembly.sk.ca/",
+      "at": "2026-05-07T21:38:51.160Z"
+    },
+    {
+      "name": "ns_env_insert",
+      "ok": true,
+      "detail": "id=500b249e-fc60-4cd5-bc38-96c1502191fd tier=1 name=Nova Scotia Department of Environment and Climate Change",
+      "at": "2026-05-07T21:38:51.356Z"
+    },
+    {
+      "name": "ns_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NS\"] url=https://novascotia.ca/nse/",
+      "at": "2026-05-07T21:38:51.454Z"
+    },
+    {
+      "name": "ns_legislature_insert",
+      "ok": true,
+      "detail": "id=ed8bd0e6-3dc6-4bea-9a08-5032eaad4cd8 tier=1 name=Nova Scotia House of Assembly",
+      "at": "2026-05-07T21:38:51.668Z"
+    },
+    {
+      "name": "ns_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NS\"] url=https://nslegislature.ca/",
+      "at": "2026-05-07T21:38:51.764Z"
+    },
+    {
+      "name": "nb_env_insert",
+      "ok": true,
+      "detail": "id=4663bf16-d7f0-41cf-befd-c38da3549ab8 tier=1 name=New Brunswick Department of Environment and Climate Change",
+      "at": "2026-05-07T21:38:51.978Z"
+    },
+    {
+      "name": "nb_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NB\"] url=https://www2.gnb.ca/content/gnb/en/departments/elg.html",
+      "at": "2026-05-07T21:38:52.079Z"
+    },
+    {
+      "name": "nb_legislature_insert",
+      "ok": true,
+      "detail": "id=9e3f5b77-0a9d-41c4-9703-cdcb55999ce4 tier=1 name=Legislative Assembly of New Brunswick",
+      "at": "2026-05-07T21:38:52.305Z"
+    },
+    {
+      "name": "nb_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NB\"] url=https://www2.gnb.ca/content/gnb/en/legislative.html",
+      "at": "2026-05-07T21:38:52.407Z"
+    },
+    {
+      "name": "nl_env_insert",
+      "ok": true,
+      "detail": "id=5a08fec4-cecd-4cb8-8b25-45e034d94980 tier=1 name=Newfoundland and Labrador Department of Environment and Climate Change",
+      "at": "2026-05-07T21:38:52.636Z"
+    },
+    {
+      "name": "nl_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NL\"] url=https://www.gov.nl.ca/eccm/",
+      "at": "2026-05-07T21:38:52.738Z"
+    },
+    {
+      "name": "nl_legislature_insert",
+      "ok": true,
+      "detail": "id=b1c023a0-c95e-4ec4-b300-7901f36d8ab1 tier=1 name=Newfoundland and Labrador House of Assembly",
+      "at": "2026-05-07T21:38:52.957Z"
+    },
+    {
+      "name": "nl_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NL\"] url=https://www.assembly.nl.ca/",
+      "at": "2026-05-07T21:38:53.053Z"
+    },
+    {
+      "name": "pe_env_insert",
+      "ok": true,
+      "detail": "id=a30cd6aa-ca17-4a1e-8421-664d2d294bc2 tier=1 name=Prince Edward Island Department of Environment, Energy and Climate Action",
+      "at": "2026-05-07T21:38:53.282Z"
+    },
+    {
+      "name": "pe_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-PE\"] url=https://www.princeedwardisland.ca/en/topic/environment-energy-and-climate-action",
+      "at": "2026-05-07T21:38:53.393Z"
+    },
+    {
+      "name": "pe_legislature_insert",
+      "ok": true,
+      "detail": "id=b92386d4-9e79-4854-9a0f-8f9c7c79de13 tier=1 name=Legislative Assembly of Prince Edward Island",
+      "at": "2026-05-07T21:38:53.603Z"
+    },
+    {
+      "name": "pe_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-PE\"] url=https://www.assembly.pe.ca/",
+      "at": "2026-05-07T21:38:53.702Z"
+    },
+    {
+      "name": "yt_env_insert",
+      "ok": true,
+      "detail": "id=067b8575-fced-469b-be59-1efdac06c018 tier=1 name=Yukon Department of Environment",
+      "at": "2026-05-07T21:38:53.912Z"
+    },
+    {
+      "name": "yt_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-YT\"] url=https://yukon.ca/en/environment-natural-resources",
+      "at": "2026-05-07T21:38:54.012Z"
+    },
+    {
+      "name": "yt_legislature_insert",
+      "ok": true,
+      "detail": "id=23a9f77a-1106-43fd-bb6b-79a973449339 tier=1 name=Yukon Legislative Assembly",
+      "at": "2026-05-07T21:38:54.247Z"
+    },
+    {
+      "name": "yt_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-YT\"] url=https://yukonassembly.ca/",
+      "at": "2026-05-07T21:38:54.341Z"
+    },
+    {
+      "name": "nt_env_insert",
+      "ok": true,
+      "detail": "id=b737a500-8b9c-4928-84fb-b1028bd37852 tier=1 name=Northwest Territories Department of Environment and Climate Change",
+      "at": "2026-05-07T21:38:54.570Z"
+    },
+    {
+      "name": "nt_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NT\"] url=https://www.gov.nt.ca/ecc/",
+      "at": "2026-05-07T21:38:54.699Z"
+    },
+    {
+      "name": "nt_legislature_insert",
+      "ok": true,
+      "detail": "id=77d85d87-5d4d-40f1-a0ed-9d2745f69b68 tier=1 name=Northwest Territories Legislative Assembly",
+      "at": "2026-05-07T21:38:54.905Z"
+    },
+    {
+      "name": "nt_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NT\"] url=https://www.assembly.gov.nt.ca/",
+      "at": "2026-05-07T21:38:55.007Z"
+    },
+    {
+      "name": "nu_env_insert",
+      "ok": true,
+      "detail": "id=fe91a469-56c6-4142-8212-d55697432c09 tier=1 name=Nunavut Department of Environment",
+      "at": "2026-05-07T21:38:55.268Z"
+    },
+    {
+      "name": "nu_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NU\"] url=https://www.gov.nu.ca/environment",
+      "at": "2026-05-07T21:38:55.371Z"
+    },
+    {
+      "name": "nu_legislature_insert",
+      "ok": true,
+      "detail": "id=24f4b92e-6a76-4773-91b4-4463e9f19da9 tier=1 name=Legislative Assembly of Nunavut",
+      "at": "2026-05-07T21:38:55.597Z"
+    },
+    {
+      "name": "nu_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"CA-NU\"] url=https://assembly.nu.ca/",
+      "at": "2026-05-07T21:38:55.696Z"
+    },
+    {
+      "name": "CA-ON_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-QC_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-BC_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-AB_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-MB_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-SK_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-NS_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-NB_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-NL_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-PE_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-YT_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-NT_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "CA-NU_count",
+      "ok": true,
+      "detail": "expected 2 (env_body + legislature), got 2",
+      "at": "2026-05-07T21:38:55.808Z"
+    },
+    {
+      "name": "ca_federal_snapshot_post",
+      "ok": true,
+      "detail": "count=2 rows=[Transport Canada(t2/active/admin=false); Canada Gazette(t1/active/admin=false)]",
+      "at": "2026-05-07T21:38:55.912Z"
+    }
+  ]
+}
