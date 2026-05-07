@@ -1,11 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
-import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
-import { ChevronDown } from "lucide-react";
 
 interface WhatChangedProps {
   resources: Resource[];
@@ -13,119 +9,201 @@ interface WhatChangedProps {
   auditDate?: string;
 }
 
-export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
-  const [whatChangedExpanded, setWhatChangedExpanded] = useState(false);
+const PRIORITY_BAR: Record<string, string> = {
+  CRITICAL: "var(--color-critical)",
+  HIGH: "var(--color-high)",
+  MODERATE: "var(--color-moderate)",
+  LOW: "var(--color-low)",
+};
 
+const PRIORITY_LABEL_COLOR: Record<string, string> = {
+  CRITICAL: "var(--color-critical)",
+  HIGH: "var(--color-high)",
+  MODERATE: "var(--color-moderate)",
+  LOW: "var(--color-low)",
+};
+
+function dayCountMeta(r: Resource): { label: string; color: string } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const candidates: string[] = [];
+  if (r.complianceDeadline) candidates.push(r.complianceDeadline);
+  if (r.timeline) {
+    for (const t of r.timeline) {
+      if (t.date) candidates.push(t.date);
+    }
+  }
+  for (const raw of candidates) {
+    const d = new Date(raw + (raw.length === 10 ? "T00:00:00" : ""));
+    if (Number.isNaN(d.getTime())) continue;
+    const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+    if (diff < 0) continue;
+    if (diff <= 365) {
+      return { label: `${diff} day${diff === 1 ? "" : "s"}`, color: PRIORITY_LABEL_COLOR[r.priority] || "var(--color-text-muted)" };
+    }
+    const q = Math.floor(d.getMonth() / 3) + 1;
+    const yy = String(d.getFullYear()).slice(-2);
+    return { label: `Q${q} '${yy}`, color: PRIORITY_LABEL_COLOR[r.priority] || "var(--color-text-muted)" };
+  }
+  return { label: "—", color: "var(--color-text-muted)" };
+}
+
+interface ItemRow {
+  id: string;
+  resource: Resource;
+  changeType: "New" | "Updated";
+  detail: string;
+  priorityForLabel: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+}
+
+export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
+  const newResources = auditDate ? resources.filter((r) => r.added === auditDate) : [];
   const changedIds = Object.keys(changelog);
   const changed = resources.filter((r) => changedIds.includes(r.id));
-  const newResources = auditDate
-    ? resources.filter((r) => r.added === auditDate)
-    : [];
 
-  if (changed.length === 0 && newResources.length === 0) return null;
+  if (newResources.length === 0 && changed.length === 0) return null;
 
-  const allIds = [...new Set([...newResources.map((r) => r.id), ...changed.map((r) => r.id)])];
+  const newRows: ItemRow[] = newResources.map((r) => ({
+    id: `new-${r.id}`,
+    resource: r,
+    changeType: "New",
+    detail: r.note,
+    priorityForLabel: r.priority,
+  }));
+
+  const updatedRows: ItemRow[] = changed.flatMap((r) => {
+    const entries = changelog[r.id] || [];
+    const head = entries[0];
+    return [
+      {
+        id: `upd-${r.id}`,
+        resource: r,
+        changeType: "Updated" as const,
+        detail: head?.now || head?.impact || head?.fields?.join(", ") || r.note,
+        priorityForLabel: r.priority,
+      },
+    ];
+  });
+
+  // Dedup: an item that's both NEW and in changelog should only show as New.
+  const seen = new Set<string>();
+  const allRows = [...newRows, ...updatedRows].filter((row) => {
+    const k = row.resource.id;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  const total = allRows.length;
+  const newCriticalCount = newRows.filter((r) => r.priorityForLabel === "CRITICAL").length;
+
+  const summary =
+    newCriticalCount > 0
+      ? `${newCriticalCount} new critical item${newCriticalCount === 1 ? "" : "s"} entered scope this audit.`
+      : `${total} change${total === 1 ? "" : "s"} since last audit — review and update workflows accordingly.`;
 
   return (
-    <div className="cl-card">
-      <button
-        onClick={() => setWhatChangedExpanded(!whatChangedExpanded)}
-        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
+    <div
+      className="cl-card"
+      style={{ padding: "18px 22px 20px" }}
+    >
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          letterSpacing: "-0.01em",
+          color: "var(--color-text-primary)",
+          marginBottom: 12,
+          paddingBottom: 12,
+          borderBottom: "1px solid var(--color-border)",
+        }}
       >
-        <div className="text-left">
-          <h3 className="text-sm font-bold tracking-wide uppercase" style={{ color: "var(--color-text-primary)" }}>
-            What Changed ({allIds.length})
-          </h3>
-          <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-            Since last audit — {auditDate || "recent"}
-          </p>
-        </div>
-        <ChevronDown
-          size={14}
-          strokeWidth={2}
-          className={cn(
-            "text-text-secondary transition-transform duration-300",
-            whatChangedExpanded && "rotate-180"
-          )}
-          style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
-        />
-      </button>
-      {whatChangedExpanded && (
-        <div className="px-4 pb-4 space-y-4">
-          {/* NEW Resources */}
-          {newResources.length > 0 && (
-            <div>
-              <span className="text-xs font-bold tracking-wider uppercase text-[#34C759] block mb-2">
-                New ({newResources.length})
-              </span>
-              <div className="divide-y divide-border-subtle">
-                {newResources.map((r) => (
-                  <Link
-                    key={r.id}
-                    href={`/regulations/${r.id}`}
-                    className="w-full text-left flex items-center gap-3 px-1 py-2.5 hover:bg-surface-overlay cursor-pointer transition-colors no-underline"
-                  >
-                    <span className="text-xs font-semibold text-[#34C759] shrink-0">NEW</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-text-primary truncate">{r.title}</p>
-                      <p className="text-xs text-text-secondary truncate">{r.note}</p>
-                    </div>
-                    <PriorityBadge level={r.priority} />
-                  </Link>
-                ))}
+        What changed — {total} since last audit
+      </div>
+      <p
+        style={{
+          fontSize: 13.5,
+          lineHeight: 1.55,
+          color: "var(--color-text-secondary)",
+          margin: "0 0 14px",
+        }}
+      >
+        {summary}
+      </p>
+      {allRows.map((row, idx) => {
+        const meta = dayCountMeta(row.resource);
+        const labelColor = PRIORITY_LABEL_COLOR[row.priorityForLabel] || "var(--color-text-muted)";
+        return (
+          <Link
+            key={row.id}
+            href={`/regulations/${row.resource.id}`}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "3px 1fr auto",
+              gap: 12,
+              padding: "14px 0",
+              borderTop: idx === 0 ? "0" : "1px solid var(--color-border)",
+              paddingTop: idx === 0 ? 2 : 14,
+              alignItems: "flex-start",
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            <span
+              style={{
+                alignSelf: "stretch",
+                borderRadius: 2,
+                background: PRIORITY_BAR[row.priorityForLabel] || "var(--color-text-muted)",
+                minHeight: 28,
+              }}
+            />
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  marginBottom: 2,
+                  color: labelColor,
+                }}
+              >
+                {row.changeType} · {row.priorityForLabel.charAt(0) + row.priorityForLabel.slice(1).toLowerCase()}
+              </div>
+              <div
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                {row.resource.title}
+              </div>
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: "var(--color-text-secondary)",
+                  marginTop: 2,
+                  lineHeight: 1.4,
+                }}
+              >
+                {row.detail}
               </div>
             </div>
-          )}
-
-          {/* UPDATED Resources */}
-          {changed.length > 0 && (
-            <div>
-              <span className="text-xs font-semibold tracking-wider uppercase text-[#C77700] block mb-2">
-                Updated ({changed.length})
-              </span>
-              <div className="divide-y divide-border-subtle">
-                {changed.map((r) => {
-                  const changes = changelog[r.id] || [];
-                  return (
-                    <Link
-                      key={r.id}
-                      href={`/regulations/${r.id}`}
-                      className="w-full block text-left px-1 py-3 hover:bg-surface-overlay cursor-pointer transition-colors no-underline"
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-xs font-medium text-text-primary truncate flex-1">
-                          {r.title}
-                        </p>
-                        <PriorityBadge level={r.priority} />
-                      </div>
-                      {changes.map((ch, i) => (
-                        <div key={i} className="mb-1.5 last:mb-0">
-                          <span className="text-xs font-semibold text-[#C77700]">
-                            {ch.fields?.join(", ")}
-                          </span>
-                          {ch.prev && (
-                            <p className="text-xs text-text-secondary line-through">
-                              {ch.prev}
-                            </p>
-                          )}
-                          {ch.now && (
-                            <p className="text-xs text-text-primary font-medium">
-                              {ch.now}
-                            </p>
-                          )}
-                          {ch.impact && (
-                            <p className="text-xs text-[#C77700]">{ch.impact}</p>
-                          )}
-                        </div>
-                      ))}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                fontVariantNumeric: "tabular-nums",
+                whiteSpace: "nowrap",
+                color: meta.color,
+              }}
+            >
+              {meta.label}
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }
