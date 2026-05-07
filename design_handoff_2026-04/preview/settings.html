@@ -90,16 +90,27 @@
     <div class="masthead">
       <div class="mh-eyebrow">Personal preferences</div>
       <h1 class="mh-title">Settings</h1>
-      <div class="mh-date">General · dashboard · exports · data · archive</div>
+      <div class="mh-date">General · dashboard · exports · saved searches · data · archive · help</div>
     </div>
     <div class="body-wrap">
 
+      <!--
+        Tab roster reflects live SettingsPage.tsx post PR-D + PR-L merges
+        (Wave 3, 2026-05-07). Seven tabs: General (Notifications + Display +
+        Briefing schedule live inside this tab post-PR-D), Dashboard, Exports,
+        Saved searches (PR-L restoration), Data & supersessions, Archive,
+        Help (PR-L restoration). Updated 2026-05-07 by docs/wave4 dispatch
+        per the design-audit-framing principle — preview tracks live
+        surface as the authoritative shape.
+      -->
       <div class="tabs" id="tabs">
         <a data-tab="general" class="on">General</a>
         <a data-tab="dashboard">Dashboard</a>
         <a data-tab="exports">Exports</a>
+        <a data-tab="saved">Saved searches</a>
         <a data-tab="data">Data &amp; supersessions</a>
         <a data-tab="archive">Archive</a>
+        <a data-tab="help">Help</a>
       </div>
 
       <section class="panel on" data-panel="general">
@@ -159,6 +170,17 @@
         </div>
       </section>
 
+      <section class="panel" data-panel="saved">
+        <div class="card">
+          <div class="card-head"><h3>Saved searches</h3><span class="meta">Reusable filter combinations on /regulations</span></div>
+          <div class="card-body">
+            <div class="ds-row"><div class="nm">EU critical · ocean<small>jurisdiction:EU · priority:critical · mode:ocean</small></div><div class="v">12</div></div>
+            <div class="ds-row"><div class="nm">CARB Q2 due dates<small>jurisdiction:US-CA · due:next-90-days</small></div><div class="v">5</div></div>
+            <div class="ds-row"><div class="nm">FuelEU surcharges<small>topic:fuel-mandates · jurisdiction:EU</small></div><div class="v">8</div></div>
+          </div>
+        </div>
+      </section>
+
       <section class="panel" data-panel="data">
         <div class="card">
           <div class="card-head"><h3>Data summary</h3></div>
@@ -180,6 +202,18 @@
             <div class="arch-row"><span class="when">2 days ago</span><div class="nm">EU CBAM Delegated Act<small>EU-CBAM-DA · was Critical</small></div><span class="pill">Regulation</span><button class="restore">Restore</button></div>
             <div class="arch-row"><span class="when">5 days ago</span><div class="nm">CARB AB-2446 — embodied carbon<small>CARB-AB2446 · was High</small></div><span class="pill">Regulation</span><button class="restore">Restore</button></div>
             <div class="arch-row"><span class="when">2 wks ago</span><div class="nm">Q4 2025 retrospective brief<small>Authored by Marta · 12 reads</small></div><span class="pill">Brief</span><button class="restore">Restore</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="help">
+        <div class="card">
+          <div class="card-head"><h3>Help &amp; documentation</h3></div>
+          <div class="card-body">
+            <div class="ds-row"><div class="nm">Quick start guide<small>How to set up briefings, filters, and watchlists</small></div><a href="#" class="restore">Open</a></div>
+            <div class="ds-row"><div class="nm">Source trust framework<small>How sources are tiered and trust scores computed</small></div><a href="#" class="restore">Open</a></div>
+            <div class="ds-row"><div class="nm">Keyboard shortcuts<small>All shortcuts for the platform</small></div><a href="#" class="restore">Open</a></div>
+            <div class="ds-row"><div class="nm">Contact support<small>Email, in-app messaging, response SLAs</small></div><a href="#" class="restore">Open</a></div>
           </div>
         </div>
       </section>

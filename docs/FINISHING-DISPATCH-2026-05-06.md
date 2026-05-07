@@ -1,9 +1,27 @@
-# Caro's Ledge — Complete Finishing Dispatch (v2)
+# Caro's Ledge — Complete Finishing Dispatch (v3)
 
-**Date:** 2026-05-06 (v2 authored), 2026-05-07 (transition edits applied)
-**Supersedes:** docs/FINISHING-DISPATCH-2026-05-06.md (v1)
+**Date:** 2026-05-06 (v2 authored), 2026-05-07 (v3 transition edits applied)
+**Supersedes:** docs/FINISHING-DISPATCH-2026-05-06.md (v2)
+**Master HEAD at v3 authoring:** `3f8d813` (post PR #54 Map Coverage gaps card)
 **Master HEAD at v2 commit:** `946403c` (post Wave 3 surface + PR-K smaller-delta merges)
 **Master HEAD at v2 authoring:** `cfc7f7e` (post Wave 2 merges) — preserved for historical context
+
+## Intended-use principle (anchors v3 Wave 4 restructure)
+
+**Design audits are commentary on design fidelity. Preview files are design exploration source-of-truth, not architectural authority. When audit findings conflict with intended use, intended use wins.**
+
+This principle (now codified in `fsi-app/.claude/CLAUDE.md`) anchors the Wave 4 restructure below. Several audit findings that v2 treated as full-rebuild scope turned out to be commentary on preview files that intentionally lag the live surfaces. Where the live surface is correct per intended use, the dispatch downscopes to a preview-update or a single targeted fix; where the live surface is genuinely broken, the rebuild proceeds as scoped. Functional and factual fixes proceed autonomously; aesthetic drift the system cannot resolve from intended-use signals routes to integrity flags for Admin review (see CLAUDE.md "Integrity flags — agent contract for design_drift"), not to Jason chat.
+
+## Changes from v2
+
+- **Wave 4 restructured per audit-framing principle.**
+  - **PR-I Operations rebuild → CANCELED.** Audit confirmed the live Operations surface is OK as shipped; the "rebuild" scope was commentary on a preview that no longer matches intended use. Closes the rebuild scope. If specific functional issues surface later, they get individual targeted PRs, not a full rebuild dispatch.
+  - **PR-H Research full reframe → DOWNSCOPED to Source coverage note.** Audit's "horizon scan reframe" was commentary; the live Research surface plus Hotfix-4 context pass already covers the intended use. Remaining actionable item is a Source coverage note on the Pipeline tab — bundled into Track A as Agent A1.
+  - **PR-J Map full fix → DOWNSCOPED.** Two actionable items remain: (1) Abstract toggle removal (Track A Agent A2 — the toggle was a preview-era affordance with no operator value), (2) Coverage gaps data-driven (Track A Agent A3 — already merged at PR #54, `3f8d813`). Sub-national markers + 5-canonical-jurisdictions question is Track C (integrity-flag routing if the agent can't resolve from dispatch context).
+- **Wave 4 = three tracks running concurrently.**
+  - **Track A: 5 surface agents** (small targeted fixes carved out of the canceled/downscoped Wave 4 PRs above, plus PR #54 already merged).
+  - **Track B: this doc PR** (`docs/wave4-documentation-and-integrity-flags`) — design-audit framing codified, dispatch v3 commit, preview cleanup, design_drift integrity-flag agent contract documented.
+  - **Track C: self-routing via integrity flags** — design drift the agents can't resolve from dispatch context lands as `category='design_drift'` flag rows for Admin review, no Jason bottleneck. Schema vehicle for these flags is documented in CLAUDE.md as a separate-dispatch dependency (current `agent_integrity_flag` columns on `intelligence_items` don't carry a category yet).
 
 ## Changes from v1
 
@@ -395,13 +413,101 @@ mode. After production green, fire Wave 4.
 
 ---
 
-## Surface track Wave 4
+## Surface track Wave 4 (v3 restructure)
 
-**Targets:** PR-H, PR-I, PR-J. Three remaining major surface rebuilds.
+**Targets:** Three concurrent tracks per the intended-use principle (see "Changes from v2" at top of this document).
 
-**Audit items addressed:** F12 (full Research reframe), F19 (Map jurisdictions canonical 5 + sub-national markers), Operations rebuild beyond F13 hide.
+- **Track A — Surface (5 agents).** Small carve-outs of the canceled/downscoped Wave 4 PRs. Source coverage note on Research Pipeline (Agent A1), Abstract toggle removal on Map (Agent A2), Coverage gaps data-driven on Map (Agent A3 — already merged at PR #54 `3f8d813`), plus two additional surface agents working in parallel on file-disjoint targets discovered during dispatch authoring.
+- **Track B — Documentation + integrity-flag wiring.** This very doc PR (`docs/wave4-documentation-and-integrity-flags`) commits dispatch v3, codifies the audit-framing + accordion-default principles in CLAUDE.md, updates the settings preview to track the live SettingsPage tab roster, archives orphan community preview iterations, and documents the agent contract for `category='design_drift'` integrity flags.
+- **Track C — Self-routing integrity flags.** No dispatch fires; agents writing flags is the dispatch. Drift findings the agents can't resolve from dispatch context surface as Admin-queue rows rather than chat interruptions to Jason.
 
-### Wave 4 paste-ready dispatch
+**Audit items addressed (v3):** F12 actionable remainder (Source coverage note), F19 actionable remainders (Abstract toggle removal — done in Track A; Coverage gaps data-driven — done at PR #54). Operations rebuild scope explicitly canceled. Sub-national markers + 5-canonical-jurisdictions deferred to Track C self-routing if the agents can't resolve, and to PR-N URL param work in Wave 5 for the URL-handling layer.
+
+### Wave 4 v3 dispatch — Track A (paste-ready)
+
+```
+DISPATCH: Wave 4 Track A surface agents
+PRECONDITION: Wave 3 merged, production green. PR #54 (Coverage gaps
+data-driven) already merged at 3f8d813.
+
+Two parallel surface agents via worktrees, file-disjoint. Autonomous
+execution per autonomous mode dispatch.
+
+═══════════════════════════════════════════════════════════════════
+A1: Research Pipeline source coverage note
+═══════════════════════════════════════════════════════════════════
+BRANCH: ui/wave4-a1-research-source-coverage-note
+PR TITLE: ui: Research Pipeline source coverage note
+
+SCOPE
+Adds a header note on the Research Pipeline tab explaining current
+source coverage at the per-stage level. Replaces the dropped "full
+reframe" — the live surface plus Hotfix-4 context pass already cover
+the intended use; the only remaining audit-actionable item is making
+source coverage explicit per stage.
+
+INVESTIGATION FIRST
+- ResearchView.tsx Pipeline tab structure post-Hotfix-4
+- per-stage source counts (Draft, Active review, Published)
+- existing aggregation queries that can be reused
+
+VERIFICATION
+- Source coverage note renders per stage
+- Counts source from real queries (no placeholder strings)
+- Build clean, typecheck clean, no hydration warnings
+- All 3 Vercel preview checks SUCCESS
+
+═══════════════════════════════════════════════════════════════════
+A2: Map Abstract toggle removal
+═══════════════════════════════════════════════════════════════════
+BRANCH: ui/wave4-a2-map-abstract-toggle-removal
+PR TITLE: ui: Remove Map Abstract toggle (preview-era affordance)
+
+SCOPE
+Removes the Real/Abstract toggle from MapView. The toggle is a
+preview-era affordance with no operator value — Real view is the only
+production-relevant rendering. Hotfix-2 fixed its z-index but the
+toggle itself is the design drift; intended-use principle says drop
+it rather than keep maintaining it.
+
+INVESTIGATION FIRST
+- MapView.tsx toggle component + state
+- any code paths that branch on the toggle state
+- any URL params or stored preferences referencing Abstract view
+
+VERIFICATION
+- Toggle no longer renders
+- No dead branches in MapView code
+- Map renders Real view only (the production-relevant path)
+- Build clean, typecheck clean, no hydration warnings
+- All 3 Vercel preview checks SUCCESS
+
+POST-PR (both agents)
+Both merge autonomously per dispatch contract. After Track A merges
+and production green, Wave 4 closes. Wave 5 dispatch fires unchanged.
+```
+
+### Track B paste-ready dispatch (this PR)
+
+See `docs/wave4-documentation-and-integrity-flags` branch. Five sub-tasks:
+DESIGN-AUDIT-2026-05.md commit (skipped — file not in repo), dispatch v3
+update (this commit), preview/settings.html update to live tab roster,
+community preview archival (community-v1/-v2.html files not present in
+repo — surfaced rather than fabricated), CLAUDE.md additions for design-
+audit framing + accordion default + design_drift integrity flag contract.
+
+### Track C contract
+
+Agents writing `category='design_drift'` flags is the dispatch. The
+schema vehicle (an `integrity_flags` table with a `category` column) is
+not in place as of `3f8d813`; current `agent_integrity_flag` columns on
+`intelligence_items` flag agent-emitted brief integrity, not design
+drift. Until the vehicle ships (separate dispatch), drift findings the
+agents can't resolve surface in PR descriptions and verification logs
+under a "design drift surfaced" heading. See CLAUDE.md for the full
+contract.
+
+### v2 Wave 4 dispatch (RETAINED FOR HISTORICAL CONTEXT — DO NOT FIRE)
 
 ```
 DISPATCH: Surface Wave 4
@@ -930,7 +1036,7 @@ If 10-agent first window strains Claude Code coordination, fall back to staggere
 
 ## Document handoff
 
-This finishing dispatch v2 belongs at `docs/FINISHING-DISPATCH-2026-05-06.md` (replaces v1). Pairs with:
+This finishing dispatch v3 belongs at `docs/FINISHING-DISPATCH-2026-05-06.md` (replaces v2, which replaced v1). Pairs with:
 
 - `docs/SESSION-AUDIT-2026-05-05.md`
 - `docs/VISUAL-RECONCILIATION-2026-05-06.md`
@@ -938,4 +1044,4 @@ This finishing dispatch v2 belongs at `docs/FINISHING-DISPATCH-2026-05-06.md` (r
 - `docs/BUILD-BREAKDOWN-2026-05-06.md`
 - `docs/PERF-PLAYBOOK.md`
 
-Three-document handoff for next session if interrupted: this finishing dispatch v2 + visual reconciliation + session-audit.
+Three-document handoff for next session if interrupted: this finishing dispatch v3 + visual reconciliation + session-audit.

@@ -67,6 +67,29 @@ Worked examples from Wave 2 (2026-05-06):
 Cost saved across Wave 2: ~40 minutes of net-new component design plus the ongoing maintenance cost of duplicates.
 
 This principle pairs with verification-before-authorization. Investigation surfaces what exists. Reuse adapts what's there. Construction is the last resort, not the first instinct.
+
+## Design audit framing (in force from 2026-05-07)
+
+**Design audits are commentary on design fidelity. Preview files are design exploration source-of-truth, not architectural authority. When audit findings conflict with intended use, intended use wins.**
+
+The preview files in `design_handoff_2026-04/preview/` are static HTML explorations of visual direction. They predate the live Next.js surfaces and intentionally lag behind them — preview HTML is the place to try aesthetic ideas cheaply, not the place that locks the architecture. When a preview shows a tab roster, layout, or affordance that the live surface no longer matches, the live surface is the authoritative shape; the preview gets updated to reflect the live structure (or the divergence is documented and accepted).
+
+Audit findings split cleanly along this axis:
+
+- **Functional and factual fixes** (broken click target, wrong route, missing aria-label, hydration warning, divergence between two live surfaces that both claim to be authoritative) — proceed autonomously per verification-before-authorization. The dispatch contract carries them.
+- **Aesthetic drift the system can resolve from intended-use signals in dispatch context** (preview shows old tab list, live ships new tab list, dispatch context confirms the new list is intended) — proceed autonomously; update the preview to match the live surface, or note the intentional divergence.
+- **Aesthetic drift the system cannot resolve from intended-use signals** (preview shows a treatment the live surface no longer ships, but no dispatch context tells the agent which one is intended) — route to integrity flags as a `category='design_drift'` row for Admin review, NOT to Jason chat. The flag becomes a tracked decision that survives session boundaries.
+
+The principle eliminates the bottleneck where every audit finding routed to Jason for adjudication. Most findings are functional and clearly resolvable. The genuinely ambiguous ones — where intended use is the only way to break the tie — surface as durable Admin queue items, not as chat interruptions.
+
+## Accordion default-state (in force from 2026-05-07)
+
+**Accordions are CLOSED across the platform.** Never open the first category by default. The pattern `defaultOpen={i === 0}` is forbidden.
+
+A first-open-by-default accordion makes the surface look pre-judged: it asserts that the first category is the most important without the operator having said so. Closed-by-default keeps the surface neutral and lets the operator's interaction reveal where attention goes. The pattern is enforced by code review and by integrity flags when audits surface it.
+
+This applies to every accordion in the app: regulations grouped by topic, operations regions, settings sub-sections, archive items grouped by reason, anywhere `<Accordion>` or its equivalent is mounted.
+
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
 - Supabase (PostgreSQL) — live; 25 migrations applied; data model documented in `supabase/migrations/`.
 - Zustand stores (resourceStore, navigationStore, settingsStore, exportStore, sourceStore)
@@ -198,6 +221,25 @@ Phase B.2.5 surfaces:
 - Staged updates require human approval
 - Claude skill runs separately, not embedded
 - Light mode is default; dark mode is opt-in variant
+
+## Integrity flags — agent contract for design_drift (in force from 2026-05-07)
+
+When an agent detects code-vs-preview drift (a divergence between what `design_handoff_2026-04/preview/*.html` shows and what the live Next.js surface ships) and the dispatch context does not tell the agent which is intended, the agent does NOT route the question to Jason chat. Instead it writes a flag that admins resolve out-of-band.
+
+The intent is: design drift is a real signal, but most resolutions are not blocking, and the system should accumulate them in a durable queue rather than interrupting active work.
+
+**Schema status as of 2026-05-07.** The current implementation flags integrity concerns via boolean columns ON `intelligence_items` (`agent_integrity_flag`, `agent_integrity_phrase`, `agent_integrity_flagged_at`, `agent_integrity_resolved_at`, `agent_integrity_resolved_by`) — see migrations 035 and 044. There is NOT (as of this writing) a separate `integrity_flags` table with a `category` column; design-drift flags need a schema vehicle that doesn't currently exist on the data side.
+
+**Until that vehicle lands**, agents that detect unresolvable design drift surface the finding in their dispatch verification log under a "design drift surfaced" heading with: surface affected, drift description, intended-use ambiguity, and recommended resolution options. The PR description carries the same. This keeps the signal durable in the audit trail even though there's no row to write yet.
+
+**When a design-drift integrity-flags vehicle ships** (separate dispatch — likely a new `integrity_flags` table with `category TEXT`, `description TEXT`, `surface TEXT`, `recommended_resolutions JSONB`, plus the same flagged_at / resolved_at / resolved_by columns the existing flags use), the contract becomes:
+
+- Agent writes a row with `category='design_drift'` plus the description, affected surface, and resolution options
+- Row appears in the Admin queue (`/admin` integrity sub-tab, alongside the existing agent-flagged briefs)
+- Admin (Jason) resolves the flag by picking a resolution option, which becomes the authoritative answer for future investigations of the same drift
+- Resolution writes back to the row with `agent_integrity_resolved_at` + `agent_integrity_resolved_by`
+
+The agent never writes to chat about a design drift it can't resolve. The flag IS the channel.
 
 ## Known data debt
 
