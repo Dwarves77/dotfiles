@@ -1,0 +1,145 @@
+{
+  "completed": true,
+  "total_inserts": 10,
+  "inserted_ids": {
+    "md_legislature": "64328f32-7e83-4487-83ac-1eb68efd6450",
+    "de_legislature": "a8a4c514-7430-4930-925f-5bce7c7a5997",
+    "nj_dep": "8b2a7b49-ac16-438c-8596-3b060dcb8b45",
+    "pa_legislature": "ec6b370e-ebc8-4d21-bff9-e09e7a4b7330",
+    "ct_legislature": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+    "ma_dep": "5b676647-171e-4ba4-b468-28f7d41c2e72",
+    "nh_des": "dbb217d8-19c2-4f86-b481-eb076026f898",
+    "nh_legislature": "8ee1c94f-c248-4e03-ae90-f3b55c1cd6f6",
+    "vt_dec": "44e3ea14-8246-43b0-a01c-28fd3ccdcb8e",
+    "me_legislature": "97b05c0a-ad3e-4f8a-87af-7e948297a81c"
+  },
+  "pa_dep_skipped_reason": "PA DEP institutional duplicate — existing T2 row at https://www.pa.gov/agencies/dep.html serves the same env-body role. Skipped to avoid duplicate.",
+  "log": [
+    {
+      "name": "md_mde_suspended_preserved",
+      "ok": true,
+      "detail": "id=9fefb65c-1e41-4c6b-a7a1-03982884604f status=suspended tier=2 admin_only=false",
+      "at": "2026-05-07T16:06:09.781Z"
+    },
+    {
+      "name": "md_legislature_insert",
+      "ok": true,
+      "detail": "id=64328f32-7e83-4487-83ac-1eb68efd6450 tier=1 name=Maryland General Assembly (mgaleg.maryland.gov)",
+      "at": "2026-05-07T16:06:10.106Z"
+    },
+    {
+      "name": "md_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-MD\"] url=https://mgaleg.maryland.gov/",
+      "at": "2026-05-07T16:06:10.207Z"
+    },
+    {
+      "name": "de_legislature_insert",
+      "ok": true,
+      "detail": "id=a8a4c514-7430-4930-925f-5bce7c7a5997 tier=1 name=Delaware General Assembly (legis.delaware.gov)",
+      "at": "2026-05-07T16:06:10.580Z"
+    },
+    {
+      "name": "de_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-DE\"] url=https://legis.delaware.gov/",
+      "at": "2026-05-07T16:06:10.713Z"
+    },
+    {
+      "name": "nj_dep_insert",
+      "ok": true,
+      "detail": "id=8b2a7b49-ac16-438c-8596-3b060dcb8b45 tier=1 name=New Jersey Department of Environmental Protection (NJDEP)",
+      "at": "2026-05-07T16:06:10.929Z"
+    },
+    {
+      "name": "nj_dep_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-NJ\"] url=https://www.nj.gov/dep/",
+      "at": "2026-05-07T16:06:11.042Z"
+    },
+    {
+      "name": "pa_legislature_insert",
+      "ok": true,
+      "detail": "id=ec6b370e-ebc8-4d21-bff9-e09e7a4b7330 tier=1 name=Pennsylvania General Assembly (legis.state.pa.us)",
+      "at": "2026-05-07T16:06:11.258Z"
+    },
+    {
+      "name": "pa_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-PA\"] url=https://www.legis.state.pa.us/",
+      "at": "2026-05-07T16:06:11.354Z"
+    },
+    {
+      "name": "ct_legislature_insert",
+      "ok": true,
+      "detail": "id=cf7ab33d-f61e-4cc2-824f-29d9088924ac tier=1 name=Connecticut General Assembly (cga.ct.gov)",
+      "at": "2026-05-07T16:06:11.570Z"
+    },
+    {
+      "name": "ct_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-CT\"] url=https://www.cga.ct.gov/",
+      "at": "2026-05-07T16:06:11.671Z"
+    },
+    {
+      "name": "ma_dep_insert",
+      "ok": true,
+      "detail": "id=5b676647-171e-4ba4-b468-28f7d41c2e72 tier=1 name=Massachusetts Department of Environmental Protection (MassDEP)",
+      "at": "2026-05-07T16:06:11.970Z"
+    },
+    {
+      "name": "ma_dep_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-MA\"] url=https://www.mass.gov/orgs/massachusetts-department-of-environmental-protection",
+      "at": "2026-05-07T16:06:12.071Z"
+    },
+    {
+      "name": "nh_des_insert",
+      "ok": true,
+      "detail": "id=dbb217d8-19c2-4f86-b481-eb076026f898 tier=1 name=New Hampshire Department of Environmental Services (NHDES)",
+      "at": "2026-05-07T16:06:12.392Z"
+    },
+    {
+      "name": "nh_des_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-NH\"] url=https://www.des.nh.gov/",
+      "at": "2026-05-07T16:06:12.507Z"
+    },
+    {
+      "name": "nh_legislature_insert",
+      "ok": true,
+      "detail": "id=8ee1c94f-c248-4e03-ae90-f3b55c1cd6f6 tier=1 name=New Hampshire General Court (gencourt.state.nh.us)",
+      "at": "2026-05-07T16:06:12.719Z"
+    },
+    {
+      "name": "nh_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-NH\"] url=https://gencourt.state.nh.us/",
+      "at": "2026-05-07T16:06:12.835Z"
+    },
+    {
+      "name": "vt_dec_insert",
+      "ok": true,
+      "detail": "id=44e3ea14-8246-43b0-a01c-28fd3ccdcb8e tier=1 name=Vermont Department of Environmental Conservation (VT DEC)",
+      "at": "2026-05-07T16:06:13.208Z"
+    },
+    {
+      "name": "vt_dec_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-VT\"] url=https://dec.vermont.gov/",
+      "at": "2026-05-07T16:06:13.307Z"
+    },
+    {
+      "name": "me_legislature_insert",
+      "ok": true,
+      "detail": "id=97b05c0a-ad3e-4f8a-87af-7e948297a81c tier=1 name=Maine Legislature (legislature.maine.gov)",
+      "at": "2026-05-07T16:06:13.515Z"
+    },
+    {
+      "name": "me_legislature_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"US-ME\"] url=https://legislature.maine.gov/",
+      "at": "2026-05-07T16:06:13.633Z"
+    }
+  ]
+}
