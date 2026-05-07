@@ -234,9 +234,13 @@ export function CommunitySidebar({
             icon={<ListFilter size={14} />}
             label="All groups"
           />
-          <SidebarRow href="/events" icon={<Calendar size={14} />} label="Events" />
           <SidebarRow
-            href="/vendors"
+            href="/community/events"
+            icon={<Calendar size={14} />}
+            label="Events"
+          />
+          <SidebarRow
+            href="/community/vendors"
             icon={<Store size={14} />}
             label="Vendor directory"
           />

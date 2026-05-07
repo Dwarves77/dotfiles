@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { CommunityShell } from "@/components/community/CommunityShell";
+import { HowPublishingWorks } from "@/components/community/HowPublishingWorks";
+import { VendorMentionsRail } from "@/components/community/VendorMentionsRail";
+import type {
+  CommunityInvitation,
+  CommunityMembership,
+} from "@/components/community/types";
 
 export const dynamic = "force-dynamic";
 
@@ -233,6 +239,250 @@ export default async function CommunityPage({
       regions={REGIONS}
       regionCounts={regionCounts}
       initialRegion={initialRegion}
-    />
+    >
+      {/* Default-body — Phase D additive. CommunityShell renders its
+          own default body when children is undefined; we override that
+          here so we can drop in the HowPublishingWorks + VendorMentions
+          rails alongside the existing invitations / empty-state /
+          memberships preview. The left column duplicates the JSX of
+          CommunityShell.CommunityDefaultBody so the body still works
+          when the user has no groups OR has invitations OR has groups —
+          all three states are preserved. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) 260px",
+          gap: 24,
+          alignItems: "start",
+          maxWidth: 1180,
+        }}
+      >
+        <CommunityDefaultBodyInline
+          memberships={memberships}
+          invitations={invitations}
+          currentUserName={profile?.name ?? user.email?.split("@")[0] ?? ""}
+        />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            position: "sticky",
+            top: 16,
+          }}
+        >
+          <HowPublishingWorks />
+          <VendorMentionsRail />
+        </div>
+      </div>
+    </CommunityShell>
   );
 }
+
+/**
+ * CommunityDefaultBodyInline — stripped duplicate of the default body
+ * rendered inside CommunityShell.tsx (which is out of file scope for
+ * this PR). Mirrors the same shapes (invitations panel, empty state,
+ * memberships preview) so the page works for all three states.
+ *
+ * Why duplicated rather than imported: CommunityShell.tsx exports
+ * neither these helpers nor a slot prop, and modifying that file is
+ * out of scope. Once a follow-up extracts these helpers (or adds a
+ * slot prop), this duplicate goes away.
+ */
+function CommunityDefaultBodyInline({
+  memberships,
+  invitations,
+  currentUserName,
+}: {
+  memberships: CommunityMembership[];
+  invitations: CommunityInvitation[];
+  currentUserName: string;
+}) {
+  const hasGroups = memberships.length > 0;
+  const sorted = [...memberships].sort((a, b) => {
+    if (a.starred !== b.starred) return a.starred ? -1 : 1;
+    return a.group.name.localeCompare(b.group.name);
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
+      {invitations.length > 0 && (
+        <section
+          style={{
+            background: "var(--color-bg-surface)",
+            border: "1px solid var(--color-border)",
+            borderLeft: "3px solid var(--color-primary)",
+            borderRadius: 8,
+            padding: "18px 22px",
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              fontWeight: 400,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "var(--color-text-primary)",
+              margin: "0 0 4px",
+            }}
+          >
+            Pending invitations ({invitations.length})
+          </h2>
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--color-text-muted)",
+              margin: "0 0 8px",
+            }}
+          >
+            Group admins have invited you to join. Open Community to accept or
+            decline; this page surfaces a quick orientation rail.
+          </p>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+            }}
+          >
+            {invitations.map((inv) => (
+              <li
+                key={inv.id}
+                style={{
+                  fontSize: 12,
+                  color: "var(--color-text-secondary)",
+                  padding: "6px 10px",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 6,
+                  background: "var(--color-bg-base)",
+                }}
+              >
+                <b>{inv.group.name}</b>
+                {" · "}
+                {inv.group.privacy === "private" ? "Private group" : "Public forum"}
+                {" · "}
+                {inv.group.region}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {!hasGroups && (
+        <section
+          style={{
+            background: "var(--color-bg-surface)",
+            border: "1px dashed var(--color-border)",
+            borderRadius: 8,
+            padding: "32px 24px",
+            textAlign: "center",
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 22,
+              fontWeight: 400,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "var(--color-text-primary)",
+              margin: "0 0 8px",
+            }}
+          >
+            No groups yet
+          </h2>
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--color-text-secondary)",
+              margin: 0,
+              lineHeight: 1.55,
+            }}
+          >
+            {invitations.length > 0
+              ? "Accept an invitation above, or browse the public forums to find peers."
+              : "Browse public forums or accept an invitation to start collaborating with peers across the industry."}
+          </p>
+        </section>
+      )}
+
+      {hasGroups && (
+        <section>
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 22,
+              fontWeight: 400,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "var(--color-text-primary)",
+              margin: "0 0 8px",
+            }}
+          >
+            Welcome back, {currentUserName || "operator"}
+          </h2>
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--color-text-muted)",
+              margin: "0 0 16px",
+            }}
+          >
+            Pick a group from the sidebar to open its feed.
+          </p>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {sorted.map((m) => (
+              <li
+                key={m.group_id}
+                style={{
+                  padding: "12px 14px",
+                  border: "1px solid var(--color-border)",
+                  borderLeft:
+                    m.group.privacy === "private"
+                      ? "3px solid var(--color-high, var(--color-text-primary))"
+                      : "3px solid var(--color-border)",
+                  borderRadius: 6,
+                  background: "var(--color-bg-surface)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--color-text-primary)",
+                    marginBottom: 2,
+                  }}
+                >
+                  {m.group.name}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                  {m.group.privacy === "private" ? "Private" : "Public"}
+                  {" · "}
+                  {m.group.region}
+                  {" · "}
+                  {m.group.member_count} member
+                  {m.group.member_count === 1 ? "" : "s"}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+

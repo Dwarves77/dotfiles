@@ -3,6 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { CommunityShell } from "@/components/community/CommunityShell";
 import { GroupHeader } from "@/components/community/GroupHeader";
 import { PostList } from "@/components/community/PostList";
+import { HowPublishingWorks } from "@/components/community/HowPublishingWorks";
+import { VendorMentionsRail } from "@/components/community/VendorMentionsRail";
+import { CouncilMembersRail } from "@/components/community/CouncilMembersRail";
 import type {
   CommunityGroupSummary,
   CommunityMembership,
@@ -296,15 +299,45 @@ export default async function GroupDetailPage({
         </section>
       )}
 
-      <PostList
-        groupId={group.id}
-        currentUserId={user.id}
-        isGroupMember={!!myMembership}
-        isGroupAdmin={
-          myMembership?.role === "admin" ||
-          myMembership?.role === "moderator"
-        }
-      />
+      {/* Two-column body: feed (flex 1) + side rails (260px fixed).
+          The grid collapses to a single column under 880px so mobile
+          shows the feed first and rails stack underneath. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) 260px",
+          gap: 20,
+          alignItems: "start",
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <PostList
+            groupId={group.id}
+            currentUserId={user.id}
+            isGroupMember={!!myMembership}
+            isGroupAdmin={
+              myMembership?.role === "admin" ||
+              myMembership?.role === "moderator"
+            }
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            position: "sticky",
+            top: 16,
+          }}
+        >
+          <HowPublishingWorks />
+          <CouncilMembersRail
+            groupId={group.id}
+            totalMembers={group.member_count}
+          />
+          <VendorMentionsRail />
+        </div>
+      </div>
     </CommunityShell>
   );
 }

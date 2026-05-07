@@ -84,7 +84,7 @@ export function PromotePostButton({ post, currentUser }: PromotePostButtonProps)
         aria-label="Promote this post to platform intelligence"
       >
         <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-        Promote
+        Promote to public
       </button>
 
       {open && (
