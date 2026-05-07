@@ -303,7 +303,7 @@ function SectionTemplate({
                 key={g.category}
                 title={g.category}
                 items={g.items}
-                defaultOpen={i === 0}
+                defaultOpen={false}
                 renderBody={renderCategoryBody}
                 modeBadges={Array.from(new Set(g.items.flatMap((it) => it.modes || [])))}
                 showWatchIcon={categoryHeaderHasWatch}
