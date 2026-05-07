@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import Link from "next/link";
 import { MapContainer, TileLayer, Marker, useMap, ZoomControl } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -13,7 +14,7 @@ import { useResourceStore } from "@/stores/resourceStore";
 import { ResourceCard } from "@/components/resource/ResourceCard";
 import { ResourceDetail } from "@/components/resource/ResourceDetail";
 import {
-  Search, X, Columns2, Map, List, ChevronRight, ChevronLeft, MapPin,
+  Search, X, Columns2, Map, List, ChevronRight, ChevronLeft, MapPin, ArrowUpRight,
 } from "lucide-react";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import {
@@ -51,6 +52,16 @@ interface MapViewProps {
   supersessions: Supersession[];
   resourceMap: Map<string, Resource>;
   onToast: (msg: string) => void;
+  /**
+   * Optional externally-controlled jurisdiction selection. When this value
+   * changes to a non-null id, MapView drills into that jurisdiction (same
+   * behavior as clicking a marker or a list row). Used by MapPageView's
+   * side rail "By jurisdiction" list so a single click both flies-to and
+   * opens the detail panel. `externalSelectNonce` bumps on each click so
+   * re-selecting the same jurisdiction still triggers the effect.
+   */
+  externalSelectJurId?: string | null;
+  externalSelectNonce?: number;
 }
 
 // ── Custom marker icon builder ──
@@ -136,6 +147,8 @@ export function MapView({
   supersessions,
   resourceMap,
   onToast,
+  externalSelectJurId,
+  externalSelectNonce,
 }: MapViewProps) {
   useNavigationStore();
   const { expandedId, setExpanded } = useResourceStore();
@@ -374,6 +387,19 @@ export function MapView({
   const handleCardClick = useCallback((jur: JurisdictionData) => {
     drillInto(jur.id);
   }, [drillInto]);
+
+  // React to external jurisdiction selection (from MapPageView side rail).
+  // When `externalSelectJurId` is non-null, drill into that jurisdiction so
+  // the marker fly-to + detail panel both happen. The nonce dependency
+  // allows re-selecting the same id to retrigger the drill (e.g. user
+  // closed the panel then re-clicked the same row).
+  useEffect(() => {
+    if (externalSelectJurId) {
+      drillInto(externalSelectJurId);
+      scrollToListItem(externalSelectJurId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalSelectJurId, externalSelectNonce]);
 
   // selectedJurId used for list highlighting
   const drillJur = allJurisdictions.find((j) => j.id === drillJurId);
@@ -737,6 +763,22 @@ export function MapView({
                             }}
                           >
                             <ResourceCard resource={r} embedded />
+                            {/* Full-detail route link — preview here is collapsible;
+                                this link routes to the dedicated regulation detail
+                                surface at /regulations/{id}. */}
+                            <div
+                              className="px-5 pb-3 -mt-1 flex justify-end"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Link
+                                href={`/regulations/${encodeURIComponent(r.id)}`}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-accent hover:underline"
+                                aria-label={`View full detail for ${r.title}`}
+                              >
+                                View full detail
+                                <ArrowUpRight size={11} strokeWidth={2.5} />
+                              </Link>
+                            </div>
                             {isExpanded && (
                               <ResourceDetail
                                 resource={r}
