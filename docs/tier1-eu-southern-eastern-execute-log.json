@@ -1,0 +1,981 @@
+{
+  "completed": true,
+  "planned": 34,
+  "inserted": 34,
+  "skipped": 0,
+  "results": {
+    "ES": {
+      "iso": "ES",
+      "label": "Spain",
+      "env": {
+        "id": "03080157-5e2b-4882-821c-d0bf6f686406",
+        "inserted": true
+      },
+      "leg": {
+        "id": "594c9aec-707f-43a5-9538-7f00d2b79437",
+        "inserted": true
+      }
+    },
+    "IT": {
+      "iso": "IT",
+      "label": "Italy",
+      "env": {
+        "id": "c6398492-92c4-41cb-bacf-0d552da9b48b",
+        "inserted": true
+      },
+      "leg": {
+        "id": "1af654f1-b9bd-45b2-8a14-3fa1451feabb",
+        "inserted": true
+      }
+    },
+    "PT": {
+      "iso": "PT",
+      "label": "Portugal",
+      "env": {
+        "id": "d8859b1a-a9d9-410a-b7cb-039dde1581b7",
+        "inserted": true
+      },
+      "leg": {
+        "id": "b558cfa4-1b42-4456-97b6-5cda7770376f",
+        "inserted": true
+      }
+    },
+    "GR": {
+      "iso": "GR",
+      "label": "Greece",
+      "env": {
+        "id": "a8682ba6-2c30-4c12-a215-c4f37a62fdd8",
+        "inserted": true
+      },
+      "leg": {
+        "id": "8bbf8fd5-7ef9-439e-b951-4bacf0f10265",
+        "inserted": true
+      }
+    },
+    "MT": {
+      "iso": "MT",
+      "label": "Malta",
+      "env": {
+        "id": "b711bb3a-7452-460a-b413-25b20f13bad3",
+        "inserted": true
+      },
+      "leg": {
+        "id": "42daf048-7524-4ef7-b3c7-b5676a448b69",
+        "inserted": true
+      }
+    },
+    "CY": {
+      "iso": "CY",
+      "label": "Cyprus",
+      "env": {
+        "id": "01fd2c6b-efee-4528-8f22-9cbec6d39d55",
+        "inserted": true
+      },
+      "leg": {
+        "id": "8acfd015-bf97-41ca-87c6-b20682a2ff35",
+        "inserted": true
+      }
+    },
+    "PL": {
+      "iso": "PL",
+      "label": "Poland",
+      "env": {
+        "id": "47fd8e2e-d1ae-4a81-b6b3-ed74d4763957",
+        "inserted": true
+      },
+      "leg": {
+        "id": "fd9d21c6-6269-40fe-ad6c-d56b0d438f65",
+        "inserted": true
+      }
+    },
+    "CZ": {
+      "iso": "CZ",
+      "label": "Czech Republic",
+      "env": {
+        "id": "6c906a79-826c-43e9-80b0-9b846cd4a1d9",
+        "inserted": true
+      },
+      "leg": {
+        "id": "b3e23db3-da1a-4947-ae63-5292d4631edf",
+        "inserted": true
+      }
+    },
+    "SK": {
+      "iso": "SK",
+      "label": "Slovakia",
+      "env": {
+        "id": "9bc9cad3-0628-4fed-a62b-029d7d516074",
+        "inserted": true
+      },
+      "leg": {
+        "id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+        "inserted": true
+      }
+    },
+    "HU": {
+      "iso": "HU",
+      "label": "Hungary",
+      "env": {
+        "id": "1766208f-939d-4f54-aa65-eddb11ebdda0",
+        "inserted": true
+      },
+      "leg": {
+        "id": "bd336e46-60cf-4b70-bfd6-6376ad404a68",
+        "inserted": true
+      }
+    },
+    "RO": {
+      "iso": "RO",
+      "label": "Romania",
+      "env": {
+        "id": "f73be09b-75b9-49a9-aaa9-82171802762c",
+        "inserted": true
+      },
+      "leg": {
+        "id": "af78aadc-ea59-4db0-9e2e-e248d6464239",
+        "inserted": true
+      }
+    },
+    "BG": {
+      "iso": "BG",
+      "label": "Bulgaria",
+      "env": {
+        "id": "bb38c4f7-2b4a-421a-91cf-d1185902e9c2",
+        "inserted": true
+      },
+      "leg": {
+        "id": "b8c5905c-4461-46df-aad4-e73b7e98799f",
+        "inserted": true
+      }
+    },
+    "HR": {
+      "iso": "HR",
+      "label": "Croatia",
+      "env": {
+        "id": "b440f113-5be4-4fa5-aa65-80782ff8469f",
+        "inserted": true
+      },
+      "leg": {
+        "id": "7cc36395-3e20-47d9-b23c-5cb64dc13663",
+        "inserted": true
+      }
+    },
+    "SI": {
+      "iso": "SI",
+      "label": "Slovenia",
+      "env": {
+        "id": "5823b4b1-0de4-4290-addd-bf939ae748c8",
+        "inserted": true
+      },
+      "leg": {
+        "id": "198b04d6-cce0-4c4a-aefb-38be73bc2e48",
+        "inserted": true
+      }
+    },
+    "LT": {
+      "iso": "LT",
+      "label": "Lithuania",
+      "env": {
+        "id": "67d76814-46aa-4146-a668-a07bbba10c1e",
+        "inserted": true
+      },
+      "leg": {
+        "id": "0cc23a7e-4c41-4667-b0fb-6094d134d71b",
+        "inserted": true
+      }
+    },
+    "LV": {
+      "iso": "LV",
+      "label": "Latvia",
+      "env": {
+        "id": "584a0085-e145-4a53-8918-a77630845b59",
+        "inserted": true
+      },
+      "leg": {
+        "id": "f692281c-95c6-4d78-96b2-c8aa9f2beb0c",
+        "inserted": true
+      }
+    },
+    "EE": {
+      "iso": "EE",
+      "label": "Estonia",
+      "env": {
+        "id": "275ad555-7e43-4b81-9187-2e3c59daf627",
+        "inserted": true
+      },
+      "leg": {
+        "id": "3819e20d-0bf4-48d1-91d3-c2ddb5dcfc12",
+        "inserted": true
+      }
+    }
+  },
+  "log": [
+    {
+      "name": "es_miteco_insert",
+      "ok": true,
+      "detail": "id=03080157-5e2b-4882-821c-d0bf6f686406 tier=1 name=Ministerio para la Transición Ecológica y el Reto Demográfico (MITECO)",
+      "at": "2026-05-07T21:39:45.358Z"
+    },
+    {
+      "name": "es_miteco_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"ES\"]",
+      "at": "2026-05-07T21:39:45.520Z"
+    },
+    {
+      "name": "es_cortes_insert",
+      "ok": true,
+      "detail": "id=594c9aec-707f-43a5-9538-7f00d2b79437 tier=1 name=Cortes Generales – Congreso de los Diputados",
+      "at": "2026-05-07T21:39:45.960Z"
+    },
+    {
+      "name": "es_cortes_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"ES\"]",
+      "at": "2026-05-07T21:39:46.089Z"
+    },
+    {
+      "name": "it_mase_insert",
+      "ok": true,
+      "detail": "id=c6398492-92c4-41cb-bacf-0d552da9b48b tier=1 name=Ministero dell'Ambiente e della Sicurezza Energetica (MASE)",
+      "at": "2026-05-07T21:39:46.363Z"
+    },
+    {
+      "name": "it_mase_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"IT\"]",
+      "at": "2026-05-07T21:39:46.483Z"
+    },
+    {
+      "name": "it_camera_insert",
+      "ok": true,
+      "detail": "id=1af654f1-b9bd-45b2-8a14-3fa1451feabb tier=1 name=Camera dei Deputati – Italian Chamber of Deputies",
+      "at": "2026-05-07T21:39:46.747Z"
+    },
+    {
+      "name": "it_camera_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"IT\"]",
+      "at": "2026-05-07T21:39:46.867Z"
+    },
+    {
+      "name": "pt_apa_insert",
+      "ok": true,
+      "detail": "id=d8859b1a-a9d9-410a-b7cb-039dde1581b7 tier=1 name=Agência Portuguesa do Ambiente (APA)",
+      "at": "2026-05-07T21:39:47.115Z"
+    },
+    {
+      "name": "pt_apa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"PT\"]",
+      "at": "2026-05-07T21:39:47.232Z"
+    },
+    {
+      "name": "pt_assembleia_insert",
+      "ok": true,
+      "detail": "id=b558cfa4-1b42-4456-97b6-5cda7770376f tier=1 name=Assembleia da República",
+      "at": "2026-05-07T21:39:47.477Z"
+    },
+    {
+      "name": "pt_assembleia_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"PT\"]",
+      "at": "2026-05-07T21:39:47.604Z"
+    },
+    {
+      "name": "gr_ypen_insert",
+      "ok": true,
+      "detail": "id=a8682ba6-2c30-4c12-a215-c4f37a62fdd8 tier=1 name=Ministry of Environment and Energy (YPEN)",
+      "at": "2026-05-07T21:39:47.852Z"
+    },
+    {
+      "name": "gr_ypen_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"GR\"]",
+      "at": "2026-05-07T21:39:47.980Z"
+    },
+    {
+      "name": "gr_hellenic_parliament_insert",
+      "ok": true,
+      "detail": "id=8bbf8fd5-7ef9-439e-b951-4bacf0f10265 tier=1 name=Hellenic Parliament",
+      "at": "2026-05-07T21:39:48.258Z"
+    },
+    {
+      "name": "gr_hellenic_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"GR\"]",
+      "at": "2026-05-07T21:39:48.382Z"
+    },
+    {
+      "name": "mt_era_insert",
+      "ok": true,
+      "detail": "id=b711bb3a-7452-460a-b413-25b20f13bad3 tier=1 name=Environment and Resources Authority (ERA)",
+      "at": "2026-05-07T21:39:50.032Z"
+    },
+    {
+      "name": "mt_era_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"MT\"]",
+      "at": "2026-05-07T21:39:50.228Z"
+    },
+    {
+      "name": "mt_parliament_insert",
+      "ok": true,
+      "detail": "id=42daf048-7524-4ef7-b3c7-b5676a448b69 tier=1 name=Parliament of Malta",
+      "at": "2026-05-07T21:39:50.560Z"
+    },
+    {
+      "name": "mt_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"MT\"]",
+      "at": "2026-05-07T21:39:50.705Z"
+    },
+    {
+      "name": "cy_doe_insert",
+      "ok": true,
+      "detail": "id=01fd2c6b-efee-4528-8f22-9cbec6d39d55 tier=1 name=Department of Environment – Ministry of Agriculture, Rural Development and Environment",
+      "at": "2026-05-07T21:39:50.978Z"
+    },
+    {
+      "name": "cy_doe_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"CY\"]",
+      "at": "2026-05-07T21:39:51.092Z"
+    },
+    {
+      "name": "cy_parliament_insert",
+      "ok": true,
+      "detail": "id=8acfd015-bf97-41ca-87c6-b20682a2ff35 tier=1 name=House of Representatives of Cyprus",
+      "at": "2026-05-07T21:39:51.362Z"
+    },
+    {
+      "name": "cy_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"CY\"]",
+      "at": "2026-05-07T21:39:51.486Z"
+    },
+    {
+      "name": "pl_gios_insert",
+      "ok": true,
+      "detail": "id=47fd8e2e-d1ae-4a81-b6b3-ed74d4763957 tier=1 name=Główny Inspektorat Ochrony Środowiska (GIOŚ)",
+      "at": "2026-05-07T21:39:51.732Z"
+    },
+    {
+      "name": "pl_gios_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"PL\"]",
+      "at": "2026-05-07T21:39:51.888Z"
+    },
+    {
+      "name": "pl_sejm_insert",
+      "ok": true,
+      "detail": "id=fd9d21c6-6269-40fe-ad6c-d56b0d438f65 tier=1 name=Sejm of the Republic of Poland",
+      "at": "2026-05-07T21:39:52.120Z"
+    },
+    {
+      "name": "pl_sejm_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"PL\"]",
+      "at": "2026-05-07T21:39:52.234Z"
+    },
+    {
+      "name": "cz_mzp_insert",
+      "ok": true,
+      "detail": "id=6c906a79-826c-43e9-80b0-9b846cd4a1d9 tier=1 name=Ministerstvo životního prostředí (MZP)",
+      "at": "2026-05-07T21:39:52.522Z"
+    },
+    {
+      "name": "cz_mzp_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"CZ\"]",
+      "at": "2026-05-07T21:39:52.643Z"
+    },
+    {
+      "name": "cz_psp_insert",
+      "ok": true,
+      "detail": "id=b3e23db3-da1a-4947-ae63-5292d4631edf tier=1 name=Poslanecká sněmovna Parlamentu České republiky",
+      "at": "2026-05-07T21:39:52.890Z"
+    },
+    {
+      "name": "cz_psp_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"CZ\"]",
+      "at": "2026-05-07T21:39:53.006Z"
+    },
+    {
+      "name": "sk_minzp_insert",
+      "ok": true,
+      "detail": "id=9bc9cad3-0628-4fed-a62b-029d7d516074 tier=1 name=Ministerstvo životného prostredia Slovenskej republiky (MŽP SR)",
+      "at": "2026-05-07T21:39:53.258Z"
+    },
+    {
+      "name": "sk_minzp_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"SK\"]",
+      "at": "2026-05-07T21:39:53.388Z"
+    },
+    {
+      "name": "sk_nrsr_insert",
+      "ok": true,
+      "detail": "id=e60e956a-f3c3-4c7e-adcd-746effad7d8c tier=1 name=Národná rada Slovenskej republiky",
+      "at": "2026-05-07T21:39:53.665Z"
+    },
+    {
+      "name": "sk_nrsr_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"SK\"]",
+      "at": "2026-05-07T21:39:53.778Z"
+    },
+    {
+      "name": "hu_kormany_insert",
+      "ok": true,
+      "detail": "id=1766208f-939d-4f54-aa65-eddb11ebdda0 tier=1 name=Hungarian Government Environment & Energy Ministry portal (kormany.hu)",
+      "at": "2026-05-07T21:39:54.029Z"
+    },
+    {
+      "name": "hu_kormany_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"HU\"]",
+      "at": "2026-05-07T21:39:54.157Z"
+    },
+    {
+      "name": "hu_orszaggyules_insert",
+      "ok": true,
+      "detail": "id=bd336e46-60cf-4b70-bfd6-6376ad404a68 tier=1 name=Országgyűlés – National Assembly of Hungary",
+      "at": "2026-05-07T21:39:54.427Z"
+    },
+    {
+      "name": "hu_orszaggyules_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"HU\"]",
+      "at": "2026-05-07T21:39:54.543Z"
+    },
+    {
+      "name": "ro_mmap_insert",
+      "ok": true,
+      "detail": "id=f73be09b-75b9-49a9-aaa9-82171802762c tier=1 name=Ministerul Mediului, Apelor și Pădurilor (MMAP)",
+      "at": "2026-05-07T21:39:54.792Z"
+    },
+    {
+      "name": "ro_mmap_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"RO\"]",
+      "at": "2026-05-07T21:39:54.908Z"
+    },
+    {
+      "name": "ro_cdep_insert",
+      "ok": true,
+      "detail": "id=af78aadc-ea59-4db0-9e2e-e248d6464239 tier=1 name=Camera Deputaților – Chamber of Deputies of Romania",
+      "at": "2026-05-07T21:39:55.159Z"
+    },
+    {
+      "name": "ro_cdep_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"RO\"]",
+      "at": "2026-05-07T21:39:55.274Z"
+    },
+    {
+      "name": "bg_moew_insert",
+      "ok": true,
+      "detail": "id=bb38c4f7-2b4a-421a-91cf-d1185902e9c2 tier=1 name=Ministry of Environment and Water (MOEW)",
+      "at": "2026-05-07T21:39:55.545Z"
+    },
+    {
+      "name": "bg_moew_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"BG\"]",
+      "at": "2026-05-07T21:39:55.663Z"
+    },
+    {
+      "name": "bg_parliament_insert",
+      "ok": true,
+      "detail": "id=b8c5905c-4461-46df-aad4-e73b7e98799f tier=1 name=National Assembly of the Republic of Bulgaria",
+      "at": "2026-05-07T21:39:55.927Z"
+    },
+    {
+      "name": "bg_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"BG\"]",
+      "at": "2026-05-07T21:39:56.037Z"
+    },
+    {
+      "name": "hr_mingor_insert",
+      "ok": true,
+      "detail": "id=b440f113-5be4-4fa5-aa65-80782ff8469f tier=1 name=Ministarstvo gospodarstva i održivog razvoja (Ministry of Economy and Sustainable Development)",
+      "at": "2026-05-07T21:39:56.338Z"
+    },
+    {
+      "name": "hr_mingor_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"HR\"]",
+      "at": "2026-05-07T21:39:56.447Z"
+    },
+    {
+      "name": "hr_sabor_insert",
+      "ok": true,
+      "detail": "id=7cc36395-3e20-47d9-b23c-5cb64dc13663 tier=1 name=Hrvatski sabor – Croatian Parliament",
+      "at": "2026-05-07T21:39:56.699Z"
+    },
+    {
+      "name": "hr_sabor_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"HR\"]",
+      "at": "2026-05-07T21:39:56.815Z"
+    },
+    {
+      "name": "si_mope_insert",
+      "ok": true,
+      "detail": "id=5823b4b1-0de4-4290-addd-bf939ae748c8 tier=1 name=Ministrstvo za okolje, podnebje in energijo (MOPE)",
+      "at": "2026-05-07T21:39:57.078Z"
+    },
+    {
+      "name": "si_mope_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"SI\"]",
+      "at": "2026-05-07T21:39:57.210Z"
+    },
+    {
+      "name": "si_dz_insert",
+      "ok": true,
+      "detail": "id=198b04d6-cce0-4c4a-aefb-38be73bc2e48 tier=1 name=Državni zbor Republike Slovenije",
+      "at": "2026-05-07T21:39:57.453Z"
+    },
+    {
+      "name": "si_dz_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"SI\"]",
+      "at": "2026-05-07T21:39:57.569Z"
+    },
+    {
+      "name": "lt_aaa_insert",
+      "ok": true,
+      "detail": "id=67d76814-46aa-4146-a668-a07bbba10c1e tier=1 name=Aplinkos apsaugos agentūra (AAA – Environmental Protection Agency)",
+      "at": "2026-05-07T21:39:57.838Z"
+    },
+    {
+      "name": "lt_aaa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"LT\"]",
+      "at": "2026-05-07T21:39:57.952Z"
+    },
+    {
+      "name": "lt_seimas_insert",
+      "ok": true,
+      "detail": "id=0cc23a7e-4c41-4667-b0fb-6094d134d71b tier=1 name=Seimas of the Republic of Lithuania",
+      "at": "2026-05-07T21:39:58.209Z"
+    },
+    {
+      "name": "lt_seimas_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"LT\"]",
+      "at": "2026-05-07T21:39:58.326Z"
+    },
+    {
+      "name": "lv_varam_insert",
+      "ok": true,
+      "detail": "id=584a0085-e145-4a53-8918-a77630845b59 tier=1 name=Vides aizsardzības un reģionālās attīstības ministrija (VARAM)",
+      "at": "2026-05-07T21:39:58.600Z"
+    },
+    {
+      "name": "lv_varam_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"LV\"]",
+      "at": "2026-05-07T21:39:58.757Z"
+    },
+    {
+      "name": "lv_saeima_insert",
+      "ok": true,
+      "detail": "id=f692281c-95c6-4d78-96b2-c8aa9f2beb0c tier=1 name=Saeima of the Republic of Latvia",
+      "at": "2026-05-07T21:39:58.999Z"
+    },
+    {
+      "name": "lv_saeima_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"LV\"]",
+      "at": "2026-05-07T21:39:59.117Z"
+    },
+    {
+      "name": "ee_kkm_insert",
+      "ok": true,
+      "detail": "id=275ad555-7e43-4b81-9187-2e3c59daf627 tier=1 name=Keskkonnaministeerium (KKM – Estonian Ministry of Climate / Environment)",
+      "at": "2026-05-07T21:39:59.353Z"
+    },
+    {
+      "name": "ee_kkm_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"EE\"]",
+      "at": "2026-05-07T21:39:59.468Z"
+    },
+    {
+      "name": "ee_riigikogu_insert",
+      "ok": true,
+      "detail": "id=3819e20d-0bf4-48d1-91d3-c2ddb5dcfc12 tier=1 name=Riigikogu – Parliament of Estonia",
+      "at": "2026-05-07T21:39:59.811Z"
+    },
+    {
+      "name": "ee_riigikogu_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"EE\"]",
+      "at": "2026-05-07T21:39:59.947Z"
+    },
+    {
+      "name": "final_snapshot",
+      "ok": true,
+      "detail": "34 rows in scope",
+      "rows": [
+        {
+          "id": "b8c5905c-4461-46df-aad4-e73b7e98799f",
+          "name": "National Assembly of the Republic of Bulgaria",
+          "url": "https://www.parliament.bg/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "BG"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "bb38c4f7-2b4a-421a-91cf-d1185902e9c2",
+          "name": "Ministry of Environment and Water (MOEW)",
+          "url": "https://www.moew.government.bg/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "BG"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "8acfd015-bf97-41ca-87c6-b20682a2ff35",
+          "name": "House of Representatives of Cyprus",
+          "url": "https://www.parliament.cy/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "CY"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "01fd2c6b-efee-4528-8f22-9cbec6d39d55",
+          "name": "Department of Environment – Ministry of Agriculture, Rural Development and Environment",
+          "url": "https://www.moa.gov.cy/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "CY"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "b3e23db3-da1a-4947-ae63-5292d4631edf",
+          "name": "Poslanecká sněmovna Parlamentu České republiky",
+          "url": "https://www.psp.cz/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "CZ"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "6c906a79-826c-43e9-80b0-9b846cd4a1d9",
+          "name": "Ministerstvo životního prostředí (MZP)",
+          "url": "https://www.mzp.cz/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "CZ"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "275ad555-7e43-4b81-9187-2e3c59daf627",
+          "name": "Keskkonnaministeerium (KKM – Estonian Ministry of Climate / Environment)",
+          "url": "https://www.envir.ee/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "EE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "3819e20d-0bf4-48d1-91d3-c2ddb5dcfc12",
+          "name": "Riigikogu – Parliament of Estonia",
+          "url": "https://www.riigikogu.ee/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "EE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "03080157-5e2b-4882-821c-d0bf6f686406",
+          "name": "Ministerio para la Transición Ecológica y el Reto Demográfico (MITECO)",
+          "url": "https://www.miteco.gob.es/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "ES"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "594c9aec-707f-43a5-9538-7f00d2b79437",
+          "name": "Cortes Generales – Congreso de los Diputados",
+          "url": "https://www.congreso.es/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "ES"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "8bbf8fd5-7ef9-439e-b951-4bacf0f10265",
+          "name": "Hellenic Parliament",
+          "url": "https://www.hellenicparliament.gr/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "GR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "a8682ba6-2c30-4c12-a215-c4f37a62fdd8",
+          "name": "Ministry of Environment and Energy (YPEN)",
+          "url": "https://ypen.gov.gr/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "GR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "b440f113-5be4-4fa5-aa65-80782ff8469f",
+          "name": "Ministarstvo gospodarstva i održivog razvoja (Ministry of Economy and Sustainable Development)",
+          "url": "https://mingor.gov.hr/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "HR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "7cc36395-3e20-47d9-b23c-5cb64dc13663",
+          "name": "Hrvatski sabor – Croatian Parliament",
+          "url": "https://www.sabor.hr/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "HR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "1766208f-939d-4f54-aa65-eddb11ebdda0",
+          "name": "Hungarian Government Environment & Energy Ministry portal (kormany.hu)",
+          "url": "https://www.kormany.hu/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "HU"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "bd336e46-60cf-4b70-bfd6-6376ad404a68",
+          "name": "Országgyűlés – National Assembly of Hungary",
+          "url": "https://www.parlament.hu/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "HU"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "c6398492-92c4-41cb-bacf-0d552da9b48b",
+          "name": "Ministero dell'Ambiente e della Sicurezza Energetica (MASE)",
+          "url": "https://www.mase.gov.it/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "IT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "1af654f1-b9bd-45b2-8a14-3fa1451feabb",
+          "name": "Camera dei Deputati – Italian Chamber of Deputies",
+          "url": "https://www.camera.it/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "IT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "0cc23a7e-4c41-4667-b0fb-6094d134d71b",
+          "name": "Seimas of the Republic of Lithuania",
+          "url": "https://www.lrs.lt/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "LT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "67d76814-46aa-4146-a668-a07bbba10c1e",
+          "name": "Aplinkos apsaugos agentūra (AAA – Environmental Protection Agency)",
+          "url": "https://aaa.lrv.lt/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "LT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "f692281c-95c6-4d78-96b2-c8aa9f2beb0c",
+          "name": "Saeima of the Republic of Latvia",
+          "url": "https://www.saeima.lv/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "LV"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "584a0085-e145-4a53-8918-a77630845b59",
+          "name": "Vides aizsardzības un reģionālās attīstības ministrija (VARAM)",
+          "url": "https://www.varam.gov.lv/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "LV"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "42daf048-7524-4ef7-b3c7-b5676a448b69",
+          "name": "Parliament of Malta",
+          "url": "https://parlament.mt/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "MT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "b711bb3a-7452-460a-b413-25b20f13bad3",
+          "name": "Environment and Resources Authority (ERA)",
+          "url": "https://era.org.mt/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "MT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "47fd8e2e-d1ae-4a81-b6b3-ed74d4763957",
+          "name": "Główny Inspektorat Ochrony Środowiska (GIOŚ)",
+          "url": "https://www.gov.pl/web/gios",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "PL"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "fd9d21c6-6269-40fe-ad6c-d56b0d438f65",
+          "name": "Sejm of the Republic of Poland",
+          "url": "https://www.sejm.gov.pl/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "PL"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "b558cfa4-1b42-4456-97b6-5cda7770376f",
+          "name": "Assembleia da República",
+          "url": "https://www.parlamento.pt/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "PT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "d8859b1a-a9d9-410a-b7cb-039dde1581b7",
+          "name": "Agência Portuguesa do Ambiente (APA)",
+          "url": "https://apambiente.pt/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "PT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "f73be09b-75b9-49a9-aaa9-82171802762c",
+          "name": "Ministerul Mediului, Apelor și Pădurilor (MMAP)",
+          "url": "https://www.mmediu.ro/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "RO"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "af78aadc-ea59-4db0-9e2e-e248d6464239",
+          "name": "Camera Deputaților – Chamber of Deputies of Romania",
+          "url": "https://www.cdep.ro/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "RO"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "5823b4b1-0de4-4290-addd-bf939ae748c8",
+          "name": "Ministrstvo za okolje, podnebje in energijo (MOPE)",
+          "url": "https://www.gov.si/drzavni-organi/ministrstva/ministrstvo-za-okolje-podnebje-in-energijo/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "SI"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "198b04d6-cce0-4c4a-aefb-38be73bc2e48",
+          "name": "Državni zbor Republike Slovenije",
+          "url": "https://www.dz-rs.si/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "SI"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "9bc9cad3-0628-4fed-a62b-029d7d516074",
+          "name": "Ministerstvo životného prostredia Slovenskej republiky (MŽP SR)",
+          "url": "https://www.minzp.sk/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "SK"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+          "name": "Národná rada Slovenskej republiky",
+          "url": "https://www.nrsr.sk/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "SK"
+          ],
+          "status": "active"
+        }
+      ],
+      "at": "2026-05-07T21:40:00.123Z"
+    },
+    {
+      "name": "per_iso_post_counts",
+      "ok": true,
+      "detail": "{\"BG\":2,\"CY\":2,\"CZ\":2,\"EE\":2,\"ES\":2,\"GR\":2,\"HR\":2,\"HU\":2,\"IT\":2,\"LT\":2,\"LV\":2,\"MT\":2,\"PL\":2,\"PT\":2,\"RO\":2,\"SI\":2,\"SK\":2}"
+    },
+    {
+      "name": "summary",
+      "ok": true,
+      "detail": "inserted=34 skipped=0 planned=34",
+      "at": "2026-05-07T21:40:00.123Z"
+    }
+  ]
+}
