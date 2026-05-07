@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { useNavigationStore } from "@/stores/navigationStore";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
 import { ChevronDown } from "lucide-react";
@@ -14,8 +14,7 @@ interface WhatChangedProps {
 }
 
 export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
-  const { pushFocusView, navigateToResource } = useNavigationStore();
-  const [open, setOpen] = useState(false);
+  const [whatChangedExpanded, setWhatChangedExpanded] = useState(false);
 
   const changedIds = Object.keys(changelog);
   const changed = resources.filter((r) => changedIds.includes(r.id));
@@ -30,7 +29,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   return (
     <div className="cl-card">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => setWhatChangedExpanded(!whatChangedExpanded)}
         className="w-full flex items-center justify-between px-5 py-4 cursor-pointer group"
       >
         <div className="text-left">
@@ -46,12 +45,12 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
           strokeWidth={2}
           className={cn(
             "text-text-secondary transition-transform duration-300",
-            open && "rotate-180"
+            whatChangedExpanded && "rotate-180"
           )}
           style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
         />
       </button>
-      {open && (
+      {whatChangedExpanded && (
         <div className="px-4 pb-4 space-y-4">
           {/* NEW Resources */}
           {newResources.length > 0 && (
@@ -61,10 +60,10 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               </span>
               <div className="divide-y divide-border-subtle">
                 {newResources.map((r) => (
-                  <button
+                  <Link
                     key={r.id}
-                    onClick={() => navigateToResource(r.id)}
-                    className="w-full text-left flex items-center gap-3 px-1 py-2.5 hover:bg-surface-overlay cursor-pointer transition-colors"
+                    href={`/regulations/${r.id}`}
+                    className="w-full text-left flex items-center gap-3 px-1 py-2.5 hover:bg-surface-overlay cursor-pointer transition-colors no-underline"
                   >
                     <span className="text-xs font-semibold text-[#34C759] shrink-0">NEW</span>
                     <div className="flex-1 min-w-0">
@@ -72,7 +71,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                       <p className="text-xs text-text-secondary truncate">{r.note}</p>
                     </div>
                     <PriorityBadge level={r.priority} />
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -88,10 +87,10 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                 {changed.map((r) => {
                   const changes = changelog[r.id] || [];
                   return (
-                    <button
+                    <Link
                       key={r.id}
-                      onClick={() => navigateToResource(r.id)}
-                      className="w-full text-left px-1 py-3 hover:bg-surface-overlay cursor-pointer transition-colors"
+                      href={`/regulations/${r.id}`}
+                      className="w-full block text-left px-1 py-3 hover:bg-surface-overlay cursor-pointer transition-colors no-underline"
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-xs font-medium text-text-primary truncate flex-1">
@@ -119,7 +118,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                           )}
                         </div>
                       ))}
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
