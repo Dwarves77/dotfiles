@@ -193,7 +193,9 @@ export function RegulationsSurface({
   const [activeConfidence, setActiveConfidence] = useState<Set<string>>(
     new Set()
   );
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  // Default closed per intended-use rule: never auto-open by default.
+  // User clicks to expand filters when they want to filter.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [sort, setSort] = useState<SortKey>("priority");
   const [view, setView] = useState<ViewMode>("kanban");
