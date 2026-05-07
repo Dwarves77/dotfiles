@@ -25,6 +25,8 @@ import type { CommunityPost } from "./PostComposer";
 import { ReplyComposer } from "./ReplyComposer";
 import { PromotePostButton } from "./PromotePostButton";
 import { ReportPostMenu } from "./ReportPostMenu";
+import { VerifierBadge } from "./VerifierBadge";
+import { RoleBadge } from "./RoleBadge";
 
 interface PostProps {
   post: CommunityPost;
@@ -173,6 +175,33 @@ export function Post({
             >
               {authorName}
             </span>
+            {/* VerifierBadge + RoleBadge — Phase D additive.
+                Renders only when the API surfaces verifier_status /
+                author role. Until that wiring lands, both badges
+                silently render null. */}
+            <VerifierBadge
+              verifierStatus={
+                (
+                  post.author as unknown as {
+                    verifier_status?:
+                      | "none"
+                      | "pending"
+                      | "active"
+                      | "revoked"
+                      | null;
+                  }
+                )?.verifier_status
+              }
+            />
+            <RoleBadge
+              role={
+                (
+                  post.author as unknown as {
+                    role?: "admin" | "moderator" | "member" | null;
+                  }
+                )?.role
+              }
+            />
             <time
               dateTime={post.created_at}
               title={new Date(post.created_at).toLocaleString()}
