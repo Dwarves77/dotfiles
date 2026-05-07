@@ -66,6 +66,16 @@ function formatDateUTC(iso: string): string {
   return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+/** Returns true when an ISO date is within the trailing 7 days (UTC). */
+function isWithinLast7Days(iso: string | null): boolean {
+  if (!iso) return false;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return false;
+  const now = Date.now();
+  const ageMs = now - d.getTime();
+  return ageMs >= 0 && ageMs <= 7 * 24 * 60 * 60 * 1000;
+}
+
 // ── Stage metadata ──
 
 type Stage = "draft" | "active_review" | "published" | "archived";
@@ -203,6 +213,17 @@ export function ResearchView({ items }: ResearchViewProps) {
     for (const item of items) set.add(regionLabel(item.jurisdictions));
     return Array.from(set).sort();
   }, [items]);
+
+  // Items published in the trailing 7 days — drives the "What's new this week" callout.
+  const publishedThisWeek = useMemo(
+    () =>
+      items.filter(
+        (i) =>
+          normalizeStage(i.pipelineStage) === "published" &&
+          isWithinLast7Days(i.addedDate)
+      ),
+    [items]
+  );
 
   // Filtered pipeline items.
   const filteredItems = useMemo(() => {
@@ -355,11 +376,120 @@ export function ResearchView({ items }: ResearchViewProps) {
                 fontSize: 14,
                 lineHeight: 1.5,
                 color: "var(--text-2)",
-                margin: "0 0 18px",
+                margin: "0 0 14px",
                 maxWidth: "88ch",
               }}
             >
-              Filter by stage, region, or flag. Partner-flagged items came from a Caro&apos;s Ledge advisor; Monitoring items are tracked from a public regulator feed.
+              The queue of regulations and consultations our team is tracking — items being drafted, awaiting validator sign-off, and recently published. Each row traces back to a primary source feed.
+            </p>
+
+            {/* Quick counter callout — reuses stageCounts + publishedThisWeek */}
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                display: "flex",
+                gap: 18,
+                flexWrap: "wrap",
+                fontSize: 12,
+                color: "var(--text-2)",
+                padding: "10px 14px",
+                background: "var(--surface)",
+                border: "1px solid var(--border-sub)",
+                borderRadius: "var(--r-sm)",
+                margin: "0 0 14px",
+              }}
+            >
+              <span>
+                <b style={{ color: "var(--text)", fontWeight: 800 }}>{stageCounts.active_review}</b>{" "}
+                in active review
+              </span>
+              <span style={{ color: "var(--border)" }} aria-hidden="true">·</span>
+              <span>
+                <b style={{ color: "var(--text)", fontWeight: 800 }}>{stageCounts.draft}</b>{" "}
+                in draft
+              </span>
+              <span style={{ color: "var(--border)" }} aria-hidden="true">·</span>
+              <span>
+                <b style={{ color: "var(--text)", fontWeight: 800 }}>{publishedThisWeek.length}</b>{" "}
+                published this week
+              </span>
+              <span style={{ color: "var(--border)" }} aria-hidden="true">·</span>
+              <span>
+                <b style={{ color: "var(--text)", fontWeight: 800 }}>{stageCounts.published}</b>{" "}
+                live in regulations &amp; intel
+              </span>
+            </div>
+
+            {/* What's new this week — only renders if there are recent published items */}
+            {publishedThisWeek.length > 0 && (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  margin: "0 0 18px",
+                  background: "var(--low-bg)",
+                  border: "1px solid var(--low-bd)",
+                  borderRadius: "var(--r-sm)",
+                  fontSize: 12.5,
+                  lineHeight: 1.55,
+                  color: "var(--text)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "var(--low)",
+                    marginBottom: 6,
+                  }}
+                >
+                  What&apos;s new this week
+                </div>
+                <div style={{ color: "var(--text-2)" }}>
+                  {publishedThisWeek.length === 1
+                    ? "1 regulation went live in the last 7 days:"
+                    : `${publishedThisWeek.length} regulations went live in the last 7 days:`}
+                </div>
+                <ul
+                  style={{
+                    margin: "6px 0 0",
+                    padding: "0 0 0 18px",
+                    listStyle: "disc",
+                  }}
+                >
+                  {publishedThisWeek.slice(0, 4).map((p) => (
+                    <li key={p.id} style={{ marginBottom: 2 }}>
+                      <b style={{ fontWeight: 700 }}>{p.title}</b>
+                      {p.sourceName ? (
+                        <span style={{ color: "var(--text-2)" }}> · {p.sourceName}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                  {publishedThisWeek.length > 4 && (
+                    <li style={{ color: "var(--text-2)", listStyle: "none", marginLeft: -18 }}>
+                      &nbsp;+ {publishedThisWeek.length - 4} more — filter to <b>Published</b> below to see all.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Per-stage description helper — explains what stage filters mean */}
+            <p
+              style={{
+                fontSize: 12,
+                lineHeight: 1.5,
+                color: "var(--text-2)",
+                margin: "0 0 10px",
+                maxWidth: "88ch",
+              }}
+            >
+              <b style={{ color: "var(--text)", fontWeight: 700 }}>Draft</b> {STAGE_HELPER.draft.toLowerCase()}.{" "}
+              <b style={{ color: "var(--text)", fontWeight: 700 }}>Active review</b> {STAGE_HELPER.active_review.toLowerCase()}.{" "}
+              <b style={{ color: "var(--text)", fontWeight: 700 }}>Published</b> {STAGE_HELPER.published.toLowerCase()}.{" "}
+              Partner-flagged items came from a Caro&apos;s Ledge advisor; the rest are tracked from public regulator feeds.
             </p>
 
             {/* Filter bar */}
@@ -385,14 +515,16 @@ export function ResearchView({ items }: ResearchViewProps) {
                 Stage
               </span>
               {([
-                { id: "all" as const, label: `All (${items.length})` },
-                { id: "draft" as const, label: STAGE_LABEL.draft },
-                { id: "active_review" as const, label: STAGE_LABEL.active_review },
-                { id: "published" as const, label: STAGE_LABEL.published },
+                { id: "all" as const, label: `All (${items.length})`, helper: "All items in the pipeline regardless of stage" },
+                { id: "draft" as const, label: `${STAGE_LABEL.draft} (${stageCounts.draft})`, helper: STAGE_HELPER.draft },
+                { id: "active_review" as const, label: `${STAGE_LABEL.active_review} (${stageCounts.active_review})`, helper: STAGE_HELPER.active_review },
+                { id: "published" as const, label: `${STAGE_LABEL.published} (${stageCounts.published})`, helper: STAGE_HELPER.published },
               ]).map((s) => (
                 <button
                   key={s.id}
                   onClick={() => setStageFilter(s.id as "all" | Stage)}
+                  title={s.helper}
+                  aria-label={`${s.label} — ${s.helper}`}
                   style={{
                     fontFamily: "inherit",
                     fontSize: 12,
@@ -675,6 +807,21 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
         }}
       >
         <div>
+          {/* Source kicker — promoted per CC3 source-attribution prominence */}
+          {item.sourceName && (
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--text-2)",
+                marginBottom: 4,
+              }}
+            >
+              {item.sourceName}
+            </div>
+          )}
           <div
             style={{
               display: "flex",
@@ -713,11 +860,6 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
               flexWrap: "wrap",
             }}
           >
-            {item.sourceName && (
-              <span>
-                Source · <b style={{ color: "var(--text)" }}>{item.sourceName}</b>
-              </span>
-            )}
             <span>
               First seen · <b style={{ color: "var(--text)" }}>{dateStr}</b>
             </span>
