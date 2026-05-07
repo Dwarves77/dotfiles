@@ -1,0 +1,332 @@
+{
+  "generated_at": "2026-05-07T21:35:50.332Z",
+  "by_state": {
+    "DE": {
+      "iso": "DE",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "umweltbundesamt.de",
+          "name_hint": "Umweltbundesamt",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "bundestag.de",
+          "name_hint": "Bundestag",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "FR": {
+      "iso": "FR",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "ecologie.gouv.fr",
+          "name_hint": "MITECO/Ministère Transition Écologique",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "env_alt",
+          "host": "ademe.fr",
+          "name_hint": "ADEME (alt)",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl_an",
+          "host": "assemblee-nationale.fr",
+          "name_hint": "Assemblée Nationale",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl_se",
+          "host": "senat.fr",
+          "name_hint": "Sénat",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "NL": {
+      "iso": "NL",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "rivm.nl",
+          "name_hint": "RIVM",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "tweedekamer.nl",
+          "name_hint": "Tweede Kamer",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "BE": {
+      "iso": "BE",
+      "probes": [
+        {
+          "kind": "fed_env",
+          "host": "health.belgium.be",
+          "name_hint": "SPF Santé Publique (federal)",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "fed_env_alt",
+          "host": "klimaat.be",
+          "name_hint": "Klimaat (federal alt)",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "reg_bru",
+          "host": "environnement.brussels",
+          "name_hint": "Brussels Environment",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "reg_bru_alt",
+          "host": "leefmilieu.brussels",
+          "name_hint": "Brussels Environment (NL)",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "reg_vlg",
+          "host": "vmm.be",
+          "name_hint": "VMM (Flanders)",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "reg_wal",
+          "host": "awac.be",
+          "name_hint": "AwAC (Wallonia)",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "fed_parl",
+          "host": "lachambre.be",
+          "name_hint": "Belgian Chamber",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "fed_parl_alt",
+          "host": "dekamer.be",
+          "name_hint": "Belgian Chamber (NL)",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "LU": {
+      "iso": "LU",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "environnement.public.lu",
+          "name_hint": "MECDD",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "chd.lu",
+          "name_hint": "Chambre des Députés",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "AT": {
+      "iso": "AT",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "umweltbundesamt.at",
+          "name_hint": "Umweltbundesamt AT",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "parlament.gv.at",
+          "name_hint": "Nationalrat",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "DK": {
+      "iso": "DK",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "mim.dk",
+          "name_hint": "Miljøministeriet",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "env_alt",
+          "host": "mst.dk",
+          "name_hint": "Miljøstyrelsen (alt)",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "ft.dk",
+          "name_hint": "Folketinget",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "SE": {
+      "iso": "SE",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "naturvardsverket.se",
+          "name_hint": "Naturvårdsverket",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "riksdagen.se",
+          "name_hint": "Riksdag",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "FI": {
+      "iso": "FI",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "ym.fi",
+          "name_hint": "Ympäristöministeriö",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "eduskunta.fi",
+          "name_hint": "Eduskunta",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    },
+    "IE": {
+      "iso": "IE",
+      "probes": [
+        {
+          "kind": "env",
+          "host": "epa.ie",
+          "name_hint": "EPA Ireland",
+          "rows": [],
+          "count": 0
+        },
+        {
+          "kind": "parl",
+          "host": "oireachtas.ie",
+          "name_hint": "Oireachtas",
+          "rows": [],
+          "count": 0
+        }
+      ],
+      "inserts_needed": 0,
+      "existing_count": 0
+    }
+  },
+  "retag_candidates": [
+    {
+      "legacy_id": "g7",
+      "expected_iso": "DE",
+      "note": "Germany BMDV per dispatch",
+      "found": true,
+      "row": {
+        "id": "05e2d1c1-7e87-443a-9178-a475d4d6c3b9",
+        "title": "Germany BMDV",
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "jurisdictions": [
+          "eu"
+        ],
+        "summary": "German federal transport; hydrogen corridors, LNG/NH3 shipping."
+      }
+    },
+    {
+      "legacy_id": "r5",
+      "expected_iso": "SE",
+      "note": "Stockholm Environment Institute per dispatch",
+      "found": true,
+      "row": {
+        "id": "abd83595-cb54-4ccc-b80b-2f9421596465",
+        "title": "Stockholm Environment Institute",
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "jurisdictions": [
+          "eu"
+        ],
+        "summary": "Carbon markets, transport equity, freight fuel lifecycle analysis."
+      }
+    },
+    {
+      "legacy_id": "eu-core-markets-regional-operations-profile",
+      "expected_iso": null,
+      "note": "Multi-state — leave at ['EU'], do NOT retag",
+      "found": true,
+      "row": {
+        "id": "42a0ebd5-0bbf-4afa-8a7c-9b5e1da817ad",
+        "title": "EU Core Markets Regional Operations Profile",
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "jurisdictions": [
+          "eu"
+        ],
+        "summary": "EU core markets (Germany, Netherlands, Belgium, France, Italy) operational environment. Highest regulatory density globally. Owner: Sustainability + Operations."
+      }
+    }
+  ],
+  "warnings": []
+}

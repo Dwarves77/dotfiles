@@ -1,0 +1,577 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "de_uba_insert",
+      "ok": true,
+      "detail": "id=28e82808-aa9f-4110-a5be-9564944106ec tier=1 name=Umweltbundesamt (UBA) — German Environment Agency",
+      "at": "2026-05-07T21:41:22.405Z"
+    },
+    {
+      "name": "de_uba_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"DE\"]",
+      "at": "2026-05-07T21:41:22.520Z"
+    },
+    {
+      "name": "de_bundestag_insert",
+      "ok": true,
+      "detail": "id=3594e5a7-16f4-4681-bfec-2c836dca23f1 tier=1 name=Deutscher Bundestag",
+      "at": "2026-05-07T21:41:22.768Z"
+    },
+    {
+      "name": "de_bundestag_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"DE\"]",
+      "at": "2026-05-07T21:41:22.888Z"
+    },
+    {
+      "name": "fr_miteco_insert",
+      "ok": true,
+      "detail": "id=81df8e97-9b84-45c3-94a5-5e9e5838c10a tier=1 name=Ministère de la Transition écologique et de la Cohésion des territoires (MITECO)",
+      "at": "2026-05-07T21:41:23.137Z"
+    },
+    {
+      "name": "fr_miteco_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"FR\"]",
+      "at": "2026-05-07T21:41:23.252Z"
+    },
+    {
+      "name": "fr_an_insert",
+      "ok": true,
+      "detail": "id=f65fd561-795b-471d-ad1c-55a292cb712a tier=1 name=Assemblée nationale",
+      "at": "2026-05-07T21:41:23.504Z"
+    },
+    {
+      "name": "fr_an_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"FR\"]",
+      "at": "2026-05-07T21:41:23.611Z"
+    },
+    {
+      "name": "fr_senat_insert",
+      "ok": true,
+      "detail": "id=61fd172f-b2b8-472e-9d92-06139889b24a tier=1 name=Sénat (France)",
+      "at": "2026-05-07T21:41:23.889Z"
+    },
+    {
+      "name": "fr_senat_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"FR\"]",
+      "at": "2026-05-07T21:41:24.015Z"
+    },
+    {
+      "name": "nl_rivm_insert",
+      "ok": true,
+      "detail": "id=53581e0d-12ef-4ad7-9462-483bbd693b34 tier=1 name=Rijksinstituut voor Volksgezondheid en Milieu (RIVM)",
+      "at": "2026-05-07T21:41:24.282Z"
+    },
+    {
+      "name": "nl_rivm_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"NL\"]",
+      "at": "2026-05-07T21:41:24.409Z"
+    },
+    {
+      "name": "nl_tk_insert",
+      "ok": true,
+      "detail": "id=a819d580-44e4-4fd9-981d-a660bbabe96d tier=1 name=Tweede Kamer der Staten-Generaal",
+      "at": "2026-05-07T21:41:24.662Z"
+    },
+    {
+      "name": "nl_tk_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"NL\"]",
+      "at": "2026-05-07T21:41:24.794Z"
+    },
+    {
+      "name": "be_fed_spf_insert",
+      "ok": true,
+      "detail": "id=1ba7f3d2-b838-44f8-99b6-d86f565c18b4 tier=1 name=SPF Santé publique, Sécurité de la chaîne alimentaire et Environnement (FPS Health)",
+      "at": "2026-05-07T21:41:25.065Z"
+    },
+    {
+      "name": "be_fed_spf_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"BE\"]",
+      "at": "2026-05-07T21:41:25.176Z"
+    },
+    {
+      "name": "be_reg_brussels_insert",
+      "ok": true,
+      "detail": "id=0988c497-a6f1-4501-99d5-5986032d3883 tier=1 name=Brussels Environment / Leefmilieu Brussel (Bruxelles Environnement)",
+      "at": "2026-05-07T21:41:25.411Z"
+    },
+    {
+      "name": "be_reg_brussels_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"BE-BRU\"]",
+      "at": "2026-05-07T21:41:25.527Z"
+    },
+    {
+      "name": "be_reg_vmm_insert",
+      "ok": true,
+      "detail": "id=7c077e07-5be4-4af2-b3b3-e212084a4f4c tier=1 name=Vlaamse Milieumaatschappij (VMM) — Flanders Environment Agency",
+      "at": "2026-05-07T21:41:25.767Z"
+    },
+    {
+      "name": "be_reg_vmm_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"BE-VLG\"]",
+      "at": "2026-05-07T21:41:25.899Z"
+    },
+    {
+      "name": "be_reg_awac_insert",
+      "ok": true,
+      "detail": "id=1f5fb2b0-29f3-4be7-a23a-df64210787d5 tier=1 name=Agence wallonne de l'Air et du Climat (AwAC)",
+      "at": "2026-05-07T21:41:26.141Z"
+    },
+    {
+      "name": "be_reg_awac_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"BE-WAL\"]",
+      "at": "2026-05-07T21:41:26.256Z"
+    },
+    {
+      "name": "be_fed_chamber_insert",
+      "ok": true,
+      "detail": "id=9b646f1b-8e80-47e9-9ff5-e19b9142f24c tier=1 name=La Chambre des représentants de Belgique / Belgische Kamer van volksvertegenwoordigers",
+      "at": "2026-05-07T21:41:26.511Z"
+    },
+    {
+      "name": "be_fed_chamber_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"BE\"]",
+      "at": "2026-05-07T21:41:26.649Z"
+    },
+    {
+      "name": "lu_mecdd_insert",
+      "ok": true,
+      "detail": "id=9c13dca2-f674-4dec-a2bb-7e93cb49d596 tier=1 name=Ministère de l'Environnement, du Climat et de la Biodiversité (MECDD) — Luxembourg",
+      "at": "2026-05-07T21:41:26.900Z"
+    },
+    {
+      "name": "lu_mecdd_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"LU\"]",
+      "at": "2026-05-07T21:41:27.022Z"
+    },
+    {
+      "name": "lu_chd_insert",
+      "ok": true,
+      "detail": "id=07da4496-58f2-48aa-b438-9ddd23c69fe7 tier=1 name=Chambre des Députés du Grand-Duché de Luxembourg",
+      "at": "2026-05-07T21:41:27.263Z"
+    },
+    {
+      "name": "lu_chd_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"LU\"]",
+      "at": "2026-05-07T21:41:27.387Z"
+    },
+    {
+      "name": "at_uba_insert",
+      "ok": true,
+      "detail": "id=f404180d-6e41-42e1-967e-615e6d8377e4 tier=1 name=Umweltbundesamt — Austrian Environment Agency",
+      "at": "2026-05-07T21:41:27.646Z"
+    },
+    {
+      "name": "at_uba_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"AT\"]",
+      "at": "2026-05-07T21:41:27.758Z"
+    },
+    {
+      "name": "at_parlament_insert",
+      "ok": true,
+      "detail": "id=a0e2be6c-1c62-4bad-bda6-469285ffa57c tier=1 name=Österreichisches Parlament (Nationalrat & Bundesrat)",
+      "at": "2026-05-07T21:41:28.007Z"
+    },
+    {
+      "name": "at_parlament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"AT\"]",
+      "at": "2026-05-07T21:41:28.125Z"
+    },
+    {
+      "name": "dk_mim_insert",
+      "ok": true,
+      "detail": "id=5370c7f4-3f67-4701-8545-1905c6c1ee37 tier=1 name=Miljøministeriet (Ministry of Environment of Denmark)",
+      "at": "2026-05-07T21:41:28.670Z"
+    },
+    {
+      "name": "dk_mim_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"DK\"]",
+      "at": "2026-05-07T21:41:28.790Z"
+    },
+    {
+      "name": "dk_ft_insert",
+      "ok": true,
+      "detail": "id=35ce9af9-a6ff-4acf-a367-e3e3dd54a6dc tier=1 name=Folketinget (Danish Parliament)",
+      "at": "2026-05-07T21:41:29.123Z"
+    },
+    {
+      "name": "dk_ft_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"DK\"]",
+      "at": "2026-05-07T21:41:29.256Z"
+    },
+    {
+      "name": "se_naturvardsverket_insert",
+      "ok": true,
+      "detail": "id=65b6e5fc-77e4-4055-97c6-39e26a7cc932 tier=1 name=Naturvårdsverket — Swedish Environmental Protection Agency",
+      "at": "2026-05-07T21:41:29.522Z"
+    },
+    {
+      "name": "se_naturvardsverket_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"SE\"]",
+      "at": "2026-05-07T21:41:29.648Z"
+    },
+    {
+      "name": "se_riksdagen_insert",
+      "ok": true,
+      "detail": "id=22fb8ec4-1084-4aae-86ec-ae998713d4ee tier=1 name=Sveriges Riksdag (Swedish Parliament)",
+      "at": "2026-05-07T21:41:29.922Z"
+    },
+    {
+      "name": "se_riksdagen_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"SE\"]",
+      "at": "2026-05-07T21:41:30.042Z"
+    },
+    {
+      "name": "fi_ym_insert",
+      "ok": true,
+      "detail": "id=4014cfca-24dc-4e2c-a997-d64df2172e2d tier=1 name=Ympäristöministeriö (Ministry of the Environment of Finland)",
+      "at": "2026-05-07T21:41:30.303Z"
+    },
+    {
+      "name": "fi_ym_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"FI\"]",
+      "at": "2026-05-07T21:41:30.412Z"
+    },
+    {
+      "name": "fi_eduskunta_insert",
+      "ok": true,
+      "detail": "id=e2fa9583-ada5-45aa-986a-888b7efa349f tier=1 name=Eduskunta (Parliament of Finland)",
+      "at": "2026-05-07T21:41:30.652Z"
+    },
+    {
+      "name": "fi_eduskunta_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"FI\"]",
+      "at": "2026-05-07T21:41:30.766Z"
+    },
+    {
+      "name": "ie_epa_insert",
+      "ok": true,
+      "detail": "id=22ad6bf3-eb3d-4118-b514-26f5af1050e0 tier=1 name=Environmental Protection Agency (EPA) — Ireland",
+      "at": "2026-05-07T21:41:31.010Z"
+    },
+    {
+      "name": "ie_epa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"IE\"]",
+      "at": "2026-05-07T21:41:31.119Z"
+    },
+    {
+      "name": "ie_oireachtas_insert",
+      "ok": true,
+      "detail": "id=592129fc-2313-44d6-b252-64d494bdfaa6 tier=1 name=Houses of the Oireachtas (Irish Parliament)",
+      "at": "2026-05-07T21:41:31.363Z"
+    },
+    {
+      "name": "ie_oireachtas_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false iso=[\"IE\"]",
+      "at": "2026-05-07T21:41:31.481Z"
+    },
+    {
+      "name": "retag_g7_de_verify",
+      "ok": true,
+      "detail": "id=05e2d1c1-7e87-443a-9178-a475d4d6c3b9 jurisdiction_iso=[\"DE\"]",
+      "at": "2026-05-07T21:41:31.858Z"
+    },
+    {
+      "name": "retag_r5_se_verify",
+      "ok": true,
+      "detail": "id=abd83595-cb54-4ccc-b80b-2f9421596465 jurisdiction_iso=[\"SE\"]",
+      "at": "2026-05-07T21:41:32.258Z"
+    },
+    {
+      "name": "final_snapshot",
+      "ok": true,
+      "detail": "24 rows in EU Western+Nordic scope",
+      "rows": [
+        {
+          "id": "f404180d-6e41-42e1-967e-615e6d8377e4",
+          "name": "Umweltbundesamt — Austrian Environment Agency",
+          "url": "https://www.umweltbundesamt.at/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "AT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "a0e2be6c-1c62-4bad-bda6-469285ffa57c",
+          "name": "Österreichisches Parlament (Nationalrat & Bundesrat)",
+          "url": "https://www.parlament.gv.at/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "AT"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "1ba7f3d2-b838-44f8-99b6-d86f565c18b4",
+          "name": "SPF Santé publique, Sécurité de la chaîne alimentaire et Environnement (FPS Health)",
+          "url": "https://www.health.belgium.be/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "BE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "9b646f1b-8e80-47e9-9ff5-e19b9142f24c",
+          "name": "La Chambre des représentants de Belgique / Belgische Kamer van volksvertegenwoordigers",
+          "url": "https://www.lachambre.be/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "BE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "0988c497-a6f1-4501-99d5-5986032d3883",
+          "name": "Brussels Environment / Leefmilieu Brussel (Bruxelles Environnement)",
+          "url": "https://environnement.brussels/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "BE-BRU"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "7c077e07-5be4-4af2-b3b3-e212084a4f4c",
+          "name": "Vlaamse Milieumaatschappij (VMM) — Flanders Environment Agency",
+          "url": "https://www.vmm.be/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "BE-VLG"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "1f5fb2b0-29f3-4be7-a23a-df64210787d5",
+          "name": "Agence wallonne de l'Air et du Climat (AwAC)",
+          "url": "https://www.awac.be/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "BE-WAL"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "28e82808-aa9f-4110-a5be-9564944106ec",
+          "name": "Umweltbundesamt (UBA) — German Environment Agency",
+          "url": "https://www.umweltbundesamt.de/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "DE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "3594e5a7-16f4-4681-bfec-2c836dca23f1",
+          "name": "Deutscher Bundestag",
+          "url": "https://www.bundestag.de/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "DE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "35ce9af9-a6ff-4acf-a367-e3e3dd54a6dc",
+          "name": "Folketinget (Danish Parliament)",
+          "url": "https://www.ft.dk/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "DK"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "5370c7f4-3f67-4701-8545-1905c6c1ee37",
+          "name": "Miljøministeriet (Ministry of Environment of Denmark)",
+          "url": "https://mim.dk/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "DK"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "e2fa9583-ada5-45aa-986a-888b7efa349f",
+          "name": "Eduskunta (Parliament of Finland)",
+          "url": "https://www.eduskunta.fi/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "FI"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "4014cfca-24dc-4e2c-a997-d64df2172e2d",
+          "name": "Ympäristöministeriö (Ministry of the Environment of Finland)",
+          "url": "https://ym.fi/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "FI"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "61fd172f-b2b8-472e-9d92-06139889b24a",
+          "name": "Sénat (France)",
+          "url": "https://www.senat.fr/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "FR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "f65fd561-795b-471d-ad1c-55a292cb712a",
+          "name": "Assemblée nationale",
+          "url": "https://www.assemblee-nationale.fr/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "FR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "81df8e97-9b84-45c3-94a5-5e9e5838c10a",
+          "name": "Ministère de la Transition écologique et de la Cohésion des territoires (MITECO)",
+          "url": "https://www.ecologie.gouv.fr/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "FR"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "22ad6bf3-eb3d-4118-b514-26f5af1050e0",
+          "name": "Environmental Protection Agency (EPA) — Ireland",
+          "url": "https://www.epa.ie/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "IE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "592129fc-2313-44d6-b252-64d494bdfaa6",
+          "name": "Houses of the Oireachtas (Irish Parliament)",
+          "url": "https://www.oireachtas.ie/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "IE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "9c13dca2-f674-4dec-a2bb-7e93cb49d596",
+          "name": "Ministère de l'Environnement, du Climat et de la Biodiversité (MECDD) — Luxembourg",
+          "url": "https://environnement.public.lu/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "LU"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "07da4496-58f2-48aa-b438-9ddd23c69fe7",
+          "name": "Chambre des Députés du Grand-Duché de Luxembourg",
+          "url": "https://www.chd.lu/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "LU"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "53581e0d-12ef-4ad7-9462-483bbd693b34",
+          "name": "Rijksinstituut voor Volksgezondheid en Milieu (RIVM)",
+          "url": "https://www.rivm.nl/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "NL"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "a819d580-44e4-4fd9-981d-a660bbabe96d",
+          "name": "Tweede Kamer der Staten-Generaal",
+          "url": "https://www.tweedekamer.nl/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "NL"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "65b6e5fc-77e4-4055-97c6-39e26a7cc932",
+          "name": "Naturvårdsverket — Swedish Environmental Protection Agency",
+          "url": "https://www.naturvardsverket.se/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "SE"
+          ],
+          "status": "active"
+        },
+        {
+          "id": "22fb8ec4-1084-4aae-86ec-ae998713d4ee",
+          "name": "Sveriges Riksdag (Swedish Parliament)",
+          "url": "https://www.riksdagen.se/",
+          "tier": 1,
+          "jurisdiction_iso": [
+            "SE"
+          ],
+          "status": "active"
+        }
+      ],
+      "at": "2026-05-07T21:41:32.425Z"
+    },
+    {
+      "name": "retag_snapshot",
+      "ok": true,
+      "detail": "2 retag rows",
+      "rows": [
+        {
+          "id": "05e2d1c1-7e87-443a-9178-a475d4d6c3b9",
+          "legacy_id": "g7",
+          "title": "Germany BMDV",
+          "jurisdiction_iso": [
+            "DE"
+          ]
+        },
+        {
+          "id": "abd83595-cb54-4ccc-b80b-2f9421596465",
+          "legacy_id": "r5",
+          "title": "Stockholm Environment Institute",
+          "jurisdiction_iso": [
+            "SE"
+          ]
+        }
+      ],
+      "at": "2026-05-07T21:41:32.562Z"
+    }
+  ]
+}
