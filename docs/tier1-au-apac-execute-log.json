@@ -1,0 +1,67 @@
+{
+  "aborted_at": "sg_retag_count_gate",
+  "log": [
+    {
+      "name": "pre_existing_epa_nsw_gov_au",
+      "ok": true,
+      "detail": "EPA NSW: 1 hit(s), tiers=[2], admin_only=[false]",
+      "at": "2026-05-07T21:41:17.440Z"
+    },
+    {
+      "name": "pre_existing_legislation_qld_gov_au",
+      "ok": true,
+      "detail": "QLD legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-07T21:41:17.674Z"
+    },
+    {
+      "name": "pre_existing_legislation_wa_gov_au",
+      "ok": true,
+      "detail": "WA legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-07T21:41:17.833Z"
+    },
+    {
+      "name": "pre_existing_recfit",
+      "ok": true,
+      "detail": "ReCFIT TAS: 1 hit(s), tiers=[2], admin_only=[false]",
+      "at": "2026-05-07T21:41:18.000Z"
+    },
+    {
+      "name": "pre_existing_legislation_act_gov_au",
+      "ok": true,
+      "detail": "ACT legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-07T21:41:18.178Z"
+    },
+    {
+      "name": "pre_existing_legislation_nt_gov_au",
+      "ok": true,
+      "detail": "NT legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-07T21:41:18.329Z"
+    },
+    {
+      "name": "pre_existing_sso_agc_gov_sg",
+      "ok": true,
+      "detail": "SSO Singapore: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-07T21:41:18.520Z"
+    },
+    {
+      "name": "pre_existing_bca_gov_sg",
+      "ok": true,
+      "detail": "BCA Singapore: 1 hit(s), tiers=[2], admin_only=[false]",
+      "at": "2026-05-07T21:41:18.676Z"
+    },
+    {
+      "name": "nea_carbon_tax_initial_state",
+      "ok": true,
+      "detail": "id=7c4fb882-7bb6-465d-b3b8-cc30ea82984b status=provisional tier=1 jurisdiction_iso=[]",
+      "at": "2026-05-07T21:41:18.783Z"
+    },
+    {
+      "name": "sg_retag_count_gate",
+      "ok": false,
+      "detail": "9 candidates (expected ~5, halt-threshold |Δ|>2). Candidates: [{\"id\":\"5b6638f6-2d10-4da9-99a1-47e1036a4770\",\"name\":\"Maritime and Port Authority of Singapore (MPA)\",\"status\":\"active\",\"tier\":2},{\"id\":\"7a31ea18-9109-44e5-8212-bdb772d32a89\",\"name\":\"Ministry of Sustainability and the Environment (MSE), Singapore Government\",\"status\":\"active\",\"tier\":2},{\"id\":\"a62c0565-6dd3-4cb4-91c6-ead9584d73b2\",\"name\":\"Singapore Government (Multi-Ministry)\",\"status\":\"active\",\"tier\":1},{\"id\":\"c49414da-7c9e-45cc-a629-f138166ecda5\",\"name\":\"Maritime and Port Authority of Singapore (MPA)\",\"status\":\"active\",\"tier\":2},{\"id\":\"8c9b7831-64fb-4cad-b4fb-85c431f767ed\",\"name\":\"Maritime and Port Authority of Singapore (MPA)\",\"status\":\"active\",\"tier\":2},{\"id\":\"d78a96bb-3f85-4ef5-aaf2-6ffe1481e108\",\"name\":\"Maritime and Port Authority of Singapore (MPA)\",\"status\":\"active\",\"tier\":1},{\"id\":\"97b289a9-b761-401f-8a17-9ec40cf92718\",\"name\":\"Singapore Ministry of Transport (MOT)\",\"status\":\"active\",\"tier\":2},{\"id\":\"7c4fb882-7bb6-465d-b3b8-cc30ea82984b\",\"name\":\"Singapore Carbon Tax — NEA\",\"status\":\"provisional\",\"tier\":1},{\"id\":\"ec02878a-4289-4d16-b383-b44818225e3c\",\"name\":\"Singapore Customs\",\"status\":\"provisional\",\"tier\":1}]",
+      "at": "2026-05-07T21:41:19.205Z"
+    }
+  ],
+  "insertedIds": [],
+  "retaggedIds": []
+}
