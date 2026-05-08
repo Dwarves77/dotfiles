@@ -1,0 +1,12 @@
+{
+  "aborted_at": "precondition_table_exists",
+  "log": [
+    {
+      "name": "precondition_table_exists",
+      "ok": false,
+      "detail": "integrity_flags table not reachable: Could not find the table 'public.integrity_flags' in the schema cache (code=PGRST205). Migration 048 may not be applied OR PostgREST schema cache is stale. HALT.",
+      "at": "2026-05-08T13:34:31.467Z"
+    }
+  ],
+  "flagIds": []
+}
