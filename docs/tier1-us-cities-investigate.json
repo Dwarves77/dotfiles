@@ -1,0 +1,112 @@
+{
+  "US-NYC": {
+    "label": "New York City",
+    "iso": "US-NYC",
+    "state_iso": "US-NY",
+    "matchingItems": [
+      {
+        "id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+        "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+        "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+        "jurisdiction_iso": [
+          "US-NY"
+        ],
+        "source_id": "7f8d6310-97cc-4c6a-ab93-ac984e9d737c",
+        "priority": "HIGH"
+      }
+    ],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-LA": {
+    "label": "Los Angeles",
+    "iso": "US-LA",
+    "state_iso": "US-CA",
+    "matchingItems": [
+      {
+        "id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+        "legacy_id": "r31",
+        "title": "Port of Los Angeles Green",
+        "jurisdiction_iso": [
+          "US"
+        ],
+        "source_id": "2dd40334-abc1-4bd7-a4bf-b6fe7f75d038",
+        "priority": "HIGH"
+      }
+    ],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-CHI": {
+    "label": "Chicago",
+    "iso": "US-CHI",
+    "state_iso": "US-IL",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-HOU": {
+    "label": "Houston",
+    "iso": "US-HOU",
+    "state_iso": "US-TX",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-SF": {
+    "label": "San Francisco",
+    "iso": "US-SF",
+    "state_iso": "US-CA",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-BOS": {
+    "label": "Boston",
+    "iso": "US-BOS",
+    "state_iso": "US-MA",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-SEA": {
+    "label": "Seattle",
+    "iso": "US-SEA",
+    "state_iso": "US-WA",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-MIA": {
+    "label": "Miami",
+    "iso": "US-MIA",
+    "state_iso": "US-FL",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-PHI": {
+    "label": "Philadelphia",
+    "iso": "US-PHI",
+    "state_iso": "US-PA",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "US-ATL": {
+    "label": "Atlanta",
+    "iso": "US-ATL",
+    "state_iso": "US-GA",
+    "matchingItems": [],
+    "existingSources": [],
+    "plannedSourceCollisions": []
+  },
+  "_ll97": {
+    "id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+    "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+    "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+    "jurisdiction_iso": [
+      "US-NY"
+    ]
+  }
+}

@@ -1,0 +1,762 @@
+{
+  "completed": true,
+  "finalSnapshot": {
+    "US-NYC": {
+      "sources": [
+        {
+          "id": "fed43277-faef-48a5-b145-669847ce4c8a",
+          "name": "NYC Mayor's Office of Climate & Environmental Justice (Sustainability)",
+          "url": "https://www.nyc.gov/site/sustainability/index.page",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "1c31ece5-3a0d-4b21-bfdf-86eaa9647687",
+          "name": "New York City Council",
+          "url": "https://council.nyc.gov/",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": [
+        {
+          "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+          "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+          "jurisdiction_iso": [
+            "US-NY",
+            "US-NYC"
+          ]
+        }
+      ]
+    },
+    "US-LA": {
+      "sources": [
+        {
+          "id": "b5f85b79-82e0-4f2d-9665-51f1d4d146ca",
+          "name": "Louisiana Department of Environmental Quality (LDEQ)",
+          "url": "https://www.deq.louisiana.gov",
+          "tier": 2,
+          "status": "active"
+        },
+        {
+          "id": "b476ff63-cae4-43bd-b39c-9b5e45a14677",
+          "name": "Louisiana DOTD – State Freight Plan",
+          "url": "https://dotd.la.gov/about/office-of-planning/transportation-planning/freight-plan/",
+          "tier": 2,
+          "status": "active"
+        },
+        {
+          "id": "61321847-144d-4560-99e6-057f433f7aef",
+          "name": "Louisiana State Legislature",
+          "url": "https://www.legis.la.gov/",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "49b28864-8179-4107-b518-bf7d9130ce6a",
+          "name": "City of Los Angeles — Departments & Bureaus",
+          "url": "https://www.lacity.gov/government/departments-bureaus",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "de8eea1b-926b-4fec-9934-0675c4cd02de",
+          "name": "Los Angeles City Council",
+          "url": "https://lacity.gov/government/about-us/elected-officials/los-angeles-city-council",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": [
+        {
+          "legacy_id": "r31",
+          "title": "Port of Los Angeles Green",
+          "jurisdiction_iso": [
+            "US-CA",
+            "US-LA"
+          ]
+        }
+      ]
+    },
+    "US-CHI": {
+      "sources": [
+        {
+          "id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+          "name": "Chicago Department of Public Health — Environmental Health",
+          "url": "https://www.chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "290e66c9-a757-4be6-ab68-a40414ec33b6",
+          "name": "Office of the City Clerk of Chicago",
+          "url": "https://chicityclerk.com/",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    },
+    "US-HOU": {
+      "sources": [
+        {
+          "id": "30b51427-df93-4f76-ab99-bf49359d18ce",
+          "name": "City of Houston Health Department — Environmental Services",
+          "url": "https://www.houstontx.gov/health/environmental.html",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "7353dea0-a2e7-4b3e-be3f-202e981eed4f",
+          "name": "Houston City Council",
+          "url": "https://houstontx.gov/council/",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    },
+    "US-SF": {
+      "sources": [
+        {
+          "id": "55aedb41-0ac7-40cb-a3fd-b06c0a8f8032",
+          "name": "San Francisco Department of the Environment (SF Environment)",
+          "url": "https://sfenvironment.org/",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "e0ec620e-8ca3-4bdf-b91c-05523e9de047",
+          "name": "San Francisco Board of Supervisors",
+          "url": "https://sfbos.org/",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    },
+    "US-BOS": {
+      "sources": [
+        {
+          "id": "21709630-dd75-46db-b0dc-9a53f5ad4d90",
+          "name": "City of Boston — Environment Department",
+          "url": "https://www.boston.gov/departments/environment",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "90202733-5283-4744-bf8a-98335b136abd",
+          "name": "Boston City Council",
+          "url": "https://www.boston.gov/departments/city-council",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    },
+    "US-SEA": {
+      "sources": [
+        {
+          "id": "3d0d4489-63a0-43be-b1ef-52ef2de8a672",
+          "name": "City of Seattle — Environment & Sustainability",
+          "url": "https://www.seattle.gov/environment",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "f8721185-8c86-4b5d-a202-718a36e88ceb",
+          "name": "Seattle City Council",
+          "url": "https://www.seattle.gov/council",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    },
+    "US-MIA": {
+      "sources": [
+        {
+          "id": "259dc287-2130-4341-95a4-6b5a06a76104",
+          "name": "City of Miami — Office of Resilience & Sustainability",
+          "url": "https://www.miamigov.com/Government/Departments-Organizations/Resilience-Sustainability",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "9bc66c9e-b95a-4444-ad74-9182d5703661",
+          "name": "Miami City Commission",
+          "url": "https://www.miamigov.com/Government/City-Officials/City-Commission",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    },
+    "US-PHI": {
+      "sources": [
+        {
+          "id": "1a7ed54d-0562-4853-93da-8a4cb58a1cc9",
+          "name": "City of Philadelphia — Office of Sustainability",
+          "url": "https://www.phila.gov/departments/office-of-sustainability/",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "d9424b30-ca5a-4e6e-bb52-6b2a319c9402",
+          "name": "Philadelphia City Council",
+          "url": "https://phlcouncil.com/",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    },
+    "US-ATL": {
+      "sources": [
+        {
+          "id": "259ed662-13b1-4b93-9fb0-aa61d12ac234",
+          "name": "City of Atlanta — Mayor's Office of Sustainability & Resilience",
+          "url": "https://www.atlantaga.gov/government/departments/sustainability",
+          "tier": 1,
+          "status": "active"
+        },
+        {
+          "id": "cf6d4da3-6fa3-46d6-b949-eb147d57fd50",
+          "name": "Atlanta City Council",
+          "url": "https://citycouncil.atlantaga.gov/",
+          "tier": 1,
+          "status": "active"
+        }
+      ],
+      "items": []
+    }
+  },
+  "log": [
+    {
+      "name": "preflight_ll97_state",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-NY\"]",
+      "at": "2026-05-08T02:42:10.131Z"
+    },
+    {
+      "name": "preflight_r31_state",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US\"]",
+      "at": "2026-05-08T02:42:10.261Z"
+    },
+    {
+      "name": "nyc_climate_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:10.444Z"
+    },
+    {
+      "name": "nyc_climate_insert",
+      "ok": true,
+      "detail": "id=fed43277-faef-48a5-b145-669847ce4c8a tier=1 name=NYC Mayor's Office of Climate & Environmental Justice (Sustainability)",
+      "at": "2026-05-08T02:42:10.577Z"
+    },
+    {
+      "name": "nyc_climate_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-NY\",\"US-NYC\"] url=https://www.nyc.gov/site/sustainability/index.page",
+      "at": "2026-05-08T02:42:10.678Z"
+    },
+    {
+      "name": "nyc_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:10.780Z"
+    },
+    {
+      "name": "nyc_council_insert",
+      "ok": true,
+      "detail": "id=1c31ece5-3a0d-4b21-bfdf-86eaa9647687 tier=1 name=New York City Council",
+      "at": "2026-05-08T02:42:10.881Z"
+    },
+    {
+      "name": "nyc_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-NY\",\"US-NYC\"] url=https://council.nyc.gov/",
+      "at": "2026-05-08T02:42:10.983Z"
+    },
+    {
+      "name": "la_departments_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:11.086Z"
+    },
+    {
+      "name": "la_departments_insert",
+      "ok": true,
+      "detail": "id=49b28864-8179-4107-b518-bf7d9130ce6a tier=1 name=City of Los Angeles — Departments & Bureaus",
+      "at": "2026-05-08T02:42:11.187Z"
+    },
+    {
+      "name": "la_departments_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-CA\",\"US-LA\"] url=https://www.lacity.gov/government/departments-bureaus",
+      "at": "2026-05-08T02:42:11.299Z"
+    },
+    {
+      "name": "la_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:11.423Z"
+    },
+    {
+      "name": "la_council_insert",
+      "ok": true,
+      "detail": "id=de8eea1b-926b-4fec-9934-0675c4cd02de tier=1 name=Los Angeles City Council",
+      "at": "2026-05-08T02:42:11.531Z"
+    },
+    {
+      "name": "la_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-CA\",\"US-LA\"] url=https://lacity.gov/government/about-us/elected-officials/los-angeles-city-council",
+      "at": "2026-05-08T02:42:11.636Z"
+    },
+    {
+      "name": "chi_cdph_env_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:11.746Z"
+    },
+    {
+      "name": "chi_cdph_env_insert",
+      "ok": true,
+      "detail": "id=99e87d4a-1e5c-467f-95bf-cf4263dd0d66 tier=1 name=Chicago Department of Public Health — Environmental Health",
+      "at": "2026-05-08T02:42:11.852Z"
+    },
+    {
+      "name": "chi_cdph_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-IL\",\"US-CHI\"] url=https://www.chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+      "at": "2026-05-08T02:42:11.959Z"
+    },
+    {
+      "name": "chi_clerk_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:12.058Z"
+    },
+    {
+      "name": "chi_clerk_insert",
+      "ok": true,
+      "detail": "id=290e66c9-a757-4be6-ab68-a40414ec33b6 tier=1 name=Office of the City Clerk of Chicago",
+      "at": "2026-05-08T02:42:12.159Z"
+    },
+    {
+      "name": "chi_clerk_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-IL\",\"US-CHI\"] url=https://chicityclerk.com/",
+      "at": "2026-05-08T02:42:12.267Z"
+    },
+    {
+      "name": "hou_health_env_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:12.373Z"
+    },
+    {
+      "name": "hou_health_env_insert",
+      "ok": true,
+      "detail": "id=30b51427-df93-4f76-ab99-bf49359d18ce tier=1 name=City of Houston Health Department — Environmental Services",
+      "at": "2026-05-08T02:42:12.487Z"
+    },
+    {
+      "name": "hou_health_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-TX\",\"US-HOU\"] url=https://www.houstontx.gov/health/environmental.html",
+      "at": "2026-05-08T02:42:12.599Z"
+    },
+    {
+      "name": "hou_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:12.709Z"
+    },
+    {
+      "name": "hou_council_insert",
+      "ok": true,
+      "detail": "id=7353dea0-a2e7-4b3e-be3f-202e981eed4f tier=1 name=Houston City Council",
+      "at": "2026-05-08T02:42:12.810Z"
+    },
+    {
+      "name": "hou_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-TX\",\"US-HOU\"] url=https://houstontx.gov/council/",
+      "at": "2026-05-08T02:42:12.909Z"
+    },
+    {
+      "name": "sf_environment_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:13.012Z"
+    },
+    {
+      "name": "sf_environment_insert",
+      "ok": true,
+      "detail": "id=55aedb41-0ac7-40cb-a3fd-b06c0a8f8032 tier=1 name=San Francisco Department of the Environment (SF Environment)",
+      "at": "2026-05-08T02:42:13.124Z"
+    },
+    {
+      "name": "sf_environment_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-CA\",\"US-SF\"] url=https://sfenvironment.org/",
+      "at": "2026-05-08T02:42:13.229Z"
+    },
+    {
+      "name": "sf_bos_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:13.340Z"
+    },
+    {
+      "name": "sf_bos_insert",
+      "ok": true,
+      "detail": "id=e0ec620e-8ca3-4bdf-b91c-05523e9de047 tier=1 name=San Francisco Board of Supervisors",
+      "at": "2026-05-08T02:42:13.441Z"
+    },
+    {
+      "name": "sf_bos_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-CA\",\"US-SF\"] url=https://sfbos.org/",
+      "at": "2026-05-08T02:42:13.538Z"
+    },
+    {
+      "name": "bos_environment_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:13.642Z"
+    },
+    {
+      "name": "bos_environment_insert",
+      "ok": true,
+      "detail": "id=21709630-dd75-46db-b0dc-9a53f5ad4d90 tier=1 name=City of Boston — Environment Department",
+      "at": "2026-05-08T02:42:13.788Z"
+    },
+    {
+      "name": "bos_environment_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-MA\",\"US-BOS\"] url=https://www.boston.gov/departments/environment",
+      "at": "2026-05-08T02:42:13.888Z"
+    },
+    {
+      "name": "bos_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:13.988Z"
+    },
+    {
+      "name": "bos_council_insert",
+      "ok": true,
+      "detail": "id=90202733-5283-4744-bf8a-98335b136abd tier=1 name=Boston City Council",
+      "at": "2026-05-08T02:42:14.093Z"
+    },
+    {
+      "name": "bos_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-MA\",\"US-BOS\"] url=https://www.boston.gov/departments/city-council",
+      "at": "2026-05-08T02:42:14.191Z"
+    },
+    {
+      "name": "sea_environment_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:14.295Z"
+    },
+    {
+      "name": "sea_environment_insert",
+      "ok": true,
+      "detail": "id=3d0d4489-63a0-43be-b1ef-52ef2de8a672 tier=1 name=City of Seattle — Environment & Sustainability",
+      "at": "2026-05-08T02:42:14.405Z"
+    },
+    {
+      "name": "sea_environment_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-WA\",\"US-SEA\"] url=https://www.seattle.gov/environment",
+      "at": "2026-05-08T02:42:14.538Z"
+    },
+    {
+      "name": "sea_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:14.654Z"
+    },
+    {
+      "name": "sea_council_insert",
+      "ok": true,
+      "detail": "id=f8721185-8c86-4b5d-a202-718a36e88ceb tier=1 name=Seattle City Council",
+      "at": "2026-05-08T02:42:14.764Z"
+    },
+    {
+      "name": "sea_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-WA\",\"US-SEA\"] url=https://www.seattle.gov/council",
+      "at": "2026-05-08T02:42:14.882Z"
+    },
+    {
+      "name": "mia_resilience_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:14.984Z"
+    },
+    {
+      "name": "mia_resilience_insert",
+      "ok": true,
+      "detail": "id=259dc287-2130-4341-95a4-6b5a06a76104 tier=1 name=City of Miami — Office of Resilience & Sustainability",
+      "at": "2026-05-08T02:42:15.095Z"
+    },
+    {
+      "name": "mia_resilience_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-FL\",\"US-MIA\"] url=https://www.miamigov.com/Government/Departments-Organizations/Resilience-Sustainability",
+      "at": "2026-05-08T02:42:15.210Z"
+    },
+    {
+      "name": "mia_commission_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:15.315Z"
+    },
+    {
+      "name": "mia_commission_insert",
+      "ok": true,
+      "detail": "id=9bc66c9e-b95a-4444-ad74-9182d5703661 tier=1 name=Miami City Commission",
+      "at": "2026-05-08T02:42:15.435Z"
+    },
+    {
+      "name": "mia_commission_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-FL\",\"US-MIA\"] url=https://www.miamigov.com/Government/City-Officials/City-Commission",
+      "at": "2026-05-08T02:42:15.537Z"
+    },
+    {
+      "name": "phi_sustainability_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:15.642Z"
+    },
+    {
+      "name": "phi_sustainability_insert",
+      "ok": true,
+      "detail": "id=1a7ed54d-0562-4853-93da-8a4cb58a1cc9 tier=1 name=City of Philadelphia — Office of Sustainability",
+      "at": "2026-05-08T02:42:15.757Z"
+    },
+    {
+      "name": "phi_sustainability_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-PA\",\"US-PHI\"] url=https://www.phila.gov/departments/office-of-sustainability/",
+      "at": "2026-05-08T02:42:15.856Z"
+    },
+    {
+      "name": "phi_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:15.954Z"
+    },
+    {
+      "name": "phi_council_insert",
+      "ok": true,
+      "detail": "id=d9424b30-ca5a-4e6e-bb52-6b2a319c9402 tier=1 name=Philadelphia City Council",
+      "at": "2026-05-08T02:42:16.059Z"
+    },
+    {
+      "name": "phi_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-PA\",\"US-PHI\"] url=https://phlcouncil.com/",
+      "at": "2026-05-08T02:42:16.165Z"
+    },
+    {
+      "name": "atl_sustainability_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:16.263Z"
+    },
+    {
+      "name": "atl_sustainability_insert",
+      "ok": true,
+      "detail": "id=259ed662-13b1-4b93-9fb0-aa61d12ac234 tier=1 name=City of Atlanta — Mayor's Office of Sustainability & Resilience",
+      "at": "2026-05-08T02:42:16.380Z"
+    },
+    {
+      "name": "atl_sustainability_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-GA\",\"US-ATL\"] url=https://www.atlantaga.gov/government/departments/sustainability",
+      "at": "2026-05-08T02:42:16.482Z"
+    },
+    {
+      "name": "atl_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:16.586Z"
+    },
+    {
+      "name": "atl_council_insert",
+      "ok": true,
+      "detail": "id=cf6d4da3-6fa3-46d6-b949-eb147d57fd50 tier=1 name=Atlanta City Council",
+      "at": "2026-05-08T02:42:16.708Z"
+    },
+    {
+      "name": "atl_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"US-GA\",\"US-ATL\"] url=https://citycouncil.atlantaga.gov/",
+      "at": "2026-05-08T02:42:16.807Z"
+    },
+    {
+      "name": "insert_count_cap",
+      "ok": true,
+      "detail": "inserted 20 rows (expected 20)",
+      "at": "2026-05-08T02:42:16.807Z"
+    },
+    {
+      "name": "ll97_retag_update",
+      "ok": true,
+      "detail": "set ['US-NY','US-NYC']",
+      "at": "2026-05-08T02:42:16.928Z"
+    },
+    {
+      "name": "ll97_retag_verify",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-NY\",\"US-NYC\"]",
+      "at": "2026-05-08T02:42:17.041Z"
+    },
+    {
+      "name": "r31_retag_update",
+      "ok": true,
+      "detail": "set ['US-CA','US-LA']",
+      "at": "2026-05-08T02:42:17.141Z"
+    },
+    {
+      "name": "r31_retag_verify",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-CA\",\"US-LA\"]",
+      "at": "2026-05-08T02:42:17.244Z"
+    }
+  ],
+  "insertedIds": [
+    {
+      "label": "nyc_climate",
+      "id": "fed43277-faef-48a5-b145-669847ce4c8a",
+      "name": "NYC Mayor's Office of Climate & Environmental Justice (Sustainability)"
+    },
+    {
+      "label": "nyc_council",
+      "id": "1c31ece5-3a0d-4b21-bfdf-86eaa9647687",
+      "name": "New York City Council"
+    },
+    {
+      "label": "la_departments",
+      "id": "49b28864-8179-4107-b518-bf7d9130ce6a",
+      "name": "City of Los Angeles — Departments & Bureaus"
+    },
+    {
+      "label": "la_council",
+      "id": "de8eea1b-926b-4fec-9934-0675c4cd02de",
+      "name": "Los Angeles City Council"
+    },
+    {
+      "label": "chi_cdph_env",
+      "id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+      "name": "Chicago Department of Public Health — Environmental Health"
+    },
+    {
+      "label": "chi_clerk",
+      "id": "290e66c9-a757-4be6-ab68-a40414ec33b6",
+      "name": "Office of the City Clerk of Chicago"
+    },
+    {
+      "label": "hou_health_env",
+      "id": "30b51427-df93-4f76-ab99-bf49359d18ce",
+      "name": "City of Houston Health Department — Environmental Services"
+    },
+    {
+      "label": "hou_council",
+      "id": "7353dea0-a2e7-4b3e-be3f-202e981eed4f",
+      "name": "Houston City Council"
+    },
+    {
+      "label": "sf_environment",
+      "id": "55aedb41-0ac7-40cb-a3fd-b06c0a8f8032",
+      "name": "San Francisco Department of the Environment (SF Environment)"
+    },
+    {
+      "label": "sf_bos",
+      "id": "e0ec620e-8ca3-4bdf-b91c-05523e9de047",
+      "name": "San Francisco Board of Supervisors"
+    },
+    {
+      "label": "bos_environment",
+      "id": "21709630-dd75-46db-b0dc-9a53f5ad4d90",
+      "name": "City of Boston — Environment Department"
+    },
+    {
+      "label": "bos_council",
+      "id": "90202733-5283-4744-bf8a-98335b136abd",
+      "name": "Boston City Council"
+    },
+    {
+      "label": "sea_environment",
+      "id": "3d0d4489-63a0-43be-b1ef-52ef2de8a672",
+      "name": "City of Seattle — Environment & Sustainability"
+    },
+    {
+      "label": "sea_council",
+      "id": "f8721185-8c86-4b5d-a202-718a36e88ceb",
+      "name": "Seattle City Council"
+    },
+    {
+      "label": "mia_resilience",
+      "id": "259dc287-2130-4341-95a4-6b5a06a76104",
+      "name": "City of Miami — Office of Resilience & Sustainability"
+    },
+    {
+      "label": "mia_commission",
+      "id": "9bc66c9e-b95a-4444-ad74-9182d5703661",
+      "name": "Miami City Commission"
+    },
+    {
+      "label": "phi_sustainability",
+      "id": "1a7ed54d-0562-4853-93da-8a4cb58a1cc9",
+      "name": "City of Philadelphia — Office of Sustainability"
+    },
+    {
+      "label": "phi_council",
+      "id": "d9424b30-ca5a-4e6e-bb52-6b2a319c9402",
+      "name": "Philadelphia City Council"
+    },
+    {
+      "label": "atl_sustainability",
+      "id": "259ed662-13b1-4b93-9fb0-aa61d12ac234",
+      "name": "City of Atlanta — Mayor's Office of Sustainability & Resilience"
+    },
+    {
+      "label": "atl_council",
+      "id": "cf6d4da3-6fa3-46d6-b949-eb147d57fd50",
+      "name": "Atlanta City Council"
+    }
+  ],
+  "retagsApplied": [
+    {
+      "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+      "from": [
+        "US-NY"
+      ],
+      "to": [
+        "US-NY",
+        "US-NYC"
+      ]
+    },
+    {
+      "legacy_id": "r31",
+      "from": [
+        "US"
+      ],
+      "to": [
+        "US-CA",
+        "US-LA"
+      ]
+    }
+  ]
+}
