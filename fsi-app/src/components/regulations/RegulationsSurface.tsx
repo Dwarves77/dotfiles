@@ -42,6 +42,7 @@ import {
   AUTHORITY_LEVELS,
   type PriorityKey,
 } from "@/lib/constants";
+import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 import type { Resource } from "@/types/resource";
 import {
   REGULATIONS_SECTOR_CHIPS,
@@ -79,6 +80,12 @@ interface RegulationsSurfaceProps {
   // dashboard tile → regulations deep link. Falls back to "all priorities
   // active" when null/invalid.
   initialPriorityFilter?: string | null;
+  // PR-N (Wave 5): initial Tier 1 ISO region filter from ?region=us-ca,
+  // ?region=us-ny, ?region=gb-sct, etc. Lowercase tolerated. Compared
+  // case-insensitively against `Resource.jurisdictionIso[]`. Composes
+  // with priority + sector + topic filters; ignored when the code is
+  // not in the Tier 1 priority set.
+  initialRegionFilter?: string | null;
 }
 
 // Column titles use the shared PRIORITY_DISPLAY_LABEL editorial vocabulary
@@ -158,6 +165,7 @@ export function RegulationsSurface({
   initialOverrides = [],
   platformTotal = null,
   initialPriorityFilter = null,
+  initialRegionFilter = null,
 }: RegulationsSurfaceProps) {
   const {
     resources: platformResources,
@@ -184,10 +192,32 @@ export function RegulationsSurface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // PR-N (Wave 5): hydrate initial ISO region filter from `?region=us-ca`.
+  // Normalizes to upper-case (Tier 1 codes are stored upper-case in the
+  // jurisdiction_iso[] column and TIER1_PRIORITY_ISOS). Lowercase URL
+  // tolerated. Anything not in the Tier 1 set is silently ignored so the
+  // page still renders.
+  const initialRegionIsoSet = useMemo<Set<string>>(() => {
+    const raw = (initialRegionFilter || "").trim();
+    if (!raw) return new Set();
+    const upper = raw.toUpperCase();
+    if (TIER1_PRIORITY_ISOS.has(upper)) {
+      return new Set([upper]);
+    }
+    return new Set();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [activePriorities, setActivePriorities] =
     useState<Set<string>>(initialPrioritySet);
   const [activeTopics, setActiveTopics] = useState<Set<string>>(new Set());
   const [activeRegions, setActiveRegions] = useState<Set<string>>(new Set());
+  // ISO region filter (Tier 1 sub-national codes like US-CA, GB-SCT).
+  // Hydrated from `?region=us-ca` on first paint; matched case-insensitively
+  // against `r.jurisdictionIso[]`. Distinct from `activeRegions` which
+  // operates on the legacy `r.jurisdiction` slug vocabulary.
+  const [activeRegionIsos, setActiveRegionIsos] =
+    useState<Set<string>>(initialRegionIsoSet);
   const [activeModes, setActiveModes] = useState<Set<string>>(new Set());
   const [activeSectors, setActiveSectors] = useState<Set<string>>(new Set());
   const [activeConfidence, setActiveConfidence] = useState<Set<string>>(
@@ -275,6 +305,16 @@ export function RegulationsSurface({
         return false;
       if (activeRegions.size > 0 && !activeRegions.has(r.jurisdiction || ""))
         return false;
+      // PR-N (Wave 5): ISO sub-national filter (?region=us-ca etc.).
+      // Compares against jurisdictionIso[] case-insensitively. Items
+      // without jurisdictionIso (legacy rows) are excluded when this
+      // filter is active — that's the intended behaviour for a
+      // sub-national deep link.
+      if (activeRegionIsos.size > 0) {
+        const isos = (r.jurisdictionIso || []).map((c) => c.toUpperCase());
+        const hit = isos.some((c) => activeRegionIsos.has(c));
+        if (!hit) return false;
+      }
       if (activeModes.size > 0) {
         const modes = r.modes || [r.cat];
         if (!modes.some((m) => activeModes.has(m))) return false;
@@ -305,6 +345,7 @@ export function RegulationsSurface({
     activePriorities,
     activeTopics,
     activeRegions,
+    activeRegionIsos,
     activeModes,
     activeSectors,
     activeConfidence,
@@ -443,6 +484,7 @@ export function RegulationsSurface({
     setActiveConfidence(new Set());
     setActiveTopics(new Set());
     setActiveRegions(new Set());
+    setActiveRegionIsos(new Set());
     setActiveModes(new Set());
     setActivePriorities(new Set(PRIORITIES));
     setSort("priority");

@@ -23,6 +23,7 @@ import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/re
 import { getJurisdiction } from "@/lib/scoring";
 import { JURISDICTIONS } from "@/lib/constants";
 import type { RegionCoverage } from "@/lib/coverage-gaps";
+import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 
 const MapView = dynamic(
   () => import("@/components/map/MapView").then((m) => m.MapView),
@@ -58,6 +59,15 @@ interface MapPageViewProps {
    * in-flight surface PRs may have updated the prop signature elsewhere.
    */
   coverageGaps?: RegionCoverage[];
+  /**
+   * PR-N (Wave 5): initial Tier 1 ISO region filter from `?region=us-ca`.
+   * Lowercase tolerated. Matched case-insensitively against
+   * `Resource.jurisdictionIso[]`. Composes with the mode toggle.
+   * Passed straight to the resource pre-filter so the map markers,
+   * side-rail aggregation, Active heat card, and Coverage gaps panel
+   * all align on the same filtered set.
+   */
+  initialRegionFilter?: string | null;
 }
 
 type Mode = "all" | "ocean" | "air" | "road" | "facility";
@@ -97,7 +107,26 @@ const TONE_BD: Record<Tone, string> = {
 // ── Component ──
 
 export function MapPageView(props: MapPageViewProps) {
-  const { resources, changelog, disputes, xrefPairs, supersessions, coverageGaps } = props;
+  const {
+    resources,
+    changelog,
+    disputes,
+    xrefPairs,
+    supersessions,
+    coverageGaps,
+    initialRegionFilter = null,
+  } = props;
+
+  // PR-N (Wave 5): hoist the URL-driven ISO filter into a normalised
+  // upper-case code (or null when missing/invalid). Tier 1 priority set
+  // is the validation gate; anything outside the known set is silently
+  // ignored so the page still renders.
+  const activeRegionIso = useMemo<string | null>(() => {
+    const raw = (initialRegionFilter || "").trim();
+    if (!raw) return null;
+    const upper = raw.toUpperCase();
+    return TIER1_PRIORITY_ISOS.has(upper) ? upper : null;
+  }, [initialRegionFilter]);
 
   // Sort the coverage rollup by gap severity (highest gap count first) and
   // surface only the top 5 regions on the side rail. Memo so the sort
@@ -124,26 +153,37 @@ export function MapPageView(props: MapPageViewProps) {
     nonce: number;
   }>({ id: null, nonce: 0 });
 
-  // Filter resources by mode.
+  // Filter resources by mode + (PR-N) optional ISO region filter.
+  // The ISO filter narrows the resource set BEFORE downstream
+  // aggregation (markers, side rail, Active heat) so all map widgets
+  // stay coherent.
   const filteredResources = useMemo(() => {
-    if (mode === "all") return resources;
+    const isoFiltered =
+      activeRegionIso === null
+        ? resources
+        : resources.filter((r) => {
+            const isos = (r.jurisdictionIso || []).map((c) => c.toUpperCase());
+            return isos.includes(activeRegionIso);
+          });
+
+    if (mode === "all") return isoFiltered;
     if (mode === "facility") {
       // No transport modes implies a facility-style item; preserve the
       // editorial intent ("Facility" in the toolbar) without inventing
       // a column. Includes resources with a domain marker for facilities
       // (domain 6) when present.
-      return resources.filter(
+      return isoFiltered.filter(
         (r) =>
           r.domain === 6 ||
           (Array.isArray(r.modes) && r.modes.length === 0)
       );
     }
-    return resources.filter(
+    return isoFiltered.filter(
       (r) =>
         (Array.isArray(r.modes) && r.modes.includes(mode)) ||
         r.cat === mode
     );
-  }, [resources, mode]);
+  }, [resources, mode, activeRegionIso]);
 
   // Aggregate by jurisdiction for the side rail list.
   const jurisdictionRows = useMemo(() => {
