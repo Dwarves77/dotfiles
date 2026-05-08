@@ -1,0 +1,128 @@
+{
+  "completed": true,
+  "total_inserts": 8,
+  "inserted_ids": {
+    "defra": "543d6c68-da55-4a66-8e41-474c4ddc3717",
+    "westminster": "9127af37-57dd-4c07-9d5e-df779077e1a5",
+    "sepa": "ef191419-1dde-4e5a-98b4-85f52fa84298",
+    "scottish_parliament": "a02669f2-d31a-4822-bb42-90e8bc919a81",
+    "nrw": "408eb843-a94e-46d4-9249-6eec36502884",
+    "senedd": "74042f41-644e-4cdc-85a5-58fe9fa3ed15",
+    "daera": "0b594fec-503d-4f89-82f3-958062ff6eea",
+    "ni_assembly": "e99a7e99-ebae-4a39-81cb-e81a3d5e218d"
+  },
+  "per_nation_counts": {
+    "GB (UK-wide DEFRA + Westminster)": 2,
+    "GB-SCT": 2,
+    "GB-WLS": 2,
+    "GB-NIR": 2
+  },
+  "retags_skipped": [
+    "united-kingdom-regional-operations-profile (read as UK-wide; left at GB)",
+    "g6 UK DfT Decarbonisation (read as UK-wide; left at GB)"
+  ],
+  "log": [
+    {
+      "name": "scope_check",
+      "ok": true,
+      "detail": "8 planned inserts within dispatch ceiling of 10",
+      "at": "2026-05-07T21:37:15.518Z"
+    },
+    {
+      "name": "defra_insert",
+      "ok": true,
+      "detail": "id=543d6c68-da55-4a66-8e41-474c4ddc3717 tier=1 name=UK Department for Environment, Food & Rural Affairs (DEFRA)",
+      "at": "2026-05-07T21:37:15.940Z"
+    },
+    {
+      "name": "defra_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB\"] url=https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+      "at": "2026-05-07T21:37:16.197Z"
+    },
+    {
+      "name": "westminster_insert",
+      "ok": true,
+      "detail": "id=9127af37-57dd-4c07-9d5e-df779077e1a5 tier=1 name=UK Parliament (Westminster)",
+      "at": "2026-05-07T21:37:16.458Z"
+    },
+    {
+      "name": "westminster_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB\"] url=https://www.parliament.uk/",
+      "at": "2026-05-07T21:37:16.570Z"
+    },
+    {
+      "name": "sepa_insert",
+      "ok": true,
+      "detail": "id=ef191419-1dde-4e5a-98b4-85f52fa84298 tier=1 name=Scottish Environment Protection Agency (SEPA)",
+      "at": "2026-05-07T21:37:16.809Z"
+    },
+    {
+      "name": "sepa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB-SCT\"] url=https://www.sepa.org.uk/",
+      "at": "2026-05-07T21:37:16.931Z"
+    },
+    {
+      "name": "scottish_parliament_insert",
+      "ok": true,
+      "detail": "id=a02669f2-d31a-4822-bb42-90e8bc919a81 tier=1 name=Scottish Parliament (Holyrood)",
+      "at": "2026-05-07T21:37:17.186Z"
+    },
+    {
+      "name": "scottish_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB-SCT\"] url=https://www.parliament.scot/",
+      "at": "2026-05-07T21:37:17.305Z"
+    },
+    {
+      "name": "nrw_insert",
+      "ok": true,
+      "detail": "id=408eb843-a94e-46d4-9249-6eec36502884 tier=1 name=Natural Resources Wales (Cyfoeth Naturiol Cymru)",
+      "at": "2026-05-07T21:37:17.554Z"
+    },
+    {
+      "name": "nrw_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB-WLS\"] url=https://naturalresources.wales/",
+      "at": "2026-05-07T21:37:17.863Z"
+    },
+    {
+      "name": "senedd_insert",
+      "ok": true,
+      "detail": "id=74042f41-644e-4cdc-85a5-58fe9fa3ed15 tier=1 name=Senedd Cymru / Welsh Parliament",
+      "at": "2026-05-07T21:37:18.317Z"
+    },
+    {
+      "name": "senedd_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB-WLS\"] url=https://senedd.wales/",
+      "at": "2026-05-07T21:37:18.464Z"
+    },
+    {
+      "name": "daera_insert",
+      "ok": true,
+      "detail": "id=0b594fec-503d-4f89-82f3-958062ff6eea tier=1 name=Northern Ireland Environment Agency / DAERA (Department of Agriculture, Environment and Rural Affairs)",
+      "at": "2026-05-07T21:37:18.860Z"
+    },
+    {
+      "name": "daera_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB-NIR\"] url=https://www.daera-ni.gov.uk/topics/environment",
+      "at": "2026-05-07T21:37:19.043Z"
+    },
+    {
+      "name": "ni_assembly_insert",
+      "ok": true,
+      "detail": "id=e99a7e99-ebae-4a39-81cb-e81a3d5e218d tier=1 name=Northern Ireland Assembly (Stormont)",
+      "at": "2026-05-07T21:37:19.357Z"
+    },
+    {
+      "name": "ni_assembly_verify",
+      "ok": true,
+      "detail": "tier=1 status=active admin_only=false jurisdiction_iso=[\"GB-NIR\"] url=http://www.niassembly.gov.uk/",
+      "at": "2026-05-07T21:37:19.612Z"
+    }
+  ]
+}
