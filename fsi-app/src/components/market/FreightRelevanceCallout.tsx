@@ -15,6 +15,17 @@
  *
  * The "yellow" tone uses var(--high-bg) / var(--high) which renders as
  * the warm-amber accent in the light-first theme palette.
+ *
+ * Visual grouping (walkthrough P0):
+ *   The callout previously rendered with `margin: 16px 0` and a full
+ *   border-radius all around, which floated it away from the
+ *   PolicySignals list above (the SAF row that the tech-section copy
+ *   actually describes). We now render it as a continuation of the
+ *   preceding signals list — when `attachedAbove` is true the top
+ *   margin collapses, the top corners square off, and the visual
+ *   reads as a "this is what the rows above mean for freight" tail
+ *   on the same grouped surface. The default behaviour is unchanged
+ *   for legacy callers.
  */
 
 interface FreightRelevanceCalloutProps {
@@ -25,6 +36,12 @@ interface FreightRelevanceCalloutProps {
   /** Caller-supplied override copy (used when a more specific framing
    *  is appropriate — e.g. a focused jurisdiction filter). */
   body?: string;
+  /** When true, visually attach the callout to the surface immediately
+   *  above (collapse top margin, square top corners). Used by /market
+   *  to attach FFR to PolicySignals so the tech-section SAF framing
+   *  reads as "these signals → here's why they matter for freight"
+   *  instead of floating freestanding between unrelated cards. */
+  attachedAbove?: boolean;
 }
 
 const DEFAULT_TECH_COPY =
@@ -37,6 +54,7 @@ export function FreightRelevanceCallout({
   section,
   sectorProfile,
   body,
+  attachedAbove = false,
 }: FreightRelevanceCalloutProps) {
   const copy =
     body ||
@@ -55,10 +73,17 @@ export function FreightRelevanceCallout({
       style={{
         background: "var(--high-bg)",
         border: "1px solid var(--high-bd)",
+        borderTop: attachedAbove ? "1px dashed var(--high-bd)" : "1px solid var(--high-bd)",
         borderLeft: "4px solid var(--high)",
-        borderRadius: "var(--r-md)",
+        borderTopLeftRadius: attachedAbove ? 0 : "var(--r-md)",
+        borderTopRightRadius: attachedAbove ? 0 : "var(--r-md)",
+        borderBottomLeftRadius: "var(--r-md)",
+        borderBottomRightRadius: "var(--r-md)",
         padding: "14px 18px",
-        margin: "16px 0",
+        // Collapse the top gap to the preceding card so the two surfaces
+        // visually merge into one grouped block. Bottom margin is
+        // preserved so the next section (KeyMetricsRow) still has room.
+        margin: attachedAbove ? "0 0 16px" : "16px 0",
       }}
     >
       <div

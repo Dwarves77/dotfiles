@@ -21,7 +21,7 @@
  *     Why it matters · Key data · Recommended actions · Disputed ·
  *     Full text (inline, anchored as `synopsis-full-text`)
  *   - Right rail: Affected lanes · Owner & team · Identification · Coverage ·
- *     Linked items
+ *     Linked regulations
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -424,9 +424,22 @@ export function RegulationDetailSurface({
         )}
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <ActionButton primary>+ Add to watchlist</ActionButton>
-          <ActionButton>Export brief</ActionButton>
-          <ActionButton>Share</ActionButton>
+          {/* Add to watchlist — HIDDEN.
+              PR-E3 (watchlist persistence) is deferred. There's no
+              backend table or API for per-user / per-workspace watchlist
+              membership yet, so the button has no destination. Restoring
+              it requires PR-E3 to land first; at that point change the
+              ternary below to render <ActionButton primary onClick={...}>
+              that calls the watchlist add/remove endpoint. */}
+          {false && <ActionButton primary>+ Add to watchlist</ActionButton>}
+          {(r.fullBrief || r.url) && (
+            <ActionButton onClick={() => exportBriefAsMarkdown(r)}>
+              Export brief
+            </ActionButton>
+          )}
+          <ActionButton onClick={() => shareCurrentRegulation(r)}>
+            Share
+          </ActionButton>
         </div>
       </div>
 
@@ -592,7 +605,7 @@ export function RegulationDetailSurface({
               · Owner & team (PR-F new — F23)
               · Identification (existing)
               · Coverage (existing)
-              · Linked items (PR-F new — F22, replaces "Related" SideCard)
+              · Linked regulations (PR-F new — F22, replaces "Related" SideCard)
         */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {effective.value && effective.value !== "—" && (
@@ -644,13 +657,16 @@ export function RegulationDetailSurface({
 function ActionButton({
   children,
   primary,
+  onClick,
 }: {
   children: React.ReactNode;
   primary?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       style={{
         fontSize: 12,
         fontWeight: 700,
@@ -667,6 +683,90 @@ function ActionButton({
       {children}
     </button>
   );
+}
+
+// ── Action button helpers ─────────────────────────────────────────────
+//
+// Export brief: writes the regulation's full_brief markdown (or a
+// generated minimal stub when full_brief is absent but a URL exists) to
+// a Blob and triggers a download. Per project convention all exports use
+// Blob download — no clipboard API, no window.open, no iframe.print.
+function exportBriefAsMarkdown(r: Resource) {
+  if (typeof window === "undefined") return;
+  const titleLine = `# ${r.title}\n\n`;
+  const meta = [
+    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+    r.priority ? `- Priority: ${r.priority}` : null,
+    r.complianceDeadline ? `- Compliance deadline: ${r.complianceDeadline}` : null,
+    r.url ? `- Source: ${r.url}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const body =
+    r.fullBrief ||
+    [r.whatIsIt, r.whyMatters].filter(Boolean).join("\n\n") ||
+    r.note ||
+    "(No briefing body recorded.)";
+  const md = `${titleLine}${meta ? meta + "\n\n" : ""}${body}\n`;
+
+  const slug = (r.id || "regulation")
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const filename = `regulation-${slug || "brief"}.md`;
+
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Defer revoke to next tick so the download starts before we drop the
+  // object URL (Safari quirk).
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+// Share: prefer the native Web Share API on platforms that support it
+// (iOS Safari, Android Chrome). Otherwise fall back to copying the
+// canonical URL to the clipboard. We don't surface a toast here because
+// the page is server-rendered and the surrounding shell owns toast UI;
+// the navigator share sheet / clipboard write is its own user-feedback.
+function shareCurrentRegulation(r: Resource) {
+  if (typeof window === "undefined") return;
+  const href =
+    typeof window.location !== "undefined" ? window.location.href : "";
+  const shareData = {
+    title: r.title,
+    text: r.note || r.whatIsIt || r.title,
+    url: href,
+  };
+  // Web Share API — narrow to environments that genuinely support it.
+  const nav = window.navigator as Navigator & {
+    share?: (data: ShareData) => Promise<void>;
+  };
+  if (typeof nav.share === "function") {
+    nav.share(shareData).catch(() => {
+      // User dismissed or share failed — fall through to clipboard.
+      copyToClipboard(href);
+    });
+    return;
+  }
+  copyToClipboard(href);
+}
+
+function copyToClipboard(text: string) {
+  if (typeof window === "undefined" || !text) return;
+  const nav = window.navigator as Navigator & {
+    clipboard?: { writeText: (s: string) => Promise<void> };
+  };
+  if (nav.clipboard && typeof nav.clipboard.writeText === "function") {
+    nav.clipboard.writeText(text).catch(() => {
+      /* swallow — clipboard rejection is non-actionable in this context */
+    });
+  }
 }
 
 function Stat({

@@ -255,14 +255,31 @@ function SectionTemplate({
       <div>
         <PanelHead title={heading} subtitle={subhead} />
 
-        {/* POLICY ACCELERATION SIGNALS — sourced badges per CC3 */}
-        <PolicySignals items={items} />
-
-        {/* FREIGHT FORWARDING RELEVANCE — yellow callout */}
-        <FreightRelevanceCallout
-          section={section}
-          sectorProfile={sectorProfile}
-        />
+        {/* POLICY ACCELERATION SIGNALS + FREIGHT FORWARDING RELEVANCE.
+            Walkthrough P0: the FFR callout previously floated between
+            PolicySignals and KeyMetricsRow, which on the tech tab read
+            as freestanding even though its copy is about the SAF / fuel
+            signals immediately above. Wrapping the two in a shared
+            grouped surface and passing `attachedAbove` to FFR makes the
+            visual association explicit — the callout reads as "these
+            signals → here's what they mean for freight" instead of an
+            ungrouped editorial aside. */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            // Bottom margin preserves the gap to KeyMetricsRow that the
+            // standalone FreightRelevanceCallout used to provide.
+            marginBottom: 0,
+          }}
+        >
+          <PolicySignals items={items} />
+          <FreightRelevanceCallout
+            section={section}
+            sectorProfile={sectorProfile}
+            attachedAbove
+          />
+        </div>
 
         {/* KEY METRICS rows with delta indicators + period selector */}
         <KeyMetricsRow items={items} />

@@ -52,7 +52,15 @@ export interface RegionCoverage {
 // Treat a jurisdiction as having an env body if any of its sources'
 // (name OR url) match an environmental-body pattern; same for
 // legislature. Pattern set is intentionally broad to handle the variety
-// of regulator brands (EPA, ECCC, Defra, EEA, EU DG ENVI, etc.).
+// of regulator brands (EPA, ECCC, Defra, EEA, EU DG ENVI, etc.) and
+// non-English regulator naming across EU/Asia/Latam.
+//
+// STOPGAP — the durable fix is a `source_type` taxonomy column on the
+// sources table per Track E proposal. Once that lands, this file becomes
+// a thin lookup against `source_type IN ('environmental_body',
+// 'legislature', ...)` and these regex matchers retire. Until then, this
+// matcher set is the best-effort heuristic surface for the Map · Coverage
+// gaps card and Admin coverage views.
 
 const ENV_BODY_PATTERNS: ReadonlyArray<RegExp> = [
   /\bepa\b/i,
@@ -72,6 +80,22 @@ const ENV_BODY_PATTERNS: ReadonlyArray<RegExp> = [
   /\bdeq\.[a-z.-]+\.gov\b/i,
   /natural[- ]?resources?/i,
   /conservation/i,
+  // Non-English / non-Anglo environmental body names.
+  /\bumweltbundesamt\b/i,    // DE/AT federal env agency
+  /\bumwelt\b/i,             // DE "environment" stem
+  /\bnaturv[åa]rdsverket\b/i, // SE env protection agency
+  /\bymp[äa]rist[öo]\b/i,    // FI "environment"
+  /\bmilj[øo]\b/i,           // DK/NO/SE "environment"
+  /\bmilieu\b/i,             // NL "environment"
+  /\bmedio[- ]ambiente\b/i,  // ES/Latam "environment"
+  /\bambiente\b/i,           // IT/PT/ES "environment"
+  /\bministerio[- ]?(?:del|de la|de)?\s*(?:medio[- ]ambiente|ambiente|ecolog[íi]a)/i,
+  /\bminist[èe]re[- ]?(?:de l['’])?\s*(?:environnement|[ée]cologie|transition[- ]?[ée]cologique)/i,
+  // Domain-based env-body matchers — government environment ministries
+  // tend to use these tokens in URL paths.
+  /\bmoe\.[a-z.-]+/i,        // Ministry of Environment (KR/JP/IL etc.)
+  /\bmee\.[a-z.-]+/i,        // CN Ministry of Ecology and Environment
+  /\benv\.[a-z.-]+/i,
 ];
 
 const LEGISLATURE_PATTERNS: ReadonlyArray<RegExp> = [
@@ -80,9 +104,45 @@ const LEGISLATURE_PATTERNS: ReadonlyArray<RegExp> = [
   /assembly/i,
   /senate/i,
   /congress/i,
-  /\bbundestag\b/i,
-  /\bduma\b/i,
-  /\bdiet\b/i,
+  // English-named legislatures across federations.
+  /house of (?:commons|representatives|lords)/i,
+  // Non-English legislature names (DE/AT/CH, SE, DK, NO, FR, ES, NL, IE,
+  // FI, IT, JP, AT, EE, LV, LT — single-word matchers chosen so the
+  // regulator/source name OR URL hostname can match).
+  /\bbundestag\b/i,           // DE
+  /\bbundesrat\b/i,           // DE/CH/AT
+  /\bnationalrat\b/i,         // AT/CH
+  /\bduma\b/i,                // RU
+  /\bdiet\b/i,                // JP / IE-historical
+  /\briksdag\b/i,             // SE
+  /\bfolketing\b/i,           // DK
+  /\bstorting\b/i,            // NO
+  /\beduskunta\b/i,           // FI
+  /\bseimas\b/i,              // LT
+  /\bsaeima\b/i,              // LV
+  /\briigikogu\b/i,           // EE
+  /\bcortes\b/i,              // ES
+  /\bd[áa]il\b/i,             // IE
+  /\boireachtas\b/i,          // IE
+  /\btweede[- ]?kamer\b/i,    // NL
+  /\beerste[- ]?kamer\b/i,    // NL
+  /\bstaten[- ]?generaal\b/i, // NL
+  /\bstortinget\b/i,          // NO
+  /\bassembl[ée]e[- ]?nationale\b/i, // FR
+  /\bs[ée]nat\b/i,            // FR/BE/etc
+  /\bcamera[- ]?dei[- ]?deputati\b/i, // IT
+  /\bassemblea\b/i,           // IT
+  /\bc[áa]mara\b/i,           // ES/Latam
+  /\bsejm\b/i,                // PL
+  /\bduma\b/i,                // RU
+  /\b國會\b/u,                 // ZH/JP "national diet"
+  /\b国会\b/u,                 // simplified
+  /\b국회\b/u,                 // KR national assembly
+  // URL-based matchers — most national legislatures host on these stems.
+  /\bparliament\.[a-z.-]+/i,
+  /\bgov\.[a-z.-]+\b\/(?:parliament|legis|house)/i,
+  /\blegifrance\.gouv\.fr\b/i, // FR primary law portal
+  /\blex\.[a-z]{2}\b/i,        // generic per-country lex.* portals
 ];
 
 function matchesAny(value: string, patterns: ReadonlyArray<RegExp>): boolean {

@@ -277,8 +277,14 @@ function JurisdictionPanel({
           <EmptyJurisdiction />
         ) : (
           <div className="space-y-3">
-            {regions.map((rg, i) => (
-              <RegionCard key={rg.region} group={rg} defaultOpen={i === 0} />
+            {/* Accordion default-state policy (CLAUDE.md, in force from
+                2026-05-07): accordions are CLOSED across the platform.
+                The pattern `defaultOpen={i === 0}` is forbidden. Prior
+                A5 dispatch left region accordions opening the first
+                region by default; this dispatch reverses that decision
+                so Operations matches the rest of the surface. */}
+            {regions.map((rg) => (
+              <RegionCard key={rg.region} group={rg} defaultOpen={false} />
             ))}
           </div>
         )}

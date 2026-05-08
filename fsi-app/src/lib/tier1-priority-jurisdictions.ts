@@ -136,10 +136,21 @@ const EU_MEMBERS: PriorityJurisdiction[] = [
   { iso: "SE", name: "Sweden" },
 ];
 
-// ── UK nations (4) ──
+// ── UK nations (3) ──
+//
+// GB-ENG is intentionally OMITTED from this list. UK Parliament + Defra +
+// DfT etc. are tagged `GB` (UK-wide) in `sources.jurisdictions`, NOT
+// `GB-ENG` — England effectively inherits all UK-wide source rows since
+// no separate English government regulator exists. Treating GB-ENG as a
+// distinct priority jurisdiction created a structural false-gap in the
+// monitoring rollup (the only UK-nation hard-gap in
+// docs/MONITORING-STATUS-2026-05-08.md). Coverage for England is captured
+// by the GB-tagged UK-wide source rows; the devolved nations (Scotland,
+// Wales, Northern Ireland) keep their own ISO entries because they DO
+// have distinct devolved regulators (e.g. SEPA, Natural Resources Wales,
+// NIEA) that justify separate coverage tracking.
 
 const UK_NATIONS: PriorityJurisdiction[] = [
-  { iso: "GB-ENG", name: "England" },
   { iso: "GB-SCT", name: "Scotland" },
   { iso: "GB-WLS", name: "Wales" },
   { iso: "GB-NIR", name: "Northern Ireland" },
