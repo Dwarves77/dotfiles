@@ -1,0 +1,879 @@
+{
+  "generated_at": "2026-05-08T03:04:28.758Z",
+  "schema_note": "intelligence_items.category is the storage column for Resource.topic (see src/lib/supabase-server.ts: `topic: row.category || undefined`). The dispatch references `topic` but the column is `category`.",
+  "topics_canonical": [
+    "emissions",
+    "fuels",
+    "transport",
+    "reporting",
+    "packaging",
+    "corridors",
+    "customs",
+    "trade",
+    "sanctions",
+    "origin",
+    "dangerous-goods",
+    "food-safety",
+    "pharma",
+    "security",
+    "cabotage",
+    "labor",
+    "infrastructure",
+    "digital",
+    "insurance",
+    "standards",
+    "research"
+  ],
+  "pre_state": {
+    "total_rows": 195,
+    "null_or_empty_count": 41,
+    "non_canonical_count": 32,
+    "canonical_distribution": {
+      "emissions": 19,
+      "research": 49,
+      "reporting": 17,
+      "transport": 12,
+      "packaging": 4,
+      "corridors": 11,
+      "fuels": 10
+    }
+  },
+  "candidates": [
+    {
+      "id": "f0833999-8c58-4f00-8389-0a3f938641f3",
+      "legacy_id": "eu-corporate-sustainability-reporting-directive-csrd-transport-sector-implementa",
+      "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Sector Implementation",
+      "summary_excerpt": "The CSRD entered force in January 2024, mandating detailed sustainability reporting for large companies including freight forwarders. Recent",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "reporting",
+      "derivation_reason": "keyword:csrd -> reporting",
+      "candidates": [
+        "reporting"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+      "legacy_id": "uae-national-hydrogen-strategy-transport-sector-requirements",
+      "title": "UAE National Hydrogen Strategy - Transport Sector Requirements",
+      "summary_excerpt": "Updated in September 2024, the UAE's hydrogen strategy now includes mandatory requirements for freight transport operators serving key indus",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "fuels",
+      "derivation_reason": "keyword:hydrogen strategy -> fuels",
+      "candidates": [
+        "fuels"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "ccee10a4-da4a-4a65-810e-51142ec3b753",
+      "legacy_id": "w4_ca_acf",
+      "title": "California Advanced Clean Fleets Rule (CARB)",
+      "summary_excerpt": "Requires high-priority fleets, federal-government fleets, drayage trucks, last-mile delivery operators, and state/local public agency fleets",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [
+        "zero-emission-vehicles",
+        "drayage",
+        "high-priority-fleets",
+        "california",
+        "carb"
+      ],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:carb -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "ef0c691a-4024-495b-bd7c-70be8f52c5ea",
+      "legacy_id": "imo-2023-revised-ghg-strategy",
+      "title": "IMO 2023 Revised GHG Strategy",
+      "summary_excerpt": "Updated International Maritime Organization strategy targeting net-zero greenhouse gas emissions from international shipping by or around 20",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:carbon pricing -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+      "legacy_id": "uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+      "title": "UK Streamlined Energy and Carbon Reporting (SECR) Amendment",
+      "summary_excerpt": "Updated requirements mandate large companies to report Scope 3 emissions from logistics and freight operations, including detailed transport",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "reporting",
+      "derivation_reason": "keyword:scope 3 -> reporting",
+      "candidates": [
+        "reporting"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "79f69a00-9afc-43b1-9a44-2e3a47e9efce",
+      "legacy_id": "arc1",
+      "title": "EU PPWD 94/62/EC",
+      "summary_excerpt": "Replaced by PPWR 2025/40",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "packaging",
+      "derivation_reason": "keyword:ppwr -> packaging",
+      "candidates": [
+        "packaging"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "cfcf9e4c-6562-4c2e-8463-0cc6e5cb0bad",
+      "legacy_id": "uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+      "title": "UAE National Hydrogen Strategy Implementation Decree for Logistics",
+      "summary_excerpt": "The UAE issued implementing regulations in late 2023 for its National Hydrogen Strategy, establishing specific requirements for logistics an",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "fuels",
+      "derivation_reason": "keyword:hydrogen strategy -> fuels",
+      "candidates": [
+        "fuels"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "ff4064ab-9489-4fc4-b3cc-f0f157e71db5",
+      "legacy_id": "eu-emissions-trading-system-ets-extension-to-maritime-transport",
+      "title": "EU Emissions Trading System (ETS) Extension to Maritime Transport",
+      "summary_excerpt": "The EU has officially extended its Emissions Trading System to include maritime transport starting January 1, 2024. Ships over 5,000 gross t",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:emissions trading -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "9c5d1d17-4388-43a0-b9df-67de1fc0e582",
+      "legacy_id": "eu-corporate-sustainability-reporting-directive-csrd-transport-provisions",
+      "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Provisions",
+      "summary_excerpt": "The CSRD, which became fully applicable in 2024, requires large companies to report detailed sustainability information including Scope 3 em",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "reporting",
+      "derivation_reason": "keyword:csrd -> reporting",
+      "candidates": [
+        "reporting"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "3e756291-f79e-487e-84d5-efc535cfef27",
+      "legacy_id": "china-s-national-carbon-market-extension-to-transportation-sector",
+      "title": "China's National Carbon Market Extension to Transportation Sector",
+      "summary_excerpt": "China's Ministry of Ecology and Environment announced in December 2023 plans to extend the national carbon emissions trading system to the t",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:emissions trading -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "b7736a1a-2c81-4d58-87b4-ee09330eaff2",
+      "legacy_id": "eu-hdv-co2-standards-2019-1242",
+      "title": "EU HDV CO2 Emission Standards (Regulation (EU) 2019/1242)",
+      "summary_excerpt": "EU heavy-duty vehicle CO2 emission performance standards. Fleet-average targets -15% from 2025 and -30% from 2030 vs 2019 baseline, with pen",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:co2 emission -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "83e87ace-7af9-4de0-af7e-1d6855d2a5a3",
+      "legacy_id": "arc3",
+      "title": "EPA 2009 Endangerment Finding",
+      "summary_excerpt": "Federal GHG basis rescinded",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:endangerment finding -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050",
+      "legacy_id": "eu_ets_directive_2023_959",
+      "title": "EU 2023/959 — Directive amending the EU Emissions Trading System",
+      "summary_excerpt": "Directive (EU) 2023/959 amends Directive 2003/87/EC to (a) extend the EU ETS to maritime transport from 2024 with phased surrender (40%/70%/",
+      "item_type": "directive",
+      "current_category": null,
+      "tags": [
+        "eu-ets",
+        "emissions-trading",
+        "carbon-pricing",
+        "eu",
+        "maritime",
+        "aviation"
+      ],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:emissions trading -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "8ef75b0c-9216-4fd4-864e-753810bd3e74",
+      "legacy_id": "ss2",
+      "title": "CSRD 250+ employees threshold",
+      "summary_excerpt": "Pre-tracking historical record. Superseded before continuous tracking began.",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "reporting",
+      "derivation_reason": "keyword:csrd -> reporting",
+      "candidates": [
+        "reporting"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "b0307895-f5a6-46d0-9f8a-97e7f8b04a3a",
+      "legacy_id": "arc2",
+      "title": "CSRD 250+ employee threshold",
+      "summary_excerpt": "Omnibus raised to 1,000",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "reporting",
+      "derivation_reason": "keyword:csrd -> reporting",
+      "candidates": [
+        "reporting"
+      ],
+      "ambiguous": false
+    },
+    {
+      "id": "f9c3cc30-761d-4fd9-ab85-ddb5247c1bd2",
+      "legacy_id": "ss3",
+      "title": "EPA 2009 Endangerment Finding",
+      "summary_excerpt": "Pre-tracking historical record. Superseded before continuous tracking began.",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": "emissions",
+      "derivation_reason": "keyword:endangerment finding -> emissions",
+      "candidates": [
+        "emissions"
+      ],
+      "ambiguous": false
+    }
+  ],
+  "ambiguous_skipped": [
+    {
+      "id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+      "legacy_id": "canada-clean-fuel-regulations-phase-2",
+      "title": "Canada Clean Fuel Regulations Phase 2",
+      "summary_excerpt": "Expands clean fuel requirements to include marine and aviation sectors, with specific compliance obligations for freight operators. Establis",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+      "legacy_id": "japan-s-green-transformation-gx-league-transport-requirements",
+      "title": "Japan's Green Transformation (GX) League Transport Requirements",
+      "summary_excerpt": "Japan's Ministry of Economy, Trade and Industry expanded the GX League voluntary framework in October 2023 to include mandatory participatio",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "1cda60cd-971a-4294-b90f-fdef2d7ef6da",
+      "legacy_id": "brazil-national-policy-on-alternative-fuels-pnca",
+      "title": "Brazil National Policy on Alternative Fuels (PNCA)",
+      "summary_excerpt": "Establishes framework for biofuel and hydrogen adoption in freight transport, including mandatory blending requirements for heavy-duty vehic",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "keyword-tie-ambiguous:fuels,corridors",
+      "candidates": [
+        "fuels",
+        "corridors"
+      ],
+      "ambiguous": true
+    },
+    {
+      "id": "ff95b385-6cb2-453a-94e6-b9fc84d7f851",
+      "legacy_id": "eu-alternative-fuels-infrastructure-regulation-afir",
+      "title": "EU Alternative Fuels Infrastructure Regulation (AFIR)",
+      "summary_excerpt": "IN FORCE. Deployment underway but uneven across member states. ACTION NOW: Map AFIR charging/H2 infrastructure on your key European freight ",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "keyword-tie-ambiguous:fuels,corridors",
+      "candidates": [
+        "fuels",
+        "corridors"
+      ],
+      "ambiguous": true
+    },
+    {
+      "id": "3f45b2aa-3d15-4e92-95d3-70dcc6f6bc44",
+      "legacy_id": "us-epa-clean-ports-program-port-emissions-standards",
+      "title": "US EPA Clean Ports Program - Port Emissions Standards",
+      "summary_excerpt": "Announced in September 2024, this $3 billion program establishes new emissions standards for port operations and equipment. The regulation r",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "608e6dae-c5c7-4ba0-be68-a3fa602d0fe9",
+      "legacy_id": "ss4",
+      "title": "IMO 2018 GHG Strategy (50% by 2050)",
+      "summary_excerpt": "Pre-tracking historical record. Superseded before continuous tracking began.",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+      "legacy_id": "japan-green-transformation-gx-freight-transport-standards",
+      "title": "Japan Green Transformation (GX) Freight Transport Standards",
+      "summary_excerpt": "Enacted in August 2024, these standards establish mandatory carbon intensity targets for freight transport companies operating in Japan. The",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "beae0a7e-1088-4d35-b89f-362aade1d1a8",
+      "legacy_id": "india-s-national-logistics-policy-carbon-intensity-standards",
+      "title": "India's National Logistics Policy Carbon Intensity Standards",
+      "summary_excerpt": "India's Ministry of Commerce and Industry released carbon intensity standards for logistics operations in September 2023 as part of the Nati",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+      "legacy_id": "australia-national-electric-vehicle-strategy",
+      "title": "Australia National Electric Vehicle Strategy",
+      "summary_excerpt": "Includes specific provisions for freight electrification with mandatory fleet transition targets for government suppliers and contractors. C",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "96169446-5510-4d47-ad13-39bc08385852",
+      "legacy_id": "south-korea-k-taxonomy-for-sustainable-transport-activities",
+      "title": "South Korea K-Taxonomy for Sustainable Transport Activities",
+      "summary_excerpt": "South Korea finalized its Korean Taxonomy (K-Taxonomy) in 2024 with detailed technical screening criteria for sustainable transport and logi",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "d91f76f0-0ec3-4d47-b54f-2a525945dc52",
+      "legacy_id": "india-green-credit-programme-for-transport",
+      "title": "India Green Credit Programme for Transport",
+      "summary_excerpt": "Extends carbon credit system to freight and logistics operations, allowing companies to earn tradeable credits for modal shift to rail/water",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "64e9d38d-75bf-4fc3-b946-eebff05a0d6a",
+      "legacy_id": "sg-singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+      "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+      "summary_excerpt": "Singapore's Monetary Authority launched a comprehensive green finance framework in late 2023 specifically targeting maritime decarbonisation",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "44906e93-07a5-4b4c-8b3d-508b39ae605b",
+      "legacy_id": "singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+      "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+      "summary_excerpt": "Launched in October 2024, this regulation provides tax incentives for freight forwarders and shipping companies investing in green maritime ",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+      "legacy_id": "japan-s-updated-top-runner-program-for-heavy-duty-vehicles",
+      "title": "Japan's Updated Top Runner Program for Heavy-Duty Vehicles",
+      "summary_excerpt": "Japan's Ministry of Economy, Trade and Industry expanded the Top Runner fuel efficiency standards in 2024 to include comprehensive logistics",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "d2da85da-0912-497a-b645-31e4ca73cd18",
+      "legacy_id": "uae-national-net-zero-by-2050-transport-sector-roadmap",
+      "title": "UAE National Net Zero by 2050 Transport Sector Roadmap",
+      "summary_excerpt": "The UAE Ministry of Climate Change and Environment published detailed transport sector regulations in October 2023 implementing the national",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "007104ed-b4e4-4735-b7ac-c16bc214c1eb",
+      "legacy_id": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+      "title": "Singapore Maritime Decarbonisation Blueprint Implementation Regulations",
+      "summary_excerpt": "The Maritime and Port Authority of Singapore (MPA) released detailed implementation regulations in November 2023 for its maritime decarboniz",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "keyword-tie-ambiguous:corridors,infrastructure",
+      "candidates": [
+        "corridors",
+        "infrastructure"
+      ],
+      "ambiguous": true
+    },
+    {
+      "id": "3b2a3a17-0953-4eb2-a307-da1a0aa8d2bc",
+      "legacy_id": "ss5",
+      "title": "Voluntary IMO GHG measures only",
+      "summary_excerpt": "Pre-tracking historical record. Superseded before continuous tracking began.",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "ac349a70-606d-4eb3-ac19-5a4a0facd07c",
+      "legacy_id": "eu-battery-regulation-2023-1542",
+      "title": "EU Battery Regulation (Regulation (EU) 2023/1542)",
+      "summary_excerpt": "EU Battery Regulation imposing sustainability, traceability, and end-of-life requirements on industrial batteries with phased due-diligence ",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "859faf76-08a3-4587-a675-c181e19f227a",
+      "legacy_id": "eu-net-zero-industry-act-2024-1735",
+      "title": "EU Net-Zero Industry Act (Regulation (EU) 2024/1735)",
+      "summary_excerpt": "EU Net-Zero Industry Act establishing strategic framework for accelerating EU manufacturing of net-zero technologies. Includes resilience ta",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "42b8bfee-92ea-4cde-bfe9-a25eb7cb49d9",
+      "legacy_id": "w4_ca_sb253",
+      "title": "California SB 253 — Climate Corporate Data Accountability Act",
+      "summary_excerpt": "Requires US public AND private companies with >$1B in annual revenue doing business in California to publicly disclose their Scope 1, 2, and",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [
+        "scope-3",
+        "ghg-reporting",
+        "california",
+        "sec-disclosure"
+      ],
+      "derived_topic": null,
+      "derivation_reason": "keyword-multi-ambiguous:emissions,transport,reporting",
+      "candidates": [
+        "emissions",
+        "transport",
+        "reporting"
+      ],
+      "ambiguous": true
+    },
+    {
+      "id": "2d2cd311-d026-457c-bbd0-9b65a8f6cf60",
+      "legacy_id": "w4_ca_sb261",
+      "title": "California SB 261 — Climate-Related Financial Risk Act",
+      "summary_excerpt": "Requires US companies with >$500M in annual revenue doing business in California to publish biennial climate-related financial risk reports ",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [
+        "climate-risk",
+        "tcfd",
+        "california",
+        "biennial-disclosure"
+      ],
+      "derived_topic": null,
+      "derivation_reason": "keyword-tie-ambiguous:fuels,reporting",
+      "candidates": [
+        "fuels",
+        "reporting"
+      ],
+      "ambiguous": true
+    },
+    {
+      "id": "69d5dacb-b0a0-4b27-9784-4967e5759c1f",
+      "legacy_id": "w4_ca_ab1305",
+      "title": "California AB 1305 — Voluntary Carbon Market Disclosures Act",
+      "summary_excerpt": "Requires entities operating in California that purchase or use voluntary carbon offsets, OR that make net-zero / carbon-neutral / significan",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [
+        "voluntary-carbon-market",
+        "net-zero-claims",
+        "greenwashing",
+        "california"
+      ],
+      "derived_topic": null,
+      "derivation_reason": "keyword-tie-ambiguous:emissions,reporting",
+      "candidates": [
+        "emissions",
+        "reporting"
+      ],
+      "ambiguous": true
+    },
+    {
+      "id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+      "legacy_id": "eu_clean_trucking_2024_1610",
+      "title": "EU 2024/1610 — CO₂ emission performance standards for new heavy-duty vehicles",
+      "summary_excerpt": "EU regulation amending CO₂ emission performance standards for new heavy-duty vehicles (trucks, buses, coaches and trailers). Sets stepped fl",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [
+        "hdv-co2",
+        "heavy-duty-vehicles",
+        "vehicle-emissions",
+        "eu",
+        "fleet-electrification"
+      ],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "c1626e9c-032f-451d-b037-b0437a43a3bb",
+      "legacy_id": "ss1",
+      "title": "EU PPWD 94/62/EC",
+      "summary_excerpt": "Pre-tracking historical record. Superseded before continuous tracking began.",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    },
+    {
+      "id": "8d18eda9-817f-496a-890e-42386c1ffb1d",
+      "legacy_id": "arc4",
+      "title": "IMO 2018 GHG Strategy",
+      "summary_excerpt": "Replaced by 2023 Revised Strategy",
+      "item_type": "regulation",
+      "current_category": null,
+      "tags": [],
+      "derived_topic": null,
+      "derivation_reason": "no-derivation:item_type=regulation",
+      "candidates": [],
+      "ambiguous": true
+    }
+  ],
+  "non_canonical_existing": [
+    {
+      "legacy_id": "critical-minerals-ev-supply-chain",
+      "title": "Critical Minerals & EV Supply Chain",
+      "current_category": "critical-minerals",
+      "item_type": "market_signal"
+    },
+    {
+      "legacy_id": "battery-electric-vehicle-technology",
+      "title": "Battery & Electric Vehicle Technology",
+      "current_category": "technology",
+      "item_type": "technology"
+    },
+    {
+      "legacy_id": "solar-battery-energy-storage-for-warehouses",
+      "title": "Solar & Battery Energy Storage for Warehouses",
+      "current_category": "technology",
+      "item_type": "technology"
+    },
+    {
+      "legacy_id": "united-states-regional-operations-profile",
+      "title": "United States Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "india-regional-operations-profile",
+      "title": "India Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "china-prc-regional-operations-profile",
+      "title": "China (PRC) Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "dubai-uae-regional-operations-profile",
+      "title": "Dubai / UAE Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "united-kingdom-regional-operations-profile",
+      "title": "United Kingdom Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "eu-core-markets-regional-operations-profile",
+      "title": "EU Core Markets Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "autonomous-connected-freight-technology",
+      "title": "Autonomous & Connected Freight Technology",
+      "current_category": "technology",
+      "item_type": "technology"
+    },
+    {
+      "legacy_id": "melbourne-nabers-victorian-building-efficiency-standards",
+      "title": "Melbourne NABERS & Victorian Building Efficiency Standards",
+      "current_category": "facility",
+      "item_type": "regulation"
+    },
+    {
+      "legacy_id": "hydrogen-ammonia-as-maritime-fuel",
+      "title": "Hydrogen & Ammonia as Maritime Fuel",
+      "current_category": "technology",
+      "item_type": "technology"
+    },
+    {
+      "legacy_id": "crude-oil-jet-fuel-price-intelligence",
+      "title": "Crude Oil & Jet Fuel Price Intelligence",
+      "current_category": "energy-prices",
+      "item_type": "market_signal"
+    },
+    {
+      "legacy_id": "carbon-allowance-price-intelligence",
+      "title": "Carbon Allowance Price Intelligence",
+      "current_category": "carbon-markets",
+      "item_type": "market_signal"
+    },
+    {
+      "legacy_id": "sustainable-aviation-fuel-saf-production-pricing",
+      "title": "Sustainable Aviation Fuel (SAF) Production & Pricing",
+      "current_category": "technology",
+      "item_type": "technology"
+    },
+    {
+      "legacy_id": "australia-regional-operations-profile",
+      "title": "Australia Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "warehouse-solar-bess-roi-analysis",
+      "title": "Warehouse Solar & BESS ROI Analysis",
+      "current_category": "facility",
+      "item_type": "research_finding"
+    },
+    {
+      "legacy_id": "packaging-material-input-costs",
+      "title": "Packaging Material Input Costs",
+      "current_category": "petrochemicals",
+      "item_type": "market_signal"
+    },
+    {
+      "legacy_id": "lng-natural-gas-price-intelligence",
+      "title": "LNG & Natural Gas Price Intelligence",
+      "current_category": "energy-prices",
+      "item_type": "market_signal"
+    },
+    {
+      "legacy_id": "industrial-electricity-tariff-benchmarks-by-jurisdiction",
+      "title": "Industrial Electricity Tariff Benchmarks by Jurisdiction",
+      "current_category": "facility",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "japan-regional-operations-profile",
+      "title": "Japan Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+      "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+      "current_category": "facility",
+      "item_type": "regulation"
+    },
+    {
+      "legacy_id": "singapore-regional-operations-profile",
+      "title": "Singapore Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "trade-restrictions-industrial-policy",
+      "title": "Trade Restrictions & Industrial Policy",
+      "current_category": "trade-policy",
+      "item_type": "market_signal"
+    },
+    {
+      "legacy_id": "brazil-regional-operations-profile",
+      "title": "Brazil Regional Operations Profile",
+      "current_category": "regional",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "uk-mees-commercial-building-minimum-energy-efficiency",
+      "title": "UK MEES — Commercial Building Minimum Energy Efficiency",
+      "current_category": "facility",
+      "item_type": "regulation"
+    },
+    {
+      "legacy_id": "green-building-certification-standards-for-logistics",
+      "title": "Green Building Certification Standards for Logistics",
+      "current_category": "facility",
+      "item_type": "standard"
+    },
+    {
+      "legacy_id": "logistics-labor-cost-availability-benchmarks",
+      "title": "Logistics Labor Cost & Availability Benchmarks",
+      "current_category": "facility",
+      "item_type": "regional_data"
+    },
+    {
+      "legacy_id": "marine-fuel-decarbonisation-pathways",
+      "title": "Marine Fuel Decarbonisation Pathways",
+      "current_category": "technology",
+      "item_type": "technology"
+    },
+    {
+      "legacy_id": "maritime-chokepoint-monitoring",
+      "title": "Maritime Chokepoint Monitoring",
+      "current_category": "shipping-chokepoints",
+      "item_type": "market_signal"
+    },
+    {
+      "legacy_id": "nashville-building-energy-programs",
+      "title": "Nashville Building Energy Programs",
+      "current_category": "facility",
+      "item_type": "regulation"
+    },
+    {
+      "legacy_id": "la-eweo-existing-buildings-energy-water-efficiency",
+      "title": "LA EWEO — Existing Buildings Energy & Water Efficiency",
+      "current_category": "facility",
+      "item_type": "regulation"
+    }
+  ],
+  "derivation_summary": {
+    "null_or_empty_targets": 41,
+    "derivable": 16,
+    "skipped_ambiguous": 25,
+    "reason_counts": {
+      "no-derivation:item_type=regulation": 19,
+      "keyword-tie-ambiguous:fuels,corridors": 2,
+      "keyword:csrd -> reporting": 4,
+      "keyword:hydrogen strategy -> fuels": 2,
+      "keyword:carb -> emissions": 1,
+      "keyword:carbon pricing -> emissions": 1,
+      "keyword:scope 3 -> reporting": 1,
+      "keyword:ppwr -> packaging": 1,
+      "keyword:emissions trading -> emissions": 3,
+      "keyword-tie-ambiguous:corridors,infrastructure": 1,
+      "keyword:co2 emission -> emissions": 1,
+      "keyword:endangerment finding -> emissions": 2,
+      "keyword-multi-ambiguous:emissions,transport,reporting": 1,
+      "keyword-tie-ambiguous:fuels,reporting": 1,
+      "keyword-tie-ambiguous:emissions,reporting": 1
+    }
+  }
+}
