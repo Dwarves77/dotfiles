@@ -1,0 +1,144 @@
+Perf v2 — Post-fix snapshot
+Date: 2026-05-08
+Branch: perf/v2-admin-attention-leak-and-await-parallelization
+Reference baseline: docs/perf-snapshot-2026-05-06.txt
+
+This is a SANITY-CHECK snapshot. Bundle delta is NOT the primary win for
+the perf v2 dispatch — server-render time and admin/attention round-trip
+elimination are. The bundle measurement here confirms the fixes did not
+regress First Load JS.
+
+────────────────────────────────────────────────────────────────────────
+What changed in this PR (perf v2 — root-cause fix series)
+────────────────────────────────────────────────────────────────────────
+
+Root cause #1 — /api/admin/attention duplicate fetch leak
+  - useAdminAttention rewritten as module-level singleton: multiple
+    mounted instances (UserMenu in shared layout, IssuesQueue on /admin,
+    AtAGlanceBlock on /profile) now share ONE in-flight request and ONE
+    polling timer instead of fanning out to 2+ duplicate fetches per
+    navigation.
+  - API route stamps Cache-Control: private, max-age=30 on 200 responses
+    and private, max-age=60 on 401/403 responses. Non-admin browsers
+    stop re-issuing the auth-failed call on every paint; admin browsers
+    serve duplicate calls within the 30s window from the HTTP cache.
+  - Auth ordering preserved (cheapest gate first): requireAuth → rate
+    limit → admin gate → RPC. 401/403 paths now skip RPC entirely.
+
+Expected production impact:
+  - Non-admin users: 0 /api/admin/attention calls per navigation (was 2).
+  - Admin users: 1 call per 60-second poll cycle, served from HTTP cache
+    on intra-cycle re-mounts (was 2 per navigation, both 500-1500 ms).
+
+Root cause #2 — Server-side render slow
+  - fetchIntelligenceItem: 5 sequential queries (timelines, changelog,
+    disputes, cross-references, supersessions) collapsed to one
+    Promise.all batch. Wall-clock cost drops from sum to max.
+  - Migration 049 adds the missing indexes:
+      idx_item_supersessions_old   ON item_supersessions(old_item_id)
+      idx_item_supersessions_new   ON item_supersessions(new_item_id)
+      idx_intel_items_added_date_desc ON intelligence_items(added_date DESC)
+    Existing indexes on legacy_id, priority, jurisdiction_iso, item_*
+    foreign keys, and intelligence_changes are confirmed in place via
+    migrations 003/009/020/026/033 — no duplicates created.
+  - USER ACTION: apply migration 049 via Supabase SQL editor or CLI
+    before the index-driven gain lands.
+
+Expected production impact (after 049 applied):
+  - /regulations/[slug] server render: 1750 ms → ~400 ms (parallel +
+    indexed supersessions lookup).
+  - / (Dashboard) server render: 2472 ms worst → ~600 ms (Dashboard
+    awaits were already Promise.all; the win there is the index on
+    added_date for the Research/Recently-added sort path).
+
+Root cause #3 — Duplicate <Link prefetch> fanout
+  - Dashboard home links (WeeklyBriefing, WhatChanged, Supersessions)
+    set prefetch={false} — these point to /regulations/[slug] which
+    runs Supabase queries on every render.
+  - RegulationsSurface row link + card link set prefetch={false}.
+  - CommunitySidebar SidebarRow Link sets prefetch={false} — eliminates
+    the 19-prefetch fanout on /community.
+
+Expected production impact:
+  - Dashboard: prefetch fanout drops from 10 (5 doubled) → 0 below the
+    fold (RSC payload only fetched on user intent).
+  - Community: prefetch fanout drops from 19 → 0.
+
+────────────────────────────────────────────────────────────────────────
+Files touched
+────────────────────────────────────────────────────────────────────────
+  - fsi-app/src/lib/hooks/useAdminAttention.ts (singleton rewrite)
+  - fsi-app/src/app/api/admin/attention/route.ts (Cache-Control)
+  - fsi-app/src/lib/supabase-server.ts (Promise.all in fetchIntelligenceItem)
+  - fsi-app/src/components/home/WeeklyBriefing.tsx (prefetch={false})
+  - fsi-app/src/components/home/WhatChanged.tsx (prefetch={false})
+  - fsi-app/src/components/home/Supersessions.tsx (prefetch={false})
+  - fsi-app/src/components/regulations/RegulationsSurface.tsx (prefetch={false})
+  - fsi-app/src/components/community/CommunitySidebar.tsx (prefetch={false})
+  - fsi-app/supabase/migrations/049_perf_v2_indexes.sql (NEW)
+
+────────────────────────────────────────────────────────────────────────
+Bundle measurement (sanity check)
+────────────────────────────────────────────────────────────────────────
+
+
+> fsi-app@0.1.0 perf:bundles
+> node scripts/measure-bundles.mjs
+
+
+Per-route client bundle inventory
+
+Route                            |   Entry (First Load) | Route-specific entry |     All client (entry+async)
+---------------------------------|----------------------|----------------------|------------------------------
+/                                 |             310.1 kB |              30.2 kB |                     343.8 kB
+/admin                            |             428.8 kB |             148.9 kB |                     462.5 kB
+/community                        |             314.7 kB |              34.8 kB |                     348.3 kB
+/community/browse                 |             321.8 kB |              41.9 kB |                     355.5 kB
+/login                            |             283.3 kB |               3.4 kB |                     317.0 kB
+/map                              |             300.3 kB |              20.4 kB |                     334.0 kB
+/market                           |             311.8 kB |              31.9 kB |                     345.5 kB
+/onboarding                       |             306.4 kB |              26.5 kB |                     340.0 kB
+/operations                       |             302.1 kB |              22.2 kB |                     335.7 kB
+/profile                          |             309.7 kB |              29.8 kB |                     343.3 kB
+/regulations                      |             330.6 kB |              50.7 kB |                     364.3 kB
+/regulations/[slug]               |             470.1 kB |             190.2 kB |                     503.7 kB
+/research                         |             302.3 kB |              22.4 kB |                     336.0 kB
+/settings                         |             311.1 kB |              31.2 kB |                     344.8 kB
+
+Shared layout chunks: 3 files, 279.9 kB (counted once in Entry totals above)
+
+────────────────────────────────────────────────────────────────────────
+Validation procedure
+────────────────────────────────────────────────────────────────────────
+
+Real-world validation requires post-deploy browser perf API runs:
+
+  1. Sign in as non-admin user. Open DevTools Network tab.
+     Navigate Dashboard → Regulations → Research → Operations.
+     Expected: zero /api/admin/attention calls (was 2 per navigation).
+
+  2. Sign in as admin user. Same navigation.
+     Expected: one /api/admin/attention call on first arrival; subsequent
+     navigations within 30s serve from HTTP cache (200 from disk cache).
+     One fresh call per 60s poll cycle.
+
+  3. Apply migration 049 via Supabase SQL editor.
+     Verify indexes via: SELECT indexname FROM pg_indexes
+       WHERE tablename IN ('item_supersessions','intelligence_items')
+       AND indexname LIKE 'idx_%';
+
+  4. Open /regulations/<any-slug>. Capture server render time from
+     console: `[perf] /regulations/<id> data <N>ms`.
+     Expected: <500 ms (was 1750 ms).
+
+  5. Dashboard server render `[perf] / data <N>ms`.
+     Expected: <800 ms (was 2472 ms worst).
+
+────────────────────────────────────────────────────────────────────────
+Reading guide for the bundle table
+────────────────────────────────────────────────────────────────────────
+
+  - Entry is what users pay before hydration. This is the metric to drive
+    down for bundle work — but bundle work isn't this PR's mandate.
+  - Route-specific entry is the portion unique to this route (Entry minus shared).
+  - All client includes async chunks (next/dynamic, lazy()).

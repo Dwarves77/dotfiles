@@ -95,6 +95,7 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
           <Link
             key={i}
             href={successorHref}
+            prefetch={false}
             style={{ textDecoration: "none", color: "inherit", display: "block" }}
           >
             {card}
