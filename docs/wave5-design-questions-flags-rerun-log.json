@@ -1,0 +1,19 @@
+{
+  "rerun_attempt_at": "2026-05-08T14:58:27.512Z",
+  "scenario": 1,
+  "scenario_label": "migration_048_not_yet_live",
+  "outcome": "halted_at_precondition",
+  "halt_step": "precondition_table_exists",
+  "error_code": "PGRST205",
+  "error_message": "Could not find the table 'public.integrity_flags' in the schema cache",
+  "interpretation": "Migration 048 not yet applied (or PostgREST schema cache stale). Writer halted cleanly per its precondition gate. Zero rows written.",
+  "flags_written": 0,
+  "flag_ids": [],
+  "remediation": [
+    "USER: apply migration 048 via `npx supabase db push` from fsi-app/",
+    "USER: apply migration 050 (this PR) via the same command",
+    "USER: re-run `node scripts/wave5-design-questions-flags-write.mjs` from fsi-app/"
+  ],
+  "expected_next_run_outcome": "scenario 3 — all 7 flags write successfully (5 with existing categories + 2 with workflow_gap)",
+  "source_log": "docs/wave5-design-questions-flags-log.json (canonical halt log written by the script itself)"
+}
