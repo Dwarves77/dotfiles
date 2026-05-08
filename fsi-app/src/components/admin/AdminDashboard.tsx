@@ -19,6 +19,7 @@ import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
 import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
+import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
 
 interface AdminDashboardProps {
   userId: string;
@@ -376,47 +377,18 @@ export function AdminDashboard({
         {/* Organizations Tab */}
         {activeTab === "orgs" && (
           <div className="space-y-4">
-            <ComingSoonBanner
-              note="Multi-tenant organization management lands in Phase D. The list below shows orgs already provisioned in the database for the current admin scope. Per-org member, plan, and billing controls move to each org owner's Profile."
-            />
-
-            {orgs.length > 0 && (
-              <div className="space-y-2">
-                <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                  Organizations ({orgs.length})
-                </h2>
-                {orgs.map((org) => (
-                  <div
-                    key={org.id}
-                    className="p-4 rounded-lg border"
-                    style={{
-                      borderColor: "var(--color-border)",
-                      backgroundColor: "var(--color-surface)",
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                          {org.name}
-                        </p>
-                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                          {org.slug} · {org.plan}
-                        </p>
-                      </div>
-                      <span
-                        className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
-                        style={{
-                          color: "var(--color-primary)",
-                          backgroundColor: "var(--color-active-bg)",
-                        }}
-                      >
-                        {org.plan}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Workspace-level orgs roster: id/name/slug/plan/created_at +
+                derived member counts, role rosters, and last-activity proxy.
+                Replaces the prior Phase D placeholder. Data comes from
+                app/admin/page.tsx server fetch (initialOrgs + initialMembers);
+                the OrganizationsTable component derives everything else
+                without an extra query. */}
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                Organizations ({orgs.length})
+              </h2>
+              <OrganizationsTable orgs={orgs} members={members} />
+            </div>
 
             {/* Workspace member shortcut — kept until Phase D Profile-side
                 management ships; covers the dev-mode path of inviting users
