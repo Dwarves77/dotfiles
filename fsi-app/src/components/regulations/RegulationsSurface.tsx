@@ -30,6 +30,7 @@ import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { RowCard } from "@/components/ui/RowCard";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { urgencyScore, scoreResource, matchResourceSector } from "@/lib/scoring";
 import {
   PRIORITIES,
@@ -124,6 +125,11 @@ const PRI_ORDER: Record<string, number> = {
 // Separate from the global `fsi-saved-filters` key so this surface
 // can capture sectors/confidence/view/sort without colliding with
 // the simpler dashboard-level filter defaults.
+//
+// PR-E2: localStorage stays as L1 (instant, offline, anon-friendly).
+// /api/workspace/regulations-defaults is L2 (cross-device, authenticated).
+// On mount we prefer L2 when present and seed L1 from it; on save we
+// write to BOTH so the offline/unauth path still works.
 const REG_DEFAULTS_KEY = "fsi-regulations-defaults";
 
 interface RegulationsDefaults {
@@ -156,6 +162,60 @@ function saveDefaults(d: RegulationsDefaults): void {
     localStorage.setItem(REG_DEFAULTS_KEY, JSON.stringify(d));
   } catch {
     // ignore quota errors
+  }
+}
+
+// Fetch the saved defaults from /api/workspace/regulations-defaults if
+// the user is authenticated. Returns null on any failure (no session,
+// network error, server error, or empty payload) so the caller can
+// silently fall back to localStorage.
+async function fetchServerDefaults(): Promise<RegulationsDefaults | null> {
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return null;
+
+    const res = await fetch("/api/workspace/regulations-defaults", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { defaults: RegulationsDefaults | null };
+    return json.defaults ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Push the saved defaults to /api/workspace/regulations-defaults.
+// Best-effort: failures are swallowed so localStorage save still
+// succeeds. Returns true on a 2xx server write so the caller can
+// surface a "synced to workspace" hint if it wants to.
+async function pushServerDefaults(
+  d: RegulationsDefaults | null
+): Promise<boolean> {
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return false;
+
+    const res = await fetch("/api/workspace/regulations-defaults", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ defaults: d }),
+    });
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 
@@ -248,23 +308,51 @@ export function RegulationsSurface({
   }
 
   // ── Hydrate from saved defaults on mount ─────────────────────────────
+  // Two-stage hydration:
+  //   1. Apply localStorage defaults synchronously (instant first paint
+  //      for offline / anon users and as L1 cache for returning auth
+  //      users).
+  //   2. Fire-and-forget fetch of server-stored defaults; if present,
+  //      override local state and refresh L1 so subsequent mounts on
+  //      this device pick up the latest workspace state. Server is
+  //      authoritative when both exist.
   useEffect(() => {
-    const d = loadDefaults();
-    setSavedDefaults(d);
-    if (d) {
-      setActiveSectors(new Set(d.sectors || []));
-      setActiveConfidence(new Set(d.confidence || []));
-      // Only override the URL-driven priority initial state if the user
-      // saved an explicit priority preference. Otherwise the URL wins.
-      if (Array.isArray(d.priorities) && d.priorities.length > 0) {
-        setActivePriorities(new Set(d.priorities));
+    const local = loadDefaults();
+    if (local) {
+      setSavedDefaults(local);
+      setActiveSectors(new Set(local.sectors || []));
+      setActiveConfidence(new Set(local.confidence || []));
+      if (Array.isArray(local.priorities) && local.priorities.length > 0) {
+        setActivePriorities(new Set(local.priorities));
       }
-      setActiveTopics(new Set(d.topics || []));
-      setActiveRegions(new Set(d.regions || []));
-      setActiveModes(new Set(d.modes || []));
-      if (d.sort) setSort(d.sort);
-      if (d.view) setView(d.view);
+      setActiveTopics(new Set(local.topics || []));
+      setActiveRegions(new Set(local.regions || []));
+      setActiveModes(new Set(local.modes || []));
+      if (local.sort) setSort(local.sort);
+      if (local.view) setView(local.view);
     }
+
+    let cancelled = false;
+    (async () => {
+      const server = await fetchServerDefaults();
+      if (cancelled || !server) return;
+      // Server is authoritative — apply it and refresh L1.
+      saveDefaults(server);
+      setSavedDefaults(server);
+      setActiveSectors(new Set(server.sectors || []));
+      setActiveConfidence(new Set(server.confidence || []));
+      if (Array.isArray(server.priorities) && server.priorities.length > 0) {
+        setActivePriorities(new Set(server.priorities));
+      }
+      setActiveTopics(new Set(server.topics || []));
+      setActiveRegions(new Set(server.regions || []));
+      setActiveModes(new Set(server.modes || []));
+      if (server.sort) setSort(server.sort);
+      if (server.view) setView(server.view);
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -460,6 +548,10 @@ export function RegulationsSurface({
   }
 
   // ── Save / reset ──────────────────────────────────────────────────
+  // PR-E2: write to localStorage L1 synchronously, then fire-and-forget
+  // mirror to /api/workspace/regulations-defaults so authenticated users
+  // see the same default on other devices. Anon / offline users still
+  // get the local-only experience without any error noise.
   function handleSaveAsDefault() {
     const d: RegulationsDefaults = {
       sectors:    [...activeSectors],
@@ -473,6 +565,7 @@ export function RegulationsSurface({
     };
     saveDefaults(d);
     setSavedDefaults(d);
+    void pushServerDefaults(d);
     flashToast("Saved as default filter combination");
   }
 
@@ -501,6 +594,10 @@ export function RegulationsSurface({
       localStorage.removeItem(REG_DEFAULTS_KEY);
     }
     setSavedDefaults(null);
+    // Mirror the clear to server (writes null to delete the sub-key
+    // from alert_config). Other workspace settings are preserved by
+    // the server's read-modify-write merge.
+    void pushServerDefaults(null);
     flashToast("Cleared saved default");
   }
 
