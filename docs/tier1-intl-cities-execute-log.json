@@ -1,0 +1,632 @@
+{
+  "completed": true,
+  "finalSnapshot": {
+    "GB-LON": [
+      {
+        "id": "191a1c06-d02d-4de1-9600-a179e371cafe",
+        "name": "Greater London Authority (GLA)",
+        "url": "https://www.london.gov.uk/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "817bf251-a8af-43c6-b8d6-f0f4304d3bee",
+        "name": "Transport for London (TfL)",
+        "url": "https://tfl.gov.uk/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "FR-IDF": [
+      {
+        "id": "817a4c48-5257-4eff-8e80-8413dbffd4dc",
+        "name": "Ville de Paris (Mairie de Paris)",
+        "url": "https://www.paris.fr/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "7663d425-295a-46ce-abc4-c47f6fa8d683",
+        "name": "Région Île-de-France",
+        "url": "https://www.iledefrance.fr/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "DE-BE": [
+      {
+        "id": "ebe50cec-0fd6-4150-9d3b-2011c6c8d923",
+        "name": "Senatsverwaltung für Mobilität, Verkehr, Klimaschutz und Umwelt (Berlin)",
+        "url": "https://www.berlin.de/sen/uvk/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "acc6322f-09fa-4d48-a369-f905e5411bb7",
+        "name": "Abgeordnetenhaus von Berlin",
+        "url": "https://www.parlament-berlin.de/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "JP-13": [
+      {
+        "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+        "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+        "url": "https://www.customs.go.jp/english/index.htm",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "d5f9920c-d07a-46a1-9fc9-d563832b86df",
+        "name": "Tokyo Metropolitan Government Bureau of Environment (東京都環境局)",
+        "url": "https://www.kankyo.metro.tokyo.lg.jp/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "095d2a2c-0e59-43c9-b759-c3a7d19ad71d",
+        "name": "Tokyo Metropolitan Assembly (東京都議会)",
+        "url": "https://www.gikai.metro.tokyo.jp/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "CN-31": [
+      {
+        "id": "36433d07-8a8e-45e9-8c85-e105a1d4c62b",
+        "name": "Shanghai Municipal Bureau of Ecology and Environment (上海市生态环境局)",
+        "url": "https://sthj.sh.gov.cn/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "92fe8f7e-6888-4941-b006-bc695be09b9d",
+        "name": "Shanghai Municipal People's Government (上海市人民政府)",
+        "url": "https://www.shanghai.gov.cn/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AE-DU": [
+      {
+        "id": "6916fcd9-7551-4479-a5d6-cc702e0b3bce",
+        "name": "DEWA Shams Dubai Program",
+        "url": "https://www.dewa.gov.ae/en/consumers/innovation/shams-dubai",
+        "tier": 1,
+        "status": "provisional"
+      },
+      {
+        "id": "7572537b-d94b-40d5-bb43-466e3e6346be",
+        "name": "Dubai Electricity & Water Authority (DEWA)",
+        "url": "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "07a7d198-1394-4934-be1e-204fcfdf00cf",
+        "name": "Dubai Electricity & Water Authority (DEWA)",
+        "url": "https://www.dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+        "tier": 3,
+        "status": "active"
+      },
+      {
+        "id": "087c1289-0de2-480e-af0f-24ad2e1f0831",
+        "name": "Dubai Municipality (بلدية دبي)",
+        "url": "https://www.dm.gov.ae/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "5391bc5f-c912-427f-bb1f-c2fb6dc1120b",
+        "name": "Government of Dubai Portal",
+        "url": "https://www.dubai.gov.ae/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-SYD": [
+      {
+        "id": "6ac220a6-d1fb-4439-8212-c0f2349e2993",
+        "name": "City of Sydney",
+        "url": "https://www.cityofsydney.nsw.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "CA-TOR": [
+      {
+        "id": "ba680206-2b54-4d08-8d98-909da2b3c643",
+        "name": "City of Toronto — Environment & Climate",
+        "url": "https://www.toronto.ca/services-payments/water-environment/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "7d18d831-429b-450a-a209-22446a8d886f",
+        "name": "City of Toronto — City Council",
+        "url": "https://www.toronto.ca/city-government/council/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "CA-MTL": [
+      {
+        "id": "b434ddee-7755-4071-b729-70088256af06",
+        "name": "Ville de Montréal — Environnement",
+        "url": "https://montreal.ca/en/topics/environment",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "89485cf1-c7a5-476f-ac21-9346018e2f74",
+        "name": "Ville de Montréal — Conseil municipal",
+        "url": "https://montreal.ca/en/topics/city-council",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "HK": [
+      {
+        "id": "4ebe9bba-5fb0-48a5-a601-1974e1bcc73c",
+        "name": "Environmental Protection Department (EPD), Hong Kong SAR",
+        "url": "https://www.epd.gov.hk/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "8330f9b4-29ae-414b-a010-7b9a564d586a",
+        "name": "Legislative Council of the Hong Kong SAR (LegCo)",
+        "url": "https://www.legco.gov.hk/",
+        "tier": 1,
+        "status": "active"
+      }
+    ]
+  },
+  "log": [
+    {
+      "name": "dubai_pre_existing_admin_only_check",
+      "ok": true,
+      "detail": "3 DEWA candidates, none admin_only=true",
+      "at": "2026-05-08T02:42:09.487Z"
+    },
+    {
+      "name": "dubai_retag_count_gate",
+      "ok": true,
+      "detail": "3 candidates (halt threshold > 5)",
+      "at": "2026-05-08T02:42:09.489Z"
+    },
+    {
+      "name": "dubai_retag_drift_check",
+      "ok": true,
+      "detail": "3 candidates (expected 3, |Δ|>2 halts)",
+      "at": "2026-05-08T02:42:09.489Z"
+    },
+    {
+      "name": "lon_gla_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:09.637Z"
+    },
+    {
+      "name": "lon_gla_insert",
+      "ok": true,
+      "detail": "id=191a1c06-d02d-4de1-9600-a179e371cafe tier=1 name=Greater London Authority (GLA)",
+      "at": "2026-05-08T02:42:10.046Z"
+    },
+    {
+      "name": "lon_gla_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"GB-LON\"] url=https://www.london.gov.uk/",
+      "at": "2026-05-08T02:42:10.169Z"
+    },
+    {
+      "name": "lon_tfl_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:10.278Z"
+    },
+    {
+      "name": "lon_tfl_insert",
+      "ok": true,
+      "detail": "id=817bf251-a8af-43c6-b8d6-f0f4304d3bee tier=1 name=Transport for London (TfL)",
+      "at": "2026-05-08T02:42:10.559Z"
+    },
+    {
+      "name": "lon_tfl_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"GB-LON\"] url=https://tfl.gov.uk/",
+      "at": "2026-05-08T02:42:10.675Z"
+    },
+    {
+      "name": "par_mairie_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:10.792Z"
+    },
+    {
+      "name": "par_mairie_insert",
+      "ok": true,
+      "detail": "id=817a4c48-5257-4eff-8e80-8413dbffd4dc tier=1 name=Ville de Paris (Mairie de Paris)",
+      "at": "2026-05-08T02:42:10.916Z"
+    },
+    {
+      "name": "par_mairie_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"FR-IDF\"] url=https://www.paris.fr/",
+      "at": "2026-05-08T02:42:11.031Z"
+    },
+    {
+      "name": "par_region_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:11.137Z"
+    },
+    {
+      "name": "par_region_insert",
+      "ok": true,
+      "detail": "id=7663d425-295a-46ce-abc4-c47f6fa8d683 tier=1 name=Région Île-de-France",
+      "at": "2026-05-08T02:42:11.249Z"
+    },
+    {
+      "name": "par_region_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"FR-IDF\"] url=https://www.iledefrance.fr/",
+      "at": "2026-05-08T02:42:11.354Z"
+    },
+    {
+      "name": "ber_senate_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:11.461Z"
+    },
+    {
+      "name": "ber_senate_insert",
+      "ok": true,
+      "detail": "id=ebe50cec-0fd6-4150-9d3b-2011c6c8d923 tier=1 name=Senatsverwaltung für Mobilität, Verkehr, Klimaschutz und Umwelt (Berlin)",
+      "at": "2026-05-08T02:42:11.568Z"
+    },
+    {
+      "name": "ber_senate_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"DE-BE\"] url=https://www.berlin.de/sen/uvk/",
+      "at": "2026-05-08T02:42:11.676Z"
+    },
+    {
+      "name": "ber_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:11.784Z"
+    },
+    {
+      "name": "ber_parliament_insert",
+      "ok": true,
+      "detail": "id=acc6322f-09fa-4d48-a369-f905e5411bb7 tier=1 name=Abgeordnetenhaus von Berlin",
+      "at": "2026-05-08T02:42:11.920Z"
+    },
+    {
+      "name": "ber_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"DE-BE\"] url=https://www.parlament-berlin.de/",
+      "at": "2026-05-08T02:42:12.039Z"
+    },
+    {
+      "name": "tok_bureau_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:12.155Z"
+    },
+    {
+      "name": "tok_bureau_insert",
+      "ok": true,
+      "detail": "id=d5f9920c-d07a-46a1-9fc9-d563832b86df tier=1 name=Tokyo Metropolitan Government Bureau of Environment (東京都環境局)",
+      "at": "2026-05-08T02:42:12.401Z"
+    },
+    {
+      "name": "tok_bureau_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"JP-13\"] url=https://www.kankyo.metro.tokyo.lg.jp/",
+      "at": "2026-05-08T02:42:12.501Z"
+    },
+    {
+      "name": "tok_assembly_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:12.607Z"
+    },
+    {
+      "name": "tok_assembly_insert",
+      "ok": true,
+      "detail": "id=095d2a2c-0e59-43c9-b759-c3a7d19ad71d tier=1 name=Tokyo Metropolitan Assembly (東京都議会)",
+      "at": "2026-05-08T02:42:12.865Z"
+    },
+    {
+      "name": "tok_assembly_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"JP-13\"] url=https://www.gikai.metro.tokyo.jp/",
+      "at": "2026-05-08T02:42:12.971Z"
+    },
+    {
+      "name": "sha_eeb_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:13.071Z"
+    },
+    {
+      "name": "sha_eeb_insert",
+      "ok": true,
+      "detail": "id=36433d07-8a8e-45e9-8c85-e105a1d4c62b tier=1 name=Shanghai Municipal Bureau of Ecology and Environment (上海市生态环境局)",
+      "at": "2026-05-08T02:42:13.179Z"
+    },
+    {
+      "name": "sha_eeb_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"CN-31\"] url=https://sthj.sh.gov.cn/",
+      "at": "2026-05-08T02:42:13.305Z"
+    },
+    {
+      "name": "sha_gov_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:13.407Z"
+    },
+    {
+      "name": "sha_gov_insert",
+      "ok": true,
+      "detail": "id=92fe8f7e-6888-4941-b006-bc695be09b9d tier=1 name=Shanghai Municipal People's Government (上海市人民政府)",
+      "at": "2026-05-08T02:42:13.536Z"
+    },
+    {
+      "name": "sha_gov_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"CN-31\"] url=https://www.shanghai.gov.cn/",
+      "at": "2026-05-08T02:42:13.643Z"
+    },
+    {
+      "name": "dxb_municipality_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:13.791Z"
+    },
+    {
+      "name": "dxb_municipality_insert",
+      "ok": true,
+      "detail": "id=087c1289-0de2-480e-af0f-24ad2e1f0831 tier=1 name=Dubai Municipality (بلدية دبي)",
+      "at": "2026-05-08T02:42:13.901Z"
+    },
+    {
+      "name": "dxb_municipality_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AE-DU\"] url=https://www.dm.gov.ae/",
+      "at": "2026-05-08T02:42:14.005Z"
+    },
+    {
+      "name": "dxb_govportal_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:14.131Z"
+    },
+    {
+      "name": "dxb_govportal_insert",
+      "ok": true,
+      "detail": "id=5391bc5f-c912-427f-bb1f-c2fb6dc1120b tier=1 name=Government of Dubai Portal",
+      "at": "2026-05-08T02:42:14.235Z"
+    },
+    {
+      "name": "dxb_govportal_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AE-DU\"] url=https://www.dubai.gov.ae/",
+      "at": "2026-05-08T02:42:14.336Z"
+    },
+    {
+      "name": "syd_city_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:14.451Z"
+    },
+    {
+      "name": "syd_city_insert",
+      "ok": true,
+      "detail": "id=6ac220a6-d1fb-4439-8212-c0f2349e2993 tier=1 name=City of Sydney",
+      "at": "2026-05-08T02:42:14.884Z"
+    },
+    {
+      "name": "syd_city_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-SYD\"] url=https://www.cityofsydney.nsw.gov.au/",
+      "at": "2026-05-08T02:42:14.990Z"
+    },
+    {
+      "name": "tor_env_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:15.250Z"
+    },
+    {
+      "name": "tor_env_insert",
+      "ok": true,
+      "detail": "id=ba680206-2b54-4d08-8d98-909da2b3c643 tier=1 name=City of Toronto — Environment & Climate",
+      "at": "2026-05-08T02:42:15.370Z"
+    },
+    {
+      "name": "tor_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"CA-TOR\"] url=https://www.toronto.ca/services-payments/water-environment/",
+      "at": "2026-05-08T02:42:15.480Z"
+    },
+    {
+      "name": "tor_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:15.587Z"
+    },
+    {
+      "name": "tor_council_insert",
+      "ok": true,
+      "detail": "id=7d18d831-429b-450a-a209-22446a8d886f tier=1 name=City of Toronto — City Council",
+      "at": "2026-05-08T02:42:15.694Z"
+    },
+    {
+      "name": "tor_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"CA-TOR\"] url=https://www.toronto.ca/city-government/council/",
+      "at": "2026-05-08T02:42:15.806Z"
+    },
+    {
+      "name": "mtl_env_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:15.918Z"
+    },
+    {
+      "name": "mtl_env_insert",
+      "ok": true,
+      "detail": "id=b434ddee-7755-4071-b729-70088256af06 tier=1 name=Ville de Montréal — Environnement",
+      "at": "2026-05-08T02:42:16.026Z"
+    },
+    {
+      "name": "mtl_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"CA-MTL\"] url=https://montreal.ca/en/topics/environment",
+      "at": "2026-05-08T02:42:16.146Z"
+    },
+    {
+      "name": "mtl_council_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:42:16.263Z"
+    },
+    {
+      "name": "mtl_council_insert",
+      "ok": true,
+      "detail": "id=89485cf1-c7a5-476f-ac21-9346018e2f74 tier=1 name=Ville de Montréal — Conseil municipal",
+      "at": "2026-05-08T02:42:16.379Z"
+    },
+    {
+      "name": "mtl_council_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"CA-MTL\"] url=https://montreal.ca/en/topics/city-council",
+      "at": "2026-05-08T02:42:16.505Z"
+    },
+    {
+      "name": "insert_count_cap",
+      "ok": true,
+      "detail": "inserted 17 rows (expected 17, hard cap 28)",
+      "at": "2026-05-08T02:42:16.505Z"
+    },
+    {
+      "name": "dxb_retag_update_7572537b",
+      "ok": true,
+      "detail": "Dubai Electricity & Water Authority (DEWA) → [\"AE-DU\"]",
+      "at": "2026-05-08T02:42:16.616Z"
+    },
+    {
+      "name": "dxb_retag_verify_7572537b",
+      "ok": true,
+      "detail": "name=Dubai Electricity & Water Authority (DEWA) jurisdiction_iso=[\"AE-DU\"] status=active (was active) tier=2 (was 2) admin_only=false (was false)",
+      "at": "2026-05-08T02:42:16.717Z"
+    },
+    {
+      "name": "dxb_retag_update_07a7d198",
+      "ok": true,
+      "detail": "Dubai Electricity & Water Authority (DEWA) → [\"AE-DU\"]",
+      "at": "2026-05-08T02:42:16.825Z"
+    },
+    {
+      "name": "dxb_retag_verify_07a7d198",
+      "ok": true,
+      "detail": "name=Dubai Electricity & Water Authority (DEWA) jurisdiction_iso=[\"AE-DU\"] status=active (was active) tier=3 (was 3) admin_only=false (was false)",
+      "at": "2026-05-08T02:42:16.929Z"
+    },
+    {
+      "name": "dxb_retag_update_6916fcd9",
+      "ok": true,
+      "detail": "DEWA Shams Dubai Program → [\"AE-DU\"]",
+      "at": "2026-05-08T02:42:17.035Z"
+    },
+    {
+      "name": "dxb_retag_verify_6916fcd9",
+      "ok": true,
+      "detail": "name=DEWA Shams Dubai Program jurisdiction_iso=[\"AE-DU\"] status=provisional (was provisional) tier=1 (was 1) admin_only=false (was false)",
+      "at": "2026-05-08T02:42:17.147Z"
+    }
+  ],
+  "insertedIds": [
+    "191a1c06-d02d-4de1-9600-a179e371cafe",
+    "817bf251-a8af-43c6-b8d6-f0f4304d3bee",
+    "817a4c48-5257-4eff-8e80-8413dbffd4dc",
+    "7663d425-295a-46ce-abc4-c47f6fa8d683",
+    "ebe50cec-0fd6-4150-9d3b-2011c6c8d923",
+    "acc6322f-09fa-4d48-a369-f905e5411bb7",
+    "d5f9920c-d07a-46a1-9fc9-d563832b86df",
+    "095d2a2c-0e59-43c9-b759-c3a7d19ad71d",
+    "36433d07-8a8e-45e9-8c85-e105a1d4c62b",
+    "92fe8f7e-6888-4941-b006-bc695be09b9d",
+    "087c1289-0de2-480e-af0f-24ad2e1f0831",
+    "5391bc5f-c912-427f-bb1f-c2fb6dc1120b",
+    "6ac220a6-d1fb-4439-8212-c0f2349e2993",
+    "ba680206-2b54-4d08-8d98-909da2b3c643",
+    "7d18d831-429b-450a-a209-22446a8d886f",
+    "b434ddee-7755-4071-b729-70088256af06",
+    "89485cf1-c7a5-476f-ac21-9346018e2f74"
+  ],
+  "retaggedRows": [
+    {
+      "id": "7572537b-d94b-40d5-bb43-466e3e6346be",
+      "name": "Dubai Electricity & Water Authority (DEWA)",
+      "url": "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "AE-DU"
+        ],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "07a7d198-1394-4934-be1e-204fcfdf00cf",
+      "name": "Dubai Electricity & Water Authority (DEWA)",
+      "url": "https://www.dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 3,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "AE-DU"
+        ],
+        "status": "active",
+        "tier": 3,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "6916fcd9-7551-4479-a5d6-cc702e0b3bce",
+      "name": "DEWA Shams Dubai Program",
+      "url": "https://www.dewa.gov.ae/en/consumers/innovation/shams-dubai",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "provisional",
+        "tier": 1,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "AE-DU"
+        ],
+        "status": "provisional",
+        "tier": 1,
+        "admin_only": false
+      }
+    }
+  ]
+}
