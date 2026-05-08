@@ -1,0 +1,203 @@
+{
+  "generated_at": "2026-05-08T13:39:25.804Z",
+  "derivable_count": 9,
+  "ambiguous_count": 1,
+  "inherently_supranational_count": 132,
+  "already_specific_count": 42,
+  "updated": 9,
+  "skipped": 0,
+  "preflight": {
+    "total": 184,
+    "tier1Carriers": 42
+  },
+  "postflight": {
+    "total": 184,
+    "tier1Carriers": 51
+  },
+  "tier1_carriers_delta": 9,
+  "per_region_adds": {
+    "MX": 1,
+    "DK": 1,
+    "KR": 1,
+    "US-CA": 2,
+    "EG": 1,
+    "NL": 1,
+    "BR": 2
+  },
+  "halts": [
+    "DERIVABLE+AMBIGUOUS = 10; expected ~136 per monitoring report. The monitoring report's \"136 items lacking Tier 1 priority ISO\" overstates the backfill opportunity because most of those rows are INHERENTLY_SUPRANATIONAL (IMO/ICAO/EU/GLOBAL multi-jurisdiction standards) — they're correctly tagged at supranational scope, not mistagged. The derivable subset is small and clean. PR will surface this divergence."
+  ],
+  "log": [
+    {
+      "name": "verify_g11",
+      "ok": true,
+      "detail": "before=[\"US\"] after=[\"US\",\"MX\"] added=[\"MX\"]",
+      "at": "2026-05-08T13:39:22.519Z",
+      "id": "2c022995-796f-4d62-b10d-537fb0336119",
+      "legacy_id": "g11",
+      "title": "CEC North American Env Policy",
+      "before": [
+        "US"
+      ],
+      "after": [
+        "US",
+        "MX"
+      ],
+      "added": [
+        "MX"
+      ]
+    },
+    {
+      "name": "verify_g3",
+      "ok": true,
+      "detail": "before=[\"EU\"] after=[\"EU\",\"DK\"] added=[\"DK\"]",
+      "at": "2026-05-08T13:39:23.020Z",
+      "id": "83094c15-270c-47f9-ba2b-963f2d502c80",
+      "legacy_id": "g3",
+      "title": "EEA (European Environment Agency)",
+      "before": [
+        "EU"
+      ],
+      "after": [
+        "EU",
+        "DK"
+      ],
+      "added": [
+        "DK"
+      ]
+    },
+    {
+      "name": "verify_hydrogen-ammonia-as-maritime-fuel",
+      "ok": true,
+      "detail": "before=[\"IMO\"] after=[\"IMO\",\"KR\"] added=[\"KR\"]",
+      "at": "2026-05-08T13:39:23.359Z",
+      "id": "f6774c49-f277-4882-ba29-b911985a427a",
+      "legacy_id": "hydrogen-ammonia-as-maritime-fuel",
+      "title": "Hydrogen & Ammonia as Maritime Fuel",
+      "before": [
+        "IMO"
+      ],
+      "after": [
+        "IMO",
+        "KR"
+      ],
+      "added": [
+        "KR"
+      ]
+    },
+    {
+      "name": "verify_l6",
+      "ok": true,
+      "detail": "before=[\"US\"] after=[\"US\",\"US-CA\"] added=[\"US-CA\"]",
+      "at": "2026-05-08T13:39:23.916Z",
+      "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+      "legacy_id": "l6",
+      "title": "EPA Heavy-Duty Phase 3 Rule",
+      "before": [
+        "US"
+      ],
+      "after": [
+        "US",
+        "US-CA"
+      ],
+      "added": [
+        "US-CA"
+      ]
+    },
+    {
+      "name": "verify_maritime-chokepoint-monitoring",
+      "ok": true,
+      "detail": "before=[\"GLOBAL\"] after=[\"GLOBAL\",\"EG\"] added=[\"EG\"]",
+      "at": "2026-05-08T13:39:24.273Z",
+      "id": "663f593c-8834-45c9-bddd-05c334538c54",
+      "legacy_id": "maritime-chokepoint-monitoring",
+      "title": "Maritime Chokepoint Monitoring",
+      "before": [
+        "GLOBAL"
+      ],
+      "after": [
+        "GLOBAL",
+        "EG"
+      ],
+      "added": [
+        "EG"
+      ]
+    },
+    {
+      "name": "verify_r22",
+      "ok": true,
+      "detail": "before=[\"US\"] after=[\"US\",\"US-CA\"] added=[\"US-CA\"]",
+      "at": "2026-05-08T13:39:24.628Z",
+      "id": "aa0c5308-5aaf-4177-8a64-b68821bdca72",
+      "legacy_id": "r22",
+      "title": "EcoEnclose Blog",
+      "before": [
+        "US"
+      ],
+      "after": [
+        "US",
+        "US-CA"
+      ],
+      "added": [
+        "US-CA"
+      ]
+    },
+    {
+      "name": "verify_r6",
+      "ok": true,
+      "detail": "before=[\"EU\"] after=[\"EU\",\"NL\"] added=[\"NL\"]",
+      "at": "2026-05-08T13:39:24.970Z",
+      "id": "8e5a62ba-2393-4b81-a6ca-546e985cc052",
+      "legacy_id": "r6",
+      "title": "TNO Mobility & Logistics",
+      "before": [
+        "EU"
+      ],
+      "after": [
+        "EU",
+        "NL"
+      ],
+      "added": [
+        "NL"
+      ]
+    },
+    {
+      "name": "verify_t5",
+      "ok": true,
+      "detail": "before=[\"GLOBAL\"] after=[\"GLOBAL\",\"BR\"] added=[\"BR\"]",
+      "at": "2026-05-08T13:39:25.328Z",
+      "id": "0c03b4bd-98f0-4513-9176-c4b656db8803",
+      "legacy_id": "t5",
+      "title": "World Bank Carbon Pricing Dashboard",
+      "before": [
+        "GLOBAL"
+      ],
+      "after": [
+        "GLOBAL",
+        "BR"
+      ],
+      "added": [
+        "BR"
+      ]
+    },
+    {
+      "name": "verify_t6",
+      "ok": true,
+      "detail": "before=[\"GLOBAL\"] after=[\"GLOBAL\",\"BR\"] added=[\"BR\"]",
+      "at": "2026-05-08T13:39:25.689Z",
+      "id": "658247c4-52e1-4af5-9073-2ab56c6e4ee0",
+      "legacy_id": "t6",
+      "title": "ICAP ETS Map",
+      "before": [
+        "GLOBAL"
+      ],
+      "after": [
+        "GLOBAL",
+        "BR"
+      ],
+      "added": [
+        "BR"
+      ]
+    }
+  ]
+}

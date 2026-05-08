@@ -1,0 +1,2489 @@
+{
+  "generated_at": "2026-05-08T13:38:18.812Z",
+  "total_active_items": 184,
+  "bucket_counts": {
+    "DERIVABLE": 9,
+    "AMBIGUOUS": 1,
+    "INHERENTLY_SUPRANATIONAL": 132,
+    "ALREADY_SPECIFIC": 42
+  },
+  "per_region_adds": {
+    "US-CA": 2,
+    "BR": 2,
+    "MX": 1,
+    "DK": 1,
+    "KR": 1,
+    "EG": 1,
+    "NL": 1
+  },
+  "elapsed_ms": 993,
+  "halts": [
+    "DERIVABLE+AMBIGUOUS = 10; expected ~136 per monitoring report. The monitoring report's \"136 items lacking Tier 1 priority ISO\" overstates the backfill opportunity because most of those rows are INHERENTLY_SUPRANATIONAL (IMO/ICAO/EU/GLOBAL multi-jurisdiction standards) — they're correctly tagged at supranational scope, not mistagged. The derivable subset is small and clean. PR will surface this divergence."
+  ],
+  "buckets": {
+    "DERIVABLE": [
+      {
+        "id": "2c022995-796f-4d62-b10d-537fb0336119",
+        "legacy_id": "g11",
+        "title": "CEC North American Env Policy",
+        "item_type": "framework",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [
+          "MX"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "MX",
+            "pattern": "\\bmexico\\b"
+          }
+        ]
+      },
+      {
+        "id": "83094c15-270c-47f9-ba2b-963f2d502c80",
+        "legacy_id": "g3",
+        "title": "EEA (European Environment Agency)",
+        "item_type": "tool",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [
+          "DK"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "DK",
+            "pattern": "\\bdenmark\\b"
+          }
+        ]
+      },
+      {
+        "id": "f6774c49-f277-4882-ba29-b911985a427a",
+        "legacy_id": "hydrogen-ammonia-as-maritime-fuel",
+        "title": "Hydrogen & Ammonia as Maritime Fuel",
+        "item_type": "technology",
+        "priority": "LOW",
+        "existing_iso": [
+          "IMO"
+        ],
+        "derived_iso": [
+          "KR"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "KR",
+            "pattern": "\\brepublic of korea\\b"
+          }
+        ]
+      },
+      {
+        "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+        "legacy_id": "l6",
+        "title": "EPA Heavy-Duty Phase 3 Rule",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [
+          "US-CA"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "US-CA",
+            "pattern": "\\bcarb\\b"
+          }
+        ]
+      },
+      {
+        "id": "663f593c-8834-45c9-bddd-05c334538c54",
+        "legacy_id": "maritime-chokepoint-monitoring",
+        "title": "Maritime Chokepoint Monitoring",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [
+          "EG"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "EG",
+            "pattern": "\\bsuez canal\\b"
+          }
+        ]
+      },
+      {
+        "id": "aa0c5308-5aaf-4177-8a64-b68821bdca72",
+        "legacy_id": "r22",
+        "title": "EcoEnclose Blog",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [
+          "US-CA"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "US-CA",
+            "pattern": "\\bcalifornia\\b"
+          }
+        ]
+      },
+      {
+        "id": "8e5a62ba-2393-4b81-a6ca-546e985cc052",
+        "legacy_id": "r6",
+        "title": "TNO Mobility & Logistics",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [
+          "NL"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "NL",
+            "pattern": "\\bnetherlands\\b"
+          }
+        ]
+      },
+      {
+        "id": "0c03b4bd-98f0-4513-9176-c4b656db8803",
+        "legacy_id": "t5",
+        "title": "World Bank Carbon Pricing Dashboard",
+        "item_type": "framework",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [
+          "BR"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "BR",
+            "pattern": "\\bbrazil\\b"
+          }
+        ]
+      },
+      {
+        "id": "658247c4-52e1-4af5-9073-2ab56c6e4ee0",
+        "legacy_id": "t6",
+        "title": "ICAP ETS Map",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [
+          "BR"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "BR",
+            "pattern": "\\bbrazil\\b"
+          }
+        ]
+      }
+    ],
+    "AMBIGUOUS": [
+      {
+        "id": "1c7374d0-01c0-487c-b841-34ac8e336cb4",
+        "legacy_id": "uk-mees-commercial-building-minimum-energy-efficiency",
+        "title": "UK MEES — Commercial Building Minimum Energy Efficiency",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GB"
+        ],
+        "derived_iso": [
+          "GB-WLS"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "GB-WLS",
+            "pattern": "\\bwales\\b"
+          }
+        ],
+        "reason": "existing_iso_not_broad_supranational"
+      }
+    ],
+    "INHERENTLY_SUPRANATIONAL": [
+      {
+        "id": "cc0958fb-6453-4163-8363-27515817597f",
+        "legacy_id": "a1",
+        "title": "CORSIA (ICAO)",
+        "item_type": "framework",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "56031fd3-d7ae-45e5-a1d0-bde3e3c30383",
+        "legacy_id": "a2",
+        "title": "EU Aviation ETS",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "f2269121-4e10-4bdc-99bf-1e9c6a1b35e4",
+        "legacy_id": "a3",
+        "title": "ReFuelEU Aviation",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "4b342a31-623c-41e8-8b0b-0792101c8886",
+        "legacy_id": "a4",
+        "title": "UK SAF Mandate",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GB"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "01126119-5005-4617-b7a5-0f1e37f1bedb",
+        "legacy_id": "a5",
+        "title": "SAFA (Sustainable Air Freight Alliance)",
+        "item_type": "initiative",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "412ffbf4-34cf-4347-8ee5-c809748a4ed2",
+        "legacy_id": "a6",
+        "title": "ICAO Carbon Calculator",
+        "item_type": "tool",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+        "legacy_id": "a7",
+        "title": "GLEC Framework (Air Freight)",
+        "item_type": "standard",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "85a44451-3aec-4375-93ed-e1eaaacc2f89",
+        "legacy_id": "a8",
+        "title": "Aviation Week: Sustainability",
+        "item_type": "market_signal",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+        "legacy_id": "autonomous-connected-freight-technology",
+        "title": "Autonomous & Connected Freight Technology",
+        "item_type": "technology",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+        "legacy_id": "battery-electric-vehicle-technology",
+        "title": "Battery & Electric Vehicle Technology",
+        "item_type": "technology",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "87493612-1be4-4434-af30-e7f32b3bd48b",
+        "legacy_id": "c1",
+        "title": "CSRD",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "19f08fcc-5f81-44cc-b3db-fe25f1717845",
+        "legacy_id": "c10",
+        "title": "EcoVadis",
+        "item_type": "tool",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "52eadc84-b3ea-4a80-8173-30b7d5435d4f",
+        "legacy_id": "c11",
+        "title": "EcoVadis Blog",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "4547e8c5-a43f-4fb7-ac37-2b9547fb4a35",
+        "legacy_id": "c2",
+        "title": "EU Taxonomy",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e9723d32-6006-42d2-bbdd-02f191629b5e",
+        "legacy_id": "c3",
+        "title": "GRI Standards",
+        "item_type": "standard",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "7d2f8d88-46b6-4998-a10e-75093500f46c",
+        "legacy_id": "c4",
+        "title": "ISO 14083",
+        "item_type": "standard",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "3581c084-9486-4085-82cc-b650380bd83d",
+        "legacy_id": "c5",
+        "title": "GLEC Framework v3",
+        "item_type": "standard",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "aea2e314-8969-4242-b4cf-54223707bdfb",
+        "legacy_id": "c6",
+        "title": "GHG Protocol",
+        "item_type": "standard",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "ee129098-5f10-4c22-9c7f-95082f8650ac",
+        "legacy_id": "c7",
+        "title": "SBTi",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "38322420-45a2-474a-b910-23b2dd215c49",
+        "legacy_id": "c8",
+        "title": "ISSB IFRS S2",
+        "item_type": "standard",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "d30bc25d-11cf-48bb-b987-989e060f8c6b",
+        "legacy_id": "c9",
+        "title": "CDP Supply Chain",
+        "item_type": "tool",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+        "legacy_id": "canada-clean-fuel-regulations-phase-2",
+        "title": "Canada Clean Fuel Regulations Phase 2",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "CA"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c26f4ac6-cd91-4bc8-b0c2-84766f9072f6",
+        "legacy_id": "carbon-allowance-price-intelligence",
+        "title": "Carbon Allowance Price Intelligence",
+        "item_type": "market_signal",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "685f0d28-ada4-49cf-a466-144356909b45",
+        "legacy_id": "centre-for-sustainable-road-freight-uk-heavy-vehicle-research",
+        "title": "Centre for Sustainable Road Freight — UK Heavy Vehicle Research",
+        "item_type": "research_finding",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c4ad4cc5-ab5f-4e21-a422-bf12b5f992b4",
+        "legacy_id": "china-prc-regional-operations-profile",
+        "title": "China (PRC) Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "HIGH",
+        "existing_iso": [
+          "CN"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "3e756291-f79e-487e-84d5-efc535cfef27",
+        "legacy_id": "china-s-national-carbon-market-extension-to-transportation-sector",
+        "title": "China's National Carbon Market Extension to Transportation Sector",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "CN"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "ff95b385-6cb2-453a-94e6-b9fc84d7f851",
+        "legacy_id": "eu-alternative-fuels-infrastructure-regulation-afir",
+        "title": "EU Alternative Fuels Infrastructure Regulation (AFIR)",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "ac349a70-606d-4eb3-ac19-5a4a0facd07c",
+        "legacy_id": "eu-battery-regulation-2023-1542",
+        "title": "EU Battery Regulation (Regulation (EU) 2023/1542)",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+        "legacy_id": "eu_clean_trucking_2024_1610",
+        "title": "EU 2024/1610 — CO₂ emission performance standards for new heavy-duty vehicles",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "42a0ebd5-0bbf-4afa-8a7c-9b5e1da817ad",
+        "legacy_id": "eu-core-markets-regional-operations-profile",
+        "title": "EU Core Markets Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [
+          "DE",
+          "FR",
+          "IT",
+          "NL",
+          "BE"
+        ],
+        "matched_patterns": [
+          {
+            "iso": "DE",
+            "pattern": "\\bgermany\\b"
+          },
+          {
+            "iso": "FR",
+            "pattern": "\\bfrance\\b"
+          },
+          {
+            "iso": "IT",
+            "pattern": "\\bitaly\\b"
+          },
+          {
+            "iso": "NL",
+            "pattern": "\\bnetherlands\\b"
+          },
+          {
+            "iso": "BE",
+            "pattern": "\\bbelgium\\b"
+          }
+        ],
+        "reason": "many_jurisdictions_listed_as_examples"
+      },
+      {
+        "id": "9c5d1d17-4388-43a0-b9df-67de1fc0e582",
+        "legacy_id": "eu-corporate-sustainability-reporting-directive-csrd-transport-provisions",
+        "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Provisions",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "f0833999-8c58-4f00-8389-0a3f938641f3",
+        "legacy_id": "eu-corporate-sustainability-reporting-directive-csrd-transport-sector-implementa",
+        "title": "EU Corporate Sustainability Reporting Directive (CSRD) - Transport Sector Implementation",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "ff4064ab-9489-4fc4-b3cc-f0f157e71db5",
+        "legacy_id": "eu-emissions-trading-system-ets-extension-to-maritime-transport",
+        "title": "EU Emissions Trading System (ETS) Extension to Maritime Transport",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050",
+        "legacy_id": "eu_ets_directive_2023_959",
+        "title": "EU 2023/959 — Directive amending the EU Emissions Trading System",
+        "item_type": "directive",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "b7736a1a-2c81-4d58-87b4-ee09330eaff2",
+        "legacy_id": "eu-hdv-co2-standards-2019-1242",
+        "title": "EU HDV CO2 Emission Standards (Regulation (EU) 2019/1242)",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "859faf76-08a3-4587-a675-c181e19f227a",
+        "legacy_id": "eu-net-zero-industry-act-2024-1735",
+        "title": "EU Net-Zero Industry Act (Regulation (EU) 2024/1735)",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "bf54dc59-ad47-4e2e-9984-cc4cd0206435",
+        "legacy_id": "g1",
+        "title": "EU Fit for 55 Package",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e0b4adbc-ed9f-4085-a92a-a44ea3f04299",
+        "legacy_id": "g10",
+        "title": "NREL Transportation",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+        "legacy_id": "g12",
+        "title": "ECLAC (UN Latin America)",
+        "item_type": "tool",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "b680a0b8-239c-4556-b627-aebddbbfae60",
+        "legacy_id": "g16",
+        "title": "IDB Sustainable LatAm Transport",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "efdb3390-7530-44e5-b99d-9b20157ae186",
+        "legacy_id": "g2",
+        "title": "EU PPWR 2025/40",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+        "legacy_id": "g21",
+        "title": "ADB Sustainable Transport",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "935680f5-6915-4241-a9b5-7e450143bc0f",
+        "legacy_id": "g22",
+        "title": "China CCICED",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "CN"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "08b0a1b3-ff0f-4bcb-9b8e-bc05a7c2cb47",
+        "legacy_id": "g27",
+        "title": "UN SDGs 9 & 13",
+        "item_type": "framework",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e37a5c9a-5dcb-4b44-a9c9-79d2b0b58df7",
+        "legacy_id": "g28",
+        "title": "IPCC Climate Reports",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "6d2ec398-6dea-4fd8-ad65-53c7cda2520d",
+        "legacy_id": "g29",
+        "title": "IEA Policies & Measures",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "8c0049b4-7f91-4fcd-90ff-99de2cbf8df5",
+        "legacy_id": "g30",
+        "title": "World Bank Transport",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c2af2fc0-6792-443f-8c24-ce24f9665aa4",
+        "legacy_id": "g31",
+        "title": "ITF International Transport Forum",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "1883001c-0e70-401d-8f51-9b8adbfebc80",
+        "legacy_id": "g32",
+        "title": "EU ICS2 (Import Control System 2)",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "1e80067a-7789-4e68-9589-b3bb71fd58ed",
+        "legacy_id": "g33",
+        "title": "EUDR (EU Deforestation Regulation)",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "7aaecc81-b065-4f32-934b-d4c981269e8b",
+        "legacy_id": "g34",
+        "title": "CountEmissions EU",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "2d7db98e-c07d-4bb1-939e-1dddeefd3d57",
+        "legacy_id": "g4",
+        "title": "EUR-Lex",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "29132ca6-9172-45ab-95c2-e7fd7b8aa62a",
+        "legacy_id": "g5",
+        "title": "European Clean Trucking Alliance",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5c75e081-0757-42a8-8b35-bf67125d3522",
+        "legacy_id": "g6",
+        "title": "UK DfT Decarbonisation",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GB"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "cee5aa6b-a4f8-4f14-ae6e-91484eb1f768",
+        "legacy_id": "g8",
+        "title": "EPA SmartWay",
+        "item_type": "standard",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "d81103c8-3f28-4249-a1e2-8825d390d44a",
+        "legacy_id": "g9",
+        "title": "Sustainable Packaging Coalition",
+        "item_type": "standard",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+        "legacy_id": "green-building-certification-standards-for-logistics",
+        "title": "Green Building Certification Standards for Logistics",
+        "item_type": "standard",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "ef0c691a-4024-495b-bd7c-70be8f52c5ea",
+        "legacy_id": "imo-2023-revised-ghg-strategy",
+        "title": "IMO 2023 Revised GHG Strategy",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "GLOBAL",
+          "IMO"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "d91f76f0-0ec3-4d47-b54f-2a525945dc52",
+        "legacy_id": "india-green-credit-programme-for-transport",
+        "title": "India Green Credit Programme for Transport",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "IN"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+        "legacy_id": "india-regional-operations-profile",
+        "title": "India Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "LOW",
+        "existing_iso": [
+          "IN"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "beae0a7e-1088-4d35-b89f-362aade1d1a8",
+        "legacy_id": "india-s-national-logistics-policy-carbon-intensity-standards",
+        "title": "India's National Logistics Policy Carbon Intensity Standards",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "IN"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+        "legacy_id": "industrial-electricity-tariff-benchmarks-by-jurisdiction",
+        "title": "Industrial Electricity Tariff Benchmarks by Jurisdiction",
+        "item_type": "regional_data",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "ab922a18-c9a8-4b1b-9ac6-b7f20606c5d7",
+        "legacy_id": "l1",
+        "title": "EU CO2 Standards for Heavy Trucks",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5f218fc4-8cc0-4b35-87a1-616da962322a",
+        "legacy_id": "l10",
+        "title": "DOT National Freight Strategic Plan",
+        "item_type": "framework",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e0c0151c-734d-4a82-81b8-5ee203669afe",
+        "legacy_id": "l2",
+        "title": "Euro 7 Standard",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "d4a1a8ec-88ca-47cb-b8d6-5a10454e0605",
+        "legacy_id": "l4",
+        "title": "CER (European Railways)",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "58bf0406-3be9-45bd-a2c8-b7c9d0b5c1a4",
+        "legacy_id": "l5",
+        "title": "European Clean Trucking Alliance",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c8b4f1ae-45d1-4719-86a7-40809f709556",
+        "legacy_id": "l8",
+        "title": "Drive Electric: Zero-Emission Freight",
+        "item_type": "initiative",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "8ac4846b-753c-4fe1-af68-0ccd4b647a41",
+        "legacy_id": "l9",
+        "title": "American Trucking Associations",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+        "legacy_id": "la-eweo-existing-buildings-energy-water-efficiency",
+        "title": "LA EWEO — Existing Buildings Energy & Water Efficiency",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5b07f503-8dbc-4bb4-b801-6359b5ab6018",
+        "legacy_id": "logistics-labor-cost-availability-benchmarks",
+        "title": "Logistics Labor Cost & Availability Benchmarks",
+        "item_type": "regional_data",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "afc851b1-4413-4d8a-8462-8b726b11ce45",
+        "legacy_id": "marine-fuel-decarbonisation-pathways",
+        "title": "Marine Fuel Decarbonisation Pathways",
+        "item_type": "technology",
+        "priority": "LOW",
+        "existing_iso": [
+          "IMO"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "0c2c1ec1-abc9-40df-b6ed-e8eee6bdee29",
+        "legacy_id": "mit-center-for-transportation-logistics-sustainable-trucking",
+        "title": "MIT Center for Transportation & Logistics — Sustainable Trucking",
+        "item_type": "research_finding",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c58a6f36-329b-4b84-8863-712ecd7ebef8",
+        "legacy_id": "mit-climatemachine-live-music-freight-emissions-research",
+        "title": "MIT ClimateMachine — Live Music & Freight Emissions Research",
+        "item_type": "research_finding",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "daecac87-8af7-4d9c-90d8-fc6f5a7bfbff",
+        "legacy_id": "o1",
+        "title": "IMO GHG Strategy 2023",
+        "item_type": "framework",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "bf734379-188e-48b6-b3ff-76e70c85ccfa",
+        "legacy_id": "o10",
+        "title": "ESPO (European Sea Ports Organisation)",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c0a2dfb3-e394-4e88-8acd-60a714339c4a",
+        "legacy_id": "o11",
+        "title": "Lloyd's Register Decarbonisation Hub",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+        "legacy_id": "o12",
+        "title": "Blue Visby Solution",
+        "item_type": "tool",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e241fe75-8627-4759-a7dd-a25e9db146bf",
+        "legacy_id": "o13",
+        "title": "IMO Net-Zero Framework",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e4d84c60-0264-4d87-81d3-49a37863eefb",
+        "legacy_id": "o2",
+        "title": "FuelEU Maritime",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "91534b5a-d112-41d7-898b-71846600e5b4",
+        "legacy_id": "o3",
+        "title": "EU ETS for Shipping",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c5cae7db-c44e-4346-8389-25ff6476d853",
+        "legacy_id": "o4",
+        "title": "CII (Carbon Intensity Indicator)",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "a8cdaa93-b0c9-4b07-be60-1836581a42e8",
+        "legacy_id": "o5",
+        "title": "IMO MARPOL Annex VI",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "3af75490-8356-4a13-a9ba-7a6318daff70",
+        "legacy_id": "o6",
+        "title": "EU MRV Regulation",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "09f8d920-068e-49ff-8973-b1344c0d9701",
+        "legacy_id": "o7",
+        "title": "Getting to Zero Coalition",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c3fa4cc2-f168-4784-bf78-dda5c022843e",
+        "legacy_id": "o8",
+        "title": "Alternative Fuels Insight (IRENA/IMO)",
+        "item_type": "framework",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "14590299-51ee-48bd-8625-06d3128a72f1",
+        "legacy_id": "o9",
+        "title": "Norway Zero-Emission Shipping",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5b8f3e8a-8096-4392-9c66-1c7d7b0e6385",
+        "legacy_id": "packaging-material-input-costs",
+        "title": "Packaging Material Input Costs",
+        "item_type": "market_signal",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c2e45859-5e28-4042-8a37-ac8515a302ae",
+        "legacy_id": "r1",
+        "title": "MIT Center for Transportation & Logistics",
+        "item_type": "research_finding",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "6d562d34-e6c4-4901-8579-4482b5af647d",
+        "legacy_id": "r11",
+        "title": "The Loadstar: Green Tech",
+        "item_type": "market_signal",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "93366a82-dd93-4f72-9397-3db9e52b12f9",
+        "legacy_id": "r12",
+        "title": "FreightWaves Sustainability",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5faf8f8c-8054-4724-8c11-6e2c8fb12c95",
+        "legacy_id": "r13",
+        "title": "GreenBiz Supply Chain",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "4de1e28e-f221-40fd-818b-f5382533caa0",
+        "legacy_id": "r14",
+        "title": "Reuters Sustainable Business",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+        "legacy_id": "r15",
+        "title": "Environmental Finance",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "0e6e82cb-84fc-49ab-8078-c6500e13ee82",
+        "legacy_id": "r16",
+        "title": "Carbon Trust",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GB"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "8e1ce829-3a35-4105-a75b-33ca2e3e1e57",
+        "legacy_id": "r17",
+        "title": "Project Drawdown",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "88927b29-7af5-467d-a0c0-f5ff3069b8a5",
+        "legacy_id": "r18",
+        "title": "Splash247 Green",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "b26de8fc-a6b6-46e5-8f9d-7ea9c96e7b09",
+        "legacy_id": "r19",
+        "title": "Supply Chain Digital",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "79541d36-7971-4310-bc52-676ce734ca8b",
+        "legacy_id": "r2",
+        "title": "Kuehne Climate Center",
+        "item_type": "research_finding",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "be729a3a-df16-4010-a269-ba1dbf7a8692",
+        "legacy_id": "r20",
+        "title": "JOC (Journal of Commerce)",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "3fb2905b-35b8-4fe9-b52c-28ae12df3ff0",
+        "legacy_id": "r21",
+        "title": "Sustainability Magazine",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "9baa3126-52d5-42f8-8748-192d390f8d4c",
+        "legacy_id": "r23",
+        "title": "Mission Innovation Clean Shipping",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "ed0d78a6-e368-4874-8075-bc65bd9f8fc2",
+        "legacy_id": "r24",
+        "title": "ZEMBA Maritime Buyers Alliance",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "7ae77ef8-211a-4f20-ad88-341c8dcdae65",
+        "legacy_id": "r25",
+        "title": "First Movers Coalition",
+        "item_type": "initiative",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "9546c01a-dec6-46cc-88d7-56c7f30a7764",
+        "legacy_id": "r26",
+        "title": "E-Fuel Alliance",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+        "legacy_id": "r27",
+        "title": "Yara Clean Ammonia",
+        "item_type": "innovation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+        "legacy_id": "r28",
+        "title": "H2 Accelerate",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "f3cee01b-77bf-4770-badb-c8020186e63c",
+        "legacy_id": "r29",
+        "title": "NREL Transportation R&D",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "c1cab7e2-606f-45f1-a229-46c0e7002dfa",
+        "legacy_id": "r3",
+        "title": "Fraunhofer IML",
+        "item_type": "research_finding",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "831f9e63-42a9-4546-9bc6-281e04cea4f6",
+        "legacy_id": "r30",
+        "title": "Getting to Zero: Green Corridors",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "708e0b02-6663-42ee-b138-74c80898291e",
+        "legacy_id": "r32",
+        "title": "ESPO Green Ports",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "9e113196-9223-4dae-8292-f68ab2a080e6",
+        "legacy_id": "r33",
+        "title": "Lloyd's Register Fleet Analytics",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "bdc42a68-baab-438b-a41f-3c68421fd79c",
+        "legacy_id": "r34",
+        "title": "FIATA",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e948b3a9-6784-4eaa-97b7-d955fd4edc1e",
+        "legacy_id": "r35",
+        "title": "ICCT",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "41b43061-e8cd-4257-be32-8a15c12a1d00",
+        "legacy_id": "r36",
+        "title": "Maritime Carbon Intelligence",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "627da433-864b-4d60-98e6-3248726a3738",
+        "legacy_id": "r4",
+        "title": "World Resources Institute",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "50c34d98-2ff2-4c72-a472-9b558bec9dd2",
+        "legacy_id": "r7",
+        "title": "Erasmus Smart Port",
+        "item_type": "research_finding",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "45dab7a6-ac61-48b2-a9af-24be8568ba02",
+        "legacy_id": "r8",
+        "title": "Cranfield Sustainable Logistics",
+        "item_type": "research_finding",
+        "priority": "LOW",
+        "existing_iso": [
+          "GB"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "0d59991d-2c66-44f5-bcb8-713e8cd03b3a",
+        "legacy_id": "r9",
+        "title": "Transportation Research Part E",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+        "legacy_id": "solar-battery-energy-storage-for-warehouses",
+        "title": "Solar & Battery Energy Storage for Warehouses",
+        "item_type": "technology",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+        "legacy_id": "sustainable-aviation-fuel-saf-production-pricing",
+        "title": "Sustainable Aviation Fuel (SAF) Production & Pricing",
+        "item_type": "technology",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "51b2c91e-776f-42f5-a799-a957312d4e56",
+        "legacy_id": "t1",
+        "title": "EU CBAM",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "EU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "f982289b-fa8f-4d95-b507-903d0683c611",
+        "legacy_id": "t2",
+        "title": "WTO Environment & Trade",
+        "item_type": "framework",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e360e82f-c710-47c5-b14f-8a20bb0ccd7a",
+        "legacy_id": "t3",
+        "title": "OECD Environment",
+        "item_type": "tool",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "46c528f5-c366-4738-98f5-db9accea8780",
+        "legacy_id": "t4",
+        "title": "UNCTAD Sustainable Transport",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "5e0af336-e997-47ae-a235-b7b155d742bb",
+        "legacy_id": "t7",
+        "title": "GEF (Global Environment Facility)",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "7556317d-4f0e-409d-a871-d7cc9a958af7",
+        "legacy_id": "tyndall-centre-for-climate-research-transport-decarbonisation",
+        "title": "Tyndall Centre for Climate Research — Transport Decarbonisation",
+        "item_type": "research_finding",
+        "priority": "LOW",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+        "legacy_id": "uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+        "title": "UK Streamlined Energy and Carbon Reporting (SECR) Amendment",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "GB"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "e77f9426-15a8-4364-93ff-ecaf93e32868",
+        "legacy_id": "united-kingdom-regional-operations-profile",
+        "title": "United Kingdom Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "HIGH",
+        "existing_iso": [
+          "GB"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "f7253668-d923-4a40-91fb-06208ac82478",
+        "legacy_id": "united-states-regional-operations-profile",
+        "title": "United States Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "LOW",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "3f45b2aa-3d15-4e92-95d3-70dcc6f6bc44",
+        "legacy_id": "us-epa-clean-ports-program-port-emissions-standards",
+        "title": "US EPA Clean Ports Program - Port Emissions Standards",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "US"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      },
+      {
+        "id": "b88753be-8ed4-4392-9cee-9f472c208513",
+        "legacy_id": "warehouse-solar-bess-roi-analysis",
+        "title": "Warehouse Solar & BESS ROI Analysis",
+        "item_type": "research_finding",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "GLOBAL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": [],
+        "reason": "country_level_or_supranational_no_subnational_hit"
+      }
+    ],
+    "ALREADY_SPECIFIC": [
+      {
+        "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+        "legacy_id": "australia-national-electric-vehicle-strategy",
+        "title": "Australia National Electric Vehicle Strategy",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "AU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "14fea5cd-fbbd-426e-9b66-8bcf05ae730c",
+        "legacy_id": "australia-regional-operations-profile",
+        "title": "Australia Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "LOW",
+        "existing_iso": [
+          "AU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "1cda60cd-971a-4294-b90f-fdef2d7ef6da",
+        "legacy_id": "brazil-national-policy-on-alternative-fuels-pnca",
+        "title": "Brazil National Policy on Alternative Fuels (PNCA)",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "BR"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "053123bc-2c11-45ec-a5a1-83828b666b11",
+        "legacy_id": "brazil-regional-operations-profile",
+        "title": "Brazil Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "LOW",
+        "existing_iso": [
+          "BR"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "262ac5f2-4fbe-4968-bde7-f5f68821cc59",
+        "legacy_id": "critical-minerals-ev-supply-chain",
+        "title": "Critical Minerals & EV Supply Chain",
+        "item_type": "market_signal",
+        "priority": "LOW",
+        "existing_iso": [
+          "CL",
+          "CN",
+          "AU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+        "legacy_id": "crude-oil-jet-fuel-price-intelligence",
+        "title": "Crude Oil & Jet Fuel Price Intelligence",
+        "item_type": "market_signal",
+        "priority": "HIGH",
+        "existing_iso": [
+          "US",
+          "SG"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "0658844a-5f65-4444-89fb-bf73a22bafc6",
+        "legacy_id": "dubai-uae-regional-operations-profile",
+        "title": "Dubai / UAE Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "HIGH",
+        "existing_iso": [
+          "AE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+        "legacy_id": "g13",
+        "title": "Brazil Logística Reversa",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "BR"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "6373df1e-1461-478e-b480-70dee471d597",
+        "legacy_id": "g14",
+        "title": "Mexico SEMARNAT",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "MX"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+        "legacy_id": "g15",
+        "title": "Colombian Ministry of Transport",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "CO"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "cec7d711-13b2-41f0-8016-76c988f116ab",
+        "legacy_id": "g17",
+        "title": "MPA Singapore Green Shipping",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "SG"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "68e05861-c953-485d-b081-cb6777dcfd99",
+        "legacy_id": "g18",
+        "title": "Japan MLIT",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "JP"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "b293a2b6-c882-44dc-8efc-a801ed6a160b",
+        "legacy_id": "g19",
+        "title": "South Korea MOF",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "KR",
+          "EU",
+          "SG",
+          "AU",
+          "DK"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+        "legacy_id": "g20",
+        "title": "Singapore Green Plan 2030",
+        "item_type": "framework",
+        "priority": "HIGH",
+        "existing_iso": [
+          "SG"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "7566f099-a143-4cd8-8172-06307f8f187d",
+        "legacy_id": "g23",
+        "title": "Australia Climate Change Authority",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "AU"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "ad5b78ea-ddf1-4df0-a532-0d2829df96cf",
+        "legacy_id": "g24",
+        "title": "ASEAN Transport Strategic Plan",
+        "item_type": "framework",
+        "priority": "LOW",
+        "existing_iso": [
+          "SG",
+          "ID",
+          "MY",
+          "PH"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "b0d9737e-5e8a-4a81-89bb-921c172219fd",
+        "legacy_id": "g25",
+        "title": "DP World Sustainability",
+        "item_type": "initiative",
+        "priority": "LOW",
+        "existing_iso": [
+          "AE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "8ff93a7e-5256-4d31-959b-2172de16ae8f",
+        "legacy_id": "g26",
+        "title": "IRENA Abu Dhabi",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "EU",
+          "AE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "05e2d1c1-7e87-443a-9178-a475d4d6c3b9",
+        "legacy_id": "g7",
+        "title": "Germany BMDV",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "DE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+        "legacy_id": "japan-green-transformation-gx-freight-transport-standards",
+        "title": "Japan Green Transformation (GX) Freight Transport Standards",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "JP"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "e9ed1215-57dc-4082-a28e-6c49673aabae",
+        "legacy_id": "japan-regional-operations-profile",
+        "title": "Japan Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "LOW",
+        "existing_iso": [
+          "JP",
+          "KR"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+        "legacy_id": "japan-s-green-transformation-gx-league-transport-requirements",
+        "title": "Japan's Green Transformation (GX) League Transport Requirements",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "JP"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+        "legacy_id": "japan-s-updated-top-runner-program-for-heavy-duty-vehicles",
+        "title": "Japan's Updated Top Runner Program for Heavy-Duty Vehicles",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "JP"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "956bad5c-80b0-411b-8fd5-726cc0d4a333",
+        "legacy_id": "l7",
+        "title": "CARB Advanced Clean Trucks",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "US-CA"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "b8da154a-149e-483a-9198-7039850006fc",
+        "legacy_id": "lng-natural-gas-price-intelligence",
+        "title": "LNG & Natural Gas Price Intelligence",
+        "item_type": "market_signal",
+        "priority": "HIGH",
+        "existing_iso": [
+          "US",
+          "JP",
+          "NL"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "6304a9f0-6340-4c6d-90b6-a7321190bb42",
+        "legacy_id": "melbourne-nabers-victorian-building-efficiency-standards",
+        "title": "Melbourne NABERS & Victorian Building Efficiency Standards",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "AU",
+          "GB"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "e65ec48d-09f3-4c6f-923d-391a99d73049",
+        "legacy_id": "nashville-building-energy-programs",
+        "title": "Nashville Building Energy Programs",
+        "item_type": "regulation",
+        "priority": "LOW",
+        "existing_iso": [
+          "US-TN"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+        "legacy_id": "nyc-local-law-97-building-carbon-emissions-caps",
+        "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "US-NY",
+          "US-NYC"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+        "legacy_id": "r31",
+        "title": "Port of Los Angeles Green",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "US-CA",
+          "US-LAX"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "abd83595-cb54-4ccc-b80b-2f9421596465",
+        "legacy_id": "r5",
+        "title": "Stockholm Environment Institute",
+        "item_type": "research_finding",
+        "priority": "LOW",
+        "existing_iso": [
+          "SE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "64e9d38d-75bf-4fc3-b946-eebff05a0d6a",
+        "legacy_id": "sg-singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+        "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "SG"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "44906e93-07a5-4b4c-8b3d-508b39ae605b",
+        "legacy_id": "singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+        "title": "Singapore Green Finance Incentive Scheme for Maritime Decarbonisation",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "SG"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "007104ed-b4e4-4735-b7ac-c16bc214c1eb",
+        "legacy_id": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+        "title": "Singapore Maritime Decarbonisation Blueprint Implementation Regulations",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "SG"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "66835398-477c-470a-a9a5-7e6d22cf4ad7",
+        "legacy_id": "singapore-regional-operations-profile",
+        "title": "Singapore Regional Operations Profile",
+        "item_type": "regional_data",
+        "priority": "LOW",
+        "existing_iso": [
+          "SG"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "96169446-5510-4d47-ad13-39bc08385852",
+        "legacy_id": "south-korea-k-taxonomy-for-sustainable-transport-activities",
+        "title": "South Korea K-Taxonomy for Sustainable Transport Activities",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "KR"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "cfcf9e4c-6562-4c2e-8463-0cc6e5cb0bad",
+        "legacy_id": "uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+        "title": "UAE National Hydrogen Strategy Implementation Decree for Logistics",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "AE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+        "legacy_id": "uae-national-hydrogen-strategy-transport-sector-requirements",
+        "title": "UAE National Hydrogen Strategy - Transport Sector Requirements",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "AE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "d2da85da-0912-497a-b645-31e4ca73cd18",
+        "legacy_id": "uae-national-net-zero-by-2050-transport-sector-roadmap",
+        "title": "UAE National Net Zero by 2050 Transport Sector Roadmap",
+        "item_type": "regulation",
+        "priority": "MODERATE",
+        "existing_iso": [
+          "AE"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "69d5dacb-b0a0-4b27-9784-4967e5759c1f",
+        "legacy_id": "w4_ca_ab1305",
+        "title": "California AB 1305 — Voluntary Carbon Market Disclosures Act",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "US-CA"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "ccee10a4-da4a-4a65-810e-51142ec3b753",
+        "legacy_id": "w4_ca_acf",
+        "title": "California Advanced Clean Fleets Rule (CARB)",
+        "item_type": "regulation",
+        "priority": "HIGH",
+        "existing_iso": [
+          "US-CA"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "42b8bfee-92ea-4cde-bfe9-a25eb7cb49d9",
+        "legacy_id": "w4_ca_sb253",
+        "title": "California SB 253 — Climate Corporate Data Accountability Act",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "US-CA"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      },
+      {
+        "id": "2d2cd311-d026-457c-bbd0-9b65a8f6cf60",
+        "legacy_id": "w4_ca_sb261",
+        "title": "California SB 261 — Climate-Related Financial Risk Act",
+        "item_type": "regulation",
+        "priority": "CRITICAL",
+        "existing_iso": [
+          "US-CA"
+        ],
+        "derived_iso": [],
+        "matched_patterns": []
+      }
+    ]
+  }
+}
