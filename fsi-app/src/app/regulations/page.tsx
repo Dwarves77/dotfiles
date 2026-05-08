@@ -61,10 +61,15 @@ const cachedPlatformTotal = unstable_cache(
 export default async function RegulationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ priority?: string }>;
+  // PR-N (Wave 5): `?region=us-ca` accepts any Tier 1 ISO code (case-
+  // insensitive), filtering the kanban / list / table to items whose
+  // `jurisdictionIso[]` array contains that code. Composes with
+  // `?priority=critical` (already supported) so dashboard tile +
+  // sub-national deep links can chain (`/regulations?region=us-ca&priority=critical`).
+  searchParams: Promise<{ priority?: string; region?: string }>;
 }) {
   const t0 = Date.now();
-  const { priority: priorityParam } = await searchParams;
+  const { priority: priorityParam, region: regionParam } = await searchParams;
   const data = await getResourcesOnly();
 
   // Resolve the platform-total regulation count for the count tooltip.
@@ -97,6 +102,7 @@ export default async function RegulationsPage({
         initialOverrides={data.overrides}
         platformTotal={platformTotal}
         initialPriorityFilter={priorityParam ?? null}
+        initialRegionFilter={regionParam ?? null}
       />
     </>
   );
