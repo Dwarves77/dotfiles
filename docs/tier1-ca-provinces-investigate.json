@@ -1,0 +1,83 @@
+{
+  "investigated_at": "2026-05-07T21:36:05.742Z",
+  "per_province": {
+    "CA-ON": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-QC": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-BC": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-AB": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-MB": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-SK": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-NS": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-NB": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-NL": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-PE": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-YT": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-NT": {
+      "count": 0,
+      "rows": []
+    },
+    "CA-NU": {
+      "count": 0,
+      "rows": []
+    }
+  },
+  "url_collisions": [],
+  "eccc_state": [],
+  "all_ca_rows": [
+    {
+      "id": "729062fd-d113-4e64-a731-0b0db8469386",
+      "name": "Transport Canada",
+      "url": "https://tc.canada.ca/en",
+      "tier": 2,
+      "status": "active",
+      "admin_only": false,
+      "jurisdiction_iso": [
+        "CA"
+      ]
+    },
+    {
+      "id": "d561c0b8-9679-42cd-93fa-923b7cb32945",
+      "name": "Canada Gazette",
+      "url": "https://gazette.gc.ca/accueil-home-eng.html",
+      "tier": 1,
+      "status": "active",
+      "admin_only": false,
+      "jurisdiction_iso": [
+        "CA"
+      ]
+    }
+  ]
+}
