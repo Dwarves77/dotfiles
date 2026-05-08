@@ -16,6 +16,7 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { IssuesQueue } from "@/components/admin/IssuesQueue";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
 import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
+import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
 
@@ -74,6 +75,7 @@ export function AdminDashboard({
     | "scan"
     | "audit"
     | "integrity-flags"
+    | "platform-integrity-flags"
     | "coverage-matrix"
     | "bulk-import";
   const KNOWN_RENDERED_TABS: ReadonlyArray<AdminTab> = [
@@ -84,6 +86,7 @@ export function AdminDashboard({
     "scan",
     "audit",
     "integrity-flags",
+    "platform-integrity-flags",
     "coverage-matrix",
     "bulk-import",
   ];
@@ -102,6 +105,7 @@ export function AdminDashboard({
   const [orgs, setOrgs] = useState<any[]>(initialOrgs);
   const [stagedUpdates, setStagedUpdates] = useState<any[]>(initialStagedUpdates);
   const [integrityFlagCount, setIntegrityFlagCount] = useState<number>(0);
+  const [platformIntegrityFlagCount, setPlatformIntegrityFlagCount] = useState<number>(0);
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState("member");
   const [toast, setToast] = useState("");
@@ -113,7 +117,7 @@ export function AdminDashboard({
   // approve-update side effects.
   const loadData = useCallback(async () => {
     try {
-      const [orgRes, memberRes, updateRes, flagRes] = await Promise.all([
+      const [orgRes, memberRes, updateRes, flagRes, platformFlagRes] = await Promise.all([
         supabase.from("organizations").select("id, name, slug, plan, created_at"),
         // Embed user_profiles via the user_id FK so the member list
         // can show "Jason Losh" instead of a raw uuid. The relation alias
@@ -135,12 +139,19 @@ export function AdminDashboard({
           .select("id", { count: "exact", head: true })
           .eq("agent_integrity_flag", true)
           .is("agent_integrity_resolved_at", null),
+        // Platform integrity flags (migration 048) — open + in_review
+        // counted together as the "needs attention" badge.
+        supabase
+          .from("integrity_flags")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["open", "in_review"]),
       ]);
 
       setOrgs(orgRes.data || []);
       setMembers(memberRes.data || []);
       setStagedUpdates(updateRes.data || []);
       setIntegrityFlagCount(flagRes.count ?? 0);
+      setPlatformIntegrityFlagCount(platformFlagRes.count ?? 0);
     } catch {
       // RLS may block some queries — still show the UI
     }
@@ -238,6 +249,7 @@ export function AdminDashboard({
     { id: "sources", label: "Source registry", count: 0 },
     { id: "staged", label: "Staged updates", count: stagedUpdates.length },
     { id: "integrity-flags", label: "Integrity flags", count: integrityFlagCount },
+    { id: "platform-integrity-flags", label: "Platform flags", count: platformIntegrityFlagCount },
     { id: "coverage-matrix", label: "Coverage matrix", count: 0 },
     { id: "bulk-import", label: "Bulk add sources", count: 0 },
     { id: "scan", label: "Regulatory scan", count: 0 },
@@ -694,6 +706,24 @@ export function AdminDashboard({
               />
             )}
             <IntegrityFlagsView />
+          </div>
+        )}
+
+        {/* Platform integrity flags Tab — Wave 4
+            Surfaces the integrity_flags table from migration 048 (design_drift,
+            data_quality, source_issue, coverage_gap, data_integrity,
+            surface_concern). Distinct from the per-brief Integrity flags
+            tab above; this is the durable queue for agent-detected concerns
+            that don't tie to a single intelligence_items row.  */}
+        {activeTab === "platform-integrity-flags" && (
+          <div className="space-y-4">
+            {issueFilter && (
+              <IssueFilterCaption
+                label={issueFilterLabel(issueFilter)}
+                onClear={() => setIssueFilter(null)}
+              />
+            )}
+            <PlatformIntegrityFlagsView />
           </div>
         )}
 

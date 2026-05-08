@@ -1,18 +1,21 @@
-// GET /api/admin/integrity-flags
+// /api/admin/integrity-flags
 //
-// List unresolved agent-integrity-flagged intelligence_items rows. Joined
-// with the sources registry so the admin sub-tab can render a source name
-// next to each flag without a second round-trip.
+// This route serves TWO surfaces, distinguished by the ?platform=1 query:
 //
-// Filters: only rows where agent_integrity_flag = TRUE AND
-// agent_integrity_resolved_at IS NULL. Resolved flags stay in the table
-// for audit but drop out of this list.
+//   1. (default, no platform flag) — Per-brief integrity flags from
+//      migration 035: intelligence_items.agent_integrity_flag rows.
+//      Powers the existing IntegrityFlagsView component.
 //
-// Auth: requireAuth + admin role gate. The /admin page already redirects
-// non-admins, but the API enforces independently so direct hits are
-// rejected.
+//   2. (?platform=1)               — Platform-level integrity_flags
+//      table from migration 048: design_drift, data_quality,
+//      source_issue, coverage_gap, data_integrity, surface_concern.
+//      Powers PlatformIntegrityFlagsView.
 //
-// Rate-limited.
+// Methods:
+//   GET   — list rows (both surfaces)
+//   PATCH — update status (platform surface only)
+//
+// Auth: requireAuth + admin role gate. Rate-limited.
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -48,21 +51,14 @@ async function requireAdminRole(
   return null;
 }
 
-export async function GET(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
+// ─────────────────────────────────────────────────────────────────────────
+// Per-brief surface (migration 035)
+// ─────────────────────────────────────────────────────────────────────────
 
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  const supabase = getServiceClient();
-  const denied = await requireAdminRole(supabase, auth.userId);
-  if (denied) return denied;
-
-  // Pull every unresolved flagged item with a left-join on sources for the
-  // human-readable source name. The Supabase JS client expresses this as
-  // an embedded select; if source_id is null on the item the source object
-  // comes back as null and the UI shows the raw URL.
+async function getPerBriefFlags(
+  supabase: ReturnType<typeof getServiceClient>,
+  userId: string
+): Promise<NextResponse> {
   const { data: flagged, error } = await supabase
     .from("intelligence_items")
     .select(
@@ -91,9 +87,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Headline stats for the sub-tab strip. The total flagged count includes
-  // resolved rows so the operator can see "all-time" as well as current
-  // backlog. A second targeted count keeps the calculation off the client.
   const { count: totalFlagged } = await supabase
     .from("intelligence_items")
     .select("id", { count: "exact", head: true })
@@ -112,8 +105,6 @@ export async function GET(request: NextRequest) {
     updatedAt: row.updated_at,
   }));
 
-  // Oldest unresolved age in days — one round trip cheaper than scanning
-  // client-side and matches how the admin shell renders other "oldest" stats.
   let oldestAgeDays: number | null = null;
   if (items.length > 0 && items[0].flaggedAt) {
     const ageMs = Date.now() - new Date(items[0].flaggedAt).getTime();
@@ -129,6 +120,241 @@ export async function GET(request: NextRequest) {
         oldestAgeDays,
       },
     },
-    { headers: rateLimitHeaders(auth.userId) }
+    { headers: rateLimitHeaders(userId) }
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Platform surface (migration 048)
+// ─────────────────────────────────────────────────────────────────────────
+
+const PLATFORM_CATEGORIES = [
+  "design_drift",
+  "data_quality",
+  "source_issue",
+  "coverage_gap",
+  "data_integrity",
+  "surface_concern",
+] as const;
+type PlatformCategory = (typeof PLATFORM_CATEGORIES)[number];
+
+const PLATFORM_STATUSES = [
+  "open",
+  "in_review",
+  "resolved",
+  "archived",
+] as const;
+type PlatformStatus = (typeof PLATFORM_STATUSES)[number];
+
+async function getPlatformFlags(
+  supabase: ReturnType<typeof getServiceClient>,
+  url: URL,
+  userId: string
+): Promise<NextResponse> {
+  // Parse filters
+  const categoryParam = url.searchParams.get("category");
+  const statusParam = url.searchParams.get("status");
+
+  const category =
+    categoryParam &&
+    (PLATFORM_CATEGORIES as readonly string[]).includes(categoryParam)
+      ? (categoryParam as PlatformCategory)
+      : null;
+
+  // status filter has a special "open_or_review" pseudo-value (default in UI)
+  // — the absence of a status param means "show open + in_review".
+  const status =
+    statusParam &&
+    (PLATFORM_STATUSES as readonly string[]).includes(statusParam)
+      ? (statusParam as PlatformStatus)
+      : null;
+
+  let query = supabase
+    .from("integrity_flags")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (category) query = query.eq("category", category);
+  if (status) {
+    query = query.eq("status", status);
+  } else {
+    query = query.in("status", ["open", "in_review"]);
+  }
+
+  const { data: rows, error } = await query;
+
+  if (error) {
+    return NextResponse.json(
+      { error: `Failed to load platform flags: ${error.message}` },
+      { status: 500 }
+    );
+  }
+
+  // Counts strip — total per category, total per status. Issued as a
+  // separate aggregate query so the chip badges stay accurate even when
+  // the active filter narrows the visible list.
+  const { data: countRows, error: countErr } = await supabase
+    .from("integrity_flags")
+    .select("category, status");
+
+  if (countErr) {
+    return NextResponse.json(
+      { error: `Failed to load flag counts: ${countErr.message}` },
+      { status: 500 }
+    );
+  }
+
+  const byCategory = Object.fromEntries(
+    PLATFORM_CATEGORIES.map((c) => [c, 0])
+  ) as Record<PlatformCategory, number>;
+  const byStatus = Object.fromEntries(
+    PLATFORM_STATUSES.map((s) => [s, 0])
+  ) as Record<PlatformStatus, number>;
+
+  for (const row of countRows || []) {
+    const c = row.category as PlatformCategory;
+    const s = row.status as PlatformStatus;
+    if (c in byCategory) byCategory[c]++;
+    if (s in byStatus) byStatus[s]++;
+  }
+
+  return NextResponse.json(
+    {
+      items: rows || [],
+      counts: {
+        byCategory,
+        byStatus,
+        total: countRows?.length ?? 0,
+      },
+    },
+    { headers: rateLimitHeaders(userId) }
+  );
+}
+
+async function patchPlatformFlag(
+  request: NextRequest,
+  supabase: ReturnType<typeof getServiceClient>,
+  userId: string
+): Promise<NextResponse> {
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { id, status, resolution_note } = body || {};
+
+  if (typeof id !== "string" || id.length === 0) {
+    return NextResponse.json(
+      { error: "Missing or invalid `id`" },
+      { status: 400 }
+    );
+  }
+
+  if (
+    typeof status !== "string" ||
+    !(PLATFORM_STATUSES as readonly string[]).includes(status)
+  ) {
+    return NextResponse.json(
+      { error: `Invalid status. Must be one of: ${PLATFORM_STATUSES.join(", ")}` },
+      { status: 400 }
+    );
+  }
+
+  // Resolve or archive — set resolved_at + resolved_by. Reverting back to
+  // open or in_review clears the resolution columns so the row reads as
+  // "still active." resolution_note is preserved across status changes if
+  // the caller doesn't explicitly clear it.
+  const isTerminal = status === "resolved" || status === "archived";
+  const update: Record<string, any> = { status };
+  if (isTerminal) {
+    update.resolved_at = new Date().toISOString();
+    update.resolved_by = userId;
+    if (typeof resolution_note === "string" && resolution_note.length > 0) {
+      update.resolution_note = resolution_note;
+    }
+  } else {
+    // Going back to open / in_review — drop resolution markers so the row
+    // looks fresh again. Note stays unless caller clears it.
+    update.resolved_at = null;
+    update.resolved_by = null;
+    if (typeof resolution_note === "string") {
+      update.resolution_note = resolution_note.length > 0 ? resolution_note : null;
+    }
+  }
+
+  const { data: updated, error } = await supabase
+    .from("integrity_flags")
+    .update(update)
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json(
+      { error: `Failed to update flag: ${error.message}` },
+      { status: 500 }
+    );
+  }
+
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Flag not found" },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json(
+    { item: updated },
+    { headers: rateLimitHeaders(userId) }
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Handlers
+// ─────────────────────────────────────────────────────────────────────────
+
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (isAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const supabase = getServiceClient();
+  const denied = await requireAdminRole(supabase, auth.userId);
+  if (denied) return denied;
+
+  const url = new URL(request.url);
+  const isPlatform = url.searchParams.get("platform") === "1";
+
+  if (isPlatform) {
+    return getPlatformFlags(supabase, url, auth.userId);
+  }
+  return getPerBriefFlags(supabase, auth.userId);
+}
+
+export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (isAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const supabase = getServiceClient();
+  const denied = await requireAdminRole(supabase, auth.userId);
+  if (denied) return denied;
+
+  const url = new URL(request.url);
+  const isPlatform = url.searchParams.get("platform") === "1";
+
+  if (!isPlatform) {
+    return NextResponse.json(
+      { error: "PATCH is only supported on the platform surface (?platform=1)" },
+      { status: 405 }
+    );
+  }
+
+  return patchPlatformFlag(request, supabase, auth.userId);
 }
