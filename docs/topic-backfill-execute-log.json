@@ -1,0 +1,148 @@
+{
+  "completed": true,
+  "pre_state_null_count": 41,
+  "post_state_null_count": 25,
+  "updated_count": 16,
+  "already_correct_count": 0,
+  "skipped_ambiguous_count": 25,
+  "total_targets_in_report": 16,
+  "derivation_breakdown": {
+    "no-derivation:item_type=regulation": 19,
+    "keyword-tie-ambiguous:fuels,corridors": 2,
+    "keyword:csrd -> reporting": 4,
+    "keyword:hydrogen strategy -> fuels": 2,
+    "keyword:carb -> emissions": 1,
+    "keyword:carbon pricing -> emissions": 1,
+    "keyword:scope 3 -> reporting": 1,
+    "keyword:ppwr -> packaging": 1,
+    "keyword:emissions trading -> emissions": 3,
+    "keyword-tie-ambiguous:corridors,infrastructure": 1,
+    "keyword:co2 emission -> emissions": 1,
+    "keyword:endangerment finding -> emissions": 2,
+    "keyword-multi-ambiguous:emissions,transport,reporting": 1,
+    "keyword-tie-ambiguous:fuels,reporting": 1,
+    "keyword-tie-ambiguous:emissions,reporting": 1
+  },
+  "log": [
+    {
+      "name": "load_investigation_report",
+      "ok": true,
+      "detail": "16 derivable, 25 ambiguous",
+      "at": "2026-05-08T03:06:54.633Z"
+    },
+    {
+      "name": "candidates_canonical_check",
+      "ok": true,
+      "detail": "all candidates use canonical TOPICS values",
+      "at": "2026-05-08T03:06:54.635Z"
+    },
+    {
+      "name": "pre_state_null_count",
+      "ok": true,
+      "detail": "41 rows with NULL/empty category",
+      "at": "2026-05-08T03:06:54.973Z"
+    },
+    {
+      "name": "verify_eu-corporate-sustainability-reporting-directive-csrd-transport-sector-implementa",
+      "ok": true,
+      "detail": "category=reporting (expected reporting)",
+      "at": "2026-05-08T03:06:55.784Z"
+    },
+    {
+      "name": "verify_uae-national-hydrogen-strategy-transport-sector-requirements",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-08T03:06:56.130Z"
+    },
+    {
+      "name": "verify_w4_ca_acf",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:06:56.788Z"
+    },
+    {
+      "name": "verify_imo-2023-revised-ghg-strategy",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:06:57.480Z"
+    },
+    {
+      "name": "verify_uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+      "ok": true,
+      "detail": "category=reporting (expected reporting)",
+      "at": "2026-05-08T03:06:57.838Z"
+    },
+    {
+      "name": "verify_arc1",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-08T03:06:58.245Z"
+    },
+    {
+      "name": "verify_uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-08T03:06:58.609Z"
+    },
+    {
+      "name": "verify_eu-emissions-trading-system-ets-extension-to-maritime-transport",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:06:58.970Z"
+    },
+    {
+      "name": "verify_eu-corporate-sustainability-reporting-directive-csrd-transport-provisions",
+      "ok": true,
+      "detail": "category=reporting (expected reporting)",
+      "at": "2026-05-08T03:06:59.521Z"
+    },
+    {
+      "name": "verify_china-s-national-carbon-market-extension-to-transportation-sector",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:06:59.906Z"
+    },
+    {
+      "name": "verify_eu-hdv-co2-standards-2019-1242",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:07:00.299Z"
+    },
+    {
+      "name": "verify_arc3",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:07:00.667Z"
+    },
+    {
+      "name": "verify_eu_ets_directive_2023_959",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:07:01.081Z"
+    },
+    {
+      "name": "verify_ss2",
+      "ok": true,
+      "detail": "category=reporting (expected reporting)",
+      "at": "2026-05-08T03:07:01.517Z"
+    },
+    {
+      "name": "verify_arc2",
+      "ok": true,
+      "detail": "category=reporting (expected reporting)",
+      "at": "2026-05-08T03:07:01.955Z"
+    },
+    {
+      "name": "verify_ss3",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-08T03:07:02.353Z"
+    },
+    {
+      "name": "post_state_null_count",
+      "ok": true,
+      "detail": "pre=41, updated=16, expected_post=25, actual_post=25",
+      "at": "2026-05-08T03:07:02.490Z"
+    }
+  ]
+}
