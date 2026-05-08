@@ -137,6 +137,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
           <Link
             key={row.id}
             href={`/regulations/${row.resource.id}`}
+            prefetch={false}
             style={{
               display: "grid",
               gridTemplateColumns: "3px 1fr auto",

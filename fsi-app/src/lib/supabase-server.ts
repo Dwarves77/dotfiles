@@ -943,11 +943,56 @@ export async function fetchIntelligenceItem(
 
     const resourceId: string = row.legacy_id || row.id;
 
-    const { data: timelineRows } = await supabase
-      .from("item_timelines")
-      .select("milestone_date, label, is_completed, sort_order")
-      .eq("item_id", row.id)
-      .order("sort_order");
+    // Parallelize the 5 detail-row queries (perf v2 — 2026-05-08).
+    // Previously these ran sequentially: timelines → changelog → disputes →
+    // xrefs → supersessions. Each query only depends on `row.id` (already
+    // resolved above), so they fan out via Promise.all and the wall-clock
+    // cost collapses from sum(query_times) to max(query_times). The
+    // perf v2 baseline measured /regulations/[slug] server-render at
+    // 1750 ms; the dominant cost was these five sequential round-trips
+    // plus the missing item_supersessions index (added in migration 049).
+    const [
+      timelinesResult,
+      changesResult,
+      disputeResult,
+      xrefResult,
+      supResult,
+    ] = await Promise.all([
+      supabase
+        .from("item_timelines")
+        .select("milestone_date, label, is_completed, sort_order")
+        .eq("item_id", row.id)
+        .order("sort_order"),
+      supabase
+        .from("item_changelog")
+        .select("change_date, change_type, field, previous_value, new_value, impact")
+        .eq("item_id", row.id)
+        .order("change_date", { ascending: false }),
+      supabase
+        .from("item_disputes")
+        .select("note, disputing_sources")
+        .eq("item_id", row.id)
+        .eq("is_active", true)
+        .maybeSingle(),
+      supabase
+        .from("item_cross_references")
+        .select(
+          "source_item_id, target_item_id, source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)"
+        )
+        .or(`source_item_id.eq.${row.id},target_item_id.eq.${row.id}`),
+      supabase
+        .from("item_supersessions")
+        .select(
+          "supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)"
+        )
+        .or(`old_item_id.eq.${row.id},new_item_id.eq.${row.id}`),
+    ]);
+
+    const timelineRows = timelinesResult.data;
+    const changeRows = changesResult.data;
+    const disputeRow = disputeResult.data;
+    const xrefRows = xrefResult.data;
+    const supRows = supResult.data;
 
     const resource: Resource = {
       id: resourceId,
@@ -991,13 +1036,7 @@ export async function fetchIntelligenceItem(
       agentIntegrityFlaggedAt: row.agent_integrity_flagged_at || null,
     };
 
-    // Changelog for this item
-    const { data: changeRows } = await supabase
-      .from("item_changelog")
-      .select("change_date, change_type, field, previous_value, new_value, impact")
-      .eq("item_id", row.id)
-      .order("change_date", { ascending: false });
-
+    // Changelog for this item (data fetched in the Promise.all above)
     const changelog: ChangeLogEntry[] = (changeRows || []).map((c: any) => ({
       id: resourceId,
       date: c.change_date,
@@ -1008,14 +1047,7 @@ export async function fetchIntelligenceItem(
       impact: c.impact || undefined,
     }));
 
-    // Active dispute for this item
-    const { data: disputeRow } = await supabase
-      .from("item_disputes")
-      .select("note, disputing_sources")
-      .eq("item_id", row.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
+    // Active dispute for this item (fetched in the Promise.all above)
     let dispute: Dispute | null = null;
     if (disputeRow) {
       const sources = Array.isArray(disputeRow.disputing_sources)
@@ -1032,16 +1064,9 @@ export async function fetchIntelligenceItem(
       };
     }
 
-    // Cross-references — single query covering both directions via OR.
-    // Previously this fired two sequential SELECTs for xrefOut + xrefIn;
-    // PostgREST's .or() handles the union in one round-trip.
-    const { data: xrefRows } = await supabase
-      .from("item_cross_references")
-      .select(
-        "source_item_id, target_item_id, source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)"
-      )
-      .or(`source_item_id.eq.${row.id},target_item_id.eq.${row.id}`);
-
+    // Cross-references (fetched in the Promise.all above) — single query
+    // covering both directions via OR. PostgREST's .or() handles the
+    // union in one round-trip.
     const xrefIds: string[] = [];
     const refByIds: string[] = [];
     for (const r of (xrefRows || []) as Array<{
@@ -1059,14 +1084,11 @@ export async function fetchIntelligenceItem(
       }
     }
 
-    // Supersessions involving this item
-    const { data: supRows } = await supabase
-      .from("item_supersessions")
-      .select(
-        "supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)"
-      )
-      .or(`old_item_id.eq.${row.id},new_item_id.eq.${row.id}`);
-
+    // Supersessions involving this item (fetched in the Promise.all above).
+    // Note: prior to perf v2 (migration 049, 2026-05-08) this query did a
+    // sequential scan on item_supersessions because no index existed on
+    // old_item_id or new_item_id. Migration 049 adds those indexes; the
+    // .or() here resolves index-driven once 049 is applied.
     const supersessions: Supersession[] = (supRows || [])
       .map((r: any) => {
         const oldId = uiId(r.old);

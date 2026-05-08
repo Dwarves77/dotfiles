@@ -479,8 +479,20 @@ function SidebarRow({
     </div>
   );
   if (href) {
+    // perf v2 (2026-05-08): SidebarRow renders inside a long sidebar
+    // (Starred / Public / Private / DMs sections). When ~19 rows mount
+    // at once, default prefetch fans out to 19 RSC prefetch requests on
+    // hydration, with duplicates from re-render churn. Each /community
+    // child route runs Supabase queries on render, so the prefetch
+    // storm prewarms data for surfaces the user usually doesn't visit.
+    // prefetch={false} preserves click latency (Next dedupes the in-
+    // flight RSC fetch) while eliminating the fanout.
     return (
-      <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
+      <Link
+        href={href}
+        prefetch={false}
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
         {content}
       </Link>
     );

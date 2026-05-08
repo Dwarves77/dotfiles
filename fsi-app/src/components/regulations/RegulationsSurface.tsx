@@ -1448,6 +1448,7 @@ function TableView({
                   ) : (
                     <Link
                       href={`/regulations/${encodeURIComponent(r.id)}`}
+                      prefetch={false}
                       style={{
                         color: "var(--text)",
                         fontWeight: 600,
@@ -1743,6 +1744,7 @@ function KanbanCard({
   return (
     <Link
       href={`/regulations/${encodeURIComponent(r.id)}`}
+      prefetch={false}
       style={{ textDecoration: "none", color: "inherit" }}
     >
       {inner}

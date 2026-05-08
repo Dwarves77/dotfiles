@@ -155,6 +155,7 @@ export function WeeklyBriefing({
               />
               <Link
                 href={`/regulations/${r.id}`}
+                prefetch={false}
                 style={{
                   textDecoration: "none",
                   color: "inherit",
