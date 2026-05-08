@@ -1,0 +1,1159 @@
+{
+  "completed": true,
+  "finalSnapshot": {
+    "AU": [
+      {
+        "id": "051c99be-3a75-4862-a5dd-fd3f7af64e2c",
+        "name": "National Heavy Vehicle Regulator (NHVR)",
+        "url": "https://www.nhvr.gov.au",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "c20241c2-a712-440a-8e59-be582186517e",
+        "name": "Australian Maritime Safety Authority (AMSA)",
+        "url": "https://www.amsa.gov.au",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "d31e908f-873e-4f9b-a97a-e8cb6a4a123c",
+        "name": "Department of Climate Change, Energy, the Environment and Water (DCCEEW)",
+        "url": "https://www.dcceew.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "d4107279-8725-4499-8040-436b6a0c0040",
+        "name": "Parliament of Australia",
+        "url": "https://www.aph.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-NSW": [
+      {
+        "id": "71f5003a-57f3-431a-a3a7-1d5b67dad2ac",
+        "name": "NSW Environment Protection Authority (EPA)",
+        "url": "https://www.epa.nsw.gov.au/licensing-and-regulation",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "abe48613-c63c-4914-b8d7-39f1640c519b",
+        "name": "Parliament of New South Wales",
+        "url": "https://www.parliament.nsw.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-VIC": [
+      {
+        "id": "9190b411-0a6d-408b-8a3e-1dd3d86bbe7b",
+        "name": "Environment Protection Authority Victoria (EPA Victoria)",
+        "url": "https://www.epa.vic.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+        "name": "Parliament of Victoria",
+        "url": "https://www.parliament.vic.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-QLD": [
+      {
+        "id": "042f6965-6f6e-4cf0-b64a-76c18143e074",
+        "name": "Queensland Legislation website (Office of the Queensland Parliamentary Counsel)",
+        "url": "https://www.legislation.qld.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "495d392a-7439-498c-923b-10564050d9a6",
+        "name": "Queensland Department of Environment, Tourism, Science and Innovation (DETSI / DES)",
+        "url": "https://environment.des.qld.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "b5e7624e-7c17-485f-8731-25b67e3127d7",
+        "name": "Queensland Parliament",
+        "url": "https://www.parliament.qld.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-WA": [
+      {
+        "id": "2ce9a14e-62ba-42a8-b8b8-728b6f69e1ba",
+        "name": "Western Australian Government Gazette (WA Legislation)",
+        "url": "https://www.legislation.wa.gov.au",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "5f395d6b-7868-422c-93d3-1107fb425dfa",
+        "name": "Western Australia Department of Water and Environmental Regulation (DWER)",
+        "url": "https://www.wa.gov.au/organisation/department-of-water-and-environmental-regulation",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "e43b64a1-0469-4232-9639-03ee0733be8c",
+        "name": "Parliament of Western Australia",
+        "url": "https://www.parliament.wa.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-SA": [
+      {
+        "id": "f74fd17e-a4fa-4d8e-98d5-88bba7c44089",
+        "name": "Environment Protection Authority South Australia (EPA SA)",
+        "url": "https://www.epa.sa.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "2167775a-1320-48e6-b3d5-c90c72464305",
+        "name": "Parliament of South Australia",
+        "url": "https://www.parliament.sa.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-TAS": [
+      {
+        "id": "7dd79f52-390e-4c47-bbb5-c8bce1a4f5a1",
+        "name": "Renewables, Climate and Future Industries Tasmania (ReCFIT)",
+        "url": "https://www.recfit.tas.gov.au",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "138dc2ea-c435-4991-bbc4-709db80f1a6c",
+        "name": "Environment Protection Authority Tasmania (EPA Tasmania)",
+        "url": "https://epa.tas.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "f968026e-ec27-409e-adcf-81a6645a31f8",
+        "name": "Parliament of Tasmania",
+        "url": "https://www.parliament.tas.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-ACT": [
+      {
+        "id": "acfa9bc1-51c8-4099-b8f9-9cace671a016",
+        "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+        "url": "https://www.legislation.act.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "e704ae4d-f366-49c9-b154-702098df587b",
+        "name": "Environment ACT (Environment, Planning and Sustainable Development Directorate)",
+        "url": "https://www.environment.act.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "47d12be8-c8ac-44f5-8756-7486ec4d1b67",
+        "name": "ACT Legislative Assembly",
+        "url": "https://www.parliament.act.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "AU-NT": [
+      {
+        "id": "5766d220-756f-4f78-844f-f6733c92ade7",
+        "name": "NT Legislation – Northern Territory Legislation Website",
+        "url": "https://legislation.nt.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "63a62c3a-8922-4b0a-992d-20b6d7062acc",
+        "name": "Northern Territory Environment Protection Authority (NT EPA)",
+        "url": "https://ntepa.nt.gov.au/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "25189f99-1ecd-457e-9fb1-e5126fbc19d8",
+        "name": "Legislative Assembly of the Northern Territory",
+        "url": "https://parliament.nt.gov.au/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "SG": [
+      {
+        "id": "3b3b18c7-2527-44a7-aba1-9a550de7a52b",
+        "name": "Singapore Statutes Online",
+        "url": "https://sso.agc.gov.sg",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "1ccd5e9e-ea2a-476e-84d3-31bf87873ecc",
+        "name": "Singapore BCA Green Mark",
+        "url": "https://www1.bca.gov.sg/buildsg/sustainability/green-mark-certification-scheme",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "7c4fb882-7bb6-465d-b3b8-cc30ea82984b",
+        "name": "Singapore Carbon Tax — NEA",
+        "url": "https://www.nea.gov.sg/our-services/climate-change-energy-efficiency/climate-change/carbon-tax",
+        "tier": 1,
+        "status": "provisional"
+      },
+      {
+        "id": "ec02878a-4289-4d16-b383-b44818225e3c",
+        "name": "Singapore Customs",
+        "url": "https://www.customs.gov.sg",
+        "tier": 1,
+        "status": "provisional"
+      },
+      {
+        "id": "5b6638f6-2d10-4da9-99a1-47e1036a4770",
+        "name": "Maritime and Port Authority of Singapore (MPA)",
+        "url": "https://www.mpa.gov.sg/maritime-singapore/sustainability/maritime-singapore-green-initiative",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "7a31ea18-9109-44e5-8212-bdb772d32a89",
+        "name": "Ministry of Sustainability and the Environment (MSE), Singapore Government",
+        "url": "https://www.mse.gov.sg/resources/sgp-2030/",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "c49414da-7c9e-45cc-a629-f138166ecda5",
+        "name": "Maritime and Port Authority of Singapore (MPA)",
+        "url": "https://www.mpa.gov.sg/maritime-singapore/sustainability/maritime-singapore-decarbonisation-blueprint",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "a62c0565-6dd3-4cb4-91c6-ead9584d73b2",
+        "name": "Singapore Government (Multi-Ministry)",
+        "url": "https://www.greenplan.gov.sg/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "8c9b7831-64fb-4cad-b4fb-85c431f767ed",
+        "name": "Maritime and Port Authority of Singapore (MPA)",
+        "url": "https://www.mpa.gov.sg/maritime-singapore/sustainability",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "d78a96bb-3f85-4ef5-aaf2-6ffe1481e108",
+        "name": "Maritime and Port Authority of Singapore (MPA)",
+        "url": "https://www.mpa.gov.sg/media-centre/details/no.-12-of-2024---revisions-to-the-maritime-singapore-green-initiative---green-ship-programme-for-singapore-registered-ships",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "97b289a9-b761-401f-8a17-9ec40cf92718",
+        "name": "Singapore Ministry of Transport (MOT)",
+        "url": "https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",
+        "tier": 2,
+        "status": "active"
+      },
+      {
+        "id": "8cdde50d-62eb-4518-9b8a-ca6f696cad9a",
+        "name": "Parliament of Singapore",
+        "url": "https://www.parliament.gov.sg/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "HK": [
+      {
+        "id": "4ebe9bba-5fb0-48a5-a601-1974e1bcc73c",
+        "name": "Environmental Protection Department (EPD), Hong Kong SAR",
+        "url": "https://www.epd.gov.hk/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "8330f9b4-29ae-414b-a010-7b9a564d586a",
+        "name": "Legislative Council of the Hong Kong SAR (LegCo)",
+        "url": "https://www.legco.gov.hk/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "JP": [
+      {
+        "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+        "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+        "url": "https://www.env.go.jp/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "9a04d213-688a-45eb-a4e1-84dc7f4b7241",
+        "name": "House of Councillors of Japan (Sangiin / 参議院)",
+        "url": "https://www.sangiin.go.jp/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "1c5588e3-e45d-4985-9154-113558853c7f",
+        "name": "House of Representatives of Japan (Shugiin / 衆議院)",
+        "url": "https://www.shugiin.go.jp/",
+        "tier": 1,
+        "status": "active"
+      }
+    ],
+    "KR": [
+      {
+        "id": "a1d82459-1ae0-4af9-bbc0-4c11f1ee26a8",
+        "name": "Ministry of Environment of the Republic of Korea (환경부 / ME)",
+        "url": "https://www.me.go.kr/",
+        "tier": 1,
+        "status": "active"
+      },
+      {
+        "id": "7a608c06-2205-4b24-b791-77bd33b56da0",
+        "name": "National Assembly of the Republic of Korea (대한민국 국회)",
+        "url": "https://www.assembly.go.kr/",
+        "tier": 1,
+        "status": "active"
+      }
+    ]
+  },
+  "log": [
+    {
+      "name": "pre_existing_epa_nsw_gov_au",
+      "ok": true,
+      "detail": "EPA NSW: 1 hit(s), tiers=[2], admin_only=[false]",
+      "at": "2026-05-08T02:27:03.945Z"
+    },
+    {
+      "name": "pre_existing_legislation_qld_gov_au",
+      "ok": true,
+      "detail": "QLD legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-08T02:27:04.068Z"
+    },
+    {
+      "name": "pre_existing_legislation_wa_gov_au",
+      "ok": true,
+      "detail": "WA legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-08T02:27:04.188Z"
+    },
+    {
+      "name": "pre_existing_recfit",
+      "ok": true,
+      "detail": "ReCFIT TAS: 1 hit(s), tiers=[2], admin_only=[false]",
+      "at": "2026-05-08T02:27:04.308Z"
+    },
+    {
+      "name": "pre_existing_legislation_act_gov_au",
+      "ok": true,
+      "detail": "ACT legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-08T02:27:04.410Z"
+    },
+    {
+      "name": "pre_existing_legislation_nt_gov_au",
+      "ok": true,
+      "detail": "NT legislation: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-08T02:27:04.533Z"
+    },
+    {
+      "name": "pre_existing_sso_agc_gov_sg",
+      "ok": true,
+      "detail": "SSO Singapore: 1 hit(s), tiers=[1], admin_only=[false]",
+      "at": "2026-05-08T02:27:04.634Z"
+    },
+    {
+      "name": "pre_existing_bca_gov_sg",
+      "ok": true,
+      "detail": "BCA Singapore: 1 hit(s), tiers=[2], admin_only=[false]",
+      "at": "2026-05-08T02:27:04.738Z"
+    },
+    {
+      "name": "sg_retag_count_gate",
+      "ok": true,
+      "detail": "9 candidates (expected 9 per Jason auth, halt-threshold |Δ|>2)",
+      "at": "2026-05-08T02:27:04.971Z"
+    },
+    {
+      "name": "au_dcceew_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:05.073Z"
+    },
+    {
+      "name": "au_dcceew_insert",
+      "ok": true,
+      "detail": "id=d31e908f-873e-4f9b-a97a-e8cb6a4a123c tier=1 name=Department of Climate Change, Energy, the Environment and Water (DCCEEW)",
+      "at": "2026-05-08T02:27:05.322Z"
+    },
+    {
+      "name": "au_dcceew_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU\"] url=https://www.dcceew.gov.au/",
+      "at": "2026-05-08T02:27:05.422Z"
+    },
+    {
+      "name": "au_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:05.523Z"
+    },
+    {
+      "name": "au_parliament_insert",
+      "ok": true,
+      "detail": "id=d4107279-8725-4499-8040-436b6a0c0040 tier=1 name=Parliament of Australia",
+      "at": "2026-05-08T02:27:05.633Z"
+    },
+    {
+      "name": "au_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU\"] url=https://www.aph.gov.au/",
+      "at": "2026-05-08T02:27:05.736Z"
+    },
+    {
+      "name": "au_nsw_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:05.842Z"
+    },
+    {
+      "name": "au_nsw_parliament_insert",
+      "ok": true,
+      "detail": "id=abe48613-c63c-4914-b8d7-39f1640c519b tier=1 name=Parliament of New South Wales",
+      "at": "2026-05-08T02:27:05.947Z"
+    },
+    {
+      "name": "au_nsw_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-NSW\"] url=https://www.parliament.nsw.gov.au/",
+      "at": "2026-05-08T02:27:06.049Z"
+    },
+    {
+      "name": "au_vic_epa_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:06.148Z"
+    },
+    {
+      "name": "au_vic_epa_insert",
+      "ok": true,
+      "detail": "id=9190b411-0a6d-408b-8a3e-1dd3d86bbe7b tier=1 name=Environment Protection Authority Victoria (EPA Victoria)",
+      "at": "2026-05-08T02:27:06.258Z"
+    },
+    {
+      "name": "au_vic_epa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-VIC\"] url=https://www.epa.vic.gov.au/",
+      "at": "2026-05-08T02:27:06.358Z"
+    },
+    {
+      "name": "au_vic_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:06.491Z"
+    },
+    {
+      "name": "au_vic_parliament_insert",
+      "ok": true,
+      "detail": "id=6e234940-3d99-40cc-ac5d-d83058266c09 tier=1 name=Parliament of Victoria",
+      "at": "2026-05-08T02:27:06.599Z"
+    },
+    {
+      "name": "au_vic_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-VIC\"] url=https://www.parliament.vic.gov.au/",
+      "at": "2026-05-08T02:27:06.695Z"
+    },
+    {
+      "name": "au_qld_des_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:06.824Z"
+    },
+    {
+      "name": "au_qld_des_insert",
+      "ok": true,
+      "detail": "id=495d392a-7439-498c-923b-10564050d9a6 tier=1 name=Queensland Department of Environment, Tourism, Science and Innovation (DETSI / DES)",
+      "at": "2026-05-08T02:27:06.929Z"
+    },
+    {
+      "name": "au_qld_des_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-QLD\"] url=https://environment.des.qld.gov.au/",
+      "at": "2026-05-08T02:27:07.025Z"
+    },
+    {
+      "name": "au_qld_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:07.130Z"
+    },
+    {
+      "name": "au_qld_parliament_insert",
+      "ok": true,
+      "detail": "id=b5e7624e-7c17-485f-8731-25b67e3127d7 tier=1 name=Queensland Parliament",
+      "at": "2026-05-08T02:27:07.246Z"
+    },
+    {
+      "name": "au_qld_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-QLD\"] url=https://www.parliament.qld.gov.au/",
+      "at": "2026-05-08T02:27:07.343Z"
+    },
+    {
+      "name": "au_wa_dwer_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:07.447Z"
+    },
+    {
+      "name": "au_wa_dwer_insert",
+      "ok": true,
+      "detail": "id=5f395d6b-7868-422c-93d3-1107fb425dfa tier=1 name=Western Australia Department of Water and Environmental Regulation (DWER)",
+      "at": "2026-05-08T02:27:07.552Z"
+    },
+    {
+      "name": "au_wa_dwer_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-WA\"] url=https://www.wa.gov.au/organisation/department-of-water-and-environmental-regulation",
+      "at": "2026-05-08T02:27:07.653Z"
+    },
+    {
+      "name": "au_wa_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:07.773Z"
+    },
+    {
+      "name": "au_wa_parliament_insert",
+      "ok": true,
+      "detail": "id=e43b64a1-0469-4232-9639-03ee0733be8c tier=1 name=Parliament of Western Australia",
+      "at": "2026-05-08T02:27:07.916Z"
+    },
+    {
+      "name": "au_wa_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-WA\"] url=https://www.parliament.wa.gov.au/",
+      "at": "2026-05-08T02:27:08.013Z"
+    },
+    {
+      "name": "au_sa_epa_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:08.120Z"
+    },
+    {
+      "name": "au_sa_epa_insert",
+      "ok": true,
+      "detail": "id=f74fd17e-a4fa-4d8e-98d5-88bba7c44089 tier=1 name=Environment Protection Authority South Australia (EPA SA)",
+      "at": "2026-05-08T02:27:08.227Z"
+    },
+    {
+      "name": "au_sa_epa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-SA\"] url=https://www.epa.sa.gov.au/",
+      "at": "2026-05-08T02:27:08.357Z"
+    },
+    {
+      "name": "au_sa_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:08.482Z"
+    },
+    {
+      "name": "au_sa_parliament_insert",
+      "ok": true,
+      "detail": "id=2167775a-1320-48e6-b3d5-c90c72464305 tier=1 name=Parliament of South Australia",
+      "at": "2026-05-08T02:27:08.586Z"
+    },
+    {
+      "name": "au_sa_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-SA\"] url=https://www.parliament.sa.gov.au/",
+      "at": "2026-05-08T02:27:08.691Z"
+    },
+    {
+      "name": "au_tas_epa_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:08.793Z"
+    },
+    {
+      "name": "au_tas_epa_insert",
+      "ok": true,
+      "detail": "id=138dc2ea-c435-4991-bbc4-709db80f1a6c tier=1 name=Environment Protection Authority Tasmania (EPA Tasmania)",
+      "at": "2026-05-08T02:27:08.923Z"
+    },
+    {
+      "name": "au_tas_epa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-TAS\"] url=https://epa.tas.gov.au/",
+      "at": "2026-05-08T02:27:09.030Z"
+    },
+    {
+      "name": "au_tas_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:09.140Z"
+    },
+    {
+      "name": "au_tas_parliament_insert",
+      "ok": true,
+      "detail": "id=f968026e-ec27-409e-adcf-81a6645a31f8 tier=1 name=Parliament of Tasmania",
+      "at": "2026-05-08T02:27:09.251Z"
+    },
+    {
+      "name": "au_tas_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-TAS\"] url=https://www.parliament.tas.gov.au/",
+      "at": "2026-05-08T02:27:09.377Z"
+    },
+    {
+      "name": "au_act_env_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:09.490Z"
+    },
+    {
+      "name": "au_act_env_insert",
+      "ok": true,
+      "detail": "id=e704ae4d-f366-49c9-b154-702098df587b tier=1 name=Environment ACT (Environment, Planning and Sustainable Development Directorate)",
+      "at": "2026-05-08T02:27:09.592Z"
+    },
+    {
+      "name": "au_act_env_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-ACT\"] url=https://www.environment.act.gov.au/",
+      "at": "2026-05-08T02:27:09.696Z"
+    },
+    {
+      "name": "au_act_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:09.798Z"
+    },
+    {
+      "name": "au_act_parliament_insert",
+      "ok": true,
+      "detail": "id=47d12be8-c8ac-44f5-8756-7486ec4d1b67 tier=1 name=ACT Legislative Assembly",
+      "at": "2026-05-08T02:27:09.943Z"
+    },
+    {
+      "name": "au_act_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-ACT\"] url=https://www.parliament.act.gov.au/",
+      "at": "2026-05-08T02:27:10.046Z"
+    },
+    {
+      "name": "au_nt_epa_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:10.172Z"
+    },
+    {
+      "name": "au_nt_epa_insert",
+      "ok": true,
+      "detail": "id=63a62c3a-8922-4b0a-992d-20b6d7062acc tier=1 name=Northern Territory Environment Protection Authority (NT EPA)",
+      "at": "2026-05-08T02:27:10.286Z"
+    },
+    {
+      "name": "au_nt_epa_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-NT\"] url=https://ntepa.nt.gov.au/",
+      "at": "2026-05-08T02:27:10.392Z"
+    },
+    {
+      "name": "au_nt_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:10.504Z"
+    },
+    {
+      "name": "au_nt_parliament_insert",
+      "ok": true,
+      "detail": "id=25189f99-1ecd-457e-9fb1-e5126fbc19d8 tier=1 name=Legislative Assembly of the Northern Territory",
+      "at": "2026-05-08T02:27:10.611Z"
+    },
+    {
+      "name": "au_nt_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"AU-NT\"] url=https://parliament.nt.gov.au/",
+      "at": "2026-05-08T02:27:10.718Z"
+    },
+    {
+      "name": "sg_parliament_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:10.817Z"
+    },
+    {
+      "name": "sg_parliament_insert",
+      "ok": true,
+      "detail": "id=8cdde50d-62eb-4518-9b8a-ca6f696cad9a tier=1 name=Parliament of Singapore",
+      "at": "2026-05-08T02:27:10.924Z"
+    },
+    {
+      "name": "sg_parliament_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"SG\"] url=https://www.parliament.gov.sg/",
+      "at": "2026-05-08T02:27:11.023Z"
+    },
+    {
+      "name": "hk_epd_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:11.121Z"
+    },
+    {
+      "name": "hk_epd_insert",
+      "ok": true,
+      "detail": "id=4ebe9bba-5fb0-48a5-a601-1974e1bcc73c tier=1 name=Environmental Protection Department (EPD), Hong Kong SAR",
+      "at": "2026-05-08T02:27:11.225Z"
+    },
+    {
+      "name": "hk_epd_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"HK\"] url=https://www.epd.gov.hk/",
+      "at": "2026-05-08T02:27:11.326Z"
+    },
+    {
+      "name": "hk_legco_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:11.429Z"
+    },
+    {
+      "name": "hk_legco_insert",
+      "ok": true,
+      "detail": "id=8330f9b4-29ae-414b-a010-7b9a564d586a tier=1 name=Legislative Council of the Hong Kong SAR (LegCo)",
+      "at": "2026-05-08T02:27:11.533Z"
+    },
+    {
+      "name": "hk_legco_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"HK\"] url=https://www.legco.gov.hk/",
+      "at": "2026-05-08T02:27:11.631Z"
+    },
+    {
+      "name": "jp_moe_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:11.731Z"
+    },
+    {
+      "name": "jp_moe_insert",
+      "ok": true,
+      "detail": "id=4106260f-f2d2-49e7-b238-c9aaf3e15487 tier=1 name=Ministry of the Environment of Japan (環境省 / MOEJ)",
+      "at": "2026-05-08T02:27:11.842Z"
+    },
+    {
+      "name": "jp_moe_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"JP\"] url=https://www.env.go.jp/",
+      "at": "2026-05-08T02:27:11.957Z"
+    },
+    {
+      "name": "jp_sangiin_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:12.060Z"
+    },
+    {
+      "name": "jp_sangiin_insert",
+      "ok": true,
+      "detail": "id=9a04d213-688a-45eb-a4e1-84dc7f4b7241 tier=1 name=House of Councillors of Japan (Sangiin / 参議院)",
+      "at": "2026-05-08T02:27:12.168Z"
+    },
+    {
+      "name": "jp_sangiin_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"JP\"] url=https://www.sangiin.go.jp/",
+      "at": "2026-05-08T02:27:12.279Z"
+    },
+    {
+      "name": "jp_shugiin_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:12.375Z"
+    },
+    {
+      "name": "jp_shugiin_insert",
+      "ok": true,
+      "detail": "id=1c5588e3-e45d-4985-9154-113558853c7f tier=1 name=House of Representatives of Japan (Shugiin / 衆議院)",
+      "at": "2026-05-08T02:27:12.483Z"
+    },
+    {
+      "name": "jp_shugiin_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"JP\"] url=https://www.shugiin.go.jp/",
+      "at": "2026-05-08T02:27:12.581Z"
+    },
+    {
+      "name": "kr_moe_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:12.679Z"
+    },
+    {
+      "name": "kr_moe_insert",
+      "ok": true,
+      "detail": "id=a1d82459-1ae0-4af9-bbc0-4c11f1ee26a8 tier=1 name=Ministry of Environment of the Republic of Korea (환경부 / ME)",
+      "at": "2026-05-08T02:27:12.796Z"
+    },
+    {
+      "name": "kr_moe_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"KR\"] url=https://www.me.go.kr/",
+      "at": "2026-05-08T02:27:12.916Z"
+    },
+    {
+      "name": "kr_assembly_collision_check",
+      "ok": true,
+      "detail": "no collision",
+      "at": "2026-05-08T02:27:13.048Z"
+    },
+    {
+      "name": "kr_assembly_insert",
+      "ok": true,
+      "detail": "id=7a608c06-2205-4b24-b791-77bd33b56da0 tier=1 name=National Assembly of the Republic of Korea (대한민국 국회)",
+      "at": "2026-05-08T02:27:13.153Z"
+    },
+    {
+      "name": "kr_assembly_verify",
+      "ok": true,
+      "detail": "tier=1 status=active jurisdiction_iso=[\"KR\"] url=https://www.assembly.go.kr/",
+      "at": "2026-05-08T02:27:13.255Z"
+    },
+    {
+      "name": "insert_count_cap",
+      "ok": true,
+      "detail": "inserted 25 rows (expected 25, hard cap 28)",
+      "at": "2026-05-08T02:27:13.255Z"
+    },
+    {
+      "name": "sg_retag_update_ec02878a",
+      "ok": true,
+      "detail": "Singapore Customs → [\"SG\"]",
+      "at": "2026-05-08T02:27:13.369Z"
+    },
+    {
+      "name": "sg_retag_verify_ec02878a",
+      "ok": true,
+      "detail": "name=Singapore Customs jurisdiction_iso=[\"SG\"] status=provisional (was provisional) tier=1 (was 1) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:13.475Z"
+    },
+    {
+      "name": "sg_retag_update_5b6638f6",
+      "ok": true,
+      "detail": "Maritime and Port Authority of Singapore (MPA) → [\"SG\"]",
+      "at": "2026-05-08T02:27:13.600Z"
+    },
+    {
+      "name": "sg_retag_verify_5b6638f6",
+      "ok": true,
+      "detail": "name=Maritime and Port Authority of Singapore (MPA) jurisdiction_iso=[\"SG\"] status=active (was active) tier=2 (was 2) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:13.700Z"
+    },
+    {
+      "name": "sg_retag_update_7a31ea18",
+      "ok": true,
+      "detail": "Ministry of Sustainability and the Environment (MSE), Singapore Government → [\"SG\"]",
+      "at": "2026-05-08T02:27:13.839Z"
+    },
+    {
+      "name": "sg_retag_verify_7a31ea18",
+      "ok": true,
+      "detail": "name=Ministry of Sustainability and the Environment (MSE), Singapore Government jurisdiction_iso=[\"SG\"] status=active (was active) tier=2 (was 2) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:13.953Z"
+    },
+    {
+      "name": "sg_retag_update_a62c0565",
+      "ok": true,
+      "detail": "Singapore Government (Multi-Ministry) → [\"SG\"]",
+      "at": "2026-05-08T02:27:14.059Z"
+    },
+    {
+      "name": "sg_retag_verify_a62c0565",
+      "ok": true,
+      "detail": "name=Singapore Government (Multi-Ministry) jurisdiction_iso=[\"SG\"] status=active (was active) tier=1 (was 1) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:14.187Z"
+    },
+    {
+      "name": "sg_retag_update_c49414da",
+      "ok": true,
+      "detail": "Maritime and Port Authority of Singapore (MPA) → [\"SG\"]",
+      "at": "2026-05-08T02:27:14.298Z"
+    },
+    {
+      "name": "sg_retag_verify_c49414da",
+      "ok": true,
+      "detail": "name=Maritime and Port Authority of Singapore (MPA) jurisdiction_iso=[\"SG\"] status=active (was active) tier=2 (was 2) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:14.409Z"
+    },
+    {
+      "name": "sg_retag_update_8c9b7831",
+      "ok": true,
+      "detail": "Maritime and Port Authority of Singapore (MPA) → [\"SG\"]",
+      "at": "2026-05-08T02:27:14.513Z"
+    },
+    {
+      "name": "sg_retag_verify_8c9b7831",
+      "ok": true,
+      "detail": "name=Maritime and Port Authority of Singapore (MPA) jurisdiction_iso=[\"SG\"] status=active (was active) tier=2 (was 2) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:14.617Z"
+    },
+    {
+      "name": "sg_retag_update_d78a96bb",
+      "ok": true,
+      "detail": "Maritime and Port Authority of Singapore (MPA) → [\"SG\"]",
+      "at": "2026-05-08T02:27:14.721Z"
+    },
+    {
+      "name": "sg_retag_verify_d78a96bb",
+      "ok": true,
+      "detail": "name=Maritime and Port Authority of Singapore (MPA) jurisdiction_iso=[\"SG\"] status=active (was active) tier=1 (was 1) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:14.838Z"
+    },
+    {
+      "name": "sg_retag_update_97b289a9",
+      "ok": true,
+      "detail": "Singapore Ministry of Transport (MOT) → [\"SG\"]",
+      "at": "2026-05-08T02:27:15.082Z"
+    },
+    {
+      "name": "sg_retag_verify_97b289a9",
+      "ok": true,
+      "detail": "name=Singapore Ministry of Transport (MOT) jurisdiction_iso=[\"SG\"] status=active (was active) tier=2 (was 2) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:15.193Z"
+    },
+    {
+      "name": "sg_retag_update_7c4fb882",
+      "ok": true,
+      "detail": "Singapore Carbon Tax — NEA → [\"SG\"]",
+      "at": "2026-05-08T02:27:15.294Z"
+    },
+    {
+      "name": "sg_retag_verify_7c4fb882",
+      "ok": true,
+      "detail": "name=Singapore Carbon Tax — NEA jurisdiction_iso=[\"SG\"] status=provisional (was provisional) tier=1 (was 1) admin_only=false (was false)",
+      "at": "2026-05-08T02:27:15.392Z"
+    }
+  ],
+  "insertedIds": [
+    "d31e908f-873e-4f9b-a97a-e8cb6a4a123c",
+    "d4107279-8725-4499-8040-436b6a0c0040",
+    "abe48613-c63c-4914-b8d7-39f1640c519b",
+    "9190b411-0a6d-408b-8a3e-1dd3d86bbe7b",
+    "6e234940-3d99-40cc-ac5d-d83058266c09",
+    "495d392a-7439-498c-923b-10564050d9a6",
+    "b5e7624e-7c17-485f-8731-25b67e3127d7",
+    "5f395d6b-7868-422c-93d3-1107fb425dfa",
+    "e43b64a1-0469-4232-9639-03ee0733be8c",
+    "f74fd17e-a4fa-4d8e-98d5-88bba7c44089",
+    "2167775a-1320-48e6-b3d5-c90c72464305",
+    "138dc2ea-c435-4991-bbc4-709db80f1a6c",
+    "f968026e-ec27-409e-adcf-81a6645a31f8",
+    "e704ae4d-f366-49c9-b154-702098df587b",
+    "47d12be8-c8ac-44f5-8756-7486ec4d1b67",
+    "63a62c3a-8922-4b0a-992d-20b6d7062acc",
+    "25189f99-1ecd-457e-9fb1-e5126fbc19d8",
+    "8cdde50d-62eb-4518-9b8a-ca6f696cad9a",
+    "4ebe9bba-5fb0-48a5-a601-1974e1bcc73c",
+    "8330f9b4-29ae-414b-a010-7b9a564d586a",
+    "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+    "9a04d213-688a-45eb-a4e1-84dc7f4b7241",
+    "1c5588e3-e45d-4985-9154-113558853c7f",
+    "a1d82459-1ae0-4af9-bbc0-4c11f1ee26a8",
+    "7a608c06-2205-4b24-b791-77bd33b56da0"
+  ],
+  "retaggedRows": [
+    {
+      "id": "ec02878a-4289-4d16-b383-b44818225e3c",
+      "name": "Singapore Customs",
+      "url": "https://www.customs.gov.sg",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "provisional",
+        "tier": 1,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "provisional",
+        "tier": 1,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "5b6638f6-2d10-4da9-99a1-47e1036a4770",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "url": "https://www.mpa.gov.sg/maritime-singapore/sustainability/maritime-singapore-green-initiative",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "7a31ea18-9109-44e5-8212-bdb772d32a89",
+      "name": "Ministry of Sustainability and the Environment (MSE), Singapore Government",
+      "url": "https://www.mse.gov.sg/resources/sgp-2030/",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "a62c0565-6dd3-4cb4-91c6-ead9584d73b2",
+      "name": "Singapore Government (Multi-Ministry)",
+      "url": "https://www.greenplan.gov.sg/",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 1,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "active",
+        "tier": 1,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "c49414da-7c9e-45cc-a629-f138166ecda5",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "url": "https://www.mpa.gov.sg/maritime-singapore/sustainability/maritime-singapore-decarbonisation-blueprint",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "8c9b7831-64fb-4cad-b4fb-85c431f767ed",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "url": "https://www.mpa.gov.sg/maritime-singapore/sustainability",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "d78a96bb-3f85-4ef5-aaf2-6ffe1481e108",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "url": "https://www.mpa.gov.sg/media-centre/details/no.-12-of-2024---revisions-to-the-maritime-singapore-green-initiative---green-ship-programme-for-singapore-registered-ships",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 1,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "active",
+        "tier": 1,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "97b289a9-b761-401f-8a17-9ec40cf92718",
+      "name": "Singapore Ministry of Transport (MOT)",
+      "url": "https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "active",
+        "tier": 2,
+        "admin_only": false
+      }
+    },
+    {
+      "id": "7c4fb882-7bb6-465d-b3b8-cc30ea82984b",
+      "name": "Singapore Carbon Tax — NEA",
+      "url": "https://www.nea.gov.sg/our-services/climate-change-energy-efficiency/climate-change/carbon-tax",
+      "pre": {
+        "jurisdiction_iso": [],
+        "status": "provisional",
+        "tier": 1,
+        "admin_only": false
+      },
+      "post": {
+        "jurisdiction_iso": [
+          "SG"
+        ],
+        "status": "provisional",
+        "tier": 1,
+        "admin_only": false
+      }
+    }
+  ]
+}
