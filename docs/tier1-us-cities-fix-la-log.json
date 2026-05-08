@@ -1,0 +1,71 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "pre_check_49b28864-8179-4107-b518-bf7d9130ce6a",
+      "ok": true,
+      "detail": "name=City of Los Angeles — Departments & Bureaus jurisdiction_iso=[\"US-CA\",\"US-LA\"]",
+      "at": "2026-05-08T02:44:17.558Z"
+    },
+    {
+      "name": "pre_check_de8eea1b-926b-4fec-9934-0675c4cd02de",
+      "ok": true,
+      "detail": "name=Los Angeles City Council jurisdiction_iso=[\"US-CA\",\"US-LA\"]",
+      "at": "2026-05-08T02:44:17.674Z"
+    },
+    {
+      "name": "pre_check_r31",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-CA\",\"US-LA\"]",
+      "at": "2026-05-08T02:44:17.798Z"
+    },
+    {
+      "name": "louisiana_state_baseline",
+      "ok": true,
+      "detail": "Louisiana state sources tagged US-LA (excluding LA city rows): 3; [\"Louisiana Department of Environmental Quality (LDEQ)\",\"Louisiana DOTD – State Freight Plan\",\"Louisiana State Legislature\"]",
+      "at": "2026-05-08T02:44:18.091Z"
+    },
+    {
+      "name": "update_source_49b28864-8179-4107-b518-bf7d9130ce6a",
+      "ok": true,
+      "detail": "set ['US-CA','US-LAX']",
+      "at": "2026-05-08T02:44:18.236Z"
+    },
+    {
+      "name": "verify_source_49b28864-8179-4107-b518-bf7d9130ce6a",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-CA\",\"US-LAX\"]",
+      "at": "2026-05-08T02:44:18.436Z"
+    },
+    {
+      "name": "update_source_de8eea1b-926b-4fec-9934-0675c4cd02de",
+      "ok": true,
+      "detail": "set ['US-CA','US-LAX']",
+      "at": "2026-05-08T02:44:18.568Z"
+    },
+    {
+      "name": "verify_source_de8eea1b-926b-4fec-9934-0675c4cd02de",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-CA\",\"US-LAX\"]",
+      "at": "2026-05-08T02:44:18.684Z"
+    },
+    {
+      "name": "update_r31",
+      "ok": true,
+      "detail": "set ['US-CA','US-LAX']",
+      "at": "2026-05-08T02:44:18.797Z"
+    },
+    {
+      "name": "verify_r31",
+      "ok": true,
+      "detail": "jurisdiction_iso=[\"US-CA\",\"US-LAX\"]",
+      "at": "2026-05-08T02:44:18.916Z"
+    },
+    {
+      "name": "louisiana_state_clean",
+      "ok": true,
+      "detail": "US-LA tagged sources after fix: 3 | LA-city pollution: 0",
+      "at": "2026-05-08T02:44:19.229Z"
+    }
+  ]
+}
