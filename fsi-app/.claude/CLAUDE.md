@@ -222,24 +222,44 @@ Phase B.2.5 surfaces:
 - Claude skill runs separately, not embedded
 - Light mode is default; dark mode is opt-in variant
 
-## Integrity flags — agent contract for design_drift (in force from 2026-05-07)
+## Integrity flags — agent contract (in force from 2026-05-07)
 
-When an agent detects code-vs-preview drift (a divergence between what `design_handoff_2026-04/preview/*.html` shows and what the live Next.js surface ships) and the dispatch context does not tell the agent which is intended, the agent does NOT route the question to Jason chat. Instead it writes a flag that admins resolve out-of-band.
+There are TWO distinct integrity-flag surfaces in this codebase. They are NOT interchangeable:
 
-The intent is: design drift is a real signal, but most resolutions are not blocking, and the system should accumulate them in a durable queue rather than interrupting active work.
+1. **Per-brief flags (migration 035)** — boolean columns ON `intelligence_items` (`agent_integrity_flag`, `agent_integrity_phrase`, `agent_integrity_flagged_at`, `agent_integrity_resolved_at`, `agent_integrity_resolved_by`). The full_brief trigger from migration 035 auto-detects integrity-concern phrases ("unable to verify", "could not confirm", etc.) and flips the flag. Admin resolution lives at `/admin → Integrity flags` (component: `IntegrityFlagsView.tsx`). Use this for problems with a SPECIFIC brief.
 
-**Schema status as of 2026-05-07.** The current implementation flags integrity concerns via boolean columns ON `intelligence_items` (`agent_integrity_flag`, `agent_integrity_phrase`, `agent_integrity_flagged_at`, `agent_integrity_resolved_at`, `agent_integrity_resolved_by`) — see migrations 035 and 044. There is NOT (as of this writing) a separate `integrity_flags` table with a `category` column; design-drift flags need a schema vehicle that doesn't currently exist on the data side.
+2. **Platform-level flags (migration 048)** — table `integrity_flags` with `category`, `subject_type`, `subject_ref`, `description`, `recommended_actions`, `status`. Admin queue lives at `/admin → Platform flags` (component: `PlatformIntegrityFlagsView.tsx`). Use this for concerns that AREN'T tied to a single intelligence_items row.
 
-**Until that vehicle lands**, agents that detect unresolvable design drift surface the finding in their dispatch verification log under a "design drift surfaced" heading with: surface affected, drift description, intended-use ambiguity, and recommended resolution options. The PR description carries the same. This keeps the signal durable in the audit trail even though there's no row to write yet.
+### When an agent surfaces a platform-level concern
 
-**When a design-drift integrity-flags vehicle ships** (separate dispatch — likely a new `integrity_flags` table with `category TEXT`, `description TEXT`, `surface TEXT`, `recommended_resolutions JSONB`, plus the same flagged_at / resolved_at / resolved_by columns the existing flags use), the contract becomes:
+When an agent detects a category-fitting concern it cannot resolve from dispatch context, it writes a row to `integrity_flags` via service-role INSERT. The flag becomes a tracked decision that survives session boundaries.
 
-- Agent writes a row with `category='design_drift'` plus the description, affected surface, and resolution options
-- Row appears in the Admin queue (`/admin` integrity sub-tab, alongside the existing agent-flagged briefs)
-- Admin (Jason) resolves the flag by picking a resolution option, which becomes the authoritative answer for future investigations of the same drift
-- Resolution writes back to the row with `agent_integrity_resolved_at` + `agent_integrity_resolved_by`
+Schema (per migration 048):
 
-The agent never writes to chat about a design drift it can't resolve. The flag IS the channel.
+```
+- category: design_drift | data_quality | source_issue | coverage_gap |
+            data_integrity | surface_concern
+- subject_type: surface | item | source | jurisdiction | system
+- subject_ref: route path | item_id | source_id | jurisdiction code |
+               system component name
+- description: human-readable description (1-3 sentences)
+- recommended_actions: jsonb array of {action, rationale}
+- status: open (default) | in_review | resolved | archived
+- created_by: agent identifier (e.g., "wave-4-a5-agent",
+              "wave-5-coverage-investigation")
+```
+
+Category guidance:
+- `design_drift` — preview HTML diverges from live surface, intended state ambiguous
+- `data_quality` — missing/malformed metadata across many rows
+- `source_issue` — source registry inconsistency (broken URL, miscategorized tier, unverified canonical)
+- `coverage_gap` — jurisdiction or topic with thin or zero coverage
+- `data_integrity` — cross-row referential or invariant break
+- `surface_concern` — UI/UX problem the agent surfaced during dispatch work
+
+Flags surface in `/admin → Platform flags` for owner review. Status flow: `open → in_review → resolved | archived`. The platform admin (Jason) resolves the flag by picking from `recommended_actions` and optionally adding a `resolution_note` — this becomes the authoritative answer for future investigations of the same concern.
+
+The agent never writes to chat about a category-fitting concern it can't resolve. The flag IS the channel.
 
 ## Known data debt
 
