@@ -138,7 +138,10 @@ export function LinkedItemsCard({
           justifyContent: "space-between",
         }}
       >
-        <span>Linked items</span>
+        {/* User-visible label is "Linked regulations" per walkthrough P0
+            rename. Component name stays LinkedItemsCard for backwards
+            compatibility with existing imports. */}
+        <span>Linked regulations</span>
         <span
           style={{
             fontSize: 9,
