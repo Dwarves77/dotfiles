@@ -1,0 +1,62 @@
+========================================================================
+E2E VERIFICATION — PRs #20–#23
+========================================================================
+Base URL:    http://localhost:3000
+Project ref: kwrsbpiseruzbfwjpvsp
+
+[auth] Using cached token (expires in 3003s, sub=a0764ff3...)
+[auth] admin user_id = a0764ff3-bba8-4442-b0a6-65f054796798
+
+
+── GROUP A: Polish wave fixes (audit verification) ──
+  [PASS] A1 UUID slug coverage — every materialized item has legacy_id
+  [PASS] A2 ACF dedup — orphan ACF UUID deleted
+  [PASS] A3 r10 archived with reason
+  [FAIL] A4 UUID → slug redirect for live item
+         Looked up id=42b8bfee-92ea-4cde-bfe9-a25eb7cb49d9 for legacy_id=w4_ca_sb253
+  [PASS] A5 Jurisdiction display shows 'California' on SB 253
+  [PASS] A6 Priority vocab — 'IMMEDIATE ACTION' editorial label rendered
+  [SKIP] A7 Filter chip toggle-to-isolate (browser-only)
+         Requires browser test (filter chip click handler).
+  [PASS] A8 Sector-match tooltip text present
+  [PASS] A9 Empty effective-date hidden
+  [FAIL] A10 AI Ask bar mounted on dashboard
+         Interactive chat behavior is browser-only; this verifies the component is mounted.
+
+── GROUP B: Block C community features (E2E) ──
+  [PASS] B1 Create test community group
+  [PASS] B2 POST /api/community/posts — create top-level post
+  [PASS] B3 GET /api/community/posts — read post back
+  [PASS] B4 PATCH /api/community/posts/{id} — edit body
+  [PASS] B5 POST /api/community/posts/{id}/replies — create reply
+  [PASS] B6 GET /api/community/posts/{id}/replies — list replies
+  [PASS] B7 POST /api/community/posts/{id}/reactions — expected 501
+  [PASS] B8 GET /api/community/notifications — list
+  [PASS] B9 GET /api/community/notifications/preferences
+  [PASS] B10 POST /api/community/moderation/reports — file report
+  [PASS] B11 GET /api/community/moderation/reports?status=open — list
+  [PASS] B12 POST /api/community/moderation/reports/{id} — dismiss
+  [PASS] B13 POST /api/community/posts/{id}/promote — staged kind
+  [SKIP] B14 Realtime hook (browser-only)
+         Requires browser-based realtime channel test. Hooks themselves are pure module imports verified at compile time.
+
+── GROUP C: Sanity checks on merged work ──
+  [PASS] C1 Migration 044 — integrity-flag retune (≤ 5 unresolved)
+  [PASS] C2 Migration 045 + EU inserts — 3 EU items present
+  [PASS] C3 Community DB has data — group + post counts
+
+── Cleanup ──
+  [cleanup] delete moderation_report: deleted 1 row(s)
+  [cleanup] delete post_promotion: deleted 1 row(s)
+  [cleanup] delete staged_update: deleted 1 row(s)
+  [cleanup] delete community_posts (post + reply): deleted 2 row(s)
+  [cleanup] delete community_group_members: deleted 1 row(s)
+  [cleanup] delete community_group: deleted 1 row(s)
+
+========================================================================
+RESULT
+========================================================================
+Total: 27  Passed: 20  Failed: 5  Skipped: 2  Fail rate: 18.5%
+
+JSON report: C:\Users\jason\dotfiles\docs\E2E-VERIFICATION.json
+MD report:   C:\Users\jason\dotfiles\docs\E2E-VERIFICATION.md

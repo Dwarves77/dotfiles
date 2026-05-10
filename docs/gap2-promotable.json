@@ -1,0 +1,3746 @@
+{
+  "promotable": [
+    {
+      "url": "https://www.gnb.ca/en/topic/driving-transportation/commercial-transportation.html",
+      "name": "New Brunswick Commercial Transportation – gnb.ca",
+      "rel": 75,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NB"
+    },
+    {
+      "url": "https://nbeub.ca/",
+      "name": "New Brunswick Energy and Utilities Board (NBEUB)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NB"
+    },
+    {
+      "url": "http://www.pub.nl.ca/",
+      "name": "Newfoundland and Labrador Board of Commissioners of Public Utilities (PUB)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NL"
+    },
+    {
+      "url": "https://novascotia.ca/just/regulations/index.htm",
+      "name": "Nova Scotia Office of the Registrar of Regulations (Royal Gazette Part II)",
+      "rel": 85,
+      "frt": 70,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NS"
+    },
+    {
+      "url": "https://www.fin.gov.nt.ca/en/services/licences-taxes-and-fees/fuel-tax",
+      "name": "Government of Northwest Territories – Department of Finance (Fuel Tax)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NT"
+    },
+    {
+      "url": "https://nwtpublicutilitiesboard.ca/",
+      "name": "NWT Public Utilities Board",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "CA-NT"
+    },
+    {
+      "url": "https://www.nunavutmarinecouncil.com/resources/legislation-and-policies/",
+      "name": "Nunavut Marine Council (NMC)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NU"
+    },
+    {
+      "url": "https://www.princeedwardisland.ca/en/topic/environment-energy-and-climate-action",
+      "name": "PEI Department of Environment, Energy and Climate Action",
+      "rel": 75,
+      "frt": 55,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "CA-PE"
+    },
+    {
+      "url": "https://laws.yukon.ca/",
+      "name": "Yukon Legislation Registry (laws.yukon.ca)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "CA-YT"
+    },
+    {
+      "url": "https://www.e-sbirka.cz/",
+      "name": "Sbírka zákonů a mezinárodních smluv – e-Sbírka (Czech Official Gazette / Collection of Laws)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://md.gov.cz/?lang=en-GB",
+      "name": "Ministry of Transport of the Czech Republic (Ministerstvo dopravy ČR)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://www.bmwk.de/Navigation/EN/Home/home.html",
+      "name": "Bundesministerium für Wirtschaft und Klimaschutz (Federal Ministry for Economic Affairs and Climate Action, BMWK)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DE"
+    },
+    {
+      "url": "https://www.kba.de/EN/DasKBA_en/daskba_node_en.html",
+      "name": "Kraftfahrt-Bundesamt (Federal Motor Transport Authority, KBA)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DE"
+    },
+    {
+      "url": "https://www.bmv.de/EN",
+      "name": "Bundesministerium für Verkehr (Federal Ministry for Transport, BMV)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DE"
+    },
+    {
+      "url": "https://www.danishshipping.dk/en",
+      "name": "Danish Shipping (Danmarks Rederiforening)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://www.retsinformation.dk/",
+      "name": "Retsinformation – Danish Official Legal Gazette",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://toldst.dk/en-us",
+      "name": "Danish Customs Agency (Toldstyrelsen)",
+      "rel": 75,
+      "frt": 72,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://kefm.dk/en/",
+      "name": "Ministry of Climate, Energy and Utilities (Klima-, Energi- og Forsyningsministeriet)",
+      "rel": 92,
+      "frt": 68,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://www.danishroadtrafficauthority.dk/",
+      "name": "Danish Road Traffic Authority (Færdselsstyrelsen)",
+      "rel": 85,
+      "frt": 80,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://danishbusinessauthority.dk/inclusion-maritime-sector-eu-ets",
+      "name": "Danish Business Authority (Erhvervsstyrelsen)",
+      "rel": 92,
+      "frt": 88,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://www.dma.dk/environment-and-climate",
+      "name": "Danish Maritime Authority (Søfartsstyrelsen)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://www.riigiteataja.ee/en",
+      "name": "Riigi Teataja (State Gazette)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "EE"
+    },
+    {
+      "url": "https://www.transpordiamet.ee/en",
+      "name": "Estonian Transport Administration (Transpordiamet)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "EE"
+    },
+    {
+      "url": "https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/sistema-espanol-de-inventario-sei-.html",
+      "name": "Spanish Emissions Inventory System — SIEAA (Sistema Español de Inventario de Emisiones)",
+      "rel": 92,
+      "frt": 68,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "ES"
+    },
+    {
+      "url": "https://www.boe.es",
+      "name": "Boletín Oficial del Estado (BOE) — Official State Gazette",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "ES"
+    },
+    {
+      "url": "https://www.finlex.fi/en",
+      "name": "Finlex – Official Statute Book and Regulatory Database",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FI"
+    },
+    {
+      "url": "https://ym.fi/en/front-page",
+      "name": "Ministry of the Environment Finland (YM)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FI"
+    },
+    {
+      "url": "https://lvm.fi/en/home",
+      "name": "Ministry of Transport and Communications Finland (LVM)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FI"
+    },
+    {
+      "url": "https://www.afnor.org/climat-et-decarbonation/secteur-transport-logistique/",
+      "name": "Association Française de Normalisation (AFNOR)",
+      "rel": 75,
+      "frt": 80,
+      "trust": "T3",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://www.cre.fr",
+      "name": "Commission de Régulation de l'Énergie (CRE)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://www.douane.gouv.fr",
+      "name": "Direction Générale des Douanes et Droits Indirects (DGDDI) — Douane Française",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://www.ecologie.gouv.fr/direction-generale-lenergie-et-du-climat-dgec",
+      "name": "Direction Générale de l'Énergie et du Climat (DGEC)",
+      "rel": 92,
+      "frt": 72,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://www.ecologie.gouv.fr/direction-generale-des-infrastructures-des-transports-et-des-mobilites-dgitm",
+      "name": "Ministère de la Transition Écologique et de la Cohésion des Territoires (MTE) — Direction Générale des Infrastructures, des Transports et des Mobilités (DGITM)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://www.et.gr/",
+      "name": "Hellenic Government Gazette (Efimeris tis Kyvernis – ET.GR)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "GR"
+    },
+    {
+      "url": "https://njt.hu/",
+      "name": "Nemzeti Jogszabálytár (National Legal Register – consolidated legislation in force)",
+      "rel": 75,
+      "frt": 55,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "HU"
+    },
+    {
+      "url": "https://magyarkozlony.hu/",
+      "name": "Magyar Közlöny (Hungarian Official Gazette)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "HU"
+    },
+    {
+      "url": "https://www.irishstatutebook.ie",
+      "name": "Irish Statute Book (Office of the Attorney General)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IE"
+    },
+    {
+      "url": "https://www.gov.ie/en/organisation/department-of-transport/",
+      "name": "Department of Transport (Ireland)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IE"
+    },
+    {
+      "url": "https://www.gazzettaufficiale.it",
+      "name": "Gazzetta Ufficiale della Repubblica Italiana – Official Gazette of the Italian Republic",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IT"
+    },
+    {
+      "url": "https://www.mase.gov.it",
+      "name": "Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Ministry of Environment and Energy Security",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "IT"
+    },
+    {
+      "url": "https://www.mit.gov.it/en",
+      "name": "Ministero delle Infrastrutture e dei Trasporti (MIT) – Ministry of Infrastructure and Transport",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IT"
+    },
+    {
+      "url": "https://gamta.lt/en",
+      "name": "Environmental Protection Agency of Lithuania (Aplinkos apsaugos agentūra – AAA)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LT"
+    },
+    {
+      "url": "https://www.ilr.lu/en",
+      "name": "Institut Luxembourgeois de Régulation (ILR – Luxembourg Regulatory Institute)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://mecb.gouvernement.lu/en.html",
+      "name": "Ministry of the Environment, Climate and Biodiversity (Ministère de l'Environnement, du Climat et de la Biodiversité – MECB)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://transports.public.lu/en.html",
+      "name": "Department of Transport – Transports.public.lu (Direction générale de la Mobilité, des Transports et des Infrastructures de Transport)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://mmtp.gouvernement.lu/en.html",
+      "name": "Ministry of Mobility and Public Works (Ministère de la Mobilité et des Travaux publics – MMTP)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://likumi.lv",
+      "name": "Latvian Laws and Regulations Portal (likumi.lv)",
+      "rel": 75,
+      "frt": 55,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://www.vestnesis.lv",
+      "name": "Official Gazette of Latvia (Latvijas Vēstnesis)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://www.saeima.lv/en",
+      "name": "Saeima (Parliament of the Republic of Latvia) – Legislative Portal",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://www.sam.gov.lv/en",
+      "name": "Ministry of Transport of the Republic of Latvia (Satiksmes ministrija)",
+      "rel": 75,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://legislation.mt",
+      "name": "Laws of Malta (legislation.mt) – Official Consolidated Legislation Portal",
+      "rel": 75,
+      "frt": 55,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "MT"
+    },
+    {
+      "url": "https://www.portofrotterdam.com/en",
+      "name": "Port of Rotterdam Authority (Havenbedrijf Rotterdam)",
+      "rel": 75,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "NL"
+    },
+    {
+      "url": "https://english.ilent.nl/",
+      "name": "Human Environment and Transport Inspectorate (Inspectie Leefomgeving en Transport – ILT)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "NL"
+    },
+    {
+      "url": "https://www.government.nl/ministries/ministry-of-infrastructure-and-water-management",
+      "name": "Ministry of Infrastructure and Water Management (Ministerie van Infrastructuur en Waterstaat – I&W)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "NL"
+    },
+    {
+      "url": "https://www.emissionsauthority.nl/",
+      "name": "Dutch Emissions Authority (Nederlandse Emissieautoriteit – NEa)",
+      "rel": 95,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "NL"
+    },
+    {
+      "url": "https://puesc.gov.pl/en",
+      "name": "Polish Customs / National Revenue Administration – PUESC Portal (Platforma Usług Elektronicznych Skarbowo-Celnych)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PL"
+    },
+    {
+      "url": "https://www.kobize.pl/en",
+      "name": "National Centre for Emissions Management (KOBiZE – Krajowy Ośrodek Bilansowania i Zarządzania Emisjami)",
+      "rel": 95,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PL"
+    },
+    {
+      "url": "https://dre.pt",
+      "name": "Diário da República Eletrónico (DRE – Official Gazette)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://www.ense-epe.pt",
+      "name": "Entidade Nacional para o Setor Energético (ENSE – National Entity for the Energy Sector)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://www.imt-ip.pt",
+      "name": "Instituto da Mobilidade e dos Transportes (IMT – Institute for Mobility and Transport)",
+      "rel": 75,
+      "frt": 72,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://www.dgrm.pt/en",
+      "name": "Direção-Geral de Recursos Naturais, Segurança e Serviços Marítimos (DGRM)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://apambiente.pt/en",
+      "name": "Agência Portuguesa do Ambiente (Portuguese Environment Agency – APA)",
+      "rel": 92,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://www.rna.ro/",
+      "name": "Romanian Naval Authority – ANR (Autoritatea Navală Română)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "RO"
+    },
+    {
+      "url": "https://www.tullverket.se/en/",
+      "name": "Swedish Customs (Tullverket)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://www.riksdagen.se/en/documents-and-laws/",
+      "name": "Swedish Parliament (Sveriges Riksdag) – Documents & Laws",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://www.naturvardsverket.se/en/",
+      "name": "Swedish Environmental Protection Agency (Naturvårdsverket)",
+      "rel": 85,
+      "frt": 55,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://www.energimyndigheten.se/en/",
+      "name": "Swedish Energy Agency (Energimyndigheten)",
+      "rel": 92,
+      "frt": 68,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://www.trafikverket.se/en/startpage/",
+      "name": "Swedish Transport Administration (Trafikverket)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://www.transportstyrelsen.se/en/",
+      "name": "Swedish Transport Agency (Transportstyrelsen)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://www.gov.si/en/registries/projects/the-recovery-and-resilience-plan/about-the-recovery-and-resilience-plan/green-transition/sustainable-mobility/",
+      "name": "Government of the Republic of Slovenia – GOV.SI (Sustainable Mobility / Recovery and Resilience Plan)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SI"
+    },
+    {
+      "url": "https://www.uradni-list.si/",
+      "name": "Uradni list Republike Slovenije – Official Gazette of the Republic of Slovenia",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SI"
+    },
+    {
+      "url": "https://www.gov.si/en/state-authorities/ministries/ministry-of-the-environment-climate-and-energy/",
+      "name": "Ministry of the Environment, Climate and Energy (Ministrstvo za okolje, podnebje in energijo)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SI"
+    },
+    {
+      "url": "https://www.siea.sk/en/",
+      "name": "Slovak Innovation and Energy Agency (Slovenská inovačná a energetická agentúra – SIEA)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "SK"
+    },
+    {
+      "url": "https://www.slov-lex.sk/domov",
+      "name": "SLOV-LEX – Legislative and Information Portal / Zbierka zákonov (Official Gazette of the Slovak Republic)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "SK"
+    },
+    {
+      "url": "https://nsat.sk/en/home/",
+      "name": "Transport Authority of the Slovak Republic (Dopravný úrad / NSAT)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SK"
+    },
+    {
+      "url": "https://www.mindop.sk/en/",
+      "name": "Ministry of Transport and Construction of the Slovak Republic (Ministerstvo dopravy a výstavby SR)",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SK"
+    },
+    {
+      "url": "https://dcpsc.org",
+      "name": "Public Service Commission of the District of Columbia (DCPSC)",
+      "rel": 82,
+      "frt": 68,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-DC"
+    },
+    {
+      "url": "https://freight.ddot.dc.gov",
+      "name": "DC District Department of Transportation – Freight Branch (DDOT Freight)",
+      "rel": 75,
+      "frt": 95,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-DC"
+    },
+    {
+      "url": "https://www.wilmapco.org/",
+      "name": "Wilmington Area Planning Council (WILMAPCO)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-DE"
+    },
+    {
+      "url": "https://www.leg.state.fl.us/",
+      "name": "Florida Legislature – Online Sunshine (Statutes & Session Laws)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-FL"
+    },
+    {
+      "url": "https://www.psc.state.fl.us/",
+      "name": "Florida Public Service Commission (FPSC)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-FL"
+    },
+    {
+      "url": "https://www.flrules.org/",
+      "name": "Florida Administrative Register / Florida Administrative Code (flrules.org)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-FL"
+    },
+    {
+      "url": "https://www.legis.ga.gov",
+      "name": "Georgia General Assembly – Legislative Portal",
+      "rel": 75,
+      "frt": 70,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-GA"
+    },
+    {
+      "url": "https://legislature.idaho.gov/statutesrules/",
+      "name": "Idaho State Legislature – Statutes & Rules Portal",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-ID"
+    },
+    {
+      "url": "https://louisianacleanfuels.org",
+      "name": "Louisiana Clean Fuels / Southeast Louisiana Clean Fuel Partnership",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-LA"
+    },
+    {
+      "url": "https://www.transportationandclimate.org/",
+      "name": "Transportation and Climate Initiative (TCI) – Regional Program",
+      "rel": 85,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MA"
+    },
+    {
+      "url": "https://www.masscec.com/masscec-focus/clean-transportation",
+      "name": "Massachusetts Clean Energy Center (MassCEC)",
+      "rel": 85,
+      "frt": 72,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MA"
+    },
+    {
+      "url": "https://www.massport.com/environment",
+      "name": "Massachusetts Port Authority (Massport)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MA"
+    },
+    {
+      "url": "https://www.mainelegislature.org/legis/statutes/38/title38sec576-A.html",
+      "name": "Maine Legislature – Title 38 §576-A Greenhouse Gas Emissions Reductions",
+      "rel": 92,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-ME"
+    },
+    {
+      "url": "https://ars.apps.lara.state.mi.us/AdminCode/",
+      "name": "Michigan Office of Regulatory Reinvention (ORR) – Michigan Administrative Code",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-MI"
+    },
+    {
+      "url": "https://www.minnesotago.org/final-plans/state-freight-plan",
+      "name": "Minnesota GO – State Freight Plan Portal (MnDOT)",
+      "rel": 75,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MN"
+    },
+    {
+      "url": "https://metrocouncil.org/Transportation/Planning-2/Key-Transportation-Planning-Documents/Transportation-Policy-Plan.aspx",
+      "name": "Metropolitan Council – Transportation Policy Plan (Twin Cities MPO)",
+      "rel": 75,
+      "frt": 55,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MN"
+    },
+    {
+      "url": "https://www.dot.state.mn.us/sustainability/",
+      "name": "MnDOT Office of Sustainability and Public Health",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MN"
+    },
+    {
+      "url": "https://www.pca.state.mn.us/",
+      "name": "Minnesota Pollution Control Agency (MPCA)",
+      "rel": 92,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MN"
+    },
+    {
+      "url": "https://pub.njleg.gov/",
+      "name": "New Jersey Legislature – Office of Legislative Services (Bill/Statute Publication)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-NJ"
+    },
+    {
+      "url": "https://cleanenergy.nj.gov/programs/electric-vehicles/",
+      "name": "NJ Clean Energy Program (NJBPU/cleanenergy.nj.gov)",
+      "rel": 85,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-NJ"
+    },
+    {
+      "url": "https://www.leg.state.nv.us",
+      "name": "Nevada Legislature – Nevada Revised Statutes / Nevada Administrative Code",
+      "rel": 85,
+      "frt": 70,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-NV"
+    },
+    {
+      "url": "https://morpc.org",
+      "name": "Mid-Ohio Regional Planning Commission (MORPC)",
+      "rel": 75,
+      "frt": 55,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-OH"
+    },
+    {
+      "url": "https://www.prpa.pr.gov",
+      "name": "Puerto Rico Ports Authority (PRPA / Autoridad de los Puertos)",
+      "rel": 75,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-PR"
+    },
+    {
+      "url": "https://energia.pr.gov",
+      "name": "Puerto Rico Energy Bureau (PREB / Negociado de Energía de Puerto Rico)",
+      "rel": 92,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-PR"
+    },
+    {
+      "url": "https://sdlegislature.gov/Statutes",
+      "name": "South Dakota Legislature – Codified Laws (SDCL)",
+      "rel": 85,
+      "frt": 75,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-SD"
+    },
+    {
+      "url": "https://www.tncleanfuels.org/",
+      "name": "Tennessee Clean Fuels (ETCleanFuels / Middle-West TN Clean Fuels Coalition)",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-TN"
+    },
+    {
+      "url": "https://publications.tnsosfiles.com/rules/1200/1200-03/1200-03.htm",
+      "name": "Tennessee Secretary of State – Official Rules & Regulations (tnsosfiles.com)",
+      "rel": 88,
+      "frt": 72,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-TN"
+    },
+    {
+      "url": "https://www.h-gac.com/freight-planning",
+      "name": "Houston-Galveston Area Council (H-GAC) – Freight Planning",
+      "rel": 75,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-TX"
+    },
+    {
+      "url": "https://www.portseattle.org/page/northwest-ports-clean-air-strategy",
+      "name": "Port of Seattle – Environment & Sustainability",
+      "rel": 88,
+      "frt": 92,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-WA"
+    },
+    {
+      "url": "https://www.nwseaportalliance.com/environment/clean-air",
+      "name": "Northwest Seaport Alliance (NWSA)",
+      "rel": 85,
+      "frt": 95,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-WA"
+    },
+    {
+      "url": "https://pscleanair.gov",
+      "name": "Puget Sound Clean Air Agency (PSCAA)",
+      "rel": 92,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-WA"
+    },
+    {
+      "url": "https://wyoleg.gov/",
+      "name": "Wyoming Legislature – Session Laws & Statutes",
+      "rel": 75,
+      "frt": 65,
+      "trust": "T1",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-WY"
+    }
+  ],
+  "review": [
+    {
+      "url": "https://arena.gov.au/",
+      "name": "Australian Renewable Energy Agency (ARENA)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "AU-ACT"
+    },
+    {
+      "url": "https://www.cleanenergyregulator.gov.au",
+      "name": "Clean Energy Regulator (AU – national pointer)",
+      "rel": 92,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "AU-WA"
+    },
+    {
+      "url": "https://www.wa.gov.au/organisation/department-of-water-and-environmental-regulation",
+      "name": "Department of Water and Environmental Regulation (DWER)",
+      "rel": 78,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "AU-WA"
+    },
+    {
+      "url": "https://www.gnb.ca/en/org/transportation-infrastructure.html",
+      "name": "New Brunswick Department of Transportation and Infrastructure",
+      "rel": 72,
+      "frt": 68,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NB"
+    },
+    {
+      "url": "https://laws.gnb.ca/en",
+      "name": "New Brunswick Acts and Regulations (Attorney General / laws.gnb.ca)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NB"
+    },
+    {
+      "url": "https://www.gnb.ca/en/org/environment-local-government.html",
+      "name": "New Brunswick Department of Environment and Local Government",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NB"
+    },
+    {
+      "url": "https://www.gov.nl.ca/ecc/env-assessment/",
+      "name": "Government of Newfoundland and Labrador – Department of Environment, Conservation and Climate Change – Environmental Assessment Division",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NL"
+    },
+    {
+      "url": "https://jrta.ca/",
+      "name": "Link Nova Scotia (Joint Regional Transportation Agency)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NS"
+    },
+    {
+      "url": "https://nserbt.ca/nseb/about/about-nova-scotia-energy-board",
+      "name": "Nova Scotia Energy and Regulatory Boards Tribunal – Nova Scotia Energy Board",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NS"
+    },
+    {
+      "url": "https://novascotia.ca/government/public-works/",
+      "name": "Nova Scotia Department of Public Works (Transportation)",
+      "rel": 72,
+      "frt": 68,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NS"
+    },
+    {
+      "url": "https://climatechange.novascotia.ca/",
+      "name": "Climate Change Nova Scotia (NS Dept. of Environment and Climate Change – Climate Change Unit)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NS"
+    },
+    {
+      "url": "https://novascotia.ca/nse/",
+      "name": "Nova Scotia Department of Environment and Climate Change",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NS"
+    },
+    {
+      "url": "https://www.justice.gov.nt.ca/en/northwest-territories-gazette/",
+      "name": "Northwest Territories Gazette (Department of Justice – Legislation Division)",
+      "rel": 65,
+      "frt": 55,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NT"
+    },
+    {
+      "url": "https://www.gov.nt.ca/ecc/en",
+      "name": "Government of Northwest Territories – Department of Environment and Climate Change (ECC)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NT"
+    },
+    {
+      "url": "https://www.nunavut.ca/en",
+      "name": "Nunavut Planning Commission (NPC)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NU"
+    },
+    {
+      "url": "https://www.qec.nu.ca",
+      "name": "Qulliq Energy Corporation (QEC)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NU"
+    },
+    {
+      "url": "https://www.nwb-oen.ca",
+      "name": "Nunavut Water Board (NWB)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NU"
+    },
+    {
+      "url": "https://www.nirb.ca",
+      "name": "Nunavut Impact Review Board (NIRB)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-NU"
+    },
+    {
+      "url": "https://www.princeedwardisland.ca/en/topic/climate-change",
+      "name": "PEI Climate Change portal",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "CA-PE"
+    },
+    {
+      "url": "https://www.yesab.ca/",
+      "name": "Yukon Environmental and Socio-economic Assessment Board (YESAB)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CA-YT"
+    },
+    {
+      "url": "https://www.sfzp.cz/en/",
+      "name": "State Environmental Fund of the Czech Republic (Státní fond životního prostředí ČR – SFŽP)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://www.cizp.cz/",
+      "name": "Czech Environmental Inspection (Česká inspekce životního prostředí – ČIŽP)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://unmz.gov.cz/en/",
+      "name": "Czech Office for Standards, Metrology and Testing (ÚNMZ)",
+      "rel": 65,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://eru.gov.cz/en",
+      "name": "Energy Regulatory Office of the Czech Republic (Energetický regulační úřad – ERÚ)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://www.chmi.cz/?tab=1&l=en",
+      "name": "Czech Hydrometeorological Institute (ČHMÚ / CHMI)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://mpo.gov.cz/en/",
+      "name": "Ministry of Industry and Trade of the Czech Republic (Ministerstvo průmyslu a obchodu ČR)",
+      "rel": 72,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "CZ"
+    },
+    {
+      "url": "https://www.din.de/en",
+      "name": "DIN Deutsches Institut für Normung (German Institute for Standardization)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DE"
+    },
+    {
+      "url": "https://www.bundesnetzagentur.de/EN/General/Bundesnetzagentur/start.html",
+      "name": "Bundesnetzagentur (Federal Network Agency)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DE"
+    },
+    {
+      "url": "https://www.umweltbundesamt.de/en/topics/transport",
+      "name": "Umweltbundesamt (German Environment Agency, UBA)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DE"
+    },
+    {
+      "url": "https://www.ds.dk/en",
+      "name": "Danish Standards Foundation (Dansk Standard – DS)",
+      "rel": 65,
+      "frt": 35,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://www.trm.dk/en/",
+      "name": "Ministry of Transport (Transportministeriet)",
+      "rel": 65,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://www.en.trafikstyrelsen.dk/",
+      "name": "Danish Civil Aviation and Railway Authority (Trafikstyrelsen)",
+      "rel": 65,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://ens.dk/en",
+      "name": "Danish Energy Agency (Energistyrelsen)",
+      "rel": 95,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "DK"
+    },
+    {
+      "url": "https://www.keskkonnaagentuur.ee/en",
+      "name": "Estonian Environment Agency (Keskkonnaagentuur)",
+      "rel": 82,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "EE"
+    },
+    {
+      "url": "https://keskkonnaamet.ee/en",
+      "name": "Environmental Board (Keskkonnaamet)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "EE"
+    },
+    {
+      "url": "https://kliimaministeerium.ee/en",
+      "name": "Ministry of Climate (Kliimaministeerium)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "EE"
+    },
+    {
+      "url": "https://www.idae.es",
+      "name": "Institute for Energy Diversification and Saving (IDAE — Instituto para la Diversificación y Ahorro de la Energía)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "ES"
+    },
+    {
+      "url": "https://www.puertos.es/en",
+      "name": "Puertos del Estado (State Ports Authority)",
+      "rel": 65,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "ES"
+    },
+    {
+      "url": "https://www.miteco.gob.es",
+      "name": "Ministry for Ecological Transition and Demographic Challenge (MITECO — Ministerio para la Transición Ecológica y el Reto Demográfico)",
+      "rel": 88,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "ES"
+    },
+    {
+      "url": "https://www.syke.fi/en",
+      "name": "Finnish Environment Institute (SYKE)",
+      "rel": 85,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FI"
+    },
+    {
+      "url": "https://energiavirasto.fi/en/frontpage",
+      "name": "Finnish Energy Authority (Energiavirasto)",
+      "rel": 92,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FI"
+    },
+    {
+      "url": "https://www.autorite-transports.fr",
+      "name": "Autorité de Régulation des Transports (ART)",
+      "rel": 70,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://www.citepa.org/en/",
+      "name": "Centre Interprofessionnel Technique d'Études de la Pollution Atmosphérique (CITEPA)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://internet.kozut.hu/en/",
+      "name": "Hungarian Public Roads Nonprofit Zrt. (Magyar Közút)",
+      "rel": 65,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "HU"
+    },
+    {
+      "url": "https://www.cru.ie",
+      "name": "Commission for Regulation of Utilities (CRU)",
+      "rel": 85,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IE"
+    },
+    {
+      "url": "https://www.nora.ie",
+      "name": "National Oil Reserves Agency (NORA)",
+      "rel": 65,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IE"
+    },
+    {
+      "url": "https://www.climatecouncil.ie",
+      "name": "Climate Change Advisory Council (CCAC)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IE"
+    },
+    {
+      "url": "https://www.gov.ie/en/department-of-climate-energy-and-the-environment/",
+      "name": "Department of Climate, Energy and the Environment (DCEE)",
+      "rel": 92,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IE"
+    },
+    {
+      "url": "https://www.epa.ie",
+      "name": "Environmental Protection Agency (EPA) Ireland",
+      "rel": 92,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IE"
+    },
+    {
+      "url": "https://www.isprambiente.gov.it/en",
+      "name": "ISPRA – Istituto Superiore per la Protezione e la Ricerca Ambientale (Institute for Environmental Protection and Research)",
+      "rel": 78,
+      "frt": 32,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "IT"
+    },
+    {
+      "url": "https://acf.gouvernement.lu/fr.html",
+      "name": "Administration des Chemins de Fer (ACF – Railway Administration)",
+      "rel": 65,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://www.klima-agence.lu/en/",
+      "name": "Klima-Agence (National Energy and Climate Agency)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://do.gouvernement.lu/en.html",
+      "name": "Customs and Excise Agency (Administration des douanes et accises – ADA)",
+      "rel": 65,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://environnement.public.lu/fr.html",
+      "name": "Environment Portal – emwelt.lu (Portail de l'environnement)",
+      "rel": 85,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://aev.gouvernement.lu/fr.html",
+      "name": "Administration de l'environnement (Environment Administration – AEV)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LU"
+    },
+    {
+      "url": "https://www.vvd.gov.lv/en",
+      "name": "State Environmental Bureau (Valsts vides dienests – VVD)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://www.kem.gov.lv/en",
+      "name": "Ministry of Climate and Energy of Latvia (Klimata un enerģētikas ministrija)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://www.lvgmc.lv/en",
+      "name": "Latvian Environment Agency (Latvijas Vides aģentūra – LEA)",
+      "rel": 72,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://www.varam.gov.lv/en/global-climate-change",
+      "name": "Ministry of Smart Administration and Regional Development – Climate Change Division (Viedās administrācijas un reģionālās attīstības ministrija)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "LV"
+    },
+    {
+      "url": "https://www.nen.nl/en/",
+      "name": "Netherlands Standardisation Institute (NEN)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "NL"
+    },
+    {
+      "url": "https://www.pbl.nl/en",
+      "name": "Netherlands Environmental Assessment Agency (Planbureau voor de Leefomgeving – PBL)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "NL"
+    },
+    {
+      "url": "https://english.rvo.nl/",
+      "name": "Netherlands Enterprise Agency – RVO (Rijksdienst voor Ondernemend Nederland)",
+      "rel": 72,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "NL"
+    },
+    {
+      "url": "https://www.gios.gov.pl/en/",
+      "name": "Chief Inspectorate for Environmental Protection (GIOŚ – Główny Inspektorat Ochrony Środowiska)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PL"
+    },
+    {
+      "url": "https://www.pkn.pl/en",
+      "name": "Polish Committee for Standardization (PKN – Polski Komitet Normalizacyjny)",
+      "rel": 65,
+      "frt": 45,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PL"
+    },
+    {
+      "url": "https://www.gddkia.gov.pl/en/",
+      "name": "General Directorate for National Roads and Motorways (GDDKiA – Generalna Dyrekcja Dróg Krajowych i Autostrad)",
+      "rel": 65,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "PL"
+    },
+    {
+      "url": "https://www.ure.gov.pl/en",
+      "name": "Energy Regulatory Office (URE – Urząd Regulacji Energetyki)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PL"
+    },
+    {
+      "url": "https://www.gov.pl/web/climate",
+      "name": "Ministry of Climate and Environment (Ministerstwo Klimatu i Środowiska)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "PL"
+    },
+    {
+      "url": "https://www.igamaot.gov.pt",
+      "name": "Inspeção-Geral da Agricultura, do Mar, do Ambiente e do Ordenamento do Território (IGAMAOT)",
+      "rel": 82,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://www.erse.pt",
+      "name": "Entidade Reguladora dos Serviços Energéticos (ERSE – Energy Services Regulatory Authority)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://www.dgeg.gov.pt",
+      "name": "Direção-Geral de Energia e Geologia (DGEG – Directorate-General for Energy and Geology)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "PT"
+    },
+    {
+      "url": "https://www.gnm.ro/",
+      "name": "National Environmental Guard – GNM (Garda Națională de Mediu)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "RO"
+    },
+    {
+      "url": "https://www.arr.ro/",
+      "name": "Romanian Road Transport Authority – ARR (Autoritatea Rutieră Română)",
+      "rel": 65,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "RO"
+    },
+    {
+      "url": "https://www.mmediu.ro/",
+      "name": "Ministry of Environment, Waters and Forests (Ministerul Mediului, Apelor și Pădurilor)",
+      "rel": 85,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "RO"
+    },
+    {
+      "url": "https://www.sis.se/en/",
+      "name": "Swedish Standards Institute (SIS)",
+      "rel": 72,
+      "frt": 45,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://www.trafa.se/en/",
+      "name": "Transport Analysis (Trafikanalys)",
+      "rel": 65,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SE"
+    },
+    {
+      "url": "https://kazalci.arso.gov.si/en/content/sustainable-freight-transport-2",
+      "name": "ARSO Environmental Indicators Portal (Kazalci okolja) – Sustainable Freight Transport",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SI"
+    },
+    {
+      "url": "https://www.agen-rs.si/web/en",
+      "name": "Energy Agency of the Republic of Slovenia (AGEN-RS)",
+      "rel": 82,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SI"
+    },
+    {
+      "url": "https://www.arso.gov.si/en/",
+      "name": "Slovenian Environment Agency (Agencija Republike Slovenije za okolje – ARSO)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SI"
+    },
+    {
+      "url": "https://www.mhsr.sk/en",
+      "name": "Ministry of Economy of the Slovak Republic (Ministerstvo hospodárstva SR)",
+      "rel": 72,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SK"
+    },
+    {
+      "url": "https://www.urso.gov.sk/en/",
+      "name": "Regulatory Office for Network Industries – Slovakia (Úrad pre reguláciu sieťových odvetví – ÚRSO)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SK"
+    },
+    {
+      "url": "https://www.minzp.sk/en/",
+      "name": "Ministry of the Environment of the Slovak Republic (Ministerstvo životného prostredia SR)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SK"
+    },
+    {
+      "url": "https://www.aspower.com",
+      "name": "American Samoa Power Authority (ASPA)",
+      "rel": 65,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-AS"
+    },
+    {
+      "url": "https://www.americansamoa.gov/territorial-energy-office",
+      "name": "American Samoa Territorial Energy Office",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-AS"
+    },
+    {
+      "url": "https://www.asepa.gov",
+      "name": "American Samoa Environmental Protection Agency (AS-EPA)",
+      "rel": 85,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-AS"
+    },
+    {
+      "url": "https://ddot.dc.gov",
+      "name": "DC District Department of Transportation (DDOT)",
+      "rel": 65,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-DC"
+    },
+    {
+      "url": "https://doee.dc.gov",
+      "name": "DC Department of Energy & Environment (DOEE)",
+      "rel": 88,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-DC"
+    },
+    {
+      "url": "https://southeastfloridaclimatecompact.org/",
+      "name": "Southeast Florida Regional Climate Change Compact",
+      "rel": 82,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-FL"
+    },
+    {
+      "url": "https://www.cleanairforce.com",
+      "name": "Georgia Clean Air Force (GCAF)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-GA"
+    },
+    {
+      "url": "https://atlantaregional.org",
+      "name": "Atlanta Regional Commission (ARC)",
+      "rel": 72,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-GA"
+    },
+    {
+      "url": "https://psc.state.ga.us",
+      "name": "Georgia Public Service Commission (PSC)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-GA"
+    },
+    {
+      "url": "https://gaports.com/sustainability/",
+      "name": "Georgia Ports Authority (GPA)",
+      "rel": 72,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-GA"
+    },
+    {
+      "url": "https://guampowerauthority.com",
+      "name": "Guam Power Authority (GPA)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-GU"
+    },
+    {
+      "url": "https://hidot.hawaii.gov/harbors/",
+      "name": "HDOT Harbors Division",
+      "rel": 65,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-HI"
+    },
+    {
+      "url": "https://hidot.hawaii.gov/",
+      "name": "Hawaii Department of Transportation (HDOT)",
+      "rel": 65,
+      "frt": 55,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-HI"
+    },
+    {
+      "url": "https://health.hawaii.gov/cab/hawaii-greenhouse-gas-program/",
+      "name": "Hawaii Department of Health – Clean Air Branch (CAB) / Greenhouse Gas Program",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-HI"
+    },
+    {
+      "url": "https://iowaagriculture.gov",
+      "name": "Iowa Department of Agriculture and Land Stewardship (IDALS)",
+      "rel": 65,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-IA"
+    },
+    {
+      "url": "https://oemr.idaho.gov/",
+      "name": "Idaho Office of Energy and Mineral Resources (OEMR)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-ID"
+    },
+    {
+      "url": "https://www.deq.idaho.gov/waste-management-recycling/hazardous-waste/",
+      "name": "Idaho DEQ – Waste Management & Remediation (Hazardous Waste Program)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-ID"
+    },
+    {
+      "url": "https://www.deq.idaho.gov/air/",
+      "name": "Idaho DEQ – Air Quality Division",
+      "rel": 85,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-ID"
+    },
+    {
+      "url": "https://www.deq.idaho.gov/",
+      "name": "Idaho Department of Environmental Quality (DEQ)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-ID"
+    },
+    {
+      "url": "https://itd.idaho.gov/freight/",
+      "name": "Idaho Transportation Department (ITD)",
+      "rel": 65,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-ID"
+    },
+    {
+      "url": "https://greaterindiana.com/",
+      "name": "Greater Indiana Clean Cities Coalition",
+      "rel": 65,
+      "frt": 70,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-IN"
+    },
+    {
+      "url": "https://www.in.gov/indot/multimodal/freight/",
+      "name": "Indiana Department of Transportation – Freight & Multimodal Planning (INDOT)",
+      "rel": 65,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-IN"
+    },
+    {
+      "url": "https://www.in.gov/idem/",
+      "name": "Indiana Department of Environmental Management (IDEM)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-IN"
+    },
+    {
+      "url": "https://www.ksrevenue.gov/dovtruckingks.html",
+      "name": "Kansas Department of Revenue – Division of Vehicles (Commercial/Trucking)",
+      "rel": 65,
+      "frt": 85,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-KS"
+    },
+    {
+      "url": "https://www.kdhe.ks.gov/158/Division-of-Environment",
+      "name": "Kansas Department of Health and Environment (KDHE) – Division of Environment",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-KS"
+    },
+    {
+      "url": "https://www.mbta.com/sustainability",
+      "name": "Massachusetts Bay Transportation Authority (MBTA)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MA"
+    },
+    {
+      "url": "https://mn.gov/commerce/energy/",
+      "name": "Minnesota Department of Commerce – Energy Resources Division",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-MN"
+    },
+    {
+      "url": "https://www.modot.org/missouri-highways-and-transportation-commission",
+      "name": "Missouri Highways and Transportation Commission (MHTC)",
+      "rel": 72,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MO"
+    },
+    {
+      "url": "https://dnr.mo.gov/air",
+      "name": "Missouri Department of Natural Resources – Air Pollution Control Program",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-MO"
+    },
+    {
+      "url": "https://www.modot.org",
+      "name": "Missouri Department of Transportation (MoDOT)",
+      "rel": 65,
+      "frt": 70,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MO"
+    },
+    {
+      "url": "https://opd.gov.mp/",
+      "name": "CNMI Office of Planning and Development (OPD)",
+      "rel": 72,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MP"
+    },
+    {
+      "url": "https://www.cucgov.org/",
+      "name": "Commonwealth Utilities Corporation (CUC)",
+      "rel": 65,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MP"
+    },
+    {
+      "url": "https://becq-dcrm.opendata.arcgis.com/",
+      "name": "CNMI Bureau of Environmental and Coastal Quality – Division of Coastal Resources Management (BECQ/DCRM)",
+      "rel": 72,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-MP"
+    },
+    {
+      "url": "https://www.deq.gov.mp/",
+      "name": "CNMI Bureau of Environmental and Coastal Quality – Division of Environmental Quality (BECQ/DEQ)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-MP"
+    },
+    {
+      "url": "https://www.ncuc.gov/",
+      "name": "North Carolina Utilities Commission (NCUC)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-NC"
+    },
+    {
+      "url": "https://www.ncdot.gov/initiatives-policies/Transportation/freight/Pages/about.aspx",
+      "name": "North Carolina Department of Transportation (NCDOT) – Office of Logistics & Freight",
+      "rel": 65,
+      "frt": 75,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-NC"
+    },
+    {
+      "url": "https://dwee.nebraska.gov/energy",
+      "name": "Nebraska Energy Office (within DWEE) – Alternative Fuels and NEVI Program",
+      "rel": 72,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-NE"
+    },
+    {
+      "url": "https://nebraskalegislature.gov/laws/browse-statutes.php",
+      "name": "Nebraska Legislature – Revised Statutes",
+      "rel": 65,
+      "frt": 55,
+      "trust": "T1",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-NE"
+    },
+    {
+      "url": "https://dwee.nebraska.gov/air",
+      "name": "Nebraska Department of Water, Energy, and Environment (DWEE) – Air Quality Program",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-NE"
+    },
+    {
+      "url": "https://www.rggi.org/",
+      "name": "Regional Greenhouse Gas Initiative (RGGI)",
+      "rel": 92,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-NH"
+    },
+    {
+      "url": "https://www.mvd.newmexico.gov/",
+      "name": "New Mexico Taxation and Revenue Department – Motor Vehicle Division",
+      "rel": 65,
+      "frt": 55,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-NM"
+    },
+    {
+      "url": "https://ee.ok.gov",
+      "name": "Oklahoma Secretary of Energy and Environment (SEE)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-OK"
+    },
+    {
+      "url": "https://oklahoma.gov/occ/divisions/transportation.html",
+      "name": "Oklahoma Corporation Commission (OCC) – Transportation Division",
+      "rel": 65,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-OK"
+    },
+    {
+      "url": "https://www.irrc.state.pa.us/",
+      "name": "Pennsylvania Independent Regulatory Review Commission (IRRC)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-PA"
+    },
+    {
+      "url": "https://www.drna.pr.gov",
+      "name": "Puerto Rico Department of Natural and Environmental Resources (DRNA)",
+      "rel": 85,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-PR"
+    },
+    {
+      "url": "https://dtop.pr.gov",
+      "name": "Puerto Rico Department of Transportation and Public Works (DTOP)",
+      "rel": 70,
+      "frt": 65,
+      "trust": "T2",
+      "rejection_reason": "language_non_english",
+      "resulting_provisional_id": null,
+      "iso": "US-PR"
+    },
+    {
+      "url": "https://dem.ri.gov",
+      "name": "Rhode Island Department of Environmental Management (DEM)",
+      "rel": 82,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-RI"
+    },
+    {
+      "url": "https://www.scstatehouse.gov/coderegs/statmast.php",
+      "name": "South Carolina Legislature – South Carolina Code of Laws (Title 48 / Title 58)",
+      "rel": 72,
+      "frt": 45,
+      "trust": "T1",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-SC"
+    },
+    {
+      "url": "https://www.portofvirginia.com/gateway/sustainability/",
+      "name": "Virginia Port Authority (Port of Virginia)",
+      "rel": 72,
+      "frt": 88,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-VA"
+    },
+    {
+      "url": "https://viwma.org",
+      "name": "Virgin Islands Waste Management Authority (VIWMA)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-VI"
+    },
+    {
+      "url": "https://legvi.org",
+      "name": "Legislature of the United States Virgin Islands",
+      "rel": 65,
+      "frt": 35,
+      "trust": "T1",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-VI"
+    },
+    {
+      "url": "https://www.viwapa.vi",
+      "name": "Virgin Islands Water and Power Authority (VIWAPA)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-VI"
+    },
+    {
+      "url": "https://dpnr.vi.gov",
+      "name": "Virgin Islands Department of Planning and Natural Resources (DPNR)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-VI"
+    },
+    {
+      "url": "https://nescoe.com",
+      "name": "New England States Committee on Electricity (NESCOE) / ISO-NE (regional pointer)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-VT"
+    },
+    {
+      "url": "https://secure.vermont.gov/SOS/rules/index.php",
+      "name": "Vermont Secretary of State – Official Rules Portal",
+      "rel": 72,
+      "frt": 35,
+      "trust": "T1",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-VT"
+    },
+    {
+      "url": "https://efsec.wa.gov",
+      "name": "Washington State Energy Facility Site Evaluation Council (EFSEC)",
+      "rel": 85,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-WA"
+    },
+    {
+      "url": "https://psc.wi.gov",
+      "name": "Public Service Commission of Wisconsin (PSC)",
+      "rel": 75,
+      "frt": 45,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-WI"
+    },
+    {
+      "url": "https://energy.wv.gov/",
+      "name": "West Virginia Department of Commerce – Office of Energy (WV Energy Office)",
+      "rel": 75,
+      "frt": 35,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-WV"
+    },
+    {
+      "url": "https://www.psc.state.wv.us/",
+      "name": "West Virginia Public Service Commission (PSC)",
+      "rel": 75,
+      "frt": 50,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-WV"
+    }
+  ],
+  "reject": [
+    {
+      "url": "https://www.environment.sa.gov.au",
+      "name": "Department for Environment and Water (DEW) – South Australia",
+      "rel": 75,
+      "frt": 25,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "AU-SA"
+    },
+    {
+      "url": "https://www.evs.ee/en",
+      "name": "EVS – Estonian Centre for Standardisation and Accreditation",
+      "rel": 55,
+      "frt": 25,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "EE"
+    },
+    {
+      "url": "https://www.hautconseilclimat.fr/en/",
+      "name": "Haut Conseil pour le Climat (HCC)",
+      "rel": 85,
+      "frt": 25,
+      "trust": "T3",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "FR"
+    },
+    {
+      "url": "https://necca.gov.gr/en/home/",
+      "name": "Natural Environment and Climate Change Agency (NECCA / OFYPEKA)",
+      "rel": 82,
+      "frt": 25,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "GR"
+    },
+    {
+      "url": "https://www.rews.org.mt",
+      "name": "Regulator for Energy and Water Services (REWS)",
+      "rel": 75,
+      "frt": 25,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "MT"
+    },
+    {
+      "url": "https://www.gov.si/en/state-authorities/ministries/ministry-of-natural-resources-and-spatial-planning/",
+      "name": "Ministry of Natural Resources and Spatial Planning (Ministrstvo za naravne vire in prostor)",
+      "rel": 72,
+      "frt": 28,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "SI"
+    },
+    {
+      "url": "https://gadnr.org",
+      "name": "Georgia Department of Natural Resources (DNR)",
+      "rel": 65,
+      "frt": 25,
+      "trust": "T2",
+      "rejection_reason": "domain_unknown",
+      "resulting_provisional_id": null,
+      "iso": "US-GA"
+    },
+    {
+      "url": "https://dlnr.cnmi.gov/",
+      "name": "CNMI Department of Lands and Natural Resources (DLNR)",
+      "rel": 65,
+      "frt": 25,
+      "trust": "T2",
+      "rejection_reason": null,
+      "resulting_provisional_id": null,
+      "iso": "US-MP"
+    }
+  ],
+  "groupedPromotable": {
+    "CA-NB": [
+      {
+        "url": "https://nbeub.ca/",
+        "name": "New Brunswick Energy and Utilities Board (NBEUB)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "CA-NB"
+      },
+      {
+        "url": "https://www.gnb.ca/en/topic/driving-transportation/commercial-transportation.html",
+        "name": "New Brunswick Commercial Transportation – gnb.ca",
+        "rel": 75,
+        "frt": 85,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "CA-NB"
+      }
+    ],
+    "CA-NL": [
+      {
+        "url": "http://www.pub.nl.ca/",
+        "name": "Newfoundland and Labrador Board of Commissioners of Public Utilities (PUB)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "CA-NL"
+      }
+    ],
+    "CA-NS": [
+      {
+        "url": "https://novascotia.ca/just/regulations/index.htm",
+        "name": "Nova Scotia Office of the Registrar of Regulations (Royal Gazette Part II)",
+        "rel": 85,
+        "frt": 70,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "CA-NS"
+      }
+    ],
+    "CA-NT": [
+      {
+        "url": "https://www.fin.gov.nt.ca/en/services/licences-taxes-and-fees/fuel-tax",
+        "name": "Government of Northwest Territories – Department of Finance (Fuel Tax)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "CA-NT"
+      },
+      {
+        "url": "https://nwtpublicutilitiesboard.ca/",
+        "name": "NWT Public Utilities Board",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "CA-NT"
+      }
+    ],
+    "CA-NU": [
+      {
+        "url": "https://www.nunavutmarinecouncil.com/resources/legislation-and-policies/",
+        "name": "Nunavut Marine Council (NMC)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T3",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "CA-NU"
+      }
+    ],
+    "CA-PE": [
+      {
+        "url": "https://www.princeedwardisland.ca/en/topic/environment-energy-and-climate-action",
+        "name": "PEI Department of Environment, Energy and Climate Action",
+        "rel": 75,
+        "frt": 55,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "CA-PE"
+      }
+    ],
+    "CA-YT": [
+      {
+        "url": "https://laws.yukon.ca/",
+        "name": "Yukon Legislation Registry (laws.yukon.ca)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "CA-YT"
+      }
+    ],
+    "CZ": [
+      {
+        "url": "https://www.e-sbirka.cz/",
+        "name": "Sbírka zákonů a mezinárodních smluv – e-Sbírka (Czech Official Gazette / Collection of Laws)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "CZ"
+      },
+      {
+        "url": "https://md.gov.cz/?lang=en-GB",
+        "name": "Ministry of Transport of the Czech Republic (Ministerstvo dopravy ČR)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "CZ"
+      }
+    ],
+    "DE": [
+      {
+        "url": "https://www.bmv.de/EN",
+        "name": "Bundesministerium für Verkehr (Federal Ministry for Transport, BMV)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DE"
+      },
+      {
+        "url": "https://www.bmwk.de/Navigation/EN/Home/home.html",
+        "name": "Bundesministerium für Wirtschaft und Klimaschutz (Federal Ministry for Economic Affairs and Climate Action, BMWK)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DE"
+      },
+      {
+        "url": "https://www.kba.de/EN/DasKBA_en/daskba_node_en.html",
+        "name": "Kraftfahrt-Bundesamt (Federal Motor Transport Authority, KBA)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DE"
+      }
+    ],
+    "DK": [
+      {
+        "url": "https://danishbusinessauthority.dk/inclusion-maritime-sector-eu-ets",
+        "name": "Danish Business Authority (Erhvervsstyrelsen)",
+        "rel": 92,
+        "frt": 88,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DK"
+      },
+      {
+        "url": "https://kefm.dk/en/",
+        "name": "Ministry of Climate, Energy and Utilities (Klima-, Energi- og Forsyningsministeriet)",
+        "rel": 92,
+        "frt": 68,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "DK"
+      },
+      {
+        "url": "https://www.danishroadtrafficauthority.dk/",
+        "name": "Danish Road Traffic Authority (Færdselsstyrelsen)",
+        "rel": 85,
+        "frt": 80,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DK"
+      },
+      {
+        "url": "https://www.retsinformation.dk/",
+        "name": "Retsinformation – Danish Official Legal Gazette",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "DK"
+      },
+      {
+        "url": "https://www.dma.dk/environment-and-climate",
+        "name": "Danish Maritime Authority (Søfartsstyrelsen)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DK"
+      },
+      {
+        "url": "https://toldst.dk/en-us",
+        "name": "Danish Customs Agency (Toldstyrelsen)",
+        "rel": 75,
+        "frt": 72,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DK"
+      },
+      {
+        "url": "https://www.danishshipping.dk/en",
+        "name": "Danish Shipping (Danmarks Rederiforening)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T3",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "DK"
+      }
+    ],
+    "EE": [
+      {
+        "url": "https://www.riigiteataja.ee/en",
+        "name": "Riigi Teataja (State Gazette)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "EE"
+      },
+      {
+        "url": "https://www.transpordiamet.ee/en",
+        "name": "Estonian Transport Administration (Transpordiamet)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "EE"
+      }
+    ],
+    "ES": [
+      {
+        "url": "https://www.miteco.gob.es/es/calidad-y-evaluacion-ambiental/temas/sistema-espanol-de-inventario-sei-.html",
+        "name": "Spanish Emissions Inventory System — SIEAA (Sistema Español de Inventario de Emisiones)",
+        "rel": 92,
+        "frt": 68,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "ES"
+      },
+      {
+        "url": "https://www.boe.es",
+        "name": "Boletín Oficial del Estado (BOE) — Official State Gazette",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "ES"
+      }
+    ],
+    "FI": [
+      {
+        "url": "https://www.finlex.fi/en",
+        "name": "Finlex – Official Statute Book and Regulatory Database",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "FI"
+      },
+      {
+        "url": "https://ym.fi/en/front-page",
+        "name": "Ministry of the Environment Finland (YM)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "FI"
+      },
+      {
+        "url": "https://lvm.fi/en/home",
+        "name": "Ministry of Transport and Communications Finland (LVM)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "FI"
+      }
+    ],
+    "FR": [
+      {
+        "url": "https://www.ecologie.gouv.fr/direction-generale-lenergie-et-du-climat-dgec",
+        "name": "Direction Générale de l'Énergie et du Climat (DGEC)",
+        "rel": 92,
+        "frt": 72,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "FR"
+      },
+      {
+        "url": "https://www.ecologie.gouv.fr/direction-generale-des-infrastructures-des-transports-et-des-mobilites-dgitm",
+        "name": "Ministère de la Transition Écologique et de la Cohésion des Territoires (MTE) — Direction Générale des Infrastructures, des Transports et des Mobilités (DGITM)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "FR"
+      },
+      {
+        "url": "https://www.cre.fr",
+        "name": "Commission de Régulation de l'Énergie (CRE)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "FR"
+      },
+      {
+        "url": "https://www.afnor.org/climat-et-decarbonation/secteur-transport-logistique/",
+        "name": "Association Française de Normalisation (AFNOR)",
+        "rel": 75,
+        "frt": 80,
+        "trust": "T3",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "FR"
+      },
+      {
+        "url": "https://www.douane.gouv.fr",
+        "name": "Direction Générale des Douanes et Droits Indirects (DGDDI) — Douane Française",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "FR"
+      }
+    ],
+    "GR": [
+      {
+        "url": "https://www.et.gr/",
+        "name": "Hellenic Government Gazette (Efimeris tis Kyvernis – ET.GR)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "GR"
+      }
+    ],
+    "HU": [
+      {
+        "url": "https://magyarkozlony.hu/",
+        "name": "Magyar Közlöny (Hungarian Official Gazette)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "HU"
+      },
+      {
+        "url": "https://njt.hu/",
+        "name": "Nemzeti Jogszabálytár (National Legal Register – consolidated legislation in force)",
+        "rel": 75,
+        "frt": 55,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "HU"
+      }
+    ],
+    "IE": [
+      {
+        "url": "https://www.gov.ie/en/organisation/department-of-transport/",
+        "name": "Department of Transport (Ireland)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "IE"
+      },
+      {
+        "url": "https://www.irishstatutebook.ie",
+        "name": "Irish Statute Book (Office of the Attorney General)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "IE"
+      }
+    ],
+    "IT": [
+      {
+        "url": "https://www.gazzettaufficiale.it",
+        "name": "Gazzetta Ufficiale della Repubblica Italiana – Official Gazette of the Italian Republic",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "IT"
+      },
+      {
+        "url": "https://www.mase.gov.it",
+        "name": "Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Ministry of Environment and Energy Security",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "IT"
+      },
+      {
+        "url": "https://www.mit.gov.it/en",
+        "name": "Ministero delle Infrastrutture e dei Trasporti (MIT) – Ministry of Infrastructure and Transport",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "IT"
+      }
+    ],
+    "LT": [
+      {
+        "url": "https://gamta.lt/en",
+        "name": "Environmental Protection Agency of Lithuania (Aplinkos apsaugos agentūra – AAA)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "LT"
+      }
+    ],
+    "LU": [
+      {
+        "url": "https://mecb.gouvernement.lu/en.html",
+        "name": "Ministry of the Environment, Climate and Biodiversity (Ministère de l'Environnement, du Climat et de la Biodiversité – MECB)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "LU"
+      },
+      {
+        "url": "https://www.ilr.lu/en",
+        "name": "Institut Luxembourgeois de Régulation (ILR – Luxembourg Regulatory Institute)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "LU"
+      },
+      {
+        "url": "https://transports.public.lu/en.html",
+        "name": "Department of Transport – Transports.public.lu (Direction générale de la Mobilité, des Transports et des Infrastructures de Transport)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "LU"
+      },
+      {
+        "url": "https://mmtp.gouvernement.lu/en.html",
+        "name": "Ministry of Mobility and Public Works (Ministère de la Mobilité et des Travaux publics – MMTP)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "LU"
+      }
+    ],
+    "LV": [
+      {
+        "url": "https://www.sam.gov.lv/en",
+        "name": "Ministry of Transport of the Republic of Latvia (Satiksmes ministrija)",
+        "rel": 75,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "LV"
+      },
+      {
+        "url": "https://www.vestnesis.lv",
+        "name": "Official Gazette of Latvia (Latvijas Vēstnesis)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "LV"
+      },
+      {
+        "url": "https://www.saeima.lv/en",
+        "name": "Saeima (Parliament of the Republic of Latvia) – Legislative Portal",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "LV"
+      },
+      {
+        "url": "https://likumi.lv",
+        "name": "Latvian Laws and Regulations Portal (likumi.lv)",
+        "rel": 75,
+        "frt": 55,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "LV"
+      }
+    ],
+    "MT": [
+      {
+        "url": "https://legislation.mt",
+        "name": "Laws of Malta (legislation.mt) – Official Consolidated Legislation Portal",
+        "rel": 75,
+        "frt": 55,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "MT"
+      }
+    ],
+    "NL": [
+      {
+        "url": "https://www.emissionsauthority.nl/",
+        "name": "Dutch Emissions Authority (Nederlandse Emissieautoriteit – NEa)",
+        "rel": 95,
+        "frt": 85,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "NL"
+      },
+      {
+        "url": "https://english.ilent.nl/",
+        "name": "Human Environment and Transport Inspectorate (Inspectie Leefomgeving en Transport – ILT)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "NL"
+      },
+      {
+        "url": "https://www.government.nl/ministries/ministry-of-infrastructure-and-water-management",
+        "name": "Ministry of Infrastructure and Water Management (Ministerie van Infrastructuur en Waterstaat – I&W)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "NL"
+      },
+      {
+        "url": "https://www.portofrotterdam.com/en",
+        "name": "Port of Rotterdam Authority (Havenbedrijf Rotterdam)",
+        "rel": 75,
+        "frt": 85,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "NL"
+      }
+    ],
+    "PL": [
+      {
+        "url": "https://www.kobize.pl/en",
+        "name": "National Centre for Emissions Management (KOBiZE – Krajowy Ośrodek Bilansowania i Zarządzania Emisjami)",
+        "rel": 95,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "PL"
+      },
+      {
+        "url": "https://puesc.gov.pl/en",
+        "name": "Polish Customs / National Revenue Administration – PUESC Portal (Platforma Usług Elektronicznych Skarbowo-Celnych)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "PL"
+      }
+    ],
+    "PT": [
+      {
+        "url": "https://apambiente.pt/en",
+        "name": "Agência Portuguesa do Ambiente (Portuguese Environment Agency – APA)",
+        "rel": 92,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "PT"
+      },
+      {
+        "url": "https://dre.pt",
+        "name": "Diário da República Eletrónico (DRE – Official Gazette)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "PT"
+      },
+      {
+        "url": "https://www.ense-epe.pt",
+        "name": "Entidade Nacional para o Setor Energético (ENSE – National Entity for the Energy Sector)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "PT"
+      },
+      {
+        "url": "https://www.imt-ip.pt",
+        "name": "Instituto da Mobilidade e dos Transportes (IMT – Institute for Mobility and Transport)",
+        "rel": 75,
+        "frt": 72,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "PT"
+      },
+      {
+        "url": "https://www.dgrm.pt/en",
+        "name": "Direção-Geral de Recursos Naturais, Segurança e Serviços Marítimos (DGRM)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "PT"
+      }
+    ],
+    "RO": [
+      {
+        "url": "https://www.rna.ro/",
+        "name": "Romanian Naval Authority – ANR (Autoritatea Navală Română)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "RO"
+      }
+    ],
+    "SE": [
+      {
+        "url": "https://www.energimyndigheten.se/en/",
+        "name": "Swedish Energy Agency (Energimyndigheten)",
+        "rel": 92,
+        "frt": 68,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SE"
+      },
+      {
+        "url": "https://www.naturvardsverket.se/en/",
+        "name": "Swedish Environmental Protection Agency (Naturvårdsverket)",
+        "rel": 85,
+        "frt": 55,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SE"
+      },
+      {
+        "url": "https://www.tullverket.se/en/",
+        "name": "Swedish Customs (Tullverket)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SE"
+      },
+      {
+        "url": "https://www.transportstyrelsen.se/en/",
+        "name": "Swedish Transport Agency (Transportstyrelsen)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SE"
+      },
+      {
+        "url": "https://www.riksdagen.se/en/documents-and-laws/",
+        "name": "Swedish Parliament (Sveriges Riksdag) – Documents & Laws",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SE"
+      },
+      {
+        "url": "https://www.trafikverket.se/en/startpage/",
+        "name": "Swedish Transport Administration (Trafikverket)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SE"
+      }
+    ],
+    "SI": [
+      {
+        "url": "https://www.gov.si/en/registries/projects/the-recovery-and-resilience-plan/about-the-recovery-and-resilience-plan/green-transition/sustainable-mobility/",
+        "name": "Government of the Republic of Slovenia – GOV.SI (Sustainable Mobility / Recovery and Resilience Plan)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SI"
+      },
+      {
+        "url": "https://www.uradni-list.si/",
+        "name": "Uradni list Republike Slovenije – Official Gazette of the Republic of Slovenia",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SI"
+      },
+      {
+        "url": "https://www.gov.si/en/state-authorities/ministries/ministry-of-the-environment-climate-and-energy/",
+        "name": "Ministry of the Environment, Climate and Energy (Ministrstvo za okolje, podnebje in energijo)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SI"
+      }
+    ],
+    "SK": [
+      {
+        "url": "https://www.siea.sk/en/",
+        "name": "Slovak Innovation and Energy Agency (Slovenská inovačná a energetická agentúra – SIEA)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "SK"
+      },
+      {
+        "url": "https://www.mindop.sk/en/",
+        "name": "Ministry of Transport and Construction of the Slovak Republic (Ministerstvo dopravy a výstavby SR)",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SK"
+      },
+      {
+        "url": "https://www.slov-lex.sk/domov",
+        "name": "SLOV-LEX – Legislative and Information Portal / Zbierka zákonov (Official Gazette of the Slovak Republic)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "SK"
+      },
+      {
+        "url": "https://nsat.sk/en/home/",
+        "name": "Transport Authority of the Slovak Republic (Dopravný úrad / NSAT)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "SK"
+      }
+    ],
+    "US-DC": [
+      {
+        "url": "https://dcpsc.org",
+        "name": "Public Service Commission of the District of Columbia (DCPSC)",
+        "rel": 82,
+        "frt": 68,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-DC"
+      },
+      {
+        "url": "https://freight.ddot.dc.gov",
+        "name": "DC District Department of Transportation – Freight Branch (DDOT Freight)",
+        "rel": 75,
+        "frt": 95,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-DC"
+      }
+    ],
+    "US-DE": [
+      {
+        "url": "https://www.wilmapco.org/",
+        "name": "Wilmington Area Planning Council (WILMAPCO)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-DE"
+      }
+    ],
+    "US-FL": [
+      {
+        "url": "https://www.leg.state.fl.us/",
+        "name": "Florida Legislature – Online Sunshine (Statutes & Session Laws)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-FL"
+      },
+      {
+        "url": "https://www.flrules.org/",
+        "name": "Florida Administrative Register / Florida Administrative Code (flrules.org)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-FL"
+      },
+      {
+        "url": "https://www.psc.state.fl.us/",
+        "name": "Florida Public Service Commission (FPSC)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-FL"
+      }
+    ],
+    "US-GA": [
+      {
+        "url": "https://www.legis.ga.gov",
+        "name": "Georgia General Assembly – Legislative Portal",
+        "rel": 75,
+        "frt": 70,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-GA"
+      }
+    ],
+    "US-ID": [
+      {
+        "url": "https://legislature.idaho.gov/statutesrules/",
+        "name": "Idaho State Legislature – Statutes & Rules Portal",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-ID"
+      }
+    ],
+    "US-LA": [
+      {
+        "url": "https://louisianacleanfuels.org",
+        "name": "Louisiana Clean Fuels / Southeast Louisiana Clean Fuel Partnership",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T3",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-LA"
+      }
+    ],
+    "US-MA": [
+      {
+        "url": "https://www.masscec.com/masscec-focus/clean-transportation",
+        "name": "Massachusetts Clean Energy Center (MassCEC)",
+        "rel": 85,
+        "frt": 72,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-MA"
+      },
+      {
+        "url": "https://www.transportationandclimate.org/",
+        "name": "Transportation and Climate Initiative (TCI) – Regional Program",
+        "rel": 85,
+        "frt": 70,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-MA"
+      },
+      {
+        "url": "https://www.massport.com/environment",
+        "name": "Massachusetts Port Authority (Massport)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-MA"
+      }
+    ],
+    "US-ME": [
+      {
+        "url": "https://www.mainelegislature.org/legis/statutes/38/title38sec576-A.html",
+        "name": "Maine Legislature – Title 38 §576-A Greenhouse Gas Emissions Reductions",
+        "rel": 92,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-ME"
+      }
+    ],
+    "US-MI": [
+      {
+        "url": "https://ars.apps.lara.state.mi.us/AdminCode/",
+        "name": "Michigan Office of Regulatory Reinvention (ORR) – Michigan Administrative Code",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-MI"
+      }
+    ],
+    "US-MN": [
+      {
+        "url": "https://www.pca.state.mn.us/",
+        "name": "Minnesota Pollution Control Agency (MPCA)",
+        "rel": 92,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-MN"
+      },
+      {
+        "url": "https://www.dot.state.mn.us/sustainability/",
+        "name": "MnDOT Office of Sustainability and Public Health",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-MN"
+      },
+      {
+        "url": "https://www.minnesotago.org/final-plans/state-freight-plan",
+        "name": "Minnesota GO – State Freight Plan Portal (MnDOT)",
+        "rel": 75,
+        "frt": 85,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-MN"
+      },
+      {
+        "url": "https://metrocouncil.org/Transportation/Planning-2/Key-Transportation-Planning-Documents/Transportation-Policy-Plan.aspx",
+        "name": "Metropolitan Council – Transportation Policy Plan (Twin Cities MPO)",
+        "rel": 75,
+        "frt": 55,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-MN"
+      }
+    ],
+    "US-NJ": [
+      {
+        "url": "https://pub.njleg.gov/",
+        "name": "New Jersey Legislature – Office of Legislative Services (Bill/Statute Publication)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-NJ"
+      },
+      {
+        "url": "https://cleanenergy.nj.gov/programs/electric-vehicles/",
+        "name": "NJ Clean Energy Program (NJBPU/cleanenergy.nj.gov)",
+        "rel": 85,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-NJ"
+      }
+    ],
+    "US-NV": [
+      {
+        "url": "https://www.leg.state.nv.us",
+        "name": "Nevada Legislature – Nevada Revised Statutes / Nevada Administrative Code",
+        "rel": 85,
+        "frt": 70,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-NV"
+      }
+    ],
+    "US-OH": [
+      {
+        "url": "https://morpc.org",
+        "name": "Mid-Ohio Regional Planning Commission (MORPC)",
+        "rel": 75,
+        "frt": 55,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-OH"
+      }
+    ],
+    "US-PR": [
+      {
+        "url": "https://energia.pr.gov",
+        "name": "Puerto Rico Energy Bureau (PREB / Negociado de Energía de Puerto Rico)",
+        "rel": 92,
+        "frt": 65,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-PR"
+      },
+      {
+        "url": "https://www.prpa.pr.gov",
+        "name": "Puerto Rico Ports Authority (PRPA / Autoridad de los Puertos)",
+        "rel": 75,
+        "frt": 85,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-PR"
+      }
+    ],
+    "US-SD": [
+      {
+        "url": "https://sdlegislature.gov/Statutes",
+        "name": "South Dakota Legislature – Codified Laws (SDCL)",
+        "rel": 85,
+        "frt": 75,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-SD"
+      }
+    ],
+    "US-TN": [
+      {
+        "url": "https://publications.tnsosfiles.com/rules/1200/1200-03/1200-03.htm",
+        "name": "Tennessee Secretary of State – Official Rules & Regulations (tnsosfiles.com)",
+        "rel": 88,
+        "frt": 72,
+        "trust": "T1",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-TN"
+      },
+      {
+        "url": "https://www.tncleanfuels.org/",
+        "name": "Tennessee Clean Fuels (ETCleanFuels / Middle-West TN Clean Fuels Coalition)",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T3",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-TN"
+      }
+    ],
+    "US-TX": [
+      {
+        "url": "https://www.h-gac.com/freight-planning",
+        "name": "Houston-Galveston Area Council (H-GAC) – Freight Planning",
+        "rel": 75,
+        "frt": 85,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-TX"
+      }
+    ],
+    "US-WA": [
+      {
+        "url": "https://pscleanair.gov",
+        "name": "Puget Sound Clean Air Agency (PSCAA)",
+        "rel": 92,
+        "frt": 75,
+        "trust": "T2",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-WA"
+      },
+      {
+        "url": "https://www.portseattle.org/page/northwest-ports-clean-air-strategy",
+        "name": "Port of Seattle – Environment & Sustainability",
+        "rel": 88,
+        "frt": 92,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-WA"
+      },
+      {
+        "url": "https://www.nwseaportalliance.com/environment/clean-air",
+        "name": "Northwest Seaport Alliance (NWSA)",
+        "rel": 85,
+        "frt": 95,
+        "trust": "T2",
+        "rejection_reason": "domain_unknown",
+        "resulting_provisional_id": null,
+        "iso": "US-WA"
+      }
+    ],
+    "US-WY": [
+      {
+        "url": "https://wyoleg.gov/",
+        "name": "Wyoming Legislature – Session Laws & Statutes",
+        "rel": 75,
+        "frt": 65,
+        "trust": "T1",
+        "rejection_reason": "language_non_english",
+        "resulting_provisional_id": null,
+        "iso": "US-WY"
+      }
+    ]
+  }
+}

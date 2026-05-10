@@ -1,0 +1,47 @@
+======================================================================
+CA CRITICAL BRIEFS — Regenerate via Sonnet
+======================================================================
+Targets: eu-battery-regulation-2023-1542, eu-hdv-co2-standards-2019-1242, eu-net-zero-industry-act-2024-1735
+Dry run: false
+Browserless: yes
+
+
+── eu-battery-regulation-2023-1542 ──
+  id=ac349a70 type=regulation priority=HIGH
+  source_url=https://eur-lex.europa.eu/eli/reg/2023/1542/oj
+  fetch: 200 render=6125ms text=80000
+  pool: 40 sources
+  sonnet: 164026ms in=29063 out=8527 cost=$0.215
+  parse: brief=36030 sev=MONITORING fmt=regulatory_fact_document src=0
+  integrity: N/A (column missing)
+  ✓ done in 171756ms
+
+── eu-hdv-co2-standards-2019-1242 ──
+  id=b7736a1a type=regulation priority=HIGH
+  source_url=https://eur-lex.europa.eu/eli/reg/2019/1242/oj
+  fetch: 200 render=5447ms text=80000
+  pool: 40 sources
+  sonnet: 134154ms in=31545 out=6959 cost=$0.199
+  parse: brief=24526 sev=COST ALERT fmt=regulatory_fact_document src=5
+  integrity: N/A (column missing)
+  ✓ done in 140992ms
+
+── eu-net-zero-industry-act-2024-1735 ──
+  id=859faf76 type=regulation priority=MODERATE
+  source_url=https://eur-lex.europa.eu/eli/reg/2024/1735/oj
+  fetch: 200 render=6169ms text=80000
+  pool: 40 sources
+  sonnet: 174608ms in=29510 out=9263 cost=$0.227
+  parse: brief=35414 sev=MONITORING fmt=regulatory_fact_document src=6
+  integrity: N/A (column missing)
+  ✓ done in 181746ms
+
+======================================================================
+RUN COMPLETE
+======================================================================
+OK:          3/3
+Failed:      0
+Total cost:  $0.64
+Total time:  8m 14s
+
+Report written: C:\Users\jason\dotfiles\docs\CA-BRIEFS-RESULTS.md

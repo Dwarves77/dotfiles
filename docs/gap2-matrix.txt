@@ -1,0 +1,132 @@
+=== Verdict counts ===
+well_covered (>=3): 13
+under_covered (1-2): 48
+gap_with_provisionals (0 src, >=1 prov): 38
+gap_no_provisionals (0 src, 0 prov): 19
+total tier 1: 118
+
+=== gap_with_provisionals (highest provisional count first) ===
+   DK       src: 0 prov: 11
+   LU       src: 0 prov: 9
+   CZ       src: 0 prov: 8
+   FR       src: 0 prov: 8
+   LV       src: 0 prov: 8
+   PT       src: 0 prov: 8
+   SE       src: 0 prov: 8
+   SK       src: 0 prov: 8
+   IE       src: 0 prov: 7
+   NL       src: 0 prov: 7
+   PL       src: 0 prov: 7
+   SI       src: 0 prov: 7
+   CA-NS    src: 0 prov: 6
+   DE       src: 0 prov: 6
+   EE       src: 0 prov: 6
+   US-ID    src: 0 prov: 6
+   CA-NB    src: 0 prov: 5
+   CA-NU    src: 0 prov: 5
+   ES       src: 0 prov: 5
+   FI       src: 0 prov: 5
+   RO       src: 0 prov: 5
+   US-MP    src: 0 prov: 5
+   CA-NT    src: 0 prov: 4
+   IT       src: 0 prov: 4
+   US-PR    src: 0 prov: 4
+   CA-NL    src: 0 prov: 3
+   HU       src: 0 prov: 3
+   US-AS    src: 0 prov: 3
+   US-NE    src: 0 prov: 3
+   CA-PE    src: 0 prov: 2
+   CA-YT    src: 0 prov: 2
+   GR       src: 0 prov: 2
+   MT       src: 0 prov: 2
+   US-GU    src: 0 prov: 2
+   US-OK    src: 0 prov: 2
+   AU-SA    src: 0 prov: 1
+   LT       src: 0 prov: 1
+   US-NH    src: 0 prov: 1
+
+=== under_covered ===
+   US-DC    src: 2 prov: 5
+   US-MN    src: 1 prov: 5
+   US-VI    src: 1 prov: 5
+   US-FL    src: 2 prov: 4
+   US-MA    src: 1 prov: 4
+   US-NJ    src: 2 prov: 4
+   AU-WA    src: 1 prov: 3
+   US-HI    src: 1 prov: 3
+   US-IN    src: 1 prov: 3
+   US-MO    src: 1 prov: 3
+   US-LA    src: 2 prov: 2
+   US-TN    src: 1 prov: 2
+   US-VT    src: 1 prov: 2
+   US-WV    src: 2 prov: 2
+   AU-ACT   src: 1 prov: 1
+   US-DE    src: 1 prov: 1
+   US-ME    src: 1 prov: 1
+   US-MI    src: 1 prov: 1
+   US-NV    src: 2 prov: 1
+   US-OH    src: 1 prov: 1
+   US-RI    src: 2 prov: 1
+   US-SC    src: 1 prov: 1
+   US-SD    src: 1 prov: 1
+   US-TX    src: 2 prov: 1
+   US-VA    src: 1 prov: 1
+   US-WY    src: 2 prov: 1
+   AU       src: 2 prov: 0
+   AU-NSW   src: 1 prov: 0
+   AU-NT    src: 1 prov: 0
+   AU-QLD   src: 1 prov: 0
+   AU-TAS   src: 1 prov: 0
+   CA       src: 2 prov: 0
+   GB-NIR   src: 2 prov: 0
+   JP-13    src: 1 prov: 0
+   SG       src: 2 prov: 0
+   US-AK    src: 1 prov: 0
+   US-AR    src: 1 prov: 0
+   US-AZ    src: 1 prov: 0
+   US-CO    src: 2 prov: 0
+   US-CT    src: 1 prov: 0
+   US-IL    src: 1 prov: 0
+   US-KY    src: 1 prov: 0
+   US-MD    src: 1 prov: 0
+   US-MS    src: 1 prov: 0
+   US-MT    src: 2 prov: 0
+   US-ND    src: 2 prov: 0
+   US-OR    src: 2 prov: 0
+   US-UT    src: 1 prov: 0
+
+=== gap_no_provisionals ===
+   AT       src: 0 prov: 0
+   AU-VIC   src: 0 prov: 0
+   BE       src: 0 prov: 0
+   BG       src: 0 prov: 0
+   CA-AB    src: 0 prov: 0
+   CA-BC    src: 0 prov: 0
+   CA-MB    src: 0 prov: 0
+   CA-ON    src: 0 prov: 0
+   CA-QC    src: 0 prov: 0
+   CA-SK    src: 0 prov: 0
+   CY       src: 0 prov: 0
+   GB-ENG   src: 0 prov: 0
+   GB-SCT   src: 0 prov: 0
+   GB-WLS   src: 0 prov: 0
+   HK       src: 0 prov: 0
+   HR       src: 0 prov: 0
+   JP       src: 0 prov: 0
+   KR       src: 0 prov: 0
+   US-AL    src: 0 prov: 0
+
+=== well_covered ===
+   US-GA    src: 3 prov: 6
+   US-WA    src: 5 prov: 4
+   US-KS    src: 3 prov: 2
+   US-NC    src: 4 prov: 2
+   US-IA    src: 3 prov: 1
+   US-NM    src: 3 prov: 1
+   US-PA    src: 3 prov: 1
+   US-WI    src: 3 prov: 1
+   EU       src: 69 prov: 0
+   GB       src: 22 prov: 0
+   US       src: 66 prov: 0
+   US-CA    src: 9 prov: 0
+   US-NY    src: 4 prov: 0

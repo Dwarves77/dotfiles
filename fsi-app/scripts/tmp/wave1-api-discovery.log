@@ -1,0 +1,6 @@
+Wave 1a API/RSS Discovery — read-only probe
+UA=caros-ledge-discovery/1.0 (jasonlosh@gmail.com)
+Concurrency=5, probe-timeout=15000ms, source-budget=60000ms
+Probe scope: 695 sources (scrape + already-rss for divergence flag)
+
+  [25/695 4%] last=California Department of Transportation – Office o
