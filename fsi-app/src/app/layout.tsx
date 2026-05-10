@@ -16,7 +16,11 @@ import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  // Weights aligned with Claude Design's actual usage per font-usage-audit-2026-05-11.md.
+  // 300 dropped (zero references in src/). 800 added (83 references, currently faux-bolded
+  // from 700, includes .cl-page-title + all typeset chrome from PR #84). 900 added
+  // (.cl-stat-number, currently faux-bolded). Net: ~+20 KB, restores true glyphs at 800/900.
+  weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-jakarta",
   display: "swap",
 });
