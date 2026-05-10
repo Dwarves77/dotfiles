@@ -16,7 +16,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
-import { getResourcesOnly } from "@/lib/data";
+import { getListingsOnly } from "@/lib/data";
 import { APP_DATA_TAG } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
@@ -70,7 +70,12 @@ export default async function RegulationsPage({
 }) {
   const t0 = Date.now();
   const { priority: priorityParam, region: regionParam } = await searchParams;
-  const data = await getResourcesOnly();
+  // Listings RPC (066): drops `summary` on top of slim. Resource.note arrives
+  // empty here. RegulationsSurface only ever read r.note inside the search
+  // hay-stack (no card body reference), and that contribution is removed in
+  // this PR so search semantics stay consistent (titles, tags, whatIsIt,
+  // whyMatters, jurisdiction continue to participate).
+  const data = await getListingsOnly();
 
   // Resolve the platform-total regulation count for the count tooltip.
   // The audit flagged the gap between "123 REGULATIONS" (sector-filtered)

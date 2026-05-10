@@ -420,7 +420,13 @@ export function RegulationsSurface({
         if (!activeConfidence.has(key)) return false;
       }
       if (q) {
-        const hay = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${
+        // r.note dropped from the hay-stack as of migration 066 / listings
+        // RPC: /regulations now uses get_workspace_intelligence_listings
+        // which omits the `summary` column. r.note arrives empty on every
+        // row, so concatenating it here added an empty string and zero
+        // signal. Card body never rendered note. Search continues to match
+        // titles, tags, whatIsIt, whyMatters, jurisdiction.
+        const hay = `${r.title} ${(r.tags || []).join(" ")} ${
           r.whatIsIt || ""
         } ${r.whyMatters || ""} ${r.jurisdiction || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;

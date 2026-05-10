@@ -383,35 +383,42 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 }
 
 // ── Workspace Intelligence Fetch ────────────────────────────
-// Three RPC variants for the workspace intelligence read, picked per
-// caller surface based on which long-text fields are actually rendered:
+// Four RPC variants for the workspace intelligence read, picked per caller
+// surface based on which long-text fields are actually rendered:
 //
 //   get_workspace_intelligence            (007) full payload, used only by
-//                                         /regulations/[slug] detail today
+//                                         /regulations/[slug] detail today.
 //   get_workspace_intelligence_slim       (047) drops full_brief,
 //                                         operational_impact, open_questions,
-//                                         reasoning. Used by /regulations,
-//                                         /operations, /market, /map,
-//                                         /settings (no list surface
-//                                         renders the dropped fields).
+//                                         reasoning. Used by /operations,
+//                                         /market, /settings (cards render
+//                                         summary; can't drop further).
 //   get_workspace_intelligence_dashboard  (064) on top of slim, drops
-//                                         summary, what_is_it, why_matters,
-//                                         key_data, reasoning. Caps LIMIT 50.
-//                                         Used exclusively by / via
-//                                         fetchDashboardData. Per the
-//                                         2026-05-11 dashboard payload audit
-//                                         the home component subtree
-//                                         (DashboardHero + HomeSurface +
-//                                         children) renders zero references
-//                                         to any of those columns.
+//                                         what_is_it, why_matters, key_data
+//                                         (summary RETAINED for WeeklyBriefing
+//                                         + WhatChanged subtitles). Caps
+//                                         LIMIT 50. Used exclusively by /
+//                                         via fetchDashboardData.
+//   get_workspace_intelligence_listings   (066) on top of slim, additionally
+//                                         drops summary. NO LIMIT. Used by
+//                                         /regulations and /map (loaders that
+//                                         never render summary on cards). Per
+//                                         the 2026-05-10 four-route audit,
+//                                         /market and /operations card bodies
+//                                         render Resource.note (mapped from
+//                                         summary) and stay on slim until
+//                                         either the cards drop the inline
+//                                         note or a per-route variant retains
+//                                         summary.
 //
 // Saves ~3.19 MB / 184 rows on the wire from full_brief alone via slim, plus
 // another ~300-500 KB across the additional five columns the dashboard
-// variant drops on /.
+// variant drops on /, plus another ~209 KB / 454 rows per route from
+// summary on /regulations and /map via listings.
 
 async function fetchWorkspaceResources(
   orgId: string,
-  options: { slim?: boolean; dashboard?: boolean } = {}
+  options: { slim?: boolean; dashboard?: boolean; listings?: boolean } = {}
 ): Promise<{
   active: Resource[];
   archived: Resource[];
@@ -422,10 +429,12 @@ async function fetchWorkspaceResources(
   // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
   // No legacy `resources` fallback after A.5.b — if the RPC returns empty,
   // fetchDashboardData's seed fallback covers the misconfiguration case.
-  // dashboard takes precedence over slim if both are passed (defensive,
-  // call sites only pass one at a time).
+  // Precedence (defensive, call sites only pass one at a time): dashboard
+  // > listings > slim > full.
   const rpcName = options.dashboard
     ? "get_workspace_intelligence_dashboard"
+    : options.listings
+    ? "get_workspace_intelligence_listings"
     : options.slim
     ? "get_workspace_intelligence_slim"
     : "get_workspace_intelligence";
@@ -851,6 +860,130 @@ export async function fetchMapData(orgId: string | null): Promise<{
     };
   } catch (e) {
     console.error("fetchMapData failed, using seed fallback:", e);
+    return seedFallback;
+  }
+}
+
+/**
+ * Listings variant of fetchResourcesOnly. Same shape (resources + archived +
+ * overrides) but issues the listings RPC (066) which additionally drops
+ * `summary` on top of slim's four-column trim. Resource.note arrives empty
+ * on every row.
+ *
+ * Safe ONLY for callers whose card body never renders Resource.note.
+ * Verified safe per the 2026-05-10 four-route audit:
+ *   /regulations  RegulationsSurface uses r.note only inside the search
+ *                 hay-stack; no card body references it. PR removes the
+ *                 r.note concat from the hay-stack at the same time.
+ *   /map          no MapPageView / MapView references to r.note.
+ *
+ * /market and /operations stay on fetchResourcesOnly because their cards
+ * visibly render note (MarketPage Key-items + PriceRow + why-matters
+ * fallback; OperationsPage region heads + per-region item lists +
+ * inferChipKey text scan).
+ */
+export async function fetchListingsOnly(orgId: string | null): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  overrides: WorkspaceOverrideRow[];
+}> {
+  const seedFallback = {
+    resources: seedResources,
+    archived: seedArchived,
+    overrides: [] as WorkspaceOverrideRow[],
+  };
+
+  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+
+  try {
+    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { listings: true });
+    if (!active.length) return seedFallback;
+
+    const supabase = getSupabase();
+    const { data: overridesData } = await supabase
+      .from("workspace_item_overrides")
+      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes")
+      .eq("org_id", orgId);
+
+    const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
+      itemId: uuidToUiId.get(o.item_id) || o.item_id,
+      priorityOverride: o.priority_override ?? null,
+      isArchived: !!o.is_archived,
+      archiveReason: o.archive_reason ?? null,
+      archiveNote: o.archive_note ?? null,
+      notes: o.notes ?? "",
+    }));
+
+    return { resources: active, archived, overrides };
+  } catch (e) {
+    console.error("fetchListingsOnly failed, using seed fallback:", e);
+    return seedFallback;
+  }
+}
+
+/**
+ * Listings variant of fetchMapData. Same shape but issues the listings RPC
+ * (066) which additionally drops `summary` on top of slim's four-column
+ * trim. Resource.note arrives empty on every row. Safe for /map per the
+ * 2026-05-10 audit (MapPageView / MapView render pins / lines / coverage,
+ * never note).
+ */
+export async function fetchListingsMapData(orgId: string | null): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  changelog: Record<string, ChangeLogEntry[]>;
+  disputes: Record<string, Dispute>;
+  xrefPairs: [string, string][];
+  supersessions: Supersession[];
+}> {
+  const seedFallback = {
+    resources: seedResources,
+    archived: seedArchived,
+    changelog: seedChangelog,
+    disputes: seedDisputes,
+    xrefPairs: seedXrefPairs,
+    supersessions: seedSupersessions,
+  };
+
+  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+
+  try {
+    const [{ active, archived }, changelog, disputes, xrefPairs, supersessions] = await withTimeout(
+      Promise.all([
+        fetchWorkspaceResources(orgId, { listings: true }),
+        fetchChangelog(),
+        fetchDisputes(),
+        fetchXrefPairs(),
+        fetchSupersessions(),
+      ]),
+      8000,
+      [
+        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
+        seedChangelog,
+        seedDisputes,
+        seedXrefPairs,
+        seedSupersessions,
+      ] as [
+        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
+        typeof seedChangelog,
+        typeof seedDisputes,
+        typeof seedXrefPairs,
+        typeof seedSupersessions,
+      ]
+    );
+
+    if (!active.length) return seedFallback;
+
+    return {
+      resources: active,
+      archived,
+      changelog,
+      disputes,
+      xrefPairs,
+      supersessions,
+    };
+  } catch (e) {
+    console.error("fetchListingsMapData failed, using seed fallback:", e);
     return seedFallback;
   }
 }
