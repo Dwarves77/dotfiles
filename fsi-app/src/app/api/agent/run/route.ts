@@ -8,6 +8,7 @@ import { buildSourcePool } from "@/lib/agent/source-pool";
 import { browserlessRender, BrowserlessError, type BrowserlessResult } from "@/lib/sources/browserless";
 import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
 import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
+import { checkFetchQuality } from "@/lib/sources/fetch-quality";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per source URL
@@ -64,7 +65,13 @@ class HttpResponseError extends Error {
 
 function statusToTelemetry(httpStatus: number): "success" | "skipped" | "error" {
   if (httpStatus >= 200 && httpStatus < 300) return "success";
-  if (httpStatus === 403 || httpStatus === 409 || httpStatus === 429 || httpStatus === 404) {
+  if (
+    httpStatus === 403 ||
+    httpStatus === 409 ||
+    httpStatus === 429 ||
+    httpStatus === 404 ||
+    httpStatus === 412
+  ) {
     return "skipped";
   }
   return "error";
@@ -311,6 +318,26 @@ export async function POST(request: NextRequest) {
     terminalFetchHtmlBytes = fetchHtmlLength;
     terminalFetchTextBytes = fetchTextLength;
     terminalFetchRenderMs = fetchMs;
+
+    // ── Step 3.5: Fetch-quality pre-filter ──
+    // Cheap pattern gate that drops Cloudflare blocks, CAPTCHA pages,
+    // 404s, maintenance pages, and content-too-short bodies before
+    // any LLM call. 412 maps to 'skipped' in statusToTelemetry, the
+    // reason is recorded in agent_runs.errors via the finally block.
+    const qualityCheck = checkFetchQuality({
+      html: fetchedHtml,
+      text: sourceContent,
+      httpStatus: fetchStatus,
+    });
+    if (!qualityCheck.ok) {
+      console.log(
+        `[agent/run] FETCH QUALITY FAIL  url=${sourceUrl}  reason=${qualityCheck.reason}`
+      );
+      throw new HttpResponseError(412, {
+        error: "fetch_quality_failed",
+        reason: qualityCheck.reason,
+      });
+    }
 
     // ── Step 3a: Persist raw fetch ──
     // Wrapped inside persistRawFetch so missing table or bucket
