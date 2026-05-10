@@ -46,10 +46,67 @@ const nextConfig: NextConfig = {
   // an in-page mutation must be visible immediately, ensure the mutating
   // action triggers a client-side `router.refresh()` (which bypasses the
   // browser cache for the RSC payload).
+  //
+  // Expansion (2026-05-10, PR perf/cache-headers-swr-expansion): /regulations
+  // pilot validated in production (header emits cleanly, operator measurement
+  // confirms cache works). Extending the same SWR Cache-Control to the
+  // remaining protected HTML routes: /market, /operations, /map, / (dashboard
+  // root only, intentionally narrow), and /community plus sub-routes. The
+  // community shell adds extra Links across sub-routes per the
+  // dashboard-payload-audit, so /community(/.*)? covers the shell and the
+  // child routes (events, vendors, posts, etc.) with one entry. Same risk
+  // profile as /regulations: 30s fresh window delays mutation visibility,
+  // mitigated by `router.refresh()` on mutating actions. /api/* routes are
+  // intentionally excluded, they have per-route cache layers (e.g. PR #93).
   async headers() {
     return [
       {
         source: "/regulations",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=30, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/market",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=30, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/operations",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=30, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/map",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=30, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=30, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/community(/.*)?",
         headers: [
           {
             key: "Cache-Control",
