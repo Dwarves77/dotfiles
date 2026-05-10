@@ -383,18 +383,35 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 }
 
 // ── Workspace Intelligence Fetch ────────────────────────────
-// Uses get_workspace_intelligence() (full) or get_workspace_intelligence_slim()
-// (list-view) to get items with workspace overrides applied.
+// Three RPC variants for the workspace intelligence read, picked per
+// caller surface based on which long-text fields are actually rendered:
 //
-// `slim=true` invokes the migration-047 sibling RPC that omits full_brief,
-// operational_impact, open_questions, reasoning — fields no list surface
-// renders. Saves ~3.19 MB / 184 rows on the wire (full_brief alone). Used
-// by fetchResourcesOnly / fetchMapData. The full path is retained for the
-// Dashboard home, which still consumes those fields.
+//   get_workspace_intelligence            (007) full payload, used only by
+//                                         /regulations/[slug] detail today
+//   get_workspace_intelligence_slim       (047) drops full_brief,
+//                                         operational_impact, open_questions,
+//                                         reasoning. Used by /regulations,
+//                                         /operations, /market, /map,
+//                                         /settings (no list surface
+//                                         renders the dropped fields).
+//   get_workspace_intelligence_dashboard  (064) on top of slim, drops
+//                                         summary, what_is_it, why_matters,
+//                                         key_data, reasoning. Caps LIMIT 50.
+//                                         Used exclusively by / via
+//                                         fetchDashboardData. Per the
+//                                         2026-05-11 dashboard payload audit
+//                                         the home component subtree
+//                                         (DashboardHero + HomeSurface +
+//                                         children) renders zero references
+//                                         to any of those columns.
+//
+// Saves ~3.19 MB / 184 rows on the wire from full_brief alone via slim, plus
+// another ~300-500 KB across the additional five columns the dashboard
+// variant drops on /.
 
 async function fetchWorkspaceResources(
   orgId: string,
-  options: { slim?: boolean } = {}
+  options: { slim?: boolean; dashboard?: boolean } = {}
 ): Promise<{
   active: Resource[];
   archived: Resource[];
@@ -405,7 +422,11 @@ async function fetchWorkspaceResources(
   // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
   // No legacy `resources` fallback after A.5.b — if the RPC returns empty,
   // fetchDashboardData's seed fallback covers the misconfiguration case.
-  const rpcName = options.slim
+  // dashboard takes precedence over slim if both are passed (defensive,
+  // call sites only pass one at a time).
+  const rpcName = options.dashboard
+    ? "get_workspace_intelligence_dashboard"
+    : options.slim
     ? "get_workspace_intelligence_slim"
     : "get_workspace_intelligence";
   const { data: items, error } = await supabase.rpc(rpcName, { p_org_id: orgId });
@@ -578,7 +599,12 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       supersessions,
     ] = await withTimeout(
       Promise.all([
-        fetchWorkspaceResources(orgId),
+        // Dashboard projection (migration 064): drops full_brief,
+        // operational_impact, open_questions, reasoning, summary,
+        // what_is_it, why_matters, key_data on top of the slim sibling
+        // and caps to LIMIT 50. The home subtree renders none of those
+        // columns per docs/dashboard-payload-audit-2026-05-11.md.
+        fetchWorkspaceResources(orgId, { dashboard: true }),
         fetchChangelog(),
         fetchDisputes(),
         fetchXrefPairs(),
