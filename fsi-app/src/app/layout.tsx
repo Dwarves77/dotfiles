@@ -17,10 +17,14 @@ import "./globals.css";
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   // Weights aligned with Claude Design's actual usage per font-usage-audit-2026-05-11.md.
-  // 300 dropped (zero references in src/). 800 added (83 references, currently faux-bolded
-  // from 700, includes .cl-page-title + all typeset chrome from PR #84). 900 added
-  // (.cl-stat-number, currently faux-bolded). Net: ~+20 KB, restores true glyphs at 800/900.
-  weight: ["400", "500", "600", "700", "800", "900"],
+  // 300 dropped (zero references in src/). 800 added (83 references, includes
+  // .cl-page-title + all typeset chrome from PR #84). 900 NOT loaded because
+  // Plus_Jakarta_Sans tops out at 800 in next/font/google (available weights:
+  // 200, 300, 400, 500, 600, 700, 800, variable). The single .cl-stat-number
+  // 900 reference will now faux-bold from 800 instead of 700, an incremental
+  // visual improvement; a follow-up CSS edit to change .cl-stat-number to 800
+  // would eliminate the faux-bold entirely.
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-jakarta",
   display: "swap",
 });
