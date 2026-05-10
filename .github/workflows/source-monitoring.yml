@@ -9,12 +9,16 @@ name: Source monitoring
 #   APP_URL        — Production base URL, e.g. https://your-app.vercel.app (no trailing slash)
 #   WORKER_SECRET  — Same value as the WORKER_SECRET env var on the deployed app
 #
-# Schedule: every 6 hours at 00, 06, 12, 18 UTC. Also runnable on demand from
-# the Actions tab via workflow_dispatch.
+# Schedule: every hour. Wave 1a moved the cadence from 6h to 1h because
+# the worker now also honors sources.auto_run_enabled (per-source kill
+# switch), so the default state post cold-start is "no source eligible"
+# and an hourly tick is harmless when the queue is empty. Re-enabled
+# sources flow through within an hour. Also runnable on demand from the
+# Actions tab via workflow_dispatch.
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */1 * * *'
   workflow_dispatch:
 
 jobs:

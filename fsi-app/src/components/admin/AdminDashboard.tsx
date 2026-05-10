@@ -20,6 +20,7 @@ import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrity
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
 import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
+import { MtdSpendTile } from "@/components/admin/MtdSpendTile";
 
 interface AdminDashboardProps {
   userId: string;
@@ -30,6 +31,11 @@ interface AdminDashboardProps {
   initialOrgs?: any[];
   initialMembers?: any[];
   initialStagedUpdates?: any[];
+  // Wave 1a MTD spend tile inputs. Optional so existing callers
+  // continue to compile when agent_runs is not yet present.
+  initialMtdSpendUsd?: number;
+  initialMtdRuns?: number;
+  initialMtdErrors?: number;
 }
 
 export function AdminDashboard({
@@ -46,6 +52,9 @@ export function AdminDashboard({
   initialOrgs = [],
   initialMembers = [],
   initialStagedUpdates = [],
+  initialMtdSpendUsd = 0,
+  initialMtdRuns = 0,
+  initialMtdErrors = 0,
 }: AdminDashboardProps) {
   // Hydrate the source store with the admin-context unfiltered list. Mirror of
   // the Dashboard pattern at src/components/Dashboard.tsx (lines 247-253). The
@@ -320,6 +329,13 @@ export function AdminDashboard({
             Refresh
           </Button>
         </div>
+
+        {/* Wave 1a MTD spend tile, read-only month-to-date agent run cost. */}
+        <MtdSpendTile
+          usd={initialMtdSpendUsd}
+          runs={initialMtdRuns}
+          errors={initialMtdErrors}
+        />
 
         {/* Tabs */}
         <div
