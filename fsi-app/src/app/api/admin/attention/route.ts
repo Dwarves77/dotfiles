@@ -10,25 +10,28 @@
 // authenticated non-admins — non-admin users should never see the red dot,
 // so the API answer matches the UI gate.
 //
-// Cache (perf v2 — 2026-05-08):
-//   - 200 (admin) responses: `private, max-age=30` so the browser cache
-//     absorbs duplicate fetches within a 30s window. The hook polls at 60s,
-//     so the cache TTL is half the poll interval — admins get a fresh
-//     snapshot each tick, but spurious re-mounts (workspace store hydration
-//     race, mobile/desktop sidebar both rendered) hit cache instead of
-//     re-querying the RPC.
-//   - 401/403 responses: `private, max-age=60` so a non-admin browser
-//     navigating between routes doesn't re-issue the auth-failed call on
-//     every paint. Admin status is sticky for the session — a one-minute
-//     negative cache avoids the 500-1500 ms auth-check storm reported in
-//     the perf v2 baseline (two simultaneous 401s on every route).
-//   - 5xx responses: `no-store` so transient failures don't poison cache.
+// Cache layering:
+//   - HTTP-level (Cache-Control headers, browser cache):
+//       200 → private max-age=30; 401/403 → private max-age=60; 5xx no-store.
+//       Absorbs duplicate fetches inside the same browser session.
+//   - Server-level (unstable_cache, perf day-2 — 2026-05-08):
+//       Wraps the supabase RPC. Cache key includes the calling admin user
+//       id so the entry is workspace-scoped (one admin's mutation does not
+//       evict another's snapshot, future-proofs if the RPC becomes
+//       workspace-scoped). 30s TTL matches the HTTP positive-cache window.
+//       Tagged with APP_DATA_TAG so any mutation route that already calls
+//       revalidateTag(APP_DATA_TAG) (staged-update approval, workspace
+//       overrides, etc.) flushes attention counts atomically — no separate
+//       tag plumbing needed.
+//   - 401/403 responses: see above. Admin status is sticky for the session.
 
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
+import { APP_DATA_TAG } from "@/lib/data";
 
 const NEGATIVE_CACHE = "private, max-age=60";
 const POSITIVE_CACHE = "private, max-age=30";
@@ -67,6 +70,28 @@ const EMPTY_COUNTS: AttentionCounts = {
   total: 0,
 };
 
+// Server-side cache around the RPC. Keyed by admin user id so each admin
+// gets an isolated entry. The RPC currently returns platform-wide counts
+// (so all entries are content-identical), but the userId key future-proofs
+// against the RPC becoming workspace-scoped. 30s TTL matches the HTTP
+// positive cache; APP_DATA_TAG aligns with existing mutation revalidation.
+type FetchResult = { row: AttentionCounts; rpcError: string | null };
+
+const fetchAttentionCounts = unstable_cache(
+  async (_userId: string): Promise<FetchResult> => {
+    const supabase = getServiceClient();
+    const { data, error } = await supabase.rpc("admin_attention_counts");
+    if (error) return { row: EMPTY_COUNTS, rpcError: error.message };
+    const row: AttentionCounts =
+      Array.isArray(data) && data.length > 0
+        ? (data[0] as AttentionCounts)
+        : EMPTY_COUNTS;
+    return { row, rpcError: null };
+  },
+  ["admin-attention-counts-v1"],
+  { revalidate: 30, tags: [APP_DATA_TAG] }
+);
+
 export async function GET(request: NextRequest) {
   // Auth ordering (perf v2): the cheapest gate runs first. requireAuth
   // returns 401 on missing/invalid token before the rate limiter or any
@@ -98,11 +123,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const { data, error } = await supabase.rpc("admin_attention_counts");
+  const { row, rpcError } = await fetchAttentionCounts(auth.userId);
 
-  if (error) {
+  if (rpcError) {
     return NextResponse.json(
-      { error: `admin_attention_counts RPC failed: ${error.message}` },
+      { error: `admin_attention_counts RPC failed: ${rpcError}` },
       {
         status: 500,
         headers: {
@@ -112,14 +137,6 @@ export async function GET(request: NextRequest) {
       }
     );
   }
-
-  // RPC returns a one-row table. Take the first row; default to zeroes if
-  // the migration hasn't been applied yet (defensive — prevents a 500 on
-  // a fresh deploy where 036 trails).
-  const row: AttentionCounts =
-    Array.isArray(data) && data.length > 0
-      ? (data[0] as AttentionCounts)
-      : EMPTY_COUNTS;
 
   return NextResponse.json(row, {
     headers: {
