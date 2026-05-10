@@ -1110,3 +1110,326 @@ export async function fetchIntelligenceItem(
     return fromSeed();
   }
 }
+
+// ── Phase 3 dashboard sidebar fetchers (Wave 1 / Track 5) ────────
+//
+// Each fetcher is wrapped in try/catch and returns an empty array on any
+// failure. This includes the "table does not exist yet" case — migrations
+// 060 (user_watchlist) and 061 (coverage_gaps) ship in this PR but the
+// production database may apply them after master deploys to Vercel.
+// Empty arrays trigger the widget empty-state copy, keeping the dashboard
+// safe to render before migrations have applied.
+
+export interface WatchlistItem {
+  id: string;
+  type: "source" | "reg" | "signal";
+  title: string;
+  source: string;
+  jurisdiction?: string;
+  lastChangedAt: string;
+}
+
+export interface CoverageGap {
+  id: string;
+  title: string;
+  jurisdiction: string | null;
+  sectorAffinity: string[];
+  severity: "high" | "medium" | "low";
+  description: string;
+  suggestedAction: { label: string; href: string };
+}
+
+export interface ReviewItem {
+  id: string;
+  type: "provisional" | "integrity" | "spotcheck";
+  title: string;
+  daysWaiting: number;
+  href: string;
+}
+
+/**
+ * Fetch the current user's watchlist, joined to the underlying entity for
+ * a friendly title + source label.
+ *
+ * Returns [] when the user is unauthenticated, when no rows match, or when
+ * the user_watchlist table does not yet exist (migration 060 not applied).
+ * Hard-capped at 14 rows so the rail renders predictably.
+ */
+export async function fetchWatchlist(
+  userId: string | null
+): Promise<WatchlistItem[]> {
+  if (!isSupabaseConfigured() || !userId) return [];
+  try {
+    const supabase = getServiceSupabase();
+    const { data, error } = await supabase
+      .from("user_watchlist")
+      .select("id, item_type, item_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(14);
+    if (error || !data) return [];
+
+    type WatchRow = {
+      id: string;
+      item_type: "source" | "reg" | "signal";
+      item_id: string;
+      created_at: string;
+    };
+    const rows = data as WatchRow[];
+    if (rows.length === 0) return [];
+
+    // Resolve titles for the regulation rows from intelligence_items by
+    // legacy_id || uuid. Sources / signals get a best-effort label from
+    // their ids — when the source registry / market signal feeds come
+    // online they can be joined here. Single round-trip, in-memory join.
+    const regIds = rows.filter((r) => r.item_type === "reg").map((r) => r.item_id);
+    const regTitles = new Map<string, { title: string; jurisdiction: string | null }>();
+    if (regIds.length > 0) {
+      const { data: items } = await supabase
+        .from("intelligence_items")
+        .select("id, legacy_id, title, jurisdictions")
+        .or(regIds.map((id) => `legacy_id.eq.${id},id.eq.${id}`).join(","));
+      for (const it of (items || []) as Array<{
+        id: string;
+        legacy_id: string | null;
+        title: string;
+        jurisdictions: string[] | null;
+      }>) {
+        const key = it.legacy_id || it.id;
+        regTitles.set(key, {
+          title: it.title,
+          jurisdiction: it.jurisdictions?.[0] || null,
+        });
+      }
+    }
+
+    const sourceIds = rows.filter((r) => r.item_type === "source").map((r) => r.item_id);
+    const sourceLabels = new Map<string, { name: string; jurisdiction: string | null }>();
+    if (sourceIds.length > 0) {
+      const { data: srcs } = await supabase
+        .from("sources")
+        .select("id, name, jurisdictions")
+        .in("id", sourceIds);
+      for (const s of (srcs || []) as Array<{
+        id: string;
+        name: string;
+        jurisdictions: string[] | null;
+      }>) {
+        sourceLabels.set(s.id, {
+          name: s.name,
+          jurisdiction: s.jurisdictions?.[0] || null,
+        });
+      }
+    }
+
+    const result: WatchlistItem[] = rows.map((r) => {
+      if (r.item_type === "reg") {
+        const meta = regTitles.get(r.item_id);
+        return {
+          id: r.item_id,
+          type: "reg" as const,
+          title: meta?.title || r.item_id,
+          source: meta?.jurisdiction || "REG",
+          jurisdiction: meta?.jurisdiction || undefined,
+          lastChangedAt: r.created_at,
+        };
+      }
+      if (r.item_type === "source") {
+        const meta = sourceLabels.get(r.item_id);
+        return {
+          id: r.item_id,
+          type: "source" as const,
+          title: meta?.name || r.item_id,
+          source: meta?.name || "SOURCE",
+          jurisdiction: meta?.jurisdiction || undefined,
+          lastChangedAt: r.created_at,
+        };
+      }
+      return {
+        id: r.item_id,
+        type: "signal" as const,
+        title: r.item_id,
+        source: "SIGNAL",
+        lastChangedAt: r.created_at,
+      };
+    });
+
+    return result;
+  } catch (e) {
+    console.error("fetchWatchlist failed, returning empty:", e);
+    return [];
+  }
+}
+
+/**
+ * Fetch coverage gaps relevant to the workspace's active sectors.
+ *
+ * v1 reads the hand-curated coverage_gaps table (migration 061). When the
+ * table does not yet exist (migration not applied) the catch path returns
+ * []. Filter by overlap of `sector_affinity` and the workspace's active
+ * sectors when sectors are known; otherwise return all gaps. Sorted high
+ * then medium then low; capped at 2 to match the spec.
+ */
+export async function fetchCoverageGaps(
+  activeSectors: string[]
+): Promise<CoverageGap[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = getServiceSupabase();
+    let query = supabase
+      .from("coverage_gaps")
+      .select(
+        "id, title, jurisdiction, sector_affinity, severity, description, suggested_action_label, suggested_action_href"
+      );
+    if (activeSectors.length > 0) {
+      query = query.overlaps("sector_affinity", activeSectors);
+    }
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    const order = { high: 0, medium: 1, low: 2 } as const;
+    type Row = {
+      id: string;
+      title: string;
+      jurisdiction: string | null;
+      sector_affinity: string[] | null;
+      severity: "high" | "medium" | "low";
+      description: string;
+      suggested_action_label: string;
+      suggested_action_href: string;
+    };
+    const rows = (data as Row[]).slice().sort(
+      (a, b) => order[a.severity] - order[b.severity]
+    );
+
+    return rows.slice(0, 2).map((r) => ({
+      id: r.id,
+      title: r.title,
+      jurisdiction: r.jurisdiction,
+      sectorAffinity: r.sector_affinity || [],
+      severity: r.severity,
+      description: r.description,
+      suggestedAction: {
+        label: r.suggested_action_label,
+        href: r.suggested_action_href,
+      },
+    }));
+  } catch (e) {
+    console.error("fetchCoverageGaps failed, returning empty:", e);
+    return [];
+  }
+}
+
+/**
+ * Fetch the top oldest items waiting for admin review across three
+ * heterogeneous sources: provisional sources pending review, unresolved
+ * integrity flags, and staged updates that have been auto-approved
+ * pending spot-check.
+ *
+ * Returns [] for non-admin callers (the widget hides itself in that case).
+ * Capped at 3 entries, sorted oldest-first by daysWaiting.
+ *
+ * Wrapped in try/catch so a missing column / table on any of the three
+ * subqueries degrades to an empty list rather than crashing the dashboard.
+ */
+export async function fetchAwaitingReview(
+  userId: string | null
+): Promise<ReviewItem[]> {
+  if (!isSupabaseConfigured() || !userId) return [];
+  try {
+    const supabase = getServiceSupabase();
+    const admin = await isPlatformAdminInline(userId, supabase);
+    if (!admin) return [];
+
+    const now = Date.now();
+    const daysSince = (iso: string): number => {
+      const d = new Date(iso).getTime();
+      if (Number.isNaN(d)) return 0;
+      return Math.max(0, Math.round((now - d) / 86400000));
+    };
+
+    const [provResult, integrityResult, stagedResult] = await Promise.all([
+      supabase
+        .from("provisional_sources")
+        .select("id, name, created_at")
+        .eq("status", "pending_review")
+        .order("created_at", { ascending: true })
+        .limit(10),
+      supabase
+        .from("integrity_flags")
+        .select("id, description, created_at")
+        .in("status", ["open", "in_review"])
+        .order("created_at", { ascending: true })
+        .limit(10),
+      supabase
+        .from("staged_updates")
+        .select("id, reason, created_at, update_type")
+        .eq("status", "approved")
+        .order("created_at", { ascending: true })
+        .limit(10),
+    ]);
+
+    type ProvRow = { id: string; name: string; created_at: string };
+    type IntegRow = { id: string; description: string; created_at: string };
+    type StagedRow = {
+      id: string;
+      reason: string;
+      created_at: string;
+      update_type: string;
+    };
+
+    const items: ReviewItem[] = [];
+
+    for (const p of (provResult.data || []) as ProvRow[]) {
+      items.push({
+        id: p.id,
+        type: "provisional",
+        title: p.name || "Provisional source",
+        daysWaiting: daysSince(p.created_at),
+        href: `/admin?tab=provisional&id=${p.id}`,
+      });
+    }
+    for (const f of (integrityResult.data || []) as IntegRow[]) {
+      items.push({
+        id: f.id,
+        type: "integrity",
+        title: f.description?.slice(0, 120) || "Integrity flag",
+        daysWaiting: daysSince(f.created_at),
+        href: `/admin?tab=integrity&id=${f.id}`,
+      });
+    }
+    for (const s of (stagedResult.data || []) as StagedRow[]) {
+      items.push({
+        id: s.id,
+        type: "spotcheck",
+        title: s.reason?.slice(0, 120) || `Spot-check ${s.update_type}`,
+        daysWaiting: daysSince(s.created_at),
+        href: `/admin?tab=staged&id=${s.id}`,
+      });
+    }
+
+    items.sort((a, b) => b.daysWaiting - a.daysWaiting);
+    return items.slice(0, 3);
+  } catch (e) {
+    console.error("fetchAwaitingReview failed, returning empty:", e);
+    return [];
+  }
+}
+
+// Inline platform-admin check (avoids importing from src/lib/auth/admin.ts
+// to keep this module self-contained; mirrors that helper exactly).
+async function isPlatformAdminInline(
+  userId: string,
+  supabase: ReturnType<typeof getServiceSupabase>
+): Promise<boolean> {
+  if (!userId) return false;
+  const { data, error } = await supabase
+    .from("org_memberships")
+    .select("role")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return false;
+  return data.role === "owner" || data.role === "admin";
+}

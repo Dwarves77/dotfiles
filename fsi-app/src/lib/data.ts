@@ -5,10 +5,24 @@ import {
   fetchMapData,
   fetchSourceData,
   fetchSettingsData,
+  fetchWatchlist,
+  fetchCoverageGaps,
+  fetchAwaitingReview,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
+import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
-import type { WorkspaceOverrideRow } from "@/lib/supabase-server";
+import type {
+  WorkspaceOverrideRow,
+  WatchlistItem,
+  CoverageGap,
+  ReviewItem,
+} from "@/lib/supabase-server";
+
+// Re-export the Phase 3 widget types so HomeSurface and the widget files
+// can import them from a single module rather than reaching into
+// supabase-server directly.
+export type { WatchlistItem, CoverageGap, ReviewItem };
 
 /**
  * Cache invalidation tag for workspace data. Mutation routes
@@ -198,5 +212,106 @@ export async function getSettingsData(): Promise<{
       archived: seed.archived,
       supersessions: seed.supersessions,
     };
+  }
+}
+
+// ── Phase 3 dashboard sidebar fetchers (Wave 1 / Track 5) ────────
+//
+// Each getX wraps the fetchX in supabase-server.ts behind unstable_cache
+// keyed by the natural identity (userId for watchlist + awaiting-review,
+// orgId for coverage gaps). 60s revalidate, tagged APP_DATA_TAG so any
+// existing mutation route that flushes APP_DATA_TAG also invalidates these
+// entries. Each is wrapped in try/catch so a missing migration (060/061)
+// or RPC failure returns [] rather than throwing — the widgets render
+// their empty-state copy in that case, keeping the dashboard merge-safe
+// before migrations apply.
+
+async function resolveUserIdFromCookies(): Promise<string | null> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const cachedWatchlist = unstable_cache(
+  async (userId: string | null): Promise<WatchlistItem[]> => {
+    return fetchWatchlist(userId);
+  },
+  ["watchlist-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+const cachedCoverageGaps = unstable_cache(
+  async (
+    orgId: string | null,
+    activeSectorsKey: string
+  ): Promise<CoverageGap[]> => {
+    void orgId; // orgId participates in the cache key for future filtering
+    const sectors = activeSectorsKey ? activeSectorsKey.split("|") : [];
+    return fetchCoverageGaps(sectors);
+  },
+  ["coverage-gaps-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+const cachedAwaitingReview = unstable_cache(
+  async (userId: string | null): Promise<ReviewItem[]> => {
+    return fetchAwaitingReview(userId);
+  },
+  ["awaiting-review-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+/**
+ * Fetch the current user's watchlist items (regulations, sources, signals)
+ * for the Dashboard Watchlist widget. Returns [] for anon users and on any
+ * error (including migration 060 not yet applied).
+ */
+export async function getWatchlist(): Promise<WatchlistItem[]> {
+  try {
+    const userId = await resolveUserIdFromCookies();
+    return await cachedWatchlist(userId);
+  } catch (e) {
+    console.error("getWatchlist failed, returning empty:", e);
+    return [];
+  }
+}
+
+/**
+ * Fetch coverage gaps for the current workspace. v1 reads the hand-curated
+ * `coverage_gaps` table (migration 061). Active sectors are not yet
+ * resolved server-side from workspace settings, so this passes [] which
+ * returns all curated gaps; the result is capped at 2 by the fetcher.
+ */
+export async function getCoverageGaps(): Promise<CoverageGap[]> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    // Active-sector filtering is a v2 enhancement once workspace sector
+    // profile is exposed to server components. v1 returns the curated
+    // top-N for any workspace.
+    return await cachedCoverageGaps(orgId, "");
+  } catch (e) {
+    console.error("getCoverageGaps failed, returning empty:", e);
+    return [];
+  }
+}
+
+/**
+ * Fetch the top oldest items awaiting admin review for the Dashboard
+ * Awaiting Review widget. Returns [] for non-admins (the widget hides
+ * itself in that case).
+ */
+export async function getAwaitingReview(): Promise<ReviewItem[]> {
+  try {
+    const userId = await resolveUserIdFromCookies();
+    return await cachedAwaitingReview(userId);
+  } catch (e) {
+    console.error("getAwaitingReview failed, returning empty:", e);
+    return [];
   }
 }

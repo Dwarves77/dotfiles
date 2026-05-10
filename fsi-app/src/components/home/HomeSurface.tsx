@@ -6,20 +6,31 @@
  * WhatChanged toggle, Supersessions toggle, scoring with sector context).
  *
  * The page-level <EditorialMasthead> + <DashboardHero> + <AiPromptBar> live
- * in the server component (app/page.tsx). This subcomponent only owns the
- * "This Week" two-column section + the "Replaced" supersessions strip.
+ * in the server component (app/page.tsx). This subcomponent owns the body
+ * grid: the editorial main column ("This Week" + "Replaced" + Housekeeping)
+ * and the 300px sidebar rail (Watchlist + By Owner).
  *
- * Wiring matches design_handoff_2026-04/preview/dashboard-v3.html:
- *   - Section "This Week": SectionHeader + 1.3fr/1fr grid (WeeklyBriefing left)
- *   - Section "Replaced": SectionHeader + horizontal 5-up Supersessions row
+ * Phase 3 (design_handoff_2026-05_dashboard-sidebar) reshapes the body to
+ * Layout A: 1fr / 300px grid with a 32px gap, an inset border on the rail,
+ * and a 1024px breakpoint that collapses to single-column. Layout B is
+ * out of scope.
  */
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
 import { Toast } from "@/components/ui/Toast";
 import { SectionHeader } from "@/components/shell/SectionHeader";
 import { WeeklyBriefing } from "@/components/home/WeeklyBriefing";
 import { WhatChanged } from "@/components/home/WhatChanged";
 import { Supersessions } from "@/components/home/Supersessions";
+import {
+  HousekeepingSection,
+  HousekeepingSkeleton,
+  RailSkeleton,
+} from "@/components/home/HousekeepingSection";
+import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
+import { DashboardByOwner } from "@/components/home/DashboardByOwner";
+import { DashboardCoverageGaps } from "@/components/home/DashboardCoverageGaps";
+import { DashboardAwaitingReview } from "@/components/home/DashboardAwaitingReview";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
@@ -29,6 +40,11 @@ import type {
   Dispute,
   Supersession,
 } from "@/types/resource";
+import type {
+  WatchlistItem,
+  CoverageGap,
+  ReviewItem,
+} from "@/lib/data";
 
 interface HomeSurfaceProps {
   initialResources: Resource[];
@@ -45,6 +61,12 @@ interface HomeSurfaceProps {
     archiveNote: string | null;
     notes: string;
   }[];
+  // Phase 3 widget promises — passed unawaited from page.tsx so each
+  // widget can Suspense-resolve independently of the editorial body's
+  // first paint.
+  watchlistPromise: Promise<WatchlistItem[]>;
+  coverageGapsPromise: Promise<CoverageGap[]>;
+  awaitingReviewPromise: Promise<ReviewItem[]>;
 }
 
 export function HomeSurface({
@@ -55,6 +77,9 @@ export function HomeSurface({
   supersessions,
   auditDate,
   initialOverrides = [],
+  watchlistPromise,
+  coverageGapsPromise,
+  awaitingReviewPromise,
 }: HomeSurfaceProps) {
   const {
     resources: platformResources,
@@ -123,62 +148,121 @@ export function HomeSurface({
           operational pages: /regulations, /regulations/[slug], /market,
           /research, /operations, /map. */}
 
-      {/* This Week — Weekly Briefing (1.3fr) + What Changed (1fr) */}
-      <section style={{ marginBottom: 40 }}>
-        <SectionHeader
-          title="This Week"
-          aside={
-            <>
-              Weekly briefing · <b>{todayLabel}</b>
-            </>
+      <div
+        className="cl-home-body-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 300px",
+          gap: 0,
+          alignItems: "start",
+        }}
+      >
+        <style>{`
+          @media (max-width: 1024px) {
+            .cl-home-body-grid { grid-template-columns: 1fr !important; }
+            .cl-home-body-rail { border-left: 0 !important; padding-left: 0 !important; padding-top: 32px !important; border-top: 1px solid var(--border-sub); }
+            .cl-home-body-main { padding-right: 0 !important; }
           }
-        />
+        `}</style>
+
         <div
-          className="cl-this-week-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.3fr 1fr",
-            gap: 18,
-          }}
+          className="cl-home-body-main"
+          style={{ paddingRight: 32, minWidth: 0 }}
         >
-          <style>{`
-            @media (max-width: 900px) {
-              .cl-this-week-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+          {/* This Week — Weekly Briefing (1.3fr) + What Changed (1fr) */}
+          <section style={{ marginBottom: 40 }}>
+            <SectionHeader
+              title="This Week"
+              aside={
+                <>
+                  Weekly briefing · <b>{todayLabel}</b>
+                </>
+              }
+            />
+            <div
+              className="cl-this-week-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.3fr 1fr",
+                gap: 18,
+              }}
+            >
+              <style>{`
+                @media (max-width: 900px) {
+                  .cl-this-week-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+                }
+              `}</style>
+              <WeeklyBriefing
+                resources={resources}
+                changelog={changelog}
+                disputes={disputes}
+                auditDate={auditDate}
+                onToast={showToast}
+              />
+              <WhatChanged
+                resources={resources}
+                changelog={changelog}
+                auditDate={auditDate}
+              />
+            </div>
+          </section>
+
+          {/* Replaced — 5-up horizontal Supersessions strip */}
+          {supersessions.length > 0 && (
+            <section style={{ marginBottom: 40 }}>
+              <SectionHeader
+                title="Replaced"
+                aside={
+                  <>
+                    <b>{supersessions.length}</b> regulations superseded by newer
+                    versions
+                  </>
+                }
+              />
+              <Supersessions
+                supersessions={supersessions}
+                resourceMap={resourceMap}
+              />
+            </section>
+          )}
+
+          {/* Housekeeping — Coverage gaps (left) + Awaiting review (right) */}
+          <HousekeepingSection
+            coverageGapsSlot={
+              <Suspense
+                fallback={<HousekeepingSkeleton label="Coverage gaps" />}
+              >
+                <DashboardCoverageGaps promise={coverageGapsPromise} />
+              </Suspense>
             }
-          `}</style>
-          <WeeklyBriefing
-            resources={resources}
-            changelog={changelog}
-            disputes={disputes}
-            auditDate={auditDate}
-            onToast={showToast}
-          />
-          <WhatChanged
-            resources={resources}
-            changelog={changelog}
-            auditDate={auditDate}
+            awaitingReviewSlot={
+              <Suspense
+                fallback={<HousekeepingSkeleton label="Awaiting review" />}
+              >
+                <DashboardAwaitingReview promise={awaitingReviewPromise} />
+              </Suspense>
+            }
           />
         </div>
-      </section>
 
-      {/* Replaced — 5-up horizontal Supersessions strip */}
-      {supersessions.length > 0 && (
-        <section style={{ marginBottom: 40 }}>
-          <SectionHeader
-            title="Replaced"
-            aside={
-              <>
-                <b>{supersessions.length}</b> regulations superseded by newer
-                versions
-              </>
-            }
-          />
-          <Supersessions
-            supersessions={supersessions}
-            resourceMap={resourceMap}
-          />
-        </section>
-      )}
+        <aside
+          className="cl-home-body-rail"
+          style={{
+            paddingLeft: 32,
+            borderLeft: "1px solid var(--border-sub)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 36,
+          }}
+        >
+          <Suspense fallback={<RailSkeleton label="Watchlist" />}>
+            <DashboardWatchlist promise={watchlistPromise} />
+          </Suspense>
+          <Suspense fallback={<RailSkeleton label="By Owner" />}>
+            <DashboardByOwner resources={resources} />
+          </Suspense>
+        </aside>
+      </div>
 
       <Toast
         message={toast.message}
@@ -188,4 +272,3 @@ export function HomeSurface({
     </div>
   );
 }
-
