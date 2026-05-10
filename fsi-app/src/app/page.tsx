@@ -15,7 +15,12 @@
  *   - "Replaced" section: 5-up horizontal Supersessions strip
  */
 
-import { getAppData } from "@/lib/data";
+import {
+  getAppData,
+  getWatchlist,
+  getCoverageGaps,
+  getAwaitingReview,
+} from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
@@ -29,6 +34,14 @@ export default async function Home() {
   const t0 = Date.now();
   const data = await getAppData();
   console.log(`[perf] / data ${Date.now() - t0}ms`);
+
+  // Phase 3 widget data — kicked off as unawaited promises so the
+  // editorial body and hero paint at the original time-to-first-paint
+  // and the rail / Housekeeping resolve as their independent queries
+  // return inside Suspense boundaries.
+  const watchlistPromise = getWatchlist();
+  const coverageGapsPromise = getCoverageGaps();
+  const awaitingReviewPromise = getAwaitingReview();
 
   const dateStr = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -55,6 +68,9 @@ export default async function Home() {
         supersessions={data.supersessions}
         auditDate={data.auditDate}
         initialOverrides={data.overrides}
+        watchlistPromise={watchlistPromise}
+        coverageGapsPromise={coverageGapsPromise}
+        awaitingReviewPromise={awaitingReviewPromise}
       />
     </>
   );

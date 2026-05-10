@@ -195,3 +195,87 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ----------------------------------------------------------------- */
+/* Dashboard sidebar widgets (Phase 3, design_handoff_2026-05).      */
+/* Source of truth: dashboard-sidebar-spec.html.                     */
+/* ----------------------------------------------------------------- */
+
+/* TYPESET SECTION (typeset, not boxed, sidebar widget grammar) */
+.cl-typeset { display: flex; flex-direction: column; }
+.cl-typeset-eyebrow { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.cl-typeset-h { font-family: var(--font-display); font-size: 20px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.08; margin: 0 0 6px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.cl-typeset-h .count { font-family: var(--font-sans); font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0; flex: 1 0 100%; margin-top: -2px; }
+.cl-typeset-deck { font-size: 12px; color: var(--text-2); line-height: 1.5; margin: 0 0 14px; }
+.cl-typeset-list { list-style: none; padding: 0; margin: 0; }
+.cl-typeset-list li { padding: 10px 0; border-top: 1px solid var(--border-sub); }
+.cl-typeset-list li:first-child { border-top: 0; padding-top: 4px; }
+.cl-typeset-foot { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--text); }
+.cl-typeset-foot a { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); text-decoration: none; }
+.cl-typeset-foot a:hover { color: var(--accent-hover); }
+
+/* TYPETAG, small inline type marker */
+.cl-typetag { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border-sub); color: var(--text-2); text-transform: uppercase; }
+
+/* PULSE DOT, shared utility */
+.pulse-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--low); display: inline-block; }
+.pulse-dot.fresh { background: var(--critical); animation: pulse-dot 1.6s ease-in-out infinite; }
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.6); opacity: 0.5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot.fresh { animation: none; }
+}
+
+/* WATCHLIST item */
+.cl-wl-item { display: block; }
+.cl-wl-item .src { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
+.cl-wl-item .t { font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--text); }
+.cl-wl-item .meta { display: flex; gap: 8px; align-items: center; margin-top: 5px; font-size: 10.5px; color: var(--muted); }
+
+/* BY OWNER item */
+.cl-ow-item { display: block; }
+.cl-ow-item .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline; }
+.cl-ow-item .name { font-size: 13.5px; font-weight: 700; }
+.cl-ow-item .ct { font-family: var(--font-display); font-size: 18px; color: var(--accent); letter-spacing: 0.02em; line-height: 1; }
+.cl-ow-item .ct sub { font-size: 9px; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-left: 3px; font-family: var(--font-sans); }
+.cl-ow-item .top { font-size: 12px; color: var(--text-2); line-height: 1.4; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-ow-item .top .dot { width: 5px; height: 5px; border-radius: 999px; display: inline-block; vertical-align: middle; margin-right: 6px; transform: translateY(-1px); }
+.cl-ow-item .top.crit .dot { background: var(--critical); }
+.cl-ow-item .top.high .dot { background: var(--high); }
+.cl-ow-item .top.mod  .dot { background: var(--moderate); }
+
+/* COVERAGE GAPS item */
+.cov-item { padding: 12px 14px; border-radius: var(--r-sm); margin-bottom: 10px; background: var(--bg); border: 1px solid var(--border-sub); border-left: 3px solid var(--moderate); }
+.cov-item.high-sev { border-left-color: var(--high); background: var(--high-bg); border-color: var(--high-bd); }
+.cov-item .row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.cov-item .t { font-size: 13px; font-weight: 700; line-height: 1.3; }
+.cov-item .sev { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.cov-item.high-sev .sev { color: var(--high); }
+.cov-item .desc { font-size: 11.5px; color: var(--text-2); line-height: 1.5; margin: 4px 0 0; }
+.cov-item .desc i { color: var(--muted); font-style: normal; }
+.cov-item .act { font-size: 10.5px; font-weight: 700; color: var(--accent); margin-top: 8px; display: inline-block; text-decoration: none; letter-spacing: 0.04em; }
+.cov-item .act:hover { text-decoration: underline; }
+
+/* AWAITING REVIEW item */
+.cl-rev-item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+.cl-rev-item.high-sev { background: var(--high-bg); border-left: 3px solid var(--high); padding: 8px 10px; border-radius: var(--r-sm); }
+.cl-rev-chip { font-size: 9px; font-weight: 800; letter-spacing: 0.08em; padding: 3px 7px; border-radius: 3px; text-transform: uppercase; white-space: nowrap; align-self: start; margin-top: 2px; }
+.cl-rev-chip.prov { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-bd); }
+.cl-rev-chip.intg { background: var(--high-bg); color: var(--high); border: 1px solid var(--high-bd); }
+.cl-rev-chip.spot { background: var(--low-bg); color: var(--low); border: 1px solid var(--low-bd); }
+.cl-rev-item .t { font-size: 12.5px; font-weight: 700; line-height: 1.4; }
+.cl-rev-item .ago { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+.cl-rev-item .chev { color: var(--muted); font-size: 16px; align-self: start; margin-top: 2px; }
+
+/* HOUSEKEEPING card chrome (body widgets get cards, rail widgets do not) */
+.cl-hk-card { background: var(--surface); border: 1px solid var(--color-border); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 18px 18px 16px; }
+.cl-hk-card .cl-typeset-foot { border-top-color: var(--border-sub); }
+.cl-hk-card .cl-typeset-foot a { color: var(--accent); }
+
+/* HOUSEKEEPING two-up grid + stale pill */
+.cl-hk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 900px) { .cl-hk-two { grid-template-columns: 1fr; } }
+.cl-stale-pill { font-size: 9px; font-weight: 800; letter-spacing: 0.1em; padding: 1px 6px; border-radius: 3px; background: var(--high-bg); color: var(--high); border: 1px solid var(--high-bd); text-transform: uppercase; margin-left: 6px; }
+
