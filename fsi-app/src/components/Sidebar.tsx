@@ -63,7 +63,14 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="px-4 py-5 border-b" style={{ borderColor: "var(--color-border)" }}>
-        <Link href="/" className="block">
+        {/* perf round 3 (2026-05-09): logo Link sat next to the NAV_ITEMS
+            Dashboard entry, both pointing at "/". The nav entry already
+            opts out via NO_PREFETCH_HREFS, but this logo Link defaulted
+            to auto-prefetch and re-fired the dashboard RSC fetch on every
+            authenticated route mount, landing ~1.2s post-FCP. Same data
+            surface, prefetched twice. prefetch={false} matches the nav
+            entry and eliminates the duplicate. */}
+        <Link href="/" prefetch={false} className="block">
           <h1
             className="text-xl uppercase"
             style={{

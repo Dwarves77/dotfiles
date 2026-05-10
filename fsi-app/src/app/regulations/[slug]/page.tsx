@@ -190,8 +190,15 @@ export default async function RegulationDetailPage({
   return (
     <>
       <div style={{ padding: "10px 32px 0" }}>
+        {/* perf round 3 (2026-05-09): layout-level breadcrumb back to the
+            regulations index. Auto-prefetched on every detail-page mount,
+            re-firing the regulations index RSC fetch (~3 Supabase queries
+            via getResourcesOnly) even when the user is reading the detail
+            and never going back. prefetch={false} preserves click latency
+            via Next's in-flight RSC dedupe. */}
         <Link
           href="/regulations"
+          prefetch={false}
           style={{
             color: "var(--muted)",
             fontSize: 12,

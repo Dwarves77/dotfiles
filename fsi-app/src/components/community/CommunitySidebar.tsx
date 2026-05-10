@@ -78,8 +78,14 @@ export function CommunitySidebar({
           flexShrink: 0,
         }}
       >
+        {/* perf round 3 (2026-05-09): layout-level breadcrumb back to "/".
+            Auto-prefetched on every /community/* mount, prewarming the
+            dashboard data fetcher even when the user is staying inside
+            community. prefetch={false} preserves click latency via Next's
+            in-flight RSC dedupe. */}
         <Link
           href="/"
+          prefetch={false}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -124,8 +130,10 @@ export function CommunitySidebar({
             {currentUser.name || "Operator"}
             {currentUser.employer ? ` · ${currentUser.employer}` : ""}
           </span>
+          {/* perf round 3 (2026-05-09): layout-level shell button. */}
           <Link
             href="/onboarding"
+            prefetch={false}
             style={{
               background: "transparent",
               border: "1px solid var(--color-border)",
@@ -286,8 +294,10 @@ export function CommunitySidebar({
             {currentUser.employer || currentUser.email}
           </div>
         </div>
+        {/* perf round 3 (2026-05-09): layout-level shell footer link. */}
         <Link
           href="/settings"
+          prefetch={false}
           aria-label="Settings"
           style={{
             color: "var(--color-text-muted)",
@@ -381,8 +391,10 @@ function SidebarSection({
           </span>
         )}
         {actionHref && (
+          // perf round 3 (2026-05-09): layout-level shell section action.
           <Link
             href={actionHref}
+            prefetch={false}
             aria-label={`Add to ${label}`}
             style={{
               color: "var(--color-text-muted)",
