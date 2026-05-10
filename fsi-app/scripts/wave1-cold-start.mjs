@@ -486,6 +486,21 @@ async function main() {
             })
             .eq("id", agentRunId);
         }
+        // Sources scoreboard update, mirrors /api/agent/run lines 363-364
+        // and 655-662. last_content_* always populated on successful fetch;
+        // last_intelligence_item_at only when a new item was inserted.
+        const sourceUpdate = {
+          last_content_hash: persisted.content_hash,
+          last_content_fetched_at: new Date().toISOString(),
+        };
+        if (insertedItemId) {
+          sourceUpdate.last_intelligence_item_at = new Date().toISOString();
+        }
+        try {
+          await supabase.from("sources").update(sourceUpdate).eq("id", source.id);
+        } catch (e) {
+          console.warn(`[cold-start] sources scoreboard update failed for ${source.id}: ${e.message}`);
+        }
         succeeded++;
         logLine({ kind: "success", source_id: source.id, url: source.url, raw_fetch_id: persisted.raw_fetch_id, backfill: !!backfillNote });
       } catch (e) {
