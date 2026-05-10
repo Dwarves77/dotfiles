@@ -6,7 +6,7 @@
 create table public.user_watchlist (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  org_id uuid references public.orgs(id) on delete cascade,
+  org_id uuid references public.organizations(id) on delete cascade,
   item_type text not null check (item_type in ('source','reg','signal')),
   item_id text not null,
   created_at timestamptz not null default now(),
