@@ -333,6 +333,22 @@ All other routes read from the `intelligence_items` table. No live Claude API ca
 - DO NOT leave any item without a full_brief. Every regeneration must emit the 13-field contract or fail honestly. Failed regenerations retain the older `regeneration_skill_version` and re-run on the next pass; the runner is idempotent.
 - DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set `status='active'`, `admin_only=false`), not a code change.
 
+### agent/run error-swallow post-mortem (in force from 2026-05-08)
+
+**Treat any `.select()` that destructures `data` without `error` as a code smell.** Always destructure the `error` field even if you intend to ignore it, and log when it fires.
+
+What went wrong: `/api/agent/run` line 37 (pre-Wave-1a) was `const { data: sourceRecord } = await supabase.from("sources").select("id, last_scanned, status, tier")...`. The `error` field was dropped from the destructure. The `last_scanned` column had been referenced in code but never landed in any migration. PostgREST returned a "column does not exist" error on every invocation; the error was swallowed; `sourceRecord` was `null` on every call.
+
+Four cost-protection mechanisms gated by `sourceRecord?.X` were silently disabled for an unknown duration:
+1. **Provisional source gate** (line 44) — `sourceRecord?.status === "provisional"` was always falsy.
+2. **Per-source pause check** (line 56) — `pauseReason(supabase, sourceRecord?.id)` was called with `id=undefined`, reducing the check to global-pause-only.
+3. **1h scan cooldown** (line 62) — `sourceRecord?.last_scanned` was always undefined.
+4. **last_scanned timestamp UPDATE** (line 374) — `sourceRecord?.id` was undefined, the UPDATE never ran.
+
+Caught by the gate 3 precheck during Path B Wave 1a setup, not by production telemetry — because per-call telemetry didn't exist (which is itself part of what Wave 1a fixes via the `agent_runs` table). Wave 1a step 1 lands migration 051 (`ADD COLUMN IF NOT EXISTS last_scanned`), backfills from `sources.last_checked`, and adds the missing `error` capture at line 37 with a `console.warn` log.
+
+Future-agent rule: when reviewing or writing Supabase calls, look for `const { data } = await supabase...` destructures. If the `error` is dropped, that's the bug shape this post-mortem prevents.
+
 ---
 
 ## Sector Activation (future feature, placeholder live)

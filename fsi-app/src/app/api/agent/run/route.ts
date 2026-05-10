@@ -34,11 +34,23 @@ export async function POST(request: NextRequest) {
     const failures: string[] = [];
 
     // ── Step 2: Rate limit + provisional gate ──
-    const { data: sourceRecord } = await supabase
+    // The `error` field MUST be captured. Prior versions of this destructure
+    // dropped it, so when a column referenced in the select didn't exist
+    // (last_scanned, missing for an unknown duration before migration 051),
+    // PostgREST returned `data: null` and the error was swallowed silently —
+    // disabling the provisional gate, per-source pause check, scan cooldown,
+    // and last_scanned timestamp UPDATE. See the post-mortem in
+    // fsi-app/.claude/CLAUDE.md § "agent/run error-swallow post-mortem".
+    const { data: sourceRecord, error: sourceLookupError } = await supabase
       .from("sources")
       .select("id, last_scanned, status, tier")
       .eq("url", sourceUrl)
       .single();
+    if (sourceLookupError) {
+      console.warn(
+        `[agent/run] sources lookup error for url=${sourceUrl}: ${sourceLookupError.message} (code=${sourceLookupError.code ?? "?"})`
+      );
+    }
 
     // Gate: do not process provisional sources — no API spend on unverified sources
     if (sourceRecord?.status === "provisional") {
