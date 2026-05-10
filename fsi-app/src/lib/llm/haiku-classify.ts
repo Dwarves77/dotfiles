@@ -274,83 +274,11 @@ Output the JSON object only.`;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Public: haikuClassify
+// haikuClassify (removed 2026-05-11): the export was never imported by any
+// production code path. cold-start (scripts/wave1-cold-start.mjs:231 region)
+// ships its own local copy of the classification logic. Per cleanup audit
+// 2026-05-11. The hash + JSON helpers in __internals stay (test surface).
 // ────────────────────────────────────────────────────────────────────────────
-
-export async function haikuClassify(
-  input: ClassifyInput,
-  apiKey: string
-): Promise<ClassifyResult> {
-  const text = htmlToText(input.html, 12_000);
-  const content_hash = await sha256Hex(input.html);
-
-  const userMessage = `Source URL: ${input.source_url}
-Source id: ${input.source_id ?? "(unknown)"}
-Source tier: ${input.source_tier ?? "(unknown)"}
-Source jurisdictions: ${JSON.stringify(input.source_jurisdictions ?? [])}
-Source topic tags: ${JSON.stringify(input.source_topic_tags ?? [])}
-
-Content excerpt (truncated to ~6000 chars):
----
-${text.slice(0, CONTENT_MAX_CHARS)}
----
-
-Output the JSON object only.`;
-
-  const client = new Anthropic({ apiKey });
-  try {
-    const resp = await client.messages.create({
-      model: HAIKU_MODEL,
-      max_tokens: 800,
-      system: CONTENT_HAIKU_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }],
-    });
-    const respText = resp.content
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { type: "text"; text: string }).text)
-      .join("");
-    const jsonStr = extractJsonObject(respText);
-    if (!jsonStr) return { ok: false, error: "No JSON object in model output" };
-    const parsed = JSON.parse(jsonStr);
-
-    if (
-      typeof parsed.item_type !== "string" ||
-      typeof parsed.severity !== "string" ||
-      typeof parsed.priority !== "string" ||
-      typeof parsed.urgency_tier !== "string" ||
-      !Array.isArray(parsed.topic_tags) ||
-      !Array.isArray(parsed.jurisdictions) ||
-      typeof parsed.title_candidate !== "string" ||
-      typeof parsed.summary !== "string" ||
-      typeof parsed.rationale !== "string"
-    ) {
-      return { ok: false, error: "Malformed classification shape" };
-    }
-
-    const inputTokens = resp.usage?.input_tokens ?? 0;
-    const outputTokens = resp.usage?.output_tokens ?? 0;
-    const cost_usd_estimated = estimateCostUsd(inputTokens, outputTokens);
-
-    return {
-      ok: true,
-      result: {
-        item_type: String(parsed.item_type),
-        severity: String(parsed.severity),
-        priority: String(parsed.priority),
-        urgency_tier: String(parsed.urgency_tier),
-        topic_tags: (parsed.topic_tags as unknown[]).map((t) => String(t)).slice(0, 6),
-        jurisdictions: (parsed.jurisdictions as unknown[]).map((t) => String(t)).slice(0, 10),
-        title_candidate: String(parsed.title_candidate).slice(0, 120),
-        summary: String(parsed.summary).slice(0, 400),
-        content_hash,
-        cost_usd_estimated,
-        rationale: String(parsed.rationale).slice(0, 200),
-      },
-    };
-  } catch (e: unknown) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Internal helper exports for tests
