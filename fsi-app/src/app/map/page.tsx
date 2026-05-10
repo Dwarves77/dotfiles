@@ -1,4 +1,4 @@
-import { getMapData } from "@/lib/data";
+import { getListingsMapData } from "@/lib/data";
 import { getCoverageGaps } from "@/lib/coverage-gaps";
 import { MapPageView } from "@/components/map/MapPageView";
 
@@ -18,9 +18,11 @@ export default async function MapRoute({
   // Both fetches are independent — parallelise for cold-cache speed.
   // getCoverageGaps is itself wrapped in unstable_cache (60s TTL,
   // APP_DATA_TAG) so warm hits return ~ms.
+  // Listings RPC (066): drops `summary` on top of slim. Resource.note arrives
+  // empty here. MapPageView / MapView never read r.note (audit 2026-05-10).
   const [{ region: regionParam }, data, coverageGaps] = await Promise.all([
     searchParams,
-    getMapData(),
+    getListingsMapData(),
     getCoverageGaps(),
   ]);
   console.log(`[perf] /map data ${Date.now() - t0}ms`);

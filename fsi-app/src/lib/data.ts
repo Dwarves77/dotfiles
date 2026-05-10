@@ -2,7 +2,9 @@ import { unstable_cache } from "next/cache";
 import {
   fetchDashboardData,
   fetchResourcesOnly,
+  fetchListingsOnly,
   fetchMapData,
+  fetchListingsMapData,
   fetchSourceData,
   fetchSettingsData,
   fetchWatchlist,
@@ -143,6 +145,44 @@ export async function getResourcesOnly(): Promise<{
 }
 
 /**
+ * Listings fetcher: resources + overrides via the listings RPC (066),
+ * which additionally drops `summary` on top of slim. Resource.note arrives
+ * empty on every row.
+ *
+ * Used by: /regulations (card body never renders r.note; the search
+ * hay-stack stops contributing the empty value, no functional regression).
+ *
+ * /market and /operations DO render r.note on cards and stay on
+ * getResourcesOnly until those cards are refactored or per-route summary
+ * retention is added. See migration 066 header.
+ */
+export async function getListingsOnly(): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  overrides: WorkspaceOverrideRow[];
+}> {
+  const t0 = Date.now();
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("getListingsOnly timeout")), 10000)
+    );
+    const orgId = await resolveOrgIdFromCookies();
+    const dataPromise = fetchListingsOnly(orgId);
+    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    console.log(`[perf] getListingsOnly ${Date.now() - t0}ms`);
+    return result;
+  } catch (e) {
+    console.error("getListingsOnly failed, using fallback:", e);
+    const seed = await import("@/data");
+    return {
+      resources: seed.resources,
+      archived: seed.archived,
+      overrides: [],
+    };
+  }
+}
+
+/**
  * Slim fetcher for /map: resources + the relationship payload the map
  * surface needs (changelog, disputes, xrefPairs, supersessions). Drops
  * sources, provisional sources, conflicts, synopses, intelligence
@@ -170,6 +210,44 @@ export async function getMapData(): Promise<{
     return result;
   } catch (e) {
     console.error("getMapData failed, using fallback:", e);
+    const seed = await import("@/data");
+    return {
+      resources: seed.resources,
+      archived: seed.archived,
+      changelog: seed.changelog,
+      disputes: seed.disputes,
+      xrefPairs: seed.xrefPairs,
+      supersessions: seed.supersessions,
+    };
+  }
+}
+
+/**
+ * Listings fetcher for /map: resources + relationship payload, but via the
+ * listings RPC (066) which additionally drops `summary` on top of slim.
+ * Resource.note arrives empty on every row. Safe for /map per the
+ * 2026-05-10 audit (no MapPageView / MapView reference to r.note).
+ */
+export async function getListingsMapData(): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  changelog: Record<string, ChangeLogEntry[]>;
+  disputes: Record<string, Dispute>;
+  xrefPairs: [string, string][];
+  supersessions: Supersession[];
+}> {
+  const t0 = Date.now();
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("getListingsMapData timeout")), 10000)
+    );
+    const orgId = await resolveOrgIdFromCookies();
+    const dataPromise = fetchListingsMapData(orgId);
+    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    console.log(`[perf] getListingsMapData ${Date.now() - t0}ms`);
+    return result;
+  } catch (e) {
+    console.error("getListingsMapData failed, using fallback:", e);
     const seed = await import("@/data");
     return {
       resources: seed.resources,
