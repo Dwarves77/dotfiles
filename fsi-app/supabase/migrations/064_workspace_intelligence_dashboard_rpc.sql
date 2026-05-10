@@ -12,7 +12,10 @@
 -- (DashboardHero, HomeSurface, WeeklyBriefing, WhatChanged, Supersessions,
 -- DashboardByOwner, DashboardCoverageGaps, DashboardWatchlist,
 -- DashboardAwaitingReview) renders ZERO references to:
---   summary, what_is_it, why_matters, key_data, full_brief, reasoning
+--   what_is_it, why_matters, key_data, full_brief, reasoning
+-- (summary is RETAINED because WeeklyBriefing line 183 and WhatChanged
+-- lines 70/82 read r.note which the loader maps from summary; dropping
+-- summary would render empty subtitles, regressing design intent)
 -- (`grep -rn "fullBrief" src/components/home/` returns 0 hits, the other
 -- five are likewise unused on /). The 184-row payload ships ~3.19 MB of
 -- full_brief plus ~300-500 KB across the other five long-text columns
@@ -20,7 +23,7 @@
 --
 -- This dashboard variant has the same merge logic as slim and additionally
 -- drops:
---   - summary       TEXT  (used as Resource.note on list surfaces, dashboard does not render it)
+--   - summary       TEXT  (RETAINED, see header comment; mapped to Resource.note, used by WeeklyBriefing + WhatChanged)
 --   - what_is_it    TEXT
 --   - why_matters   TEXT
 --   - key_data      TEXT[]
@@ -36,6 +39,7 @@ RETURNS TABLE (
   id                       UUID,
   legacy_id                TEXT,
   title                    TEXT,
+  summary                  TEXT,
   tags                     TEXT[],
   domain                   INT,
   category                 TEXT,
@@ -62,6 +66,7 @@ RETURNS TABLE (
     ii.id,
     ii.legacy_id,
     ii.title,
+    ii.summary,
     ii.tags,
     ii.domain,
     ii.category,
@@ -101,7 +106,7 @@ RETURNS TABLE (
 $$;
 
 COMMENT ON FUNCTION get_workspace_intelligence_dashboard(UUID) IS
-  'Dashboard-only sibling of get_workspace_intelligence. Same merge logic as slim, additionally drops summary, what_is_it, why_matters, key_data, reasoning, and caps to LIMIT 50 for the home hero + top-of-list rendering. Used exclusively by app/page.tsx via fetchDashboardData. Other surfaces continue to use slim or full as appropriate.';
+  'Dashboard-only sibling of get_workspace_intelligence. Same merge logic as slim, additionally drops what_is_it, why_matters, key_data, reasoning (summary RETAINED for WeeklyBriefing + WhatChanged subtitles), and caps to LIMIT 50 for the home hero + top-of-list rendering. Used exclusively by app/page.tsx via fetchDashboardData. Other surfaces continue to use slim or full as appropriate.';
 
 -- Mirror the implicit GRANT chain from the base + slim RPCs. Neither
 -- 007_full_brief.sql nor 047_workspace_intelligence_slim_rpc.sql issues
