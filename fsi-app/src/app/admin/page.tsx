@@ -32,11 +32,37 @@ export default async function AdminPage() {
   // The workspace path at / uses the default (false) and never sees admin_only=true rows.
   // Also hydrate organizations / org_memberships / staged_updates server-side
   // so AdminDashboard can render those tabs without a second-paint client fetch.
+  // Wave 1a MTD spend aggregation. Wrapped in a soft-fail helper so the
+  // admin page still renders zeros when migration 057 (agent_runs) has
+  // not yet been applied. The tile reads zeros as "no spend yet".
+  const fetchMtdSpend = async (): Promise<{ usd: number; runs: number; errors: number }> => {
+    try {
+      const monthStart = new Date();
+      monthStart.setUTCDate(1);
+      monthStart.setUTCHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from("agent_runs")
+        .select("cost_usd_estimated, status")
+        .gte("created_at", monthStart.toISOString());
+      if (error || !data) return { usd: 0, runs: 0, errors: 0 };
+      let usd = 0;
+      let errors = 0;
+      for (const row of data) {
+        usd += Number((row as { cost_usd_estimated: number | null }).cost_usd_estimated ?? 0);
+        if ((row as { status: string }).status === "error") errors++;
+      }
+      return { usd, runs: data.length, errors };
+    } catch {
+      return { usd: 0, runs: 0, errors: 0 };
+    }
+  };
+
   const [
     sourceData,
     orgsRes,
     membersRes,
     stagedRes,
+    mtdSpend,
   ] = await Promise.all([
     fetchSourceData(true),
     supabase
@@ -61,6 +87,7 @@ export default async function AdminPage() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(100),
+    fetchMtdSpend(),
   ]);
 
   console.log(`[perf] /admin data ${Date.now() - t0}ms`);
@@ -75,6 +102,9 @@ export default async function AdminPage() {
       initialOrgs={orgsRes.data || []}
       initialMembers={membersRes.data || []}
       initialStagedUpdates={stagedRes.data || []}
+      initialMtdSpendUsd={mtdSpend.usd}
+      initialMtdRuns={mtdSpend.runs}
+      initialMtdErrors={mtdSpend.errors}
     />
   );
 }

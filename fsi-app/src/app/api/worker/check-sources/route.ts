@@ -36,12 +36,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Step 1: Find sources due for checking. Filter out per-source pause.
+    // Step 1: Find sources due for checking. Filter out per-source pause
+    // and the Wave 1a auto_run_enabled kill switch. The cold-start script
+    // flips all 718 active sources to auto_run_enabled=false on first
+    // run; operators re-enable per source after vetting, so by default
+    // the worker has nothing to do until at least one source has been
+    // turned back on.
     const { data: dueSources, error: queueError } = await supabase
       .from("sources")
-      .select("id, name, url, tier, update_frequency, last_checked, access_method")
+      .select("id, name, url, tier, update_frequency, last_checked, access_method, auto_run_enabled")
       .eq("status", "active")
       .eq("processing_paused", false)
+      .eq("auto_run_enabled", true)
       .or(`next_scheduled_check.is.null,next_scheduled_check.lte.${new Date().toISOString()}`)
       .order("tier", { ascending: true })
       .limit(10); // Process 10 sources per run

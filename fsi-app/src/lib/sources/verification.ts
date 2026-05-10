@@ -24,7 +24,7 @@
 // gives a confidence band that tilts but never alone forces L.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import Anthropic from "@anthropic-ai/sdk";
+import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -562,55 +562,19 @@ async function classifyWithHaiku(
   contentText: string,
   apiKey: string
 ): Promise<{ ok: true; result: HaikuClassification } | { ok: false; error: string }> {
-  const userMessage = `Candidate URL: ${candidate.url}
-Candidate name: ${candidate.name ?? "(unknown)"}
-Discovered for jurisdiction: ${candidate.discoveredFor ?? "(unspecified)"}
-
-Content excerpt (truncated to ~6000 chars):
----
-${contentText.slice(0, CONTENT_MAX_CHARS)}
----
-
-Output the JSON object only.`;
-
-  const client = new Anthropic({ apiKey });
-  try {
-    const resp = await client.messages.create({
-      model: HAIKU_MODEL,
-      max_tokens: 600,
-      system: VERIFICATION_HAIKU_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }],
-    });
-    const text = resp.content
-      .filter((b) => b.type === "text")
-      .map((b) => (b as { type: "text"; text: string }).text)
-      .join("");
-    const m = text.match(/\{[\s\S]*\}/);
-    if (!m) return { ok: false, error: "No JSON object in model output" };
-    const parsed = JSON.parse(m[0]);
-    if (
-      typeof parsed.ai_relevance_score !== "number" ||
-      typeof parsed.ai_freight_score !== "number" ||
-      typeof parsed.ai_trust_tier !== "string" ||
-      !["T1", "T2", "T3"].includes(parsed.ai_trust_tier) ||
-      typeof parsed.rationale !== "string"
-    ) {
-      return { ok: false, error: "Malformed classification shape" };
-    }
-    // Clamp scores to [0, 100] in case the model overshoots.
-    const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
-    return {
-      ok: true,
-      result: {
-        ai_relevance_score: clamp(parsed.ai_relevance_score),
-        ai_freight_score: clamp(parsed.ai_freight_score),
-        ai_trust_tier: parsed.ai_trust_tier as AiTrustTier,
-        rationale: String(parsed.rationale).slice(0, 200),
-      },
-    };
-  } catch (e: unknown) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
+  // Delegates to the shared Haiku module so the model constant, prompt,
+  // JSON-extraction regex, and clamping logic live in one place. The
+  // shape returned here matches the local HaikuClassification type by
+  // construction, the shared module returns the same fields.
+  return haikuVerifyCandidate(
+    {
+      url: candidate.url,
+      name: candidate.name,
+      discoveredFor: candidate.discoveredFor,
+    },
+    contentText,
+    apiKey
+  );
 }
 
 // ────────────────────────────────────────────────────────────────────────────
