@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_cache, revalidateTag } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
+import { APP_DATA_TAG } from "@/lib/data";
 
 // ───────────────────────────────────────────────────────────────────────────
 // /api/workspace/regulations-defaults
@@ -20,7 +22,31 @@ import { resolveOrgIdFromUserId } from "@/lib/api/org";
 //
 // Auth: requireAuth (Bearer JWT) + 60/min rate limit, matching the
 // /api/workspace/overrides template.
+//
+// Cache layering (perf, 2026-05-10, follows PR #81 pattern):
+//   - HTTP-level (Cache-Control headers, browser cache):
+//       200 → private max-age=300 (defaults rarely change once saved);
+//       401/403 → private max-age=60; 5xx no-store.
+//       Absorbs duplicate fetches inside the same browser session;
+//       this route is hit on most navigations.
+//   - Server-level (unstable_cache):
+//       Wraps the supabase select. Cache key includes orgId so each
+//       workspace gets an isolated entry. 5 min TTL matches the HTTP
+//       positive-cache window; defaults are rarely mutated. Tagged with
+//       APP_DATA_TAG so the PUT/POST mutations below (and any other
+//       route that calls revalidateTag(APP_DATA_TAG) — overrides,
+//       staged-update approval) flush this entry atomically.
+//   - Operator-measured pre-cache TTFB: 754 ms (2026-05-09). Expected
+//       warm-hit: < 50 ms.
 // ───────────────────────────────────────────────────────────────────────────
+
+const NEGATIVE_CACHE = "private, max-age=60";
+const POSITIVE_CACHE = "private, max-age=300";
+
+function withCacheHeader(resp: NextResponse, value: string): NextResponse {
+  resp.headers.set("Cache-Control", value);
+  return resp;
+}
 
 function getServiceClient() {
   return createClient(
@@ -64,6 +90,35 @@ function sanitizeDefaults(input: unknown): RegulationsDefaultsPayload | null {
   };
 }
 
+// Server-side cache around the workspace_settings select. Keyed by orgId
+// so each workspace has an isolated entry. 5 min TTL matches the HTTP
+// positive cache; APP_DATA_TAG aligns with existing mutation
+// revalidation (PUT/POST below + workspace overrides + staged updates).
+type FetchResult = {
+  defaults: RegulationsDefaultsPayload | null;
+  dbError: string | null;
+};
+
+const fetchRegulationsDefaults = unstable_cache(
+  async (orgId: string): Promise<FetchResult> => {
+    const supabase = getServiceClient();
+    const { data, error } = await supabase
+      .from("workspace_settings")
+      .select("alert_config")
+      .eq("org_id", orgId)
+      .maybeSingle();
+
+    if (error) return { defaults: null, dbError: error.message };
+
+    const ac = (data?.alert_config ?? {}) as Record<string, unknown>;
+    const raw = ac.regulations_defaults;
+    const defaults = raw ? sanitizeDefaults(raw) : null;
+    return { defaults, dbError: null };
+  },
+  ["workspace-regulations-defaults-v1"],
+  { revalidate: 300, tags: [APP_DATA_TAG] }
+);
+
 // GET /api/workspace/regulations-defaults
 // Returns { defaults: RegulationsDefaultsPayload | null } for the
 // authenticated user's workspace. `null` indicates no saved server-side
@@ -71,10 +126,10 @@ function sanitizeDefaults(input: unknown): RegulationsDefaultsPayload | null {
 // sector profile.
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
+  if (isAuthError(auth)) return withCacheHeader(auth, NEGATIVE_CACHE);
 
   const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
+  if (limited) return withCacheHeader(limited, NEGATIVE_CACHE);
 
   const supabase = getServiceClient();
 
@@ -82,27 +137,39 @@ export async function GET(request: NextRequest) {
   if (!orgId) {
     return NextResponse.json(
       { error: "User has no organization membership" },
-      { status: 403 }
+      {
+        status: 403,
+        headers: {
+          ...rateLimitHeaders(auth.userId),
+          "Cache-Control": NEGATIVE_CACHE,
+        },
+      }
     );
   }
 
-  const { data, error } = await supabase
-    .from("workspace_settings")
-    .select("alert_config")
-    .eq("org_id", orgId)
-    .maybeSingle();
+  const { defaults, dbError } = await fetchRegulationsDefaults(orgId);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (dbError) {
+    return NextResponse.json(
+      { error: dbError },
+      {
+        status: 500,
+        headers: {
+          ...rateLimitHeaders(auth.userId),
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   }
-
-  const ac = (data?.alert_config ?? {}) as Record<string, unknown>;
-  const raw = ac.regulations_defaults;
-  const defaults = raw ? sanitizeDefaults(raw) : null;
 
   return NextResponse.json(
     { defaults },
-    { headers: rateLimitHeaders(auth.userId) }
+    {
+      headers: {
+        ...rateLimitHeaders(auth.userId),
+        "Cache-Control": POSITIVE_CACHE,
+      },
+    }
   );
 }
 
@@ -176,6 +243,13 @@ async function upsertDefaults(
   if (writeErr) {
     return NextResponse.json({ error: writeErr.message }, { status: 500 });
   }
+
+  // Flush the cached GET entry so the next read returns the new payload
+  // immediately rather than waiting up to 5 min for natural revalidation.
+  // APP_DATA_TAG is the shared mutation tag — already used by overrides
+  // and staged-updates routes — so a single tag flush keeps everything
+  // consistent without per-route plumbing.
+  revalidateTag(APP_DATA_TAG, "max");
 
   return NextResponse.json(
     { defaults: payload },
