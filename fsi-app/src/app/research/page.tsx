@@ -1,83 +1,58 @@
 import { ResearchView, type ResearchPipelineItem } from "@/components/research/ResearchView";
-import { createClient } from "@supabase/supabase-js";
+import { getResearchPipeline, getScopedWorkspaceAggregates } from "@/lib/data";
 
 // Note: previous `export const revalidate = 60` removed.
 // Per docs/ISR-WRITE-INVESTIGATION.md, /research was the *only* page with
 // a working ISR declaration (no cookie reads in its data path), and it
-// generated ~200K ISR writes over the prior 30 days. Vercel's edge ISR
-// buckets cache entries by the full request envelope (cookies, vary
-// headers), so each distinct session cookie produced its own cache
-// bucket, each requiring its own 60s revalidation regeneration. Pipeline
-// data is not freshness-critical at 60s granularity — pipeline_stage
-// updates are daily-or-slower. Going dynamic is correct here.
+// generated ~200K ISR writes over the prior 30 days. Going dynamic is
+// correct here — the new fetcher reads cookies via the authed Supabase
+// server client.
 
-/**
- * Fetch a slim view of intelligence_items for the Research surface.
- *
- * Uses the pipeline_stage column added in migration 026 (live on remote).
- * Existing rows are backfilled to 'published'; NULL is treated as
- * 'published' by ResearchView's normalizeStage.
- *
- * Returns an empty list if Supabase is not configured or the request
- * fails — the surface degrades to an empty pipeline rather than the
- * page exploding.
- */
-async function fetchPipelineItems(): Promise<ResearchPipelineItem[]> {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return [];
-  }
-
-  try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-    // Initial paint cap of 100 — keeps wire payload + parse cost light.
-    // TODO(perf): wire a "load more" UI cursor so users can fetch
-    // beyond the first 100 as the pipeline grows.
-    const { data, error } = await supabase
-      .from("intelligence_items")
-      .select(
-        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(name, url)"
-      )
-      .eq("is_archived", false)
-      .order("added_date", { ascending: false })
-      .limit(100);
-
-    if (error || !data) {
-      console.error("research/page fetchPipelineItems failed:", error);
-      return [];
-    }
-
-    return data.map((row: any) => {
-      const src = Array.isArray(row.source) ? row.source[0] : row.source;
-      return {
-        id: row.legacy_id || row.id,
-        title: row.title || "(untitled)",
-        summary: row.summary || "",
-        pipelineStage: row.pipeline_stage ?? null,
-        transportModes: row.transport_modes || [],
-        jurisdictions: row.jurisdictions || [],
-        sourceName: src?.name ?? null,
-        sourceUrl: src?.url ?? null,
-        addedDate: row.added_date ?? null,
-        owner: null,
-        partnerFlagged: false,
-      };
-    });
-  } catch (e) {
-    console.error("research/page fetchPipelineItems failed:", e);
-    return [];
-  }
-}
+// Research scope: the surface presents the entire pipeline of intelligence
+// items (no item_type / domain narrowing, just pipeline_stage filtering on
+// the client). Pass an empty filter so the scoped aggregates RPC degrades
+// to workspace-wide totals — the same scope the page renders. We still go
+// through getScopedWorkspaceAggregates so the cache key is stable and the
+// 069 RPC contract is the canonical source.
+const RESEARCH_SCOPE = {};
 
 export default async function Research() {
   const t0 = Date.now();
-  const items = await fetchPipelineItems();
+  // Pull the pipeline rows AND scoped aggregates in parallel. The fetcher
+  // uses the cookie-aware authed Supabase server client (mirrors
+  // /operations and /market) instead of the prior inline anon-key fetcher.
+  // `total` reflects the true row count so the page can show "Showing N of M"
+  // instead of silently truncating at 100.
+  const [pipeline, aggregates] = await Promise.all([
+    getResearchPipeline(),
+    getScopedWorkspaceAggregates(RESEARCH_SCOPE),
+  ]);
   console.log(`[perf] /research data ${Date.now() - t0}ms`);
-  return <ResearchView items={items} />;
+
+  // Adapter: ResearchPipelineRow → ResearchPipelineItem (the existing UI
+  // shape). owner / partnerFlagged are placeholders preserved from the
+  // previous fetcher pending the owner-attribution work.
+  const items: ResearchPipelineItem[] = pipeline.rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    summary: r.summary,
+    pipelineStage: r.pipelineStage,
+    transportModes: r.transportModes,
+    jurisdictions: r.jurisdictions,
+    sourceName: r.sourceName,
+    sourceUrl: r.sourceUrl,
+    addedDate: r.addedDate,
+    owner: null,
+    partnerFlagged: false,
+  }));
+
+  return (
+    <ResearchView
+      items={items}
+      aggregates={aggregates}
+      total={pipeline.total}
+      shown={items.length}
+      cap={pipeline.cap}
+    />
+  );
 }

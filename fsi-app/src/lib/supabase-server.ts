@@ -590,6 +590,159 @@ export async function fetchWorkspaceAggregates(
   }
 }
 
+// ── Scoped aggregates (migration 069) ────────────────────────
+//
+// Same shape as fetchWorkspaceAggregates, scoped to an item_type/domain
+// filter so /market /research /operations can render true totals for
+// the slice the page renders rather than workspace-wide totals.
+
+/**
+ * Scope filter for the scoped aggregates RPC. An item matches if its
+ * item_type ∈ item_types OR its domain ∈ domains (OR semantics, mirroring
+ * the page-level client filters in MarketPage.tsx and OperationsPage.tsx).
+ * Both keys are optional. NULL or empty filter degrades to workspace-wide.
+ */
+export interface ScopeFilter {
+  item_types?: string[];
+  domains?: number[];
+}
+
+export async function fetchWorkspaceAggregatesScoped(
+  orgId: string | null,
+  scope: ScopeFilter | null
+): Promise<WorkspaceAggregates> {
+  if (!isSupabaseConfigured() || !orgId) return EMPTY_AGGREGATES;
+  try {
+    const supabase = getSupabase();
+    // Pass null when no usable filter so the RPC takes its DEFAULT NULL
+    // branch and degrades to workspace-wide. An empty object would also
+    // degrade through the SQL "neither key present" guard, but explicit
+    // null is clearer.
+    const filterPayload =
+      scope && (scope.item_types?.length || scope.domains?.length)
+        ? {
+            ...(scope.item_types?.length ? { item_types: scope.item_types } : {}),
+            ...(scope.domains?.length ? { domains: scope.domains } : {}),
+          }
+        : null;
+    const { data, error } = await supabase.rpc(
+      "get_workspace_intelligence_aggregates_scoped",
+      { p_org_id: orgId, p_scope_filter: filterPayload }
+    );
+    if (error || !data) {
+      if (error) console.error("fetchWorkspaceAggregatesScoped RPC error:", error);
+      return EMPTY_AGGREGATES;
+    }
+
+    type Raw = {
+      total_items?: number;
+      by_priority?: Record<string, number>;
+      by_status?: Record<string, number>;
+      by_jurisdiction?: Record<string, number>;
+      total_jurisdictions?: number;
+      last_updated_at?: string | null;
+    };
+    const raw = data as Raw;
+    const bp = raw.by_priority || {};
+    return {
+      totalItems: Number(raw.total_items ?? 0),
+      byPriority: {
+        CRITICAL: Number(bp.CRITICAL ?? 0),
+        HIGH: Number(bp.HIGH ?? 0),
+        MODERATE: Number(bp.MODERATE ?? 0),
+        LOW: Number(bp.LOW ?? 0),
+      },
+      byStatus: raw.by_status || {},
+      byJurisdiction: raw.by_jurisdiction || {},
+      totalJurisdictions: Number(raw.total_jurisdictions ?? 0),
+      lastUpdatedAt: raw.last_updated_at ?? null,
+    };
+  } catch (e) {
+    console.error("fetchWorkspaceAggregatesScoped failed, returning empty:", e);
+    return EMPTY_AGGREGATES;
+  }
+}
+
+// ── Research pipeline rows (replaces inline anon-key in /research) ──
+//
+// Direct intelligence_items query for the /research surface. Goes through
+// the workspace service-role client (same path as fetchResourcesOnly),
+// NOT the cookie-aware client — cookies() inside unstable_cache is
+// forbidden, and the upstream caller resolves orgId before the cache
+// boundary. Returns rows + true total + cap so the page can render an
+// honest "Showing N of M" indicator.
+
+export interface ResearchPipelineRow {
+  id: string;
+  title: string;
+  summary: string;
+  pipelineStage: string | null;
+  transportModes: string[];
+  jurisdictions: string[];
+  sourceName: string | null;
+  sourceUrl: string | null;
+  addedDate: string | null;
+}
+
+export async function fetchResearchPipelineRows(
+  orgId: string,
+  cap: number
+): Promise<{ rows: ResearchPipelineRow[]; total: number; cap: number }> {
+  if (!isSupabaseConfigured()) return { rows: [], total: 0, cap };
+  try {
+    const supabase = getSupabase();
+
+    // Total count first — exact head, no rows on the wire. Drives the
+    // "Showing N of M" disclosure.
+    const countQuery = await supabase
+      .from("intelligence_items")
+      .select("id", { count: "exact", head: true })
+      .eq("is_archived", false);
+    const total = typeof countQuery.count === "number" ? countQuery.count : 0;
+
+    // First page of rows. Same shape as the prior /research fetcher so
+    // ResearchView's adapter logic stays identical. We do NOT join
+    // workspace_item_overrides here (the prior fetcher didn't either, and
+    // research-pipeline visibility is workspace-agnostic for now). When
+    // owner / partner-flag / per-workspace pinning lands, that join goes
+    // here — orgId is already wired through.
+    void orgId; // reserved for the override join when pipeline_overrides land
+    const { data, error } = await supabase
+      .from("intelligence_items")
+      .select(
+        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(name, url)"
+      )
+      .eq("is_archived", false)
+      .order("added_date", { ascending: false })
+      .limit(cap);
+
+    if (error || !data) {
+      if (error) console.error("[research] fetchResearchPipelineRows error:", error);
+      return { rows: [], total, cap };
+    }
+
+    const rows: ResearchPipelineRow[] = data.map((row: any) => {
+      const src = Array.isArray(row.source) ? row.source[0] : row.source;
+      return {
+        id: row.legacy_id || row.id,
+        title: row.title || "(untitled)",
+        summary: row.summary || "",
+        pipelineStage: row.pipeline_stage ?? null,
+        transportModes: row.transport_modes || [],
+        jurisdictions: row.jurisdictions || [],
+        sourceName: src?.name ?? null,
+        sourceUrl: src?.url ?? null,
+        addedDate: row.added_date ?? null,
+      };
+    });
+
+    return { rows, total, cap };
+  } catch (e) {
+    console.error("fetchResearchPipelineRows failed, returning empty:", e);
+    return { rows: [], total: 0, cap };
+  }
+}
+
 // ── Master Fetch ─────────────────────────────────────────────
 
 export interface SectorSynopsis {
