@@ -418,7 +418,12 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 
 async function fetchWorkspaceResources(
   orgId: string,
-  options: { slim?: boolean; dashboard?: boolean; listings?: boolean } = {}
+  options: {
+    slim?: boolean;
+    dashboard?: boolean;
+    listings?: boolean;
+    routing?: "research" | "market" | "operations";
+  } = {}
 ): Promise<{
   active: Resource[];
   archived: Resource[];
@@ -429,9 +434,20 @@ async function fetchWorkspaceResources(
   // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
   // No legacy `resources` fallback after A.5.b — if the RPC returns empty,
   // fetchDashboardData's seed fallback covers the misconfiguration case.
-  // Precedence (defensive, call sites only pass one at a time): dashboard
-  // > listings > slim > full.
-  const rpcName = options.dashboard
+  // Precedence (defensive, call sites only pass one at a time): routing
+  // > dashboard > listings > slim > full.
+  //
+  // The Phase 1 routing RPCs (070) return rows in the same shape as slim
+  // (047) but pre-filter by source_role + status per the four-purpose
+  // framework. Page components consume them through this same builder so
+  // Resource shape stays identical to the legacy v1 path.
+  const rpcName = options.routing === "research"
+    ? "get_research_items"
+    : options.routing === "market"
+    ? "get_market_intel_items"
+    : options.routing === "operations"
+    ? "get_operations_items"
+    : options.dashboard
     ? "get_workspace_intelligence_dashboard"
     : options.listings
     ? "get_workspace_intelligence_listings"
@@ -986,6 +1002,84 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
     console.error("fetchListingsMapData failed, using seed fallback:", e);
     return seedFallback;
   }
+}
+
+// ── Phase 1 routing fetchers (migration 070) ────────────────
+//
+// Each routing fetcher mirrors fetchResourcesOnly's shape (resources +
+// archived + overrides) but issues one of the three Phase 1 routing
+// RPCs from migration 070. Same workspace_item_overrides merge as the
+// other slim variants.
+//
+// /market    -> fetchMarketIntelItems  -> get_market_intel_items
+// /research  -> fetchResearchItems     -> get_research_items
+// /operations-> fetchOperationsItems   -> get_operations_items
+//
+// Page components consume the resulting Resource[] like the v1 path so
+// no card refactor is required when the URL flag flips them on.
+
+async function fetchRoutingResources(
+  orgId: string | null,
+  routing: "research" | "market" | "operations"
+): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  overrides: WorkspaceOverrideRow[];
+}> {
+  const seedFallback = {
+    resources: seedResources,
+    archived: seedArchived,
+    overrides: [] as WorkspaceOverrideRow[],
+  };
+
+  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+
+  try {
+    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(
+      orgId,
+      { routing }
+    );
+    // Phase 1: empty result is a legitimate state for routes whose
+    // source_role buckets happen to hold zero items (e.g. /operations
+    // before any statistical_data_agency items land in the workspace).
+    // Return empty arrays rather than seed fallback so the routing
+    // truth-table is preserved end-to-end.
+    const supabase = getSupabase();
+    const { data: overridesData } = await supabase
+      .from("workspace_item_overrides")
+      .select(
+        "item_id, priority_override, is_archived, archive_reason, archive_note, notes"
+      )
+      .eq("org_id", orgId);
+
+    const overrides: WorkspaceOverrideRow[] = (overridesData || []).map(
+      (o: any) => ({
+        itemId: uuidToUiId.get(o.item_id) || o.item_id,
+        priorityOverride: o.priority_override ?? null,
+        isArchived: !!o.is_archived,
+        archiveReason: o.archive_reason ?? null,
+        archiveNote: o.archive_note ?? null,
+        notes: o.notes ?? "",
+      })
+    );
+
+    return { resources: active, archived, overrides };
+  } catch (e) {
+    console.error(`fetchRoutingResources(${routing}) failed:`, e);
+    return seedFallback;
+  }
+}
+
+export async function fetchMarketIntelItems(orgId: string | null) {
+  return fetchRoutingResources(orgId, "market");
+}
+
+export async function fetchResearchItems(orgId: string | null) {
+  return fetchRoutingResources(orgId, "research");
+}
+
+export async function fetchOperationsItems(orgId: string | null) {
+  return fetchRoutingResources(orgId, "operations");
 }
 
 /**
