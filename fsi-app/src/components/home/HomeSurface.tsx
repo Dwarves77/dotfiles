@@ -44,6 +44,7 @@ import type {
   WatchlistItem,
   CoverageGap,
   ReviewItem,
+  WorkspaceAggregates,
 } from "@/lib/data";
 
 interface HomeSurfaceProps {
@@ -61,6 +62,10 @@ interface HomeSurfaceProps {
     archiveNote: string | null;
     notes: string;
   }[];
+  // Scalar aggregates (migration 068) over the workspace's true active row
+  // set — distinct from the LIMIT-50 row payload above. Passed through to
+  // WeeklyBriefing for the summary line.
+  aggregates: WorkspaceAggregates;
   // Phase 3 widget promises — passed unawaited from page.tsx so each
   // widget can Suspense-resolve independently of the editorial body's
   // first paint.
@@ -77,6 +82,7 @@ export function HomeSurface({
   supersessions,
   auditDate,
   initialOverrides = [],
+  aggregates,
   watchlistPromise,
   coverageGapsPromise,
   awaitingReviewPromise,
@@ -197,6 +203,7 @@ export function HomeSurface({
                 changelog={changelog}
                 disputes={disputes}
                 auditDate={auditDate}
+                aggregates={aggregates}
                 onToast={showToast}
               />
               <WhatChanged

@@ -20,6 +20,7 @@ import {
   getWatchlist,
   getCoverageGaps,
   getAwaitingReview,
+  getWorkspaceAggregates,
 } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
@@ -32,7 +33,16 @@ import { HomeSurface } from "@/components/home/HomeSurface";
 
 export default async function Home() {
   const t0 = Date.now();
-  const data = await getAppData();
+  // Fetch the dashboard payload and the scalar aggregates (migration 068)
+  // in parallel. The dashboard payload caps at LIMIT 50 — useful for the
+  // top-N row rendering — but the masthead meta, the four DashboardHero
+  // tiles, and the WeeklyBriefing summary need true workspace totals.
+  // Aggregates ride the same APP_DATA_TAG cache so override mutations
+  // invalidate both in lockstep.
+  const [data, aggregates] = await Promise.all([
+    getAppData(),
+    getWorkspaceAggregates(),
+  ]);
   console.log(`[perf] / data ${Date.now() - t0}ms`);
 
   // Phase 3 widget data — kicked off as unawaited promises so the
@@ -48,17 +58,29 @@ export default async function Home() {
     month: "long",
     day: "numeric",
   });
-  const jurisdictionsCount = new Set(
-    data.resources.map((r) => r.jurisdiction || "global")
-  ).size;
-  const meta = `${dateStr} · ${data.resources.length} regulations tracked · ${jurisdictionsCount} jurisdictions`;
+  // Counts read from aggregates (true totals across the workspace's active
+  // row set) instead of the capped row array. Falls back to the row-derived
+  // values when aggregates are zero (Supabase unconfigured / RPC error /
+  // anon caller) so the seed-fallback path still renders sensible numbers.
+  const jurisdictionsCount =
+    aggregates.totalJurisdictions > 0
+      ? aggregates.totalJurisdictions
+      : new Set(data.resources.map((r) => r.jurisdiction || "global")).size;
+  const itemsCount =
+    aggregates.totalItems > 0 ? aggregates.totalItems : data.resources.length;
+  const meta = `${dateStr} · ${itemsCount} regulations tracked · ${jurisdictionsCount} jurisdictions`;
 
   return (
     <>
       <EditorialMasthead
         title="Dashboard — Your Brief"
         meta={meta}
-        belowSlot={<DashboardHero resources={data.resources} />}
+        belowSlot={
+          <DashboardHero
+            resources={data.resources}
+            aggregates={aggregates}
+          />
+        }
       />
       <HomeSurface
         initialResources={data.resources}
@@ -68,6 +90,7 @@ export default async function Home() {
         supersessions={data.supersessions}
         auditDate={data.auditDate}
         initialOverrides={data.overrides}
+        aggregates={aggregates}
         watchlistPromise={watchlistPromise}
         coverageGapsPromise={coverageGapsPromise}
         awaitingReviewPromise={awaitingReviewPromise}

@@ -27,6 +27,7 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { Resource } from "@/types/resource";
+import type { WorkspaceAggregates } from "@/lib/data";
 
 // TODO: replace with computed timeline once milestones data is reliable.
 // Per design brief: preview specificity is what makes the helper feel
@@ -34,7 +35,17 @@ import type { Resource } from "@/types/resource";
 const CRITICAL_HELPER_COPY = "3 inside 14 days: LL97 filing, FuelEU Q1, CBAM defaults";
 
 interface DashboardHeroProps {
+  // Row payload — used directly when no aggregates are supplied (e.g.
+  // /regulations passes the UN-capped listings array, where row-derived
+  // counts are already correct). Also the fallback when aggregates are
+  // present but report zero items (seed / anon / RPC failure paths).
   resources: Resource[];
+  // Optional scalar aggregates (migration 068). The home dashboard (/)
+  // passes this to override the LIMIT-50 row payload's misleading counts;
+  // surfaces whose row payload is already complete (e.g. /regulations
+  // via getListingsOnly) can omit it and the component falls back to
+  // resources.filter().length unchanged.
+  aggregates?: WorkspaceAggregates;
 }
 
 interface HeroTile {
@@ -46,19 +57,28 @@ interface HeroTile {
   helper?: string;
 }
 
-export function DashboardHero({ resources }: DashboardHeroProps) {
+export function DashboardHero({ resources, aggregates }: DashboardHeroProps) {
   const router = useRouter();
 
   const tiles = useMemo<HeroTile[]>(() => {
-    const filterBy = (pri: "CRITICAL" | "HIGH" | "MODERATE" | "LOW") =>
-      resources.filter((r) => r.priority === pri);
+    // Counts come from the aggregates RPC (migration 068) when supplied,
+    // which scopes to the same active row set as the dashboard payload
+    // BEFORE the LIMIT 50. Fallback: when aggregates are absent (callers
+    // whose row payload is already complete) or report zero items
+    // (anon caller / seed fallback / RPC error), filter the row array
+    // so the tiles still render something rather than 0/0/0/0.
+    const useAggregates = !!aggregates && aggregates.totalItems > 0;
+    const fromRows = (pri: "CRITICAL" | "HIGH" | "MODERATE" | "LOW") =>
+      resources.filter((r) => r.priority === pri).length;
+    const count = (pri: "CRITICAL" | "HIGH" | "MODERATE" | "LOW") =>
+      useAggregates ? aggregates!.byPriority[pri] : fromRows(pri);
     return [
-      { tone: "critical", priority: "CRITICAL", eyebrow: "Immediate action", numeral: filterBy("CRITICAL").length, label: "Critical — within 90 days", helper: CRITICAL_HELPER_COPY },
-      { tone: "high",     priority: "HIGH",     eyebrow: "High",             numeral: filterBy("HIGH").length,     label: "Action — 6 mo" },
-      { tone: "moderate", priority: "MODERATE", eyebrow: "Moderate",         numeral: filterBy("MODERATE").length, label: "Monitor — 6–12 mo" },
-      { tone: "low",      priority: "LOW",      eyebrow: "Low",              numeral: filterBy("LOW").length,      label: "Awareness only" },
+      { tone: "critical", priority: "CRITICAL", eyebrow: "Immediate action", numeral: count("CRITICAL"), label: "Critical — within 90 days", helper: CRITICAL_HELPER_COPY },
+      { tone: "high",     priority: "HIGH",     eyebrow: "High",             numeral: count("HIGH"),     label: "Action — 6 mo" },
+      { tone: "moderate", priority: "MODERATE", eyebrow: "Moderate",         numeral: count("MODERATE"), label: "Monitor — 6–12 mo" },
+      { tone: "low",      priority: "LOW",      eyebrow: "Low",              numeral: count("LOW"),      label: "Awareness only" },
     ];
-  }, [resources]);
+  }, [resources, aggregates]);
 
   const TONE_VAR: Record<HeroTile["tone"], string> = {
     critical: "var(--critical)",
