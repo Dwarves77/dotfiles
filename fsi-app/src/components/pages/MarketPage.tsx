@@ -58,9 +58,17 @@ import { PolicySignals } from "@/components/market/PolicySignals";
 import { FreightRelevanceCallout } from "@/components/market/FreightRelevanceCallout";
 import { OwnersContent } from "@/components/market/OwnersContent";
 import type { Resource } from "@/types/resource";
+import type { WorkspaceAggregates } from "@/lib/data";
 
 interface MarketPageProps {
   initialResources: Resource[];
+  /**
+   * Scoped aggregates (migration 069) over the market slice
+   * (technology + innovation + market_signal + domain 2 + domain 4).
+   * Powers the masthead meta line with true page-scoped totals. Optional
+   * so existing callers / fallback paths still render with row-derived counts.
+   */
+  aggregates?: WorkspaceAggregates;
 }
 
 type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
@@ -97,7 +105,7 @@ function isTabKey(s: string | null): s is TabKey {
   return s === "tech" || s === "prices";
 }
 
-export function MarketPage({ initialResources }: MarketPageProps) {
+export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
   const searchParams = useSearchParams();
 
   const initialPriority = isPriorityKey(searchParams.get("priority"))
@@ -163,11 +171,33 @@ export function MarketPage({ initialResources }: MarketPageProps) {
     [priceItems, priorityFilter]
   );
 
+  // Masthead meta: parity with `/` (date · N items · M jurisdictions).
+  // Falls back to row-derived counts when aggregates are missing / zero
+  // (seed fallback path or RPC error) so the meta line always renders.
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const itemsCount =
+    aggregates && aggregates.totalItems > 0
+      ? aggregates.totalItems
+      : all.length;
+  const jurisdictionsCount =
+    aggregates && aggregates.totalJurisdictions > 0
+      ? aggregates.totalJurisdictions
+      : new Set(
+          all
+            .map((r) => (r.jurisdiction || "").trim())
+            .filter(Boolean)
+        ).size;
+  const meta = `${dateStr} · ${itemsCount} ${itemsCount === 1 ? "item" : "items"} in scope · ${jurisdictionsCount} ${jurisdictionsCount === 1 ? "jurisdiction" : "jurisdictions"} in scope`;
+
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
       <EditorialMasthead
         title="Market Intelligence"
-        meta="Track how emerging technology, commodity prices, and trade policy shifts will affect your freight costs and carrier options."
+        meta={meta}
         belowSlot={
           <div style={{ marginTop: 18 }}>
             <Legend />

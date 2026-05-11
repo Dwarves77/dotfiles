@@ -25,9 +25,17 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
 import type { Resource } from "@/types/resource";
+import type { WorkspaceAggregates } from "@/lib/data";
 
 interface OperationsPageProps {
   initialResources: Resource[];
+  /**
+   * Scoped aggregates (migration 069) over the operations slice
+   * (regional_data + domain 3 + domain 6). Powers the masthead meta line
+   * with true page-scoped totals. Optional so existing callers / fallback
+   * paths (seed mode) still render with row-derived counts.
+   */
+  aggregates?: WorkspaceAggregates;
 }
 
 const LEGEND: Array<{ tone: StatTone; label: string; helper: string }> = [
@@ -88,7 +96,7 @@ function inferChipKey(item: Resource): string | null {
 
 type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
 
-export function OperationsPage({ initialResources }: OperationsPageProps) {
+export function OperationsPage({ initialResources, aggregates }: OperationsPageProps) {
   const [tab, setTab] = useState<"juris" | "facility">("juris");
   const [priorityFilter, setPriorityFilter] = useState<PriorityKey | null>(null);
 
@@ -141,11 +149,33 @@ export function OperationsPage({ initialResources }: OperationsPageProps) {
   );
   const regions = useMemo(() => groupByRegion(filteredRegional), [filteredRegional]);
 
+  // Masthead meta: parity with `/` (date · N items · M jurisdictions).
+  // Falls back to row-derived counts when aggregates are missing / zero
+  // (seed fallback path or RPC error) so the meta line always renders.
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const itemsCount =
+    aggregates && aggregates.totalItems > 0
+      ? aggregates.totalItems
+      : opsItems.length;
+  const jurisdictionsCount =
+    aggregates && aggregates.totalJurisdictions > 0
+      ? aggregates.totalJurisdictions
+      : new Set(
+          opsItems
+            .map((r) => (r.jurisdiction || "").trim())
+            .filter(Boolean)
+        ).size;
+  const meta = `${dateStr} · ${itemsCount} ${itemsCount === 1 ? "item" : "items"} in scope · ${jurisdictionsCount} ${jurisdictionsCount === 1 ? "jurisdiction" : "jurisdictions"} in scope`;
+
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
       <EditorialMasthead
         title="Operations Intelligence"
-        meta="Before operating in a new region, understand what it will cost and what rules apply. Energy costs, labor rates, and sustainability requirements by location."
+        meta={meta}
         belowSlot={
           <div style={{ marginTop: 18 }}>
             <Legend />
