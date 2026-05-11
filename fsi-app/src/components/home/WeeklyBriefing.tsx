@@ -76,12 +76,20 @@ export function WeeklyBriefing({
   const sectorCtx = buildSectorContext({ sectorProfile, sectorWeights });
 
   const briefing = useMemo(() => {
-    const newR = resources.filter((r) => r.added === auditDate);
+    // "New this week" uses a rolling 7-day window from today, not exact-equality
+    // against auditDate (the most-recent changelog date). The prior filter only
+    // matched when added_date and changelog date coincided exactly, which never
+    // happens with prod ingestion cadence, so the suffix was silently dropped.
+    // Note: still bounded by the dashboard payload's LIMIT 50, so this counts
+    // "new in the last 7 days, among the top 50 by priority". A true count
+    // would need new_last_7_days as a scalar on the aggregates RPC.
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const newR = resources.filter((r) => r.added && r.added >= cutoff);
     const top5 = [...resources]
       .sort((a, b) => urgencyScore(b, null, sectorCtx) - urgencyScore(a, null, sectorCtx))
       .slice(0, 5);
     return { newR, top5 };
-  }, [resources, auditDate, sectorCtx]);
+  }, [resources, sectorCtx]);
 
   const handleDownload = (format: "html" | "slack") => {
     if (format === "html") {
