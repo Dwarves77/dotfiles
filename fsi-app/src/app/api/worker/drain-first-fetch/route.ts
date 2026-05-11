@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
+import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
+import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
+import { firstFetchClassify } from "@/lib/llm/first-fetch-classify";
 
 /**
  * POST /api/worker/drain-first-fetch
  *
  * Wave 1b drain worker. Pulls queued rows from pending_first_fetch
  * (populated by the trigger added in migration 065 on sources INSERT
- * or UPDATE OF auto_run_enabled), seeds a stub intelligence_items row,
- * then forwards to /api/agent/run for the actual fetch + brief.
+ * or UPDATE OF auto_run_enabled), seeds a stub intelligence_items row
+ * (enriched via Haiku classify), then forwards to /api/agent/run for
+ * the full Sonnet brief.
+ *
+ * Pre-2026-05-11 the seed was a bare stub (title=source.name, summary='',
+ * pipeline_stage='draft'), and /api/agent/run's UPDATE never overwrote
+ * those columns, so stubs were stuck in Draft with the institution name
+ * as the title and a blank summary forever. The Haiku call now mirrors
+ * scripts/wave1-cold-start.mjs's Wave 1a pattern and populates
+ * title/summary/priority/severity/urgency_tier/item_type/topic_tags
+ * upfront. Cost: ~$0.001 per first fetch. See
+ * docs/wave1b-stub-quality-investigation-2026-05-11.md.
  *
  * Authentication: x-worker-secret header (same WORKER_SECRET pattern
  * as /api/worker/check-sources). Called by the hourly GHA cron in
@@ -29,6 +43,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  */
 
 const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const DEFAULT_DRAIN_LIMIT = 5;
 const MAX_RETRY_ATTEMPTS = 3;
 
@@ -61,6 +76,12 @@ interface SourceRow {
   status: string | null;
   processing_paused: boolean | null;
   auto_run_enabled: boolean | null;
+  tier: number | null;
+  access_method: string | null;
+  api_endpoint_url: string | null;
+  api_auth_method: string | null;
+  api_response_format: string | null;
+  rss_feed_url: string | null;
 }
 
 interface DrainResultRow {
@@ -123,13 +144,112 @@ async function mintWorkerAccessToken(
 }
 
 /**
- * Seed a minimal intelligence_items row so /api/agent/run's
- * pre-condition (must find a row matching source_url) passes.
+ * Lightweight pre-fetch + Haiku classify so the seed stub can carry
+ * title/summary/priority/etc. instead of seed defaults. Returns null
+ * on any failure; the caller falls back to a bare stub so the queue
+ * lifecycle still progresses (the Sonnet brief from /api/agent/run is
+ * the primary value, the Haiku enrichment is a quality boost).
+ *
+ * Uses the same access_method routing as /api/agent/run so api/rss
+ * sources do not hit Browserless unnecessarily.
+ */
+async function preFetchAndClassify(
+  source: SourceRow
+): Promise<HaikuEnrichment | null> {
+  if (!ANTHROPIC_API_KEY) {
+    console.warn("[drain-first-fetch] ANTHROPIC_API_KEY not set; bare stub fallback");
+    return null;
+  }
+  const method = (source.access_method ?? "html_scrape").toLowerCase();
+  try {
+    let text: string;
+    if (method === "api") {
+      const r = await apiFetch(
+        {
+          url: source.url,
+          api_endpoint_url: source.api_endpoint_url,
+          api_auth_method: source.api_auth_method,
+          api_response_format: source.api_response_format,
+        },
+        { maxTextLength: 8000 }
+      );
+      text = r.text;
+    } else if (method === "rss") {
+      const r = await rssFetch(
+        { url: source.url, rss_feed_url: source.rss_feed_url },
+        { maxTextLength: 8000 }
+      );
+      text = r.text;
+    } else {
+      const r = await browserlessRender(source.url, { maxTextLength: 8000 });
+      text = r.text;
+    }
+    if (!text || text.length < 80) {
+      console.warn(
+        `[drain-first-fetch] pre-fetch returned short text (${text?.length ?? 0} chars) for ${source.url}; bare stub fallback`
+      );
+      return null;
+    }
+    const cls = await firstFetchClassify(
+      {
+        source_id: source.id,
+        source_url: source.url,
+        source_name: source.name,
+        source_tier: source.tier,
+        text,
+      },
+      ANTHROPIC_API_KEY
+    );
+    if (!cls.ok) {
+      console.warn(`[drain-first-fetch] Haiku classify failed for ${source.url}: ${cls.error}`);
+      return null;
+    }
+    return {
+      title: cls.result.title_candidate,
+      summary: cls.result.summary,
+      severity: cls.result.severity,
+      priority: cls.result.priority,
+      urgency_tier: cls.result.urgency_tier,
+      item_type: cls.result.item_type,
+      topic_tags: cls.result.topic_tags,
+      jurisdictions: cls.result.jurisdictions,
+      cost_usd_estimated: cls.result.cost_usd_estimated,
+    };
+  } catch (e: unknown) {
+    let detail = "";
+    if (e instanceof BrowserlessError || e instanceof ApiFetchError || e instanceof RssFetchError) {
+      detail = ` (status=${e.status ?? "?"}, ms=${e.renderMs ?? "?"})`;
+    }
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(`[drain-first-fetch] pre-fetch threw for ${source.url}: ${msg}${detail}`);
+    return null;
+  }
+}
+
+interface HaikuEnrichment {
+  title: string;
+  summary: string;
+  severity: string;
+  priority: string;
+  urgency_tier: string;
+  item_type: string;
+  topic_tags: string[];
+  jurisdictions: string[];
+  cost_usd_estimated: number;
+}
+
+/**
+ * Seed an intelligence_items row so /api/agent/run's pre-condition
+ * (must find a row matching source_url) passes. When `enrichment` is
+ * provided the row carries Haiku-populated title/summary/priority/etc.
+ * When `enrichment` is null the row falls back to the legacy bare-stub
+ * shape (title=source.name, summary='') so the queue still progresses.
  * Returns true on success or if a row already exists.
  */
 async function seedStubIntelligenceItem(
   supabase: SupabaseClient,
-  source: SourceRow
+  source: SourceRow,
+  enrichment: HaikuEnrichment | null
 ): Promise<{ ok: boolean; itemId?: string; error?: string }> {
   // Defensive: if a row already exists for this source_url, the agent
   // route will pick it up. Re-check here so we do not insert a
@@ -144,16 +264,30 @@ async function seedStubIntelligenceItem(
     return { ok: true, itemId: existing.id };
   }
 
+  const seedRow: Record<string, unknown> = {
+    source_id: source.id,
+    source_url: source.url,
+    domain: 1,
+    status: "monitoring",
+    pipeline_stage: "draft",
+  };
+
+  if (enrichment) {
+    seedRow.title = (enrichment.title || source.name || source.url).slice(0, 200);
+    seedRow.summary = enrichment.summary;
+    seedRow.severity = enrichment.severity;
+    seedRow.priority = enrichment.priority;
+    seedRow.urgency_tier = enrichment.urgency_tier;
+    seedRow.item_type = enrichment.item_type;
+    seedRow.topic_tags = enrichment.topic_tags;
+    seedRow.jurisdictions = enrichment.jurisdictions;
+  } else {
+    seedRow.title = source.name || source.url;
+  }
+
   const { data, error } = await supabase
     .from("intelligence_items")
-    .insert({
-      source_id: source.id,
-      source_url: source.url,
-      title: source.name || source.url,
-      domain: 1,
-      status: "monitoring",
-      pipeline_stage: "draft",
-    })
+    .insert(seedRow)
     .select("id")
     .single();
 
@@ -269,10 +403,13 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    // Look up source row.
+    // Look up source row. Includes access_method routing fields so the
+    // pre-fetch below can mirror /api/agent/run's fetchByAccessMethod.
     const { data: source, error: srcErr } = (await supabase
       .from("sources")
-      .select("id, url, name, status, processing_paused, auto_run_enabled")
+      .select(
+        "id, url, name, status, processing_paused, auto_run_enabled, tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url"
+      )
       .eq("id", row.source_id)
       .maybeSingle()) as { data: SourceRow | null; error: { message: string } | null };
 
@@ -310,8 +447,15 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
+    // Pre-fetch + Haiku classify so the seed carries title/summary/
+    // priority/etc. instead of seed defaults. Returns null on any
+    // failure; the seed below falls back to the legacy bare-stub
+    // shape so the queue lifecycle still progresses (the Sonnet brief
+    // from /api/agent/run is the primary value; Haiku is enrichment).
+    const enrichment = await preFetchAndClassify(source);
+
     // Seed stub intelligence_items row so /api/agent/run can find one.
-    const seed = await seedStubIntelligenceItem(supabase, source);
+    const seed = await seedStubIntelligenceItem(supabase, source, enrichment);
     if (!seed.ok) {
       const msg = `Stub seed failed: ${seed.error}`;
       const shouldRetry = newAttemptCount < MAX_RETRY_ATTEMPTS;
