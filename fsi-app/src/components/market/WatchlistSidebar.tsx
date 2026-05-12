@@ -21,6 +21,7 @@
  * are real signal, not a placeholder string.
  */
 
+import Link from "next/link";
 import type { Resource } from "@/types/resource";
 
 interface WatchlistSidebarProps {
@@ -128,40 +129,56 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
               <li
                 key={it.id}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto",
-                  gap: 8,
-                  alignItems: "baseline",
                   paddingBottom: 8,
                   borderBottom: "1px solid var(--border-sub)",
                 }}
               >
-                <span
+                {/* Card-level Link → /regulations/[slug] detail. */}
+                <Link
+                  href={`/regulations/${encodeURIComponent(it.id)}`}
+                  prefetch={false}
                   style={{
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    color: "var(--text)",
-                    lineHeight: 1.35,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical" as const,
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    gap: 8,
+                    alignItems: "baseline",
+                    textDecoration: "none",
+                    color: "inherit",
+                    cursor: "pointer",
+                    padding: "2px 4px",
+                    margin: "-2px -4px",
+                    borderRadius: "var(--r-sm)",
+                    transition: "background-color 120ms ease",
                   }}
+                  className="hover:bg-[var(--raised)]"
                 >
-                  {it.title}
-                </span>
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    letterSpacing: "0.1em",
-                    color: TONE_COLOR[lc.tone],
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {lc.label}
-                </span>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      color: "var(--text)",
+                      lineHeight: 1.35,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical" as const,
+                    }}
+                  >
+                    {it.title}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      letterSpacing: "0.1em",
+                      color: TONE_COLOR[lc.tone],
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lc.label}
+                  </span>
+                </Link>
               </li>
             );
           })}

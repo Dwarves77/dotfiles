@@ -23,6 +23,7 @@
  * first, with the owner's role shown as a sub-line.
  */
 
+import Link from "next/link";
 import type { Resource } from "@/types/resource";
 
 interface OwnersContentProps {
@@ -146,14 +147,25 @@ export function OwnersContent({ items, section }: OwnersContentProps) {
                     key={it.id}
                     style={{
                       fontSize: 11.5,
-                      color: "var(--text-2)",
                       lineHeight: 1.4,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {it.title}
+                    {/* Card-level Link → /regulations/[slug] detail */}
+                    <Link
+                      href={`/regulations/${encodeURIComponent(it.id)}`}
+                      prefetch={false}
+                      style={{
+                        color: "var(--text-2)",
+                        textDecoration: "none",
+                        display: "block",
+                      }}
+                      className="hover:text-[var(--text)]"
+                    >
+                      {it.title}
+                    </Link>
                   </li>
                 ))}
               </ul>

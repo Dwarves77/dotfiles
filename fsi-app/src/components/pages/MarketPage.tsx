@@ -45,6 +45,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronDown, AlertTriangle } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
@@ -371,14 +372,24 @@ function TechBody({ items }: { items: Resource[] }) {
       <Label>Key items</Label>
       <div className="space-y-2">
         {items.map((it) => (
-          <div
+          // Card-level Link → /regulations/[slug] detail. No interactive
+          // children inside; clean wrap.
+          <Link
             key={it.id}
+            href={`/regulations/${encodeURIComponent(it.id)}`}
+            prefetch={false}
             style={{
+              display: "block",
               background: "var(--bg)",
               border: "1px solid var(--border-sub)",
               borderRadius: "var(--r-sm)",
               padding: "12px 14px",
+              textDecoration: "none",
+              color: "inherit",
+              cursor: "pointer",
+              transition: "background-color 120ms ease",
             }}
+            className="hover:bg-[var(--raised)]"
           >
             <div className="flex items-baseline justify-between gap-3">
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{it.title}</div>
@@ -387,7 +398,7 @@ function TechBody({ items }: { items: Resource[] }) {
             {it.note && (
               <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginTop: 4 }}>{it.note}</div>
             )}
-          </div>
+          </Link>
         ))}
       </div>
     </>
@@ -406,15 +417,25 @@ function PriceBody({ items }: { items: Resource[] }) {
 
 function PriceRow({ item }: { item: Resource }) {
   return (
-    <div
+    // Card-level Link → /regulations/[slug] detail. No interactive
+    // children inside; clean wrap.
+    <Link
+      href={`/regulations/${encodeURIComponent(item.id)}`}
+      prefetch={false}
       style={{
+        display: "block",
         background: "var(--bg)",
         margin: "6px 0",
         borderRadius: "var(--r-sm)",
         padding: "14px 16px",
         position: "relative",
         border: "1px solid var(--border-sub)",
+        textDecoration: "none",
+        color: "inherit",
+        cursor: "pointer",
+        transition: "background-color 120ms ease",
       }}
+      className="hover:bg-[var(--raised)]"
     >
       <div className="flex items-baseline justify-between gap-3" style={{ marginBottom: 6 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{item.title}</div>
@@ -452,7 +473,7 @@ function PriceRow({ item }: { item: Resource }) {
           <span style={{ color: "var(--text)" }}>{item.whyMatters || item.note}</span>
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
