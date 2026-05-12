@@ -329,47 +329,24 @@ export function RegulationDetailSurface({
           </div>
         )}
 
+        {/* Title metadata strip — operator dispatch 2026-05-12 issue 4.
+            Pre 2026-05-12 the hero card re-rendered r.title as an Anton 30px
+            h2. That duplicated the masthead title (which now responsively
+            scales for mobile) and ate viewport on long titles. The strip
+            now carries only the type pill and priority pill alongside the
+            mode chips above; the masthead is the single source of truth
+            for the regulation name. */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 16,
-            marginBottom: 10,
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 8,
             flexWrap: "wrap",
+            marginBottom: 10,
           }}
         >
-          <h2
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 30,
-              fontWeight: 400,
-              letterSpacing: "0.01em",
-              margin: 0,
-              lineHeight: 1.05,
-              color: "var(--text)",
-            }}
-          >
-            {r.title}
-          </h2>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {r.type && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  padding: "4px 10px",
-                  borderRadius: 3,
-                  background: "var(--accent-bg)",
-                  color: "var(--accent)",
-                  border: "1px solid var(--accent-bd)",
-                }}
-              >
-                {r.type.replace(/_/g, " ")}
-              </span>
-            )}
+          {r.type && (
             <span
               style={{
                 fontSize: 10,
@@ -378,14 +355,29 @@ export function RegulationDetailSurface({
                 textTransform: "uppercase",
                 padding: "4px 10px",
                 borderRadius: 3,
-                background: tone.bg,
-                color: tone.color,
-                border: `1px solid ${tone.bd}`,
+                background: "var(--accent-bg)",
+                color: "var(--accent)",
+                border: "1px solid var(--accent-bd)",
               }}
             >
-              {tone.label}
+              {r.type.replace(/_/g, " ")}
             </span>
-          </div>
+          )}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              padding: "4px 10px",
+              borderRadius: 3,
+              background: tone.bg,
+              color: tone.color,
+              border: `1px solid ${tone.bd}`,
+            }}
+          >
+            {tone.label}
+          </span>
         </div>
 
         {(r.note || r.whatIsIt) && (
