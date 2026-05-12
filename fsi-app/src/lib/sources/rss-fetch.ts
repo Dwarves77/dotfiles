@@ -40,6 +40,28 @@ export interface RssFetchOptions {
 const DEFAULT_TIMEOUT_MS = 20_000;
 const DEFAULT_MAX_TEXT = 100_000;
 const DEFAULT_MAX_ITEMS = 25;
+const DEFAULT_USER_AGENT = "CarosLedge-Ingest/1.0";
+
+/**
+ * SEC fair-access policy requires a `User-Agent` of the form
+ * `Sample Company AdminContact@sample.com` for all programmatic access.
+ * Returns the env-configured UA when the URL host is sec.gov (or a
+ * subdomain), otherwise returns null so the caller uses its default UA.
+ *
+ * Centralised here (and re-exported) so the scrape path can apply the
+ * same logic without duplicating host parsing.
+ */
+export function secFairAccessUaForUrl(url: string): string | null {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (host !== "sec.gov" && !host.endsWith(".sec.gov")) return null;
+  const ua = process.env.SEC_FAIR_ACCESS_UA;
+  return ua && ua.trim().length > 0 ? ua : null;
+}
 
 function stripCdata(s: string): string {
   return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
@@ -109,10 +131,11 @@ export async function rssFetch(
   const start = Date.now();
   let status = 0;
   try {
+    const userAgent = secFairAccessUaForUrl(url) ?? DEFAULT_USER_AGENT;
     const res = await fetch(url, {
       method: "GET",
       headers: {
-        "User-Agent": "CarosLedge-Ingest/1.0",
+        "User-Agent": userAgent,
         Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.5",
       },
       signal: controller.signal,

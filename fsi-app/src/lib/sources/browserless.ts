@@ -18,6 +18,8 @@
 // length they need. Throws on non-2xx response or network failure;
 // callers wrap in try/catch as before.
 
+import { secFairAccessUaForUrl } from "@/lib/sources/rss-fetch";
+
 const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
 
 export interface BrowserlessOptions {
@@ -87,16 +89,27 @@ export async function browserlessRender(
     // .gov sites) timed out the waitForSelector even though the body was
     // present and renderable. Drop the visible flag; selector-presence
     // alone is the right signal for content extraction.
+    // SEC fair-access policy requires a contact-email UA on every sec.gov
+    // request, including JS-rendered ones. Browserless v2 takes `userAgent`
+    // and `setExtraHTTPHeaders` fields on the /content body; we set both so
+    // the policy match works regardless of how SEC's edge inspects the
+    // request. No-op for non-SEC hosts.
+    const secUa = secFairAccessUaForUrl(url);
+    const renderBody: Record<string, unknown> = {
+      url,
+      waitForSelector: { selector: waitSelector, timeout: waitTimeoutMs },
+      gotoOptions: { waitUntil: "networkidle2", timeout: gotoTimeoutMs },
+    };
+    if (secUa) {
+      renderBody.userAgent = secUa;
+      renderBody.setExtraHTTPHeaders = { "User-Agent": secUa };
+    }
     const res = await fetch(
       `https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url,
-          waitForSelector: { selector: waitSelector, timeout: waitTimeoutMs },
-          gotoOptions: { waitUntil: "networkidle2", timeout: gotoTimeoutMs },
-        }),
+        body: JSON.stringify(renderBody),
       }
     );
     status = res.status;
