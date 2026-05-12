@@ -78,11 +78,27 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
       }}
     >
       <style>{`
+        /* Keep all 4 hero tiles in a single horizontal row on mobile.
+           Tile internals shrink via the cl-hero-* classes below. */
         @media (max-width: 767px) {
-          .cl-dashboard-hero { grid-template-columns: 1fr 1fr !important; }
-        }
-        @media (max-width: 480px) {
-          .cl-dashboard-hero { grid-template-columns: 1fr !important; }
+          .cl-dashboard-hero {
+            grid-template-columns: 1.2fr 1fr 1fr 1fr !important;
+            gap: 6px !important;
+            margin-top: 16px !important;
+          }
+          .cl-hero-tile { padding: 10px 8px !important; }
+          .cl-hero-tile-crit { padding: 10px 8px 10px 12px !important; }
+          .cl-hero-eyebrow {
+            font-size: 9px !important;
+            letter-spacing: 0.1em !important;
+            margin-bottom: 4px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .cl-hero-numeral { font-size: 32px !important; }
+          .cl-hero-numeral-crit { font-size: 36px !important; }
+          .cl-hero-label, .cl-hero-helper { display: none !important; }
         }
       `}</style>
       {tiles.map((tile) => {
@@ -96,7 +112,7 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
               router.push(`/regulations?priority=${tile.priority}`)
             }
             aria-label={`${tile.eyebrow} — ${tile.numeral} items · open in Regulations`}
-            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 cl-hero-tile${isCrit ? " cl-hero-tile-crit" : ""}`}
             style={{
               position: "relative",
               background: isCrit
@@ -109,6 +125,7 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
               textAlign: "left",
               fontFamily: "inherit",
               cursor: "pointer",
+              minWidth: 0,
               transition: "background 0.18s ease, box-shadow 0.18s ease",
             }}
           >
@@ -127,6 +144,7 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
               />
             )}
             <div
+              className="cl-hero-eyebrow"
               style={{
                 fontSize: "10px",
                 fontWeight: 800,
@@ -139,6 +157,7 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
               {tile.eyebrow}
             </div>
             <div
+              className={isCrit ? "cl-hero-numeral-crit" : "cl-hero-numeral"}
               style={{
                 fontFamily: "var(--font-display)",
                 fontSize: isCrit ? "84px" : "72px",
@@ -152,6 +171,7 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
               {tile.numeral}
             </div>
             <div
+              className="cl-hero-label"
               style={{
                 fontSize: "13px",
                 fontWeight: 700,
@@ -163,6 +183,7 @@ export function DashboardHero({ resources }: DashboardHeroProps) {
             </div>
             {tile.helper && (
               <div
+                className="cl-hero-helper"
                 style={{
                   fontSize: "11px",
                   color: "var(--muted)",

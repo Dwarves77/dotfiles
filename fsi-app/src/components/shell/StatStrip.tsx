@@ -51,9 +51,17 @@ const TONE: Record<StatTone, { color: string; bg: string; bd: string }> = {
 };
 
 export function StatStrip({ tiles, className }: StatStripProps) {
-  const cls = ["grid grid-cols-2 sm:grid-cols-4 gap-3", className].filter(Boolean).join(" ");
+  // Always render a single horizontal row of N tiles. Internals shrink at
+  // narrow widths via clamp() + the cl-stat-helper class so mobile (≥320px)
+  // fits 4 tiles without wrapping.
+  const cls = ["grid grid-cols-4 gap-1.5 sm:gap-3", className].filter(Boolean).join(" ");
   return (
     <div className={cls}>
+      <style>{`
+        @media (max-width: 639px) {
+          .cl-stat-helper { display: none; }
+        }
+      `}</style>
       {tiles.map((tile, i) => (
         <StatTileEl key={`${tile.eyebrow}-${i}`} {...tile} />
       ))}
@@ -75,17 +83,21 @@ function StatTileEl({
   const interactive = typeof onClick === "function";
   const isPrimary = primary && tone !== "muted";
 
+  // Mobile-first: padding + numeral + eyebrow scale via clamp() so 4 tiles
+  // fit at ~320px viewport; helper text is hidden below sm (640px) via the
+  // cl-stat-helper class declared at the StatStrip wrapper.
   const tileStyle: CSSProperties = {
     background: isPrimary ? c.bg : "var(--surface)",
     border: isPrimary ? `1px solid ${c.bd}` : "1px solid var(--border-sub)",
     borderLeft: isPrimary ? `4px solid ${c.color}` : undefined,
     borderRadius: "var(--r-md)",
-    padding: "18px",
+    padding: "clamp(6px, 2.2vw, 18px)",
     textAlign: "center",
     boxShadow: "var(--shadow)",
     cursor: interactive ? "pointer" : "default",
     fontFamily: "inherit",
     width: "100%",
+    minWidth: 0,
     transition: "background 0.18s ease, box-shadow 0.18s ease",
   };
 
@@ -95,9 +107,9 @@ function StatTileEl({
         <div
           style={{
             fontFamily: "var(--font-display)",
-            fontSize: "16px",
+            fontSize: "clamp(12px, 3vw, 16px)",
             lineHeight: 1,
-            marginBottom: "8px",
+            marginBottom: "6px",
             color: c.color,
             display: "inline-block",
           }}
@@ -108,27 +120,33 @@ function StatTileEl({
       <div
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: "56px",
+          fontSize: "clamp(28px, 8vw, 56px)",
           lineHeight: 1,
           color: c.color,
+          fontVariantNumeric: "tabular-nums",
         }}
       >
         {numeral}
       </div>
       <div
         style={{
-          fontSize: "11px",
+          fontSize: "clamp(9px, 2.4vw, 11px)",
           fontWeight: 800,
-          letterSpacing: "0.16em",
+          letterSpacing: "0.14em",
           textTransform: "uppercase",
-          margin: "8px 0 4px",
+          margin: "6px 0 2px",
           color: c.color,
+          lineHeight: 1.2,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
         {eyebrow}
       </div>
       {helper && (
         <div
+          className="cl-stat-helper"
           style={{
             fontSize: "11px",
             color: "var(--text-2)",
