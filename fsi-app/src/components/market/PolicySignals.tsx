@@ -39,6 +39,64 @@ const TIER_LABEL: Record<number, string> = {
   7: "T7",
 };
 
+// Item types that describe a vendor product, SaaS platform, news outlet, or
+// research tracker rather than a quantitative policy/market signal. EcoVadis
+// (type: "tool") is the canonical example operator surfaced 2026-05-12: it's
+// a resource users can consult, but it does not contain a price, capacity,
+// deployment milestone, or technology readiness shift on its own.
+//
+// Item-level routing (Wave 1c) will replace this with the source-role
+// classifier once `source_role` is wired through Resource. Until then, the
+// type+keyword gate below keeps POLICY ACCELERATION SIGNALS focused on
+// items with quantitative or near-quantitative content.
+const VENDOR_RESOURCE_TYPES = new Set([
+  "tool",
+  "tracker",
+  "news",
+  "journal",
+  "industry",
+]);
+
+// Lightweight quantitative-signal heuristic. We look for any explicit number,
+// currency symbol, percentage, unit-of-measure, or milestone vocabulary in
+// the title + note + whyMatters strings. Intentionally permissive: the goal
+// is to catch obvious vendor-description cards (no numbers, no timelines),
+// not to grade the strength of every signal.
+const QUANT_SIGNAL_RE = new RegExp(
+  [
+    "\\d",
+    "[\\u20AC$\\u00A3\\u00A5]",
+    "%",
+    "\\b(?:tonne|ton|tco2|teu|kg|mwh|gwh|twh|barrel|bbl|gal|kwh|usd|eur|gbp|jpy|cny|inr)\\b",
+    "\\b(?:price|quota|cap|threshold|deadline|effective|in force|phase[- ]in|phase[- ]out|takes effect)\\b",
+    "\\b(?:milestone|deployment|capacity|production|order book|fleet|delivery)\\b",
+  ].join("|"),
+  "i"
+);
+
+function hasQuantitativeSignal(r: Resource): boolean {
+  const text = `${r.title || ""} ${r.note || ""} ${r.whyMatters || ""}`;
+  return QUANT_SIGNAL_RE.test(text);
+}
+
+/**
+ * Filter that excludes vendor product / SaaS platform / news cards from the
+ * POLICY ACCELERATION SIGNALS list. Vendor types pass only when they also
+ * carry quantitative signal language (a price, quota, deployment count, or
+ * compliance milestone). That's the operator's bar per the 2026-05-12
+ * dispatch: knowing a resource exists is great but it's not worth a
+ * separate section unless it's providing some intelligence.
+ *
+ * Exported for unit-test / audit reuse.
+ */
+export function isPolicyAccelerationSignal(r: Resource): boolean {
+  const t = (r.type || "").toLowerCase();
+  if (VENDOR_RESOURCE_TYPES.has(t)) {
+    return hasQuantitativeSignal(r);
+  }
+  return true;
+}
+
 export function PolicySignals({
   items,
   windowDays = 90,
@@ -49,7 +107,10 @@ export function PolicySignals({
     .filter((it) => {
       if (it.priority !== "CRITICAL" && it.priority !== "HIGH") return false;
       const t = it.added ? new Date(it.added).getTime() : 0;
-      return t === 0 || t >= cutoff;
+      if (t > 0 && t < cutoff) return false;
+      // Vendor / SaaS / news cards (e.g. EcoVadis as a platform) do not
+      // belong here unless they additionally carry quantitative content.
+      return isPolicyAccelerationSignal(it);
     })
     .sort((a, b) => {
       const ar = a.priority === "CRITICAL" ? 0 : 1;
