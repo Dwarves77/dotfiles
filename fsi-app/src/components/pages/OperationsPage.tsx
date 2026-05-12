@@ -20,6 +20,7 @@
  */
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronDown, Globe, Sun, Zap, Users, Building, Battery } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
@@ -450,7 +451,20 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
               </div>
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7, color: "var(--text-2)" }}>
                 {activeRegs.map((r) => (
-                  <li key={r.id}>{r.title}</li>
+                  <li key={r.id}>
+                    {/* Card-level Link → /regulations/[slug] detail */}
+                    <Link
+                      href={`/regulations/${encodeURIComponent(r.id)}`}
+                      prefetch={false}
+                      style={{
+                        color: "var(--text-2)",
+                        textDecoration: "none",
+                      }}
+                      className="hover:text-[var(--text)] hover:underline"
+                    >
+                      {r.title}
+                    </Link>
+                  </li>
                 ))}
               </ul>
             </>
@@ -690,26 +704,37 @@ function FacilityCategoryCard({ group, defaultOpen }: { group: { cat: string; it
         <div style={{ padding: "8px 20px 20px", borderTop: "1px solid var(--border-sub)" }}>
           <ul style={{ margin: 0, padding: 0, listStyle: "none" }} className="space-y-2">
             {group.items.map((it) => (
-              <li
-                key={it.id}
-                style={{
-                  background: "var(--bg)",
-                  border: "1px solid var(--border-sub)",
-                  borderRadius: "var(--r-sm)",
-                  padding: "10px 12px",
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{it.title}</div>
-                {it.note && (
-                  <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginTop: 4 }}>
-                    {it.note}
-                  </div>
-                )}
-                {it.jurisdiction && (
-                  <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 4 }}>
-                    {it.jurisdiction}
-                  </div>
-                )}
+              <li key={it.id}>
+                {/* Card-level Link → /regulations/[slug] detail. No
+                    interactive children inside; clean wrap. */}
+                <Link
+                  href={`/regulations/${encodeURIComponent(it.id)}`}
+                  prefetch={false}
+                  style={{
+                    display: "block",
+                    background: "var(--bg)",
+                    border: "1px solid var(--border-sub)",
+                    borderRadius: "var(--r-sm)",
+                    padding: "10px 12px",
+                    textDecoration: "none",
+                    color: "inherit",
+                    cursor: "pointer",
+                    transition: "background-color 120ms ease",
+                  }}
+                  className="hover:bg-[var(--raised)]"
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{it.title}</div>
+                  {it.note && (
+                    <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginTop: 4 }}>
+                      {it.note}
+                    </div>
+                  )}
+                  {it.jurisdiction && (
+                    <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 4 }}>
+                      {it.jurisdiction}
+                    </div>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>
