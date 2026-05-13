@@ -1,0 +1,15 @@
+# Local credential / cache files — never tracked.
+# perftoken / perfrefresh were historically tracked at the repo root and
+# carried plaintext Supabase JWT + refresh tokens. Untracked 2026-05-13 and
+# moved to the OS temp dir (see fsi-app/supabase/seed/verify-end-to-end.mjs
+# TOKEN_PATH). Defensive ignore so future scripts can't accidentally write
+# credential material back to these names at the repo root.
+.perftoken
+.perfrefresh
+.fsi-perftoken
+
+# Editor / OS noise that occasionally lands at the dotfiles root.
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

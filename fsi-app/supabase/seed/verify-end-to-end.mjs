@@ -40,7 +40,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
-import { dirname, resolve } from "path";
+import { dirname, resolve, join } from "path";
+import { tmpdir } from "os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 process.chdir(resolve(__dirname, "..", ".."));
@@ -53,7 +54,10 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const PERF_TEST_EMAIL = process.env.PERF_TEST_EMAIL || "jasonlosh@gmail.com";
-const TOKEN_PATH = "C:\\Users\\jason\\dotfiles\\.perftoken";
+// Cache the JWT in the OS temp dir, never inside the repo. Allows override
+// via env for CI / cross-machine runs. Auto-refresh kicks in on first run
+// or when the cached token is expired (refreshTokenViaAdmin below).
+const TOKEN_PATH = process.env.PERF_TOKEN_PATH || join(tmpdir(), "fsi-perftoken");
 const REPORT_JSON = "C:\\Users\\jason\\dotfiles\\docs\\E2E-VERIFICATION.json";
 const REPORT_MD = "C:\\Users\\jason\\dotfiles\\docs\\E2E-VERIFICATION.md";
 const REQUEST_TIMEOUT_MS = 30_000;
