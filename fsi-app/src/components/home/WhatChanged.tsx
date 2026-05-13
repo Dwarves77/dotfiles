@@ -57,9 +57,17 @@ interface ItemRow {
 }
 
 export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
-  const newResources = auditDate ? resources.filter((r) => r.added === auditDate) : [];
+  // "New" uses a rolling 7-day window from today, not exact-equality against
+  // auditDate (the most-recent changelog date). The prior filter only matched
+  // when added_date and auditDate coincided exactly, which rarely happens with
+  // prod ingestion cadence, so the entire section silently disappeared when no
+  // items were added on auditDate AND no items had changelog entries. Mirrors
+  // the rolling-window fix applied to WeeklyBriefing in this PR.
+  const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const newResources = resources.filter((r) => r.added && r.added >= cutoff);
   const changedIds = Object.keys(changelog);
   const changed = resources.filter((r) => changedIds.includes(r.id));
+  void auditDate; // kept on prop signature for parent backward-compat
 
   if (newResources.length === 0 && changed.length === 0) return null;
 
