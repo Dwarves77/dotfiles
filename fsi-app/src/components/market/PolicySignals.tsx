@@ -19,6 +19,7 @@
  *   shown as a Tier-N pill when present.
  */
 
+import { useRouter } from "next/navigation";
 import type { Resource } from "@/types/resource";
 
 interface PolicySignalsProps {
@@ -44,6 +45,7 @@ export function PolicySignals({
   windowDays = 90,
   limit = 8,
 }: PolicySignalsProps) {
+  const router = useRouter();
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const accelerating = items
     .filter((it) => {
@@ -105,16 +107,36 @@ export function PolicySignals({
         >
           {accelerating.map((it) => {
             const isCritical = it.priority === "CRITICAL";
+            const detailHref = `/regulations/${encodeURIComponent(it.id)}`;
+            // Inner SourceBadge renders a real <a> to the source URL.
+            // Wrapping the <li> in <Link> would nest anchors (invalid
+            // HTML), so we use router.push on click + role="link" + key
+            // navigation for a11y, and stopPropagation on the inner <a>.
+            const onCardClick = () => router.push(detailHref);
+            const onCardKey = (e: React.KeyboardEvent<HTMLLIElement>) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                router.push(detailHref);
+              }
+            };
             return (
               <li
                 key={it.id}
+                role="link"
+                tabIndex={0}
+                aria-label={`Open detail for ${it.title}`}
+                onClick={onCardClick}
+                onKeyDown={onCardKey}
                 style={{
                   background: "var(--surface)",
                   border: "1px solid var(--border-sub)",
                   borderLeft: `3px solid ${isCritical ? "var(--critical)" : "var(--high)"}`,
                   borderRadius: "var(--r-sm)",
                   padding: "10px 14px",
+                  cursor: "pointer",
+                  transition: "background-color 120ms ease",
                 }}
+                className="hover:bg-[var(--raised)]"
               >
                 <div
                   style={{
@@ -273,6 +295,11 @@ function SourceBadge({
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Open primary source: ${name}`}
+        // Card-level click (set on the parent <li> in PolicySignals)
+        // navigates to the detail page; this badge opens the source URL
+        // in a new tab. Stop propagation so the badge click doesn't also
+        // trigger card navigation.
+        onClick={(e) => e.stopPropagation()}
         style={{ textDecoration: "none" }}
       >
         {inner}

@@ -24,6 +24,7 @@
  */
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
@@ -806,23 +807,34 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
         overflow: "hidden",
       }}
     >
-      <button
-        onClick={() => setOpen(!open)}
+      {/* Title row + chevron split: title is a <Link> to /regulations/[slug];
+          chevron is a separate <button> that toggles expand/collapse.
+          Wrapping a <button> in <Link> would be invalid; the split keeps
+          two distinct keyboard targets and matches the audit doc plan. */}
+      <div
         style={{
-          width: "100%",
           padding: "16px 20px",
           display: "grid",
           gridTemplateColumns: "1fr auto",
           gap: 14,
-          cursor: "pointer",
           alignItems: "center",
-          background: "transparent",
-          border: 0,
-          textAlign: "left",
-          fontFamily: "inherit",
         }}
       >
-        <div>
+        <Link
+          href={`/regulations/${encodeURIComponent(item.id)}`}
+          prefetch={false}
+          style={{
+            display: "block",
+            textDecoration: "none",
+            color: "inherit",
+            cursor: "pointer",
+            padding: "2px 4px",
+            margin: "-2px -4px",
+            borderRadius: "var(--r-sm)",
+            transition: "background-color 120ms ease",
+          }}
+          className="hover:bg-[var(--raised)]"
+        >
           {/* Source kicker — promoted per CC3 source-attribution prominence */}
           {item.sourceName && (
             <div
@@ -885,7 +897,7 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
               </span>
             )}
           </div>
-        </div>
+        </Link>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
           <span
             style={{
@@ -919,16 +931,33 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
               Partner-flagged
             </span>
           )}
-          <ChevronDown
-            size={16}
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-label={open ? "Collapse pipeline row" : "Expand pipeline row"}
             style={{
-              color: "var(--text-2)",
-              transform: open ? "rotate(180deg)" : "rotate(0)",
-              transition: "transform 0.15s ease",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 4,
+              background: "transparent",
+              border: 0,
+              cursor: "pointer",
+              borderRadius: 3,
             }}
-          />
+          >
+            <ChevronDown
+              size={16}
+              style={{
+                color: "var(--text-2)",
+                transform: open ? "rotate(180deg)" : "rotate(0)",
+                transition: "transform 0.15s ease",
+              }}
+            />
+          </button>
         </div>
-      </button>
+      </div>
 
       {open && (
         <div

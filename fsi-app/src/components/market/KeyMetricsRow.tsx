@@ -24,6 +24,7 @@
  * one banner.
  */
 
+import Link from "next/link";
 import type { Resource } from "@/types/resource";
 
 interface KeyMetricsRowProps {
@@ -162,8 +163,13 @@ export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetr
                   ? "var(--moderate)"
                   : "var(--text-2)";
             return (
-              <div
+              // Card-level Link → /regulations/[slug] detail. The header
+              // period-tab buttons sit OUTSIDE this map — no nested
+              // interactive children here.
+              <Link
                 key={it.id}
+                href={`/regulations/${encodeURIComponent(it.id)}`}
+                prefetch={false}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1.2fr auto auto",
@@ -173,7 +179,12 @@ export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetr
                   background: "var(--surface)",
                   border: "1px solid var(--border-sub)",
                   borderRadius: "var(--r-sm)",
+                  textDecoration: "none",
+                  color: "inherit",
+                  cursor: "pointer",
+                  transition: "background-color 120ms ease",
                 }}
+                className="hover:bg-[var(--raised)]"
               >
                 <span
                   style={{
@@ -210,7 +221,7 @@ export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetr
                   )}
                   {md.previousPrice ? `was ${md.previousPrice}` : md.priceDate}
                 </span>
-              </div>
+              </Link>
             );
           })}
         </div>
