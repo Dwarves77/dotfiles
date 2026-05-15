@@ -1,0 +1,89 @@
+
+========================================
+[flip] https://www.aam-us.org/
+========================================
+[flip] source: American Alliance of Museums (AAM) (id=0768a0d2-4f2e-4b4f-a84e-05084c107f79)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=81b8bfb5-a9d4-48dd-99af-6237d7373c6c status=queued
+[flip] pre-fetch ok: 263203 html, 8000 text, 5342ms
+[flip] haiku ok: priority=LOW title="American Alliance of Museums - Professional Resources and Museum Excellence Fram..."
+[flip] enriched stub inserted: id=d0d76892-0145-486a-8bd2-d150a45f01cb
+[flip] POST https://carosledge.com/api/agent/run ...
+[flip] /api/agent/run -> 200 in 25742ms
+[flip] result: ok=true
+
+========================================
+[flip] https://carbon-pulse.com/
+========================================
+[flip] source: Carbon Pulse (id=e1cf70bc-7981-4c83-b9f3-bae57b035cee)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=805b23a6-2d63-4c13-9d7f-427aa5b6f867 status=queued
+[flip] pre-fetch ok: 31625 html, 386 text, 4571ms
+[flip] haiku ok: priority=LOW title="Carbon Pulse Website Access - Security Verification Page..."
+[flip] enriched stub inserted: id=ff626826-31d8-45ce-94e7-efc5f22ae730
+[flip] POST https://carosledge.com/api/agent/run ...
+[flip] /api/agent/run -> 412 in 6515ms
+[flip] result: ok=true
+
+========================================
+[flip] https://www.esma.europa.eu/
+========================================
+[flip] source: European Securities and Markets Authority (ESMA) (id=7aa784cf-6765-4e60-bc56-8fb884897261)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=7f77e3e8-6b53-4206-9bea-d3f0f0f8c111 status=queued
+[flip] pre-fetch ok: 131949 html, 8000 text, 2892ms
+[flip] haiku ok: priority=CRITICAL title="ESMA MiCA Transitional Period Expiration and Crypto-Asset Service Provider Compl..."
+[flip] enriched stub inserted: id=bcd84403-6679-4bf3-84a3-25f4610dd73f
+[flip] POST https://carosledge.com/api/agent/run ...
+[flip] /api/agent/run -> 200 in 39064ms
+[flip] result: ok=true
+
+========================================
+[flip] https://www.eba.europa.eu/
+========================================
+[flip] source: European Banking Authority (EBA) (id=2d27b8d9-96cb-4843-9df4-5dc31315d514)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=d8b7f0c2-4538-45ec-af08-05f87eb3c132 status=queued
+[flip] pre-fetch ok: 86450 html, 8000 text, 3255ms
+[flip] haiku ok: priority=HIGH title="European Banking Authority - Key Regulatory Updates and Supervisory Framework..."
+[flip] enriched stub inserted: id=8cb6e73e-1c35-428f-8f5c-f1ee51a9e169
+[flip] POST https://carosledge.com/api/agent/run ...
+[flip] /api/agent/run -> 200 in 25276ms
+[flip] result: ok=true
+
+========================================
+[flip] https://www.fca.org.uk/
+========================================
+[flip] source: UK Financial Conduct Authority (FCA) (id=c75ea058-f29a-4606-a76e-bb0295565958)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=b250e42d-3e6c-4a6e-a8b2-65920b9782af status=queued
+[flip] pre-fetch ok: 196729 html, 8000 text, 2311ms
+[flip] haiku ok: priority=LOW title="Financial Conduct Authority - Main Portal and Regulatory Resources..."
+[flip] enriched stub inserted: id=856166be-0cf8-4c0e-8b2d-dbded771f0d5
+[flip] POST https://carosledge.com/api/agent/run ...
+[flip] /api/agent/run -> 200 in 88020ms
+[flip] result: ok=true
+
+========================================
+[flip] https://www.sec.gov/
+========================================
+[flip] source: US Securities and Exchange Commission (SEC) (id=390fb3eb-c17c-474e-9783-d0c71822c37b)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=130af6b5-0167-4afb-b119-0f1dda6b739a status=queued
+[flip] pre-fetch ok: 1927 html, 376 text, 1951ms
+[flip] haiku ok: priority=LOW title="SEC.gov API Rate Threshold Exceeded - Developer Access Guidelines..."
+[flip] enriched stub inserted: id=5dc2d217-94bf-4815-907e-c65e44f398ff
+[flip] POST https://carosledge.com/api/agent/run ...
+[flip] /api/agent/run -> 412 in 2446ms
+[flip] result: ok=true
+
+
+========== SUMMARY ==========
+PASS  https://www.aam-us.org/  title_len=85 summary_len=404 brief_len=2681 priority=LOW stage=draft agent=200
+PARTIAL — stub fields populated, but agent run did not produce a brief  https://carbon-pulse.com/  title_len=56 summary_len=144 brief_len=0 priority=LOW stage=draft agent=412
+PASS  https://www.esma.europa.eu/  title_len=109 summary_len=641 brief_len=6354 priority=LOW stage=draft agent=200
+PASS  https://www.eba.europa.eu/  title_len=77 summary_len=526 brief_len=3078 priority=LOW stage=draft agent=200
+PASS  https://www.fca.org.uk/  title_len=66 summary_len=264 brief_len=17486 priority=LOW stage=draft agent=200
+PARTIAL — stub fields populated, but agent run did not produce a brief  https://www.sec.gov/  title_len=65 summary_len=241 brief_len=0 priority=LOW stage=draft agent=412
+
+Total: 4 full pass, 2 partial (stub ok, agent run failed), 0 fail (out of 6 target sources, processed 6)

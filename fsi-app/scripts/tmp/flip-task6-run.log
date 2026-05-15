@@ -1,0 +1,31 @@
+
+========================================
+[flip] https://galleryclimatecoalition.org/about/
+========================================
+[flip] source: Gallery Climate Coalition (about + resources) (id=5cb7d618-f2ef-47ff-8b89-d9a512b427bc)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=eff63d8e-0f86-4fcb-b418-fef6dfd016df status=queued
+[flip] pre-fetch ok: 76355 html, 3411 text, 3474ms
+[flip] haiku ok: priority=MODERATE title="Gallery Climate Coalition: International Art Sector Sustainability Initiative an..."
+[flip] enriched stub inserted: id=79e73a30-8e06-4702-98d9-80ec2a3514ad
+[flip] POST https://carosledge.com/api/agent/run ...
+[flip] /api/agent/run -> 412 in 5227ms
+[flip] result: ok=true
+
+========================================
+[flip] https://galleryclimatecoalition.org/research/
+========================================
+[flip] source: Gallery Climate Coalition (research) (id=f81c2cd0-2627-4e92-aa07-478ef395c2a2)
+[flip] auto_run_enabled set to true
+[flip] pending_first_fetch row: id=ff7c2a3e-7522-4fb7-b5e1-f508b918c496 status=queued
+[flip] result: ok=false
+[flip] HALT — first failure. Source: https://galleryclimatecoalition.org/research/. Reason: pre-fetch: Browserless 500: TimeoutError: Navigation timeout of 15000 ms exceeded
+ (15867ms)
+
+
+========== SUMMARY ==========
+PARTIAL — stub fields populated, but agent run did not produce a brief  https://galleryclimatecoalition.org/about/  title_len=109 summary_len=408 brief_len=0 priority=MODERATE stage=draft agent=412
+FAIL  https://galleryclimatecoalition.org/research/  reason="pre-fetch: Browserless 500: TimeoutError: Navigation timeout of 15000 ms exceeded
+ (15867ms)" titleOk=undefined summaryOk=undefined briefOk=undefined
+
+Total: 0 full pass, 1 partial (stub ok, agent run failed), 1 fail (out of 8 target sources, processed 2)
