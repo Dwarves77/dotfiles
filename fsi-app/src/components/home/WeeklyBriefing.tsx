@@ -8,6 +8,7 @@ import { toBriefingSlack } from "@/lib/export/slackFormat";
 import { urgencyScore, buildSectorContext } from "@/lib/scoring";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { Resource, ChangeLogEntry, Dispute } from "@/types/resource";
+import type { WorkspaceAggregates } from "@/lib/data";
 import { FileText, Hash } from "lucide-react";
 
 interface WeeklyBriefingProps {
@@ -15,6 +16,9 @@ interface WeeklyBriefingProps {
   changelog: Record<string, ChangeLogEntry[]>;
   disputes: Record<string, Dispute>;
   auditDate: string;
+  // Scalar totals over the workspace's full active row set (migration 068).
+  // Drives the summary line so it no longer reports the LIMIT-50 row count.
+  aggregates: WorkspaceAggregates;
   onToast: (msg: string) => void;
 }
 
@@ -64,6 +68,7 @@ export function WeeklyBriefing({
   changelog,
   disputes,
   auditDate,
+  aggregates,
   onToast,
 }: WeeklyBriefingProps) {
   const { sectorProfile, sectorWeights } = useWorkspaceStore();
@@ -71,12 +76,20 @@ export function WeeklyBriefing({
   const sectorCtx = buildSectorContext({ sectorProfile, sectorWeights });
 
   const briefing = useMemo(() => {
-    const newR = resources.filter((r) => r.added === auditDate);
+    // "New this week" uses a rolling 7-day window from today, not exact-equality
+    // against auditDate (the most-recent changelog date). The prior filter only
+    // matched when added_date and changelog date coincided exactly, which never
+    // happens with prod ingestion cadence, so the suffix was silently dropped.
+    // Note: still bounded by the dashboard payload's LIMIT 50, so this counts
+    // "new in the last 7 days, among the top 50 by priority". A true count
+    // would need new_last_7_days as a scalar on the aggregates RPC.
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const newR = resources.filter((r) => r.added && r.added >= cutoff);
     const top5 = [...resources]
       .sort((a, b) => urgencyScore(b, null, sectorCtx) - urgencyScore(a, null, sectorCtx))
       .slice(0, 5);
     return { newR, top5 };
-  }, [resources, auditDate, sectorCtx]);
+  }, [resources, sectorCtx]);
 
   const handleDownload = (format: "html" | "slack") => {
     if (format === "html") {
@@ -89,9 +102,22 @@ export function WeeklyBriefing({
     onToast("File downloaded");
   };
 
-  const summary = `Tracking ${resources.length} regulatory resources across ${
-    new Set(resources.map((r) => r.jurisdiction || "global")).size
-  } jurisdictions.${briefing.newR.length > 0 ? ` ${briefing.newR.length} new this week.` : ""}`;
+  // Totals come from the aggregates RPC (migration 068), scoped to the
+  // workspace's active row set BEFORE the dashboard payload's LIMIT 50.
+  // briefing.newR.length is intentionally row-derived: the LIMIT-50 payload
+  // sorts by priority then added_date desc, so it accurately reflects
+  // "newest urgent" for the bounded view the rest of WeeklyBriefing renders.
+  // Fallback when aggregates are unavailable (anon / seed / RPC failure):
+  // derive from the row array so the summary still renders sensible numbers.
+  const totalItems =
+    aggregates.totalItems > 0 ? aggregates.totalItems : resources.length;
+  const totalJurisdictions =
+    aggregates.totalJurisdictions > 0
+      ? aggregates.totalJurisdictions
+      : new Set(resources.map((r) => r.jurisdiction || "global")).size;
+  const summary = `Tracking ${totalItems} regulatory resources across ${totalJurisdictions} jurisdictions.${
+    briefing.newR.length > 0 ? ` ${briefing.newR.length} new this week.` : ""
+  }`;
 
   return (
     <div

@@ -518,6 +518,78 @@ async function fetchWorkspaceResources(
   return { active, archived, uuidToUiId };
 }
 
+// ── Workspace aggregates (migration 068) ─────────────────────
+//
+// Scalar totals over the same active row set as the dashboard / listings
+// RPCs. Separate from row payloads so render-time stats no longer derive
+// from the LIMIT-50 dashboard payload (the source of the
+// WeeklyBriefing / DashboardHero / masthead-meta count bug fixed by
+// migration 068). Empty defaults match the seed fallback path so callers
+// can render zeros instead of NaN when Supabase is unconfigured or the
+// RPC fails.
+
+export interface WorkspaceAggregates {
+  totalItems: number;
+  byPriority: { CRITICAL: number; HIGH: number; MODERATE: number; LOW: number };
+  byStatus: Record<string, number>;
+  byJurisdiction: Record<string, number>;
+  totalJurisdictions: number;
+  lastUpdatedAt: string | null;
+}
+
+const EMPTY_AGGREGATES: WorkspaceAggregates = {
+  totalItems: 0,
+  byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
+  byStatus: {},
+  byJurisdiction: {},
+  totalJurisdictions: 0,
+  lastUpdatedAt: null,
+};
+
+export async function fetchWorkspaceAggregates(
+  orgId: string | null
+): Promise<WorkspaceAggregates> {
+  if (!isSupabaseConfigured() || !orgId) return EMPTY_AGGREGATES;
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.rpc(
+      "get_workspace_intelligence_aggregates",
+      { p_org_id: orgId }
+    );
+    if (error || !data) return EMPTY_AGGREGATES;
+
+    // The RPC returns a single jsonb scalar; PostgREST surfaces it as the
+    // raw object. Defensive coercion: missing keys default to 0 / {} so
+    // the typed shape is always populated even if the SQL is later trimmed.
+    type Raw = {
+      total_items?: number;
+      by_priority?: Record<string, number>;
+      by_status?: Record<string, number>;
+      by_jurisdiction?: Record<string, number>;
+      total_jurisdictions?: number;
+      last_updated_at?: string | null;
+    };
+    const raw = data as Raw;
+    const bp = raw.by_priority || {};
+    return {
+      totalItems: Number(raw.total_items ?? 0),
+      byPriority: {
+        CRITICAL: Number(bp.CRITICAL ?? 0),
+        HIGH: Number(bp.HIGH ?? 0),
+        MODERATE: Number(bp.MODERATE ?? 0),
+        LOW: Number(bp.LOW ?? 0),
+      },
+      byStatus: raw.by_status || {},
+      byJurisdiction: raw.by_jurisdiction || {},
+      totalJurisdictions: Number(raw.total_jurisdictions ?? 0),
+      lastUpdatedAt: raw.last_updated_at ?? null,
+    };
+  } catch (e) {
+    console.error("fetchWorkspaceAggregates failed, returning empty:", e);
+    return EMPTY_AGGREGATES;
+  }
+}
+
 // ── Master Fetch ─────────────────────────────────────────────
 
 export interface SectorSynopsis {

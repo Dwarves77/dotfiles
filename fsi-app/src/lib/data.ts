@@ -10,6 +10,7 @@ import {
   fetchWatchlist,
   fetchCoverageGaps,
   fetchAwaitingReview,
+  fetchWorkspaceAggregates,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -19,12 +20,13 @@ import type {
   WatchlistItem,
   CoverageGap,
   ReviewItem,
+  WorkspaceAggregates,
 } from "@/lib/supabase-server";
 
 // Re-export the Phase 3 widget types so HomeSurface and the widget files
 // can import them from a single module rather than reaching into
 // supabase-server directly.
-export type { WatchlistItem, CoverageGap, ReviewItem };
+export type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates };
 
 /**
  * Cache invalidation tag for workspace data. Mutation routes
@@ -345,6 +347,18 @@ const cachedAwaitingReview = unstable_cache(
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
+// Workspace aggregates (migration 068). Same TTL + tag as cachedAppData so
+// the aggregates and the dashboard payload refresh together — when an
+// override mutation calls revalidateTag(APP_DATA_TAG), both invalidate
+// in lockstep and the rendered counts stay consistent with the row payload.
+const cachedWorkspaceAggregates = unstable_cache(
+  async (orgId: string | null): Promise<WorkspaceAggregates> => {
+    return fetchWorkspaceAggregates(orgId);
+  },
+  ["workspace-aggregates-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
 /**
  * Fetch the current user's watchlist items (regulations, sources, signals)
  * for the Dashboard Watchlist widget. Returns [] for anon users and on any
@@ -391,5 +405,31 @@ export async function getAwaitingReview(): Promise<ReviewItem[]> {
   } catch (e) {
     console.error("getAwaitingReview failed, returning empty:", e);
     return [];
+  }
+}
+
+/**
+ * Fetch scalar aggregates over the workspace's active intelligence row set.
+ * Used by the dashboard masthead, DashboardHero tiles, and WeeklyBriefing
+ * summary so render-time stats no longer derive from the LIMIT-50
+ * dashboard row payload (migration 068).
+ *
+ * Cached at the same TTL + tag as getAppData; the override / staged-update
+ * mutation routes that revalidateTag(APP_DATA_TAG) flush both in lockstep.
+ */
+export async function getWorkspaceAggregates(): Promise<WorkspaceAggregates> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    return await cachedWorkspaceAggregates(orgId);
+  } catch (e) {
+    console.error("getWorkspaceAggregates failed, returning empty:", e);
+    return {
+      totalItems: 0,
+      byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
+      byStatus: {},
+      byJurisdiction: {},
+      totalJurisdictions: 0,
+      lastUpdatedAt: null,
+    };
   }
 }
