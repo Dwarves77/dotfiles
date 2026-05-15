@@ -11,6 +11,8 @@ import {
   fetchCoverageGaps,
   fetchAwaitingReview,
   fetchWorkspaceAggregates,
+  fetchWorkspaceAggregatesScoped,
+  type ScopeFilter,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -26,7 +28,7 @@ import type {
 // Re-export the Phase 3 widget types so HomeSurface and the widget files
 // can import them from a single module rather than reaching into
 // supabase-server directly.
-export type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates };
+export type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates, ScopeFilter };
 
 /**
  * Cache invalidation tag for workspace data. Mutation routes
@@ -423,6 +425,128 @@ export async function getWorkspaceAggregates(): Promise<WorkspaceAggregates> {
     return await cachedWorkspaceAggregates(orgId);
   } catch (e) {
     console.error("getWorkspaceAggregates failed, returning empty:", e);
+    return {
+      totalItems: 0,
+      byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
+      byStatus: {},
+      byJurisdiction: {},
+      totalJurisdictions: 0,
+      lastUpdatedAt: null,
+    };
+  }
+}
+
+// Scoped aggregates (migration 069). Cached at the same TTL + tag as the
+// workspace-wide aggregates so /market /research /operations stays in
+// lockstep with mutations. Cache key includes the serialised scope so
+// each page surface gets its own cache bucket.
+const cachedScopedAggregates = unstable_cache(
+  async (
+    orgId: string | null,
+    scopeKey: string,
+  ): Promise<WorkspaceAggregates> => {
+    const scope: ScopeFilter | null = scopeKey ? JSON.parse(scopeKey) : null;
+    return fetchWorkspaceAggregatesScoped(orgId, scope);
+  },
+  ["workspace-aggregates-scoped-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+// ── Research pipeline fetcher (auth-aware, NOT inline anon-key) ──────
+//
+// Replaces the prior inline-anon `createClient(NEXT_PUBLIC_SUPABASE_URL,
+// NEXT_PUBLIC_SUPABASE_ANON_KEY)` fetcher in src/app/research/page.tsx
+// with the workspace data path used by /operations and /market: orgId
+// resolved from authed cookies → cached fetcher → workspace service-role
+// client. Returns the first PAGE_CAP rows for initial paint plus the true
+// `total` so the page can surface "showing N of M" honestly. Cached at
+// the same TTL + tag as getAppData / aggregates so override mutations
+// refresh it in lockstep.
+
+import type { ResearchPipelineRow } from "@/lib/supabase-server";
+export type { ResearchPipelineRow };
+
+export interface ResearchPipelineResult {
+  rows: ResearchPipelineRow[];
+  total: number;
+  cap: number;
+}
+
+const RESEARCH_PAGE_CAP = 100;
+
+// Cache key on orgId only — the actual fetch goes through the workspace
+// service-role server client (same pattern as fetchResourcesOnly), NOT
+// the cookie-aware client. The orgId resolution stays OUTSIDE the cache
+// so cookies() is not invoked from within unstable_cache (Next.js does
+// not allow it).
+const cachedResearchPipeline = unstable_cache(
+  async (orgId: string | null): Promise<ResearchPipelineResult> => {
+    // Anonymous / no-org callers fall back to the seed-equivalent empty
+    // pipeline. Authed callers run the same intelligence_items query the
+    // prior fetcher ran, but through the workspace service-role client
+    // that the rest of the platform uses.
+    if (!orgId) return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
+
+    const { fetchResearchPipelineRows } = await import("@/lib/supabase-server");
+    return fetchResearchPipelineRows(orgId, RESEARCH_PAGE_CAP);
+  },
+  ["research-pipeline-v2"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+/**
+ * Fetch the research pipeline page-1 payload via the workspace data path.
+ * Resolves orgId from authed cookies OUTSIDE the cache (Next.js forbids
+ * dynamic-source reads inside unstable_cache). Returns rows (capped at
+ * RESEARCH_PAGE_CAP), the true total count, and the cap so the page can
+ * render "Showing N of M" honestly.
+ *
+ * Replaces the prior inline anon-key createClient(...) fetcher in
+ * src/app/research/page.tsx that bypassed cookies and the workspace path.
+ *
+ * Falls back to an empty result on error so the surface still renders.
+ */
+export async function getResearchPipeline(): Promise<ResearchPipelineResult> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    return await cachedResearchPipeline(orgId);
+  } catch (e) {
+    console.error("getResearchPipeline failed, returning empty:", e);
+    return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
+  }
+}
+
+/**
+ * Fetch scalar aggregates over a SCOPED slice of the workspace's active
+ * intelligence row set (migration 069). Used by /market /research /operations
+ * so the masthead meta and StatStrip render the page-scoped totals instead
+ * of the workspace-wide totals from getWorkspaceAggregates.
+ *
+ * Pass a scope filter of shape {item_types?: string[], domains?: number[]}.
+ * Both keys are optional; an item matches if its item_type is in item_types
+ * OR its domain is in domains (mirrors the page-level client filters).
+ *
+ * Falls back to empty aggregates on error so the page still renders the
+ * existing row-derived counts.
+ */
+export async function getScopedWorkspaceAggregates(
+  scope: ScopeFilter
+): Promise<WorkspaceAggregates> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    // Stable cache key: sort keys + array contents so semantically-equal
+    // filters share a cache bucket.
+    const stable: ScopeFilter = {};
+    if (scope.item_types && scope.item_types.length) {
+      stable.item_types = [...scope.item_types].sort();
+    }
+    if (scope.domains && scope.domains.length) {
+      stable.domains = [...scope.domains].sort((a, b) => a - b);
+    }
+    const scopeKey = JSON.stringify(stable);
+    return await cachedScopedAggregates(orgId, scopeKey);
+  } catch (e) {
+    console.error("getScopedWorkspaceAggregates failed, returning empty:", e);
     return {
       totalItems: 0,
       byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },

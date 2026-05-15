@@ -29,6 +29,7 @@ import { ChevronDown } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
+import type { WorkspaceAggregates } from "@/lib/data";
 
 // ── Types ──
 
@@ -52,6 +53,19 @@ export interface ResearchPipelineItem {
 
 interface ResearchViewProps {
   items: ResearchPipelineItem[];
+  /**
+   * Scoped aggregates over the research surface (migration 069). The
+   * /research scope is workspace-wide (no item_type / domain narrowing),
+   * so this matches get_workspace_intelligence_aggregates exactly.
+   * Drives the masthead meta line + the StatStrip authoritative counts.
+   */
+  aggregates?: WorkspaceAggregates;
+  /** True total count of pipeline rows server-side, before page cap. */
+  total?: number;
+  /** Number of rows actually delivered in `items` (shown ≤ cap). */
+  shown?: number;
+  /** Server-side initial paint cap (currently 100). */
+  cap?: number;
 }
 
 // ── Date helpers ──
@@ -188,7 +202,13 @@ function modeLabel(modes: string[]): string {
 
 // ── Component ──
 
-export function ResearchView({ items }: ResearchViewProps) {
+export function ResearchView({
+  items,
+  aggregates,
+  total,
+  shown,
+  cap,
+}: ResearchViewProps) {
   const [tab, setTab] = useState<"pipeline" | "sources">("pipeline");
   const [stageFilter, setStageFilter] = useState<"all" | Stage>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -262,14 +282,61 @@ export function ResearchView({ items }: ResearchViewProps) {
     ariaLabel: `${STAGE_LABEL[s]} — ${stageCounts[s]} items`,
   }));
 
+  // Masthead meta: parity with `/` (date · N items · M jurisdictions).
+  // Falls back to the row-derived counts when aggregates are missing /
+  // zero (anon caller, RPC error, or total === 0). Note `items.length`
+  // here is the page cap (100), not the true total — when aggregates is
+  // missing we fall back to the page-1 length, which under-reports. The
+  // cap-vs-total disclosure below the masthead makes that gap explicit.
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const itemsCount =
+    aggregates && aggregates.totalItems > 0
+      ? aggregates.totalItems
+      : (total ?? items.length);
+  const jurisdictionsCount =
+    aggregates && aggregates.totalJurisdictions > 0
+      ? aggregates.totalJurisdictions
+      : new Set(
+          items.flatMap((it) => it.jurisdictions || []).filter(Boolean)
+        ).size;
+  const meta = `${dateStr} · ${itemsCount} ${itemsCount === 1 ? "item" : "items"} in scope · ${jurisdictionsCount} ${jurisdictionsCount === 1 ? "jurisdiction" : "jurisdictions"} in scope`;
+
+  // Truncation disclosure: render an honest "Showing N of M" indicator
+  // when the page cap is in play. The previous inline-anon fetcher silently
+  // truncated at 100 without surfacing the gap.
+  const showTruncationNote =
+    typeof total === "number" &&
+    typeof shown === "number" &&
+    typeof cap === "number" &&
+    total > shown;
+
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-      <EditorialMasthead
-        title="Research Pipeline"
-        meta="The regulations and consultations our team is tracking, drafting, or has already published. Each item shows where it sits in our review pipeline, which sources we monitor, and who owns it."
-      />
+      <EditorialMasthead title="Research Pipeline" meta={meta} />
 
       <div style={{ padding: "28px 36px 60px" }}>
+        {showTruncationNote && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              padding: "8px 12px",
+              marginBottom: 14,
+              fontSize: 12,
+              lineHeight: 1.5,
+              color: "var(--text-2)",
+              background: "var(--surface)",
+              border: "1px solid var(--border-sub)",
+              borderRadius: "var(--r-sm)",
+            }}
+          >
+            Showing the most recent <b style={{ color: "var(--text)" }}>{shown}</b> of <b style={{ color: "var(--text)" }}>{total}</b> pipeline items. Pagination beyond the first page lands with the load-more cursor (Phase D).
+          </div>
+        )}
         {/* Legend strip */}
         <div
           style={{
