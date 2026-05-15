@@ -183,7 +183,7 @@ export default async function RegulationDetailPage({
     ? `Effective ${formatDate(r.complianceDeadline)}`
     : null;
   const reviewed = r.lastVerifiedDate ? `Reviewed ${formatDate(r.lastVerifiedDate)}` : null;
-  const metaParts = [r.id, effective, reviewed].filter(Boolean) as string[];
+  const metaParts = [effective, reviewed].filter(Boolean) as string[];
 
   console.log(`[perf] /regulations/${id} data ${Date.now() - t0}ms`);
 
