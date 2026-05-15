@@ -1703,20 +1703,19 @@ function KanbanCard({
           ))}
         </div>
       )}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          fontSize: 11,
-          color: "var(--text-2)",
-          marginTop: 8,
-          paddingTop: 8,
-          borderTop: "1px solid var(--border-sub)",
-        }}
-      >
-        <span style={{ fontFamily: "ui-monospace, monospace" }}>{r.id}</span>
-        {due && (
+      {due && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            fontSize: 11,
+            color: "var(--text-2)",
+            marginTop: 8,
+            paddingTop: 8,
+            borderTop: "1px solid var(--border-sub)",
+          }}
+        >
           <span
             style={{
               fontWeight: 700,
@@ -1726,8 +1725,8 @@ function KanbanCard({
           >
             {due}
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </RowCard>
   );
 
