@@ -69,12 +69,15 @@ export default async function AdminPage() {
       .from("organizations")
       .select("id, name, slug, plan, created_at"),
     // Same embed pattern as AdminDashboard.loadData — pulls
-    // user_profiles.name via the user_id FK so the member list
+    // profiles.full_name via the user_id FK so the member list
     // renders names instead of raw uuids on first paint.
+    // Migrated 2026-05-15 (migration 075): user_profiles -> profiles.
+    // The `!user_id` hint disambiguates the FK org_memberships.user_id ->
+    // profiles.id added in migration 075.
     supabase
       .from("org_memberships")
       .select(
-        "id, org_id, user_id, role, created_at, user:user_profiles(name, headshot_url)"
+        "id, org_id, user_id, role, created_at, user:profiles!user_id(full_name, avatar_url)"
       ),
     // Slim staged_updates select — drop full_brief (~17KB/row) and the
     // proposed_changes JSONB envelope columns the admin panel doesn't

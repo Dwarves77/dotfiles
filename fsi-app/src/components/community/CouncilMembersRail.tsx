@@ -3,10 +3,11 @@
  * members for the right rail of /community/[slug]. Server component.
  *
  * Data source (real, schema-backed):
- *   community_group_members (Migration 029) joined to user_profiles
- *   (Migration 027) for display name + headshot. Admins/moderators are
- *   surfaced first, then up to 6 rows total. RLS already restricts
- *   visibility (members of a group can read other members' rows).
+ *   community_group_members (Migration 029) joined to profiles
+ *   (Migration 001 + 075 consolidation) for display name + avatar.
+ *   Admins/moderators are surfaced first, then up to 6 rows total. RLS
+ *   already restricts visibility (members of a group can read other
+ *   members' rows). Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles.
  *
  * Why a separate query, not lifted from page state:
  *   /community/[slug]/page.tsx fetches the caller's row via maybeSingle
@@ -70,13 +71,13 @@ export async function CouncilMembersRail({
 
   const { data: profiles } = userIds.length
     ? await supabase
-        .from("user_profiles")
-        .select("user_id, name, headshot_url")
-        .in("user_id", userIds)
-    : { data: [] as { user_id: string; name: string | null; headshot_url: string | null }[] };
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds)
+    : { data: [] as { id: string; full_name: string | null; avatar_url: string | null }[] };
 
   const profileById = new Map(
-    (profiles ?? []).map((p) => [p.user_id, p] as const)
+    (profiles ?? []).map((p) => [p.id, p] as const)
   );
 
   const ROLE_ORDER: Record<string, number> = { admin: 0, moderator: 1, member: 2 };
@@ -87,8 +88,8 @@ export async function CouncilMembersRail({
       return {
         user_id: r.user_id,
         role: r.role as MemberRow["role"],
-        name: p?.name ?? null,
-        headshot_url: p?.headshot_url ?? null,
+        name: p?.full_name ?? null,
+        headshot_url: p?.avatar_url ?? null,
       };
     })
     .sort((a, b) => {

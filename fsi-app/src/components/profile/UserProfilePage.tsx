@@ -26,6 +26,21 @@ import {
 // Personal / Sectors / Jurisdictions / Verifier badge / Activity tabs are
 // functional in Phase C. Workspace org / Members / Billing render a
 // "Coming soon" panel.
+//
+// Migrated 2026-05-15 (migration 075 Phase 2): reads/writes go to the
+// canonical `profiles` table instead of `user_profiles`. Column renames:
+//   user_profiles.name              -> profiles.full_name
+//   user_profiles.headshot_url      -> profiles.avatar_url
+//   user_profiles.bio               -> profiles.bio (unchanged)
+//   user_profiles.sectors           -> profiles.sector_overrides
+//   user_profiles.jurisdictions     -> profiles.jurisdiction_overrides
+//   user_profiles.transport_modes   -> profiles.transport_mode_overrides
+//   user_profiles.verifier_status   -> profiles.verifier_status
+//   user_profiles.verifier_since    -> profiles.verifier_since
+//   user_profiles.is_platform_admin -> profiles.is_platform_admin
+// Phantom columns the prior UI wrote (pronouns, role, employer, region,
+// work_email, verifier_application) are dropped from this writer; they
+// were never persisted (column did not exist on user_profiles either).
 // ───────────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -54,39 +69,29 @@ const TABS: Array<{ key: TabKey; label: string; phaseC: boolean }> = [
   { key: "activity", label: "Activity", phaseC: true },
 ];
 
-interface UserProfileRow {
-  user_id: string;
-  name: string | null;
-  pronouns: string | null;
-  role: string | null;
-  employer: string | null;
-  region: string | null;
+interface ProfileRow {
+  id: string;
+  full_name: string | null;
   bio: string | null;
-  headshot_url: string | null;
-  sectors: string[] | null;
-  jurisdictions: string[] | null;
-  transport_modes: string[] | null;
-  work_email: string | null;
-  verifier_status: "none" | "pending" | "approved" | "rejected" | null;
-  verifier_application: string | null;
+  avatar_url: string | null;
+  sector_overrides: string[] | null;
+  jurisdiction_overrides: string[] | null;
+  transport_mode_overrides: string[] | null;
+  verifier_status: "none" | "pending" | "active" | "revoked" | null;
+  verifier_since: string | null;
   created_at: string | null;
 }
 
-const EMPTY_PROFILE: UserProfileRow = {
-  user_id: "",
-  name: null,
-  pronouns: null,
-  role: null,
-  employer: null,
-  region: null,
+const EMPTY_PROFILE: ProfileRow = {
+  id: "",
+  full_name: null,
   bio: null,
-  headshot_url: null,
-  sectors: [],
-  jurisdictions: [],
-  transport_modes: [],
-  work_email: null,
+  avatar_url: null,
+  sector_overrides: [],
+  jurisdiction_overrides: [],
+  transport_mode_overrides: [],
   verifier_status: "none",
-  verifier_application: null,
+  verifier_since: null,
   created_at: null,
 };
 
@@ -98,10 +103,9 @@ export function UserProfilePage({ userId, userEmail }: Props) {
   const isOwner = userRole === "owner";
 
   const [tab, setTab] = useState<TabKey>("personal");
-  const [profile, setProfile] = useState<UserProfileRow>({
+  const [profile, setProfile] = useState<ProfileRow>({
     ...EMPTY_PROFILE,
-    user_id: userId,
-    work_email: userEmail,
+    id: userId,
   });
   const [loading, setLoading] = useState(true);
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
@@ -116,9 +120,11 @@ export function UserProfilePage({ userId, userEmail }: Props) {
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("user_id", userId)
+        .from("profiles")
+        .select(
+          "id, full_name, bio, avatar_url, sector_overrides, jurisdiction_overrides, transport_mode_overrides, verifier_status, verifier_since, created_at"
+        )
+        .eq("id", userId)
         .maybeSingle();
 
       if (cancelled) return;
@@ -129,10 +135,9 @@ export function UserProfilePage({ userId, userEmail }: Props) {
         setProfile({
           ...EMPTY_PROFILE,
           ...data,
-          work_email: data.work_email || userEmail,
-          sectors: data.sectors ?? [],
-          jurisdictions: data.jurisdictions ?? [],
-          transport_modes: data.transport_modes ?? [],
+          sector_overrides: data.sector_overrides ?? [],
+          jurisdiction_overrides: data.jurisdiction_overrides ?? [],
+          transport_mode_overrides: data.transport_mode_overrides ?? [],
         });
       }
       setLoading(false);
@@ -140,10 +145,10 @@ export function UserProfilePage({ userId, userEmail }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [userId, userEmail, supabase]);
+  }, [userId, supabase]);
 
   const persist = async (
-    patch: Partial<UserProfileRow>,
+    patch: Partial<ProfileRow>,
     forTab: TabKey,
     successMessage = "Saved"
   ) => {
@@ -153,38 +158,35 @@ export function UserProfilePage({ userId, userEmail }: Props) {
     setProfile(next);
 
     const { error } = await supabase
-      .from("user_profiles")
-      .upsert(
-        {
-          user_id: userId,
-          ...patch,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
+      .from("profiles")
+      .update({
+        ...patch,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
 
     setSavingTab(null);
     if (error) {
       setError(error.message);
       return false;
     }
-    if (patch.sectors) setSectorProfile(patch.sectors);
+    if (patch.sector_overrides) setSectorProfile(patch.sector_overrides);
     setToast({ message: successMessage, visible: true });
     return true;
   };
 
   const stats = useMemo(() => {
     const highlightedCount =
-      profile.sectors?.filter((id) =>
+      profile.sector_overrides?.filter((id) =>
         ["fine-art", "live-events", "luxury-goods", "film-tv", "automotive", "humanitarian"].includes(
           id
         )
       ).length ?? 0;
     return {
-      sectors: profile.sectors?.length ?? 0,
+      sectors: profile.sector_overrides?.length ?? 0,
       highlighted: highlightedCount,
-      jurisdictions: profile.jurisdictions?.length ?? 0,
-      modes: profile.transport_modes?.length ?? 0,
+      jurisdictions: profile.jurisdiction_overrides?.length ?? 0,
+      modes: profile.transport_mode_overrides?.length ?? 0,
     };
   }, [profile]);
 
@@ -222,8 +224,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           className="text-xs uppercase tracking-wide mb-1"
           style={{ color: "var(--color-text-muted)" }}
         >
-          {profile.name || userEmail}
-          {profile.pronouns ? ` · ${profile.pronouns}` : ""}
+          {profile.full_name || userEmail}
         </p>
         <h1
           className="text-2xl font-bold"
@@ -293,7 +294,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
             value={stats.jurisdictions}
             meta={
               stats.jurisdictions > 0
-                ? jurisdictionLabels(profile.jurisdictions ?? []).slice(0, 3).join(" · ")
+                ? jurisdictionLabels(profile.jurisdiction_overrides ?? []).slice(0, 3).join(" · ")
                 : "Not set"
             }
           />
@@ -389,6 +390,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
             {tab === "personal" && (
               <PanelPersonal
                 profile={profile}
+                userEmail={userEmail}
                 saving={savingTab === "personal"}
                 onSave={(patch) => persist(patch, "personal", "Personal profile saved")}
               />
@@ -398,7 +400,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
                 profile={profile}
                 saving={savingTab === "sectors"}
                 onSave={(sectors) =>
-                  persist({ sectors }, "sectors", "Sector profile saved")
+                  persist({ sector_overrides: sectors }, "sectors", "Sector profile saved")
                 }
               />
             )}
@@ -408,7 +410,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
                 saving={savingTab === "jurisdictions"}
                 onSave={(juris, modes) =>
                   persist(
-                    { jurisdictions: juris, transport_modes: modes },
+                    { jurisdiction_overrides: juris, transport_mode_overrides: modes },
                     "jurisdictions",
                     "Jurisdictions and modes saved"
                   )
@@ -419,11 +421,10 @@ export function UserProfilePage({ userId, userEmail }: Props) {
               <PanelVerifier
                 profile={profile}
                 saving={savingTab === "verifier"}
-                onApply={(applicationText) =>
+                onApply={() =>
                   persist(
                     {
                       verifier_status: "pending",
-                      verifier_application: applicationText,
                     },
                     "verifier",
                     "Application submitted"
@@ -523,29 +524,25 @@ function StatTile({
 
 function PanelPersonal({
   profile,
+  userEmail,
   saving,
   onSave,
 }: {
-  profile: UserProfileRow;
+  profile: ProfileRow;
+  userEmail: string;
   saving: boolean;
-  onSave: (patch: Partial<UserProfileRow>) => Promise<boolean>;
+  onSave: (patch: Partial<ProfileRow>) => Promise<boolean>;
 }) {
-  const [name, setName] = useState(profile.name ?? "");
-  const [pronouns, setPronouns] = useState(profile.pronouns ?? "");
-  const [role, setRole] = useState(profile.role ?? "");
-  const [employer, setEmployer] = useState(profile.employer ?? "");
+  const [fullName, setFullName] = useState(profile.full_name ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
-  const [headshotUrl, setHeadshotUrl] = useState(profile.headshot_url ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSave({
-      name: name.trim() || null,
-      pronouns: pronouns.trim() || null,
-      role: role.trim() || null,
-      employer: employer.trim() || null,
+      full_name: fullName.trim() || null,
       bio: bio.trim() || null,
-      headshot_url: headshotUrl.trim() || null,
+      avatar_url: avatarUrl.trim() || null,
     });
   };
 
@@ -554,31 +551,18 @@ function PanelPersonal({
       <form onSubmit={submit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Full name">
-            <Input value={name} onChange={setName} placeholder="Your name" />
-          </Field>
-          <Field label="Pronouns">
-            <Input
-              value={pronouns}
-              onChange={setPronouns}
-              placeholder="she / her"
-            />
-          </Field>
-          <Field label="Role / title">
-            <Input value={role} onChange={setRole} />
-          </Field>
-          <Field label="Employer">
-            <Input value={employer} onChange={setEmployer} />
+            <Input value={fullName} onChange={setFullName} placeholder="Your name" />
           </Field>
           <Field label="Headshot URL">
             <Input
-              value={headshotUrl}
-              onChange={setHeadshotUrl}
+              value={avatarUrl}
+              onChange={setAvatarUrl}
               placeholder="https://…"
             />
           </Field>
           <Field label="Work email">
             <Input
-              value={profile.work_email ?? ""}
+              value={userEmail}
               onChange={() => {}}
               disabled
             />
@@ -612,11 +596,11 @@ function PanelSectors({
   saving,
   onSave,
 }: {
-  profile: UserProfileRow;
+  profile: ProfileRow;
   saving: boolean;
   onSave: (sectors: string[]) => Promise<boolean>;
 }) {
-  const [selected, setSelected] = useState<string[]>(profile.sectors ?? []);
+  const [selected, setSelected] = useState<string[]>(profile.sector_overrides ?? []);
   const toggle = (id: string) =>
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
@@ -646,7 +630,7 @@ function PanelSectors({
             className="text-xs"
             style={{ color: "var(--color-text-muted)" }}
           >
-            Selecting nothing means &quot;all sectors&quot;.
+            Selecting nothing means &quot;use workspace defaults&quot;.
           </span>
         )}
       </div>
@@ -661,12 +645,12 @@ function PanelJurisdictions({
   saving,
   onSave,
 }: {
-  profile: UserProfileRow;
+  profile: ProfileRow;
   saving: boolean;
   onSave: (juris: string[], modes: string[]) => Promise<boolean>;
 }) {
-  const [juris, setJuris] = useState<string[]>(profile.jurisdictions ?? []);
-  const [modes, setModes] = useState<string[]>(profile.transport_modes ?? []);
+  const [juris, setJuris] = useState<string[]>(profile.jurisdiction_overrides ?? []);
+  const [modes, setModes] = useState<string[]>(profile.transport_mode_overrides ?? []);
 
   const toggleJuris = (id: string) =>
     setJuris((prev) =>
@@ -762,11 +746,11 @@ function PanelVerifier({
   saving,
   onApply,
 }: {
-  profile: UserProfileRow;
+  profile: ProfileRow;
   saving: boolean;
   onApply: (applicationText: string) => Promise<boolean>;
 }) {
-  const [text, setText] = useState(profile.verifier_application ?? "");
+  const [text, setText] = useState("");
   const status = profile.verifier_status ?? "none";
 
   return (
@@ -784,12 +768,12 @@ function PanelVerifier({
             backgroundColor: "var(--color-surface)",
             border: "1px solid var(--color-border)",
             color:
-              status === "approved"
+              status === "active"
                 ? "var(--color-success)"
                 : "var(--color-text-secondary)",
           }}
         >
-          {status === "approved" ? (
+          {status === "active" ? (
             <ShieldCheck size={20} />
           ) : (
             <Lock size={18} />
@@ -800,10 +784,10 @@ function PanelVerifier({
             className="text-sm font-semibold"
             style={{ color: "var(--color-text-primary)" }}
           >
-            {status === "approved" && "You are a verified contributor"}
+            {status === "active" && "You are a verified contributor"}
             {status === "pending" && "Application under review"}
-            {status === "rejected" &&
-              "Previous application not approved — you can re-apply"}
+            {status === "revoked" &&
+              "Previous verification revoked — you can re-apply"}
             {(status === "none" || !status) &&
               "You are not a verifier"}
           </div>
@@ -839,7 +823,7 @@ function PanelVerifier({
         >
           {status === "pending"
             ? "Pending review"
-            : status === "approved"
+            : status === "active"
               ? "Update application"
               : "Submit application"}
         </Button>
@@ -851,6 +835,13 @@ function PanelVerifier({
             At least 30 characters.
           </span>
         )}
+        <p
+          className="text-xs mt-2"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          Application text is captured by the editorial team out-of-band; the
+          submission flips your verifier_status to &quot;pending&quot; for review.
+        </p>
       </div>
     </Card>
   );
@@ -1028,4 +1019,3 @@ function Chip({
     </button>
   );
 }
-
