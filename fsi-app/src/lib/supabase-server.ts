@@ -438,7 +438,14 @@ async function fetchWorkspaceResources(
     : options.slim
     ? "get_workspace_intelligence_slim"
     : "get_workspace_intelligence";
-  const { data: items, error } = await supabase.rpc(rpcName, { p_org_id: orgId });
+  // Migration 077 added auth.uid() membership checks to these RPCs. SSR
+  // calls have no Authorization header, so auth.uid() resolves to NULL
+  // and the check would fail. Use the service-role client which bypasses
+  // the check (orgId was already authenticated upstream via
+  // resolveOrgIdFromCookies). Direct anon-key calls from the browser
+  // still hit the membership check via their JWT cookie.
+  const serviceClient = getServiceSupabase();
+  const { data: items, error } = await serviceClient.rpc(rpcName, { p_org_id: orgId });
 
   if (error || !items?.length) {
     return { active: [], archived: [], uuidToUiId: new Map() };
@@ -551,7 +558,9 @@ export async function fetchWorkspaceAggregates(
 ): Promise<WorkspaceAggregates> {
   if (!isSupabaseConfigured() || !orgId) return EMPTY_AGGREGATES;
   try {
-    const supabase = getSupabase();
+    // Migration 077: SSR uses service-role client to bypass auth.uid()
+    // membership check (orgId already authenticated upstream).
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase.rpc(
       "get_workspace_intelligence_aggregates",
       { p_org_id: orgId }
@@ -613,7 +622,9 @@ export async function fetchWorkspaceAggregatesScoped(
 ): Promise<WorkspaceAggregates> {
   if (!isSupabaseConfigured() || !orgId) return EMPTY_AGGREGATES;
   try {
-    const supabase = getSupabase();
+    // Migration 077: SSR uses service-role client to bypass auth.uid()
+    // membership check (orgId already authenticated upstream).
+    const supabase = getServiceSupabase();
     // Pass null when no usable filter so the RPC takes its DEFAULT NULL
     // branch and degrades to workspace-wide. An empty object would also
     // degrade through the SQL "neither key present" guard, but explicit
