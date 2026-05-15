@@ -293,11 +293,15 @@ export async function POST(
     priority: ii.priority ?? "MODERATE",
   };
   if (ii.jurisdiction_iso && ii.jurisdiction_iso.length > 0) {
-    // intelligence_items has TEXT[] jurisdictions (not jurisdiction_iso) —
-    // we accept jurisdiction_iso in the API for forward compatibility
-    // (migration 033 introduces an iso column) and write to whichever
-    // column exists. For now, write through `jurisdictions` since that is
-    // the canonical column on the live schema (migration 004).
+    // Dual-write during the legacy/ISO transition. Migration 033 added
+    // intelligence_items.jurisdiction_iso TEXT[] as the canonical column,
+    // but several read paths (FilterBar, scoring, coverage-gaps,
+    // briefing/systemPrompt, the dashboard RPCs) still consume the
+    // legacy `jurisdictions` column. Write to both until those readers
+    // switch and the legacy column can be dropped. Migration 072
+    // installs a normalizer trigger so values land in canonical shape
+    // regardless of which column the writer targets.
+    itemPayload.jurisdiction_iso = ii.jurisdiction_iso;
     itemPayload.jurisdictions = ii.jurisdiction_iso;
   }
 

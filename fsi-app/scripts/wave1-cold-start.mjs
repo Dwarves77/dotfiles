@@ -226,6 +226,8 @@ severity: ACTION REQUIRED|COST ALERT|WINDOW CLOSING|COMPETITIVE EDGE|MONITORING
 priority: CRITICAL|HIGH|MODERATE|LOW
 urgency_tier: watch|elevated|stable|informational
 
+jurisdictions: an array of canonical ISO codes ONLY. Use ISO 3166-1 alpha-2 country codes (e.g. "US","GB","DE","CA","JP","CN","BR","IN","AU","FR") and ISO 3166-2 sub-national codes (e.g. "US-CA","US-NY","GB-SCT","CA-ON","AU-NSW") for state/province scope. The supranational/IGO codes "EU" and "GLOBAL" are also allowed. Do NOT emit country names, state names, city names, county names, agency names, region buckets ("asia","latam","meaf"), or composite strings like "Boston, MA". When jurisdiction is unclear, return [].
+
 Output JSON only.`;
 
 async function haikuClassify(source, fetchResult) {
