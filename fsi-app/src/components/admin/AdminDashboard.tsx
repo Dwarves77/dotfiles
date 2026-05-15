@@ -21,6 +21,7 @@ import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
 import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
 import { MtdSpendTile } from "@/components/admin/MtdSpendTile";
+import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
 
 interface AdminDashboardProps {
   userId: string;
@@ -518,6 +519,11 @@ export function AdminDashboard({
                 </div>
               )}
             </div>
+
+            {/* Workstream B: invitations panel — admin can invite by email,
+                view pending/recent invitations, and revoke. Lives below
+                the members list so the workflow is contiguous. */}
+            {orgIdFromAuth && <InvitationsPanel orgId={orgIdFromAuth} />}
           </div>
         )}
 
