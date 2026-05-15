@@ -10,6 +10,9 @@ import {
   fetchWatchlist,
   fetchCoverageGaps,
   fetchAwaitingReview,
+  fetchMarketIntelItems,
+  fetchResearchItems,
+  fetchOperationsItems,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -391,5 +394,88 @@ export async function getAwaitingReview(): Promise<ReviewItem[]> {
   } catch (e) {
     console.error("getAwaitingReview failed, returning empty:", e);
     return [];
+  }
+}
+
+// ── Phase 1 routing fetchers (migration 070) ────────────────────
+//
+// One getX per page, each cached by orgId for 60s with APP_DATA_TAG. The
+// underlying fetcher hits the source_role + status filtered RPC from
+// migration 070 and returns the same { resources, archived, overrides }
+// shape as getResourcesOnly so page components stay drop-in.
+//
+// Page wiring is gated behind the ?routing=v2 query param in the initial
+// commit; default flips to v2 in a follow-up commit on this same branch
+// after operator preview-deploy confirm.
+
+const cachedMarketIntelItems = unstable_cache(
+  async (orgId: string | null) => fetchMarketIntelItems(orgId),
+  ["market-intel-items-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+const cachedResearchItems = unstable_cache(
+  async (orgId: string | null) => fetchResearchItems(orgId),
+  ["research-items-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+const cachedOperationsItems = unstable_cache(
+  async (orgId: string | null) => fetchOperationsItems(orgId),
+  ["operations-items-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+export async function getMarketIntelItems(): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  overrides: WorkspaceOverrideRow[];
+}> {
+  const t0 = Date.now();
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    const result = await cachedMarketIntelItems(orgId);
+    console.log(`[perf] getMarketIntelItems ${Date.now() - t0}ms`);
+    return result;
+  } catch (e) {
+    console.error("getMarketIntelItems failed, using fallback:", e);
+    const seed = await import("@/data");
+    return { resources: seed.resources, archived: seed.archived, overrides: [] };
+  }
+}
+
+export async function getResearchItems(): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  overrides: WorkspaceOverrideRow[];
+}> {
+  const t0 = Date.now();
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    const result = await cachedResearchItems(orgId);
+    console.log(`[perf] getResearchItems ${Date.now() - t0}ms`);
+    return result;
+  } catch (e) {
+    console.error("getResearchItems failed, using fallback:", e);
+    const seed = await import("@/data");
+    return { resources: seed.resources, archived: seed.archived, overrides: [] };
+  }
+}
+
+export async function getOperationsItems(): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  overrides: WorkspaceOverrideRow[];
+}> {
+  const t0 = Date.now();
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    const result = await cachedOperationsItems(orgId);
+    console.log(`[perf] getOperationsItems ${Date.now() - t0}ms`);
+    return result;
+  } catch (e) {
+    console.error("getOperationsItems failed, using fallback:", e);
+    const seed = await import("@/data");
+    return { resources: seed.resources, archived: seed.archived, overrides: [] };
   }
 }
