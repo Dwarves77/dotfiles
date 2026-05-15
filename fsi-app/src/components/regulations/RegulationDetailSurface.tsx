@@ -33,7 +33,7 @@ import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { LinkedItemsCard } from "@/components/regulations/LinkedItemsCard";
-import { scoreResource } from "@/lib/scoring";
+import { scoreResource, matchResourceSector } from "@/lib/scoring";
 import {
   extractOperationalBriefing,
   extractSeverityLabel,
@@ -45,6 +45,7 @@ import {
   TOPIC_COLORS,
   JURISDICTIONS,
   PRIORITY_DISPLAY_LABEL_SHORT,
+  ALL_SECTORS,
   type PriorityKey,
 } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
@@ -329,47 +330,24 @@ export function RegulationDetailSurface({
           </div>
         )}
 
+        {/* Title metadata strip — operator dispatch 2026-05-12 issue 4.
+            Pre 2026-05-12 the hero card re-rendered r.title as an Anton 30px
+            h2. That duplicated the masthead title (which now responsively
+            scales for mobile) and ate viewport on long titles. The strip
+            now carries only the type pill and priority pill alongside the
+            mode chips above; the masthead is the single source of truth
+            for the regulation name. */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 16,
-            marginBottom: 10,
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 8,
             flexWrap: "wrap",
+            marginBottom: 10,
           }}
         >
-          <h2
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 30,
-              fontWeight: 400,
-              letterSpacing: "0.01em",
-              margin: 0,
-              lineHeight: 1.05,
-              color: "var(--text)",
-            }}
-          >
-            {r.title}
-          </h2>
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {r.type && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  padding: "4px 10px",
-                  borderRadius: 3,
-                  background: "var(--accent-bg)",
-                  color: "var(--accent)",
-                  border: "1px solid var(--accent-bd)",
-                }}
-              >
-                {r.type.replace(/_/g, " ")}
-              </span>
-            )}
+          {r.type && (
             <span
               style={{
                 fontSize: 10,
@@ -378,14 +356,29 @@ export function RegulationDetailSurface({
                 textTransform: "uppercase",
                 padding: "4px 10px",
                 borderRadius: 3,
-                background: tone.bg,
-                color: tone.color,
-                border: `1px solid ${tone.bd}`,
+                background: "var(--accent-bg)",
+                color: "var(--accent)",
+                border: "1px solid var(--accent-bd)",
               }}
             >
-              {tone.label}
+              {r.type.replace(/_/g, " ")}
             </span>
-          </div>
+          )}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              padding: "4px 10px",
+              borderRadius: 3,
+              background: tone.bg,
+              color: tone.color,
+              border: `1px solid ${tone.bd}`,
+            }}
+          >
+            {tone.label}
+          </span>
         </div>
 
         {(r.note || r.whatIsIt) && (
@@ -557,16 +550,10 @@ export function RegulationDetailSurface({
             />
           )}
           {tab === "exposure" && (
-            <PlaceholderPanel
-              title="Exposure"
-              copy="Workspace exposure modeling will appear here once shipment-volume data is connected."
-            />
+            <ExposurePanel resource={r} jurisdictionLabels={jurisdictionLabels} />
           )}
           {tab === "calculator" && (
-            <PlaceholderPanel
-              title="Penalty calculator"
-              copy="Inputs for shipment count, weight, and corridor — wired to the regulation's penalty schedule."
-            />
+            <PenaltyCalculatorPanel resource={r} />
           )}
           {tab === "timeline" && (
             <BriefSection title="Timeline">
@@ -1607,6 +1594,411 @@ function firstSentence(text: string): string {
   if (!text) return text;
   const m = /^([\s\S]+?[.!?])(\s|$)/.exec(text);
   return m ? m[1] : text;
+}
+
+// ── Penalty Calculator panel ──────────────────────────────────────────────
+//
+// Operator dispatch 2026-05-12: "Penalty calculator need to surface the
+// penalties without having to provide additional information. For example,
+// if the penalty is based on a value or % you state what it's based on
+// not the exact number from me entering data."
+//
+// We surface the structural penalty information that already lives on the
+// regulation row (penaltyRange, enforcementBody, costMechanism,
+// complianceDeadline). When no structured penalty exists we scan the
+// fullBrief markdown for sentences carrying penalty / fine / shortfall
+// vocabulary so the panel says something about the penalty schedule
+// even before the structured fields are populated.
+
+const PENALTY_SENTENCE_RE = new RegExp(
+  "[^.!?\\n]*?\\b(penalt|fine[ds]?|surcharge|forfeit|shortfall|non[- ]compliance|infringement)[^.!?\\n]*[.!?]",
+  "gi"
+);
+
+function extractPenaltySentences(markdown: string | undefined, max = 4): string[] {
+  if (!markdown) return [];
+  // Strip headings / bullets / bold markers so the matched sentences read
+  // as plain prose. We only need the sentence text, not the markdown.
+  const text = markdown
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1");
+  const matches = text.match(PENALTY_SENTENCE_RE) || [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of matches) {
+    const trimmed = m.trim();
+    if (trimmed.length < 30 || trimmed.length > 320) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+function PenaltyCalculatorPanel({ resource: r }: { resource: Resource }) {
+  const sentences = useMemo(
+    () => extractPenaltySentences(r.fullBrief),
+    [r.fullBrief]
+  );
+
+  const hasStructured =
+    !!r.penaltyRange || !!r.enforcementBody || !!r.costMechanism;
+  const hasAnything = hasStructured || sentences.length > 0;
+
+  if (!hasAnything) {
+    return (
+      <PlaceholderPanel
+        title="Penalty schedule"
+        copy="No structured penalty data on file for this regulation yet. When the ingestion worker populates penalty_range / cost_mechanism / enforcement_body, the schedule will appear here."
+      />
+    );
+  }
+
+  return (
+    <BriefSection title="Penalty schedule">
+      {hasStructured && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+            marginBottom: sentences.length > 0 ? 16 : 0,
+          }}
+        >
+          {r.penaltyRange && (
+            <PenaltyTile
+              label="Penalty amount"
+              value={r.penaltyRange}
+              tone="critical"
+            />
+          )}
+          {r.costMechanism && (
+            <PenaltyTile label="Cost mechanism" value={r.costMechanism} />
+          )}
+          {r.enforcementBody && (
+            <PenaltyTile label="Enforcement body" value={r.enforcementBody} />
+          )}
+          {r.complianceDeadline && (
+            <PenaltyTile
+              label="Compliance deadline"
+              value={r.complianceDeadline}
+            />
+          )}
+        </div>
+      )}
+
+      {sentences.length > 0 && (
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+              marginBottom: 8,
+            }}
+          >
+            From the regulatory brief
+          </div>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              fontSize: 13.5,
+              lineHeight: 1.65,
+              color: "var(--text)",
+            }}
+          >
+            {sentences.map((s, i) => (
+              <li key={i} style={{ marginBottom: 6 }}>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <p
+        style={{
+          fontSize: 11.5,
+          lineHeight: 1.5,
+          color: "var(--muted)",
+          margin: "14px 0 0",
+        }}
+      >
+        The schedule above describes what the penalty is based on (value, %,
+        per-unit). Workspace-specific exposure modeling (shipment volume,
+        corridor) lands once shipment data is connected.
+      </p>
+    </BriefSection>
+  );
+}
+
+function PenaltyTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "critical";
+}) {
+  const isCritical = tone === "critical";
+  return (
+    <div
+      style={{
+        background: isCritical ? "var(--critical-bg)" : "var(--bg)",
+        border: isCritical
+          ? "1px solid var(--critical-bd)"
+          : "1px solid var(--border-sub)",
+        borderLeft: isCritical ? "3px solid var(--critical)" : undefined,
+        borderRadius: "var(--r-sm)",
+        padding: "12px 14px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: isCritical ? "var(--critical)" : "var(--muted)",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          lineHeight: 1.4,
+          fontWeight: 600,
+          color: "var(--text)",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// ── Exposure panel ────────────────────────────────────────────────────────
+//
+// Operator dispatch 2026-05-12: "Same with exposure, you tell me what my
+// exposure is based on the sector I'm asking about. Live events, art, etc."
+//
+// We compose a factual, non-LLM exposure narrative as a function of:
+//   - workspace sector profile (workspaceStore.sectorProfile)
+//   - regulation transport modes (r.modes)
+//   - regulation jurisdiction labels (already resolved on the page)
+//   - regulation priority
+//   - keyword match between resource text and active sectors
+//
+// When sector profile is empty (anonymous or unset workspace), we render a
+// CTA pointing at /settings. That's the honest empty state per the
+// dispatch's "ONLY in that case" instruction.
+
+function ExposurePanel({
+  resource: r,
+  jurisdictionLabels,
+}: {
+  resource: Resource;
+  jurisdictionLabels: string[];
+}) {
+  const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
+
+  if (!sectorProfile || sectorProfile.length === 0) {
+    return (
+      <BriefSection title="Exposure">
+        <p
+          style={{
+            fontSize: 14,
+            color: "var(--text-2)",
+            lineHeight: 1.7,
+            margin: "0 0 10px",
+          }}
+        >
+          Tell us which sectors you operate in to see how this regulation maps
+          to your business.
+        </p>
+        <a
+          href="/settings"
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "var(--accent)",
+            textDecoration: "none",
+          }}
+        >
+          Configure sector profile →
+        </a>
+      </BriefSection>
+    );
+  }
+
+  const sectorLabels = sectorProfile
+    .map((id) => ALL_SECTORS.find((s) => s.id === id)?.label || id)
+    .filter(Boolean);
+  const sectorLabelList = formatList(sectorLabels);
+
+  const matchedSectorId = matchResourceSector(r, sectorProfile);
+  const matchedSectorLabel = matchedSectorId
+    ? ALL_SECTORS.find((s) => s.id === matchedSectorId)?.label || matchedSectorId
+    : null;
+
+  // Anticipated impact tier from priority + match. Direct match + high
+  // priority -> high. Direct match + lower priority OR indirect match +
+  // critical -> medium. Otherwise low.
+  let impactTier: "high" | "medium" | "low" = "low";
+  if (matchedSectorId) {
+    impactTier =
+      r.priority === "CRITICAL" || r.priority === "HIGH" ? "high" : "medium";
+  } else {
+    impactTier = r.priority === "CRITICAL" ? "medium" : "low";
+  }
+
+  const modes = (r.modes && r.modes.length > 0 ? r.modes : [r.cat]).filter(
+    Boolean
+  );
+  const modeListLower = modes.map((m) => (m || "").toLowerCase()).join(", ");
+  const jurisList = jurisdictionLabels.join(", ");
+
+  return (
+    <BriefSection title="Exposure">
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--muted)",
+          marginBottom: 8,
+        }}
+      >
+        Your sector profile
+      </div>
+      <p
+        style={{
+          fontSize: 14,
+          lineHeight: 1.65,
+          color: "var(--text)",
+          margin: "0 0 14px",
+          fontWeight: 600,
+        }}
+      >
+        {sectorLabelList}
+      </p>
+
+      <p
+        style={{
+          fontSize: 14,
+          lineHeight: 1.7,
+          color: "var(--text)",
+          margin: "0 0 10px",
+        }}
+      >
+        {matchedSectorLabel ? (
+          <>
+            This regulation directly intersects your{" "}
+            <b>{matchedSectorLabel}</b> activity. It applies to{" "}
+            <b>{modeListLower}</b> freight in <b>{jurisList}</b>.
+          </>
+        ) : (
+          <>
+            This regulation applies to <b>{modeListLower}</b> freight in{" "}
+            <b>{jurisList}</b>. It is not a direct match for your sector
+            keywords, but may still flow through as a pass-through cost on
+            any shipment in those modes / jurisdictions.
+          </>
+        )}
+      </p>
+
+      <p
+        style={{
+          fontSize: 13,
+          lineHeight: 1.65,
+          color: "var(--text-2)",
+          margin: "0 0 12px",
+        }}
+      >
+        Priority tier: <b>{r.priority}</b>. Anticipated workspace impact based
+        on sector + priority alone (no shipment volume connected):{" "}
+        <ImpactPill tier={impactTier} />.
+      </p>
+
+      <p
+        style={{
+          fontSize: 11.5,
+          lineHeight: 1.5,
+          color: "var(--muted)",
+          margin: 0,
+        }}
+      >
+        Quantitative exposure (number of affected lanes, estimated cost per
+        shipment) will populate once shipment-volume data is connected. Until
+        then, the narrative above is composed from sector profile +
+        regulation metadata only.
+      </p>
+    </BriefSection>
+  );
+}
+
+function ImpactPill({ tier }: { tier: "high" | "medium" | "low" }) {
+  const map: Record<
+    "high" | "medium" | "low",
+    { bg: string; bd: string; color: string; label: string }
+  > = {
+    high: {
+      bg: "var(--high-bg)",
+      bd: "var(--high-bd)",
+      color: "var(--high)",
+      label: "High",
+    },
+    medium: {
+      bg: "var(--moderate-bg)",
+      bd: "var(--moderate-bd)",
+      color: "var(--moderate)",
+      label: "Medium",
+    },
+    low: {
+      bg: "var(--low-bg)",
+      bd: "var(--low-bd)",
+      color: "var(--low)",
+      label: "Low",
+    },
+  };
+  const t = map[tier];
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        padding: "2px 8px",
+        borderRadius: 3,
+        background: t.bg,
+        color: t.color,
+        border: `1px solid ${t.bd}`,
+        display: "inline-block",
+      }}
+    >
+      {t.label}
+    </span>
+  );
+}
+
+function formatList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
