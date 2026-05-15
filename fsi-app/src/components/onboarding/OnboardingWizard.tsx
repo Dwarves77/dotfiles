@@ -95,6 +95,12 @@ export function OnboardingWizard({ userId, userEmail }: Props) {
 
   // ── Persistence helpers ───────────────────────────────────────────────
 
+  // Migrated 2026-05-15 (migration 075 Phase 2): writes to `profiles`
+  // instead of `user_profiles`. Column renames applied. Phantom columns
+  // (pronouns, role, employer, work_email) the prior wizard wrote did
+  // not exist on user_profiles either; they are dropped from the writer.
+  // Region remains a wizard input but is not persisted (no destination
+  // column on profiles; collected for future use).
   const persistIdentity = async () => {
     setIdentityError(null);
     if (!name.trim()) {
@@ -103,20 +109,14 @@ export function OnboardingWizard({ userId, userEmail }: Props) {
     }
     setSavingIdentity(true);
     const { error } = await supabase
-      .from("user_profiles")
-      .upsert(
+      .from("profiles")
+      .update(
         {
-          user_id: userId,
-          name: name.trim(),
-          pronouns: pronouns.trim() || null,
-          role: role.trim() || null,
-          employer: employer.trim() || null,
-          region,
-          work_email: userEmail,
+          full_name: name.trim(),
           updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
+        }
+      )
+      .eq("id", userId);
     setSavingIdentity(false);
     if (error) {
       setIdentityError(error.message);
@@ -129,15 +129,14 @@ export function OnboardingWizard({ userId, userEmail }: Props) {
     setSectorError(null);
     setSavingSectors(true);
     const { error } = await supabase
-      .from("user_profiles")
-      .upsert(
+      .from("profiles")
+      .update(
         {
-          user_id: userId,
-          sectors,
+          sector_overrides: sectors,
           updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
+        }
+      )
+      .eq("id", userId);
     setSavingSectors(false);
     if (error) {
       setSectorError(error.message);

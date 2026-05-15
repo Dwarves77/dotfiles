@@ -260,10 +260,11 @@ export async function POST(
     }
   } else {
     // body.kind === 'direct'
+    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles.
     const { data: profile, error: profErr } = await auth.supabase
-      .from("user_profiles")
+      .from("profiles")
       .select("is_platform_admin")
-      .eq("user_id", auth.userId)
+      .eq("id", auth.userId)
       .maybeSingle();
     if (profErr) {
       return NextResponse.json({ error: profErr.message }, { status: 500 });

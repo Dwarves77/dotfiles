@@ -138,10 +138,11 @@ export async function GET(
 
   const profilesById = new Map<string, AuthorProfile>();
   if (authorIds.length > 0) {
+    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles. Aliases keep AuthorProfile shape.
     const { data: profiles } = await auth.supabase
-      .from("user_profiles")
-      .select("user_id, name, headshot_url")
-      .in("user_id", authorIds);
+      .from("profiles")
+      .select("user_id:id, name:full_name, headshot_url:avatar_url")
+      .in("id", authorIds);
     for (const p of (profiles ?? []) as AuthorProfile[]) {
       profilesById.set(p.user_id, p);
     }
@@ -245,11 +246,11 @@ export async function POST(
   const profilesById = new Map<string, AuthorProfile>();
   if (row.author_user_id) {
     const { data: profile } = await auth.supabase
-      .from("user_profiles")
-      .select("user_id, name, headshot_url")
-      .eq("user_id", row.author_user_id)
+      .from("profiles")
+      .select("user_id:id, name:full_name, headshot_url:avatar_url")
+      .eq("id", row.author_user_id)
       .maybeSingle();
-    if (profile) profilesById.set(profile.user_id, profile as AuthorProfile);
+    if (profile) profilesById.set((profile as AuthorProfile).user_id, profile as AuthorProfile);
   }
 
   return NextResponse.json(

@@ -129,16 +129,15 @@ export function AdminDashboard({
     try {
       const [orgRes, memberRes, updateRes, flagRes, platformFlagRes] = await Promise.all([
         supabase.from("organizations").select("id, name, slug, plan, created_at"),
-        // Embed user_profiles via the user_id FK so the member list
+        // Embed profiles via the user_id FK so the member list
         // can show "Jason Losh" instead of a raw uuid. The relation alias
-        // `user:user_profiles` joins on user_profiles.user_id when
-        // PostgREST's foreign-key inference picks it up. Older accounts
-        // without a user_profiles row will surface `user: null` — the
-        // render path falls back to a truncated user_id in that case.
+        // `user:profiles!user_id` joins on the org_memberships.user_id ->
+        // profiles.id FK added in migration 075. Migrated 2026-05-15
+        // (migration 075 Phase 2): was user_profiles(name, headshot_url).
         supabase
           .from("org_memberships")
           .select(
-            "id, org_id, user_id, role, created_at, user:user_profiles(name, headshot_url)"
+            "id, org_id, user_id, role, created_at, user:profiles!user_id(full_name, avatar_url)"
           ),
         // Slim staged_updates select — same column list as the server
         // initial fetch in app/admin/page.tsx. Drops full_brief + other
@@ -460,15 +459,16 @@ export function AdminDashboard({
               ) : (
                 <div className="space-y-2">
                   {members.map((m) => {
-                    // Display: prefer user_profiles.name (joined via the
+                    // Display: prefer profiles.full_name (joined via the
                     // user_id FK in loadData); fall back to a short uuid
-                    // for older accounts that have no user_profiles row,
+                    // for older accounts that have no profiles row,
                     // and to "(no profile)" if the embed object is null
                     // entirely. Auth.users.email isn't readable via
                     // anon-RLS, so it can't be the fallback here.
+                    // Migrated 2026-05-15 (075 Phase 2): user.name -> user.full_name.
                     const profileName: string | null =
-                      (m.user && typeof m.user === "object" && "name" in m.user
-                        ? (m.user as { name?: string | null }).name ?? null
+                      (m.user && typeof m.user === "object" && "full_name" in m.user
+                        ? (m.user as { full_name?: string | null }).full_name ?? null
                         : null) || null;
                     const displayName =
                       profileName ||

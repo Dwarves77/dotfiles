@@ -107,10 +107,11 @@ export async function GET(
 
   let profile: AuthorProfile | null = null;
   if (row.author_user_id) {
+    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles. Aliases keep AuthorProfile shape.
     const { data: p } = await auth.supabase
-      .from("user_profiles")
-      .select("user_id, name, headshot_url")
-      .eq("user_id", row.author_user_id)
+      .from("profiles")
+      .select("user_id:id, name:full_name, headshot_url:avatar_url")
+      .eq("id", row.author_user_id)
       .maybeSingle();
     profile = (p as AuthorProfile) ?? null;
   }
@@ -227,10 +228,11 @@ export async function PATCH(
   const row = updated as PostRow;
   let profile: AuthorProfile | null = null;
   if (row.author_user_id) {
+    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles. Aliases keep AuthorProfile shape.
     const { data: p } = await auth.supabase
-      .from("user_profiles")
-      .select("user_id, name, headshot_url")
-      .eq("user_id", row.author_user_id)
+      .from("profiles")
+      .select("user_id:id, name:full_name, headshot_url:avatar_url")
+      .eq("id", row.author_user_id)
       .maybeSingle();
     profile = (p as AuthorProfile) ?? null;
   }

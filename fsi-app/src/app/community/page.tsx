@@ -120,10 +120,11 @@ export default async function CommunityPage({
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: true }),
     supabase.rpc("community_region_counts"),
+    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles. Aliases keep call-site shape.
     supabase
-      .from("user_profiles")
-      .select("name, headshot_url, is_platform_admin")
-      .eq("user_id", user.id)
+      .from("profiles")
+      .select("name:full_name, headshot_url:avatar_url, is_platform_admin")
+      .eq("id", user.id)
       .maybeSingle(),
     supabase
       .from("org_memberships")
