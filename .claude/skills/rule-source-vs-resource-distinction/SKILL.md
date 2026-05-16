@@ -41,22 +41,39 @@ Three legitimate pathways:
 
 3. **The operator's own onboarding configuration.** During workspace setup, the operator declares which resources they use (e.g., EcoVadis subscriber, Sphera customer, Watershed customer). This populates workspace settings for personalization but does not create source rows.
 
+## Change-driven vs static (the load-bearing distinction)
+
+The cleanest test for source vs resource is **change-driven vs static**. Per operator clarification 2026-05-15:
+
+- **CHANGE-DRIVEN content** is intelligence regardless of publisher authority level (subject to per-page tier acceptance per [[classifier-page-routing]]). A regulator's amendment to Article 4 is change-driven; a trade press article about a competitor's new product launch is change-driven; a research paper publishing a new finding is change-driven.
+- **STATIC content** is community/catalog regardless of publisher authority level. A publisher's existence, their methodology page, their calculator, or their service description is STATIC. These belong in resource catalog and the community vendor directory.
+
+A publisher's existence, methodology, calculator, or service is NOT intelligence. The publisher's PUBLICATION OF A CHANGE (updated methodology, new product launch, acquisition, service withdrawal, position shift) IS potentially intelligence at the appropriate tier on /market.
+
+Examples (from operator):
+
+- "Gallery Climate Coalition exists" → community resource catalog
+- "Gallery Climate Coalition updates methodology to include Scope 4" → /market at T6 (trade press for the art freight sector), with plain-language confidence label per [[rule-internal-vs-external-surface]]
+- "ROKBOX exists" → community vendor directory
+- "ROKBOX launches new product line addressing CITES paperwork reduction" → /market at T6, plain-language confidence label
+
+The judgment shifts from "is the publisher a vendor?" to "is the CONTENT change-driven?" A vendor's change-driven announcements ARE intelligence at their tier. A regulator's static "About Us" page is NOT intelligence.
+
 ## What the platform NEVER ingests
 
-The platform NEVER ingests vendor self-promotion as intelligence. Specifically:
+The platform NEVER ingests static vendor self-promotion as intelligence. Specifically (when the content is STATIC):
 
-- A vendor's own press release announcing their own product, service, or funding round
 - A vendor's "About Us" or "We Provide X" landing page
-- A vendor's LinkedIn announcement of their own existence
-- A vendor's marketing collateral (white papers, case studies, sales decks) when authored as marketing
+- A vendor's marketing collateral describing existing services (not announcing changes)
 - A trade association membership page that lists the vendor as a member
 - A cookie banner, terms-of-service page, or privacy policy from a vendor site
+- A vendor's LinkedIn announcement that the vendor exists (vs an announcement of a change like a new product launch, which IS ingestible)
 
-These are RESOURCES (descriptions of who the vendor is and what they sell) and belong in the resource catalog or vendor directory. They are NOT sources of change-driven intelligence.
+These are RESOURCES (descriptions of who the vendor is and what they sell, in static form) and belong in the resource catalog or vendor directory.
 
-The legitimate exception: a vendor MAY be a source if they publish change-driven analysis about their domain that is independent of their sales motion. Example: Lloyd's Register Decarbonisation Hub publishes maritime decarbonization technical analyses that are sourced like ICCT analysis (T4 industry body interpretation) — those publications ARE sources. Lloyd's Register's "we offer classification services" page is a resource.
+The legitimate ingestible content from a vendor: change-driven announcements. A vendor's own press release announcing a NEW product launch, an acquisition, a service withdrawal, a position shift, or a methodology change IS potentially a market signal (per [[writer-market-signal-brief]]) at the vendor's appropriate internal tier (T5-T6) with plain-language confidence labeling at the card surface.
 
-The judgment: would this content exist if the vendor had no sales motion? If yes (it's analytical content the vendor publishes because they're an expert), it CAN be a source under appropriate tier. If no (it exists because the vendor wants you to buy from them), it's a resource.
+The judgment: would this content exist if the vendor had no NEW change to announce? If yes (it's a description of an existing service), it's static and is a resource. If no (it exists because something changed and the vendor announced the change), it's change-driven and can be a market signal at the vendor's tier.
 
 ## Failure mode signature (the bug this rule prevents)
 

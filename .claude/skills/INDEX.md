@@ -6,18 +6,19 @@ This taxonomy was established 2026-05-15 as a decomposition of the previous mono
 
 ## Categories
 
-### Rules (14) — composable contracts every writer/classifier/dispatch inherits
+### Rules (15) — composable contracts every writer/classifier/dispatch inherits
 
 Data-shape and emission rules:
 - [rule-no-regulatory-inferences-as-fact](rule-no-regulatory-inferences-as-fact/SKILL.md) — never present regulatory interpretation as confirmed fact; require legal counsel caveat
 - [rule-no-speculation-as-fact](rule-no-speculation-as-fact/SKILL.md) — every specific number/date/dollar requires inline source or sources_used entry
 - [rule-source-traceability-per-claim](rule-source-traceability-per-claim/SKILL.md) — every claim on the card surface carries inline attribution; not buried in full_brief
 - [rule-cross-reference-integrity](rule-cross-reference-integrity/SKILL.md) — when the same fact lives in multiple stores, they agree; one canonical writer per fact
-- [rule-source-tier-hierarchy](rule-source-tier-hierarchy/SKILL.md) — when sources conflict, weight by tier (T1-T7); migration 063 framework canonical, legacy 7-tier deprecated
+- [rule-source-tier-hierarchy](rule-source-tier-hierarchy/SKILL.md) — INTERNAL T1-T7 framework for source weighting; never exposed at card surface (per rule-internal-vs-external-surface)
 - [rule-character-normalization](rule-character-normalization/SKILL.md) — every writer normalizes en/em dashes, smart quotes, double-encoded glyphs to plain ASCII; preserves §, ¶, currency, accented Latin, CJK
 
-Architectural-distinction rules (apply at source-onboarding and feature design):
-- [rule-source-vs-resource-distinction](rule-source-vs-resource-distinction/SKILL.md) — sources publish change-driven intelligence (regulations, market signals, research); resources are tools/vendors operators USE (EcoVadis, Sphera). Platform never ingests vendor self-promotion as intelligence. Hard gate at classifier-source-onboarding.
+Architectural-distinction rules (apply at source-onboarding, feature design, and rendering):
+- [rule-source-vs-resource-distinction](rule-source-vs-resource-distinction/SKILL.md) — sources publish change-driven intelligence; resources are tools/vendors operators USE. Platform never ingests static vendor self-promotion as intelligence. Hard gate at classifier-source-onboarding. Change-driven vs static is the load-bearing test.
+- [rule-internal-vs-external-surface](rule-internal-vs-external-surface/SKILL.md) — layered transparency: T1-T7 tiers, urgency/relevance/intersection scores, weights and formulas are INTERNAL; card surface shows plain-language confidence labels and natural ordering. The outcome is what customers see; the recipe protects the business.
 
 Editorial-discipline rules (apply at writer emission for every brief):
 - [rule-synthesis-from-primary-sources](rule-synthesis-from-primary-sources/SKILL.md) — active synthesis discipline: source discovery, citation extraction, intersection detection, anticipated-guidance identification, cross-jurisdictional synthesis; the permissive companion to the restrictive integrity rules

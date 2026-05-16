@@ -55,11 +55,23 @@ When weighting sources during synthesis:
 
 ## Required behavior at read time
 
-When the operator surface displays a claim, the source tier appears next to the source citation. T1 and T7 must be visually distinguishable on the card.
+CORRECTION 2026-05-16: The T1-T7 framework is INTERNAL to platform operation. It informs classifiers, ranking, cross-reference weighting, and source registry hygiene. The tier of any specific source or item is NEVER exposed at the card surface or in any customer-visible output.
+
+Plain-language confidence labels per [[rule-internal-vs-external-surface]] translate internal tiers to customer-visible language without revealing the underlying framework. Canonical translation (also documented in [[writer-summary-card-surface]] and [[rule-internal-vs-external-surface]]):
+
+- T1 → "Primary regulatory source"
+- T2 → "Official agency source"
+- T3 → "Legal analysis citing primary sources"
+- T4 → "Industry consensus"
+- T5 → "Market intelligence"
+- T6 → "Trade press, single source"
+- T7 → "Single source signal, unconfirmed" / "Emerging research, not yet peer-reviewed"
+
+When discussing the platform's source approach in public-facing documentation, marketing, or sales material, use abstract language ("authoritative primary sources," "rigorous source classification," "transparent confidence indicators") without revealing the specific tier structure, count, or assignment criteria.
 
 The CONFIDENCE filter chip on /regulations reads `Resource.classificationConfidence` (NOT `Resource.authorityLevel`, which is the dead phantom field). Items classified at LOW confidence carry a visible "default classification, not verified" indicator until human review confirms.
 
-The SourceProvenanceBadge is hydrated on every page (currently only /admin), so the tier pill renders on every card.
+The card surface displays the plain-language confidence label (NOT the tier pill with "T1"/"T7" text). The SourceProvenanceBadge component, when rendered, surfaces the plain-language label drawn from the internal tier via the translation above. Admin debug views may surface internal tier values gated to admin role only per [[rule-group-scoped-features]].
 
 ## Audit cross-reference
 
@@ -71,6 +83,9 @@ The SourceProvenanceBadge is hydrated on every page (currently only /admin), so 
 
 Inherited by:
 - [[classifier-source-onboarding]] — assigns source_role + tier per this canonical mapping
-- [[writer-summary-card-surface]] — surfaces tier next to source citation
+- [[writer-summary-card-surface]] — translates internal tier to plain-language confidence label per [[rule-internal-vs-external-surface]]
 - [[rule-source-traceability-per-claim]] — tier informs how a claim is hedged at the card layer
 - [[compute-urgency-score]] — source tier is an input to urgency weighting
+
+Composes with:
+- [[rule-internal-vs-external-surface]] — the customer-visible layer; this rule defines the internal framework, that rule defines how it surfaces
