@@ -1,0 +1,7552 @@
+{
+  "check_constraints": [
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_confidence_check",
+      "definition": "CHECK ((confidence = ANY (ARRAY['confirmed'::text, 'unconfirmed'::text])))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_domain_check",
+      "definition": "CHECK (((domain >= 1) AND (domain <= 7)))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_format_type_check",
+      "definition": "CHECK (((format_type IS NULL) OR (format_type = ANY (ARRAY['regulatory_fact_document'::text, 'technology_profile'::text, 'operations_profile'::text, 'market_signal_brief'::text, 'research_summary'::text]))))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_item_type_check",
+      "definition": "CHECK ((item_type = ANY (ARRAY['regulation'::text, 'directive'::text, 'standard'::text, 'guidance'::text, 'technology'::text, 'market_signal'::text, 'regional_data'::text, 'research_finding'::text, 'innovation'::text, 'framework'::text, 'tool'::text, 'initiative'::text])))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_pipeline_stage_check",
+      "definition": "CHECK (((pipeline_stage IS NULL) OR (pipeline_stage = ANY (ARRAY['draft'::text, 'active_review'::text, 'published'::text, 'archived'::text]))))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_priority_check",
+      "definition": "CHECK ((priority = ANY (ARRAY['CRITICAL'::text, 'HIGH'::text, 'MODERATE'::text, 'LOW'::text])))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_severity_check",
+      "definition": "CHECK (((severity IS NULL) OR (severity = ANY (ARRAY['ACTION REQUIRED'::text, 'COST ALERT'::text, 'WINDOW CLOSING'::text, 'COMPETITIVE EDGE'::text, 'MONITORING'::text]))))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['proposed'::text, 'adopted'::text, 'in_force'::text, 'monitoring'::text, 'superseded'::text, 'repealed'::text, 'expired'::text])))"
+    },
+    {
+      "table_name": "intelligence_items",
+      "constraint_name": "intelligence_items_urgency_tier_check",
+      "definition": "CHECK (((urgency_tier IS NULL) OR (urgency_tier = ANY (ARRAY['watch'::text, 'elevated'::text, 'stable'::text, 'informational'::text]))))"
+    },
+    {
+      "table_name": "sources",
+      "constraint_name": "sources_access_method_check",
+      "definition": "CHECK ((access_method = ANY (ARRAY['api'::text, 'rss'::text, 'html_scrape'::text, 'scrape'::text, 'gazette'::text, 'manual'::text])))"
+    },
+    {
+      "table_name": "sources",
+      "constraint_name": "sources_api_auth_method_check",
+      "definition": "CHECK (((api_auth_method IS NULL) OR (api_auth_method = ANY (ARRAY['none'::text, 'api_key_header'::text, 'api_key_query'::text, 'bearer'::text, 'basic'::text, 'oauth2'::text]))))"
+    },
+    {
+      "table_name": "sources",
+      "constraint_name": "sources_api_response_format_check",
+      "definition": "CHECK (((api_response_format IS NULL) OR (api_response_format = ANY (ARRAY['json'::text, 'xml'::text, 'rss'::text, 'atom'::text, 'html'::text, 'text'::text]))))"
+    },
+    {
+      "table_name": "sources",
+      "constraint_name": "sources_highest_citing_tier_check",
+      "definition": "CHECK (((highest_citing_tier IS NULL) OR ((highest_citing_tier >= 1) AND (highest_citing_tier <= 7))))"
+    },
+    {
+      "table_name": "sources",
+      "constraint_name": "sources_status_check",
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'stale'::text, 'inaccessible'::text, 'provisional'::text, 'suspended'::text])))"
+    },
+    {
+      "table_name": "sources",
+      "constraint_name": "sources_tier_at_creation_check",
+      "definition": "CHECK (((tier_at_creation >= 1) AND (tier_at_creation <= 7)))"
+    },
+    {
+      "table_name": "sources",
+      "constraint_name": "sources_tier_check",
+      "definition": "CHECK (((tier >= 1) AND (tier <= 7)))"
+    }
+  ],
+  "severity_priority_violations": 209,
+  "severity_priority_distribution": [
+    {
+      "severity": "ACTION REQUIRED",
+      "priority": "CRITICAL",
+      "n": "49"
+    },
+    {
+      "severity": "ACTION REQUIRED",
+      "priority": "HIGH",
+      "n": "16"
+    },
+    {
+      "severity": "COMPETITIVE EDGE",
+      "priority": "HIGH",
+      "n": "3"
+    },
+    {
+      "severity": "COMPETITIVE EDGE",
+      "priority": "MODERATE",
+      "n": "9"
+    },
+    {
+      "severity": "COST ALERT",
+      "priority": "HIGH",
+      "n": "35"
+    },
+    {
+      "severity": "MONITORING",
+      "priority": "HIGH",
+      "n": "66"
+    },
+    {
+      "severity": "MONITORING",
+      "priority": "LOW",
+      "n": "306"
+    },
+    {
+      "severity": "MONITORING",
+      "priority": "MODERATE",
+      "n": "124"
+    },
+    {
+      "severity": "WINDOW CLOSING",
+      "priority": "HIGH",
+      "n": "6"
+    },
+    {
+      "severity": null,
+      "priority": "CRITICAL",
+      "n": "4"
+    },
+    {
+      "severity": null,
+      "priority": "HIGH",
+      "n": "19"
+    },
+    {
+      "severity": null,
+      "priority": "LOW",
+      "n": "4"
+    },
+    {
+      "severity": null,
+      "priority": "MODERATE",
+      "n": "14"
+    }
+  ],
+  "violating_pairs": [
+    {
+      "severity": "MONITORING",
+      "priority": "MODERATE",
+      "n": "124"
+    },
+    {
+      "severity": "MONITORING",
+      "priority": "HIGH",
+      "n": "66"
+    },
+    {
+      "severity": "ACTION REQUIRED",
+      "priority": "HIGH",
+      "n": "16"
+    },
+    {
+      "severity": "COMPETITIVE EDGE",
+      "priority": "HIGH",
+      "n": "3"
+    }
+  ],
+  "topic_tags_in_use": [
+    {
+      "tag": "emissions",
+      "n": "99"
+    },
+    {
+      "tag": "reporting",
+      "n": "72"
+    },
+    {
+      "tag": "transport",
+      "n": "59"
+    },
+    {
+      "tag": "fuels",
+      "n": "42"
+    },
+    {
+      "tag": "air_quality",
+      "n": "36"
+    },
+    {
+      "tag": "legislative_process",
+      "n": "32"
+    },
+    {
+      "tag": "sustainability",
+      "n": "26"
+    },
+    {
+      "tag": "waste_management",
+      "n": "25"
+    },
+    {
+      "tag": "corridors",
+      "n": "25"
+    },
+    {
+      "tag": "decarbonization",
+      "n": "24"
+    },
+    {
+      "tag": "renewable_energy",
+      "n": "23"
+    },
+    {
+      "tag": "climate_change",
+      "n": "22"
+    },
+    {
+      "tag": "environmental_compliance",
+      "n": "18"
+    },
+    {
+      "tag": "infrastructure",
+      "n": "18"
+    },
+    {
+      "tag": "research",
+      "n": "17"
+    },
+    {
+      "tag": "energy_efficiency",
+      "n": "15"
+    },
+    {
+      "tag": "biodiversity",
+      "n": "13"
+    },
+    {
+      "tag": "climate_action",
+      "n": "12"
+    },
+    {
+      "tag": "water_quality",
+      "n": "12"
+    },
+    {
+      "tag": "water_management",
+      "n": "11"
+    },
+    {
+      "tag": "circular_economy",
+      "n": "11"
+    },
+    {
+      "tag": "state_government",
+      "n": "11"
+    },
+    {
+      "tag": "electric_vehicles",
+      "n": "11"
+    },
+    {
+      "tag": "environmental_policy",
+      "n": "11"
+    },
+    {
+      "tag": "supply_chain",
+      "n": "10"
+    },
+    {
+      "tag": "energy_transition",
+      "n": "10"
+    },
+    {
+      "tag": "regulatory_framework",
+      "n": "10"
+    },
+    {
+      "tag": "climate_adaptation",
+      "n": "10"
+    },
+    {
+      "tag": "public_health",
+      "n": "10"
+    },
+    {
+      "tag": "environmental_regulation",
+      "n": "9"
+    },
+    {
+      "tag": "environmental_protection",
+      "n": "9"
+    },
+    {
+      "tag": "parliamentary_governance",
+      "n": "8"
+    },
+    {
+      "tag": "environmental compliance",
+      "n": "8"
+    },
+    {
+      "tag": "public_administration",
+      "n": "8"
+    },
+    {
+      "tag": "economic_development",
+      "n": "7"
+    },
+    {
+      "tag": "compliance",
+      "n": "7"
+    },
+    {
+      "tag": "governance",
+      "n": "7"
+    },
+    {
+      "tag": "hydrogen",
+      "n": "6"
+    },
+    {
+      "tag": "environmental_monitoring",
+      "n": "6"
+    },
+    {
+      "tag": "greenhouse_gas_emissions",
+      "n": "6"
+    },
+    {
+      "tag": "energy_policy",
+      "n": "6"
+    },
+    {
+      "tag": "utility_regulation",
+      "n": "6"
+    },
+    {
+      "tag": "logistics",
+      "n": "6"
+    },
+    {
+      "tag": "port_operations",
+      "n": "6"
+    },
+    {
+      "tag": "regulatory_compliance",
+      "n": "6"
+    },
+    {
+      "tag": "PFAS",
+      "n": "6"
+    },
+    {
+      "tag": "permitting",
+      "n": "6"
+    },
+    {
+      "tag": "bill_tracking",
+      "n": "6"
+    },
+    {
+      "tag": "maritime",
+      "n": "5"
+    },
+    {
+      "tag": "public_engagement",
+      "n": "5"
+    },
+    {
+      "tag": "legislation",
+      "n": "5"
+    },
+    {
+      "tag": "energy efficiency",
+      "n": "5"
+    },
+    {
+      "tag": "packaging",
+      "n": "5"
+    },
+    {
+      "tag": "resilience",
+      "n": "5"
+    },
+    {
+      "tag": "environmental_quality",
+      "n": "5"
+    },
+    {
+      "tag": "consumer_protection",
+      "n": "5"
+    },
+    {
+      "tag": "government_transparency",
+      "n": "5"
+    },
+    {
+      "tag": "government_structure",
+      "n": "5"
+    },
+    {
+      "tag": "legislative_portal",
+      "n": "5"
+    },
+    {
+      "tag": "climate_policy",
+      "n": "5"
+    },
+    {
+      "tag": "transportation",
+      "n": "5"
+    },
+    {
+      "tag": "environment",
+      "n": "4"
+    },
+    {
+      "tag": "government_portal",
+      "n": "4"
+    },
+    {
+      "tag": "municipal_services",
+      "n": "4"
+    },
+    {
+      "tag": "drinking_water",
+      "n": "4"
+    },
+    {
+      "tag": "multimodal_transportation",
+      "n": "4"
+    },
+    {
+      "tag": "road_safety",
+      "n": "4"
+    },
+    {
+      "tag": "government_services",
+      "n": "4"
+    },
+    {
+      "tag": "government_operations",
+      "n": "4"
+    },
+    {
+      "tag": "data_privacy",
+      "n": "4"
+    },
+    {
+      "tag": "natural_gas",
+      "n": "4"
+    },
+    {
+      "tag": "legislative_resources",
+      "n": "4"
+    },
+    {
+      "tag": "ESG",
+      "n": "4"
+    },
+    {
+      "tag": "clean_energy",
+      "n": "4"
+    },
+    {
+      "tag": "transportation_policy",
+      "n": "4"
+    },
+    {
+      "tag": "building_standards",
+      "n": "4"
+    },
+    {
+      "tag": "municipal_governance",
+      "n": "4"
+    },
+    {
+      "tag": "inflation",
+      "n": "4"
+    },
+    {
+      "tag": "environmental_management",
+      "n": "4"
+    },
+    {
+      "tag": "legislative_processes",
+      "n": "4"
+    },
+    {
+      "tag": "urban_planning",
+      "n": "4"
+    },
+    {
+      "tag": "maritime_decarbonization",
+      "n": "4"
+    },
+    {
+      "tag": "government_administration",
+      "n": "4"
+    },
+    {
+      "tag": "international_cooperation",
+      "n": "3"
+    },
+    {
+      "tag": "wildfire_smoke",
+      "n": "3"
+    },
+    {
+      "tag": "food_safety",
+      "n": "3"
+    },
+    {
+      "tag": "public_records",
+      "n": "3"
+    },
+    {
+      "tag": "community_engagement",
+      "n": "3"
+    },
+    {
+      "tag": "ammonia",
+      "n": "3"
+    },
+    {
+      "tag": "economic development",
+      "n": "3"
+    },
+    {
+      "tag": "pollution_control",
+      "n": "3"
+    },
+    {
+      "tag": "commercial_vehicle_safety",
+      "n": "3"
+    },
+    {
+      "tag": "air_cargo",
+      "n": "3"
+    },
+    {
+      "tag": "carbon_management",
+      "n": "3"
+    },
+    {
+      "tag": "emissions standards",
+      "n": "3"
+    },
+    {
+      "tag": "telecommunications",
+      "n": "3"
+    },
+    {
+      "tag": "government",
+      "n": "3"
+    },
+    {
+      "tag": "government_information",
+      "n": "3"
+    },
+    {
+      "tag": "energy_data",
+      "n": "3"
+    },
+    {
+      "tag": "website_access",
+      "n": "3"
+    },
+    {
+      "tag": "public_safety",
+      "n": "3"
+    },
+    {
+      "tag": "state_agency",
+      "n": "3"
+    },
+    {
+      "tag": "climate change",
+      "n": "3"
+    },
+    {
+      "tag": "methanol",
+      "n": "3"
+    },
+    {
+      "tag": "legal_reference",
+      "n": "3"
+    },
+    {
+      "tag": "vehicle_emissions",
+      "n": "3"
+    },
+    {
+      "tag": "sustainable development",
+      "n": "3"
+    },
+    {
+      "tag": "environmental regulations",
+      "n": "3"
+    },
+    {
+      "tag": "emissions reduction",
+      "n": "3"
+    },
+    {
+      "tag": "water_resources",
+      "n": "3"
+    },
+    {
+      "tag": "renewable energy",
+      "n": "3"
+    },
+    {
+      "tag": "recycling",
+      "n": "3"
+    },
+    {
+      "tag": "LNG",
+      "n": "3"
+    },
+    {
+      "tag": "public_access",
+      "n": "3"
+    },
+    {
+      "tag": "procurement",
+      "n": "3"
+    },
+    {
+      "tag": "environmental_assessment",
+      "n": "3"
+    },
+    {
+      "tag": "rulemaking",
+      "n": "3"
+    },
+    {
+      "tag": "community engagement",
+      "n": "3"
+    },
+    {
+      "tag": "climate_resilience",
+      "n": "3"
+    },
+    {
+      "tag": "construction",
+      "n": "3"
+    },
+    {
+      "tag": "sustainable_freight",
+      "n": "3"
+    },
+    {
+      "tag": "agriculture",
+      "n": "3"
+    },
+    {
+      "tag": "maritime decarbonization",
+      "n": "3"
+    },
+    {
+      "tag": "session_scheduling",
+      "n": "3"
+    },
+    {
+      "tag": "Legal Framework",
+      "n": "3"
+    },
+    {
+      "tag": "energy transition",
+      "n": "3"
+    },
+    {
+      "tag": "sustainable aviation fuel",
+      "n": "3"
+    },
+    {
+      "tag": "employment",
+      "n": "3"
+    },
+    {
+      "tag": "environmental governance",
+      "n": "3"
+    },
+    {
+      "tag": "vehicle_inspection",
+      "n": "3"
+    },
+    {
+      "tag": "legislative_body",
+      "n": "3"
+    },
+    {
+      "tag": "EU Regulation",
+      "n": "3"
+    },
+    {
+      "tag": "government_communications",
+      "n": "3"
+    },
+    {
+      "tag": "budget",
+      "n": "3"
+    },
+    {
+      "tag": "Compliance",
+      "n": "3"
+    },
+    {
+      "tag": "Government Structure",
+      "n": "3"
+    },
+    {
+      "tag": "climate action",
+      "n": "3"
+    },
+    {
+      "tag": "hazardous_waste",
+      "n": "3"
+    },
+    {
+      "tag": "spot_rates",
+      "n": "3"
+    },
+    {
+      "tag": "transport_policy",
+      "n": "3"
+    },
+    {
+      "tag": "energy",
+      "n": "3"
+    },
+    {
+      "tag": "sustainable_development",
+      "n": "3"
+    },
+    {
+      "tag": "air quality",
+      "n": "3"
+    },
+    {
+      "tag": "energy_markets",
+      "n": "3"
+    },
+    {
+      "tag": "sustainable_fuels",
+      "n": "3"
+    },
+    {
+      "tag": "environmental_justice",
+      "n": "3"
+    },
+    {
+      "tag": "regional cooperation",
+      "n": "3"
+    },
+    {
+      "tag": "cybersecurity",
+      "n": "2"
+    },
+    {
+      "tag": "building_permits",
+      "n": "2"
+    },
+    {
+      "tag": "transport_infrastructure",
+      "n": "2"
+    },
+    {
+      "tag": "northern_ireland",
+      "n": "2"
+    },
+    {
+      "tag": "performance_modeling",
+      "n": "2"
+    },
+    {
+      "tag": "building_performance",
+      "n": "2"
+    },
+    {
+      "tag": "greenhouse_gas",
+      "n": "2"
+    },
+    {
+      "tag": "fuel_pricing",
+      "n": "2"
+    },
+    {
+      "tag": "whole life performance",
+      "n": "2"
+    },
+    {
+      "tag": "state_governance",
+      "n": "2"
+    },
+    {
+      "tag": "biodiversity conservation",
+      "n": "2"
+    },
+    {
+      "tag": "administrative_rules",
+      "n": "2"
+    },
+    {
+      "tag": "charging_infrastructure",
+      "n": "2"
+    },
+    {
+      "tag": "cities",
+      "n": "2"
+    },
+    {
+      "tag": "artificial intelligence",
+      "n": "2"
+    },
+    {
+      "tag": "animal_health",
+      "n": "2"
+    },
+    {
+      "tag": "noise_pollution",
+      "n": "2"
+    },
+    {
+      "tag": "regional_governance",
+      "n": "2"
+    },
+    {
+      "tag": "parliamentary_process",
+      "n": "2"
+    },
+    {
+      "tag": "Legislative Process",
+      "n": "2"
+    },
+    {
+      "tag": "sustainable_energy",
+      "n": "2"
+    },
+    {
+      "tag": "zero-emission requirements",
+      "n": "2"
+    },
+    {
+      "tag": "climate_innovation",
+      "n": "2"
+    },
+    {
+      "tag": "solar_energy",
+      "n": "2"
+    },
+    {
+      "tag": "government policy",
+      "n": "2"
+    },
+    {
+      "tag": "regulatory compliance",
+      "n": "2"
+    },
+    {
+      "tag": "underground_storage_tanks",
+      "n": "2"
+    },
+    {
+      "tag": "LEED_certification",
+      "n": "2"
+    },
+    {
+      "tag": "greenhouse gas",
+      "n": "2"
+    },
+    {
+      "tag": "clean_technology",
+      "n": "2"
+    },
+    {
+      "tag": "fossil_fuel_transition",
+      "n": "2"
+    },
+    {
+      "tag": "environmental sustainability",
+      "n": "2"
+    },
+    {
+      "tag": "biofuel",
+      "n": "2"
+    },
+    {
+      "tag": "health and social impact",
+      "n": "2"
+    },
+    {
+      "tag": "shore power",
+      "n": "2"
+    },
+    {
+      "tag": "net zero emissions",
+      "n": "2"
+    },
+    {
+      "tag": "science_technology_innovation",
+      "n": "2"
+    },
+    {
+      "tag": "geopolitical_risk",
+      "n": "2"
+    },
+    {
+      "tag": "climate change mitigation",
+      "n": "2"
+    },
+    {
+      "tag": "sustainable buildings",
+      "n": "2"
+    },
+    {
+      "tag": "watershed_management",
+      "n": "2"
+    },
+    {
+      "tag": "building certification",
+      "n": "2"
+    },
+    {
+      "tag": "carbon_accounting",
+      "n": "2"
+    },
+    {
+      "tag": "aviation",
+      "n": "2"
+    },
+    {
+      "tag": "conservation",
+      "n": "2"
+    },
+    {
+      "tag": "CII",
+      "n": "2"
+    },
+    {
+      "tag": "electric_heavy_goods_vehicles",
+      "n": "2"
+    },
+    {
+      "tag": "SAF",
+      "n": "2"
+    },
+    {
+      "tag": "heavy-duty vehicles",
+      "n": "2"
+    },
+    {
+      "tag": "immigration_enforcement",
+      "n": "2"
+    },
+    {
+      "tag": "trade",
+      "n": "2"
+    },
+    {
+      "tag": "municipal_government",
+      "n": "2"
+    },
+    {
+      "tag": "container_shipping",
+      "n": "2"
+    },
+    {
+      "tag": "crude_oil_pricing",
+      "n": "2"
+    },
+    {
+      "tag": "food_security",
+      "n": "2"
+    },
+    {
+      "tag": "sustainable_finance",
+      "n": "2"
+    },
+    {
+      "tag": "Air Quality",
+      "n": "2"
+    },
+    {
+      "tag": "wildlife_management",
+      "n": "2"
+    },
+    {
+      "tag": "energy_affordability",
+      "n": "2"
+    },
+    {
+      "tag": "supply_chain_engagement",
+      "n": "2"
+    },
+    {
+      "tag": "legislative_activity",
+      "n": "2"
+    },
+    {
+      "tag": "water quality",
+      "n": "2"
+    },
+    {
+      "tag": "freight_rates",
+      "n": "2"
+    },
+    {
+      "tag": "maritime regulation",
+      "n": "2"
+    },
+    {
+      "tag": "Environmental Regulation",
+      "n": "2"
+    },
+    {
+      "tag": "circularity",
+      "n": "2"
+    },
+    {
+      "tag": "climate resilience",
+      "n": "2"
+    },
+    {
+      "tag": "green_building",
+      "n": "2"
+    },
+    {
+      "tag": "net_zero_commitments",
+      "n": "2"
+    },
+    {
+      "tag": "income_restricted_rental",
+      "n": "2"
+    },
+    {
+      "tag": "aviation_safety",
+      "n": "2"
+    },
+    {
+      "tag": "emissions_reduction",
+      "n": "2"
+    },
+    {
+      "tag": "Northern_Ireland",
+      "n": "2"
+    },
+    {
+      "tag": "air_transport",
+      "n": "2"
+    },
+    {
+      "tag": "Sustainability",
+      "n": "2"
+    },
+    {
+      "tag": "economic_indicators",
+      "n": "2"
+    },
+    {
+      "tag": "net zero carbon",
+      "n": "2"
+    },
+    {
+      "tag": "los_angeles",
+      "n": "2"
+    },
+    {
+      "tag": "electric_mobility",
+      "n": "2"
+    },
+    {
+      "tag": "digital_infrastructure",
+      "n": "2"
+    },
+    {
+      "tag": "Public Information",
+      "n": "2"
+    },
+    {
+      "tag": "regulatory_access",
+      "n": "2"
+    },
+    {
+      "tag": "roadcheck_inspection",
+      "n": "2"
+    },
+    {
+      "tag": "maritime_policy",
+      "n": "2"
+    },
+    {
+      "tag": "stormwater_management",
+      "n": "2"
+    },
+    {
+      "tag": "clean_energy_investment",
+      "n": "2"
+    },
+    {
+      "tag": "energy_infrastructure",
+      "n": "2"
+    },
+    {
+      "tag": "local_government",
+      "n": "2"
+    },
+    {
+      "tag": "GRI Standards",
+      "n": "2"
+    },
+    {
+      "tag": "labor_statistics",
+      "n": "2"
+    },
+    {
+      "tag": "remediation",
+      "n": "2"
+    },
+    {
+      "tag": "multimodal logistics",
+      "n": "2"
+    },
+    {
+      "tag": "Public Administration",
+      "n": "2"
+    },
+    {
+      "tag": "technology_adoption",
+      "n": "2"
+    },
+    {
+      "tag": "committee_structure",
+      "n": "2"
+    },
+    {
+      "tag": "public_information",
+      "n": "2"
+    },
+    {
+      "tag": "legislative_tracking",
+      "n": "2"
+    },
+    {
+      "tag": "water_permits",
+      "n": "2"
+    },
+    {
+      "tag": "environmental regulation",
+      "n": "2"
+    },
+    {
+      "tag": "civic_participation",
+      "n": "2"
+    },
+    {
+      "tag": "transportation_emissions",
+      "n": "2"
+    },
+    {
+      "tag": "public_services",
+      "n": "2"
+    },
+    {
+      "tag": "environmental_health",
+      "n": "2"
+    },
+    {
+      "tag": "risk management",
+      "n": "2"
+    },
+    {
+      "tag": "shipping decarbonization",
+      "n": "2"
+    },
+    {
+      "tag": "EU regulation",
+      "n": "2"
+    },
+    {
+      "tag": "regional_development",
+      "n": "2"
+    },
+    {
+      "tag": "climate",
+      "n": "2"
+    },
+    {
+      "tag": "digital transformation",
+      "n": "2"
+    },
+    {
+      "tag": "legislative_updates",
+      "n": "2"
+    },
+    {
+      "tag": "shipping_emissions",
+      "n": "2"
+    },
+    {
+      "tag": "legislative process",
+      "n": "2"
+    },
+    {
+      "tag": "Water Quality",
+      "n": "2"
+    },
+    {
+      "tag": "digital_twinning",
+      "n": "2"
+    },
+    {
+      "tag": "affordable_housing",
+      "n": "2"
+    },
+    {
+      "tag": "wind_energy",
+      "n": "2"
+    },
+    {
+      "tag": "land_sector",
+      "n": "2"
+    },
+    {
+      "tag": "policy_database",
+      "n": "2"
+    },
+    {
+      "tag": "environmental_reporting",
+      "n": "2"
+    },
+    {
+      "tag": "water_infrastructure",
+      "n": "2"
+    },
+    {
+      "tag": "transportation_planning",
+      "n": "2"
+    },
+    {
+      "tag": "alternative_fuels",
+      "n": "2"
+    },
+    {
+      "tag": "waste management",
+      "n": "2"
+    },
+    {
+      "tag": "EU legislation",
+      "n": "2"
+    },
+    {
+      "tag": "productivity",
+      "n": "2"
+    },
+    {
+      "tag": "canada",
+      "n": "2"
+    },
+    {
+      "tag": "enforcement",
+      "n": "2"
+    },
+    {
+      "tag": "regulatory_oversight",
+      "n": "2"
+    },
+    {
+      "tag": "coastal_management",
+      "n": "2"
+    },
+    {
+      "tag": "flooding",
+      "n": "2"
+    },
+    {
+      "tag": "committee_meetings",
+      "n": "2"
+    },
+    {
+      "tag": "sustainable_mobility",
+      "n": "2"
+    },
+    {
+      "tag": "circular economy",
+      "n": "2"
+    },
+    {
+      "tag": "budget_appropriations",
+      "n": "2"
+    },
+    {
+      "tag": "freight_planning",
+      "n": "2"
+    },
+    {
+      "tag": "petroleum_products",
+      "n": "2"
+    },
+    {
+      "tag": "EEXI",
+      "n": "2"
+    },
+    {
+      "tag": "transhipment",
+      "n": "2"
+    },
+    {
+      "tag": "multimodal_logistics",
+      "n": "2"
+    },
+    {
+      "tag": "maritime_emissions",
+      "n": "2"
+    },
+    {
+      "tag": "autonomous_vehicles",
+      "n": "2"
+    },
+    {
+      "tag": "administrative_procedures",
+      "n": "2"
+    },
+    {
+      "tag": "digital_transformation",
+      "n": "2"
+    },
+    {
+      "tag": "carbon_reduction",
+      "n": "2"
+    },
+    {
+      "tag": "parliamentary_operations",
+      "n": "2"
+    },
+    {
+      "tag": "parliamentary_proceedings",
+      "n": "2"
+    },
+    {
+      "tag": "supply chain sustainability",
+      "n": "2"
+    },
+    {
+      "tag": "content_unavailable",
+      "n": "2"
+    },
+    {
+      "tag": "spot_prices",
+      "n": "2"
+    },
+    {
+      "tag": "workforce_development",
+      "n": "2"
+    },
+    {
+      "tag": "alternative fuels",
+      "n": "2"
+    },
+    {
+      "tag": "Waste Management",
+      "n": "2"
+    },
+    {
+      "tag": "maritime emissions",
+      "n": "2"
+    },
+    {
+      "tag": "energy_statistics",
+      "n": "2"
+    },
+    {
+      "tag": "Governance",
+      "n": "2"
+    },
+    {
+      "tag": "maritime_shipping",
+      "n": "2"
+    },
+    {
+      "tag": "environmental_governance",
+      "n": "2"
+    },
+    {
+      "tag": "legislative_proceedings",
+      "n": "2"
+    },
+    {
+      "tag": "green_shipping",
+      "n": "2"
+    },
+    {
+      "tag": "vessel_operations",
+      "n": "2"
+    },
+    {
+      "tag": "parliamentary_procedures",
+      "n": "2"
+    },
+    {
+      "tag": "federal_compliance",
+      "n": "2"
+    },
+    {
+      "tag": "greenhouse gas emissions",
+      "n": "2"
+    },
+    {
+      "tag": "trade_facilitation",
+      "n": "2"
+    },
+    {
+      "tag": "solar_power",
+      "n": "2"
+    },
+    {
+      "tag": "legislative_information",
+      "n": "2"
+    },
+    {
+      "tag": "cookie_policy",
+      "n": "2"
+    },
+    {
+      "tag": "legal_framework",
+      "n": "2"
+    },
+    {
+      "tag": "offshore_wind",
+      "n": "2"
+    },
+    {
+      "tag": "middle_east_conflict",
+      "n": "2"
+    },
+    {
+      "tag": "parliamentary_procedure",
+      "n": "2"
+    },
+    {
+      "tag": "employment_data",
+      "n": "2"
+    },
+    {
+      "tag": "user_consent",
+      "n": "2"
+    },
+    {
+      "tag": "legislative_governance",
+      "n": "2"
+    },
+    {
+      "tag": "legal_database",
+      "n": "2"
+    },
+    {
+      "tag": "environmental protection",
+      "n": "2"
+    },
+    {
+      "tag": "benchmarking",
+      "n": "2"
+    },
+    {
+      "tag": "carbon_pricing",
+      "n": "2"
+    },
+    {
+      "tag": "net_zero",
+      "n": "2"
+    },
+    {
+      "tag": "capacity_disruption",
+      "n": "2"
+    },
+    {
+      "tag": "Decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "noise_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "NSW_governance",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_operations",
+      "n": "1"
+    },
+    {
+      "tag": "website_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "institutional_transparency",
+      "n": "1"
+    },
+    {
+      "tag": "security_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "traffic_management",
+      "n": "1"
+    },
+    {
+      "tag": "logistics_optimization",
+      "n": "1"
+    },
+    {
+      "tag": "transportation_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "F-Gas_Verordnung",
+      "n": "1"
+    },
+    {
+      "tag": "traffic congestion",
+      "n": "1"
+    },
+    {
+      "tag": "motor carrier safety",
+      "n": "1"
+    },
+    {
+      "tag": "water_soil_management",
+      "n": "1"
+    },
+    {
+      "tag": "energy_services",
+      "n": "1"
+    },
+    {
+      "tag": "ESG_reporting",
+      "n": "1"
+    },
+    {
+      "tag": "investor sentiment",
+      "n": "1"
+    },
+    {
+      "tag": "Research and innovation",
+      "n": "1"
+    },
+    {
+      "tag": "net zero",
+      "n": "1"
+    },
+    {
+      "tag": "customs_services",
+      "n": "1"
+    },
+    {
+      "tag": "product_launches",
+      "n": "1"
+    },
+    {
+      "tag": "legal_notices",
+      "n": "1"
+    },
+    {
+      "tag": "grid_modernization",
+      "n": "1"
+    },
+    {
+      "tag": "crisis_response",
+      "n": "1"
+    },
+    {
+      "tag": "solid waste management",
+      "n": "1"
+    },
+    {
+      "tag": "PFAS contamination",
+      "n": "1"
+    },
+    {
+      "tag": "natural_refrigerants",
+      "n": "1"
+    },
+    {
+      "tag": "livestock_support",
+      "n": "1"
+    },
+    {
+      "tag": "noise_reduction",
+      "n": "1"
+    },
+    {
+      "tag": "japan_policy",
+      "n": "1"
+    },
+    {
+      "tag": "fuel_efficiency",
+      "n": "1"
+    },
+    {
+      "tag": "reverse logistics",
+      "n": "1"
+    },
+    {
+      "tag": "challenge",
+      "n": "1"
+    },
+    {
+      "tag": "maritime energy",
+      "n": "1"
+    },
+    {
+      "tag": "coastal_protection",
+      "n": "1"
+    },
+    {
+      "tag": "EU funding",
+      "n": "1"
+    },
+    {
+      "tag": "general_laws",
+      "n": "1"
+    },
+    {
+      "tag": "transpacific trade",
+      "n": "1"
+    },
+    {
+      "tag": "Road Networks",
+      "n": "1"
+    },
+    {
+      "tag": "supplier_risk_management",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_filing",
+      "n": "1"
+    },
+    {
+      "tag": "CETP",
+      "n": "1"
+    },
+    {
+      "tag": "contact_directory",
+      "n": "1"
+    },
+    {
+      "tag": "SDG_16_peace_justice",
+      "n": "1"
+    },
+    {
+      "tag": "climate_litigation",
+      "n": "1"
+    },
+    {
+      "tag": "Trusts Act",
+      "n": "1"
+    },
+    {
+      "tag": "port infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "buyer alliance",
+      "n": "1"
+    },
+    {
+      "tag": "rural_development",
+      "n": "1"
+    },
+    {
+      "tag": "public safety",
+      "n": "1"
+    },
+    {
+      "tag": "health_and_safety",
+      "n": "1"
+    },
+    {
+      "tag": "decarbonisation",
+      "n": "1"
+    },
+    {
+      "tag": "water_environment",
+      "n": "1"
+    },
+    {
+      "tag": "California regulatory notices",
+      "n": "1"
+    },
+    {
+      "tag": "automated_driving",
+      "n": "1"
+    },
+    {
+      "tag": "Slovakia",
+      "n": "1"
+    },
+    {
+      "tag": "GLEC framework",
+      "n": "1"
+    },
+    {
+      "tag": "indiana_regulatory",
+      "n": "1"
+    },
+    {
+      "tag": "Zero-Emission Technologies",
+      "n": "1"
+    },
+    {
+      "tag": "NHVAS",
+      "n": "1"
+    },
+    {
+      "tag": "EU_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "data_governance",
+      "n": "1"
+    },
+    {
+      "tag": "freshwater",
+      "n": "1"
+    },
+    {
+      "tag": "slovak_parliament",
+      "n": "1"
+    },
+    {
+      "tag": "covid_19",
+      "n": "1"
+    },
+    {
+      "tag": "wetlands_protection",
+      "n": "1"
+    },
+    {
+      "tag": "Modern_Slavery_Acts",
+      "n": "1"
+    },
+    {
+      "tag": "policy guidance",
+      "n": "1"
+    },
+    {
+      "tag": "green_corridors",
+      "n": "1"
+    },
+    {
+      "tag": "aviation_operations",
+      "n": "1"
+    },
+    {
+      "tag": "chevrolet",
+      "n": "1"
+    },
+    {
+      "tag": "truck_parking",
+      "n": "1"
+    },
+    {
+      "tag": "LIFE program",
+      "n": "1"
+    },
+    {
+      "tag": "community health",
+      "n": "1"
+    },
+    {
+      "tag": "supply_chain_visibility",
+      "n": "1"
+    },
+    {
+      "tag": "logistics optimization",
+      "n": "1"
+    },
+    {
+      "tag": "health_awareness",
+      "n": "1"
+    },
+    {
+      "tag": "institutional structure",
+      "n": "1"
+    },
+    {
+      "tag": "wage_growth",
+      "n": "1"
+    },
+    {
+      "tag": "international_labor_organization",
+      "n": "1"
+    },
+    {
+      "tag": "compliance_verification",
+      "n": "1"
+    },
+    {
+      "tag": "Scotland",
+      "n": "1"
+    },
+    {
+      "tag": "real_estate_opportunity",
+      "n": "1"
+    },
+    {
+      "tag": "emissions-standards",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_repository",
+      "n": "1"
+    },
+    {
+      "tag": "Legislative Documentation",
+      "n": "1"
+    },
+    {
+      "tag": "global_markets",
+      "n": "1"
+    },
+    {
+      "tag": "wellness",
+      "n": "1"
+    },
+    {
+      "tag": "photovoltaic_systems",
+      "n": "1"
+    },
+    {
+      "tag": "keynote_speaker",
+      "n": "1"
+    },
+    {
+      "tag": "international partnerships",
+      "n": "1"
+    },
+    {
+      "tag": "massachusetts_law",
+      "n": "1"
+    },
+    {
+      "tag": "CO2 reduction",
+      "n": "1"
+    },
+    {
+      "tag": "hazardous_substances",
+      "n": "1"
+    },
+    {
+      "tag": "nature_restoration",
+      "n": "1"
+    },
+    {
+      "tag": "marine_safety",
+      "n": "1"
+    },
+    {
+      "tag": "public infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "ship classification",
+      "n": "1"
+    },
+    {
+      "tag": "emissions trading systems",
+      "n": "1"
+    },
+    {
+      "tag": "kansas_statutes",
+      "n": "1"
+    },
+    {
+      "tag": "smart_cities",
+      "n": "1"
+    },
+    {
+      "tag": "committee work",
+      "n": "1"
+    },
+    {
+      "tag": "clean hydrogen",
+      "n": "1"
+    },
+    {
+      "tag": "State Primacy",
+      "n": "1"
+    },
+    {
+      "tag": "compliance tracking",
+      "n": "1"
+    },
+    {
+      "tag": "clean transport",
+      "n": "1"
+    },
+    {
+      "tag": "weight_restrictions",
+      "n": "1"
+    },
+    {
+      "tag": "brownfield_development",
+      "n": "1"
+    },
+    {
+      "tag": "heavy_duty_trucks",
+      "n": "1"
+    },
+    {
+      "tag": "heavy_duty_vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "municipal_waste",
+      "n": "1"
+    },
+    {
+      "tag": "low carbon fuels",
+      "n": "1"
+    },
+    {
+      "tag": "carbon-neutral",
+      "n": "1"
+    },
+    {
+      "tag": "music",
+      "n": "1"
+    },
+    {
+      "tag": "Supply_Chain_Management",
+      "n": "1"
+    },
+    {
+      "tag": "GDPR_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "climate_mitigation",
+      "n": "1"
+    },
+    {
+      "tag": "dust_control",
+      "n": "1"
+    },
+    {
+      "tag": "Kansas",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "flood_prevention",
+      "n": "1"
+    },
+    {
+      "tag": "regional_markets",
+      "n": "1"
+    },
+    {
+      "tag": "energy systems",
+      "n": "1"
+    },
+    {
+      "tag": "training_and_education",
+      "n": "1"
+    },
+    {
+      "tag": "administrative_structure",
+      "n": "1"
+    },
+    {
+      "tag": "freight_network",
+      "n": "1"
+    },
+    {
+      "tag": "professional_networks",
+      "n": "1"
+    },
+    {
+      "tag": "green_procurement",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_environment",
+      "n": "1"
+    },
+    {
+      "tag": "corporate procurement",
+      "n": "1"
+    },
+    {
+      "tag": "border_transportation",
+      "n": "1"
+    },
+    {
+      "tag": "maritime applications",
+      "n": "1"
+    },
+    {
+      "tag": "water_wastewater",
+      "n": "1"
+    },
+    {
+      "tag": "supply_chain_sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "multifamily housing",
+      "n": "1"
+    },
+    {
+      "tag": "grid integration",
+      "n": "1"
+    },
+    {
+      "tag": "corrections regulations",
+      "n": "1"
+    },
+    {
+      "tag": "certification",
+      "n": "1"
+    },
+    {
+      "tag": "lottery_application",
+      "n": "1"
+    },
+    {
+      "tag": "kia",
+      "n": "1"
+    },
+    {
+      "tag": "Workforce Development",
+      "n": "1"
+    },
+    {
+      "tag": "clean_energy_innovation",
+      "n": "1"
+    },
+    {
+      "tag": "irish_parliament",
+      "n": "1"
+    },
+    {
+      "tag": "climate_vulnerability",
+      "n": "1"
+    },
+    {
+      "tag": "State Regulations",
+      "n": "1"
+    },
+    {
+      "tag": "Land Pollution",
+      "n": "1"
+    },
+    {
+      "tag": "social services",
+      "n": "1"
+    },
+    {
+      "tag": "vocational vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "invasive_species",
+      "n": "1"
+    },
+    {
+      "tag": "transport_decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_validation",
+      "n": "1"
+    },
+    {
+      "tag": "Permits and Compliance",
+      "n": "1"
+    },
+    {
+      "tag": "web_analytics",
+      "n": "1"
+    },
+    {
+      "tag": "tesla",
+      "n": "1"
+    },
+    {
+      "tag": "Official Journal",
+      "n": "1"
+    },
+    {
+      "tag": "international_development",
+      "n": "1"
+    },
+    {
+      "tag": "education_support",
+      "n": "1"
+    },
+    {
+      "tag": "NAAQS_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "ammonia_fuel",
+      "n": "1"
+    },
+    {
+      "tag": "future_industries",
+      "n": "1"
+    },
+    {
+      "tag": "infectious_diseases",
+      "n": "1"
+    },
+    {
+      "tag": "carbon neutrality",
+      "n": "1"
+    },
+    {
+      "tag": "child protection",
+      "n": "1"
+    },
+    {
+      "tag": "gdpr",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_intelligence",
+      "n": "1"
+    },
+    {
+      "tag": "public_procurement",
+      "n": "1"
+    },
+    {
+      "tag": "EU Green Deal",
+      "n": "1"
+    },
+    {
+      "tag": "drinking_water_quality",
+      "n": "1"
+    },
+    {
+      "tag": "job_creation",
+      "n": "1"
+    },
+    {
+      "tag": "committee_submissions",
+      "n": "1"
+    },
+    {
+      "tag": "landside_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "service_availability",
+      "n": "1"
+    },
+    {
+      "tag": "general_assembly",
+      "n": "1"
+    },
+    {
+      "tag": "organizational_rules",
+      "n": "1"
+    },
+    {
+      "tag": "IMO_alignment",
+      "n": "1"
+    },
+    {
+      "tag": "FuelEU Maritime",
+      "n": "1"
+    },
+    {
+      "tag": "ASEAN transport",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory framework",
+      "n": "1"
+    },
+    {
+      "tag": "minimum energy efficiency standard",
+      "n": "1"
+    },
+    {
+      "tag": "casino_promotions",
+      "n": "1"
+    },
+    {
+      "tag": "wildfire_resilience",
+      "n": "1"
+    },
+    {
+      "tag": "Aviation Decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "NWCA",
+      "n": "1"
+    },
+    {
+      "tag": "affordable housing",
+      "n": "1"
+    },
+    {
+      "tag": "DIWASS_system",
+      "n": "1"
+    },
+    {
+      "tag": "industry_collaboration",
+      "n": "1"
+    },
+    {
+      "tag": "Building Industry",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_process",
+      "n": "1"
+    },
+    {
+      "tag": "SDG_13_climate_action",
+      "n": "1"
+    },
+    {
+      "tag": "shipping sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "hazardous air pollutants",
+      "n": "1"
+    },
+    {
+      "tag": "plastics pollution",
+      "n": "1"
+    },
+    {
+      "tag": "emissions data",
+      "n": "1"
+    },
+    {
+      "tag": "International Shipping",
+      "n": "1"
+    },
+    {
+      "tag": "rural_health",
+      "n": "1"
+    },
+    {
+      "tag": "porsche",
+      "n": "1"
+    },
+    {
+      "tag": "cross-border transport",
+      "n": "1"
+    },
+    {
+      "tag": "sector-framework",
+      "n": "1"
+    },
+    {
+      "tag": "low-emissions fuels",
+      "n": "1"
+    },
+    {
+      "tag": "public_proclamation",
+      "n": "1"
+    },
+    {
+      "tag": "renewable transport fuel",
+      "n": "1"
+    },
+    {
+      "tag": "gdpr_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "building standards",
+      "n": "1"
+    },
+    {
+      "tag": "family_violence_prevention",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_emissions",
+      "n": "1"
+    },
+    {
+      "tag": "energy_rating",
+      "n": "1"
+    },
+    {
+      "tag": "pipeline_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "EPA Endangerment Finding Repeal",
+      "n": "1"
+    },
+    {
+      "tag": "democratic_institutions",
+      "n": "1"
+    },
+    {
+      "tag": "fossil fuel subsidies",
+      "n": "1"
+    },
+    {
+      "tag": "municipal_administration",
+      "n": "1"
+    },
+    {
+      "tag": "Coal Ash",
+      "n": "1"
+    },
+    {
+      "tag": "automation",
+      "n": "1"
+    },
+    {
+      "tag": "green shipping",
+      "n": "1"
+    },
+    {
+      "tag": "rule_revision",
+      "n": "1"
+    },
+    {
+      "tag": "emergency_response",
+      "n": "1"
+    },
+    {
+      "tag": "kansas_government",
+      "n": "1"
+    },
+    {
+      "tag": "british_columbia",
+      "n": "1"
+    },
+    {
+      "tag": "emissions_inventory",
+      "n": "1"
+    },
+    {
+      "tag": "creative_industries",
+      "n": "1"
+    },
+    {
+      "tag": "net_zero_planning",
+      "n": "1"
+    },
+    {
+      "tag": "financial_supervision",
+      "n": "1"
+    },
+    {
+      "tag": "renewable_energy_transition",
+      "n": "1"
+    },
+    {
+      "tag": "local_governance",
+      "n": "1"
+    },
+    {
+      "tag": "international_collaboration",
+      "n": "1"
+    },
+    {
+      "tag": "South Carolina",
+      "n": "1"
+    },
+    {
+      "tag": "medical_registries",
+      "n": "1"
+    },
+    {
+      "tag": "recent_enactments",
+      "n": "1"
+    },
+    {
+      "tag": "clean energy",
+      "n": "1"
+    },
+    {
+      "tag": "developing_countries",
+      "n": "1"
+    },
+    {
+      "tag": "ESG_ratings",
+      "n": "1"
+    },
+    {
+      "tag": "norovirus",
+      "n": "1"
+    },
+    {
+      "tag": "housing_policy",
+      "n": "1"
+    },
+    {
+      "tag": "flood_management",
+      "n": "1"
+    },
+    {
+      "tag": "critical_materials",
+      "n": "1"
+    },
+    {
+      "tag": "local law 97",
+      "n": "1"
+    },
+    {
+      "tag": "IMO_standards",
+      "n": "1"
+    },
+    {
+      "tag": "business_acceleration",
+      "n": "1"
+    },
+    {
+      "tag": "Portugal Environmental Performance",
+      "n": "1"
+    },
+    {
+      "tag": "sanctuary_policy",
+      "n": "1"
+    },
+    {
+      "tag": "site cleanup",
+      "n": "1"
+    },
+    {
+      "tag": "pennsylvania_general_assembly",
+      "n": "1"
+    },
+    {
+      "tag": "strategic_intermodal_system",
+      "n": "1"
+    },
+    {
+      "tag": "state_administration",
+      "n": "1"
+    },
+    {
+      "tag": "emission reduction",
+      "n": "1"
+    },
+    {
+      "tag": "SDG_17_partnerships",
+      "n": "1"
+    },
+    {
+      "tag": "labor_standards",
+      "n": "1"
+    },
+    {
+      "tag": "commodity_flow",
+      "n": "1"
+    },
+    {
+      "tag": "Western_Australia",
+      "n": "1"
+    },
+    {
+      "tag": "global_ev_market",
+      "n": "1"
+    },
+    {
+      "tag": "tri-state collaboration",
+      "n": "1"
+    },
+    {
+      "tag": "CWS DTLA",
+      "n": "1"
+    },
+    {
+      "tag": "North_Carolina_governance",
+      "n": "1"
+    },
+    {
+      "tag": "standardization",
+      "n": "1"
+    },
+    {
+      "tag": "integrated transport",
+      "n": "1"
+    },
+    {
+      "tag": "public_comment",
+      "n": "1"
+    },
+    {
+      "tag": "national_energy_plan",
+      "n": "1"
+    },
+    {
+      "tag": "Boston_MetroList",
+      "n": "1"
+    },
+    {
+      "tag": "statistics",
+      "n": "1"
+    },
+    {
+      "tag": "currency_fluctuation",
+      "n": "1"
+    },
+    {
+      "tag": "ESG_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "Legislation",
+      "n": "1"
+    },
+    {
+      "tag": "ev_market",
+      "n": "1"
+    },
+    {
+      "tag": "statewide freight plan",
+      "n": "1"
+    },
+    {
+      "tag": "VAT reduction",
+      "n": "1"
+    },
+    {
+      "tag": "community building",
+      "n": "1"
+    },
+    {
+      "tag": "Government Website",
+      "n": "1"
+    },
+    {
+      "tag": "COVID-19",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_logistics",
+      "n": "1"
+    },
+    {
+      "tag": "permits_and_licensing",
+      "n": "1"
+    },
+    {
+      "tag": "transportation-policy",
+      "n": "1"
+    },
+    {
+      "tag": "great_lakes",
+      "n": "1"
+    },
+    {
+      "tag": "Queensland Legislation",
+      "n": "1"
+    },
+    {
+      "tag": "Shipping Routes",
+      "n": "1"
+    },
+    {
+      "tag": "school_closures",
+      "n": "1"
+    },
+    {
+      "tag": "national_climate_policies",
+      "n": "1"
+    },
+    {
+      "tag": "energy pricing",
+      "n": "1"
+    },
+    {
+      "tag": "labor_market",
+      "n": "1"
+    },
+    {
+      "tag": "bluetongue",
+      "n": "1"
+    },
+    {
+      "tag": "domestic_initiatives",
+      "n": "1"
+    },
+    {
+      "tag": "public_notice",
+      "n": "1"
+    },
+    {
+      "tag": "occupational_health",
+      "n": "1"
+    },
+    {
+      "tag": "student_fare_programs",
+      "n": "1"
+    },
+    {
+      "tag": "territorial_planning",
+      "n": "1"
+    },
+    {
+      "tag": "energy_communities",
+      "n": "1"
+    },
+    {
+      "tag": "rhode_island",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_conventions",
+      "n": "1"
+    },
+    {
+      "tag": "prevention_of_significant_deterioration",
+      "n": "1"
+    },
+    {
+      "tag": "biogas fuel",
+      "n": "1"
+    },
+    {
+      "tag": "District of Columbia Code",
+      "n": "1"
+    },
+    {
+      "tag": "SWFP application",
+      "n": "1"
+    },
+    {
+      "tag": "Maritime Security",
+      "n": "1"
+    },
+    {
+      "tag": "transportation planning",
+      "n": "1"
+    },
+    {
+      "tag": "Waste Disposal",
+      "n": "1"
+    },
+    {
+      "tag": "radiation_monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "Zero Waste",
+      "n": "1"
+    },
+    {
+      "tag": "EU governance",
+      "n": "1"
+    },
+    {
+      "tag": "PV systems",
+      "n": "1"
+    },
+    {
+      "tag": "global_partnership",
+      "n": "1"
+    },
+    {
+      "tag": "medium-heavy-duty-mhd",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_initiatives",
+      "n": "1"
+    },
+    {
+      "tag": "licensing_permitting",
+      "n": "1"
+    },
+    {
+      "tag": "scottish_parliament",
+      "n": "1"
+    },
+    {
+      "tag": "institutional_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "nitrogen_emissions",
+      "n": "1"
+    },
+    {
+      "tag": "Youth Justice",
+      "n": "1"
+    },
+    {
+      "tag": "eu_policy",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_finance",
+      "n": "1"
+    },
+    {
+      "tag": "port_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "pollution prevention",
+      "n": "1"
+    },
+    {
+      "tag": "motor_carrier_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "western_australia",
+      "n": "1"
+    },
+    {
+      "tag": "defense policy",
+      "n": "1"
+    },
+    {
+      "tag": "European Union Law",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable building design",
+      "n": "1"
+    },
+    {
+      "tag": "highway construction",
+      "n": "1"
+    },
+    {
+      "tag": "texas_statewide_planning",
+      "n": "1"
+    },
+    {
+      "tag": "plastic_waste_export",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_notices",
+      "n": "1"
+    },
+    {
+      "tag": "commodities",
+      "n": "1"
+    },
+    {
+      "tag": "utility_complaints",
+      "n": "1"
+    },
+    {
+      "tag": "emissions_standards",
+      "n": "1"
+    },
+    {
+      "tag": "bills_and_laws",
+      "n": "1"
+    },
+    {
+      "tag": "net_zero_targets",
+      "n": "1"
+    },
+    {
+      "tag": "NYMEX",
+      "n": "1"
+    },
+    {
+      "tag": "operational_costs",
+      "n": "1"
+    },
+    {
+      "tag": "production scaling",
+      "n": "1"
+    },
+    {
+      "tag": "measurement_standards",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_sector",
+      "n": "1"
+    },
+    {
+      "tag": "double_hull_requirements",
+      "n": "1"
+    },
+    {
+      "tag": "banking_union",
+      "n": "1"
+    },
+    {
+      "tag": "long-range planning",
+      "n": "1"
+    },
+    {
+      "tag": "landlord compliance",
+      "n": "1"
+    },
+    {
+      "tag": "hydrogen policy",
+      "n": "1"
+    },
+    {
+      "tag": "AI",
+      "n": "1"
+    },
+    {
+      "tag": "government_resources",
+      "n": "1"
+    },
+    {
+      "tag": "parliamentary proceedings",
+      "n": "1"
+    },
+    {
+      "tag": "HAF",
+      "n": "1"
+    },
+    {
+      "tag": "building permits",
+      "n": "1"
+    },
+    {
+      "tag": "Sustainability_Reporting",
+      "n": "1"
+    },
+    {
+      "tag": "Environment",
+      "n": "1"
+    },
+    {
+      "tag": "cyprus_government",
+      "n": "1"
+    },
+    {
+      "tag": "climate legislation",
+      "n": "1"
+    },
+    {
+      "tag": "marine_energy",
+      "n": "1"
+    },
+    {
+      "tag": "cost_of_energy",
+      "n": "1"
+    },
+    {
+      "tag": "Interoperability",
+      "n": "1"
+    },
+    {
+      "tag": "digital_euro",
+      "n": "1"
+    },
+    {
+      "tag": "EPC standards",
+      "n": "1"
+    },
+    {
+      "tag": "right_to_repair",
+      "n": "1"
+    },
+    {
+      "tag": "import_export",
+      "n": "1"
+    },
+    {
+      "tag": "vehicle_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "imo_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "texas_legislature",
+      "n": "1"
+    },
+    {
+      "tag": "european_environment",
+      "n": "1"
+    },
+    {
+      "tag": "Health Development",
+      "n": "1"
+    },
+    {
+      "tag": "aerodrome_procedures",
+      "n": "1"
+    },
+    {
+      "tag": "effective_dates",
+      "n": "1"
+    },
+    {
+      "tag": "ai_in_logistics",
+      "n": "1"
+    },
+    {
+      "tag": "eHGV trials",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_research",
+      "n": "1"
+    },
+    {
+      "tag": "ocean_shipping",
+      "n": "1"
+    },
+    {
+      "tag": "extreme_weather",
+      "n": "1"
+    },
+    {
+      "tag": "public_service",
+      "n": "1"
+    },
+    {
+      "tag": "EU_energy",
+      "n": "1"
+    },
+    {
+      "tag": "hong kong governance",
+      "n": "1"
+    },
+    {
+      "tag": "supply_chain_assessment",
+      "n": "1"
+    },
+    {
+      "tag": "maritime technology",
+      "n": "1"
+    },
+    {
+      "tag": "2023/1805",
+      "n": "1"
+    },
+    {
+      "tag": "climate-action",
+      "n": "1"
+    },
+    {
+      "tag": "drought",
+      "n": "1"
+    },
+    {
+      "tag": "EV_market",
+      "n": "1"
+    },
+    {
+      "tag": "forwarding_services",
+      "n": "1"
+    },
+    {
+      "tag": "indiana_government",
+      "n": "1"
+    },
+    {
+      "tag": "italian_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "strait_security",
+      "n": "1"
+    },
+    {
+      "tag": "digital_twin",
+      "n": "1"
+    },
+    {
+      "tag": "environmental management",
+      "n": "1"
+    },
+    {
+      "tag": "policy_assessment",
+      "n": "1"
+    },
+    {
+      "tag": "mobility",
+      "n": "1"
+    },
+    {
+      "tag": "personal_data_handling",
+      "n": "1"
+    },
+    {
+      "tag": "customs",
+      "n": "1"
+    },
+    {
+      "tag": "arkansas_state_government",
+      "n": "1"
+    },
+    {
+      "tag": "emissions_trading_systems",
+      "n": "1"
+    },
+    {
+      "tag": "luxembourg_parliament",
+      "n": "1"
+    },
+    {
+      "tag": "corruption prevention",
+      "n": "1"
+    },
+    {
+      "tag": "fiscal policy",
+      "n": "1"
+    },
+    {
+      "tag": "material_innovation",
+      "n": "1"
+    },
+    {
+      "tag": "tax reforms",
+      "n": "1"
+    },
+    {
+      "tag": "battery electric technology",
+      "n": "1"
+    },
+    {
+      "tag": "municipal_policy",
+      "n": "1"
+    },
+    {
+      "tag": "climate_energy",
+      "n": "1"
+    },
+    {
+      "tag": "real_estate_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "london_events",
+      "n": "1"
+    },
+    {
+      "tag": "Administrative Rules",
+      "n": "1"
+    },
+    {
+      "tag": "dry_bulk_market",
+      "n": "1"
+    },
+    {
+      "tag": "legal_resources",
+      "n": "1"
+    },
+    {
+      "tag": "truck monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "legislative agenda",
+      "n": "1"
+    },
+    {
+      "tag": "oil & gas",
+      "n": "1"
+    },
+    {
+      "tag": "design-build project",
+      "n": "1"
+    },
+    {
+      "tag": "compostable_packaging",
+      "n": "1"
+    },
+    {
+      "tag": "fiscal_session_2026",
+      "n": "1"
+    },
+    {
+      "tag": "green transition",
+      "n": "1"
+    },
+    {
+      "tag": "yukon",
+      "n": "1"
+    },
+    {
+      "tag": "recreational fishing",
+      "n": "1"
+    },
+    {
+      "tag": "territorial_development",
+      "n": "1"
+    },
+    {
+      "tag": "renewable_fuels",
+      "n": "1"
+    },
+    {
+      "tag": "permit modification",
+      "n": "1"
+    },
+    {
+      "tag": "french_government",
+      "n": "1"
+    },
+    {
+      "tag": "net zero transition",
+      "n": "1"
+    },
+    {
+      "tag": "accessibility",
+      "n": "1"
+    },
+    {
+      "tag": "oil and gas",
+      "n": "1"
+    },
+    {
+      "tag": "security",
+      "n": "1"
+    },
+    {
+      "tag": "battery_electric_technology",
+      "n": "1"
+    },
+    {
+      "tag": "challenge_process",
+      "n": "1"
+    },
+    {
+      "tag": "volkswagen",
+      "n": "1"
+    },
+    {
+      "tag": "international_expansion",
+      "n": "1"
+    },
+    {
+      "tag": "drinking water infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "Saskatchewan Services",
+      "n": "1"
+    },
+    {
+      "tag": "rental property compliance",
+      "n": "1"
+    },
+    {
+      "tag": "SDG_1_poverty",
+      "n": "1"
+    },
+    {
+      "tag": "Infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "asia_pacific",
+      "n": "1"
+    },
+    {
+      "tag": "compliance_enforcement",
+      "n": "1"
+    },
+    {
+      "tag": "beach_monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "Cybersecurity",
+      "n": "1"
+    },
+    {
+      "tag": "Singapore",
+      "n": "1"
+    },
+    {
+      "tag": "procurement_resilience",
+      "n": "1"
+    },
+    {
+      "tag": "insulation",
+      "n": "1"
+    },
+    {
+      "tag": "Parliamentary Operations",
+      "n": "1"
+    },
+    {
+      "tag": "asia-pacific-development",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_schedule",
+      "n": "1"
+    },
+    {
+      "tag": "spill_response",
+      "n": "1"
+    },
+    {
+      "tag": "Brazilian Transportation",
+      "n": "1"
+    },
+    {
+      "tag": "ESG_Compliance",
+      "n": "1"
+    },
+    {
+      "tag": "labor regulations",
+      "n": "1"
+    },
+    {
+      "tag": "pipeline_safety",
+      "n": "1"
+    },
+    {
+      "tag": "corporate_commitment",
+      "n": "1"
+    },
+    {
+      "tag": "digital_reporting",
+      "n": "1"
+    },
+    {
+      "tag": "venue_operations",
+      "n": "1"
+    },
+    {
+      "tag": "zero-emission technology",
+      "n": "1"
+    },
+    {
+      "tag": "administrative_procedure",
+      "n": "1"
+    },
+    {
+      "tag": "san_francisco_administration",
+      "n": "1"
+    },
+    {
+      "tag": "industrial_customers",
+      "n": "1"
+    },
+    {
+      "tag": "ozone_season",
+      "n": "1"
+    },
+    {
+      "tag": "CO2_emissions",
+      "n": "1"
+    },
+    {
+      "tag": "Community Building",
+      "n": "1"
+    },
+    {
+      "tag": "freight planning",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_restoration",
+      "n": "1"
+    },
+    {
+      "tag": "aviation sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "Land Management",
+      "n": "1"
+    },
+    {
+      "tag": "prototype trials",
+      "n": "1"
+    },
+    {
+      "tag": "funding_opportunities",
+      "n": "1"
+    },
+    {
+      "tag": "proposed regulations",
+      "n": "1"
+    },
+    {
+      "tag": "energy_reporting",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_technology",
+      "n": "1"
+    },
+    {
+      "tag": "shipping_sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_archive",
+      "n": "1"
+    },
+    {
+      "tag": "biogas alternative",
+      "n": "1"
+    },
+    {
+      "tag": "Cleaner Energy",
+      "n": "1"
+    },
+    {
+      "tag": "corporate_sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "ohio_government",
+      "n": "1"
+    },
+    {
+      "tag": "commercial_vehicle_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "ETS data",
+      "n": "1"
+    },
+    {
+      "tag": "general_motors",
+      "n": "1"
+    },
+    {
+      "tag": "eionet",
+      "n": "1"
+    },
+    {
+      "tag": "Mobility Research",
+      "n": "1"
+    },
+    {
+      "tag": "crisis_management",
+      "n": "1"
+    },
+    {
+      "tag": "climate_ambition",
+      "n": "1"
+    },
+    {
+      "tag": "executive_authority",
+      "n": "1"
+    },
+    {
+      "tag": "city_services",
+      "n": "1"
+    },
+    {
+      "tag": "government_business",
+      "n": "1"
+    },
+    {
+      "tag": "meeting_schedules",
+      "n": "1"
+    },
+    {
+      "tag": "grid_connected_power",
+      "n": "1"
+    },
+    {
+      "tag": "autism_acceptance",
+      "n": "1"
+    },
+    {
+      "tag": "aircraft_operations",
+      "n": "1"
+    },
+    {
+      "tag": "hazardous_materials_transportation",
+      "n": "1"
+    },
+    {
+      "tag": "Tanker Market",
+      "n": "1"
+    },
+    {
+      "tag": "Corporate Sustainability Strategy",
+      "n": "1"
+    },
+    {
+      "tag": "IMO standards",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_assembly",
+      "n": "1"
+    },
+    {
+      "tag": "shipping regulations",
+      "n": "1"
+    },
+    {
+      "tag": "Great_British_Railways",
+      "n": "1"
+    },
+    {
+      "tag": "hungarian_policy",
+      "n": "1"
+    },
+    {
+      "tag": "tariff_law",
+      "n": "1"
+    },
+    {
+      "tag": "legal_information",
+      "n": "1"
+    },
+    {
+      "tag": "ammonia_carriers",
+      "n": "1"
+    },
+    {
+      "tag": "branding_marketing",
+      "n": "1"
+    },
+    {
+      "tag": "open_source",
+      "n": "1"
+    },
+    {
+      "tag": "stakeholder engagement",
+      "n": "1"
+    },
+    {
+      "tag": "harmful_algal_blooms",
+      "n": "1"
+    },
+    {
+      "tag": "CAFE_standards",
+      "n": "1"
+    },
+    {
+      "tag": "delaware_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "noxious_liquids",
+      "n": "1"
+    },
+    {
+      "tag": "Nature Conservation",
+      "n": "1"
+    },
+    {
+      "tag": "zero_emission_corridors",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_permits",
+      "n": "1"
+    },
+    {
+      "tag": "asia_pacific_region",
+      "n": "1"
+    },
+    {
+      "tag": "housing",
+      "n": "1"
+    },
+    {
+      "tag": "climate adaptation",
+      "n": "1"
+    },
+    {
+      "tag": "cost of living",
+      "n": "1"
+    },
+    {
+      "tag": "parks_recreation",
+      "n": "1"
+    },
+    {
+      "tag": "zero_waste",
+      "n": "1"
+    },
+    {
+      "tag": "sustainability_ratings",
+      "n": "1"
+    },
+    {
+      "tag": "Green Building",
+      "n": "1"
+    },
+    {
+      "tag": "Panama Canal",
+      "n": "1"
+    },
+    {
+      "tag": "oregon_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "net-zero_industries",
+      "n": "1"
+    },
+    {
+      "tag": "compliance_standards",
+      "n": "1"
+    },
+    {
+      "tag": "infrastructure planning",
+      "n": "1"
+    },
+    {
+      "tag": "parking_permits",
+      "n": "1"
+    },
+    {
+      "tag": "housing preservation",
+      "n": "1"
+    },
+    {
+      "tag": "heat_resilience",
+      "n": "1"
+    },
+    {
+      "tag": "IMO_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "international climate obligations",
+      "n": "1"
+    },
+    {
+      "tag": "technology_automation",
+      "n": "1"
+    },
+    {
+      "tag": "anti_dumping",
+      "n": "1"
+    },
+    {
+      "tag": "LEA",
+      "n": "1"
+    },
+    {
+      "tag": "monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "shipping_ports",
+      "n": "1"
+    },
+    {
+      "tag": "charging infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "import/export",
+      "n": "1"
+    },
+    {
+      "tag": "fellowship program",
+      "n": "1"
+    },
+    {
+      "tag": "law enforcement",
+      "n": "1"
+    },
+    {
+      "tag": "human_rights",
+      "n": "1"
+    },
+    {
+      "tag": "climate_data",
+      "n": "1"
+    },
+    {
+      "tag": "geospatial data",
+      "n": "1"
+    },
+    {
+      "tag": "public_events",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_safety",
+      "n": "1"
+    },
+    {
+      "tag": "public_private_partnerships",
+      "n": "1"
+    },
+    {
+      "tag": "passenger vessels",
+      "n": "1"
+    },
+    {
+      "tag": "Polish Parliament",
+      "n": "1"
+    },
+    {
+      "tag": "EU greenhouse gas standards",
+      "n": "1"
+    },
+    {
+      "tag": "state regulations",
+      "n": "1"
+    },
+    {
+      "tag": "automotive_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_ports",
+      "n": "1"
+    },
+    {
+      "tag": "chicago_city_council",
+      "n": "1"
+    },
+    {
+      "tag": "resource assessment",
+      "n": "1"
+    },
+    {
+      "tag": "statutory_framework",
+      "n": "1"
+    },
+    {
+      "tag": "waterside_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable development goals",
+      "n": "1"
+    },
+    {
+      "tag": "Scope_3_Emissions",
+      "n": "1"
+    },
+    {
+      "tag": "freight-emissions",
+      "n": "1"
+    },
+    {
+      "tag": "project_cargo",
+      "n": "1"
+    },
+    {
+      "tag": "industrial_ai",
+      "n": "1"
+    },
+    {
+      "tag": "energy_storage",
+      "n": "1"
+    },
+    {
+      "tag": "driver_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_management",
+      "n": "1"
+    },
+    {
+      "tag": "water_services",
+      "n": "1"
+    },
+    {
+      "tag": "environmental investigation",
+      "n": "1"
+    },
+    {
+      "tag": "data_analytics",
+      "n": "1"
+    },
+    {
+      "tag": "permits",
+      "n": "1"
+    },
+    {
+      "tag": "automotive_industry",
+      "n": "1"
+    },
+    {
+      "tag": "SB_125",
+      "n": "1"
+    },
+    {
+      "tag": "nature_protection",
+      "n": "1"
+    },
+    {
+      "tag": "puerto_rico_governance",
+      "n": "1"
+    },
+    {
+      "tag": "environmental remediation",
+      "n": "1"
+    },
+    {
+      "tag": "service_maintenance",
+      "n": "1"
+    },
+    {
+      "tag": "Energy Statistics",
+      "n": "1"
+    },
+    {
+      "tag": "airfreight",
+      "n": "1"
+    },
+    {
+      "tag": "California_Energy_Commission",
+      "n": "1"
+    },
+    {
+      "tag": "state funding",
+      "n": "1"
+    },
+    {
+      "tag": "financial_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "intended_appointments",
+      "n": "1"
+    },
+    {
+      "tag": "Legislative Body",
+      "n": "1"
+    },
+    {
+      "tag": "legislation_registry",
+      "n": "1"
+    },
+    {
+      "tag": "Mining Regulations",
+      "n": "1"
+    },
+    {
+      "tag": "environmental impact assessment",
+      "n": "1"
+    },
+    {
+      "tag": "crew_welfare",
+      "n": "1"
+    },
+    {
+      "tag": "wastewater_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "industrial_decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "energy mapping",
+      "n": "1"
+    },
+    {
+      "tag": "youth_employment",
+      "n": "1"
+    },
+    {
+      "tag": "legislative",
+      "n": "1"
+    },
+    {
+      "tag": "government administration",
+      "n": "1"
+    },
+    {
+      "tag": "climate_risk_assessment",
+      "n": "1"
+    },
+    {
+      "tag": "trucking",
+      "n": "1"
+    },
+    {
+      "tag": "reproductive_healthcare_funding",
+      "n": "1"
+    },
+    {
+      "tag": "International relations",
+      "n": "1"
+    },
+    {
+      "tag": "war-risk insurance",
+      "n": "1"
+    },
+    {
+      "tag": "parliamentary procedure",
+      "n": "1"
+    },
+    {
+      "tag": "quebec",
+      "n": "1"
+    },
+    {
+      "tag": "greenhouse_gas_reduction",
+      "n": "1"
+    },
+    {
+      "tag": "Net Zero",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable products",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_services",
+      "n": "1"
+    },
+    {
+      "tag": "Legislative Framework",
+      "n": "1"
+    },
+    {
+      "tag": "wastewater",
+      "n": "1"
+    },
+    {
+      "tag": "commodity_markets",
+      "n": "1"
+    },
+    {
+      "tag": "ocean",
+      "n": "1"
+    },
+    {
+      "tag": "middle_east_security",
+      "n": "1"
+    },
+    {
+      "tag": "social security coordination",
+      "n": "1"
+    },
+    {
+      "tag": "highway infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "compliance_monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "livestock_movement",
+      "n": "1"
+    },
+    {
+      "tag": "EV Infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "policy",
+      "n": "1"
+    },
+    {
+      "tag": "phase 3 standards",
+      "n": "1"
+    },
+    {
+      "tag": "california_transportation",
+      "n": "1"
+    },
+    {
+      "tag": "capital_spending",
+      "n": "1"
+    },
+    {
+      "tag": "wetland_management",
+      "n": "1"
+    },
+    {
+      "tag": "adaptation and mitigation",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_tracking",
+      "n": "1"
+    },
+    {
+      "tag": "groundwater",
+      "n": "1"
+    },
+    {
+      "tag": "automotive_market",
+      "n": "1"
+    },
+    {
+      "tag": "construction_stormwater",
+      "n": "1"
+    },
+    {
+      "tag": "Competition",
+      "n": "1"
+    },
+    {
+      "tag": "responsible investing",
+      "n": "1"
+    },
+    {
+      "tag": "Maritime Decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "Environmental Sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "cultural_programs",
+      "n": "1"
+    },
+    {
+      "tag": "licensing",
+      "n": "1"
+    },
+    {
+      "tag": "hormuz_strait",
+      "n": "1"
+    },
+    {
+      "tag": "zero_emission_shipping",
+      "n": "1"
+    },
+    {
+      "tag": "irradiance_measurement",
+      "n": "1"
+    },
+    {
+      "tag": "zero emission vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "mass_management",
+      "n": "1"
+    },
+    {
+      "tag": "operational_discharge_controls",
+      "n": "1"
+    },
+    {
+      "tag": "food",
+      "n": "1"
+    },
+    {
+      "tag": "airport_expansion",
+      "n": "1"
+    },
+    {
+      "tag": "EU regulations",
+      "n": "1"
+    },
+    {
+      "tag": "groundwater_contamination",
+      "n": "1"
+    },
+    {
+      "tag": "biosecurity",
+      "n": "1"
+    },
+    {
+      "tag": "IPCC assessment",
+      "n": "1"
+    },
+    {
+      "tag": "security_verification",
+      "n": "1"
+    },
+    {
+      "tag": "Biosecurity",
+      "n": "1"
+    },
+    {
+      "tag": "mental_health",
+      "n": "1"
+    },
+    {
+      "tag": "reverse_logistics",
+      "n": "1"
+    },
+    {
+      "tag": "EU Mobility Package",
+      "n": "1"
+    },
+    {
+      "tag": "EPA Approval",
+      "n": "1"
+    },
+    {
+      "tag": "RPS_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "supply_chain_engineering",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_resource",
+      "n": "1"
+    },
+    {
+      "tag": "industrial_facility_closure",
+      "n": "1"
+    },
+    {
+      "tag": "shipping_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "emissions_limiting",
+      "n": "1"
+    },
+    {
+      "tag": "climate risk",
+      "n": "1"
+    },
+    {
+      "tag": "waste_export_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "climate regulation",
+      "n": "1"
+    },
+    {
+      "tag": "law_database",
+      "n": "1"
+    },
+    {
+      "tag": "Planning Regulation",
+      "n": "1"
+    },
+    {
+      "tag": "electric_transmission",
+      "n": "1"
+    },
+    {
+      "tag": "action",
+      "n": "1"
+    },
+    {
+      "tag": "synthetic_minor_sources",
+      "n": "1"
+    },
+    {
+      "tag": "Middle East disruption",
+      "n": "1"
+    },
+    {
+      "tag": "dangerous_goods",
+      "n": "1"
+    },
+    {
+      "tag": "export_requirements",
+      "n": "1"
+    },
+    {
+      "tag": "global_wage_trends",
+      "n": "1"
+    },
+    {
+      "tag": "state transportation policy",
+      "n": "1"
+    },
+    {
+      "tag": "net-zero emissions",
+      "n": "1"
+    },
+    {
+      "tag": "global_development",
+      "n": "1"
+    },
+    {
+      "tag": "public_notices",
+      "n": "1"
+    },
+    {
+      "tag": "war_risk",
+      "n": "1"
+    },
+    {
+      "tag": "manufacturing_capacity",
+      "n": "1"
+    },
+    {
+      "tag": "commercial trucks",
+      "n": "1"
+    },
+    {
+      "tag": "shipping_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "aviation decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "highway_freight",
+      "n": "1"
+    },
+    {
+      "tag": "women_representation",
+      "n": "1"
+    },
+    {
+      "tag": "water infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "Vehicle Emissions",
+      "n": "1"
+    },
+    {
+      "tag": "hantavirus",
+      "n": "1"
+    },
+    {
+      "tag": "e-governance",
+      "n": "1"
+    },
+    {
+      "tag": "commodity_pricing",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_footprinting",
+      "n": "1"
+    },
+    {
+      "tag": "fluorescent_lamps",
+      "n": "1"
+    },
+    {
+      "tag": "capacity_management",
+      "n": "1"
+    },
+    {
+      "tag": "indigenous_affairs",
+      "n": "1"
+    },
+    {
+      "tag": "budget_estimates",
+      "n": "1"
+    },
+    {
+      "tag": "rail_safety",
+      "n": "1"
+    },
+    {
+      "tag": "biogas facility",
+      "n": "1"
+    },
+    {
+      "tag": "administrative_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "international trade",
+      "n": "1"
+    },
+    {
+      "tag": "net_zero_strategy",
+      "n": "1"
+    },
+    {
+      "tag": "vehicle_safety",
+      "n": "1"
+    },
+    {
+      "tag": "asbestos_and_lead",
+      "n": "1"
+    },
+    {
+      "tag": "world heritage protection",
+      "n": "1"
+    },
+    {
+      "tag": "california-standards",
+      "n": "1"
+    },
+    {
+      "tag": "consumer_demand",
+      "n": "1"
+    },
+    {
+      "tag": "Parliamentary coordination",
+      "n": "1"
+    },
+    {
+      "tag": "Alabama_ADEM",
+      "n": "1"
+    },
+    {
+      "tag": "european_rail",
+      "n": "1"
+    },
+    {
+      "tag": "network_investment",
+      "n": "1"
+    },
+    {
+      "tag": "Asia-Europe routes",
+      "n": "1"
+    },
+    {
+      "tag": "chokepoint_monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "state_assembly",
+      "n": "1"
+    },
+    {
+      "tag": "fine_particles",
+      "n": "1"
+    },
+    {
+      "tag": "memorial services",
+      "n": "1"
+    },
+    {
+      "tag": "bill tracking",
+      "n": "1"
+    },
+    {
+      "tag": "natural_resources",
+      "n": "1"
+    },
+    {
+      "tag": "national planning",
+      "n": "1"
+    },
+    {
+      "tag": "oem_strategy",
+      "n": "1"
+    },
+    {
+      "tag": "building decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "ESG Disclosure",
+      "n": "1"
+    },
+    {
+      "tag": "Energy Data",
+      "n": "1"
+    },
+    {
+      "tag": "shipping industry news",
+      "n": "1"
+    },
+    {
+      "tag": "producer responsibility",
+      "n": "1"
+    },
+    {
+      "tag": "singapore_government",
+      "n": "1"
+    },
+    {
+      "tag": "law_enforcement_cooperation",
+      "n": "1"
+    },
+    {
+      "tag": "global_trends",
+      "n": "1"
+    },
+    {
+      "tag": "Federal Funding",
+      "n": "1"
+    },
+    {
+      "tag": "poverty_eradication",
+      "n": "1"
+    },
+    {
+      "tag": "Vehicle Technology",
+      "n": "1"
+    },
+    {
+      "tag": "pesticides",
+      "n": "1"
+    },
+    {
+      "tag": "Federal-State Conflict",
+      "n": "1"
+    },
+    {
+      "tag": "geopolitical_impact",
+      "n": "1"
+    },
+    {
+      "tag": "military_mobility",
+      "n": "1"
+    },
+    {
+      "tag": "cable_video_service",
+      "n": "1"
+    },
+    {
+      "tag": "election_administration",
+      "n": "1"
+    },
+    {
+      "tag": "europe-asia-partnership",
+      "n": "1"
+    },
+    {
+      "tag": "seasonal_market_impact",
+      "n": "1"
+    },
+    {
+      "tag": "minnesota_governance",
+      "n": "1"
+    },
+    {
+      "tag": "drought_response",
+      "n": "1"
+    },
+    {
+      "tag": "market_statistics",
+      "n": "1"
+    },
+    {
+      "tag": "website_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "corporate_responsibility",
+      "n": "1"
+    },
+    {
+      "tag": "utility_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "transparency",
+      "n": "1"
+    },
+    {
+      "tag": "household_goods_transport",
+      "n": "1"
+    },
+    {
+      "tag": "Small Modular Reactors (SMR)",
+      "n": "1"
+    },
+    {
+      "tag": "supplier_screening",
+      "n": "1"
+    },
+    {
+      "tag": "property_inheritance_tax",
+      "n": "1"
+    },
+    {
+      "tag": "CO2 Emissions Reduction",
+      "n": "1"
+    },
+    {
+      "tag": "ordinance_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "wind_power",
+      "n": "1"
+    },
+    {
+      "tag": "battery_innovation",
+      "n": "1"
+    },
+    {
+      "tag": "climate_framework",
+      "n": "1"
+    },
+    {
+      "tag": "state_planning",
+      "n": "1"
+    },
+    {
+      "tag": "newfoundland_labrador",
+      "n": "1"
+    },
+    {
+      "tag": "Circular Economy",
+      "n": "1"
+    },
+    {
+      "tag": "Geopolitical Risk",
+      "n": "1"
+    },
+    {
+      "tag": "Greenhouse Gas Emissions",
+      "n": "1"
+    },
+    {
+      "tag": "commercial_vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "parliamentary_business",
+      "n": "1"
+    },
+    {
+      "tag": "forest_protection",
+      "n": "1"
+    },
+    {
+      "tag": "local_policy",
+      "n": "1"
+    },
+    {
+      "tag": "quantum_computing",
+      "n": "1"
+    },
+    {
+      "tag": "revenue_forecasting",
+      "n": "1"
+    },
+    {
+      "tag": "hazmat_transport",
+      "n": "1"
+    },
+    {
+      "tag": "defense_strategy",
+      "n": "1"
+    },
+    {
+      "tag": "ESG_initiatives",
+      "n": "1"
+    },
+    {
+      "tag": "scope_3_emissions",
+      "n": "1"
+    },
+    {
+      "tag": "tax_incentives",
+      "n": "1"
+    },
+    {
+      "tag": "Science Based Targets",
+      "n": "1"
+    },
+    {
+      "tag": "net_zero_transition",
+      "n": "1"
+    },
+    {
+      "tag": "wetlands",
+      "n": "1"
+    },
+    {
+      "tag": "logistics_digitalization",
+      "n": "1"
+    },
+    {
+      "tag": "airline_operations",
+      "n": "1"
+    },
+    {
+      "tag": "climate_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "risk_assessment",
+      "n": "1"
+    },
+    {
+      "tag": "workforce_analytics",
+      "n": "1"
+    },
+    {
+      "tag": "Energy Information",
+      "n": "1"
+    },
+    {
+      "tag": "green_business",
+      "n": "1"
+    },
+    {
+      "tag": "contaminated_sites",
+      "n": "1"
+    },
+    {
+      "tag": "tourism",
+      "n": "1"
+    },
+    {
+      "tag": "Agriculture",
+      "n": "1"
+    },
+    {
+      "tag": "NEVI Program",
+      "n": "1"
+    },
+    {
+      "tag": "customer_assistance",
+      "n": "1"
+    },
+    {
+      "tag": "Global Environment Facility",
+      "n": "1"
+    },
+    {
+      "tag": "Resilience",
+      "n": "1"
+    },
+    {
+      "tag": "Government Portal",
+      "n": "1"
+    },
+    {
+      "tag": "PFAS_contamination",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_terrestrial_zone",
+      "n": "1"
+    },
+    {
+      "tag": "fan_travel",
+      "n": "1"
+    },
+    {
+      "tag": "lifecycle_assessment",
+      "n": "1"
+    },
+    {
+      "tag": "energy forecasting",
+      "n": "1"
+    },
+    {
+      "tag": "landlord obligations",
+      "n": "1"
+    },
+    {
+      "tag": "rural_affairs",
+      "n": "1"
+    },
+    {
+      "tag": "road freight decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "Digital Markets",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_development_goals",
+      "n": "1"
+    },
+    {
+      "tag": "road transport",
+      "n": "1"
+    },
+    {
+      "tag": "Japanese Parliament",
+      "n": "1"
+    },
+    {
+      "tag": "Czech Parliament",
+      "n": "1"
+    },
+    {
+      "tag": "lithium_ion_batteries",
+      "n": "1"
+    },
+    {
+      "tag": "recyclable_content",
+      "n": "1"
+    },
+    {
+      "tag": "metrology",
+      "n": "1"
+    },
+    {
+      "tag": "fuel supply obligation",
+      "n": "1"
+    },
+    {
+      "tag": "Railways",
+      "n": "1"
+    },
+    {
+      "tag": "workplace_safety",
+      "n": "1"
+    },
+    {
+      "tag": "Climate Change",
+      "n": "1"
+    },
+    {
+      "tag": "financial_assistance",
+      "n": "1"
+    },
+    {
+      "tag": "manitoba",
+      "n": "1"
+    },
+    {
+      "tag": "zero_emissions_technologies",
+      "n": "1"
+    },
+    {
+      "tag": "arizona_legislature",
+      "n": "1"
+    },
+    {
+      "tag": "Chinese Legal System",
+      "n": "1"
+    },
+    {
+      "tag": "port_security",
+      "n": "1"
+    },
+    {
+      "tag": "public_awareness",
+      "n": "1"
+    },
+    {
+      "tag": "radiation",
+      "n": "1"
+    },
+    {
+      "tag": "economic_partnership_agreements",
+      "n": "1"
+    },
+    {
+      "tag": "European Union law",
+      "n": "1"
+    },
+    {
+      "tag": "multilateral-development-bank",
+      "n": "1"
+    },
+    {
+      "tag": "dmv_services",
+      "n": "1"
+    },
+    {
+      "tag": "oecd_publications",
+      "n": "1"
+    },
+    {
+      "tag": "senate_operations",
+      "n": "1"
+    },
+    {
+      "tag": "carbon emissions",
+      "n": "1"
+    },
+    {
+      "tag": "nuclear_fusion",
+      "n": "1"
+    },
+    {
+      "tag": "alabama_legislature",
+      "n": "1"
+    },
+    {
+      "tag": "forest_fire",
+      "n": "1"
+    },
+    {
+      "tag": "lead_testing",
+      "n": "1"
+    },
+    {
+      "tag": "corporate_power_purchase_agreements",
+      "n": "1"
+    },
+    {
+      "tag": "Administrative Regulations",
+      "n": "1"
+    },
+    {
+      "tag": "net_zero_framework",
+      "n": "1"
+    },
+    {
+      "tag": "fuel excise tax",
+      "n": "1"
+    },
+    {
+      "tag": "safeguard_measures",
+      "n": "1"
+    },
+    {
+      "tag": "long_term_strategy",
+      "n": "1"
+    },
+    {
+      "tag": "parliamentary_activity",
+      "n": "1"
+    },
+    {
+      "tag": "IMO_2023_GHG_Strategy",
+      "n": "1"
+    },
+    {
+      "tag": "healthcare",
+      "n": "1"
+    },
+    {
+      "tag": "ammonia production",
+      "n": "1"
+    },
+    {
+      "tag": "building performance",
+      "n": "1"
+    },
+    {
+      "tag": "logistics strategy",
+      "n": "1"
+    },
+    {
+      "tag": "climate commitment",
+      "n": "1"
+    },
+    {
+      "tag": "humanoid_robotics",
+      "n": "1"
+    },
+    {
+      "tag": "Double Materiality",
+      "n": "1"
+    },
+    {
+      "tag": "model year 2027",
+      "n": "1"
+    },
+    {
+      "tag": "idaho_state_government",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_materials",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_construction",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_scheduling",
+      "n": "1"
+    },
+    {
+      "tag": "access_error",
+      "n": "1"
+    },
+    {
+      "tag": "alternative_maritime_power",
+      "n": "1"
+    },
+    {
+      "tag": "trade_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "environmental education",
+      "n": "1"
+    },
+    {
+      "tag": "house_rules",
+      "n": "1"
+    },
+    {
+      "tag": "demographic_challenge",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_capture_storage",
+      "n": "1"
+    },
+    {
+      "tag": "century_code",
+      "n": "1"
+    },
+    {
+      "tag": "CWS",
+      "n": "1"
+    },
+    {
+      "tag": "technology_assessment",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_guidelines",
+      "n": "1"
+    },
+    {
+      "tag": "Data Access",
+      "n": "1"
+    },
+    {
+      "tag": "illinois_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "urban resilience",
+      "n": "1"
+    },
+    {
+      "tag": "electric heavy goods vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "institutional_information",
+      "n": "1"
+    },
+    {
+      "tag": "aviation fuel suppliers",
+      "n": "1"
+    },
+    {
+      "tag": "chemical_safety",
+      "n": "1"
+    },
+    {
+      "tag": "waste classification",
+      "n": "1"
+    },
+    {
+      "tag": "NDC_implementation",
+      "n": "1"
+    },
+    {
+      "tag": "esg",
+      "n": "1"
+    },
+    {
+      "tag": "land_quality",
+      "n": "1"
+    },
+    {
+      "tag": "parliamentary_schedule",
+      "n": "1"
+    },
+    {
+      "tag": "hydrogen_technologies",
+      "n": "1"
+    },
+    {
+      "tag": "National Commemorations",
+      "n": "1"
+    },
+    {
+      "tag": "logistics_technology",
+      "n": "1"
+    },
+    {
+      "tag": "producer_prices",
+      "n": "1"
+    },
+    {
+      "tag": "middle_east_energy",
+      "n": "1"
+    },
+    {
+      "tag": "government_oversight",
+      "n": "1"
+    },
+    {
+      "tag": "cargo_insurance",
+      "n": "1"
+    },
+    {
+      "tag": "Public-Private Partnerships",
+      "n": "1"
+    },
+    {
+      "tag": "power_generation_costs",
+      "n": "1"
+    },
+    {
+      "tag": "missouri_government",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_transport",
+      "n": "1"
+    },
+    {
+      "tag": "Ohio Law",
+      "n": "1"
+    },
+    {
+      "tag": "natural_protected_areas",
+      "n": "1"
+    },
+    {
+      "tag": "board_of_supervisors",
+      "n": "1"
+    },
+    {
+      "tag": "existing_buildings",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable built environment",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_authority",
+      "n": "1"
+    },
+    {
+      "tag": "iot_integration",
+      "n": "1"
+    },
+    {
+      "tag": "CCR Permit Program",
+      "n": "1"
+    },
+    {
+      "tag": "Parliamentary Sessions",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_sessions",
+      "n": "1"
+    },
+    {
+      "tag": "SWFP",
+      "n": "1"
+    },
+    {
+      "tag": "permits_licensing",
+      "n": "1"
+    },
+    {
+      "tag": "maintenance_management",
+      "n": "1"
+    },
+    {
+      "tag": "hazardous materials",
+      "n": "1"
+    },
+    {
+      "tag": "construction_permits",
+      "n": "1"
+    },
+    {
+      "tag": "rate_accountability",
+      "n": "1"
+    },
+    {
+      "tag": "Emissions Reduction",
+      "n": "1"
+    },
+    {
+      "tag": "pricing",
+      "n": "1"
+    },
+    {
+      "tag": "price_data",
+      "n": "1"
+    },
+    {
+      "tag": "cost_reduction",
+      "n": "1"
+    },
+    {
+      "tag": "Sustainability Disclosure",
+      "n": "1"
+    },
+    {
+      "tag": "LEED Certification",
+      "n": "1"
+    },
+    {
+      "tag": "vehicle technology",
+      "n": "1"
+    },
+    {
+      "tag": "cookies",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_assessments",
+      "n": "1"
+    },
+    {
+      "tag": "supply chain",
+      "n": "1"
+    },
+    {
+      "tag": "national_park",
+      "n": "1"
+    },
+    {
+      "tag": "fishing education",
+      "n": "1"
+    },
+    {
+      "tag": "road_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "hawaii",
+      "n": "1"
+    },
+    {
+      "tag": "GHG Emissions",
+      "n": "1"
+    },
+    {
+      "tag": "fuel cells",
+      "n": "1"
+    },
+    {
+      "tag": "health_services",
+      "n": "1"
+    },
+    {
+      "tag": "electronic_traceability",
+      "n": "1"
+    },
+    {
+      "tag": "SDG_2_hunger",
+      "n": "1"
+    },
+    {
+      "tag": "marine_pollution_prevention",
+      "n": "1"
+    },
+    {
+      "tag": "professional_services",
+      "n": "1"
+    },
+    {
+      "tag": "vehicle_inspections",
+      "n": "1"
+    },
+    {
+      "tag": "Japan",
+      "n": "1"
+    },
+    {
+      "tag": "electric vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "migratory_species",
+      "n": "1"
+    },
+    {
+      "tag": "academic_research",
+      "n": "1"
+    },
+    {
+      "tag": "networking",
+      "n": "1"
+    },
+    {
+      "tag": "EU ETS",
+      "n": "1"
+    },
+    {
+      "tag": "federal_incentives",
+      "n": "1"
+    },
+    {
+      "tag": "agricultural_trade",
+      "n": "1"
+    },
+    {
+      "tag": "Legislative Proposal",
+      "n": "1"
+    },
+    {
+      "tag": "environmental assessment",
+      "n": "1"
+    },
+    {
+      "tag": "fish_passage",
+      "n": "1"
+    },
+    {
+      "tag": "tender_rejection_rates",
+      "n": "1"
+    },
+    {
+      "tag": "air_pollution",
+      "n": "1"
+    },
+    {
+      "tag": "Clean Water Act",
+      "n": "1"
+    },
+    {
+      "tag": "rail_network",
+      "n": "1"
+    },
+    {
+      "tag": "toronto_city_council",
+      "n": "1"
+    },
+    {
+      "tag": "private_rental_property",
+      "n": "1"
+    },
+    {
+      "tag": "air_permits",
+      "n": "1"
+    },
+    {
+      "tag": "23_USC_175",
+      "n": "1"
+    },
+    {
+      "tag": "fluorinated_gases",
+      "n": "1"
+    },
+    {
+      "tag": "judicial_reform",
+      "n": "1"
+    },
+    {
+      "tag": "Shadow Fleet",
+      "n": "1"
+    },
+    {
+      "tag": "DTLA",
+      "n": "1"
+    },
+    {
+      "tag": "marine regulations",
+      "n": "1"
+    },
+    {
+      "tag": "Government Operations",
+      "n": "1"
+    },
+    {
+      "tag": "technical_issue",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_capture",
+      "n": "1"
+    },
+    {
+      "tag": "land_contamination",
+      "n": "1"
+    },
+    {
+      "tag": "transportation_networks",
+      "n": "1"
+    },
+    {
+      "tag": "climate_pathway",
+      "n": "1"
+    },
+    {
+      "tag": "SAF mandate",
+      "n": "1"
+    },
+    {
+      "tag": "tractors",
+      "n": "1"
+    },
+    {
+      "tag": "human safety",
+      "n": "1"
+    },
+    {
+      "tag": "unicameral_legislature",
+      "n": "1"
+    },
+    {
+      "tag": "waste-to-energy",
+      "n": "1"
+    },
+    {
+      "tag": "transport_logistics",
+      "n": "1"
+    },
+    {
+      "tag": "Regulatory Compliance",
+      "n": "1"
+    },
+    {
+      "tag": "immunization",
+      "n": "1"
+    },
+    {
+      "tag": "energy_intensive_industries",
+      "n": "1"
+    },
+    {
+      "tag": "customs_procedure",
+      "n": "1"
+    },
+    {
+      "tag": "compliance_reference",
+      "n": "1"
+    },
+    {
+      "tag": "compliance_resources",
+      "n": "1"
+    },
+    {
+      "tag": "administrative_rulemaking",
+      "n": "1"
+    },
+    {
+      "tag": "conflict-of-interest codes",
+      "n": "1"
+    },
+    {
+      "tag": "Environmental Policy",
+      "n": "1"
+    },
+    {
+      "tag": "public_lands",
+      "n": "1"
+    },
+    {
+      "tag": "European Hydrogen Bank",
+      "n": "1"
+    },
+    {
+      "tag": "statutory_information",
+      "n": "1"
+    },
+    {
+      "tag": "battery_electric_vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable mobility",
+      "n": "1"
+    },
+    {
+      "tag": "climate_laws",
+      "n": "1"
+    },
+    {
+      "tag": "m&a_activity",
+      "n": "1"
+    },
+    {
+      "tag": "price transparency",
+      "n": "1"
+    },
+    {
+      "tag": "Sustainable Development",
+      "n": "1"
+    },
+    {
+      "tag": "PFAS Contamination",
+      "n": "1"
+    },
+    {
+      "tag": "Constitutional Law",
+      "n": "1"
+    },
+    {
+      "tag": "EU Emissions Trading System",
+      "n": "1"
+    },
+    {
+      "tag": "transport decarbonisation",
+      "n": "1"
+    },
+    {
+      "tag": "resource development",
+      "n": "1"
+    },
+    {
+      "tag": "private rented property",
+      "n": "1"
+    },
+    {
+      "tag": "beach_safety",
+      "n": "1"
+    },
+    {
+      "tag": "international cooperation",
+      "n": "1"
+    },
+    {
+      "tag": "LEA determination",
+      "n": "1"
+    },
+    {
+      "tag": "rail_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "transpacific_trade",
+      "n": "1"
+    },
+    {
+      "tag": "emergency_management",
+      "n": "1"
+    },
+    {
+      "tag": "CPG market",
+      "n": "1"
+    },
+    {
+      "tag": "international_energy",
+      "n": "1"
+    },
+    {
+      "tag": "ETS",
+      "n": "1"
+    },
+    {
+      "tag": "light commercial vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "contingency_planning",
+      "n": "1"
+    },
+    {
+      "tag": "Energy Efficiency",
+      "n": "1"
+    },
+    {
+      "tag": "motor_carrier_safety",
+      "n": "1"
+    },
+    {
+      "tag": "social_vulnerability",
+      "n": "1"
+    },
+    {
+      "tag": "Environmental Administration",
+      "n": "1"
+    },
+    {
+      "tag": "mining",
+      "n": "1"
+    },
+    {
+      "tag": "business_leadership",
+      "n": "1"
+    },
+    {
+      "tag": "environmental monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "ecological protection",
+      "n": "1"
+    },
+    {
+      "tag": "public-private-partnerships",
+      "n": "1"
+    },
+    {
+      "tag": "short_term_outlook",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_alert",
+      "n": "1"
+    },
+    {
+      "tag": "chilean_law",
+      "n": "1"
+    },
+    {
+      "tag": "solar energy",
+      "n": "1"
+    },
+    {
+      "tag": "operational_efficiency",
+      "n": "1"
+    },
+    {
+      "tag": "land_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "Regulatory Database",
+      "n": "1"
+    },
+    {
+      "tag": "Internal market",
+      "n": "1"
+    },
+    {
+      "tag": "desertification",
+      "n": "1"
+    },
+    {
+      "tag": "drug_testing",
+      "n": "1"
+    },
+    {
+      "tag": "board_governance",
+      "n": "1"
+    },
+    {
+      "tag": "guam",
+      "n": "1"
+    },
+    {
+      "tag": "climate_hazards",
+      "n": "1"
+    },
+    {
+      "tag": "producer_responsibility",
+      "n": "1"
+    },
+    {
+      "tag": "emission_credits",
+      "n": "1"
+    },
+    {
+      "tag": "acceleration",
+      "n": "1"
+    },
+    {
+      "tag": "hydrogen transport",
+      "n": "1"
+    },
+    {
+      "tag": "development_applications",
+      "n": "1"
+    },
+    {
+      "tag": "minor_source_facilities",
+      "n": "1"
+    },
+    {
+      "tag": "cooling_solutions",
+      "n": "1"
+    },
+    {
+      "tag": "US_investment",
+      "n": "1"
+    },
+    {
+      "tag": "clean_vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "legal code",
+      "n": "1"
+    },
+    {
+      "tag": "ACT_government",
+      "n": "1"
+    },
+    {
+      "tag": "digital_finance",
+      "n": "1"
+    },
+    {
+      "tag": "tolls and emissions",
+      "n": "1"
+    },
+    {
+      "tag": "housing_lottery",
+      "n": "1"
+    },
+    {
+      "tag": "Aviation Climate Policy",
+      "n": "1"
+    },
+    {
+      "tag": "Coal Combustion Residuals",
+      "n": "1"
+    },
+    {
+      "tag": "electricity markets",
+      "n": "1"
+    },
+    {
+      "tag": "compliance requirement",
+      "n": "1"
+    },
+    {
+      "tag": "IMO_Net_Zero_Framework",
+      "n": "1"
+    },
+    {
+      "tag": "freight_transportation",
+      "n": "1"
+    },
+    {
+      "tag": "waste_reduction",
+      "n": "1"
+    },
+    {
+      "tag": "vessel_access",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_aviation_fuel",
+      "n": "1"
+    },
+    {
+      "tag": "chemical_substances",
+      "n": "1"
+    },
+    {
+      "tag": "infectious_disease",
+      "n": "1"
+    },
+    {
+      "tag": "water_utilities",
+      "n": "1"
+    },
+    {
+      "tag": "government_access",
+      "n": "1"
+    },
+    {
+      "tag": "port operations",
+      "n": "1"
+    },
+    {
+      "tag": "autonomous-driving",
+      "n": "1"
+    },
+    {
+      "tag": "CORSIA",
+      "n": "1"
+    },
+    {
+      "tag": "Carbon_Emissions",
+      "n": "1"
+    },
+    {
+      "tag": "emissions_trading",
+      "n": "1"
+    },
+    {
+      "tag": "Open Data Portal",
+      "n": "1"
+    },
+    {
+      "tag": "executive_orders",
+      "n": "1"
+    },
+    {
+      "tag": "fjord protection",
+      "n": "1"
+    },
+    {
+      "tag": "Natura_2000",
+      "n": "1"
+    },
+    {
+      "tag": "constituency_information",
+      "n": "1"
+    },
+    {
+      "tag": "cultural_heritage",
+      "n": "1"
+    },
+    {
+      "tag": "catalytic_converters",
+      "n": "1"
+    },
+    {
+      "tag": "state_publications",
+      "n": "1"
+    },
+    {
+      "tag": "road_freight",
+      "n": "1"
+    },
+    {
+      "tag": "Sustainable Construction",
+      "n": "1"
+    },
+    {
+      "tag": "maritime_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "green hydrogen",
+      "n": "1"
+    },
+    {
+      "tag": "government_reports",
+      "n": "1"
+    },
+    {
+      "tag": "disease_surveillance",
+      "n": "1"
+    },
+    {
+      "tag": "Industry policy",
+      "n": "1"
+    },
+    {
+      "tag": "Legislative Activities",
+      "n": "1"
+    },
+    {
+      "tag": "water_reporting",
+      "n": "1"
+    },
+    {
+      "tag": "transport_decarbonisation",
+      "n": "1"
+    },
+    {
+      "tag": "energy_modeling",
+      "n": "1"
+    },
+    {
+      "tag": "shipping",
+      "n": "1"
+    },
+    {
+      "tag": "government_formation",
+      "n": "1"
+    },
+    {
+      "tag": "Environmental Protection",
+      "n": "1"
+    },
+    {
+      "tag": "MLIT",
+      "n": "1"
+    },
+    {
+      "tag": "phase 3",
+      "n": "1"
+    },
+    {
+      "tag": "selective_collection",
+      "n": "1"
+    },
+    {
+      "tag": "policy_leadership",
+      "n": "1"
+    },
+    {
+      "tag": "state_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "provincial_administration",
+      "n": "1"
+    },
+    {
+      "tag": "hydrogen production",
+      "n": "1"
+    },
+    {
+      "tag": "government_systems",
+      "n": "1"
+    },
+    {
+      "tag": "SDG_13",
+      "n": "1"
+    },
+    {
+      "tag": "planning amendment",
+      "n": "1"
+    },
+    {
+      "tag": "biological_resources",
+      "n": "1"
+    },
+    {
+      "tag": "digital_careers",
+      "n": "1"
+    },
+    {
+      "tag": "bills",
+      "n": "1"
+    },
+    {
+      "tag": "social vulnerability",
+      "n": "1"
+    },
+    {
+      "tag": "fleet_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "committee_business",
+      "n": "1"
+    },
+    {
+      "tag": "tariffs",
+      "n": "1"
+    },
+    {
+      "tag": "fuel_alternatives",
+      "n": "1"
+    },
+    {
+      "tag": "inclusive growth",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_remediation",
+      "n": "1"
+    },
+    {
+      "tag": "indigenous_collaboration",
+      "n": "1"
+    },
+    {
+      "tag": "NYC sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "cabinet_appointments",
+      "n": "1"
+    },
+    {
+      "tag": "fine_particulate_matter",
+      "n": "1"
+    },
+    {
+      "tag": "chamber_operations",
+      "n": "1"
+    },
+    {
+      "tag": "MEPC_resolution",
+      "n": "1"
+    },
+    {
+      "tag": "zero_emission_vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_data",
+      "n": "1"
+    },
+    {
+      "tag": "labor shortage",
+      "n": "1"
+    },
+    {
+      "tag": "blue hydrogen",
+      "n": "1"
+    },
+    {
+      "tag": "ESG Reporting",
+      "n": "1"
+    },
+    {
+      "tag": "expert review",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable-transport",
+      "n": "1"
+    },
+    {
+      "tag": "IMO_net_zero_framework",
+      "n": "1"
+    },
+    {
+      "tag": "talent development",
+      "n": "1"
+    },
+    {
+      "tag": "DC_governance",
+      "n": "1"
+    },
+    {
+      "tag": "vehicle roadworthiness",
+      "n": "1"
+    },
+    {
+      "tag": "montana_statutes",
+      "n": "1"
+    },
+    {
+      "tag": "grid analysis",
+      "n": "1"
+    },
+    {
+      "tag": "regional_resilience",
+      "n": "1"
+    },
+    {
+      "tag": "session_schedules",
+      "n": "1"
+    },
+    {
+      "tag": "Latin America",
+      "n": "1"
+    },
+    {
+      "tag": "government_conflict_of_interest",
+      "n": "1"
+    },
+    {
+      "tag": "Charging Standards",
+      "n": "1"
+    },
+    {
+      "tag": "tanker_markets",
+      "n": "1"
+    },
+    {
+      "tag": "US_energy_market",
+      "n": "1"
+    },
+    {
+      "tag": "electoral_boundaries",
+      "n": "1"
+    },
+    {
+      "tag": "market_mechanisms",
+      "n": "1"
+    },
+    {
+      "tag": "World Heritage protection",
+      "n": "1"
+    },
+    {
+      "tag": "organization",
+      "n": "1"
+    },
+    {
+      "tag": "carbon markets",
+      "n": "1"
+    },
+    {
+      "tag": "shanghai_governance",
+      "n": "1"
+    },
+    {
+      "tag": "capital_markets_union",
+      "n": "1"
+    },
+    {
+      "tag": "pet_travel",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_framework",
+      "n": "1"
+    },
+    {
+      "tag": "oil_and_gas",
+      "n": "1"
+    },
+    {
+      "tag": "heavy-duty-vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "energy_forecasting",
+      "n": "1"
+    },
+    {
+      "tag": "wages",
+      "n": "1"
+    },
+    {
+      "tag": "2030 agenda",
+      "n": "1"
+    },
+    {
+      "tag": "public notice",
+      "n": "1"
+    },
+    {
+      "tag": "Climate Policy",
+      "n": "1"
+    },
+    {
+      "tag": "online_gambling",
+      "n": "1"
+    },
+    {
+      "tag": "task_forces",
+      "n": "1"
+    },
+    {
+      "tag": "emissions_accountability",
+      "n": "1"
+    },
+    {
+      "tag": "performance indicators",
+      "n": "1"
+    },
+    {
+      "tag": "AI governance",
+      "n": "1"
+    },
+    {
+      "tag": "consumer behavior",
+      "n": "1"
+    },
+    {
+      "tag": "futures_prices",
+      "n": "1"
+    },
+    {
+      "tag": "european_partnership",
+      "n": "1"
+    },
+    {
+      "tag": "climate_technologies",
+      "n": "1"
+    },
+    {
+      "tag": "Public Records",
+      "n": "1"
+    },
+    {
+      "tag": "Cleanup & Reclamation",
+      "n": "1"
+    },
+    {
+      "tag": "website_governance",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_neutral_ports",
+      "n": "1"
+    },
+    {
+      "tag": "competitive_landscape",
+      "n": "1"
+    },
+    {
+      "tag": "green building",
+      "n": "1"
+    },
+    {
+      "tag": "healthcare_data",
+      "n": "1"
+    },
+    {
+      "tag": "port_competition",
+      "n": "1"
+    },
+    {
+      "tag": "motor_vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "trucking_capacity",
+      "n": "1"
+    },
+    {
+      "tag": "public_governance",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_permitting",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_transport",
+      "n": "1"
+    },
+    {
+      "tag": "industry_conference",
+      "n": "1"
+    },
+    {
+      "tag": "lead_copper_rule",
+      "n": "1"
+    },
+    {
+      "tag": "automated-vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "trade and environment",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_packaging",
+      "n": "1"
+    },
+    {
+      "tag": "EPR_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "expert_review",
+      "n": "1"
+    },
+    {
+      "tag": "new_york_state",
+      "n": "1"
+    },
+    {
+      "tag": "port_state_control",
+      "n": "1"
+    },
+    {
+      "tag": "freight",
+      "n": "1"
+    },
+    {
+      "tag": "oecd_policy",
+      "n": "1"
+    },
+    {
+      "tag": "market_trends",
+      "n": "1"
+    },
+    {
+      "tag": "energy_star_program",
+      "n": "1"
+    },
+    {
+      "tag": "alberta_administration",
+      "n": "1"
+    },
+    {
+      "tag": "energy_sector",
+      "n": "1"
+    },
+    {
+      "tag": "passenger ships",
+      "n": "1"
+    },
+    {
+      "tag": "parliamentary_affairs",
+      "n": "1"
+    },
+    {
+      "tag": "statutory_compilation",
+      "n": "1"
+    },
+    {
+      "tag": "resilience_planning",
+      "n": "1"
+    },
+    {
+      "tag": "automotive repair",
+      "n": "1"
+    },
+    {
+      "tag": "parks_conservation",
+      "n": "1"
+    },
+    {
+      "tag": "fisheries_policy",
+      "n": "1"
+    },
+    {
+      "tag": "official_publications",
+      "n": "1"
+    },
+    {
+      "tag": "fraud_prevention",
+      "n": "1"
+    },
+    {
+      "tag": "supply chains",
+      "n": "1"
+    },
+    {
+      "tag": "australian_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "climate_finance",
+      "n": "1"
+    },
+    {
+      "tag": "capacity_building",
+      "n": "1"
+    },
+    {
+      "tag": "Legal instrument",
+      "n": "1"
+    },
+    {
+      "tag": "live_music_industry",
+      "n": "1"
+    },
+    {
+      "tag": "state_incentives",
+      "n": "1"
+    },
+    {
+      "tag": "data_platform",
+      "n": "1"
+    },
+    {
+      "tag": "marine protection",
+      "n": "1"
+    },
+    {
+      "tag": "insurance_liability",
+      "n": "1"
+    },
+    {
+      "tag": "freight_mobility",
+      "n": "1"
+    },
+    {
+      "tag": "climate_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "industrial_trade",
+      "n": "1"
+    },
+    {
+      "tag": "municipal_compliance",
+      "n": "1"
+    },
+    {
+      "tag": "validation",
+      "n": "1"
+    },
+    {
+      "tag": "climate_governance",
+      "n": "1"
+    },
+    {
+      "tag": "rail_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "footprinting_reporting",
+      "n": "1"
+    },
+    {
+      "tag": "Arizona construction",
+      "n": "1"
+    },
+    {
+      "tag": "mid-year 2025 outlook",
+      "n": "1"
+    },
+    {
+      "tag": "EU Regulations",
+      "n": "1"
+    },
+    {
+      "tag": "colorado_statutes",
+      "n": "1"
+    },
+    {
+      "tag": "real_estate",
+      "n": "1"
+    },
+    {
+      "tag": "consumer_behavior",
+      "n": "1"
+    },
+    {
+      "tag": "road freight",
+      "n": "1"
+    },
+    {
+      "tag": "eu_affairs",
+      "n": "1"
+    },
+    {
+      "tag": "PCR_mandates",
+      "n": "1"
+    },
+    {
+      "tag": "energy infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "light_duty_vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "customs_classification",
+      "n": "1"
+    },
+    {
+      "tag": "Global Reporting Initiative",
+      "n": "1"
+    },
+    {
+      "tag": "net zero targets",
+      "n": "1"
+    },
+    {
+      "tag": "stationary_sources",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_agency",
+      "n": "1"
+    },
+    {
+      "tag": "artificial_intelligence",
+      "n": "1"
+    },
+    {
+      "tag": "war_risk_insurance",
+      "n": "1"
+    },
+    {
+      "tag": "compensation_analysis",
+      "n": "1"
+    },
+    {
+      "tag": "legislation_tracking",
+      "n": "1"
+    },
+    {
+      "tag": "diesel_testing",
+      "n": "1"
+    },
+    {
+      "tag": "algorithmic transparency",
+      "n": "1"
+    },
+    {
+      "tag": "gender_inclusion",
+      "n": "1"
+    },
+    {
+      "tag": "shipping_disruption",
+      "n": "1"
+    },
+    {
+      "tag": "technology_committee",
+      "n": "1"
+    },
+    {
+      "tag": "multimodal transportation",
+      "n": "1"
+    },
+    {
+      "tag": "container shipping",
+      "n": "1"
+    },
+    {
+      "tag": "public_agencies",
+      "n": "1"
+    },
+    {
+      "tag": "special_areas",
+      "n": "1"
+    },
+    {
+      "tag": "city_council",
+      "n": "1"
+    },
+    {
+      "tag": "access_issue",
+      "n": "1"
+    },
+    {
+      "tag": "cookie_management",
+      "n": "1"
+    },
+    {
+      "tag": "disadvantaged_communities",
+      "n": "1"
+    },
+    {
+      "tag": "economic_competitiveness",
+      "n": "1"
+    },
+    {
+      "tag": "Alternative Fuels",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_news",
+      "n": "1"
+    },
+    {
+      "tag": "green_hydrogen",
+      "n": "1"
+    },
+    {
+      "tag": "lorries_buses_coaches",
+      "n": "1"
+    },
+    {
+      "tag": "heat_decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "river_herring",
+      "n": "1"
+    },
+    {
+      "tag": "EPC rating",
+      "n": "1"
+    },
+    {
+      "tag": "vans",
+      "n": "1"
+    },
+    {
+      "tag": "Clean Energy",
+      "n": "1"
+    },
+    {
+      "tag": "clean_air_action_plan",
+      "n": "1"
+    },
+    {
+      "tag": "government_engagement",
+      "n": "1"
+    },
+    {
+      "tag": "spanish_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "forests",
+      "n": "1"
+    },
+    {
+      "tag": "washington_state",
+      "n": "1"
+    },
+    {
+      "tag": "transit_program",
+      "n": "1"
+    },
+    {
+      "tag": "botanist_ecologist",
+      "n": "1"
+    },
+    {
+      "tag": "supply_chain_resilience",
+      "n": "1"
+    },
+    {
+      "tag": "city_administration",
+      "n": "1"
+    },
+    {
+      "tag": "french_legislature",
+      "n": "1"
+    },
+    {
+      "tag": "infrastructure_development",
+      "n": "1"
+    },
+    {
+      "tag": "SAF obligation",
+      "n": "1"
+    },
+    {
+      "tag": "meteorological_data",
+      "n": "1"
+    },
+    {
+      "tag": "tech_sector",
+      "n": "1"
+    },
+    {
+      "tag": "open_burning_ban",
+      "n": "1"
+    },
+    {
+      "tag": "drinking water",
+      "n": "1"
+    },
+    {
+      "tag": "Regulatory_Compliance",
+      "n": "1"
+    },
+    {
+      "tag": "regulatory_changes",
+      "n": "1"
+    },
+    {
+      "tag": "utilities",
+      "n": "1"
+    },
+    {
+      "tag": "pipeline operations",
+      "n": "1"
+    },
+    {
+      "tag": "Austrian Parliament",
+      "n": "1"
+    },
+    {
+      "tag": "electricity_pricing",
+      "n": "1"
+    },
+    {
+      "tag": "tuberculosis",
+      "n": "1"
+    },
+    {
+      "tag": "art_sector",
+      "n": "1"
+    },
+    {
+      "tag": "budget_information",
+      "n": "1"
+    },
+    {
+      "tag": "fleet operations",
+      "n": "1"
+    },
+    {
+      "tag": "government_data",
+      "n": "1"
+    },
+    {
+      "tag": "education",
+      "n": "1"
+    },
+    {
+      "tag": "UK_climate_policy",
+      "n": "1"
+    },
+    {
+      "tag": "market_data",
+      "n": "1"
+    },
+    {
+      "tag": "ammonia as fuel",
+      "n": "1"
+    },
+    {
+      "tag": "virginia_legislature",
+      "n": "1"
+    },
+    {
+      "tag": "jobs_creation",
+      "n": "1"
+    },
+    {
+      "tag": "fuel transition",
+      "n": "1"
+    },
+    {
+      "tag": "Queensland",
+      "n": "1"
+    },
+    {
+      "tag": "municipal_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "california_vehicle_code",
+      "n": "1"
+    },
+    {
+      "tag": "energy_pricing",
+      "n": "1"
+    },
+    {
+      "tag": "sustainability_standards",
+      "n": "1"
+    },
+    {
+      "tag": "healthcare_technology",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_transparency",
+      "n": "1"
+    },
+    {
+      "tag": "Clean Air Act",
+      "n": "1"
+    },
+    {
+      "tag": "biodiesel",
+      "n": "1"
+    },
+    {
+      "tag": "ports_management",
+      "n": "1"
+    },
+    {
+      "tag": "rail",
+      "n": "1"
+    },
+    {
+      "tag": "social_services",
+      "n": "1"
+    },
+    {
+      "tag": "financial_analysis",
+      "n": "1"
+    },
+    {
+      "tag": "rulemaking_process",
+      "n": "1"
+    },
+    {
+      "tag": "species_recovery",
+      "n": "1"
+    },
+    {
+      "tag": "AI_data_centers",
+      "n": "1"
+    },
+    {
+      "tag": "utah_state_government",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_screen",
+      "n": "1"
+    },
+    {
+      "tag": "kansas_register",
+      "n": "1"
+    },
+    {
+      "tag": "Transportation",
+      "n": "1"
+    },
+    {
+      "tag": "technical_error",
+      "n": "1"
+    },
+    {
+      "tag": "Regional Cooperation",
+      "n": "1"
+    },
+    {
+      "tag": "China_investment",
+      "n": "1"
+    },
+    {
+      "tag": "solar potential assessment",
+      "n": "1"
+    },
+    {
+      "tag": "highway_maintenance",
+      "n": "1"
+    },
+    {
+      "tag": "climate_sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "RFNBO (Renewable Fuel of Non-Biological Origin)",
+      "n": "1"
+    },
+    {
+      "tag": "environmental finance",
+      "n": "1"
+    },
+    {
+      "tag": "consumer_prices",
+      "n": "1"
+    },
+    {
+      "tag": "contaminated land",
+      "n": "1"
+    },
+    {
+      "tag": "employment law",
+      "n": "1"
+    },
+    {
+      "tag": "batteries",
+      "n": "1"
+    },
+    {
+      "tag": "apprenticeship_programs",
+      "n": "1"
+    },
+    {
+      "tag": "electrolysers",
+      "n": "1"
+    },
+    {
+      "tag": "bills_tracking",
+      "n": "1"
+    },
+    {
+      "tag": "hazardous_air_pollutants",
+      "n": "1"
+    },
+    {
+      "tag": "Alberta_governance",
+      "n": "1"
+    },
+    {
+      "tag": "climate_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "website_access_issue",
+      "n": "1"
+    },
+    {
+      "tag": "software_platform",
+      "n": "1"
+    },
+    {
+      "tag": "community_solar",
+      "n": "1"
+    },
+    {
+      "tag": "bot_detection",
+      "n": "1"
+    },
+    {
+      "tag": "airfreight costs",
+      "n": "1"
+    },
+    {
+      "tag": "administrative law",
+      "n": "1"
+    },
+    {
+      "tag": "transportation infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "building regulations",
+      "n": "1"
+    },
+    {
+      "tag": "ev_technology",
+      "n": "1"
+    },
+    {
+      "tag": "Risk_Management",
+      "n": "1"
+    },
+    {
+      "tag": "data_access",
+      "n": "1"
+    },
+    {
+      "tag": "vehicle_licensing",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_reference",
+      "n": "1"
+    },
+    {
+      "tag": "meeting_notice",
+      "n": "1"
+    },
+    {
+      "tag": "sustainability compliance",
+      "n": "1"
+    },
+    {
+      "tag": "Supplier_Assessment",
+      "n": "1"
+    },
+    {
+      "tag": "global_energy_outlook",
+      "n": "1"
+    },
+    {
+      "tag": "incentive programs",
+      "n": "1"
+    },
+    {
+      "tag": "energy compliance",
+      "n": "1"
+    },
+    {
+      "tag": "transit_policy",
+      "n": "1"
+    },
+    {
+      "tag": "global_climate_change",
+      "n": "1"
+    },
+    {
+      "tag": "coalition building",
+      "n": "1"
+    },
+    {
+      "tag": "port competition",
+      "n": "1"
+    },
+    {
+      "tag": "social development",
+      "n": "1"
+    },
+    {
+      "tag": "conferences",
+      "n": "1"
+    },
+    {
+      "tag": "ASEAN Summit",
+      "n": "1"
+    },
+    {
+      "tag": "mobile_sources",
+      "n": "1"
+    },
+    {
+      "tag": "EU_directives",
+      "n": "1"
+    },
+    {
+      "tag": "building_emissions",
+      "n": "1"
+    },
+    {
+      "tag": "brownfields",
+      "n": "1"
+    },
+    {
+      "tag": "provincial_governance",
+      "n": "1"
+    },
+    {
+      "tag": "freight transportation",
+      "n": "1"
+    },
+    {
+      "tag": "highway_safety",
+      "n": "1"
+    },
+    {
+      "tag": "Carbon Intensity",
+      "n": "1"
+    },
+    {
+      "tag": "operating_permits",
+      "n": "1"
+    },
+    {
+      "tag": "multilateral environmental agreements",
+      "n": "1"
+    },
+    {
+      "tag": "autonomous_vessels",
+      "n": "1"
+    },
+    {
+      "tag": "administrative regulations",
+      "n": "1"
+    },
+    {
+      "tag": "burn_restrictions",
+      "n": "1"
+    },
+    {
+      "tag": "Sustainable Aviation Fuels",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable logistics",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable_infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "transport planning",
+      "n": "1"
+    },
+    {
+      "tag": "industry_standards",
+      "n": "1"
+    },
+    {
+      "tag": "supply_chain_disruption",
+      "n": "1"
+    },
+    {
+      "tag": "Iran Sanctions",
+      "n": "1"
+    },
+    {
+      "tag": "aquatic resources",
+      "n": "1"
+    },
+    {
+      "tag": "ports_shipping",
+      "n": "1"
+    },
+    {
+      "tag": "conservation_policy",
+      "n": "1"
+    },
+    {
+      "tag": "Supply Chain Sustainability",
+      "n": "1"
+    },
+    {
+      "tag": "worker_voice",
+      "n": "1"
+    },
+    {
+      "tag": "wind propulsion",
+      "n": "1"
+    },
+    {
+      "tag": "manifest_declaration",
+      "n": "1"
+    },
+    {
+      "tag": "market_analysis",
+      "n": "1"
+    },
+    {
+      "tag": "evidence-based adaptation",
+      "n": "1"
+    },
+    {
+      "tag": "voluntary_cleanup_program",
+      "n": "1"
+    },
+    {
+      "tag": "trucking_industry",
+      "n": "1"
+    },
+    {
+      "tag": "Environmental Quality",
+      "n": "1"
+    },
+    {
+      "tag": "non-domestic property",
+      "n": "1"
+    },
+    {
+      "tag": "Household Hazardous Waste",
+      "n": "1"
+    },
+    {
+      "tag": "supply_chain_management",
+      "n": "1"
+    },
+    {
+      "tag": "appropriations",
+      "n": "1"
+    },
+    {
+      "tag": "Clark County infrastructure",
+      "n": "1"
+    },
+    {
+      "tag": "fuel_cells",
+      "n": "1"
+    },
+    {
+      "tag": "wildlife management",
+      "n": "1"
+    },
+    {
+      "tag": "carbon allowance pricing",
+      "n": "1"
+    },
+    {
+      "tag": "microplastics",
+      "n": "1"
+    },
+    {
+      "tag": "welsh_governance",
+      "n": "1"
+    },
+    {
+      "tag": "EU Relations",
+      "n": "1"
+    },
+    {
+      "tag": "packaged_harmful_substances",
+      "n": "1"
+    },
+    {
+      "tag": "cargo_management",
+      "n": "1"
+    },
+    {
+      "tag": "solar_radiation",
+      "n": "1"
+    },
+    {
+      "tag": "Environmental Education",
+      "n": "1"
+    },
+    {
+      "tag": "korean_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "captcha_challenge",
+      "n": "1"
+    },
+    {
+      "tag": "emergency_preparedness",
+      "n": "1"
+    },
+    {
+      "tag": "asia_europe_routes",
+      "n": "1"
+    },
+    {
+      "tag": "marine pollution prevention",
+      "n": "1"
+    },
+    {
+      "tag": "international_framework",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_notification",
+      "n": "1"
+    },
+    {
+      "tag": "session_laws",
+      "n": "1"
+    },
+    {
+      "tag": "MEES regulations",
+      "n": "1"
+    },
+    {
+      "tag": "hong_kong_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "tradeable certificates",
+      "n": "1"
+    },
+    {
+      "tag": "fuel_economy",
+      "n": "1"
+    },
+    {
+      "tag": "singapore_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "e_fuels",
+      "n": "1"
+    },
+    {
+      "tag": "air-quality",
+      "n": "1"
+    },
+    {
+      "tag": "bonus_offers",
+      "n": "1"
+    },
+    {
+      "tag": "chinese_legislation",
+      "n": "1"
+    },
+    {
+      "tag": "biomass_combustion",
+      "n": "1"
+    },
+    {
+      "tag": "energy_production_estimation",
+      "n": "1"
+    },
+    {
+      "tag": "fossil_fuel_phase_out",
+      "n": "1"
+    },
+    {
+      "tag": "global environment facility",
+      "n": "1"
+    },
+    {
+      "tag": "eFuels",
+      "n": "1"
+    },
+    {
+      "tag": "white_paper",
+      "n": "1"
+    },
+    {
+      "tag": "government_website",
+      "n": "1"
+    },
+    {
+      "tag": "anti_money_laundering",
+      "n": "1"
+    },
+    {
+      "tag": "molded_fiber",
+      "n": "1"
+    },
+    {
+      "tag": "fleet_operations",
+      "n": "1"
+    },
+    {
+      "tag": "carbon accounting",
+      "n": "1"
+    },
+    {
+      "tag": "museum_professionals",
+      "n": "1"
+    },
+    {
+      "tag": "PNRR_funding",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_stewardship",
+      "n": "1"
+    },
+    {
+      "tag": "heavy_vehicle_regulation",
+      "n": "1"
+    },
+    {
+      "tag": "fleet_safety",
+      "n": "1"
+    },
+    {
+      "tag": "zero-emission shipping",
+      "n": "1"
+    },
+    {
+      "tag": "heat_mitigation",
+      "n": "1"
+    },
+    {
+      "tag": "soil_protection",
+      "n": "1"
+    },
+    {
+      "tag": "2025/40",
+      "n": "1"
+    },
+    {
+      "tag": "pennsylvania_code",
+      "n": "1"
+    },
+    {
+      "tag": "rail_transport",
+      "n": "1"
+    },
+    {
+      "tag": "constitutional_matters",
+      "n": "1"
+    },
+    {
+      "tag": "public participation",
+      "n": "1"
+    },
+    {
+      "tag": "digital_services",
+      "n": "1"
+    },
+    {
+      "tag": "executive_summit",
+      "n": "1"
+    },
+    {
+      "tag": "Legal affairs",
+      "n": "1"
+    },
+    {
+      "tag": "market monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "distributed_generation",
+      "n": "1"
+    },
+    {
+      "tag": "ndc_implementation",
+      "n": "1"
+    },
+    {
+      "tag": "broadband",
+      "n": "1"
+    },
+    {
+      "tag": "digital twinning",
+      "n": "1"
+    },
+    {
+      "tag": "skilled_trades",
+      "n": "1"
+    },
+    {
+      "tag": "facility_management",
+      "n": "1"
+    },
+    {
+      "tag": "vehicle_accreditation",
+      "n": "1"
+    },
+    {
+      "tag": "business_permits",
+      "n": "1"
+    },
+    {
+      "tag": "legislative_priorities",
+      "n": "1"
+    },
+    {
+      "tag": "preferential_tariffs",
+      "n": "1"
+    },
+    {
+      "tag": "CO2_shipping",
+      "n": "1"
+    },
+    {
+      "tag": "Parliamentary Events",
+      "n": "1"
+    },
+    {
+      "tag": "Strait of Hormuz Crisis",
+      "n": "1"
+    },
+    {
+      "tag": "australian_governance",
+      "n": "1"
+    },
+    {
+      "tag": "administrative_data",
+      "n": "1"
+    },
+    {
+      "tag": "A1_dual_carriageway",
+      "n": "1"
+    },
+    {
+      "tag": "climate policy",
+      "n": "1"
+    },
+    {
+      "tag": "EU_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "Corporate Reporting",
+      "n": "1"
+    },
+    {
+      "tag": "NSW EPA sites",
+      "n": "1"
+    },
+    {
+      "tag": "Environmental Monitoring",
+      "n": "1"
+    },
+    {
+      "tag": "european_affairs",
+      "n": "1"
+    },
+    {
+      "tag": "bill_assistance",
+      "n": "1"
+    },
+    {
+      "tag": "zero-emission-vehicles",
+      "n": "1"
+    },
+    {
+      "tag": "parliamentary_committees",
+      "n": "1"
+    },
+    {
+      "tag": "emissions_permitting",
+      "n": "1"
+    },
+    {
+      "tag": "nuclear_propulsion",
+      "n": "1"
+    },
+    {
+      "tag": "data methodology",
+      "n": "1"
+    },
+    {
+      "tag": "environmental_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "budget_planning",
+      "n": "1"
+    },
+    {
+      "tag": "carbon_intensity",
+      "n": "1"
+    },
+    {
+      "tag": "standing_order_109.1",
+      "n": "1"
+    },
+    {
+      "tag": "CSRD",
+      "n": "1"
+    },
+    {
+      "tag": "public information",
+      "n": "1"
+    },
+    {
+      "tag": "shipping_decarbonization",
+      "n": "1"
+    },
+    {
+      "tag": "EV batteries",
+      "n": "1"
+    },
+    {
+      "tag": "Public Health",
+      "n": "1"
+    },
+    {
+      "tag": "regional_cooperation",
+      "n": "1"
+    },
+    {
+      "tag": "texas_regulations",
+      "n": "1"
+    },
+    {
+      "tag": "Building Standards",
+      "n": "1"
+    },
+    {
+      "tag": "international_relations",
+      "n": "1"
+    },
+    {
+      "tag": "species_at_risk",
+      "n": "1"
+    },
+    {
+      "tag": "technology_business",
+      "n": "1"
+    },
+    {
+      "tag": "water resources",
+      "n": "1"
+    },
+    {
+      "tag": "fuel prices",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable freight transport",
+      "n": "1"
+    },
+    {
+      "tag": "sustainable shipping",
+      "n": "1"
+    },
+    {
+      "tag": "public_transit",
+      "n": "1"
+    },
+    {
+      "tag": "Caribbean",
+      "n": "1"
+    },
+    {
+      "tag": "transportation_sector",
+      "n": "1"
+    },
+    {
+      "tag": "crypto_assets",
+      "n": "1"
+    },
+    {
+      "tag": "spot rates",
+      "n": "1"
+    },
+    {
+      "tag": "capital_deployment",
+      "n": "1"
+    },
+    {
+      "tag": "strategic planning",
+      "n": "1"
+    },
+    {
+      "tag": "oil_tanker_regulations",
+      "n": "1"
+    }
+  ],
+  "sources_scope_topics_in_use": [
+    {
+      "tag": "regulatory",
+      "n": "549"
+    },
+    {
+      "tag": "governance",
+      "n": "319"
+    },
+    {
+      "tag": "environmental",
+      "n": "150"
+    },
+    {
+      "tag": "fuel",
+      "n": "52"
+    },
+    {
+      "tag": "transport",
+      "n": "51"
+    },
+    {
+      "tag": "finance",
+      "n": "40"
+    },
+    {
+      "tag": "social",
+      "n": "25"
+    },
+    {
+      "tag": "technology",
+      "n": "21"
+    },
+    {
+      "tag": "customs",
+      "n": "11"
+    },
+    {
+      "tag": "labor",
+      "n": "7"
+    },
+    {
+      "tag": "conservation",
+      "n": "5"
+    },
+    {
+      "tag": "infrastructure",
+      "n": "4"
+    },
+    {
+      "tag": "materials_science",
+      "n": "3"
+    },
+    {
+      "tag": "packaging",
+      "n": "2"
+    }
+  ],
+  "compliance_object_tags_in_use": [
+    {
+      "tag": "freight-forwarder",
+      "n": "152"
+    },
+    {
+      "tag": "shipper",
+      "n": "53"
+    },
+    {
+      "tag": "carrier-ocean",
+      "n": "38"
+    },
+    {
+      "tag": "carrier-road",
+      "n": "32"
+    },
+    {
+      "tag": "carrier-air",
+      "n": "28"
+    },
+    {
+      "tag": "vessel-operator",
+      "n": "18"
+    },
+    {
+      "tag": "importer",
+      "n": "17"
+    },
+    {
+      "tag": "road-fleet-operator",
+      "n": "16"
+    },
+    {
+      "tag": "warehouse-operator",
+      "n": "9"
+    },
+    {
+      "tag": "customs-broker",
+      "n": "6"
+    },
+    {
+      "tag": "port-operator",
+      "n": "3"
+    },
+    {
+      "tag": "aircraft-operator",
+      "n": "2"
+    },
+    {
+      "tag": "distributor",
+      "n": "2"
+    },
+    {
+      "tag": "manufacturer-producer",
+      "n": "1"
+    },
+    {
+      "tag": "exporter",
+      "n": "1"
+    }
+  ],
+  "operational_scenario_tags_top_100": [
+    {
+      "tag": "emissions-reporting-Scope3",
+      "n": "106"
+    },
+    {
+      "tag": "drayage",
+      "n": "46"
+    },
+    {
+      "tag": "ocean-emissions-MRV",
+      "n": "40"
+    },
+    {
+      "tag": "sustainability-report-CSRD",
+      "n": "27"
+    },
+    {
+      "tag": "SAF-blending",
+      "n": "23"
+    },
+    {
+      "tag": "vessel-port-call",
+      "n": "21"
+    },
+    {
+      "tag": "truck-CO2-standard",
+      "n": "21"
+    },
+    {
+      "tag": "customs-declaration-import",
+      "n": "20"
+    },
+    {
+      "tag": "air-fueling",
+      "n": "20"
+    },
+    {
+      "tag": "aircraft-emissions-ETS",
+      "n": "19"
+    },
+    {
+      "tag": "vessel-CII-rating",
+      "n": "19"
+    },
+    {
+      "tag": "carbon-pricing-pass-through",
+      "n": "18"
+    },
+    {
+      "tag": "supplier-data-request",
+      "n": "17"
+    },
+    {
+      "tag": "road-charging-infrastructure",
+      "n": "16"
+    },
+    {
+      "tag": "aircraft-emissions-CORSIA",
+      "n": "16"
+    },
+    {
+      "tag": "ETS-allowance-purchase",
+      "n": "13"
+    },
+    {
+      "tag": "ocean-fuel-blend-mandate",
+      "n": "13"
+    },
+    {
+      "tag": "green-shipping-corridor",
+      "n": "11"
+    },
+    {
+      "tag": "ocean-bunkering",
+      "n": "11"
+    },
+    {
+      "tag": "emissions-reporting-Scope1",
+      "n": "8"
+    },
+    {
+      "tag": "packaging-EPR-registration",
+      "n": "7"
+    },
+    {
+      "tag": "urban-truck-zone",
+      "n": "6"
+    },
+    {
+      "tag": "CBAM-declaration",
+      "n": "6"
+    },
+    {
+      "tag": "customs-declaration-export",
+      "n": "5"
+    },
+    {
+      "tag": "packaging-recyclability-design",
+      "n": "4"
+    },
+    {
+      "tag": "vessel-shore-power",
+      "n": "4"
+    },
+    {
+      "tag": "ETS-allowance-surrender",
+      "n": "3"
+    },
+    {
+      "tag": "road-cabotage",
+      "n": "2"
+    },
+    {
+      "tag": "disclosure-ISSB",
+      "n": "1"
+    },
+    {
+      "tag": "packaging-PFAS-restriction",
+      "n": "1"
+    },
+    {
+      "tag": "carbon-border-adjustment",
+      "n": "1"
+    },
+    {
+      "tag": "EUDR-due-diligence",
+      "n": "1"
+    }
+  ],
+  "intelligence_items_total": 655,
+  "sources_total": 794
+}
