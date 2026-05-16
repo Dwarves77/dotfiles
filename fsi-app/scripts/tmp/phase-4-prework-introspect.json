@@ -1,0 +1,77 @@
+{
+  "icao_jurisdictions": [
+    {
+      "value": "ICAO MEMBER STATES (193)",
+      "n": "1"
+    }
+  ],
+  "icao_content_counts": {
+    "title_match": "3",
+    "brief_match": "36",
+    "aviation_topic_tag": "2"
+  },
+  "icao_missing_jurisdiction": [
+    {
+      "id": "8767e010-dc79-41e2-9fb8-53d7a0bf7b8a",
+      "legacy_id": null,
+      "title": "ICAO Global Framework for Sustainable Aviation Fuels (SAF) and Aviation Cleaner Energies",
+      "jurisdictions": [
+        "GLOBAL",
+        "ICAO MEMBER STATES (193)"
+      ],
+      "jurisdiction_iso": []
+    },
+    {
+      "id": "412ffbf4-34cf-4347-8ee5-c809748a4ed2",
+      "legacy_id": "a6",
+      "title": "ICAO Carbon Calculator",
+      "jurisdictions": [
+        "GLOBAL"
+      ],
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    },
+    {
+      "id": "cc0958fb-6453-4163-8363-27515817597f",
+      "legacy_id": "a1",
+      "title": "CORSIA (ICAO)",
+      "jurisdictions": [
+        "GLOBAL"
+      ],
+      "jurisdiction_iso": [
+        "GLOBAL"
+      ]
+    }
+  ],
+  "loser_uuids": [
+    {
+      "id": "33ca228c-e966-4b35-9ec2-01cf0da9c80a",
+      "title": "EPA Final Rule: Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles – Phase 3 (MY 2027+)"
+    },
+    {
+      "id": "82f09535-ef34-4674-a16c-e7d9753b41bf",
+      "title": "Zero-Emission Requirements for World Heritage Fjords: Implementation Timeline and Compliance Rules Adopted"
+    },
+    {
+      "id": "b8b6fde3-2087-47c0-89c7-1b3bb944138c",
+      "title": "Local Law 97: NYC Greenhouse Gas Emissions Reduction Requirements for Buildings"
+    },
+    {
+      "id": "daaa7e3a-61fc-4c53-adba-81d9e636133f",
+      "title": "Matrix Hudson 2BR/1BA Affordable Rental Unit - Lottery Application Deadline August 8, 2026"
+    },
+    {
+      "id": "d56ca4e1-5f68-4bf8-9c88-47ecfee986f0",
+      "title": "New York City Local Law 97 of 2019 - Building Emissions Limits and Compliance Requirements"
+    },
+    {
+      "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+      "title": "Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles Phase 3"
+    }
+  ],
+  "staged_updates_on_losers": [],
+  "continent_distinct_rows": 39,
+  "region_distinct_rows": 25,
+  "undefined_group_distinct_rows": 19
+}

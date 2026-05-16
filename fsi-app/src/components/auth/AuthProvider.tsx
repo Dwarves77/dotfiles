@@ -26,7 +26,7 @@ interface AuthProviderProps {
   /** Server-resolved org name. */
   initialOrgName?: string;
   /** Server-resolved role within the org. */
-  initialRole?: "owner" | "admin" | "editor" | "viewer" | null;
+  initialRole?: "owner" | "admin" | "member" | "viewer" | null;
   /** Server-resolved per-user sector profile. */
   initialSectors?: string[];
 }

@@ -1,0 +1,1564 @@
+{
+  "jurisdictions_distinct": [
+    {
+      "value": "GLOBAL",
+      "n": "155"
+    },
+    {
+      "value": "EU",
+      "n": "106"
+    },
+    {
+      "value": "US",
+      "n": "89"
+    },
+    {
+      "value": "GB",
+      "n": "40"
+    },
+    {
+      "value": "CA",
+      "n": "26"
+    },
+    {
+      "value": "AU",
+      "n": "22"
+    },
+    {
+      "value": "ASIA",
+      "n": "18"
+    },
+    {
+      "value": "EUROPE",
+      "n": "18"
+    },
+    {
+      "value": "US-CA",
+      "n": "17"
+    },
+    {
+      "value": "CN",
+      "n": "14"
+    },
+    {
+      "value": "BR",
+      "n": "12"
+    },
+    {
+      "value": "DE",
+      "n": "12"
+    },
+    {
+      "value": "JP",
+      "n": "11"
+    },
+    {
+      "value": "SG",
+      "n": "11"
+    },
+    {
+      "value": "FEDERAL",
+      "n": "10"
+    },
+    {
+      "value": "IN",
+      "n": "10"
+    },
+    {
+      "value": "GB-ENG",
+      "n": "9"
+    },
+    {
+      "value": "AE",
+      "n": "8"
+    },
+    {
+      "value": "AFRICA",
+      "n": "8"
+    },
+    {
+      "value": "FR",
+      "n": "7"
+    },
+    {
+      "value": "IMO",
+      "n": "7"
+    },
+    {
+      "value": "NEW YORK STATE",
+      "n": "7"
+    },
+    {
+      "value": "PH",
+      "n": "7"
+    },
+    {
+      "value": "BE",
+      "n": "6"
+    },
+    {
+      "value": "LATAM",
+      "n": "6"
+    },
+    {
+      "value": "LATIN AMERICA",
+      "n": "6"
+    },
+    {
+      "value": "MX",
+      "n": "6"
+    },
+    {
+      "value": "GB-NIR",
+      "n": "5"
+    },
+    {
+      "value": "GB-WLS",
+      "n": "5"
+    },
+    {
+      "value": "NEW YORK CITY",
+      "n": "5"
+    },
+    {
+      "value": "UNITED_STATES",
+      "n": "5"
+    },
+    {
+      "value": "US-IL",
+      "n": "5"
+    },
+    {
+      "value": "US-PA",
+      "n": "5"
+    },
+    {
+      "value": "US-TX",
+      "n": "5"
+    },
+    {
+      "value": "AT",
+      "n": "4"
+    },
+    {
+      "value": "CO",
+      "n": "4"
+    },
+    {
+      "value": "ES",
+      "n": "4"
+    },
+    {
+      "value": "GB-SCT",
+      "n": "4"
+    },
+    {
+      "value": "KR",
+      "n": "4"
+    },
+    {
+      "value": "LOS ANGELES",
+      "n": "4"
+    },
+    {
+      "value": "NL",
+      "n": "4"
+    },
+    {
+      "value": "NO",
+      "n": "4"
+    },
+    {
+      "value": "NORTH AMERICA",
+      "n": "4"
+    },
+    {
+      "value": "ONTARIO",
+      "n": "4"
+    },
+    {
+      "value": "PL",
+      "n": "4"
+    },
+    {
+      "value": "US-AR",
+      "n": "4"
+    },
+    {
+      "value": "US-CO",
+      "n": "4"
+    },
+    {
+      "value": "US_FEDERAL",
+      "n": "4"
+    },
+    {
+      "value": "US-KS",
+      "n": "4"
+    },
+    {
+      "value": "US-MA",
+      "n": "4"
+    },
+    {
+      "value": "US-MN",
+      "n": "4"
+    },
+    {
+      "value": "US-NC",
+      "n": "4"
+    },
+    {
+      "value": "US-TN",
+      "n": "4"
+    },
+    {
+      "value": "US-WA",
+      "n": "4"
+    },
+    {
+      "value": "US-WY",
+      "n": "4"
+    },
+    {
+      "value": "CARIBBEAN",
+      "n": "3"
+    },
+    {
+      "value": "DK",
+      "n": "3"
+    },
+    {
+      "value": "ID",
+      "n": "3"
+    },
+    {
+      "value": "KE",
+      "n": "3"
+    },
+    {
+      "value": "MEAF",
+      "n": "3"
+    },
+    {
+      "value": "MIDDLE EAST",
+      "n": "3"
+    },
+    {
+      "value": "MULTI-JURISDICTIONAL",
+      "n": "3"
+    },
+    {
+      "value": "OECD",
+      "n": "3"
+    },
+    {
+      "value": "QUEBEC",
+      "n": "3"
+    },
+    {
+      "value": "QUEENSLAND",
+      "n": "3"
+    },
+    {
+      "value": "UNITED STATES FEDERAL",
+      "n": "3"
+    },
+    {
+      "value": "US-AK",
+      "n": "3"
+    },
+    {
+      "value": "US-IA",
+      "n": "3"
+    },
+    {
+      "value": "US-IN",
+      "n": "3"
+    },
+    {
+      "value": "US-LA",
+      "n": "3"
+    },
+    {
+      "value": "US-MD",
+      "n": "3"
+    },
+    {
+      "value": "US-NV",
+      "n": "3"
+    },
+    {
+      "value": "US-OR",
+      "n": "3"
+    },
+    {
+      "value": "US-UT",
+      "n": "3"
+    },
+    {
+      "value": "US-WI",
+      "n": "3"
+    },
+    {
+      "value": "VICTORIA",
+      "n": "3"
+    },
+    {
+      "value": "ALBERTA",
+      "n": "2"
+    },
+    {
+      "value": "AR",
+      "n": "2"
+    },
+    {
+      "value": "ASEAN",
+      "n": "2"
+    },
+    {
+      "value": "ASIA-PACIFIC",
+      "n": "2"
+    },
+    {
+      "value": "AUSTRALIAN CAPITAL TERRITORY",
+      "n": "2"
+    },
+    {
+      "value": "BOSTON",
+      "n": "2"
+    },
+    {
+      "value": "BULGARIA",
+      "n": "2"
+    },
+    {
+      "value": "CHICAGO",
+      "n": "2"
+    },
+    {
+      "value": "CL",
+      "n": "2"
+    },
+    {
+      "value": "CLARK COUNTY",
+      "n": "2"
+    },
+    {
+      "value": "DAVIDSON COUNTY",
+      "n": "2"
+    },
+    {
+      "value": "DISTRICT OF COLUMBIA",
+      "n": "2"
+    },
+    {
+      "value": "DUBAI",
+      "n": "2"
+    },
+    {
+      "value": "EAST_ASIA_PACIFIC",
+      "n": "2"
+    },
+    {
+      "value": "ESTONIA",
+      "n": "2"
+    },
+    {
+      "value": "EUROPE_CENTRAL_ASIA",
+      "n": "2"
+    },
+    {
+      "value": "GUAM",
+      "n": "2"
+    },
+    {
+      "value": "HK",
+      "n": "2"
+    },
+    {
+      "value": "HR",
+      "n": "2"
+    },
+    {
+      "value": "IE",
+      "n": "2"
+    },
+    {
+      "value": "INTERNATIONAL MARITIME ORGANIZATION",
+      "n": "2"
+    },
+    {
+      "value": "IT",
+      "n": "2"
+    },
+    {
+      "value": "LATIN_AMERICA_CARIBBEAN",
+      "n": "2"
+    },
+    {
+      "value": "LATVIA",
+      "n": "2"
+    },
+    {
+      "value": "LOS ANGELES COUNTY",
+      "n": "2"
+    },
+    {
+      "value": "LUXEMBOURG",
+      "n": "2"
+    },
+    {
+      "value": "MANITOBA",
+      "n": "2"
+    },
+    {
+      "value": "MIDDLE_EAST_NORTH_AFRICA",
+      "n": "2"
+    },
+    {
+      "value": "MONTREAL",
+      "n": "2"
+    },
+    {
+      "value": "NASHVILLE",
+      "n": "2"
+    },
+    {
+      "value": "NATIONAL",
+      "n": "2"
+    },
+    {
+      "value": "NORTHWEST TERRITORIES",
+      "n": "2"
+    },
+    {
+      "value": "NOVA SCOTIA",
+      "n": "2"
+    },
+    {
+      "value": "NSW",
+      "n": "2"
+    },
+    {
+      "value": "NUNAVUT",
+      "n": "2"
+    },
+    {
+      "value": "PHILADELPHIA",
+      "n": "2"
+    },
+    {
+      "value": "PORT OF LOS ANGELES",
+      "n": "2"
+    },
+    {
+      "value": "PR",
+      "n": "2"
+    },
+    {
+      "value": "PT",
+      "n": "2"
+    },
+    {
+      "value": "REPUBLIC OF KOREA",
+      "n": "2"
+    },
+    {
+      "value": "SASKATCHEWAN",
+      "n": "2"
+    },
+    {
+      "value": "SE",
+      "n": "2"
+    },
+    {
+      "value": "SLOVAKIA",
+      "n": "2"
+    },
+    {
+      "value": "SOUTH_ASIA",
+      "n": "2"
+    },
+    {
+      "value": "SOUTH AUSTRALIA",
+      "n": "2"
+    },
+    {
+      "value": "TOKYO",
+      "n": "2"
+    },
+    {
+      "value": "TORONTO",
+      "n": "2"
+    },
+    {
+      "value": "UNITED_KINGDOM",
+      "n": "2"
+    },
+    {
+      "value": "US-AL",
+      "n": "2"
+    },
+    {
+      "value": "US-AZ",
+      "n": "2"
+    },
+    {
+      "value": "US-CT",
+      "n": "2"
+    },
+    {
+      "value": "US-DE",
+      "n": "2"
+    },
+    {
+      "value": "US-FL",
+      "n": "2"
+    },
+    {
+      "value": "US-GA",
+      "n": "2"
+    },
+    {
+      "value": "US-HI",
+      "n": "2"
+    },
+    {
+      "value": "US-ID",
+      "n": "2"
+    },
+    {
+      "value": "US-MO",
+      "n": "2"
+    },
+    {
+      "value": "US-MS",
+      "n": "2"
+    },
+    {
+      "value": "US-MT",
+      "n": "2"
+    },
+    {
+      "value": "US-ND",
+      "n": "2"
+    },
+    {
+      "value": "US-NJ",
+      "n": "2"
+    },
+    {
+      "value": "US-NM",
+      "n": "2"
+    },
+    {
+      "value": "US-NY",
+      "n": "2"
+    },
+    {
+      "value": "US-OH",
+      "n": "2"
+    },
+    {
+      "value": "US-OK",
+      "n": "2"
+    },
+    {
+      "value": "US-RI",
+      "n": "2"
+    },
+    {
+      "value": "US-SC",
+      "n": "2"
+    },
+    {
+      "value": "US-SD",
+      "n": "2"
+    },
+    {
+      "value": "US-WV",
+      "n": "2"
+    },
+    {
+      "value": "VN",
+      "n": "2"
+    },
+    {
+      "value": "WASHINGTON DC",
+      "n": "2"
+    },
+    {
+      "value": "WESTERN AUSTRALIA",
+      "n": "2"
+    },
+    {
+      "value": "32 MEMBER COUNTRIES",
+      "n": "1"
+    },
+    {
+      "value": "ALBUQUERQUE",
+      "n": "1"
+    },
+    {
+      "value": "ALL US STATES",
+      "n": "1"
+    },
+    {
+      "value": "AMERICAN SAMOA",
+      "n": "1"
+    },
+    {
+      "value": "AMERICAS",
+      "n": "1"
+    },
+    {
+      "value": "ANTWERP",
+      "n": "1"
+    },
+    {
+      "value": "ARBOLETES",
+      "n": "1"
+    },
+    {
+      "value": "ARIZONA DEPARTMENT OF TRANSPORTATION",
+      "n": "1"
+    },
+    {
+      "value": "ASIAN DEVELOPMENT BANK MEMBERS",
+      "n": "1"
+    },
+    {
+      "value": "ASIA_PACIFIC",
+      "n": "1"
+    },
+    {
+      "value": "ATLANTA",
+      "n": "1"
+    },
+    {
+      "value": "BALTIC_REGION",
+      "n": "1"
+    },
+    {
+      "value": "BALTIC SEA REGION",
+      "n": "1"
+    },
+    {
+      "value": "BANGLADESH",
+      "n": "1"
+    },
+    {
+      "value": "BAY ST. LOUIS",
+      "n": "1"
+    },
+    {
+      "value": "BEAR RIVER BASIN",
+      "n": "1"
+    },
+    {
+      "value": "BERLIN",
+      "n": "1"
+    },
+    {
+      "value": "BIHOR COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "BILOXI",
+      "n": "1"
+    },
+    {
+      "value": "BLACKSTONE RIVER",
+      "n": "1"
+    },
+    {
+      "value": "BLACKSTONE WATERSHED",
+      "n": "1"
+    },
+    {
+      "value": "BONAIRE",
+      "n": "1"
+    },
+    {
+      "value": "BOULDER COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "BRITISH COLUMBIA",
+      "n": "1"
+    },
+    {
+      "value": "BRUGES",
+      "n": "1"
+    },
+    {
+      "value": "BRUNSWICK",
+      "n": "1"
+    },
+    {
+      "value": "BRUSSELS",
+      "n": "1"
+    },
+    {
+      "value": "CA-NL",
+      "n": "1"
+    },
+    {
+      "value": "CARSON_RIVER_WATERSHED",
+      "n": "1"
+    },
+    {
+      "value": "CH",
+      "n": "1"
+    },
+    {
+      "value": "CHAFFEE COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "CHAPARRAL",
+      "n": "1"
+    },
+    {
+      "value": "CONEJOS COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "COUNCIL OF EUROPE",
+      "n": "1"
+    },
+    {
+      "value": "CYPRUS",
+      "n": "1"
+    },
+    {
+      "value": "CZECH REPUBLIC",
+      "n": "1"
+    },
+    {
+      "value": "CZECH_REPUBLIC",
+      "n": "1"
+    },
+    {
+      "value": "DELAWARE DEPARTMENT OF NATURAL RESOURCES AND ENVIRONMENTAL CONTROL",
+      "n": "1"
+    },
+    {
+      "value": "DEMOCRATIC REPUBLIC OF THE CONGO",
+      "n": "1"
+    },
+    {
+      "value": "DEVELOPING COUNTRIES",
+      "n": "1"
+    },
+    {
+      "value": "DEVELOPING_COUNTRIES",
+      "n": "1"
+    },
+    {
+      "value": "DIEST",
+      "n": "1"
+    },
+    {
+      "value": "DOT",
+      "n": "1"
+    },
+    {
+      "value": "DUTCH PARLIAMENT",
+      "n": "1"
+    },
+    {
+      "value": "EAGLE COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "EASA_MEMBER_STATES",
+      "n": "1"
+    },
+    {
+      "value": "EAST COURTHOUSE ROAD",
+      "n": "1"
+    },
+    {
+      "value": "ELBERT COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "EL PASO COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "EPA",
+      "n": "1"
+    },
+    {
+      "value": "ETHIOPIA",
+      "n": "1"
+    },
+    {
+      "value": "EU MEMBER STATES",
+      "n": "1"
+    },
+    {
+      "value": "EUROPEAN_UNION",
+      "n": "1"
+    },
+    {
+      "value": "EUROPEAN UNION MEMBER STATES",
+      "n": "1"
+    },
+    {
+      "value": "FAIRBANKS NORTH STAR BOROUGH",
+      "n": "1"
+    },
+    {
+      "value": "FEDERAL (49 CFR)",
+      "n": "1"
+    },
+    {
+      "value": "FI",
+      "n": "1"
+    },
+    {
+      "value": "FLANDERS",
+      "n": "1"
+    },
+    {
+      "value": "FRANKLIN COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "FUJAIRAH",
+      "n": "1"
+    },
+    {
+      "value": "G7",
+      "n": "1"
+    },
+    {
+      "value": "GARFIELD COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "GHENT",
+      "n": "1"
+    },
+    {
+      "value": "GLOBAL MARITIME",
+      "n": "1"
+    },
+    {
+      "value": "GLOBAL_MARITIME",
+      "n": "1"
+    },
+    {
+      "value": "GLOBAL SHIPPING",
+      "n": "1"
+    },
+    {
+      "value": "GLOBAL SOUTH",
+      "n": "1"
+    },
+    {
+      "value": "GREENWOOD COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "GULF_OF_OMAN",
+      "n": "1"
+    },
+    {
+      "value": "GULFPORT",
+      "n": "1"
+    },
+    {
+      "value": "HALIFAX CHEBUCTO",
+      "n": "1"
+    },
+    {
+      "value": "HANDAN",
+      "n": "1"
+    },
+    {
+      "value": "HARRIS COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "HONG_KONG",
+      "n": "1"
+    },
+    {
+      "value": "HOUSTON",
+      "n": "1"
+    },
+    {
+      "value": "HUMBOLDT_BASIN",
+      "n": "1"
+    },
+    {
+      "value": "HUNGARY",
+      "n": "1"
+    },
+    {
+      "value": "ICAO MEMBER STATES (193)",
+      "n": "1"
+    },
+    {
+      "value": "IDB_REGION",
+      "n": "1"
+    },
+    {
+      "value": "IEA MEMBER STATES",
+      "n": "1"
+    },
+    {
+      "value": "ÎLE-DE-FRANCE",
+      "n": "1"
+    },
+    {
+      "value": "IMO MEMBER STATES",
+      "n": "1"
+    },
+    {
+      "value": "IMO_MEMBER_STATES",
+      "n": "1"
+    },
+    {
+      "value": "INLAND EMPIRE",
+      "n": "1"
+    },
+    {
+      "value": "INTERNATIONAL MARITIME",
+      "n": "1"
+    },
+    {
+      "value": "IR",
+      "n": "1"
+    },
+    {
+      "value": "JEBEL_ALI",
+      "n": "1"
+    },
+    {
+      "value": "KAZAKHSTAN",
+      "n": "1"
+    },
+    {
+      "value": "LAKE COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "LAKE_TAHOE_WATERSHED",
+      "n": "1"
+    },
+    {
+      "value": "LANDLOCKED_DEVELOPING_COUNTRIES",
+      "n": "1"
+    },
+    {
+      "value": "LATIN_AMERICA",
+      "n": "1"
+    },
+    {
+      "value": "LEAST_DEVELOPED_COUNTRIES",
+      "n": "1"
+    },
+    {
+      "value": "LOCAL",
+      "n": "1"
+    },
+    {
+      "value": "LONDON",
+      "n": "1"
+    },
+    {
+      "value": "LOS ANGELES DEPARTMENT OF BUILDING AND SAFETY",
+      "n": "1"
+    },
+    {
+      "value": "LT",
+      "n": "1"
+    },
+    {
+      "value": "MARIN COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "MARITIME",
+      "n": "1"
+    },
+    {
+      "value": "MELBOURNE",
+      "n": "1"
+    },
+    {
+      "value": "MIDDLE_EAST",
+      "n": "1"
+    },
+    {
+      "value": "MINISTRY OF CLIMATE AND ENVIRONMENT",
+      "n": "1"
+    },
+    {
+      "value": "MLIT",
+      "n": "1"
+    },
+    {
+      "value": "MOBILE COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "MULTI_JURISDICTIONAL",
+      "n": "1"
+    },
+    {
+      "value": "MULTILATERAL",
+      "n": "1"
+    },
+    {
+      "value": "MULTI-NATIONAL",
+      "n": "1"
+    },
+    {
+      "value": "MULTIPLE CITIES",
+      "n": "1"
+    },
+    {
+      "value": "MULTIPLE STATES",
+      "n": "1"
+    },
+    {
+      "value": "MULTI-REGIONAL",
+      "n": "1"
+    },
+    {
+      "value": "MULTI_REGIONAL",
+      "n": "1"
+    },
+    {
+      "value": "MULTI-STATE",
+      "n": "1"
+    },
+    {
+      "value": "NATIONAL LEVEL",
+      "n": "1"
+    },
+    {
+      "value": "NECOCLÍ",
+      "n": "1"
+    },
+    {
+      "value": "NEW BRUNSWICK",
+      "n": "1"
+    },
+    {
+      "value": "NEW SOUTH WALES",
+      "n": "1"
+    },
+    {
+      "value": "NEW_YORK_STATE",
+      "n": "1"
+    },
+    {
+      "value": "NIGERIA",
+      "n": "1"
+    },
+    {
+      "value": "NORTH_AMERICA",
+      "n": "1"
+    },
+    {
+      "value": "NORTHEAST_REGION",
+      "n": "1"
+    },
+    {
+      "value": "NORTHERN TERRITORY",
+      "n": "1"
+    },
+    {
+      "value": "NORTH_SEA",
+      "n": "1"
+    },
+    {
+      "value": "NORTH SEA REGION",
+      "n": "1"
+    },
+    {
+      "value": "NORWEGIAN MARITIME AUTHORITY",
+      "n": "1"
+    },
+    {
+      "value": "OAHU",
+      "n": "1"
+    },
+    {
+      "value": "OECD_MEMBER_STATES",
+      "n": "1"
+    },
+    {
+      "value": "PANAMA",
+      "n": "1"
+    },
+    {
+      "value": "PANGNIRTUNG",
+      "n": "1"
+    },
+    {
+      "value": "PARIS",
+      "n": "1"
+    },
+    {
+      "value": "PASS CHRISTIAN",
+      "n": "1"
+    },
+    {
+      "value": "PE",
+      "n": "1"
+    },
+    {
+      "value": "PERSIAN_GULF",
+      "n": "1"
+    },
+    {
+      "value": "PORT_OF_LOS_ANGELES",
+      "n": "1"
+    },
+    {
+      "value": "PORT_OF_SANTOS",
+      "n": "1"
+    },
+    {
+      "value": "PRINCE EDWARD ISLAND",
+      "n": "1"
+    },
+    {
+      "value": "RED_SEA",
+      "n": "1"
+    },
+    {
+      "value": "REGIONAL_AFRICA",
+      "n": "1"
+    },
+    {
+      "value": "REGIONAL_ASIA_PACIFIC",
+      "n": "1"
+    },
+    {
+      "value": "REGIONAL_CARIBBEAN",
+      "n": "1"
+    },
+    {
+      "value": "REGIONAL - MULTI-COUNTRY",
+      "n": "1"
+    },
+    {
+      "value": "REGIONAL_SIDS",
+      "n": "1"
+    },
+    {
+      "value": "REGIONAL SOUTHEAST ASIA",
+      "n": "1"
+    },
+    {
+      "value": "RGGI",
+      "n": "1"
+    },
+    {
+      "value": "RIONEGRO",
+      "n": "1"
+    },
+    {
+      "value": "ROMANIA",
+      "n": "1"
+    },
+    {
+      "value": "ROTTERDAM",
+      "n": "1"
+    },
+    {
+      "value": "RUSSIA",
+      "n": "1"
+    },
+    {
+      "value": "RWANDA",
+      "n": "1"
+    },
+    {
+      "value": "SAINT_VINCENT_AND_GRENADINES",
+      "n": "1"
+    },
+    {
+      "value": "SAINT VINCENT AND THE GRENADINES",
+      "n": "1"
+    },
+    {
+      "value": "SAITAMA",
+      "n": "1"
+    },
+    {
+      "value": "SAN FRANCISCO",
+      "n": "1"
+    },
+    {
+      "value": "SAN_FRANCISCO",
+      "n": "1"
+    },
+    {
+      "value": "SAN JOAQUIN VALLEY",
+      "n": "1"
+    },
+    {
+      "value": "SAN PEDRO BAY",
+      "n": "1"
+    },
+    {
+      "value": "SAUDI_ARABIA",
+      "n": "1"
+    },
+    {
+      "value": "SHANGHAI",
+      "n": "1"
+    },
+    {
+      "value": "SLOVENIA",
+      "n": "1"
+    },
+    {
+      "value": "SMALL_ISLAND_DEVELOPING_STATES",
+      "n": "1"
+    },
+    {
+      "value": "SNAKE_BASIN",
+      "n": "1"
+    },
+    {
+      "value": "SOUTH COAST AIR QUALITY MANAGEMENT DISTRICT (AQMD)",
+      "n": "1"
+    },
+    {
+      "value": "SOUTH_EAST_ASIA",
+      "n": "1"
+    },
+    {
+      "value": "SOUTHEAST ASIA",
+      "n": "1"
+    },
+    {
+      "value": "SOUTHERN CALIFORNIA",
+      "n": "1"
+    },
+    {
+      "value": "SOUTH HOLLAND",
+      "n": "1"
+    },
+    {
+      "value": "SOUTHWEST GEORGIA",
+      "n": "1"
+    },
+    {
+      "value": "STATE",
+      "n": "1"
+    },
+    {
+      "value": "STRAIT_OF_HORMUZ",
+      "n": "1"
+    },
+    {
+      "value": "SUTTER COUNTY",
+      "n": "1"
+    },
+    {
+      "value": "SYDNEY",
+      "n": "1"
+    },
+    {
+      "value": "TASMANIA",
+      "n": "1"
+    },
+    {
+      "value": "TEXAS-MEXICO BORDER",
+      "n": "1"
+    },
+    {
+      "value": "TH",
+      "n": "1"
+    },
+    {
+      "value": "TOLIMA",
+      "n": "1"
+    },
+    {
+      "value": "TRANSNATIONAL",
+      "n": "1"
+    },
+    {
+      "value": "TRINIDAD AND TOBAGO",
+      "n": "1"
+    },
+    {
+      "value": "TUCSON",
+      "n": "1"
+    },
+    {
+      "value": "UGANDA",
+      "n": "1"
+    },
+    {
+      "value": "UN",
+      "n": "1"
+    },
+    {
+      "value": "UNITED NATIONS",
+      "n": "1"
+    },
+    {
+      "value": "UNITED STATES - FEDERAL",
+      "n": "1"
+    },
+    {
+      "value": "URUGUAY",
+      "n": "1"
+    },
+    {
+      "value": "US_EPA_REGION_6",
+      "n": "1"
+    },
+    {
+      "value": "US-ME",
+      "n": "1"
+    },
+    {
+      "value": "US-MI",
+      "n": "1"
+    },
+    {
+      "value": "US-NE",
+      "n": "1"
+    },
+    {
+      "value": "US-VA",
+      "n": "1"
+    },
+    {
+      "value": "US WEST COAST",
+      "n": "1"
+    },
+    {
+      "value": "WALLONIA",
+      "n": "1"
+    },
+    {
+      "value": "WENDELL",
+      "n": "1"
+    },
+    {
+      "value": "WILLEBROEK",
+      "n": "1"
+    },
+    {
+      "value": "WTO",
+      "n": "1"
+    },
+    {
+      "value": "YUKON",
+      "n": "1"
+    },
+    {
+      "value": "ZA",
+      "n": "1"
+    }
+  ],
+  "jurisdictions_total_distinct": 342,
+  "jurisdiction_iso_distinct": [
+    {
+      "value": "GLOBAL",
+      "n": "84"
+    },
+    {
+      "value": "EU",
+      "n": "41"
+    },
+    {
+      "value": "US",
+      "n": "16"
+    },
+    {
+      "value": "SG",
+      "n": "9"
+    },
+    {
+      "value": "US-CA",
+      "n": "9"
+    },
+    {
+      "value": "GB",
+      "n": "8"
+    },
+    {
+      "value": "AE",
+      "n": "6"
+    },
+    {
+      "value": "AU",
+      "n": "6"
+    },
+    {
+      "value": "JP",
+      "n": "6"
+    },
+    {
+      "value": "BR",
+      "n": "5"
+    },
+    {
+      "value": "CN",
+      "n": "4"
+    },
+    {
+      "value": "KR",
+      "n": "4"
+    },
+    {
+      "value": "IMO",
+      "n": "3"
+    },
+    {
+      "value": "US-IN",
+      "n": "3"
+    },
+    {
+      "value": "DK",
+      "n": "2"
+    },
+    {
+      "value": "MX",
+      "n": "2"
+    },
+    {
+      "value": "NL",
+      "n": "2"
+    },
+    {
+      "value": "CL",
+      "n": "1"
+    },
+    {
+      "value": "EG",
+      "n": "1"
+    },
+    {
+      "value": "MY",
+      "n": "1"
+    },
+    {
+      "value": "PH",
+      "n": "1"
+    },
+    {
+      "value": "SE",
+      "n": "1"
+    },
+    {
+      "value": "US-CO",
+      "n": "1"
+    },
+    {
+      "value": "US-DE",
+      "n": "1"
+    },
+    {
+      "value": "US-ID",
+      "n": "1"
+    },
+    {
+      "value": "US-LAX",
+      "n": "1"
+    },
+    {
+      "value": "US-NY",
+      "n": "1"
+    },
+    {
+      "value": "US-NYC",
+      "n": "1"
+    },
+    {
+      "value": "US-TN",
+      "n": "1"
+    }
+  ],
+  "jurisdiction_iso_total_distinct": 29,
+  "sources_jurisdictions_distinct": [
+    {
+      "value": "global",
+      "n": "276"
+    },
+    {
+      "value": "us-federal",
+      "n": "225"
+    },
+    {
+      "value": "eu",
+      "n": "129"
+    },
+    {
+      "value": "uk",
+      "n": "40"
+    },
+    {
+      "value": "au",
+      "n": "34"
+    },
+    {
+      "value": "ca",
+      "n": "31"
+    },
+    {
+      "value": "jp",
+      "n": "14"
+    },
+    {
+      "value": "sg",
+      "n": "14"
+    },
+    {
+      "value": "us-state",
+      "n": "8"
+    },
+    {
+      "value": "br",
+      "n": "7"
+    },
+    {
+      "value": "cn",
+      "n": "7"
+    },
+    {
+      "value": "us",
+      "n": "7"
+    },
+    {
+      "value": "hk",
+      "n": "2"
+    },
+    {
+      "value": "in",
+      "n": "2"
+    },
+    {
+      "value": "americas",
+      "n": "1"
+    },
+    {
+      "value": "us-ca",
+      "n": "1"
+    }
+  ],
+  "sources_jurisdictions_total_distinct": 16,
+  "row_population_stats": {
+    "rows_with_jur": "655",
+    "rows_iso_empty": "460",
+    "rows_jur_empty": "21"
+  }
+}

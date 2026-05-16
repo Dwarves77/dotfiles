@@ -40,7 +40,6 @@ type MemberRow = {
 type RoleSummary = {
   owner: number;
   admin: number;
-  editor: number;
   viewer: number;
   member: number;
   other: number;
@@ -49,7 +48,6 @@ type RoleSummary = {
 const ROLE_KEYS: Array<keyof RoleSummary> = [
   "owner",
   "admin",
-  "editor",
   "viewer",
   "member",
 ];
@@ -77,7 +75,6 @@ export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {
           roles: {
             owner: 0,
             admin: 0,
-            editor: 0,
             viewer: 0,
             member: 0,
             other: 0,
@@ -89,7 +86,6 @@ export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {
       const role = (m.role || "").toLowerCase();
       if (role === "owner") existing.roles.owner += 1;
       else if (role === "admin") existing.roles.admin += 1;
-      else if (role === "editor") existing.roles.editor += 1;
       else if (role === "viewer") existing.roles.viewer += 1;
       else if (role === "member") existing.roles.member += 1;
       else existing.roles.other += 1;
