@@ -2,86 +2,29 @@
 //
 // The agent emits a markdown brief, optionally followed by a "New Sources
 // Identified" markdown table, followed by a mandatory YAML frontmatter
-// block fenced with --- delimiters at the very end. This module extracts
-// the YAML, strips it from the markdown body, validates the schema, and
-// returns both pieces.
+// block fenced with --- delimiters at the very end. This module:
 //
-// Inline YAML parser — the frontmatter shape is fixed (7 scalar keys plus
-// one array). A custom parser avoids adding a new runtime dependency for
-// what is a deterministic, documented payload.
+//   1. Locates the YAML block at the end of the output (with multi-fallback
+//      logic for agents that wrap the YAML in code fences or omit delimiters).
+//   2. Splits the YAML into a plain object (minimal inline YAML splitter;
+//      the frontmatter shape is fixed scalars + inline arrays, no nesting).
+//   3. Validates the object against AgentMetadataSchema from vocabularies.ts.
+//   4. Returns body + metadata, or throws AgentOutputParseError.
+//
+// Validation is delegated to fsi-app/src/lib/agent/vocabularies.ts (the
+// canonical Zod schemas for severity, priority, topic_tags, compliance
+// objects, operational scenarios, etc.). Drift between this file and the
+// DB CHECK constraints in migration 078 is impossible because both read
+// from the same vocabularies.ts.
+//
+// History: replaced a ~220-line hand-rolled validator with Zod via
+// vocabularies.ts in dispatch 2 (2026-05-15). The findYamlBlock finder
+// is unchanged — it does separate work (locating the block) from the
+// validator (validating its contents).
 
-const SEVERITY_VALUES = [
-  "ACTION REQUIRED",
-  "COST ALERT",
-  "WINDOW CLOSING",
-  "COMPETITIVE EDGE",
-  "MONITORING",
-] as const;
-const PRIORITY_VALUES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
-const URGENCY_TIER_VALUES = ["watch", "elevated", "stable", "informational"] as const;
-const FORMAT_TYPE_VALUES = [
-  "regulatory_fact_document",
-  "technology_profile",
-  "operations_profile",
-  "market_signal_brief",
-  "research_summary",
-] as const;
+import { AgentMetadataSchema, type AgentMetadata } from "./vocabularies";
 
-// Closed vocabulary mirroring SKILL.md "7 Topic Categories". Tags outside this
-// list fail the regeneration. The vocabulary drives the dynamic per-item source
-// pool, dashboard filters, and source-coverage matrix.
-const TOPIC_TAG_VALUES = [
-  "emissions",
-  "fuels",
-  "transport",
-  "reporting",
-  "packaging",
-  "corridors",
-  "research",
-] as const;
-
-// Closed vocabulary for compliance_object_tags (SKILL.md 18 values). Tags
-// outside this list fail the regeneration. Drives intersection detection.
-const COMPLIANCE_OBJECT_VALUES = [
-  "carrier-ocean", "carrier-air", "carrier-road", "carrier-rail",
-  "vessel-operator", "aircraft-operator", "road-fleet-operator",
-  "freight-forwarder", "customs-broker", "nvocc",
-  "shipper", "importer", "exporter", "manufacturer-producer", "distributor",
-  "port-operator", "airport-operator", "terminal-operator", "warehouse-operator",
-] as const;
-// (Note: 19 values total because the original spec said "18" but required
-// nvocc as a separate role from freight-forwarder/customs-broker. The closed
-// list as enforced is the 19 above. SKILL.md narrative groups them into 18
-// for readability; the validator follows the actual list.)
-
-// operational_scenario_tags is intentionally OPEN vocabulary per SKILL.md —
-// agents prefer the core glossary but may emit new values when needed. The
-// validator only enforces shape (lower-case kebab-case, no whitespace) and
-// upper bound (≤5 tags).
-const OPERATIONAL_SCENARIO_TAG_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/i;
-
-const SEVERITY_TO_PRIORITY: Record<string, string> = {
-  "ACTION REQUIRED": "CRITICAL",
-  "COST ALERT": "HIGH",
-  "WINDOW CLOSING": "HIGH",
-  "COMPETITIVE EDGE": "MODERATE",
-  MONITORING: "LOW",
-};
-
-export interface AgentMetadata {
-  severity: typeof SEVERITY_VALUES[number];
-  priority: typeof PRIORITY_VALUES[number];
-  urgency_tier: typeof URGENCY_TIER_VALUES[number];
-  format_type: typeof FORMAT_TYPE_VALUES[number];
-  topic_tags: typeof TOPIC_TAG_VALUES[number][];
-  operational_scenario_tags: string[];
-  compliance_object_tags: typeof COMPLIANCE_OBJECT_VALUES[number][];
-  related_items: string[];
-  intersection_summary: string | null;
-  sources_used: string[];
-  last_regenerated_at: string;
-  regeneration_skill_version: string;
-}
+export type { AgentMetadata };
 
 export interface ParsedAgentOutput {
   body: string; // Markdown body with YAML stripped (citation table preserved)
@@ -100,6 +43,10 @@ export class AgentOutputParseError extends Error {
  * The block is fenced by `---` on its own line, opening and closing.
  * Returns the inner YAML text and the index where the opening `---` starts,
  * so the body can be sliced cleanly.
+ *
+ * Multi-fallback: the prompt forbids code-fence wrappers around the YAML
+ * but agents sometimes emit them anyway. Also handles the case where the
+ * agent omits the --- delimiters entirely.
  */
 function findYamlBlock(text: string): { yaml: string; start: number; end: number } | null {
   // Strip a single trailing ```yaml ... ``` or ``` ... ``` code-fence wrapper
@@ -180,232 +127,103 @@ function findYamlBlock(text: string): { yaml: string; start: number; end: number
 }
 
 /**
- * Parses the YAML frontmatter block.
+ * Splits the YAML frontmatter into a raw object suitable for Zod
+ * validation. The frontmatter shape is fixed (scalar keys plus inline
+ * arrays); a full YAML parser would be overkill. This splitter:
  *
- * Expected shape (key order is not enforced):
+ *   - Trims and skips blank lines, comment lines (#), and stray code
+ *     fence lines (```yaml, ```)
+ *   - Strips surrounding quotes from scalar values
+ *   - Parses inline arrays `[a, b, c]` into string[]
+ *   - Normalizes null sentinels ("null", "~", "") to JS null for
+ *     intersection_summary
+ *   - Coerces 2000+ char intersection_summary to a 2000-char truncation
+ *     (consistent with prior behavior; the cap is not a parse failure)
  *
- *   severity: ACTION REQUIRED
- *   priority: CRITICAL
- *   urgency_tier: watch
- *   format_type: regulatory_fact_document
- *   sources_used: [a1b2c3d4-..., e5f6g7h8-...]
- *   last_regenerated_at: 2026-04-28T18:42:00Z
- *   regeneration_skill_version: "2026-04-28"
- *
- * Throws AgentOutputParseError on any malformed line, missing required
- * field, or invalid enum value.
+ * Returns a raw object that AgentMetadataSchema validates. Schema
+ * validation is the canonical correctness gate; this splitter only
+ * does shape-level parsing.
  */
-function parseYamlFrontmatter(yaml: string): AgentMetadata {
+function splitYamlToRaw(yaml: string): Record<string, unknown> {
   const fields: Record<string, string> = {};
-  const lines = yaml.split(/\r?\n/);
-
-  for (const rawLine of lines) {
+  for (const rawLine of yaml.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line) continue;
     if (line.startsWith("#")) continue;
-    // Tolerate stray markdown code-fence lines (```yaml, ```yml, ```) that the
-    // agent sometimes emits despite the prompt forbidding them. Skip them
-    // rather than fail the regeneration on a stylistic glitch.
-    if (line.startsWith("```")) continue;
+    if (line.startsWith("```")) continue; // stray code fence; tolerate
     const colonIdx = line.indexOf(":");
     if (colonIdx === -1) {
       throw new AgentOutputParseError(`Malformed YAML line (no colon): ${line.slice(0, 80)}`);
     }
     const key = line.slice(0, colonIdx).trim();
     let value = line.slice(colonIdx + 1).trim();
-    // Strip surrounding quotes (single or double)
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
     fields[key] = value;
   }
 
-  const required = [
-    "severity",
-    "priority",
-    "urgency_tier",
-    "format_type",
-    "topic_tags",
-    "operational_scenario_tags",
-    "compliance_object_tags",
-    "related_items",
-    "intersection_summary",
-    "sources_used",
-    "last_regenerated_at",
-    "regeneration_skill_version",
-  ];
-  for (const k of required) {
-    if (!(k in fields)) {
-      throw new AgentOutputParseError(`Missing required field: ${k}`);
+  // Parse inline arrays for the four array-typed fields. Each value is
+  // a string surrounded by [ ... ] containing comma-separated entries
+  // (possibly quoted). An empty array is [].
+  const parseInlineArray = (key: string): string[] => {
+    const raw = (fields[key] ?? "").trim();
+    if (!raw.startsWith("[") || !raw.endsWith("]")) {
+      throw new AgentOutputParseError(
+        `${key} must be a YAML inline array, got: ${raw.slice(0, 100)}`
+      );
     }
-  }
+    const inner = raw.slice(1, -1).trim();
+    if (!inner) return [];
+    return inner
+      .split(",")
+      .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+      .filter((s) => s.length > 0);
+  };
 
-  // Validate enums
-  if (!SEVERITY_VALUES.includes(fields.severity as any)) {
-    throw new AgentOutputParseError(`Invalid severity: "${fields.severity}". Allowed: ${SEVERITY_VALUES.join(", ")}`);
+  // intersection_summary: scalar string OR null. Cap at 2000 chars with
+  // truncation rather than fail. Losing an entire 13-field regeneration
+  // because this one supplementary field is 55 chars over a cap is bad
+  // cost/benefit. Cap history: 500 → 600 → 800 → 1500 → 2000-with-truncate.
+  let intersectionSummary: string | null;
+  const rawIS = fields.intersection_summary;
+  if (rawIS === undefined) {
+    throw new AgentOutputParseError(`Missing required field: intersection_summary`);
   }
-  if (!PRIORITY_VALUES.includes(fields.priority as any)) {
-    throw new AgentOutputParseError(`Invalid priority: "${fields.priority}". Allowed: ${PRIORITY_VALUES.join(", ")}`);
-  }
-  if (!URGENCY_TIER_VALUES.includes(fields.urgency_tier as any)) {
-    throw new AgentOutputParseError(`Invalid urgency_tier: "${fields.urgency_tier}". Allowed: ${URGENCY_TIER_VALUES.join(", ")}`);
-  }
-  if (!FORMAT_TYPE_VALUES.includes(fields.format_type as any)) {
-    throw new AgentOutputParseError(`Invalid format_type: "${fields.format_type}". Allowed: ${FORMAT_TYPE_VALUES.join(", ")}`);
-  }
-
-  // Verify severity → priority mapping holds
-  const expectedPriority = SEVERITY_TO_PRIORITY[fields.severity];
-  if (expectedPriority !== fields.priority) {
-    throw new AgentOutputParseError(
-      `Priority "${fields.priority}" does not match the locked mapping for severity "${fields.severity}" (expected "${expectedPriority}")`
+  if (rawIS === "null" || rawIS === "" || rawIS === "~") {
+    intersectionSummary = null;
+  } else if (rawIS.length > 2000) {
+    console.warn(
+      `[parse-output] intersection_summary truncated from ${rawIS.length} → 2000 chars`
     );
-  }
-
-  // Parse topic_tags array (closed vocabulary, 0-3 values).
-  const tagsRaw = fields.topic_tags.trim();
-  if (!tagsRaw.startsWith("[") || !tagsRaw.endsWith("]")) {
-    throw new AgentOutputParseError(`topic_tags must be a YAML inline array, got: ${tagsRaw.slice(0, 100)}`);
-  }
-  const tagsInner = tagsRaw.slice(1, -1).trim();
-  const topicTags: string[] = tagsInner
-    ? tagsInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
-    : [];
-  if (topicTags.length > 3) {
-    throw new AgentOutputParseError(`topic_tags exceeds 3 values: ${topicTags.join(", ")}`);
-  }
-  for (const tag of topicTags) {
-    if (!TOPIC_TAG_VALUES.includes(tag as any)) {
-      throw new AgentOutputParseError(
-        `topic_tags contains an out-of-vocabulary value: "${tag}". Allowed: ${TOPIC_TAG_VALUES.join(", ")}`
-      );
-    }
-  }
-
-  // Parse operational_scenario_tags (open vocabulary, 0-5 values, kebab-case shape)
-  const opScenRaw = fields.operational_scenario_tags.trim();
-  if (!opScenRaw.startsWith("[") || !opScenRaw.endsWith("]")) {
-    throw new AgentOutputParseError(`operational_scenario_tags must be a YAML inline array, got: ${opScenRaw.slice(0, 100)}`);
-  }
-  const opScenInner = opScenRaw.slice(1, -1).trim();
-  const opScenTags: string[] = opScenInner
-    ? opScenInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
-    : [];
-  if (opScenTags.length > 5) {
-    throw new AgentOutputParseError(`operational_scenario_tags exceeds 5 values: ${opScenTags.join(", ")}`);
-  }
-  for (const tag of opScenTags) {
-    if (!OPERATIONAL_SCENARIO_TAG_RE.test(tag)) {
-      throw new AgentOutputParseError(
-        `operational_scenario_tags contains a malformed value: "${tag}". Expected lower-case kebab-case (e.g. ocean-bunkering).`
-      );
-    }
-  }
-
-  // Parse compliance_object_tags (closed vocabulary, 0-4 values)
-  const compObjRaw = fields.compliance_object_tags.trim();
-  if (!compObjRaw.startsWith("[") || !compObjRaw.endsWith("]")) {
-    throw new AgentOutputParseError(`compliance_object_tags must be a YAML inline array, got: ${compObjRaw.slice(0, 100)}`);
-  }
-  const compObjInner = compObjRaw.slice(1, -1).trim();
-  const compObjTags: string[] = compObjInner
-    ? compObjInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
-    : [];
-  if (compObjTags.length > 4) {
-    throw new AgentOutputParseError(`compliance_object_tags exceeds 4 values: ${compObjTags.join(", ")}`);
-  }
-  for (const tag of compObjTags) {
-    if (!COMPLIANCE_OBJECT_VALUES.includes(tag as any)) {
-      throw new AgentOutputParseError(
-        `compliance_object_tags contains an out-of-vocabulary value: "${tag}". Allowed: ${COMPLIANCE_OBJECT_VALUES.join(", ")}`
-      );
-    }
-  }
-
-  // Parse related_items (UUID array, may be empty)
-  const relRaw = fields.related_items.trim();
-  if (!relRaw.startsWith("[") || !relRaw.endsWith("]")) {
-    throw new AgentOutputParseError(`related_items must be a YAML inline array, got: ${relRaw.slice(0, 100)}`);
-  }
-  const relInner = relRaw.slice(1, -1).trim();
-  const relatedItems: string[] = relInner
-    ? relInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
-    : [];
-  // Validate UUID shape (use same regex as sources_used; defined below — defined here too for safety)
-  const uuidReEarly = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  for (const id of relatedItems) {
-    if (!uuidReEarly.test(id)) {
-      throw new AgentOutputParseError(`related_items contains a non-UUID value: ${id}`);
-    }
-  }
-
-  // intersection_summary: scalar string OR null. Cap 2000 chars with
-  // truncate-on-overflow rather than fail. Losing an entire 13-field
-  // regeneration because this one supplementary field is 55 chars over
-  // some arbitrary cap is bad cost/benefit — the brief, the topic_tags,
-  // and the structural intersection metadata (tags + related_items) are
-  // all still good. Truncate the long tail and keep the rest.
-  // Cap history: 500 → 600 → 800 → 1500 → 2000-with-truncate.
-  const interSumRaw = fields.intersection_summary;
-  let interSum: string | null;
-  if (interSumRaw === "null" || interSumRaw === "" || interSumRaw === "~") {
-    interSum = null;
+    intersectionSummary = rawIS.slice(0, 1997) + "...";
   } else {
-    interSum = interSumRaw;
-    if (interSum.length > 2000) {
-      // Truncate at 1997 + ellipsis. Log to console so the operator can
-      // see how often the cap is hit at scale; it's not a parse failure.
-      console.warn(`[parse-output] intersection_summary truncated from ${interSum.length} → 2000 chars`);
-      interSum = interSum.slice(0, 1997) + "...";
-    }
-  }
-
-  // Parse sources_used array
-  // Accept: [], [uuid], [uuid, uuid, ...]
-  const sourcesRaw = fields.sources_used.trim();
-  if (!sourcesRaw.startsWith("[") || !sourcesRaw.endsWith("]")) {
-    throw new AgentOutputParseError(`sources_used must be a YAML inline array, got: ${sourcesRaw.slice(0, 100)}`);
-  }
-  const inner = sourcesRaw.slice(1, -1).trim();
-  const sourcesUsed: string[] = inner
-    ? inner.split(",").map((s) => {
-        const v = s.trim().replace(/^["']|["']$/g, "");
-        return v;
-      }).filter((s) => s.length > 0)
-    : [];
-  // Validate UUID shape
-  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  for (const id of sourcesUsed) {
-    if (!uuidRe.test(id)) {
-      throw new AgentOutputParseError(`sources_used contains a non-UUID value: ${id}`);
-    }
-  }
-
-  // last_regenerated_at — accept any ISO 8601-ish string; let downstream Postgres validate.
-  const ts = fields.last_regenerated_at;
-  if (!ts || isNaN(Date.parse(ts))) {
-    throw new AgentOutputParseError(`Invalid last_regenerated_at: "${ts}"`);
+    intersectionSummary = rawIS;
   }
 
   return {
-    severity: fields.severity as AgentMetadata["severity"],
-    priority: fields.priority as AgentMetadata["priority"],
-    urgency_tier: fields.urgency_tier as AgentMetadata["urgency_tier"],
-    format_type: fields.format_type as AgentMetadata["format_type"],
-    topic_tags: topicTags as AgentMetadata["topic_tags"],
-    operational_scenario_tags: opScenTags,
-    compliance_object_tags: compObjTags as AgentMetadata["compliance_object_tags"],
-    related_items: relatedItems,
-    intersection_summary: interSum,
-    sources_used: sourcesUsed,
-    last_regenerated_at: ts,
+    severity:                   fields.severity,
+    priority:                   fields.priority,
+    urgency_tier:               fields.urgency_tier,
+    format_type:                fields.format_type,
+    topic_tags:                 parseInlineArray("topic_tags"),
+    operational_scenario_tags:  parseInlineArray("operational_scenario_tags"),
+    compliance_object_tags:     parseInlineArray("compliance_object_tags"),
+    related_items:              parseInlineArray("related_items"),
+    intersection_summary:       intersectionSummary,
+    sources_used:               parseInlineArray("sources_used"),
+    last_regenerated_at:        fields.last_regenerated_at,
     regeneration_skill_version: fields.regeneration_skill_version,
   };
 }
 
 /**
  * Parse the full agent output: body + metadata.
- * Throws AgentOutputParseError if the YAML block is missing or malformed.
+ * Throws AgentOutputParseError if the YAML block is missing, malformed,
+ * or fails schema validation.
  */
 export function parseAgentOutput(rawText: string): ParsedAgentOutput {
   const block = findYamlBlock(rawText);
@@ -415,7 +233,29 @@ export function parseAgentOutput(rawText: string): ParsedAgentOutput {
       rawText.slice(-500)
     );
   }
-  const metadata = parseYamlFrontmatter(block.yaml);
+
+  let raw: Record<string, unknown>;
+  try {
+    raw = splitYamlToRaw(block.yaml);
+  } catch (e) {
+    if (e instanceof AgentOutputParseError) throw e;
+    throw new AgentOutputParseError(
+      `YAML splitting failed: ${e instanceof Error ? e.message : String(e)}`,
+      block.yaml.slice(0, 500)
+    );
+  }
+
+  const parseResult = AgentMetadataSchema.safeParse(raw);
+  if (!parseResult.success) {
+    const issues = parseResult.error.issues
+      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .join("; ");
+    throw new AgentOutputParseError(
+      `Agent metadata validation failed: ${issues}`,
+      block.yaml.slice(0, 500)
+    );
+  }
+
   const body = rawText.slice(0, block.start).replace(/\s+$/, "");
-  return { body, metadata };
+  return { body, metadata: parseResult.data };
 }
