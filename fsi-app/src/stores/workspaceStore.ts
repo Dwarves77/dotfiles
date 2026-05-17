@@ -9,7 +9,7 @@ interface WorkspaceState {
   orgName: string;
 
   // User role in current org
-  userRole: "owner" | "admin" | "editor" | "viewer" | null;
+  userRole: "owner" | "admin" | "member" | "viewer" | null;
 
   // Sector profile — which sectors this workspace operates in
   sectorProfile: string[];

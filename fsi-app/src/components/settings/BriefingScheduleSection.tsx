@@ -58,8 +58,7 @@ export function BriefingScheduleSection() {
   // Workspace-level settings are owner/admin scoped. Members/viewers see
   // the current schedule but can't change it (mirrors workspace_settings
   // RLS gate; we render disabled controls so it's clear *why*).
-  const canEdit =
-    userRole === "owner" || userRole === "admin" || userRole === "editor";
+  const canEdit = userRole === "owner" || userRole === "admin";
 
   const [schedule, setSchedule] = useState<ScheduleState>({
     ...DEFAULT_SCHEDULE,

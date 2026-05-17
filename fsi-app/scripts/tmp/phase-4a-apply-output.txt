@@ -1,0 +1,93 @@
+[apply-pending] connected to kwrsbpiseruzbfwjpvsp
+[apply-pending] 49 migrations already registered
+[apply-pending] 79 local migration files
+[apply-pending] skip (below MIN_VERSION 052): 001_schema.sql
+[apply-pending] skip (below MIN_VERSION 052): 002_rls.sql
+[apply-pending] skip (below MIN_VERSION 052): 003_indexes.sql
+[apply-pending] skip (below MIN_VERSION 052): 004_source_trust_framework.sql
+[apply-pending] skip (below MIN_VERSION 052): 005_rls_trust_framework.sql
+[apply-pending] skip (below MIN_VERSION 052): 006_multi_tenant.sql
+[apply-pending] skip (below MIN_VERSION 052): 006_rls_multi_tenant.sql
+[apply-pending] skip (below MIN_VERSION 052): 007_community_layer.sql
+[apply-pending] skip (below MIN_VERSION 052): 007_full_brief.sql
+[apply-pending] skip (below MIN_VERSION 052): 007_rls_community.sql
+[apply-pending] skip (below MIN_VERSION 052): 009_capture_undeclared_tables.sql
+[apply-pending] skip (below MIN_VERSION 052): 010_migrate_legacy_to_item.sql
+[apply-pending] skip (below MIN_VERSION 052): 011_backfill_orphan_supersessions.sql
+[apply-pending] skip (below MIN_VERSION 052): 013_drop_legacy_tables.sql
+[apply-pending] skip (below MIN_VERSION 052): 015_provisional_recommended_classification.sql
+[apply-pending] skip (below MIN_VERSION 052): 016_add_processing_pause.sql
+[apply-pending] skip (below MIN_VERSION 052): 017_add_admin_only_to_sources.sql
+[apply-pending] skip (below MIN_VERSION 052): 018_b2_brief_schema.sql
+[apply-pending] skip (below MIN_VERSION 052): 019_reclassify_mistyped_tools.sql
+[apply-pending] skip (below MIN_VERSION 052): 020_intersection_readiness.sql
+[apply-pending] skip (below MIN_VERSION 052): 021_canonical_source_candidates.sql
+[apply-pending] skip (below MIN_VERSION 052): 022_canonical_source_classification_cache.sql
+[apply-pending] skip (below MIN_VERSION 052): 023_intersection_detection_function.sql
+[apply-pending] skip (below MIN_VERSION 052): 024_admin_action_cooldowns.sql
+[apply-pending] skip (below MIN_VERSION 052): 025_sector_activation_interest.sql
+[apply-pending] skip (below MIN_VERSION 052): 026_research_pipeline_stage.sql
+[apply-pending] skip (below MIN_VERSION 052): 027_user_profiles.sql
+[apply-pending] skip (below MIN_VERSION 052): 028_community_groups.sql
+[apply-pending] skip (below MIN_VERSION 052): 029_community_group_members.sql
+[apply-pending] skip (below MIN_VERSION 052): 030_community_posts.sql
+[apply-pending] skip (below MIN_VERSION 052): 031_community_topics.sql
+[apply-pending] skip (below MIN_VERSION 052): 032_community_notifications_moderation.sql
+[apply-pending] skip (below MIN_VERSION 052): 033_jurisdiction_iso.sql
+[apply-pending] skip (below MIN_VERSION 052): 034_staged_updates_materialization_error.sql
+[apply-pending] skip (below MIN_VERSION 052): 035_agent_integrity_flags.sql
+[apply-pending] skip (below MIN_VERSION 052): 036_admin_notifications_rpc.sql
+[apply-pending] skip (below MIN_VERSION 052): 037_source_verification.sql
+[apply-pending] skip (below MIN_VERSION 052): 038_bulk_import_audit.sql
+[apply-pending] skip (below MIN_VERSION 052): 039_coverage_matrix_rpc.sql
+[apply-pending] skip (below MIN_VERSION 052): 040_discovery_provenance.sql
+[apply-pending] skip (below MIN_VERSION 052): 041_post_promotions.sql
+[apply-pending] skip (below MIN_VERSION 052): 042_community_region_counts_rpc.sql
+[apply-pending] skip (below MIN_VERSION 052): 043_security_advisor_fixes.sql
+[apply-pending] skip (below MIN_VERSION 052): 044_integrity_flag_trigger_tune.sql
+[apply-pending] skip (below MIN_VERSION 052): 045_orphan_slugs_and_acf_dedup.sql
+[apply-pending] skip (below MIN_VERSION 052): 046_community_rls_recursion_fix.sql
+[apply-pending] skip (below MIN_VERSION 052): 047_workspace_intelligence_slim_rpc.sql
+[apply-pending] skip (below MIN_VERSION 052): 048_integrity_flags_platform.sql
+[apply-pending] skip (below MIN_VERSION 052): 049_perf_v2_indexes.sql
+[apply-pending] skip (below MIN_VERSION 052): 050_integrity_flags_workflow_gap.sql
+[apply-pending] skip (below MIN_VERSION 052): 051_sources_last_scanned_recovery.sql
+[apply-pending] already applied: 052 raw_fetches
+[apply-pending] already applied: 053 intelligence_item_versions
+[apply-pending] already applied: 054 sources_scoreboard_columns
+[apply-pending] already applied: 055 sources_auto_run_enabled
+[apply-pending] already applied: 056 sources_access_method_extension
+[apply-pending] already applied: 057 agent_runs
+[apply-pending] already applied: 058 ingestion_control_log
+[apply-pending] already applied: 059 ingestion_state
+[apply-pending] already applied: 060 user_watchlist
+[apply-pending] already applied: 061 coverage_gaps
+[apply-pending] already applied: 062 intelligence_items_hidden_reason
+[apply-pending] already applied: 063 sources_classification_axes
+[apply-pending] already applied: 064 workspace_intelligence_dashboard_rpc
+[apply-pending] already applied: 065 pending_first_fetch_queue
+[apply-pending] already applied: 066 workspace_intelligence_listings_rpc
+[apply-pending] already applied: 067 sources_classification_metadata
+[apply-pending] already applied: 068 workspace_intelligence_aggregates
+[apply-pending] already applied: 069 workspace_intelligence_aggregates_scoped
+[apply-pending] already applied: 071 deterministic_tiebreaker
+[apply-pending] already applied: 072 jurisdiction_normalizer
+[apply-pending] already applied: 073 shared_workspace_scope
+[apply-pending] already applied: 074 ecovadis_vendor_reclass
+[apply-pending] already applied: 075 profiles_consolidation_phase1
+[apply-pending] already applied: 076 org_invitations
+[apply-pending] already applied: 077 rpc_membership_checks
+[apply-pending] applying 079: canonical_entity_columns (5777 chars)
+[apply-pending] OK 079
+[apply-pending] applying 080: jurisdiction_vocabulary_extension (26219 chars)
+[apply-pending] OK 080
+[apply-pending] applying 081: admin_signal_documentation (3196 chars)
+[apply-pending] OK 081
+[apply-pending] reloading PostgREST schema cache
+
+── Summary ──
+  applied: 3
+  already applied: 25
+  skipped: 51
+  failed: 0
+  applied versions: 079, 080, 081

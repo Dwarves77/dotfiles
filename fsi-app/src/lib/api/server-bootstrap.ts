@@ -31,7 +31,7 @@ export interface ServerBootstrap {
   user: User | null;
   orgId: string | null;
   orgName: string;
-  role: "owner" | "admin" | "editor" | "viewer" | null;
+  role: "owner" | "admin" | "member" | "viewer" | null;
   /**
    * Per-user sector overrides (from profiles.sector_overrides). Empty
    * means "use workspace defaults."

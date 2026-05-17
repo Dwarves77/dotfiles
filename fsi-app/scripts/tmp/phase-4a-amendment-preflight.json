@@ -1,0 +1,31 @@
+{
+  "borough_presence": [
+    {
+      "value": "QUEENSLAND",
+      "n": "3",
+      "column_name": "jurisdictions"
+    }
+  ],
+  "usa_variant_presence": [],
+  "nyc_token_presence": [
+    {
+      "value": "NEW YORK STATE",
+      "n": "7"
+    },
+    {
+      "value": "NEW YORK CITY",
+      "n": "5"
+    },
+    {
+      "value": "NEW_YORK_STATE",
+      "n": "1"
+    }
+  ],
+  "icao_recheck": [
+    {
+      "value": "ICAO MEMBER STATES (193)",
+      "n": "1"
+    }
+  ],
+  "normalize_function_dependents": []
+}
