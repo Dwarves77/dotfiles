@@ -1,0 +1,126 @@
+{
+  "intelligence_items_source_cols": [
+    {
+      "column_name": "source_id",
+      "data_type": "uuid",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "source_url",
+      "data_type": "text",
+      "is_nullable": "NO"
+    }
+  ],
+  "intelligence_items_source_related": [
+    {
+      "column_name": "source_id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "source_url",
+      "data_type": "text"
+    },
+    {
+      "column_name": "sources_used",
+      "data_type": "ARRAY"
+    }
+  ],
+  "function_signatures_post_080": [
+    {
+      "proname": "_classify_jurisdiction_token",
+      "args": "token text",
+      "result": "text"
+    },
+    {
+      "proname": "_intelligence_items_normalize_jurisdictions",
+      "args": "",
+      "result": "trigger"
+    },
+    {
+      "proname": "_normalize_jurisdictions",
+      "args": "input text[]",
+      "result": "TABLE(canonical text[], rejected text[])"
+    }
+  ],
+  "pending_review_populate_counts": [
+    {
+      "classification": "continent",
+      "n": "48"
+    },
+    {
+      "classification": "region_bucket",
+      "n": "38"
+    },
+    {
+      "classification": "undefined_group",
+      "n": "21"
+    }
+  ],
+  "distinct_pairs_to_populate": {
+    "total_pairs": "107",
+    "distinct_items": "72"
+  },
+  "sample_first_10_rows": [
+    {
+      "intelligence_item_id": "6373df1e-1461-478e-b480-70dee471d597",
+      "title": "Mexico SEMARNAT",
+      "current_value": "LATAM",
+      "classification": "region_bucket"
+    },
+    {
+      "intelligence_item_id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+      "title": "India Regional Operations Profile",
+      "current_value": "ASIA",
+      "classification": "continent"
+    },
+    {
+      "intelligence_item_id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+      "title": "ECLAC (UN Latin America)",
+      "current_value": "LATAM",
+      "classification": "region_bucket"
+    },
+    {
+      "intelligence_item_id": "c4ad4cc5-ab5f-4e21-a422-bf12b5f992b4",
+      "title": "China (PRC) Regional Operations Profile",
+      "current_value": "ASIA",
+      "classification": "continent"
+    },
+    {
+      "intelligence_item_id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+      "title": "Singapore Green Plan 2030",
+      "current_value": "ASIA",
+      "classification": "continent"
+    },
+    {
+      "intelligence_item_id": "68e05861-c953-485d-b081-cb6777dcfd99",
+      "title": "Japan MLIT",
+      "current_value": "ASIA",
+      "classification": "continent"
+    },
+    {
+      "intelligence_item_id": "935680f5-6915-4241-a9b5-7e450143bc0f",
+      "title": "China CCICED",
+      "current_value": "ASIA",
+      "classification": "continent"
+    },
+    {
+      "intelligence_item_id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "title": "ADB Sustainable Transport",
+      "current_value": "ASIA",
+      "classification": "continent"
+    },
+    {
+      "intelligence_item_id": "0658844a-5f65-4444-89fb-bf73a22bafc6",
+      "title": "Dubai / UAE Regional Operations Profile",
+      "current_value": "MEAF",
+      "classification": "region_bucket"
+    },
+    {
+      "intelligence_item_id": "bd6bc712-a684-4f11-b6fc-7e782f6f01be",
+      "title": "ICOM-CC International Conservation Professionals Network - 2026 Conference and Membership Information",
+      "current_value": "AFRICA",
+      "classification": "continent"
+    }
+  ],
+  "existing_queue_tables": []
+}

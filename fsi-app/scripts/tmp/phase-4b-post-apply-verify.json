@@ -1,0 +1,45 @@
+{
+  "queue_totals": {
+    "pjr_count": "107",
+    "pjr_unresolved": "107",
+    "ir_count": "0"
+  },
+  "pjr_by_reason_and_column": [
+    {
+      "source_column": "jurisdictions",
+      "flagged_reason": "continent",
+      "n": "48"
+    },
+    {
+      "source_column": "jurisdictions",
+      "flagged_reason": "region_bucket",
+      "n": "38"
+    },
+    {
+      "source_column": "jurisdictions",
+      "flagged_reason": "undefined_group",
+      "n": "21"
+    }
+  ],
+  "rls_status": [
+    {
+      "table_name": "ingest_rejections",
+      "rls_enabled": true
+    },
+    {
+      "table_name": "pending_jurisdiction_review",
+      "rls_enabled": true
+    }
+  ],
+  "trigger_fn": {
+    "prosecdef": true,
+    "proconfig": [
+      "search_path=public, pg_temp"
+    ]
+  },
+  "deferrable_fk": {
+    "conname": "pjr_intelligence_item_fkey",
+    "condeferrable": true,
+    "condeferred": true
+  }
+}
