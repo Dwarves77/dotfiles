@@ -134,6 +134,38 @@ OBS-2 (2-letter and ISO-3166-2 pass-through soft validation gap) flagged that ca
 
 ---
 
-## OBS-9: Carryforward from earlier phases (placeholder)
+## OBS-9: Classifier feedback loop Sprint 2 pre-implementation decisions
+
+**Source:** Classifier feedback loop sequencing dispatch (2026-05-18)
+**Phase:** Sprint 2 pre-work; not blocking now
+**Priority:** Medium (Sprint 2 entry)
+
+Operator authorized Sprint 2 placement for the classifier feedback loop. Three architectural decisions captured for the Sprint 2 implementation-design dispatch:
+
+1. **Rule-promotion vs score-recalibration vs both.** Operator view: probably both. Rule-promotion for vocabulary (the 080 CASE table, sources tier list). Score-recalibration for threshold tuning (the 75/55 constants in `fsi-app/src/lib/sources/verification.ts:255-260`).
+
+2. **Versioning posture.** Operator view: tracked entity for rule-promotion paths (CASE entries need history), file-versioned for thresholds. Implementation design should land a tracked-entity schema for vocabulary additions and keep thresholds in `verification.ts` with git history.
+
+3. **Approval model.** Operator view: single-operator auto-apply with audit log for early Sprint 2. Revisit if Caro's Ledge grows multi-operator authority via Cliodhna / Caren / Jake delegation.
+
+**Skill load reminder for the Sprint 2 implementation dispatch:** `environmental-policy-and-innovation` MUST be loaded before authoring loop mechanics. The skill's source-taxonomy + integrity rules govern how classifier decisions translate to canonical vocabulary changes.
+
+---
+
+## OBS-10: Spot-check drift event rate monitoring post-Phase-7
+
+**Source:** Classifier feedback loop sequencing dispatch (2026-05-18)
+**Phase:** Post-Phase-7 ship through Sprint 2 loop ship
+**Priority:** Monitoring (escalates to "pull Sprint 2 loop earlier" if threshold trips)
+
+Recurring spot-check at `fsi-app/src/app/api/admin/spot-check/recurring/route.ts:14-24` alerts on >5% false-positive drift but has no automated remediation. Between Phase 7 ship and Sprint 2 loop ship, every drift event becomes manual recalibration work (operator or whoever inherits triage delegation).
+
+**Action.** After Phase 7 ships, track the drift event rate. **Threshold: if drift events fire faster than ~1 per week, pull the Sprint 2 loop sequencing earlier.** The "relief Sprint 2 was supposed to deliver" is already being felt as manual burden when the rate is that high.
+
+No action required pre-Phase-7. Capture in operator dashboard once Phase 7 ships and triage UI begins emitting decisions.
+
+---
+
+## OBS-11: Carryforward from earlier phases (placeholder)
 
 Reserved for items surfaced during Phase 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.
