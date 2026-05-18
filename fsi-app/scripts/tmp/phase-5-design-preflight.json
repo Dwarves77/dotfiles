@@ -1,0 +1,497 @@
+{
+  "nyc_per_token": {
+    "NEW YORK CITY": 5,
+    "NEW_YORK_CITY": 0,
+    "NYC": 0,
+    "BROOKLYN": 0,
+    "MANHATTAN": 0,
+    "QUEENS": 0,
+    "BRONX": 0,
+    "STATEN ISLAND": 0,
+    "STATEN_ISLAND": 0,
+    "THE BRONX": 0
+  },
+  "nyc_total_distinct_items": 5,
+  "iso_empty_with_jurisdictions": 457,
+  "iso_fully_empty_total": 460,
+  "rc9_loser_presence": {
+    "LL97": [
+      {
+        "prefix": "b8b6fde3",
+        "present": 1,
+        "sample": [
+          {
+            "id": "b8b6fde3-2087-47c0-89c7-1b3bb944138c",
+            "title": "Local Law 97: NYC Greenhouse Gas Emissions Reduction Requirements for Buildings",
+            "item_type": "regulation",
+            "jurisdictions": [
+              "NEW YORK CITY",
+              "NEW YORK STATE"
+            ],
+            "jurisdiction_iso": [],
+            "created_at": "2026-05-10T02:45:26.654Z",
+            "j_n": 2,
+            "iso_n": 0
+          }
+        ]
+      },
+      {
+        "prefix": "d56ca4e1",
+        "present": 1,
+        "sample": [
+          {
+            "id": "d56ca4e1-5f68-4bf8-9c88-47ecfee986f0",
+            "title": "New York City Local Law 97 of 2019 - Building Emissions Limits and Compliance Requirements",
+            "item_type": "regulation",
+            "jurisdictions": [
+              "NEW YORK CITY",
+              "NEW YORK STATE"
+            ],
+            "jurisdiction_iso": [],
+            "created_at": "2026-05-10T03:24:55.343Z",
+            "j_n": 2,
+            "iso_n": 0
+          }
+        ]
+      }
+    ],
+    "EPA_PHASE_3": [
+      {
+        "prefix": "33ca228c",
+        "present": 1,
+        "sample": [
+          {
+            "id": "33ca228c-e966-4b35-9ec2-01cf0da9c80a",
+            "title": "EPA Final Rule: Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles – Phase 3 (MY 2027+)",
+            "item_type": "regulation",
+            "jurisdictions": [
+              "FEDERAL",
+              "US"
+            ],
+            "jurisdiction_iso": [],
+            "created_at": "2026-05-10T02:23:56.748Z",
+            "j_n": 2,
+            "iso_n": 0
+          }
+        ]
+      },
+      {
+        "prefix": "bec305e1",
+        "present": 1,
+        "sample": [
+          {
+            "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+            "title": "Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles Phase 3",
+            "item_type": "regulation",
+            "jurisdictions": [
+              "FEDERAL",
+              "US"
+            ],
+            "jurisdiction_iso": [],
+            "created_at": "2026-05-10T03:26:53.448Z",
+            "j_n": 2,
+            "iso_n": 0
+          }
+        ]
+      }
+    ],
+    "NORWAY_FJORDS": [
+      {
+        "prefix": "82f09535",
+        "present": 1,
+        "sample": [
+          {
+            "id": "82f09535-ef34-4674-a16c-e7d9753b41bf",
+            "title": "Zero-Emission Requirements for World Heritage Fjords: Implementation Timeline and Compliance Rules Adopted",
+            "item_type": "regulation",
+            "jurisdictions": [
+              "EU",
+              "NO"
+            ],
+            "jurisdiction_iso": [],
+            "created_at": "2026-05-10T02:25:14.361Z",
+            "j_n": 2,
+            "iso_n": 0
+          }
+        ]
+      }
+    ],
+    "MATRIX_HUDSON": [
+      {
+        "prefix": "daaa7e3a",
+        "present": 1,
+        "sample": [
+          {
+            "id": "daaa7e3a-61fc-4c53-adba-81d9e636133f",
+            "title": "Matrix Hudson 2BR/1BA Affordable Rental Unit - Lottery Application Deadline August 8, 2026",
+            "item_type": "market_signal",
+            "jurisdictions": [
+              "BOSTON",
+              "US-MA"
+            ],
+            "jurisdiction_iso": [],
+            "created_at": "2026-05-10T03:24:29.384Z",
+            "j_n": 2,
+            "iso_n": 0
+          }
+        ]
+      }
+    ]
+  },
+  "xref_table_probe": [
+    {
+      "table_name": "item_cross_references",
+      "column_name": "id"
+    },
+    {
+      "table_name": "item_cross_references",
+      "column_name": "source_item_id"
+    },
+    {
+      "table_name": "item_cross_references",
+      "column_name": "target_item_id"
+    },
+    {
+      "table_name": "item_cross_references",
+      "column_name": "relationship"
+    }
+  ],
+  "xref_loser_hits": [],
+  "item_supersessions_columns": [
+    {
+      "table_name": "item_supersessions",
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "item_supersessions",
+      "column_name": "old_item_id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "item_supersessions",
+      "column_name": "new_item_id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "item_supersessions",
+      "column_name": "supersession_date",
+      "data_type": "date"
+    },
+    {
+      "table_name": "item_supersessions",
+      "column_name": "severity",
+      "data_type": "text"
+    },
+    {
+      "table_name": "item_supersessions",
+      "column_name": "note",
+      "data_type": "text"
+    },
+    {
+      "table_name": "item_supersessions",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    }
+  ],
+  "item_supersessions_exists": true,
+  "item_supersessions_row_count": 5,
+  "distinct_two_letter_tokens": [
+    "AE",
+    "AR",
+    "AT",
+    "AU",
+    "BE",
+    "BR",
+    "CA",
+    "CH",
+    "CL",
+    "CN",
+    "CO",
+    "DE",
+    "DK",
+    "EG",
+    "ES",
+    "EU",
+    "FI",
+    "FR",
+    "GB",
+    "HK",
+    "HR",
+    "ID",
+    "IE",
+    "IN",
+    "IR",
+    "IT",
+    "JP",
+    "KE",
+    "KR",
+    "LT",
+    "MX",
+    "MY",
+    "NL",
+    "NO",
+    "PE",
+    "PH",
+    "PL",
+    "PR",
+    "PT",
+    "SE",
+    "SG",
+    "TH",
+    "UN",
+    "US",
+    "VN",
+    "ZA"
+  ],
+  "two_letter_invalid_content_hits": [],
+  "distinct_iso_3166_2_shape_tokens": [
+    {
+      "code": "CA-NL",
+      "n": 1
+    },
+    {
+      "code": "GB-ENG",
+      "n": 9
+    },
+    {
+      "code": "GB-NIR",
+      "n": 5
+    },
+    {
+      "code": "GB-SCT",
+      "n": 4
+    },
+    {
+      "code": "GB-WLS",
+      "n": 5
+    },
+    {
+      "code": "US-AK",
+      "n": 3
+    },
+    {
+      "code": "US-AL",
+      "n": 2
+    },
+    {
+      "code": "US-AR",
+      "n": 4
+    },
+    {
+      "code": "US-AZ",
+      "n": 2
+    },
+    {
+      "code": "US-CA",
+      "n": 9
+    },
+    {
+      "code": "US-CA",
+      "n": 17
+    },
+    {
+      "code": "US-CO",
+      "n": 1
+    },
+    {
+      "code": "US-CO",
+      "n": 4
+    },
+    {
+      "code": "US-CT",
+      "n": 2
+    },
+    {
+      "code": "US-DE",
+      "n": 1
+    },
+    {
+      "code": "US-DE",
+      "n": 2
+    },
+    {
+      "code": "US-FL",
+      "n": 2
+    },
+    {
+      "code": "US-GA",
+      "n": 2
+    },
+    {
+      "code": "US-HI",
+      "n": 2
+    },
+    {
+      "code": "US-IA",
+      "n": 3
+    },
+    {
+      "code": "US-ID",
+      "n": 1
+    },
+    {
+      "code": "US-ID",
+      "n": 2
+    },
+    {
+      "code": "US-IL",
+      "n": 5
+    },
+    {
+      "code": "US-IN",
+      "n": 3
+    },
+    {
+      "code": "US-KS",
+      "n": 4
+    },
+    {
+      "code": "US-LA",
+      "n": 3
+    },
+    {
+      "code": "US-LAX",
+      "n": 1
+    },
+    {
+      "code": "US-MA",
+      "n": 4
+    },
+    {
+      "code": "US-MD",
+      "n": 3
+    },
+    {
+      "code": "US-ME",
+      "n": 1
+    },
+    {
+      "code": "US-MI",
+      "n": 1
+    },
+    {
+      "code": "US-MN",
+      "n": 4
+    },
+    {
+      "code": "US-MO",
+      "n": 2
+    },
+    {
+      "code": "US-MS",
+      "n": 2
+    },
+    {
+      "code": "US-MT",
+      "n": 2
+    },
+    {
+      "code": "US-NC",
+      "n": 4
+    },
+    {
+      "code": "US-ND",
+      "n": 2
+    },
+    {
+      "code": "US-NE",
+      "n": 1
+    },
+    {
+      "code": "US-NJ",
+      "n": 2
+    },
+    {
+      "code": "US-NM",
+      "n": 2
+    },
+    {
+      "code": "US-NV",
+      "n": 3
+    },
+    {
+      "code": "US-NY",
+      "n": 1
+    },
+    {
+      "code": "US-NY",
+      "n": 2
+    },
+    {
+      "code": "US-NYC",
+      "n": 1
+    },
+    {
+      "code": "US-OH",
+      "n": 2
+    },
+    {
+      "code": "US-OK",
+      "n": 2
+    },
+    {
+      "code": "US-OR",
+      "n": 3
+    },
+    {
+      "code": "US-PA",
+      "n": 5
+    },
+    {
+      "code": "US-RI",
+      "n": 2
+    },
+    {
+      "code": "US-SC",
+      "n": 2
+    },
+    {
+      "code": "US-SD",
+      "n": 2
+    },
+    {
+      "code": "US-TN",
+      "n": 1
+    },
+    {
+      "code": "US-TN",
+      "n": 4
+    },
+    {
+      "code": "US-TX",
+      "n": 5
+    },
+    {
+      "code": "US-UT",
+      "n": 3
+    },
+    {
+      "code": "US-VA",
+      "n": 1
+    },
+    {
+      "code": "US-WA",
+      "n": 4
+    },
+    {
+      "code": "US-WI",
+      "n": 3
+    },
+    {
+      "code": "US-WV",
+      "n": 2
+    },
+    {
+      "code": "US-WY",
+      "n": 4
+    }
+  ],
+  "iso_3166_2_invalid_content_hits": [],
+  "_run_at": "2026-05-18T15:31:07.240Z",
+  "_notes": [
+    "NYC counts include both jurisdictions and jurisdiction_iso array containers.",
+    "Loser UUID matches use 8-char LIKE prefixes; collisions are unlikely with random uuids.",
+    "OBS-2 surface uses a hand-built reject sample (XX/ZZ/QQ/etc.); not exhaustive."
+  ]
+}
