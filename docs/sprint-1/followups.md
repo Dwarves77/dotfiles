@@ -289,3 +289,132 @@ Effect on the operator triaging the brief: the operator cannot determine what ar
 ## OBS-16: Carryforward from earlier phases (placeholder)
 
 Reserved for items surfaced during Phase 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.
+
+---
+
+## OBS-17: `/admin` route gates on workspace role but renders platform-wide data
+
+**Source:** System audit 2026-05-18 post-PR-#122, Section D drift finding DRIFT-D.1
+**Phase:** 7 (admin chrome) BINDING CONSTRAINT
+**Priority:** High (potential cross-tenant exposure)
+
+The single `/admin` route at `fsi-app/src/app/admin/page.tsx` gates on inline `org_memberships.role IN ('owner','admin')` (workspace-membership-derived) but renders platform-wide data: all orgs via `OrganizationsTable`, all sources via `fetchSourceData(includeAdminOnly=true)`, platform `integrity_flags`. Banner copy says "you are looking at platform-wide controls," but the gate is workspace-membership-derived. No `is_platform_admin` check is performed in the route file. RLS may compensate at the data layer; the route-level gate does not match the surface's stated scope.
+
+**Binding constraint for Phase 7.** Phase 7 admin chrome MUST implement `requirePlatformAdmin()` per the RC-1 plan from [[OBS-1]] and close this cross-tenant exposure. The fix replaces the inline `org_memberships.role` check with the platform-scoped helper authored in Phase 1's Option C split-helpers work.
+
+**Cross-references.**
+
+- **OBS-1 (cleared):** Phase 1 split-helpers (Option C) established the `requirePlatformAdmin()` design intent; Phase 7 is the consumer that closes the loop.
+- **OBS-14:** the triage UI inline-source-metadata scope inherits whichever gate Phase 7 selects; if the gate is correct (platform-admin only), the consolidated single-pane surface inherits the correct scope.
+- **DP-1:** the consolidated single-pane surface required by DP-1 inherits whichever role gate Phase 7 implements; getting the gate right is upstream of DP-1 compliance.
+
+**Action.** Phase 7 design dispatch MUST cite OBS-17 in its OBS coverage table and demonstrate that the redesigned `/admin` route gates on `requirePlatformAdmin()` (or an equivalent platform-scoped helper). RLS-only compensation is NOT acceptable as the sole defense; the route-level gate must match the surface scope.
+
+---
+
+## OBS-18: `/market` "Watch this week" alerts SideCard is non-interactive
+
+**Source:** System audit 2026-05-18 post-PR-#122, Section G drift finding DRIFT-G.1
+**Phase:** 7 (admin chrome and customer-facing surfaces) BINDING CONSTRAINT
+**Priority:** Medium (customer-facing value-delivery gap)
+
+`MarketPage.tsx:368-384` SideCard renders `{watchCount + elevatedCount}` followed by "alerts" (data-driven, not hard-coded). Clickthrough wiring is BROKEN: the SideCard is a static `<div>` with no `onClick`, no `<Link>`, no `href`. The summary text below names categories ("technologies" / "price signals") but provides no navigation. The operator sees a number, cannot act on it, and must cross-reference the StatStrip tiles manually to find the alert items.
+
+**Binding constraint for Phase 7.** Phase 7 design dispatch MUST address the alerts card clickthrough. Two acceptable patterns: (1) wire the SideCard as a button that activates the matching priority filter on the same page, OR (2) wire it as a `<Link>` to a filtered view. The operator must be able to reach the alert items from the count in one click.
+
+**Cross-references.**
+
+- **DP-1 (Single-Pane Operator Review):** customer-facing pages are OUT of DP-1 scope per the principle's exclusions, BUT this finding shares the operator-experience theme that surfaces show counts without click-through. Treat the spirit of DP-1 (decisions are reachable from where the operator sees them) as guidance.
+- **OBS-14:** same operator-experience theme on operator surfaces; both manifest from the same UI debt pattern.
+
+**Action.** Phase 7 design dispatch addresses the alerts card and the related "Coverage snapshot unavailable" and other non-interactive customer-facing summaries.
+
+---
+
+## OBS-19: `/operations` region-level "Coming soon Phase D" banner mis-attributes wiring gap as coverage gap
+
+**Source:** System audit 2026-05-18 post-PR-#122, Section G drift finding DRIFT-G.2
+**Phase:** 7 (customer-facing) or Phase 6 (ingest wiring) BINDING CONSTRAINT
+**Priority:** Medium (customer-facing value-delivery gap; data exists but UI does not show it)
+
+`OperationsPage.tsx:446-450` fires a `ComingSoonBanner` labeled "Phase D" when an open region exists but `chips.every(c => c.items.length === 0)`. The region IS in the `regions` array (so it has items), but none of the 5 chip regex matchers (Solar, Electricity, Labor, EV Charging, Green Building from CHIP_DEFS at lines 64-70) caught any of the items. Real ingested items slot nowhere visible. The banner mis-communicates the cause: the user reads "coming soon" and assumes coverage gap, but the actual cause is a wiring gap (matcher regex coverage).
+
+**Binding constraint.** Phase 7 (or Phase 6 if the fix lives in the ingest layer) MUST address one of:
+1. Surface an "Uncategorized" fallback chip that renders any items that didn't match Solar/Electricity/Labor/EV/Green Building.
+2. Relax the chip matchers to catch the actual ingested-item title patterns.
+3. Replace the "Phase D" banner copy with accurate language ("Items present but not categorized by current matchers; review needed") in the interim.
+
+**Cross-references.**
+
+- **OBS-15:** both findings share the theme of UI surfaces under-displaying real ingested data; OBS-15 is the brief-citation manifestation, OBS-19 is the operations-page manifestation.
+- **OBS-13 (gate 7.2a):** OBS-13 captures a similar pattern at the jurisdiction layer (items with all-rejected jurisdictions have no per-item triage path); OBS-19 captures the analogous pattern at the operations chip layer.
+
+**Action.** Phase 7 design dispatch (or Phase 6 if scoped to ingest) cites OBS-19 and chooses one of the three remediation options. The "Phase D" banner copy MUST NOT be retained for rows where items exist but matchers missed them.
+
+---
+
+## OBS-20: `/market` EmptyState exposes internal worker-language to end users
+
+**Source:** System audit 2026-05-18 post-PR-#122, Section G drift finding DRIFT-G.5
+**Phase:** Skill-compliance finding (not phase-bound; any UI dispatch that touches the EmptyState should fix)
+**Priority:** Medium (skill-compliance violation)
+
+`/market` EmptyState body mentions "the worker writes item_type = 'technology' records" (or equivalent). This violates the `environmental-policy-and-innovation` skill's workspace-anchored rule: the output never names internal worker mechanics or schema-level identifiers to the end user. Operator-facing language only.
+
+**Cross-references.**
+
+- **environmental-policy-and-innovation SKILL.md:** the workspace-anchored rule section. The skill mandates that every customer-facing output is anchored to the workspace's role and operations, expressed in generic terms. Schema-language like `item_type = 'technology'` is internal mechanics and must not appear.
+- **OBS-15:** OBS-15 captures a different manifestation of the same general theme (briefs lacking article-level context); both are workspace-anchored-rule adjacencies.
+
+**Action.** Rewrite the EmptyState copy in workspace-anchored language. Example replacement: "Technology intelligence has not yet been ingested for the current filter. Adjust the filter or expand source coverage in the registry." This is a small UI-copy follow-up that any UI dispatch touching the EmptyState may fix; not phase-bound.
+
+---
+
+## OBS-21: Migration 078 gap in `supabase_migrations.schema_migrations`
+
+**Source:** System audit 2026-05-18 post-PR-#122, Section A drift finding DRIFT-A.1
+**Phase:** Non-blocking observation (likely PR sequencing artifact)
+**Priority:** Low (expected to resolve when PR #117 merges)
+
+Migrations 071, 072, 073, 074, 075, 076, 077, 079, 080, 081, 082 are present in `supabase_migrations.schema_migrations`. Migration 078 is missing. Per the migration 079 header note (and operator note 2026-05-18), this is expected: migration 078 is authored on an unmerged branch (PR #117) and will land in the schema_migrations log when that PR merges. Until then, the gap is a PR sequencing artifact, not a schema integrity failure.
+
+**Cross-references.**
+
+- **Migration 079 header:** notes the 078 dependency.
+- **PR #117:** the PR that introduces migration 078.
+
+**Action.** Monitor: when PR #117 merges, confirm migration 078 appears in `supabase_migrations.schema_migrations`. If 078 does NOT appear at that point, escalate (migration may have failed to apply). No action required pre-merge.
+
+---
+
+## OBS-22: Ingest scheduler idle since pause-OFF
+
+**Source:** System audit 2026-05-18 post-PR-#122, Section C drift finding DRIFT-C.2
+**Phase:** Monitoring (investigate if it persists)
+**Priority:** Low (may be normal scheduler timing)
+
+22+ minutes elapsed between pause-OFF (2026-05-18T18:16:54Z) and audit time (~2026-05-18T18:39Z) with zero writes to `ingest_rejections`, `pending_jurisdiction_review`, or `intelligence_items`. May be normal scheduler timing (next cron tick had not yet fired) OR a higher-layer pause that is independent of `system_state.global_processing_paused`.
+
+**Cross-references.**
+
+- **OBS-10:** post-Phase-7 drift event rate monitoring; OBS-22 is the pre-Phase-7 analogue (monitoring whether ingest is actually running).
+- **system_state.global_processing_paused:** confirmed `false` at audit time; the database-layer flag is correct.
+
+**Action.** Monitor. If at the next operator session (or within 24 hours) ingest still shows zero activity, dispatch a separate investigation: check the GitHub Actions cron schedules at `.github/workflows/`, check whether the drain-first-fetch worker has been invoked, check whether wave1 daemon is alive. If activity has resumed by the next session, close OBS-22 as steady-state.
+
+---
+
+## OBS-23: `/admin` audit log tab is a reachable ComingSoonBanner placeholder
+
+**Source:** System audit 2026-05-18 post-PR-#122, Section D drift finding DRIFT-D.2
+**Phase:** 7 (admin chrome) planned UI debt
+**Priority:** Low (planned per code comment "Phase D")
+
+`AdminDashboard.tsx` declares an `audit` tab in the tab strip (`count: 0`) that renders a `ComingSoonBanner` placeholder. Comment at `AdminDashboard.tsx:836` states "Workspace-wide audit log lands in Phase D... captured at the database level and will surface here once the audit_log read endpoint ships." Operator has a navigable affordance with no functional surface behind it.
+
+**Cross-references.**
+
+- **OBS-17:** the `/admin` route gate scope-mismatch and the audit log placeholder both live on the same surface; whichever Phase 7 design redesigns the route also decides the audit log tab fate.
+- **DP-1:** the consolidated single-pane operator review surface required by DP-1 will eventually need the audit log inline; the current placeholder is the precursor.
+
+**Action.** Phase 7 design dispatch chooses: (1) hide the tab until the audit_log read endpoint ships, OR (2) implement a minimal read view. Tab strip should not advertise functionality that does not exist.
