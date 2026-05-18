@@ -1,15 +1,20 @@
 ---
 name: sprint-followups-discipline
-description: Sprint followup loop-closure discipline for Caro's Ledge phase and sprint work. Every design dispatch and implementation dispatch on any Caro's Ledge sprint sequence (Sprint 1, Sprint 2, future sprints) and any phase (5, 6, 7, 8, 9, 10, 11, future phases) MUST read the current sprint's followups doc, enumerate every open OBS entry, and either incorporate the fix or explicitly defer with reasoning in an OBS coverage table. Without this discipline OBS entries become write-only: future phases proceed without addressing them, the same problems recur, and operator-experience friction compounds. Loads alongside domain-relevant skills (e.g. environmental-policy-and-innovation for intelligence_items work).
+description: Sprint followup loop-closure discipline plus binding design-principle enforcement for Caro's Ledge phase and sprint work. Every design dispatch and implementation dispatch on any Caro's Ledge sprint sequence (Sprint 1, Sprint 2, future sprints) and any phase (5, 6, 7, 8, 9, 10, 11, future phases) MUST read TWO inputs: (1) the current sprint's followups doc (enumerate every open OBS entry, cover or defer with reasoning), and (2) `docs/design-principles.md` (verify the dispatch's design complies with every DP entry, binary yes/no). The dispatch report carries an OBS coverage table AND a DP compliance section. Without this discipline OBS entries become write-only and DP violations ship unnoticed; either way operator-experience friction compounds. Loads alongside domain-relevant skills (e.g. environmental-policy-and-innovation for intelligence_items work, frontend-design for UI work).
 ---
 
 # Sprint Followups Discipline
 
 ## Core Rule
 
-Every design dispatch and every implementation dispatch on a Caro's Ledge sprint phase MUST close the loop on the current sprint's followups doc. The agent reads the doc in full at dispatch start, enumerates every open OBS entry, and for each one either incorporates the fix into the dispatch scope or explicitly defers with a reason. The dispatch report carries an OBS coverage table. No exceptions.
+Every design dispatch and every implementation dispatch on a Caro's Ledge sprint phase MUST close the loop on two inputs:
 
-This is a loop-closure discipline, not a paperwork exercise. The operator captures findings during sprint execution as numbered OBS entries (OBS-1, OBS-2, ...) because they recur otherwise. Without enforced loop closure, the entries become write-only and the operator-experience friction compounds across sprint sequences.
+1. **The current sprint's followups doc** (e.g. `docs/sprint-1/followups.md`). The agent reads it in full, enumerates every open OBS entry, and for each one either incorporates the fix into the dispatch scope or explicitly defers with reasoning. The dispatch report carries an OBS coverage table.
+2. **`docs/design-principles.md`** (the cross-sprint binding design principles registry). The agent reads every DP-N entry, applies each entry's compliance test to the dispatch's design, and reports binary compliance status. The dispatch report carries a DP compliance section.
+
+No exceptions on either input. The followups doc covers what is in-flight; the design principles registry covers what is binding across sprints. A dispatch that closes the loop on OBS entries but ships a DP violation has failed half the discipline, and vice versa.
+
+This is a loop-closure discipline, not a paperwork exercise. The operator captures findings during sprint execution as numbered OBS entries (OBS-1, OBS-2, ...) because they recur otherwise. The operator codifies cross-sprint axioms as DP entries (DP-1, DP-2, ...) because design dispatches otherwise rediscover and re-violate the same constraints. Without enforced loop closure on both, the entries become write-only and the operator-experience friction compounds across sprint sequences.
 
 ## Why the Skill Exists
 
@@ -44,15 +49,19 @@ If the dispatch is borderline (e.g. a small refactor that also makes design choi
 
 ## What to Do
 
-The skill imposes a five-step protocol on the in-scope dispatch:
+The skill imposes a six-step protocol on the in-scope dispatch:
 
-### Step 1: Locate the current followups doc
+### Step 1: Locate the current followups doc and the design-principles registry
 
-The doc lives at `docs/sprint-N/followups.md` where N is the active sprint number. The agent derives N from dispatch context (sprint number in the brief, branch name like `feat/sprint-N-...`, or the most recent sprint directory under `docs/`). If multiple sprints have followup docs, read the one matching the dispatch's sprint. If a sprint number cannot be derived, HALT and ask the operator before proceeding.
+The followups doc lives at `docs/sprint-N/followups.md` where N is the active sprint number. The agent derives N from dispatch context (sprint number in the brief, branch name like `feat/sprint-N-...`, or the most recent sprint directory under `docs/`). If multiple sprints have followup docs, read the one matching the dispatch's sprint. If a sprint number cannot be derived, HALT and ask the operator before proceeding.
 
-### Step 2: Read the doc in full
+The design principles registry lives at `docs/design-principles.md` (cross-sprint, not per-sprint). Path is fixed.
+
+### Step 2: Read both inputs in full
 
 Read the entire followups doc, not just the entries the agent expects to be relevant. OBS entries cross-reference each other, and the agent's expectation of relevance is often wrong (OBS-14 in Sprint 1 is named "triage UI" but cross-references OBS-4 source-column tracking, OBS-13 jurisdictions gate, and OBS-9 classifier feedback loop, none of which sound like triage-UI scope at first reading).
+
+Read every DP-N entry in `docs/design-principles.md`. DP entries are short and binding; there is no "if it sounds relevant" filter. A DP that does not apply to the dispatch's surface still gets a row in the DP compliance section ("Not applicable, reason: ...") so the reviewer can verify the agent read it.
 
 ### Step 3: Enumerate every open OBS and classify it
 
@@ -72,9 +81,19 @@ For each open OBS, the agent decides:
 - **Cover.** The current dispatch's scope incorporates the fix. The dispatch's deliverable (design spec, implementation, PR) addresses the finding. Cite the OBS in the dispatch deliverable so the connection is reviewable.
 - **Defer with reasoning.** The current dispatch is the wrong owner for this OBS. The dispatch report names the OBS, the actual owner (a different phase, a different sprint, a different skill domain), and the reasoning. Update the OBS entry in the followups doc with a "Deferred to [owner]" note so the next dispatch reading the doc sees the assignment.
 
-### Step 5: Emit the OBS coverage table
+### Step 5: Apply each DP's compliance test to the dispatch's design
 
-Every in-scope dispatch report carries an OBS coverage table. See the Output Format section below for the required structure.
+For each DP-N entry in the registry, apply the entry's compliance test (a binary yes/no question stated in the DP entry) to the current dispatch's design.
+
+- **Pass.** The dispatch's design satisfies the DP. Note the specific design element that proves compliance (a section reference, a UI element, a workflow description).
+- **Fail.** The dispatch's design violates the DP. STOP and redesign. A DP failure is not a deferral candidate; DP entries are binding cross-sprint axioms and cannot be punted to a later dispatch. If the dispatch cannot be reshaped to comply, HALT and surface the conflict to the operator.
+- **Not applicable.** The dispatch surface does not engage the DP (e.g. a Phase 6 ingest-wiring dispatch has no operator-surface scope, so DP-1 "Single-Pane Operator Review" is not applicable). State the reason. "Not applicable" without reasoning is treated as Fail.
+
+"Partial compliance" is treated as Fail. DP entries are binary by construction (see `docs/design-principles.md` opening rules).
+
+### Step 6: Emit the OBS coverage table AND the DP compliance section
+
+Every in-scope dispatch report carries an OBS coverage table AND a DP compliance section. See the Output Format section below for the required structure of both.
 
 ## How to Cover vs How to Defer
 
@@ -121,19 +140,29 @@ Implementation reports MUST surface new OBS even when no existing OBS required c
 
 ### Design dispatch reports
 
-Carry an OBS coverage table in the dispatch report, immediately after the dispatch summary and before the design content. Table structure:
+Carry both an OBS coverage table AND a DP compliance section in the dispatch report, immediately after the dispatch summary and before the design content.
+
+**OBS coverage table:**
 
 | OBS | State | Decision | Cross-references | Reasoning |
 |---|---|---|---|---|
-| OBS-13 | Open | COVER | OBS-14, OBS-9 | Phase 7 design scope; adding third triage tab for all-rejected-jurisdictions rows per option 1. |
-| OBS-14 | Open | COVER | OBS-4, OBS-13, OBS-9 | Phase 7 design scope; spec adds inline source metadata strip on every queue surface. |
-| OBS-15 | Open | DEFER | OBS-14, OBS-9 | Phase 6 ingest-wiring owner; Phase 7 design notes downstream consumer of article-level fields. |
+| OBS-13 | Open | COVER | OBS-14, OBS-9, DP-1 | Phase 7 design scope; adding third triage tab for all-rejected-jurisdictions rows per option 1; triage tab itself DP-1 compliant. |
+| OBS-14 | Open | COVER | OBS-4, OBS-13, OBS-9, DP-1 | Phase 7 design scope; spec adds inline source metadata strip on every queue surface per DP-1. |
+| OBS-15 | Open | DEFER | OBS-14, OBS-9, DP-1 | Phase 6 ingest-wiring owner for field generation; Phase 7 design notes downstream consumer of article-level fields with DP-1 compliance binding once Phase 6 lands. |
 | OBS-7 | Open | DEFER | (none) | External dependency (counsel review); no design action available. |
 | OBS-11 | Implemented | NO ACTION | (none) | Bracket pattern landed in `phase-5-backfill.mjs`; current dispatch does not reopen. |
 
+**DP compliance section:**
+
+| DP | Compliance test | Result | Evidence or reasoning |
+|---|---|---|---|
+| DP-1 (Single-Pane Operator Review) | Can the operator complete every related decision and edit on this single item without leaving the current screen, form, or workflow? | PASS | Design § 3.2 (triage surface) inlines flag, source metadata strip with edit-in-place, decision controls, audit-note field, and audit trail on one screen. § 3.4 (all-rejected-jurisdictions tab) inlines the same controls plus a canonical-replacement picker. Zero tab switches in any documented operator workflow. |
+
+If a DP fails, the section MUST say so and the dispatch redesigns before report submission. If a DP is not applicable, state the reason ("no operator-surface scope in this dispatch", "no actions to consolidate; read-only display").
+
 ### Implementation dispatch reports
 
-Carry an OBS coverage table with the same structure, plus a separate "OBS surfaced during this dispatch" section listing any new entries:
+Carry an OBS coverage table and a DP compliance section with the same structure, plus a separate "OBS surfaced during this dispatch" section listing any new entries:
 
 ```
 ## OBS Surfaced During This Dispatch
@@ -149,11 +178,14 @@ Carry the coverage table for OBS entries the planning decision affects. Use the 
 
 These behaviors mean the skill was loaded but not followed:
 
-- **Reading followups.md without acting on it.** The dispatch report does not include an OBS coverage table. The agent has done the read but not the discipline. Equivalent to not loading the skill at all.
-- **Claiming "no relevant OBS" without listing what was reviewed.** "I read the followups doc and none applied" is not a discharge. The coverage table lists every OBS the agent read, even Implemented or Cleared ones, so the reviewer can verify the relevance call.
+- **Reading followups.md or design-principles.md without acting on it.** The dispatch report does not include the OBS coverage table or the DP compliance section. The agent has done the read but not the discipline. Equivalent to not loading the skill at all.
+- **Claiming "no relevant OBS" or "DP-N does not apply" without listing what was reviewed.** "I read the followups doc and none applied" is not a discharge. The coverage table lists every OBS the agent read, even Implemented or Cleared ones, so the reviewer can verify the relevance call. The DP compliance section lists every DP, with reasoning even for "not applicable", so the reviewer can verify the agent read it.
 - **Treating Implemented or Cleared OBS as still open.** A coverage table that asks for design action on OBS-1 (cleared three sprints ago) wastes review attention. Read the state annotations before assigning action.
-- **Deferring without naming the next owner.** "Deferred to a future dispatch" is a punt, not a routing. Every deferral names the receiving phase, sprint, or skill domain so the followups doc accumulates a routing graph rather than a backlog.
-- **Adding new OBS entries without cross-references.** New entries that don't link to related existing OBS break the cross-reference graph. The next dispatch reading the doc loses the connectivity context.
+- **Deferring an OBS without naming the next owner.** "Deferred to a future dispatch" is a punt, not a routing. Every deferral names the receiving phase, sprint, or skill domain so the followups doc accumulates a routing graph rather than a backlog.
+- **Deferring a DP failure.** DP entries are binding cross-sprint axioms and cannot be deferred. A DP failure means redesign or HALT, never defer.
+- **Accepting "partial DP compliance".** DP compliance is binary by construction. "Mostly compliant" or "compliant in the common path" are failures.
+- **Adding new OBS entries without cross-references.** New entries that don't link to related existing OBS or relevant DP entries break the cross-reference graph. The next dispatch reading the doc loses the connectivity context.
+- **Authoring new DP entries without operator authorization.** The agent may surface candidate principles in followups OBS entries or in dispatch reports, but does not add a new DP-N to `docs/design-principles.md` without operator authorization (see the authorship rule in the registry).
 - **Skipping the skill on "small" dispatches.** A small dispatch that touches a phase surface still owes loop closure. The skill applies by dispatch type (design or implementation on a phase), not by perceived scope size.
 
 ## Integration With the Standing Skill-Load Rule
@@ -190,11 +222,17 @@ The Phase 7 design dispatch's coverage table:
 | OBS-10 | Open | DEFER | (none) | Post-Phase-7 monitoring; operator-dashboard task after Phase 7 ships. Phase 7 design notes the dashboard hook point. |
 | OBS-11 | Implemented | NO ACTION | (none) | Backfill-script-level pattern; no Phase 7 surface. |
 | OBS-12 | Implemented | NO ACTION | (none) | Backfill canonical pattern; no Phase 7 surface. |
-| OBS-13 | Open | COVER | OBS-14, OBS-9 | Phase 7 design adds third triage tab for items with all-rejected jurisdictions. Option 1 from OBS-13's recommendation set; no new schema. |
-| OBS-14 | Open | COVER | OBS-4, OBS-13, OBS-9 | Phase 7 design adds inline source-metadata strip on every queue surface (integrity flags, PJR, IR, and the new all-rejected tab). |
-| OBS-15 | Open | DEFER | OBS-14, OBS-9 | Phase 6 owns the article-level field generation; Phase 7 design reserves a display slot in the brief-detail view and notes the field contract dependency on Phase 6. |
+| OBS-13 | Open | COVER | OBS-14, OBS-9, DP-1 | Phase 7 design adds third triage tab for items with all-rejected jurisdictions. Option 1 from OBS-13's recommendation set; no new schema. The new tab itself is DP-1 compliant. |
+| OBS-14 | Open | COVER | OBS-4, OBS-13, OBS-9, DP-1 | Phase 7 design adds inline source-metadata strip on every queue surface (integrity flags, PJR, IR, and the new all-rejected tab) per DP-1. |
+| OBS-15 | Open | DEFER | OBS-14, OBS-9, DP-1 | Phase 6 owns the article-level field generation; Phase 7 design reserves an inline display slot in the brief-detail view and notes the field contract dependency on Phase 6. Phase 7 display half is DP-1 binding once Phase 6 lands. |
 
-This table tells the operator: every OBS was read, three were covered (13, 14, and the Phase 7 half of 15's display), the rest were deferred to named owners or noted as no-action, and the cross-references are preserved so the design reviewer can follow the graph.
+The same dispatch's DP compliance section:
+
+| DP | Compliance test | Result | Evidence or reasoning |
+|---|---|---|---|
+| DP-1 (Single-Pane Operator Review) | Can the operator complete every related decision and edit on this single item without leaving the current screen, form, or workflow? | PASS | Design § 3.2 (integrity flag triage surface) inlines flag, agent brief, source metadata strip with edit-in-place fields, decision controls, audit-note text field, and audit trail on one screen. § 3.3 (PJR triage) and § 3.4 (all-rejected-jurisdictions tab) inline the equivalent controls plus canonical-replacement pickers. Zero tab switches in any documented operator workflow. Article-level brief context (OBS-15 deferred half) noted as a Phase 6 dependency that will enable full DP-1 compliance on the brief-detail surface once Phase 6 ships. |
+
+This pair tells the operator: every OBS was read, three were covered (13, 14, and the Phase 7 half of 15's display), the rest were deferred to named owners or noted as no-action, the cross-references are preserved so the design reviewer can follow the graph, and the cross-sprint binding design principle (DP-1) was verified as satisfied by the design.
 
 If the Phase 7 implementation dispatch later surfaces a CHECK constraint failure on the new triage decision table, the implementation report adds OBS-17 to the followups doc and cites it in the "OBS surfaced during this dispatch" section. The next Phase 7 hotfix or Sprint 2 design dispatch picks up OBS-17 from the doc on its own loop-closure pass.
 
@@ -203,7 +241,8 @@ If the Phase 7 implementation dispatch later surfaces a CHECK constraint failure
 When this skill loads on a dispatch, the agent's pre-work report states:
 
 - That this skill loaded
-- The followups doc path the agent will read
+- The followups doc path the agent will read (e.g. `docs/sprint-1/followups.md`)
+- That the agent will read `docs/design-principles.md` as the cross-sprint DP registry
 - The dispatch type (design, implementation, or sprint planning) and how the skill applies
 
 If any of these cannot be stated cleanly, HALT and surface the ambiguity to the operator before proceeding.

@@ -251,13 +251,16 @@ The operator observed during a /admin walkthrough that the integrity flag UI sho
 
 The same pattern applies platform-wide to all three operator queues: integrity flags, `pending_jurisdiction_review`, `ingest_rejections`. Each queue surfaces the flagged record but not the source-side context the operator needs to act on it.
 
+**Underlying design principle.** This OBS is a specific manifestation of **DP-1: Single-Pane Operator Review** (`docs/design-principles.md`). DP-1 forbids tab-switching across the admin surface to handle related decisions on the same item. The integrity-flag triage workflow described above is the canonical Sprint 1 violation example cited in DP-1. Compliance with DP-1 on the Phase 7 design is binding, not aspirational.
+
 **Cross-references.**
 
+- **DP-1 (Single-Pane Operator Review):** the underlying axiom. Phase 7 triage UI design must demonstrate DP-1 compliance.
 - **OBS-4:** the `source_column` tracking added in migration 082 already gives the reclassification flow the column-scoped read-write coupling it needs; the operator-experience gap is the layer above that, source metadata visibility next to the column scope.
-- **OBS-13:** the all-rejected-jurisdictions rows that fail gate 7.2a are another surface where the triage UI gap matters; whichever option the Phase 7 design takes for those rows inherits the same source-metadata-inline expectation.
+- **OBS-13:** the all-rejected-jurisdictions rows that fail gate 7.2a are another surface where the triage UI gap matters; whichever option the Phase 7 design takes for those rows inherits the same source-metadata-inline expectation and is itself subject to DP-1.
 - **OBS-9 (Sprint 2 classifier feedback loop):** this finding is characteristic of the broader queue-friction pattern that loop is designed to relieve; operator decisions today do not feed back into the system, so each decision starts from zero context.
 
-**Action.** Surface this expectation at Phase 7 design time as part of the triage-UI scope. Implementation path is Phase 7 designer territory; this entry records the operator-experience requirement, not a prescribed solution.
+**Action.** Surface this expectation at Phase 7 design time as part of the triage-UI scope, with DP-1 cited as the binding constraint. Implementation path is Phase 7 designer territory; this entry records the operator-experience requirement, not a prescribed solution.
 
 ---
 
@@ -271,12 +274,15 @@ The operator observed that when the agent generates a brief citing a journal sou
 
 Effect on the operator triaging the brief: the operator cannot determine what article was actually cited, what it said, or whether full-text access was required versus metadata-only. The brief's source list is technically populated but operationally opaque.
 
+**Underlying design principle.** The Phase 7 display half of this OBS (operator triaging a brief needs DOI, authors, and abstract inline so they can act without leaving the triage surface) is a specific manifestation of **DP-1: Single-Pane Operator Review** (`docs/design-principles.md`). The Phase 6 generation half (the brief must populate article-level fields in the first place) is the upstream dependency that makes Phase 7 DP-1 compliance possible. Phase 6 design owes the field contract; Phase 7 design owes the inline rendering.
+
 **Cross-references.**
 
-- **OBS-14:** the triage UI gap and this one share the operator-experience theme that platform surfaces show records without the source-side context needed to act on them; both compound at scale.
+- **DP-1 (Single-Pane Operator Review):** the underlying axiom for the Phase 7 display half. Phase 6 design must deliver the article-level fields Phase 7 needs to inline.
+- **OBS-14:** the triage UI gap and this one share the operator-experience theme that platform surfaces show records without the source-side context needed to act on them; both compound at scale; both are DP-1 manifestations.
 - **OBS-9 (Sprint 2 classifier feedback loop):** this finding is also characteristic of the broader pattern that loop addresses; article-level provenance is exactly the kind of decision context that, once captured, should feed back into source tier and verification status downstream.
 
-**Action.** Surface this expectation at Phase 6 design time as part of the brief-generation scope, with the Phase 7 triage UI as the downstream consumer of any new article-level fields. Implementation path is Phase 6 and Phase 7 designer territory.
+**Action.** Surface this expectation at Phase 6 design time as part of the brief-generation scope, with the Phase 7 triage UI as the downstream consumer of any new article-level fields and DP-1 cited as the binding constraint on the Phase 7 display. Implementation path is Phase 6 and Phase 7 designer territory.
 
 ---
 
