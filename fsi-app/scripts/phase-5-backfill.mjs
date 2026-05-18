@@ -37,7 +37,16 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
 
-const SEVERITY_VALUE = "duplicate_merge";
+// Q5 amendment (2026-05-18, post-CHECK-constraint discovery): the
+// item_supersessions table has CHECK (severity = ANY(ARRAY['major',
+// 'minor', 'replacement'])). My original Q5 pick 'duplicate_merge' is
+// blocked. 'replacement' IS in the allowed set and IS the domain-
+// semantic match for dedup-via-supersession (the canonical winner
+// REPLACES the loser). Per Q5 rule "if existing rows follow a domain-
+// semantic convention, match it" — 'replacement' is the right pick
+// under the existing-vocabulary fall-through. OBS-6 in followups
+// updated to reflect this.
+const SEVERITY_VALUE = "replacement";
 const MATRIX_HIDDEN_REASON = "rc8_review_pending";
 // BATCH_SIZE: reduced 100 -> 50 after Phase 5 turn-2 first attempt failed
 // mid-batch with "DbHandler exited" (connection drop). Even though the
@@ -224,15 +233,31 @@ async function preflight(client, opts) {
   `);
   report.existing_severity_vocab = vocab;
 
-  // 8. Snapshot tables MUST NOT exist (CREATE TABLE without IF NOT EXISTS)
+  // 8. Snapshot tables presence: tolerate existing snapshots if they cover
+  // the 4 expected tables. Re-use them rather than recreating (avoids a
+  // transient no-rollback window during DROP + CREATE). Retry scenario
+  // after a failed first attempt is the canonical use case.
   const { rows: snapshots } = await client.query(`
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name LIKE '%_pre_phase5';
   `);
-  if (opts.enforce_no_snapshots && snapshots.length > 0) {
-    throw new Error(`HALT: snapshot tables already exist: ${snapshots.map(s => s.table_name).join(", ")}. Drop them before re-running.`);
+  const expectedSnapshots = new Set([
+    "intelligence_items_pre_phase5",
+    "pending_jurisdiction_review_pre_phase5",
+    "ingest_rejections_pre_phase5",
+    "item_supersessions_pre_phase5",
+  ]);
+  const presentSnapshots = new Set(snapshots.map(s => s.table_name));
+  const missingSnapshots = [...expectedSnapshots].filter(t => !presentSnapshots.has(t));
+  const extraSnapshots = [...presentSnapshots].filter(t => !expectedSnapshots.has(t));
+  if (opts.enforce_no_snapshots && extraSnapshots.length > 0) {
+    throw new Error(`HALT: unexpected snapshot tables present: ${extraSnapshots.join(", ")}. Inspect before re-running.`);
+  }
+  if (opts.enforce_no_snapshots && missingSnapshots.length > 0 && missingSnapshots.length < 4) {
+    throw new Error(`HALT: partial snapshot state (${missingSnapshots.length}/4 missing): ${missingSnapshots.join(", ")}. Drop remaining snapshots before re-running.`);
   }
   report.snapshot_tables_present = snapshots.map(s => s.table_name);
+  report.snapshot_reuse = opts.enforce_no_snapshots && missingSnapshots.length === 0;
 
   return report;
 }
@@ -321,7 +346,7 @@ async function verificationSample(client) {
 }
 
 async function createSnapshots(client) {
-  const report = { stage: "snapshots", tables_created: [], retention_target: null };
+  const report = { stage: "snapshots", tables_created: [], tables_reused: [], retention_target: null };
   const tables = [
     "intelligence_items",
     "pending_jurisdiction_review",
@@ -330,9 +355,21 @@ async function createSnapshots(client) {
   ];
   for (const t of tables) {
     const snapshotName = `${t}_pre_phase5`;
-    await client.query(`CREATE TABLE public.${snapshotName} AS SELECT * FROM public.${t}`);
-    const { rows: [{ n }] } = await client.query(`SELECT COUNT(*)::int AS n FROM public.${snapshotName}`);
-    report.tables_created.push({ snapshot: snapshotName, source: t, row_count: n });
+    const { rows: [{ exists }] } = await client.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = $1
+       ) AS exists`,
+      [snapshotName]
+    );
+    if (exists) {
+      const { rows: [{ n }] } = await client.query(`SELECT COUNT(*)::int AS n FROM public.${snapshotName}`);
+      report.tables_reused.push({ snapshot: snapshotName, source: t, row_count: n });
+    } else {
+      await client.query(`CREATE TABLE public.${snapshotName} AS SELECT * FROM public.${t}`);
+      const { rows: [{ n }] } = await client.query(`SELECT COUNT(*)::int AS n FROM public.${snapshotName}`);
+      report.tables_created.push({ snapshot: snapshotName, source: t, row_count: n });
+    }
   }
   const retentionDate = new Date();
   retentionDate.setDate(retentionDate.getDate() + SNAPSHOT_RETENTION_DAYS);
@@ -665,7 +702,16 @@ async function main() {
     }
 
     out.snapshots = await createSnapshots(client);
-    out.workload_a = await workloadA(client);
+    // --skip-workload-a: for retry scenarios where workload A already
+    // committed in a prior run. Re-running workload A would create
+    // duplicate ingest_rejections rows (no ON CONFLICT on IR). Used
+    // after the 2026-05-18 turn-2 v2 run that completed workload A
+    // (457 rows, 130 IR) but failed at workload B's first cluster.
+    if (process.argv.includes("--skip-workload-a")) {
+      out.workload_a = { skipped: true, reason: "--skip-workload-a flag" };
+    } else {
+      out.workload_a = await workloadA(client);
+    }
     out.workload_b = await workloadB(client);
     out.eu_automotive = await processEUAutoPopulate(client);
     out.post_flight = await postFlight(client);

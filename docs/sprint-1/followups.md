@@ -88,15 +88,19 @@ Phase 5 backfill is the exact workflow that triggers this pollution: every UPDAT
 
 ---
 
-## OBS-6: `item_supersessions.severity` value choice for Phase 5 dedup (informational)
+## OBS-6: `item_supersessions.severity` value: 'replacement' chosen (CHECK constraint reveal)
 
-**Source:** Phase 5 implementation pre-flight (2026-05-18)
-**Phase:** 5 implementation choice; potential Sprint 2 vocabulary cleanup
-**Priority:** Informational
+**Source:** Phase 5 turn-2 workload B failure (2026-05-18)
+**Phase:** 5 implementation (resolved)
+**Priority:** Informational (history of Q5 amendment)
 
-Pre-flight observed existing `item_supersessions.severity` vocabulary as severity-LEVEL (`major` x4, `minor` x1), not domain-semantic. Per operator dispatch Q5 rule ("if existing rows follow a domain-semantic convention, match it; otherwise use 'duplicate_merge'"), Phase 5 writes `'duplicate_merge'` for the new RC-9 dedup supersessions. This creates a mixed-vocabulary column (severity-level values + a domain-semantic value).
+**Original framing (now incorrect):** Pre-flight observed existing `item_supersessions.severity` vocabulary as severity-LEVEL (`major` x4, `minor` x1). I picked `'duplicate_merge'` per Q5's "otherwise" clause, expecting mixed vocabulary as the cost.
 
-**No action required for Phase 5.** Surfaced so the operator sees the inconsistency. Sprint 2 cleanup options if it bothers anyone: (a) add a separate `supersession_kind` column with a domain-semantic CHECK constraint, leaving `severity` for severity-level only, (b) backfill the existing 5 rows to the new domain-semantic vocabulary, (c) accept the mixed vocabulary and document it on the column.
+**CHECK constraint discovery:** Workload B's first cluster INSERT failed with `severity_check` violation. Constraint is `CHECK (severity = ANY(ARRAY['major', 'minor', 'replacement']))`. Pre-flight missed this because no existing rows used `'replacement'`. The constraint includes a domain-semantic value (`'replacement'`) that wasn't visible in the row sample.
+
+**Amended choice:** `SEVERITY_VALUE = 'replacement'` in the backfill script. Per Q5 rule "if existing rows follow a domain-semantic convention, match it" — `'replacement'` IS the domain-semantic match (the canonical winner REPLACES the loser). The original Q5 fallback to a new value is no longer needed since the CHECK already has the right domain-semantic vocabulary.
+
+**Lesson for future pre-flight:** vocabulary discovery must check the CHECK constraint definition, not just the values observed in existing rows. A CHECK constraint can allow values that no row currently uses.
 
 ---
 
@@ -184,6 +188,59 @@ Phase 5 design § 6.1 rollback procedure assumed `UPDATE intelligence_items SET 
 
 ---
 
-## OBS-12: Carryforward from earlier phases (placeholder)
+## OBS-12: Per-row script pattern unsuitable for backfill scale; use CTE bulk SQL going forward
+
+**Source:** Phase 5 turn-2 incident + refactor (2026-05-18)
+**Phase:** Reference pattern for future backfills (Phase 5 carryforward, applies to Sprint 2+, Phase 6/8/11 if backfill needed)
+**Priority:** Canonical-pattern guidance (not a defect)
+
+The original Phase 5 design's per-row script pattern (one transaction per batch, ~5-10 round trips per row, ~1000 queries per 100-row batch) is unsuitable for production scale. First turn-2 execute failed mid-batch with "DbHandler exited" from the Supabase transaction-mode pooler.
+
+**Canonical pattern going forward:** for any bulk processing on `intelligence_items` (or any table) that needs to mirror trigger semantics:
+
+1. Use **session-mode pooler** (port 5432) for long-running scripts with multi-step transactions.
+2. **Wrap inner work in a single CTE chain** per batch (normalize + UPDATE + classify + INSERT) using `LATERAL` joins on the SQL functions. One round trip per batch.
+3. **Mirror the trigger function exactly** — cite the trigger function's line ranges in the SQL constant's comment. If the trigger changes, the bulk SQL must follow in lockstep.
+4. **DISABLE/ENABLE TRIGGER bracket** around the UPDATE if the SQL would otherwise fire the trigger and recurse (see OBS-11).
+5. **Batch size 50** as a default safety belt. The bulk SQL pattern is fast enough at 50; the smaller batch keeps the per-batch lock window short.
+
+**Reference implementation:** `fsi-app/scripts/phase-5-backfill.mjs:BULK_NORMALIZE_AND_ROUTE_SQL` (commit `30ba022`). Per-row patterns SHOULD NOT be reused for future backfills.
+
+---
+
+## OBS-13: Six rows with all-rejected jurisdictions have no PJR routing path
+
+**Source:** Phase 5 turn-2 workload A post-state inspection (2026-05-18)
+**Phase:** 5 post-flight gap; Phase 7 design dependency
+**Priority:** Medium
+
+Workload A re-normalization left 6 rows with `jurisdictions = []`:
+
+| ID prefix | Title | Original tokens | Classification |
+|---|---|---|---|
+| `0f93eb09` | ECLAC Regional Development Framework | CARIBBEAN, LATIN AMERICA, REGIONAL - MULTI-COUNTRY | All region_bucket / unparseable |
+| `68af10b5` | Transportation 2050 LAC | CARIBBEAN, LATIN AMERICA | All region_bucket |
+| `c3318232` | Hong Kong EPD Portal | HONG_KONG | unparseable (underscore variant not in CASE) |
+| `ece93c54` | OECD Automated Driving | OECD_MEMBER_STATES | undefined_group |
+| `5351d10b` | IADB Transport Framework | IDB_REGION | unparseable |
+| `67c6e313` | ADB Asia Transport | ASIA_PACIFIC, EUROPE, MULTILATERAL | region_bucket + continent + undefined_group |
+
+**Gap.** The tokens that classify as `continent` / `region_bucket` / `undefined_group` route to PJR (per-item flag, recoverable via Phase 7 triage). The tokens that classify as `unparseable` (HONG_KONG, IDB_REGION) route to IR (per-ingest-event audit, NOT keyed by item_id). For rows where the ONLY rejected token classifies as unparseable, there is no per-item triage path — the row is effectively orphaned.
+
+**Post-flight gate 7.2a impact:** the gate checks "every row has canonical jurisdictions OR a PJR entry". 3 of the 6 rows (the ones with PJR-routed tokens) pass; the other 3 (HONG_KONG, IDB_REGION, possibly others) fail.
+
+**Recommended action options:**
+
+1. **Phase 7 design tweak.** Triage UI gains a third tab: "items with all-rejected jurisdictions" that queries `intelligence_items` directly for empty-jurisdictions rows and lets the operator manually pick canonical replacements. No new schema.
+2. **Schema addition.** Add a `pending_item_review` table (or reuse PJR with a sentinel `current_value = '__ALL_REJECTED__'`) so the row is queryable by item_id in the same triage path as PJR.
+3. **CASE table additions.** Add HONG_KONG → HK, IDB_REGION → undefined_group, and similar to migration 080's CASE. This shrinks the problem set but doesn't eliminate it (any future unmappable token recreates the gap).
+
+**Recommendation:** option 1 for Phase 7 (Sprint 1 scope). Option 3 for opportunistic cleanup whenever a new pattern surfaces. Option 2 as a Sprint 2 design if volume justifies.
+
+**Workaround for Phase 5 post-flight:** the script's gate 7.2a will FAIL on these 3 rows. Expected; not a Phase 5 implementation defect, a Phase 7 design dependency surfaced by Phase 5. Operator may want to soften the gate to log-and-continue rather than HALT.
+
+---
+
+## OBS-14: Carryforward from earlier phases (placeholder)
 
 Reserved for items surfaced during Phase 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.
