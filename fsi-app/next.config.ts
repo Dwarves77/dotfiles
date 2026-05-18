@@ -25,47 +25,64 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Cache-Control pilot (2026-05-10): operator measurement showed every
-  // protected HTML route returns `private, no-cache, no-store, max-age=0,
-  // must-revalidate` with `x-vercel-cache: MISS`, so browser back/forward
-  // and quick re-visits pay a full server round trip even though the
-  // /regulations payload is small post-PR #90.
+  // Cache-Control: see docs/sprint-1/perf-1-design.md for the full design.
   //
-  // Header rationale,
-  //   `private`                     authenticated content, never share via CDN
-  //   `max-age=30`                  30s fresh window for back/forward + quick re-visit
-  //   `stale-while-revalidate=300`  5 min background revalidation grace
+  // PERF-1 (2026-05-18) supersedes the prior perf/cache-headers-swr-expansion
+  // pilot (2026-05-10) for the 7 PERF-1 routes specifically. The pilot used
+  // a content-blind universal `private, max-age=30, swr=300` across the
+  // protected HTML routes. PERF-1 replaces that with content-aware TTLs
+  // anchored on the observed payload-stability windows for each route:
   //
-  // Scope limit, ONLY `/regulations` in this PR (single-route pilot). If
-  // post-deploy measurement looks clean, expand to other protected HTML
-  // routes in a follow-up.
+  //   /regulations          max-age=300, swr=60   (index, refreshes with ingest)
+  //   /regulations/:slug    max-age=900, swr=120  (detail, stable per item)
+  //   /market               max-age=3600, swr=300 (weekly-aggregation payload)
+  //   /research             max-age=300, swr=60   (index, refreshes with ingest)
+  //   /operations           max-age=300, swr=60   (index, refreshes with ingest)
+  //   /map                  max-age=900, swr=120  (slim geo payload, stable)
+  //   /                     max-age=120, swr=30   (dashboard, lightest cache)
   //
-  // Risk, a 30s fresh window delays mutation visibility on /regulations.
-  // Existing `revalidateTag(APP_DATA_TAG)` flows handle server-side cache
-  // invalidation, but the BROWSER cache is independent of those tags. If
-  // an in-page mutation must be visible immediately, ensure the mutating
-  // action triggers a client-side `router.refresh()` (which bypasses the
-  // browser cache for the RSC payload).
+  // All entries use `private` to keep responses out of any shared CDN cache;
+  // edge / shared-cache work is captured as PERF-2 in the design doc and
+  // requires middleware-driven cache keys (deferred).
   //
-  // Expansion (2026-05-10, PR perf/cache-headers-swr-expansion): /regulations
-  // pilot validated in production (header emits cleanly, operator measurement
-  // confirms cache works). Extending the same SWR Cache-Control to the
-  // remaining protected HTML routes: /market, /operations, /map, / (dashboard
-  // root only, intentionally narrow), and /community plus sub-routes. The
-  // community shell adds extra Links across sub-routes per the
-  // dashboard-payload-audit, so /community(/.*)? covers the shell and the
-  // child routes (events, vendors, posts, etc.) with one entry. Same risk
-  // profile as /regulations: 30s fresh window delays mutation visibility,
-  // mitigated by `router.refresh()` on mutating actions. /api/* routes are
-  // intentionally excluded, they have per-route cache layers (e.g. PR #93).
+  // OUT OF PERF-1 SCOPE (left untouched):
+  //   /community(/.*)?      retains the pilot's 30s/300s pattern; PERF-1 has
+  //                         no scope to modify this surface and the prior
+  //                         pilot's posture is a working baseline. Community
+  //                         is mutate-on-action; longer cache windows need a
+  //                         mutation-invalidation hook design that PERF-1
+  //                         intentionally skips.
+  //   /admin, /login, /settings  not cached. Triage / auth / settings
+  //                         surfaces need fresh data; design doc lists them
+  //                         as OUT.
+  //
+  // Risk (unchanged from pilot): browser caches are independent of
+  // `revalidateTag(APP_DATA_TAG)`. In-page mutations that must be immediately
+  // visible should call `router.refresh()` to bypass the browser cache for
+  // the RSC payload.
+  //
+  // Q1-Q6 resolved in docs/sprint-1/perf-1-design.md; no operator decisions
+  // required at PR review.
   async headers() {
     return [
+      // ── PERF-1 (2026-05-18): content-aware TTLs per design doc ──
+      // /regulations/:slug listed BEFORE /regulations so the more specific
+      // pattern matches first (Next.js evaluates headers entries in order).
+      {
+        source: "/regulations/:slug",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=900, stale-while-revalidate=120",
+          },
+        ],
+      },
       {
         source: "/regulations",
         headers: [
           {
             key: "Cache-Control",
-            value: "private, max-age=30, stale-while-revalidate=300",
+            value: "private, max-age=300, stale-while-revalidate=60",
           },
         ],
       },
@@ -74,7 +91,16 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "private, max-age=30, stale-while-revalidate=300",
+            value: "private, max-age=3600, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/research",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, max-age=300, stale-while-revalidate=60",
           },
         ],
       },
@@ -83,7 +109,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "private, max-age=30, stale-while-revalidate=300",
+            value: "private, max-age=300, stale-while-revalidate=60",
           },
         ],
       },
@@ -92,7 +118,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "private, max-age=30, stale-while-revalidate=300",
+            value: "private, max-age=900, stale-while-revalidate=120",
           },
         ],
       },
@@ -101,10 +127,11 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "private, max-age=30, stale-while-revalidate=300",
+            value: "private, max-age=120, stale-while-revalidate=30",
           },
         ],
       },
+      // ── OUT OF PERF-1 scope: pilot baseline preserved ──
       {
         source: "/community(/.*)?",
         headers: [
