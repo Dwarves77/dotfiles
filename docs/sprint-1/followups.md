@@ -241,6 +241,45 @@ Workload A re-normalization left 6 rows with `jurisdictions = []`:
 
 ---
 
-## OBS-14: Carryforward from earlier phases (placeholder)
+## OBS-14: Triage UI lacks inline source metadata; every triage decision is a multi-tab workflow
+
+**Source:** Operator mid-Phase-5-turn-2 walkthrough of /admin at carosledge.com (2026-05-18)
+**Phase:** 7 (admin chrome + triage UI; natural integration point per `docs/sprint-1/phase-7-scope-amendment.md`)
+**Priority:** Medium
+
+The operator observed during a /admin walkthrough that the integrity flag UI shows the flag itself but does not show the underlying source's metadata (paywall status, tier, access type, ingestion endpoint, last verified date). To fully handle a flag, the operator must open SOURCE REGISTRY in a separate tab, locate the source, update its metadata, then return to the triage view. Every triage decision becomes a multi-tab workflow.
+
+The same pattern applies platform-wide to all three operator queues: integrity flags, `pending_jurisdiction_review`, `ingest_rejections`. Each queue surfaces the flagged record but not the source-side context the operator needs to act on it.
+
+**Cross-references.**
+
+- **OBS-4:** the `source_column` tracking added in migration 082 already gives the reclassification flow the column-scoped read-write coupling it needs; the operator-experience gap is the layer above that, source metadata visibility next to the column scope.
+- **OBS-13:** the all-rejected-jurisdictions rows that fail gate 7.2a are another surface where the triage UI gap matters; whichever option the Phase 7 design takes for those rows inherits the same source-metadata-inline expectation.
+- **OBS-9 (Sprint 2 classifier feedback loop):** this finding is characteristic of the broader queue-friction pattern that loop is designed to relieve; operator decisions today do not feed back into the system, so each decision starts from zero context.
+
+**Action.** Surface this expectation at Phase 7 design time as part of the triage-UI scope. Implementation path is Phase 7 designer territory; this entry records the operator-experience requirement, not a prescribed solution.
+
+---
+
+## OBS-15: Briefs cite journal homepages without article-level source context
+
+**Source:** Operator mid-Phase-5-turn-2 walkthrough of /admin at carosledge.com (2026-05-18)
+**Phase:** 6 (ingest wiring, brief generation) primary; 7 dependency for triage UI display of any new article-level fields
+**Priority:** Medium
+
+The operator observed that when the agent generates a brief citing a journal source, the citation points to the journal homepage rather than the specific article or articles consulted. Journal article metadata (DOI, title, authors, abstract, publication date) is freely accessible from publisher sites before any paywall; the agent does not pull it.
+
+Effect on the operator triaging the brief: the operator cannot determine what article was actually cited, what it said, or whether full-text access was required versus metadata-only. The brief's source list is technically populated but operationally opaque.
+
+**Cross-references.**
+
+- **OBS-14:** the triage UI gap and this one share the operator-experience theme that platform surfaces show records without the source-side context needed to act on them; both compound at scale.
+- **OBS-9 (Sprint 2 classifier feedback loop):** this finding is also characteristic of the broader pattern that loop addresses; article-level provenance is exactly the kind of decision context that, once captured, should feed back into source tier and verification status downstream.
+
+**Action.** Surface this expectation at Phase 6 design time as part of the brief-generation scope, with the Phase 7 triage UI as the downstream consumer of any new article-level fields. Implementation path is Phase 6 and Phase 7 designer territory.
+
+---
+
+## OBS-16: Carryforward from earlier phases (placeholder)
 
 Reserved for items surfaced during Phase 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.
