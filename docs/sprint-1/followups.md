@@ -6,21 +6,16 @@ This file is the single place to look for "what did we surface but defer." Phase
 
 ---
 
-## OBS-1: Phase 5 sequencing constraint (must apply 4b before Phase 5 backfill)
+## OBS-1: Phase 5 sequencing constraint (CLEARED 2026-05-17)
 
 **Source:** PR #119 pre-merge SQL review (2026-05-17)
 **Phase:** 5 (data migration)
-**Priority:** Hard constraint, not optional
+**Priority:** Cleared
+**Status:** RESOLVED, migration 082 applied 2026-05-17 18:34 UTC.
 
-Migration 080's trigger function silently discards rejected tokens during the 4a-only window (the comment at the in-function discard explains the posture). The rejected array is computed but not routed because the `ingest_rejections` and `pending_jurisdiction_review` tables don't exist yet, they ship in migration 082 (Phase 4b).
+The 4a-only window during which migration 080's trigger silently discarded rejected tokens has closed. Migration 082 replaced the trigger with the routing version: rejected tokens now route to `ingest_rejections` or `pending_jurisdiction_review` per `_classify_jurisdiction_token`. Phase 5 is no longer blocked by this specific constraint.
 
-If Phase 5 backfill runs between 4a apply and 4b apply, the trigger fires on each UPDATE and silently drops any unmapped tokens. Those tokens are then lost from the system, the audit gap stays open even though the data was touched.
-
-**Action:** Phase 5 design doc must include an explicit dependency check: do not start Phase 5 backfill until migration 082 has applied. Acceptable alternatives:
-1. Apply 4b first, then 5 (recommended).
-2. Apply 5 first with explicit acknowledgment that pre-4b backfill accepts silent drop of unmapped tokens (and that operator queue tables will be empty until ingest fires after 4b).
-
-Recommend option 1. Cost of waiting on 4b is ~1 PR cycle; cost of losing tokens is permanent audit gap reopening.
+**Replacement concern.** Phase 5 backfill introduces a different trigger-related issue captured as OBS-5 below. Phase 5 design must address OBS-5 before backfill starts.
 
 ---
 
@@ -46,32 +41,53 @@ Could also be tightened at the function level by adding a CHECK against a CTE of
 **Phase:** Post-Sprint-1 refactor candidate
 **Priority:** Lowest
 
-The CASE entry `WHEN 'icao member states (193)' THEN 'ICAO'` is a literal-string mapping. ICAO currently has 193 member states, but the count has changed historically (192, 191, ...). If ICAO membership changes and the source data updates the parenthetical count, the literal mapping fails and the token routes to the rejected array.
+The CASE entry `WHEN 'icao member states (193)' THEN 'ICAO'` is a literal-string mapping. ICAO currently has 193 member states, but the count has changed historically. If ICAO membership changes and source data updates the parenthetical count, the literal mapping fails and the token routes to the rejected array.
 
 Pre-flight on current data confirms only one row carries this exact form, and it currently matches. Risk is low.
 
-**Action:** When the ICAO mapping needs to change (or as opportunistic cleanup), replace the literal with a regex or substring match: `WHEN key ~ '^icao member states' THEN 'ICAO'`. PostgreSQL CASE supports regex via separate WHEN clauses (`WHEN (key ~ 'pattern')` is true), so this is a small refactor.
+**Action:** When the ICAO mapping needs to change, or as opportunistic cleanup, replace the literal with a regex or substring match: `WHEN key ~ '^icao member states' THEN 'ICAO'`. PostgreSQL CASE supports regex via separate WHEN clauses, so this is a small refactor.
 
 Even lower priority because the string is unlikely to appear in source data verbatim outside of operator-authored content.
 
 ---
 
-## OBS-4: `jurisdiction_iso` normalization routes through the same trigger as `jurisdictions`
+## OBS-4: `jurisdiction_iso` normalization routes through the same trigger as `jurisdictions` (IMPLEMENTED 2026-05-17)
 
 **Source:** PR #119 pre-merge SQL review (2026-05-17)
-**Phase:** 4b (note in design doc)
-**Priority:** Informational, not actionable
+**Phase:** 4b implementation (closed), Phase 7 triage UI (open)
+**Priority:** Implemented at schema layer
+**Status:** RESOLVED via migration 082.
 
-The migration 080 trigger runs `jurisdiction_iso` through `_normalize_jurisdictions` alongside `jurisdictions`. When migration 082 lands, rejected tokens from `jurisdiction_iso` will route to the operator queue (`ingest_rejections` or `pending_jurisdiction_review`) alongside rejected tokens from `jurisdictions`.
+Migration 082 added `pending_jurisdiction_review.source_column text NOT NULL DEFAULT 'jurisdictions'` with CHECK against `('jurisdictions', 'jurisdiction_iso')`. Approach 1 (explicit column tracking) was chosen over Approach 2 (uniform treatment). The trigger function in 082 writes the correct `source_column` for each rejected token from each column (migration 082 lines 261 and 282).
 
-This is the right behavior, a malformed `jurisdiction_iso` is an equally valid audit signal. But it means the operator queue mixes signals from both columns. The triage UI in Phase 7 should either:
-1. Show which column the rejected token came from (recommend `column_name` enum in the operator queue table), OR
-2. Treat them uniformly (the operator picks a canonical replacement and the trigger writes it to whichever column held the bad token).
+The same enum on `ingest_rejections` is NOT needed because that table's audit semantic does not depend on which column the bad value came from; it records the event, not the column scope.
 
-**Action:** Phase 4b design doc explicitly notes this. Phase 7 triage UI design picks one of the two approaches.
+**Phase 7 triage UI dependency.** The reclassification flow reads `source_column` and writes the operator's chosen canonical replacement back to that same column on `intelligence_items`. Phase 7 design doc must capture this read-write coupling explicitly.
 
 ---
 
-## OBS-5: Carryforward from earlier phases (placeholder)
+## OBS-5: Trigger pollution on UPDATEs creates ingest_rejections rows for non-ingest events
+
+**Source:** PR #120 pre-merge SQL review (2026-05-18)
+**Phase:** 5 (data migration design must address before backfill starts)
+**Priority:** Medium
+
+Migration 082's trigger function `_intelligence_items_normalize_jurisdictions()` writes to `ingest_rejections` without `ON CONFLICT` for every rejected token on every INSERT or UPDATE. This is correct semantics for INSERT events (each ingest attempt is its own audit-worthy event). On UPDATE, if the intelligence_item still carries pre-existing rejected tokens (which Phase 5 has not yet cleaned up), the trigger creates new `ingest_rejections` rows even though no actual ingest occurred.
+
+Phase 5 backfill is the exact workflow that triggers this pollution: every UPDATE on an item with bad jurisdictions tokens inflates the audit log with non-ingest events.
+
+**Action.** Phase 5 design doc must pick one of three options:
+
+1. **Disable the trigger during backfill**, route rejected tokens manually in the backfill script. `ALTER TABLE intelligence_items DISABLE TRIGGER trg_intelligence_items_normalize_jurisdictions;` Run backfill calling `_normalize_jurisdictions(...)` and `_classify_jurisdiction_token(...)` directly. Re-enable trigger. Pro: zero pollution, bounded scope. Con: backfill script duplicates routing logic, must stay in sync with the trigger.
+
+2. **Add a `TG_OP` / `OLD` comparison guard to the trigger function**, restrict `ingest_rejections` INSERT to `TG_OP = 'INSERT'` only, or compare NEW.jurisdictions against OLD.jurisdictions on UPDATE to only INSERT for newly-rejected tokens. Pro: cleanest long-term semantics. Con: requires a migration 083.
+
+3. **Accept the pollution as documented behavior**, filter at Phase 7 triage UI by `triage_action IS NULL` and treat duplicate untriaged rows as a single triage decision. Pro: zero migration churn. Con: UI complexity; audit log fidelity suffers.
+
+**Recommendation.** Option 1 for Sprint 1 (Phase 5 backfill is bounded; trigger disable is acceptable for a one-time pass). Option 2 as a migration 083 candidate for Sprint 2 if ongoing UPDATE traffic on existing items proves to be a real source of pollution post-Phase-5.
+
+---
+
+## OBS-6: Carryforward from earlier phases (placeholder)
 
 Reserved for items surfaced during Phase 5, 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.
