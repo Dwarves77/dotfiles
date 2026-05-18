@@ -88,6 +88,52 @@ Phase 5 backfill is the exact workflow that triggers this pollution: every UPDAT
 
 ---
 
-## OBS-6: Carryforward from earlier phases (placeholder)
+## OBS-6: `item_supersessions.severity` value choice for Phase 5 dedup (informational)
 
-Reserved for items surfaced during Phase 5, 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.
+**Source:** Phase 5 implementation pre-flight (2026-05-18)
+**Phase:** 5 implementation choice; potential Sprint 2 vocabulary cleanup
+**Priority:** Informational
+
+Pre-flight observed existing `item_supersessions.severity` vocabulary as severity-LEVEL (`major` x4, `minor` x1), not domain-semantic. Per operator dispatch Q5 rule ("if existing rows follow a domain-semantic convention, match it; otherwise use 'duplicate_merge'"), Phase 5 writes `'duplicate_merge'` for the new RC-9 dedup supersessions. This creates a mixed-vocabulary column (severity-level values + a domain-semantic value).
+
+**No action required for Phase 5.** Surfaced so the operator sees the inconsistency. Sprint 2 cleanup options if it bothers anyone: (a) add a separate `supersession_kind` column with a domain-semantic CHECK constraint, leaving `severity` for severity-level only, (b) backfill the existing 5 rows to the new domain-semantic vocabulary, (c) accept the mixed vocabulary and document it on the column.
+
+---
+
+## OBS-7: Norway Fjords instrument_type pending counsel review
+
+**Source:** Phase 5 operator decision Q1 (2026-05-18)
+**Phase:** Post-Phase-5; counsel review then UPDATE
+**Priority:** Medium (blocks canonical-entity key coverage on this row)
+
+Per Q1, the Phase 5 dedup transaction leaves Norway Fjords winner row `03b5f234...` with `instrument_type = NULL` pending counsel review. The audit proposed `national_regulation`; operator may prefer `agency_guidance` depending on legal status reading. While `instrument_type` is NULL, this row sits OUTSIDE the 079 partial unique index coverage (which requires both `instrument_type` AND `instrument_identifier` NOT NULL).
+
+The `instrument_identifier` was populated (`'world-heritage-fjords-ZE-2026'`); only `instrument_type` is missing.
+
+**Action.** When counsel review completes, single UPDATE applies the chosen value:
+
+```
+UPDATE public.intelligence_items
+   SET instrument_type = '<chosen_value>'
+ WHERE id::text LIKE '03b5f234%';
+```
+
+After the UPDATE, the row enters canonical-entity coverage and the unique index protects against future duplicates of this Norway regulation.
+
+---
+
+## OBS-8: OBS-2 broader audit deferred to Sprint 1 follow-up dispatch
+
+**Source:** Phase 5 operator decision Q8 (2026-05-18)
+**Phase:** Standalone Sprint 1 follow-up dispatch
+**Priority:** Low
+
+OBS-2 (2-letter and ISO-3166-2 pass-through soft validation gap) flagged that canonical arrays can contain valid-shape-but-invalid-content tokens. Phase 5 implementation pre-flight ran a sample audit (7 two-letter + 5 ISO-3166-2 reject patterns); zero hits. Per Q8, the broader audit (cross-reference all 46 distinct two-letter tokens + 60 ISO-3166-2 tokens in production data against the `i18n-iso-countries` reference list) is deferred to a separate Sprint 1 follow-up dispatch.
+
+**Action.** Schedule a small Sprint 1 follow-up dispatch to run the broader audit. Bounded work (one introspect script + comparison against the reference list); approximately 30 minutes of agent work. Surfaces any items requiring operator review.
+
+---
+
+## OBS-9: Carryforward from earlier phases (placeholder)
+
+Reserved for items surfaced during Phase 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.
