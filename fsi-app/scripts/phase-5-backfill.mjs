@@ -39,7 +39,12 @@ import pg from "pg";
 
 const SEVERITY_VALUE = "duplicate_merge";
 const MATRIX_HIDDEN_REASON = "rc8_review_pending";
-const BATCH_SIZE = 100;
+// BATCH_SIZE: reduced 100 -> 50 after Phase 5 turn-2 first attempt failed
+// mid-batch with "DbHandler exited" (connection drop). Even though the
+// refactored bulk SQL pattern uses a single round trip per batch and
+// session-mode pooler should handle 100+ row batches, 50 is the failure-
+// mode safety belt per operator instruction.
+const BATCH_SIZE = 50;
 const SNAPSHOT_RETENTION_DAYS = 7;
 
 const CLUSTER_CONFIG = [
@@ -109,14 +114,31 @@ const VERIFICATION_SAMPLE = [
 ];
 
 function buildConnectionString() {
+  // CONNECTION-PATTERN BUG (2026-05-18, fixed in this refactor):
+  // The first Phase 5 turn-2 execute attempt used the transaction-mode
+  // pooler at port 6543. Workload A's per-row loop issued ~5-10 round
+  // trips per row x 100 rows per batch = ~1000 queries inside a single
+  // long-lived transaction. The transaction-mode pooler terminated the
+  // connection mid-batch with "DbHandler exited".
+  //
+  // FIX: switch to the session-mode pooler at port 5432. Session mode
+  // holds the connection for the lifetime of the client, so long
+  // transactions with high inner query counts run cleanly. The refactor
+  // also restructures workload A to a single bulk SQL statement per
+  // batch (CTE chain with normalize + UPDATE + classify + INSERTs in
+  // one round trip), which removes the per-row query volume problem
+  // entirely. Session-mode is belt-and-suspenders for the case where
+  // workload B or any future code reintroduces per-row patterns.
   const DB_PASSWORD = readFileSync(resolve(process.cwd(), ".env.local"), "utf8")
     .match(/^SUPABASE_DB_PASSWORD=(.*)$/m)?.[1]?.trim();
   const POOLER_URL = readFileSync(resolve(process.cwd(), "supabase/.temp/pooler-url"), "utf8").trim();
   const PROJECT_REF = readFileSync(resolve(process.cwd(), "supabase/.temp/project-ref"), "utf8").trim();
-  return POOLER_URL.replace(
+  const withPassword = POOLER_URL.replace(
     `postgres.${PROJECT_REF}@`,
     `postgres.${PROJECT_REF}:${encodeURIComponent(DB_PASSWORD)}@`
   );
+  // Replace transaction-mode port (6543) with session-mode (5432).
+  return withPassword.replace(/:6543(\/|\?|$)/, ":5432$1");
 }
 
 async function preflight(client, opts) {
@@ -318,6 +340,87 @@ async function createSnapshots(client) {
   return report;
 }
 
+// Bulk SQL for a single batch. Replaces the per-row loop that exhausted
+// the transaction-mode pooler in the first turn-2 execute attempt.
+//
+// One round trip per batch: normalize + UPDATE + classify + route in a
+// single CTE chain. Mirrors migration 082's trigger function routing
+// logic exactly (see migration 082 lines 245-294); if the trigger logic
+// ever changes, this SQL must follow.
+//
+// IMPORTANT: this SQL runs inside DISABLE TRIGGER bracket. Without the
+// bracket, the UPDATE inside `updated` would fire the trigger and
+// recursively re-route every rejected token, duplicating IR rows.
+//
+// ROLLBACK SAFETY (OBS-11): any rollback path that UPDATEs intelligence_items
+// requires the same DISABLE TRIGGER bracket. Without it, snapshot-restore
+// UPDATEs fire the trigger which re-normalizes the snapshot values and
+// defeats the rollback. See fsi-app/scripts/tmp/phase-5-rollback.mjs.
+const BULK_NORMALIZE_AND_ROUTE_SQL = `
+  WITH normalized AS (
+    SELECT
+      ii.id AS item_id,
+      ii.source_url,
+      ii.source_id,
+      n_j.canonical AS j_canon,
+      n_j.rejected AS j_reject,
+      n_iso.canonical AS iso_canon,
+      n_iso.rejected AS iso_reject
+    FROM public.intelligence_items ii
+    CROSS JOIN LATERAL public._normalize_jurisdictions(ii.jurisdictions) n_j
+    CROSS JOIN LATERAL public._normalize_jurisdictions(ii.jurisdiction_iso) n_iso
+    WHERE ii.id = ANY($1::uuid[])
+  ),
+  updated AS (
+    UPDATE public.intelligence_items ii
+       SET jurisdictions = n.j_canon,
+           jurisdiction_iso = n.iso_canon
+      FROM normalized n
+     WHERE ii.id = n.item_id
+    RETURNING ii.id
+  ),
+  all_rejected AS (
+    SELECT n.item_id, n.source_url, n.source_id,
+           'jurisdictions'::text AS source_column,
+           j_token AS token
+      FROM normalized n,
+           LATERAL unnest(n.j_reject) AS j_token
+    UNION ALL
+    SELECT n.item_id, n.source_url, n.source_id,
+           'jurisdiction_iso'::text AS source_column,
+           iso_token AS token
+      FROM normalized n,
+           LATERAL unnest(n.iso_reject) AS iso_token
+  ),
+  classified AS (
+    SELECT ar.*,
+           public._classify_jurisdiction_token(ar.token) AS classification
+      FROM all_rejected ar
+  ),
+  pjr_inserts AS (
+    INSERT INTO public.pending_jurisdiction_review
+      (intelligence_item_id, current_value, flagged_reason, source_column)
+    SELECT item_id, token, classification, source_column
+      FROM classified
+     WHERE classification IN ('continent', 'region_bucket', 'undefined_group')
+    ON CONFLICT (intelligence_item_id, current_value, source_column)
+      WHERE resolved_at IS NULL DO NOTHING
+    RETURNING id
+  ),
+  ir_inserts AS (
+    INSERT INTO public.ingest_rejections
+      (raw_value, rejection_reason, source_url, source_id)
+    SELECT token, classification, source_url, source_id
+      FROM classified
+     WHERE classification NOT IN ('continent', 'region_bucket', 'undefined_group')
+    RETURNING id
+  )
+  SELECT
+    (SELECT count(*)::int FROM updated) AS updated_count,
+    (SELECT count(*)::int FROM pjr_inserts) AS pjr_count,
+    (SELECT count(*)::int FROM ir_inserts) AS ir_count
+`;
+
 async function processBatch(client, rowIds, batchIndex) {
   const t0 = Date.now();
   await client.query("BEGIN");
@@ -326,61 +429,7 @@ async function processBatch(client, rowIds, batchIndex) {
     DISABLE TRIGGER trg_intelligence_items_normalize_jurisdictions
   `);
 
-  let pjr_inserts = 0;
-  let ir_inserts = 0;
-
-  for (const id of rowIds) {
-    const { rows: [row] } = await client.query(
-      `SELECT id, jurisdictions, jurisdiction_iso, source_url, source_id
-       FROM public.intelligence_items WHERE id = $1`,
-      [id]
-    );
-    const { rows: [normJ] } = await client.query(
-      `SELECT canonical, rejected FROM public._normalize_jurisdictions($1)`,
-      [row.jurisdictions]
-    );
-    const { rows: [normIso] } = await client.query(
-      `SELECT canonical, rejected FROM public._normalize_jurisdictions($1)`,
-      [row.jurisdiction_iso]
-    );
-    await client.query(
-      `UPDATE public.intelligence_items
-         SET jurisdictions = $1, jurisdiction_iso = $2
-       WHERE id = $3`,
-      [normJ.canonical, normIso.canonical, id]
-    );
-
-    for (const [rejected, sourceColumn] of [
-      [normJ.rejected, "jurisdictions"],
-      [normIso.rejected, "jurisdiction_iso"],
-    ]) {
-      for (const token of rejected) {
-        const { rows: [{ _classify_jurisdiction_token: cls }] } = await client.query(
-          `SELECT public._classify_jurisdiction_token($1)`,
-          [token]
-        );
-        if (["continent", "region_bucket", "undefined_group"].includes(cls)) {
-          await client.query(
-            `INSERT INTO public.pending_jurisdiction_review
-               (intelligence_item_id, current_value, flagged_reason, source_column)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (intelligence_item_id, current_value, source_column)
-               WHERE resolved_at IS NULL DO NOTHING`,
-            [id, token, cls, sourceColumn]
-          );
-          pjr_inserts += 1;
-        } else {
-          await client.query(
-            `INSERT INTO public.ingest_rejections
-               (raw_value, rejection_reason, source_url, source_id)
-             VALUES ($1, $2, $3, $4)`,
-            [token, cls, row.source_url, row.source_id]
-          );
-          ir_inserts += 1;
-        }
-      }
-    }
-  }
+  const { rows: [counts] } = await client.query(BULK_NORMALIZE_AND_ROUTE_SQL, [rowIds]);
 
   await client.query(`
     ALTER TABLE public.intelligence_items
@@ -388,7 +437,14 @@ async function processBatch(client, rowIds, batchIndex) {
   `);
   await client.query("COMMIT");
   const lock_duration_ms = Date.now() - t0;
-  return { batch_index: batchIndex, row_count: rowIds.length, pjr_inserts, ir_inserts, lock_duration_ms };
+  return {
+    batch_index: batchIndex,
+    row_count: rowIds.length,
+    updated_count: counts.updated_count,
+    pjr_inserts: counts.pjr_count,
+    ir_inserts: counts.ir_count,
+    lock_duration_ms,
+  };
 }
 
 async function workloadA(client) {

@@ -166,6 +166,24 @@ No action required pre-Phase-7. Capture in operator dashboard once Phase 7 ships
 
 ---
 
-## OBS-11: Carryforward from earlier phases (placeholder)
+## OBS-11: Phase 5 design § 6.1 rollback procedure missing trigger-bracket
+
+**Source:** Phase 5 turn-2 incident (2026-05-18)
+**Phase:** Phase 5 implementation (mitigated); future-design reference
+**Priority:** Medium
+
+(Operator instruction said "OBS-9"; on this branch OBS-9 was already taken by classifier-loop pre-decisions, so this entry takes OBS-11. Number difference is a doc-state mismatch between master and the in-flight implementation branch, not a content disagreement.)
+
+Phase 5 design § 6.1 rollback procedure assumed `UPDATE intelligence_items SET jurisdictions = snap.jurisdictions, ...` could run with the trigger enabled. That assumption is wrong: `_intelligence_items_normalize_jurisdictions` fires on every UPDATE and re-normalizes the snapshot values, stripping unmapped tokens (e.g., ASIA, EUROPEAN_UNION) right back out AND writing new IR routing rows. The Phase 5 turn-2 first rollback attempt revealed this by growing `ingest_rejections` 30 → 60 mid-transaction (`fsi-app/scripts/tmp/phase-5-rollback.mjs` first run).
+
+**Mitigation (applied 2026-05-18).** Any rollback path that UPDATEs `intelligence_items` requires a `DISABLE TRIGGER trg_intelligence_items_normalize_jurisdictions` / `ENABLE TRIGGER` bracket, same as workload A. The Phase 5 rollback script at `fsi-app/scripts/tmp/phase-5-rollback.mjs` carries this; the refactored backfill script at `fsi-app/scripts/phase-5-backfill.mjs` carries inline comments in the rollback section reminding future readers.
+
+**Design doc NOT updated:** the Phase 5 design doc is archived; this followup is the canonical home for the finding.
+
+**Future-design implication:** any migration or backfill that UPDATEs `intelligence_items` AND intends to preserve specific values (i.e., values that the trigger would otherwise normalize via the canonical CASE in migration 080) MUST use the DISABLE/ENABLE bracket. Capture this in any Sprint 2 / Phase 6 / Phase 11 design that touches the table.
+
+---
+
+## OBS-12: Carryforward from earlier phases (placeholder)
 
 Reserved for items surfaced during Phase 6, 7, 8, 9, 10, 11 verification gates. Edit in place when adding entries.

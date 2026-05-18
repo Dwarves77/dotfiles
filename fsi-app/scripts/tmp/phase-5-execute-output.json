@@ -1,0 +1,295 @@
+{
+  "mode": "--execute",
+  "started_at": "2026-05-18T16:22:44.093Z",
+  "preflight": {
+    "stage": "preflight",
+    "iso_empty_count": 457,
+    "losers_present": 6,
+    "winners_present": 5,
+    "trigger_state": "enabled",
+    "queue_tables": "present",
+    "global_processing_paused": true,
+    "existing_severity_vocab": [
+      {
+        "severity": "major",
+        "n": 4
+      },
+      {
+        "severity": "minor",
+        "n": 1
+      }
+    ],
+    "snapshot_tables_present": []
+  },
+  "verification": {
+    "stage": "verification",
+    "samples": [
+      {
+        "id": "v1-all-canonical",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v2-canonical-plus-continent",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v3-canonical-plus-region",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "LATAM",
+            "flagged_reason": "region_bucket",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "LATAM",
+            "flagged_reason": "region_bucket",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v4-canonical-plus-undefined-group",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "G7",
+            "flagged_reason": "undefined_group",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "G7",
+            "flagged_reason": "undefined_group",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v5-canonical-plus-waterway",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v6-canonical-plus-ministry",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "MINISTRY OF CLIMATE",
+            "rejection_reason": "institutional"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "MINISTRY OF CLIMATE",
+            "rejection_reason": "institutional"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v7-canonical-plus-county",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "BIHOR COUNTY",
+            "rejection_reason": "below_granularity"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "BIHOR COUNTY",
+            "rejection_reason": "below_granularity"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v8-unparseable",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "ZZZNONSENSE123",
+            "rejection_reason": "unparseable"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "ZZZNONSENSE123",
+            "rejection_reason": "unparseable"
+          }
+        ],
+        "canonical_out": [],
+        "pass": true
+      },
+      {
+        "id": "v9-multi-mixed",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v10-nyc-borough",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US-NYC"
+        ],
+        "pass": true
+      }
+    ],
+    "pass": true
+  },
+  "snapshots": {
+    "stage": "snapshots",
+    "tables_created": [
+      {
+        "snapshot": "intelligence_items_pre_phase5",
+        "source": "intelligence_items",
+        "row_count": 655
+      },
+      {
+        "snapshot": "pending_jurisdiction_review_pre_phase5",
+        "source": "pending_jurisdiction_review",
+        "row_count": 107
+      },
+      {
+        "snapshot": "ingest_rejections_pre_phase5",
+        "source": "ingest_rejections",
+        "row_count": 0
+      },
+      {
+        "snapshot": "item_supersessions_pre_phase5",
+        "source": "item_supersessions",
+        "row_count": 5
+      }
+    ],
+    "retention_target": "2026-05-25"
+  },
+  "error": "DbHandler exited",
+  "error_stack": "error: DbHandler exited\n    at C:\\Users\\jason\\dotfiles\\fsi-app\\node_modules\\pg\\lib\\client.js:631:17\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async processBatch (file:///C:/Users/jason/dotfiles/fsi-app/scripts/phase-5-backfill.mjs:338:31)\n    at async workloadA (file:///C:/Users/jason/dotfiles/fsi-app/scripts/phase-5-backfill.mjs:407:25)\n    at async main (file:///C:/Users/jason/dotfiles/fsi-app/scripts/phase-5-backfill.mjs:612:22)\n    at async file:///C:/Users/jason/dotfiles/fsi-app/scripts/phase-5-backfill.mjs:628:1",
+  "ended_at": "2026-05-18T16:23:52.642Z"
+}
