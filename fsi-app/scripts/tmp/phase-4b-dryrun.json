@@ -1,0 +1,257 @@
+{
+  "migration_applied_no_error": true,
+  "tables_created": [
+    {
+      "table_name": "ingest_rejections",
+      "column_count": "10"
+    },
+    {
+      "table_name": "pending_jurisdiction_review",
+      "column_count": "9"
+    }
+  ],
+  "rls_status": [
+    {
+      "table_name": "ingest_rejections",
+      "rls_enabled": true
+    },
+    {
+      "table_name": "pending_jurisdiction_review",
+      "rls_enabled": true
+    }
+  ],
+  "rls_policies": [
+    {
+      "tablename": "ingest_rejections",
+      "policyname": "ingest_rejections_read_platform_admin",
+      "cmd": "SELECT"
+    },
+    {
+      "tablename": "ingest_rejections",
+      "policyname": "ingest_rejections_update_platform_admin",
+      "cmd": "UPDATE"
+    },
+    {
+      "tablename": "pending_jurisdiction_review",
+      "policyname": "pjr_read_platform_admin",
+      "cmd": "SELECT"
+    },
+    {
+      "tablename": "pending_jurisdiction_review",
+      "policyname": "pjr_update_platform_admin",
+      "cmd": "UPDATE"
+    }
+  ],
+  "pjr_indexes": [
+    {
+      "indexname": "pending_jurisdiction_review_pkey",
+      "indexdef": "CREATE UNIQUE INDEX pending_jurisdiction_review_pkey ON public.pending_jurisdiction_review USING btree (id)"
+    },
+    {
+      "indexname": "pjr_unresolved_unique_idx",
+      "indexdef": "CREATE UNIQUE INDEX pjr_unresolved_unique_idx ON public.pending_jurisdiction_review USING btree (intelligence_item_id, current_value, source_column) WHERE (resolved_at IS NULL)"
+    },
+    {
+      "indexname": "pjr_unresolved_idx",
+      "indexdef": "CREATE INDEX pjr_unresolved_idx ON public.pending_jurisdiction_review USING btree (flagged_at DESC) WHERE (resolved_at IS NULL)"
+    },
+    {
+      "indexname": "pjr_item_idx",
+      "indexdef": "CREATE INDEX pjr_item_idx ON public.pending_jurisdiction_review USING btree (intelligence_item_id)"
+    }
+  ],
+  "pjr_fk_deferrable": [
+    {
+      "conname": "pending_jurisdiction_review_resolved_by_fkey",
+      "condeferrable": false,
+      "condeferred": false
+    },
+    {
+      "conname": "pjr_intelligence_item_fkey",
+      "condeferrable": true,
+      "condeferred": true
+    }
+  ],
+  "trigger_fn_security": [
+    {
+      "proname": "_intelligence_items_normalize_jurisdictions",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ]
+    }
+  ],
+  "populate_result": [
+    {
+      "source_column": "jurisdictions",
+      "flagged_reason": "continent",
+      "n": "48"
+    },
+    {
+      "source_column": "jurisdictions",
+      "flagged_reason": "region_bucket",
+      "n": "38"
+    },
+    {
+      "source_column": "jurisdictions",
+      "flagged_reason": "undefined_group",
+      "n": "21"
+    }
+  ],
+  "totals": {
+    "pjr_count": "107",
+    "ir_count": "0"
+  },
+  "intelligence_items_not_null_cols": [
+    {
+      "column_name": "id",
+      "data_type": "uuid",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "column_name": "title",
+      "data_type": "text",
+      "column_default": null
+    },
+    {
+      "column_name": "summary",
+      "data_type": "text",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "what_is_it",
+      "data_type": "text",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "why_matters",
+      "data_type": "text",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "key_data",
+      "data_type": "ARRAY",
+      "column_default": "'{}'::text[]"
+    },
+    {
+      "column_name": "operational_impact",
+      "data_type": "text",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "open_questions",
+      "data_type": "ARRAY",
+      "column_default": "'{}'::text[]"
+    },
+    {
+      "column_name": "tags",
+      "data_type": "ARRAY",
+      "column_default": "'{}'::text[]"
+    },
+    {
+      "column_name": "domain",
+      "data_type": "integer",
+      "column_default": null
+    },
+    {
+      "column_name": "item_type",
+      "data_type": "text",
+      "column_default": "'regulation'::text"
+    },
+    {
+      "column_name": "source_url",
+      "data_type": "text",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "jurisdictions",
+      "data_type": "ARRAY",
+      "column_default": "'{}'::text[]"
+    },
+    {
+      "column_name": "transport_modes",
+      "data_type": "ARRAY",
+      "column_default": "'{}'::text[]"
+    },
+    {
+      "column_name": "verticals",
+      "data_type": "ARRAY",
+      "column_default": "'{}'::text[]"
+    },
+    {
+      "column_name": "status",
+      "data_type": "text",
+      "column_default": "'monitoring'::text"
+    },
+    {
+      "column_name": "confidence",
+      "data_type": "text",
+      "column_default": "'confirmed'::text"
+    },
+    {
+      "column_name": "priority",
+      "data_type": "text",
+      "column_default": "'MODERATE'::text"
+    },
+    {
+      "column_name": "reasoning",
+      "data_type": "text",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "added_date",
+      "data_type": "date",
+      "column_default": "CURRENT_DATE"
+    },
+    {
+      "column_name": "is_archived",
+      "data_type": "boolean",
+      "column_default": "false"
+    },
+    {
+      "column_name": "version_history",
+      "data_type": "jsonb",
+      "column_default": "'[]'::jsonb"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "updated_at",
+      "data_type": "timestamp with time zone",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "agent_integrity_flag",
+      "data_type": "boolean",
+      "column_default": "false"
+    }
+  ],
+  "trigger_test_result": {
+    "id": "650cab43-9e7a-4864-81e9-7d33d4a581e8",
+    "jurisdictions": [
+      "US",
+      "US-NYC"
+    ]
+  },
+  "queue_after_trigger": {
+    "pjr_new": "1",
+    "ir_new": "1"
+  },
+  "pjr_new_rows": [
+    {
+      "current_value": "ASIA",
+      "flagged_reason": "continent",
+      "source_column": "jurisdictions"
+    }
+  ],
+  "ir_new_rows": [
+    {
+      "raw_value": "CARSON_RIVER_WATERSHED",
+      "rejection_reason": "non_geographic"
+    }
+  ],
+  "rolled_back": true
+}
