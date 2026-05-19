@@ -48,8 +48,8 @@ interface ConfirmState {
 }
 
 const PHASE_D_NOTE_MUTE =
-  "Mute is not yet wired to a schema field; the action will fall back " +
-  "to a warning notification. Migration coming in Phase D.";
+  "Mute is not yet available; the action will fall back to a warning " +
+  "notification. Full mute support coming soon.";
 
 export function ModerationActions({
   reportId,
@@ -92,7 +92,7 @@ export function ModerationActions({
           "error"
         );
       } else if (phaseD) {
-        onToast?.(`${labelFor(taken)} recorded (Phase D fallback applied)`);
+        onToast?.(`${labelFor(taken)} recorded (fallback applied)`);
       } else {
         onToast?.(`${labelFor(taken)} recorded`);
       }
@@ -258,7 +258,7 @@ export function ModerationActions({
                   color: "var(--color-text-primary)",
                 }}
               >
-                {confirm.phaseD ? "Phase D fallback" : "Confirm action"}
+                {confirm.phaseD ? "Fallback action" : "Confirm action"}
               </h2>
               <button
                 type="button"

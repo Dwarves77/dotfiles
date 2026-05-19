@@ -278,7 +278,7 @@ export function BriefingScheduleSection() {
           <DeliveryCard
             icon={<Mail size={14} />}
             label="Email"
-            description="Phase D — currently captured but not yet sent."
+            description="Coming soon — currently captured but not yet sent."
             selected={schedule.delivery === "email"}
             onClick={() => updateField("delivery", "email")}
             disabled={!canEdit}
@@ -449,7 +449,7 @@ function DeliveryCard({
               backgroundColor: "var(--color-surface-overlay)",
             }}
           >
-            Phase D
+            Coming soon
           </span>
         )}
       </div>

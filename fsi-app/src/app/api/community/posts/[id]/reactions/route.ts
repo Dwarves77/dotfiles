@@ -34,9 +34,7 @@ export async function POST(
   return NextResponse.json(
     {
       error: "Reactions not yet supported",
-      detail:
-        "The community_post_reactions table is not in any applied migration. " +
-        "Reactions ship with Phase D once the schema lands.",
+      detail: "Reactions are coming soon.",
     },
     { status: 501, headers: rateLimitHeaders(auth.userId) }
   );

@@ -358,7 +358,7 @@ export default function EventsPage() {
       </div>
 
       <Toast
-        message="Coming soon — events backend launches in Phase D"
+        message="Events coming soon"
         visible={toastVisible}
         onDismiss={() => setToastVisible(false)}
       />

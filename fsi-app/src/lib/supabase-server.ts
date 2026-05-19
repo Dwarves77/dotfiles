@@ -146,20 +146,38 @@ async function fetchSupersessions(): Promise<Supersession[]> {
   const supabase = getSupabase();
   // .limit(500) defensively, ordered most-recent-first so the first 500
   // are the supersessions the UI cares about.
+  //
+  // Pull `title` on both joined sides so the customer-facing Replaced
+  // rail on Dashboard renders the human title (e.g. "EU PPWR 2025/40")
+  // rather than falling back to the technical row identifier. Without
+  // title, the rail renders the legacy_id (e.g. "ss1", "g2") which is
+  // a customer-visible leak.
   const { data: rows } = await supabase
     .from("item_supersessions")
-    .select("supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)")
+    .select("supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id, title), new:intelligence_items!new_item_id(id, legacy_id, title)")
     .order("supersession_date", { ascending: false })
     .limit(500);
+
+  const pickTitle = (
+    ii: { title?: string | null } | Array<{ title?: string | null }> | null | undefined,
+  ): string | undefined => {
+    if (!ii) return undefined;
+    const obj = Array.isArray(ii) ? ii[0] : ii;
+    return obj?.title || undefined;
+  };
 
   const out: Supersession[] = [];
   for (const row of rows || []) {
     const oldId = uiId(row.old);
     const newId = uiId(row.new);
     if (!oldId || !newId) continue;
+    const oldTitle = pickTitle(row.old);
+    const newTitle = pickTitle(row.new);
     out.push({
       old: oldId,
       new: newId,
+      oldTitle,
+      newTitle,
       date: row.supersession_date,
       severity: row.severity as "major" | "minor" | "replacement",
       note: row.note || "",

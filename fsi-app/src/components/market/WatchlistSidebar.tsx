@@ -109,8 +109,8 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
             color: "var(--text-2)",
           }}
         >
-          No items in scope yet. As market signals are ingested, the most
-          urgent ones will appear here.
+          No items in scope yet. The most urgent market signals will
+          appear here as coverage expands.
         </p>
       ) : (
         <ul

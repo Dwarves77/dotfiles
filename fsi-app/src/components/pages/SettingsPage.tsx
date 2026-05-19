@@ -205,7 +205,7 @@ export function SettingsPage({
                 and takes the same userId prop. */}
             <Card
               title="Notifications"
-              meta="In-app channel only in Phase C · email + push ship in Phase D"
+              meta="In-app channel available now · email and push coming soon"
             >
               <p
                 className="text-sm mb-4"

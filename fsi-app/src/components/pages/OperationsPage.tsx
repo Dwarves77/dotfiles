@@ -328,7 +328,7 @@ function JurisdictionPanel({
             <b>{regions.length} jurisdictions</b>
             {priorityLabel ? ` at ${priorityLabel} priority` : " with data"}.
             {" "}
-            {totalItems === 0 ? "Worker has not yet ingested regional_data items." : priorityLabel ? "Clear the priority tile to see all coverage." : "Coverage expands as the source monitoring system ingests regional_data items."}
+            {totalItems === 0 ? "Regional intelligence coming soon." : priorityLabel ? "Clear the priority tile to see all coverage." : "Coverage expands as regional intelligence is added."}
           </p>
         </SideCard>
         <SideCard label="Methodology">
@@ -445,7 +445,7 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
           {chips.every((c) => c.items.length === 0) ? (
             <div style={{ margin: "14px 0" }}>
               <ComingSoonBanner
-                note="Operations data points (solar, electricity, labor, EV charging, green building) for this jurisdiction will populate here as the source monitoring system ingests them."
+                note="Operations data points (solar, electricity, labor, EV charging, green building) for this jurisdiction will appear here as coverage expands."
               />
             </div>
           ) : (
@@ -614,10 +614,10 @@ function EmptyJurisdiction() {
       }}
     >
       <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>
-        Regional intelligence not yet ingested
+        Regional intelligence coming soon
       </p>
       <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.5 }}>
-        Operations data points (energy tariffs, labor rates, solar permitting, EV charging, green building) will populate as the worker scans <code>item_type = &lsquo;regional_data&rsquo;</code> records.
+        Operations data points (energy tariffs, labor rates, solar permitting, EV charging, green building) will appear here as regional coverage expands.
       </p>
     </div>
   );
@@ -671,10 +671,10 @@ function FacilityPanel({ items }: { items: Resource[] }) {
           }}
         >
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>
-            Facility data not yet ingested
+            Facility data coming soon
           </p>
           <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.5 }}>
-            Electricity tariffs, solar ROI tables, labor benchmarks, and green building certifications will populate here as the worker writes <code>domain = 6</code> intelligence items.
+            Electricity tariffs, solar ROI tables, labor benchmarks, and green building certifications will appear here as facility coverage expands.
           </p>
         </div>
       ) : (
@@ -776,11 +776,10 @@ function FacilityCategoryCard({ group, defaultOpen }: { group: { cat: string; it
 
 // ── ComingSoonBanner ──
 //
-// Inlined copy of the Admin "Coming soon — Phase D" banner pattern from
-// AdminDashboard.tsx (used for tabs whose backing service isn't online
-// yet). Inlined here per the no-premature-abstractions guidance — same
-// visual treatment (high-tone amber strip + dot + bold label + note),
-// no shared-component extraction.
+// Inlined "Coming soon" banner used on tabs whose surface content has
+// not yet expanded for this jurisdiction. Same visual treatment
+// (high-tone amber strip + dot + bold label + note), no shared-component
+// extraction.
 function ComingSoonBanner({ note }: { note: string }) {
   return (
     <div
@@ -811,7 +810,7 @@ function ComingSoonBanner({ note }: { note: string }) {
       />
       <span>
         <b style={{ color: "var(--high)", letterSpacing: "0.04em" }}>
-          Coming soon — Phase D
+          Coming soon
         </b>{" "}
         — {note}
       </span>

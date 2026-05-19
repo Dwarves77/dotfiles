@@ -133,14 +133,11 @@ export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetr
           }}
         >
           <b style={{ color: "var(--text)", fontWeight: 700 }}>
-            Quantitative metrics not yet populated for this section.
+            Quantitative metrics not yet available for this section.
           </b>{" "}
           Items in scope have lifecycle and source attribution; numeric
-          deltas (current vs prior period) will appear here once
-          <code style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11.5 }}>
-            {" "}intelligence_items.market_data{" "}
-          </code>
-          is populated.
+          deltas (current vs prior period) will appear here as market
+          data is added.
         </div>
       ) : (
         <div

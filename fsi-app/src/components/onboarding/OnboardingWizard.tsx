@@ -373,7 +373,7 @@ function StepChoosePath({
             backgroundColor: "transparent",
           }}
         >
-          Coming soon — Phase D
+          Coming soon
         </button>
       </div>
 
