@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-05-19T17:03:35.526Z",
+  "v1_semantics": {
+    "citation_count": "count(intelligence_items where source_id in sources_used) (array containment)",
+    "recency": "max(added_date) over the same set"
+  },
+  "recency_column_choice": {
+    "selected": "added_date",
+    "reason": "intelligence_items has no published_at; added_date is operator-curated and tracks content cadence; created_at/updated_at drift with platform plumbing",
+    "candidates_seen": [
+      "added_date (date)",
+      "created_at (timestamptz)",
+      "updated_at (timestamptz)",
+      "last_regenerated_at (timestamptz)"
+    ]
+  },
+  "intelligence_items_columns": [
+    {
+      "column_name": "added_date",
+      "data_type": "date",
+      "udt_name": "date"
+    },
+    {
+      "column_name": "source_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column_name": "sources_used",
+      "data_type": "ARRAY",
+      "udt_name": "_uuid"
+    }
+  ],
+  "sample_sources": [
+    {
+      "id": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+      "name": "American Alliance of Museums (AAM)",
+      "tier": 5
+    },
+    {
+      "id": "fa6d6470-6b45-452a-9bc6-6fdff4ec44ae",
+      "name": "American Trucking Associations",
+      "tier": 4
+    },
+    {
+      "id": "87894622-d165-4ca0-84dd-13c433058616",
+      "name": "ANTT — Agência Nacional de Transportes Terrestres, Governo Federal do Brasil",
+      "tier": 2
+    }
+  ],
+  "per_sample_stats": [
+    {
+      "source_id": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+      "source_name": "American Alliance of Museums (AAM)",
+      "source_tier": 5,
+      "citation_count": 1,
+      "recency": "2026-05-11T04:00:00.000Z"
+    },
+    {
+      "source_id": "fa6d6470-6b45-452a-9bc6-6fdff4ec44ae",
+      "source_name": "American Trucking Associations",
+      "source_tier": 4,
+      "citation_count": 1,
+      "recency": "2026-02-28T05:00:00.000Z"
+    },
+    {
+      "source_id": "87894622-d165-4ca0-84dd-13c433058616",
+      "source_name": "ANTT — Agência Nacional de Transportes Terrestres, Governo Federal do Brasil",
+      "source_tier": 2,
+      "citation_count": 2,
+      "recency": "2026-04-11T04:00:00.000Z"
+    }
+  ],
+  "rpc_shape_dryrun": [
+    {
+      "source_id": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+      "citation_count": 1,
+      "recency": "2026-05-11T04:00:00.000Z"
+    },
+    {
+      "source_id": "87894622-d165-4ca0-84dd-13c433058616",
+      "citation_count": 2,
+      "recency": "2026-04-11T04:00:00.000Z"
+    },
+    {
+      "source_id": "fa6d6470-6b45-452a-9bc6-6fdff4ec44ae",
+      "citation_count": 1,
+      "recency": "2026-02-28T05:00:00.000Z"
+    }
+  ],
+  "legacy_source_id_coverage": {
+    "items_with_source_id": 657,
+    "items_with_nonnull_source_id": 616
+  },
+  "sources_used_coverage": {
+    "items_with_sources_used": 657,
+    "items_with_nonempty_sources_used": 159
+  }
+}
