@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-05-19T18:59:37.415Z",
+  "migration_path": "C:/Users/jason/dotfiles-wt-q5-tier-override/fsi-app/supabase/migrations/093_sources_tier_override.sql",
+  "sources_override_columns_pre": [],
+  "source_trust_events_check_pre": [
+    {
+      "conname": "source_trust_events_event_type_check",
+      "def": "CHECK ((event_type = ANY (ARRAY['confirmation'::text, 'conflict_opened'::text, 'conflict_resolved'::text, 'accessibility_check'::text, 'citation_received'::text, 'tier_promotion'::text, 'tier_demotion'::text, 'manual_review'::text, 'stale_flag'::text, 'paywall_change'::text, 'self_citation'::text, 'discovery'::text])))"
+    }
+  ],
+  "apply_status": "OK",
+  "sources_override_columns_post": [
+    {
+      "column_name": "override_date",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "override_reason",
+      "data_type": "text",
+      "is_nullable": "YES"
+    },
+    {
+      "column_name": "tier_override",
+      "data_type": "integer",
+      "is_nullable": "YES"
+    }
+  ],
+  "sources_tier_override_check_post": [
+    {
+      "conname": "sources_tier_override_check",
+      "def": "CHECK (((tier_override IS NULL) OR ((tier_override >= 1) AND (tier_override <= 7))))"
+    }
+  ],
+  "source_trust_events_check_post": [
+    {
+      "conname": "source_trust_events_event_type_check",
+      "def": "CHECK ((event_type = ANY (ARRAY['confirmation'::text, 'conflict_opened'::text, 'conflict_resolved'::text, 'accessibility_check'::text, 'citation_received'::text, 'tier_promotion'::text, 'tier_demotion'::text, 'manual_review'::text, 'stale_flag'::text, 'paywall_change'::text, 'self_citation'::text, 'discovery'::text, 'tier_override'::text, 'tier_override_revert'::text])))"
+    }
+  ],
+  "check_includes_override_events": true,
+  "smoke_insert_status": "OK",
+  "ledger_state_pre_backfill": [
+    {
+      "version": "088",
+      "name": "citation_stats_rpc"
+    },
+    {
+      "version": "089",
+      "name": "intelligence_item_citations"
+    },
+    {
+      "version": "090",
+      "name": "tier_schema_split"
+    },
+    {
+      "version": "091",
+      "name": "source_tier_opinions"
+    },
+    {
+      "version": "092",
+      "name": "source_bias_tags"
+    }
+  ],
+  "ledger_backfill_inserted": true,
+  "ledger_state_post": [
+    {
+      "version": "093",
+      "name": "sources_tier_override"
+    }
+  ]
+}
