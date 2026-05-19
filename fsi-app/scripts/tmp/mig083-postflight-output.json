@@ -1,0 +1,173 @@
+{
+  "generated_at": "2026-05-19T01:09:50.304Z",
+  "preflight_total_was": 451,
+  "remaining_iso_empty_with_populated_jurisdictions": 53,
+  "drop_count": 398,
+  "remaining_no_parseable_tokens": 53,
+  "populated_samples": [
+    {
+      "id": "007f42b1-265a-4504-8bd1-ea1557d410ad",
+      "title": "TxDOT Freight Planning: Statewide Framework and Resources",
+      "jurisdictions": [
+        "US-TX"
+      ],
+      "jurisdiction_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "01555561-c536-4dbf-ac00-583235feb111",
+      "title": "Arkansas State Legislature 95th General Assembly - Fiscal Session 2026",
+      "jurisdictions": [
+        "US-AR"
+      ],
+      "jurisdiction_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "0587f0b7-4132-4572-99e6-713de3f60356",
+      "title": "UK Department for Environment, Food & Rural Affairs: Organizational Overview and Policy Framework",
+      "jurisdictions": [
+        "GB",
+        "GB-ENG",
+        "GB-NIR",
+        "GB-WLS"
+      ],
+      "jurisdiction_iso": [
+        "GB"
+      ]
+    },
+    {
+      "id": "0841c98d-dee1-4d81-956f-a8b0754db62c",
+      "title": "North Dakota Department of Environmental Quality - Portal and Current Environmental Notices",
+      "jurisdictions": [
+        "US-ND"
+      ],
+      "jurisdiction_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "0bbd757c-112f-4d1f-ace8-c8fe73857ae1",
+      "title": "Major Corporate and Institutional Renewable Energy Investments Signal Accelerating Clean Energy Transition (May 2026)",
+      "jurisdictions": [
+        "DE",
+        "FR",
+        "PL",
+        "US",
+        "US-AR"
+      ],
+      "jurisdiction_iso": [
+        "DE",
+        "FR",
+        "PL",
+        "US"
+      ]
+    }
+  ],
+  "synthetic_tests": [
+    {
+      "name": "US-PA single subdivision",
+      "input": [
+        "US-PA"
+      ],
+      "expected": [
+        "US"
+      ],
+      "got": [
+        "US"
+      ],
+      "pass": true
+    },
+    {
+      "name": "CA+CA-ON union dedupes to CA",
+      "input": [
+        "CA",
+        "CA-ON"
+      ],
+      "expected": [
+        "CA"
+      ],
+      "got": [
+        "CA"
+      ],
+      "pass": true
+    },
+    {
+      "name": "GB+GB-ENG union dedupes to GB",
+      "input": [
+        "GB",
+        "GB-ENG"
+      ],
+      "expected": [
+        "GB"
+      ],
+      "got": [
+        "GB"
+      ],
+      "pass": true
+    },
+    {
+      "name": "Multi-country US-PA+CA-ON",
+      "input": [
+        "US-PA",
+        "CA-ON"
+      ],
+      "expected": [
+        "CA",
+        "US"
+      ],
+      "got": [
+        "CA",
+        "US"
+      ],
+      "pass": true
+    },
+    {
+      "name": "GLOBAL filtered (>2 chars, not alpha-2)",
+      "input": [
+        "GLOBAL",
+        "IMO"
+      ],
+      "expected": [],
+      "got": [],
+      "pass": true
+    },
+    {
+      "name": "Empty input",
+      "input": [],
+      "expected": [],
+      "got": [],
+      "pass": true
+    },
+    {
+      "name": "NULL input via ARRAY of NULLs",
+      "input": null,
+      "expected": [],
+      "got": [],
+      "pass": true
+    },
+    {
+      "name": "Mixed parseable + EU + GLOBAL",
+      "input": [
+        "US",
+        "EU",
+        "GLOBAL",
+        "CA-ON"
+      ],
+      "expected": [
+        "CA",
+        "EU",
+        "US"
+      ],
+      "got": [
+        "CA",
+        "EU",
+        "US"
+      ],
+      "pass": true
+    }
+  ],
+  "all_synthetic_tests_passed": true
+}
