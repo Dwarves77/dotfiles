@@ -756,49 +756,12 @@ export const Q7_CONFIG = {
   EXPECTED_QUEUE_RATE_PER_WEEK: [5, 15] as [number, number],
 } as const;
 
-/**
- * Per-tier citation weight used in the tier-weighted citation sum.
- * T7 = 0: a source whose authority is unestablished does not contribute
- * credibility signal to anything it cites (amplifying T7 would amplify
- * uncertainty, not credibility).
- *
- * Verbatim per Q7 decision. Q6 dispatch will add decay; the weights
- * here MUST match whatever Q6 defines (Q7 is the authoritative source
- * for the weight values per the decisions doc).
- */
-export const TIER_WEIGHTS: Record<SourceTier, number> = {
-  1: 1.0,
-  2: 0.85,
-  3: 0.7,
-  4: 0.5,
-  5: 0.3,
-  6: 0.15,
-  7: 0,
-};
-
-/**
- * Recency decay factor for a citation timestamp.
- *
- * Half-life curve: a citation at `now` contributes 1.0; at `now - half_life`
- * contributes 0.5; at `now - 2 * half_life` contributes 0.25.
- *
- * Q6 owns the canonical implementation; this is a placeholder that uses
- * the upper end of the Q7 documented range (24 months) until Q6 merges.
- * When Q6 lands, the merge resolution removes this stub and imports the
- * Q6 export instead.
- */
-export const Q7_DEFAULT_HALF_LIFE_DAYS = 24 * 30; // 24 months, upper end of Q7's 18-24 month tunable range.
-
-export function decayFactor(
-  detectedAt: string | Date,
-  now: Date = new Date(),
-  halfLifeDays: number = Q7_DEFAULT_HALF_LIFE_DAYS
-): number {
-  const detectedTime = typeof detectedAt === "string" ? new Date(detectedAt).getTime() : detectedAt.getTime();
-  const ageDays = (now.getTime() - detectedTime) / 86400000;
-  if (ageDays <= 0) return 1.0;
-  return Math.pow(0.5, ageDays / halfLifeDays);
-}
+// TIER_WEIGHTS, HALF_LIFE_MONTHS, and applyRecencyDecay live in the Q6
+// block above (lines ~226-257). Q7 functions below consume them directly.
+// The Q7 dispatch initially declared its own copies as placeholders; the
+// Q6/Q7 merge resolution removed the duplicates per operator-specified
+// shape ("keep Q6's canonical decay implementation plus Q7's promotion
+// logic plus Q7_CONFIG").
 
 // ── Supabase-like client shape used by the Q7 functions ──
 // Kept minimal so the functions are usable from both the Next.js
@@ -810,7 +773,12 @@ export interface SupabaseLikeClient {
   from: (table: string) => any;
 }
 
-export interface CitationRow {
+// Renamed from CitationRow at merge time to avoid collision with the
+// Q6 CitationRow above (which is the post-join { citing_tier, detected_at }
+// shape used by computeCitationComponentFromRows). CitationEdgeRow is the
+// raw source_citations row shape Q7's evaluateCandidatePromotion fetches
+// before resolving citing tiers via a follow-up query.
+export interface CitationEdgeRow {
   citing_source_id: string;
   cited_source_id: string;
   detected_at: string;
@@ -835,8 +803,7 @@ export interface PromotionEvaluationResult {
 export async function evaluateCandidatePromotion(
   client: SupabaseLikeClient,
   sourceId: string,
-  now: Date = new Date(),
-  halfLifeDays: number = Q7_DEFAULT_HALF_LIFE_DAYS
+  halfLifeMonths: number = HALF_LIFE_MONTHS
 ): Promise<PromotionEvaluationResult> {
   // Fetch citations into this source.
   const { data: citations, error: citErr } = await client
@@ -848,7 +815,7 @@ export async function evaluateCandidatePromotion(
     throw new Error(`evaluateCandidatePromotion: failed to read source_citations for ${sourceId}: ${citErr.message}`);
   }
 
-  const rows = (citations ?? []) as CitationRow[];
+  const rows = (citations ?? []) as CitationEdgeRow[];
   const citation_count = rows.length;
 
   if (citation_count === 0) {
@@ -884,7 +851,7 @@ export async function evaluateCandidatePromotion(
     if (tier == null) continue; // Citer source not found (deleted or RLS-filtered); skip.
     if (tier < 1 || tier > 7) continue; // Defensive: out-of-range tier; skip.
     const weight = TIER_WEIGHTS[tier as SourceTier];
-    const decay = decayFactor(row.detected_at, now, halfLifeDays);
+    const decay = applyRecencyDecay(new Date(row.detected_at), halfLifeMonths);
     weighted_sum += weight * decay;
   }
 
@@ -940,8 +907,7 @@ export interface EffectiveTierRecomputeResult {
 export async function recomputeEffectiveTier(
   client: SupabaseLikeClient,
   sourceId: string,
-  now: Date = new Date(),
-  halfLifeDays: number = Q7_DEFAULT_HALF_LIFE_DAYS
+  halfLifeMonths: number = HALF_LIFE_MONTHS
 ): Promise<EffectiveTierRecomputeResult> {
   // Read the source row. Pre-Q2: only `tier` exists. Post-Q2/Q5 the
   // select list extends to base_tier, effective_tier, tier_override.
@@ -970,7 +936,7 @@ export async function recomputeEffectiveTier(
   const before_tier = base_tier;
 
   // Sum citation network signal.
-  const promo = await evaluateCandidatePromotion(client, sourceId, now, halfLifeDays);
+  const promo = await evaluateCandidatePromotion(client, sourceId, halfLifeMonths);
 
   // Promote by one tier if eligible and not already T1.
   let computed_dynamic_tier: SourceTier = base_tier;
