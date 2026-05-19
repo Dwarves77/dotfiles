@@ -197,10 +197,76 @@ function computeReliabilityComponent(metrics: TrustMetrics): number {
   return MAX * 0.5 + MAX * 0.5 * Math.pow(aboveHalf, 0.7);
 }
 
+// ══════════════════════════════════════════════════════════════
+// Citation-Network Tier Weights + Recency Decay (Q6 / Q7)
+// ══════════════════════════════════════════════════════════════
+//
+// Per source-credibility-model skill Section 4 (the canonical
+// citation-network semantics):
+//
+//   weighted_sum(source_id) = SUM(
+//     tier_weight(citing_source.effective_tier) * decay_factor(detected_at)
+//   ) FOR each row in source_citations WHERE cited_source_id = source_id
+//
+// TIER_WEIGHTS are verbatim from Q7. T7 = 0 per operator Flag 2:
+// an overflow/uncategorized source has no established authority and
+// therefore propagates no credibility signal when it cites others.
+//
+// HALF_LIFE_MONTHS is operator-tunable per the decisions doc Open
+// Sub-Decision (operator range: 18-24 months). Starting parameter:
+// 20 months (midpoint). Tune by editing this constant or by passing
+// an explicit halfLifeMonths argument to applyRecencyDecay.
+//
+// Decay scope (Section 4 of the skill):
+//   APPLIES to citation-network contribution to effective_tier
+//   DOES NOT apply to base_tier (structural, time-invariant)
+//   DOES NOT apply to accessibility decay (separate logic, this file)
+//   DOES NOT apply to tier_history (immutable audit trail)
+
+export const TIER_WEIGHTS: Record<number, number> = {
+  1: 1.0,
+  2: 0.85,
+  3: 0.7,
+  4: 0.5,
+  5: 0.3,  // Q7 extension
+  6: 0.15, // Q7 extension
+  7: 0,    // Q7 confirmed: T7 = no signal (overflow tier doesn't propagate credibility)
+};
+
+export const HALF_LIFE_MONTHS = 20; // Operator-tunable (decisions doc Open Sub-Decision, range 18-24)
+
+// Average days per month over a 4-year window (Gregorian): 30.44.
+const DAYS_PER_MONTH = 30.44;
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// applyRecencyDecay
+//
+// Returns the multiplier in [0, 1] to apply to a citation's tier weight
+// based on how old the citation is. A citation observed `now` returns
+// 1.0; a citation observed `halfLifeMonths` ago returns 0.5; two
+// half-lives ago returns 0.25; and so on.
+//
+// Formula: 0.5 ^ (ageMonths / halfLifeMonths)
+export function applyRecencyDecay(
+  detectedAt: Date,
+  halfLifeMonths: number = HALF_LIFE_MONTHS
+): number {
+  const ageMonths =
+    (Date.now() - detectedAt.getTime()) / (MS_PER_DAY * DAYS_PER_MONTH);
+  return Math.pow(0.5, ageMonths / halfLifeMonths);
+}
+
 // ── Citation Component (0-20) ──
 // Based on how many independent T1-T3 sources cite this one.
 // Self-citations are excluded. Citation from higher tiers
 // counts more than from lower tiers.
+//
+// This is the aggregate-metrics path: it consumes the rolled-up
+// `independent_citers` + `highest_citing_tier` columns on the sources
+// row. Per-citation tier-weighted + decayed scoring (the canonical
+// formula per skill Section 4) is in computeCitationComponentFromRows
+// below; the daily batch recompute will migrate to that path as the
+// source_citations edge table becomes the source of truth.
 
 function computeCitationComponent(metrics: TrustMetrics): number {
   const MAX = 20;
@@ -210,17 +276,63 @@ function computeCitationComponent(metrics: TrustMetrics): number {
     return 0;
   }
 
-  // Weight by highest citing tier
-  // T1 citation = 1.0x, T2 = 0.8x, T3 = 0.6x, T4+ = 0.4x
+  // Weight by highest citing tier per Q7 verbatim weights (TIER_WEIGHTS).
   const tierMultiplier = metrics.highest_citing_tier
-    ? { 1: 1.0, 2: 0.85, 3: 0.7, 4: 0.5, 5: 0.4, 6: 0.3, 7: 0.2 }[metrics.highest_citing_tier] ?? 0.2
-    : 0.2;
+    ? TIER_WEIGHTS[metrics.highest_citing_tier] ?? 0
+    : 0;
 
   // Scale: 1 citer = 6, 3 citers = 12, 5 citers = 16, 10+ = 20
   const citerScore = Math.min(1, metrics.independent_citers / 10);
   const base = MAX * Math.sqrt(citerScore);
 
   return base * tierMultiplier;
+}
+
+// computeCitationComponentFromRows
+//
+// Per-citation tier-weighted + recency-decayed citation score (skill
+// Section 4 canonical formula). Each row contributes
+// TIER_WEIGHTS[citingTier] * applyRecencyDecay(detected_at) to the
+// weighted sum. The sum is then squashed into the 0-20 component band
+// via the same sqrt curve the aggregate path uses, so both paths
+// produce comparable component scores during the migration window.
+//
+// Input rows are expected to come from a query against source_citations
+// joined to sources on source_id (the citing source) to read its
+// effective_tier (preferred) or base_tier (fallback). detected_at is
+// already present on source_citations (migration 004) and only needs to
+// be selected by the caller.
+
+export interface CitationRow {
+  citing_tier: number;       // effective_tier of the citing source (1-7)
+  detected_at: Date;         // when the citation edge was observed
+}
+
+export function computeCitationComponentFromRows(
+  rows: CitationRow[],
+  halfLifeMonths: number = HALF_LIFE_MONTHS
+): number {
+  const MAX = 20;
+
+  if (rows.length === 0) {
+    return 0;
+  }
+
+  let weightedSum = 0;
+  for (const row of rows) {
+    const tierWeight = TIER_WEIGHTS[row.citing_tier] ?? 0;
+    if (tierWeight === 0) continue; // T7 or unknown: no contribution
+    weightedSum += tierWeight * applyRecencyDecay(row.detected_at, halfLifeMonths);
+  }
+
+  if (weightedSum === 0) return 0;
+
+  // Squash to 0-20 via sqrt curve so the per-row path produces a
+  // component value comparable to the aggregate path. Saturation at
+  // weighted_sum = 10 (roughly: 10 recent T1 citations, or
+  // proportionally more of lower-tier or older citations).
+  const normalized = Math.min(1, weightedSum / 10);
+  return MAX * Math.sqrt(normalized);
 }
 
 // ═════════════════════════════════════════════════════════���════
