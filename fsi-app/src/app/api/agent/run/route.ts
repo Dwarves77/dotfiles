@@ -511,6 +511,7 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
     let citationsWritten = 0;
     let provisionalsCreated = 0;
     let provisionalsUpdated = 0;
+    let tierOpinionsRecorded = 0;
     if (sourceRecord?.id && citations.length) {
       const citingId = sourceRecord.id;
       const citingTier = sourceRecord.tier;
@@ -520,7 +521,7 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
           const canonCitedUrl = canonicalizeUrl(c.url);
           const { data: existingSource } = await supabase
             .from("sources")
-            .select("id, total_citations, confirmation_count")
+            .select("id, tier, total_citations, confirmation_count")
             .eq("url", canonCitedUrl)
             .maybeSingle();
 
@@ -546,6 +547,41 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
                   confirmation_count: (existingSource.confirmation_count || 0) + 1,
                 })
                 .eq("id", existingSource.id);
+
+              // Q3 tier-opinion preservation per source-credibility-model
+              // skill Section 5 and the anti-pattern "Discarding tier-opinions
+              // when source already exists". Record EVERY agent tier estimate
+              // against an existing source as evidence in source_tier_opinions,
+              // regardless of agreement: the disagreement aggregator
+              // (public.get_tier_opinion_disagreements) computes agreement on
+              // read so the on-write path stays simple, and we preserve the
+              // full history (agreeing opinions still inform confidence in the
+              // current tier). Migration 091.
+              const existingTier =
+                typeof (existingSource as { tier?: number | null }).tier === "number"
+                  ? (existingSource as { tier: number }).tier
+                  : null;
+              if (
+                Number.isInteger(c.tier) &&
+                c.tier >= 1 &&
+                c.tier <= 7 &&
+                existingTier !== null
+              ) {
+                const { error: oErr } = await supabase
+                  .from("source_tier_opinions")
+                  .insert({
+                    target_source_id: existingSource.id,
+                    opining_source_id: citingId,
+                    intelligence_item_id: terminalIntelligenceItemId,
+                    opined_tier: c.tier,
+                    opinion_source: "haiku_brief_classifier",
+                  });
+                if (!oErr) {
+                  tierOpinionsRecorded++;
+                } else {
+                  failures.push(`Tier opinion ${c.url}: ${oErr.message}`);
+                }
+              }
             } else {
               failures.push(`Citation ${c.url}: ${cErr.message}`);
             }
@@ -708,6 +744,7 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
       citations_written: citationsWritten,
       provisionals_created: provisionalsCreated,
       provisionals_updated: provisionalsUpdated,
+      tier_opinions_recorded: tierOpinionsRecorded,
       failures,
       duration_ms: Date.now() - jobStart,
       raw_fetch_id: terminalRawFetchId,
