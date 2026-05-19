@@ -318,3 +318,21 @@ Two findings break the COHERENT label: (1) `jurisdiction_iso` empty on rows Phas
 The remaining drift findings are either expected pre-Phase-7 state (RC-1 admin leaks, no jurisdiction triage queue, audit log placeholder), customer-facing UI debt for separate small follow-ups (alerts card, empty state CTAs, publishedThisWeek links, /market copy), or minor doc-classification questions (perf-1-design.md not in the listed expected set).
 
 This audit reports findings only. Operator authorizes any new OBS additions, remediation dispatches, or Phase 6 design dispatch in a separate message.
+
+---
+
+## Post-Sprint-1 Acknowledgment (added 2026-05-18 doc cleanup)
+
+This audit's conclusion above (line ~314) states "Sprint 1 has shipped substantive infrastructure" and frames the remaining drift findings as "expected pre-Phase-7 state... customer-facing UI debt for separate small follow-ups... or minor doc-classification questions." That framing understated the customer-facing value gap.
+
+Corrective context (post-audit):
+
+1. The Chrome live audit (operator-conducted, 2026-05-18) surfaced that customer-facing pages /market, /research, /operations, /community and the Intelligence Assistant carry user-visible breakage beyond "small follow-ups": phase-language ("Coming soon, Phase D") leaked to customers in 14 locations across the platform; database identifiers and worker-language leaked in multiple components; the Intelligence Assistant ran a decision-engine prompt rather than the research-helper framing the platform model requires; /market and /operations share an unfiltered payload because the category-aware RPCs are orphans not invoked by application code.
+
+2. The caros-ledge-platform-intent SKILL.md was rewritten at commit 49628a0 to codify the binding five-surface customer-facing model (Regulations, Market Intel, Research, Operations, Community) plus cross-cutting capabilities (Map, Intelligence Assistant, Onboarding). The rewrite added a Value Delivery Check section format that every relevant dispatch must emit. The skill Section 11 (Anti-Patterns) lists "Infrastructure complete implying value delivered" as an explicit anti-pattern; this audit's conclusion is an instance of that anti-pattern.
+
+3. The Sprint 2 plan at `docs/sprint-2/sprint-2-planning-2026-05-18.md` enumerates the Sprint 2 builds that close the customer-facing value gap (Build 4 category routing wiring; Build 5 Intelligence Assistant skill loading + citation surfacing; Build 7 Market Intel; Build 8 Research; Build 9 Operations; Build 10 Community structural alignment; Build 11 Dashboard five-surface refactor).
+
+Future audits should emit the Value Delivery Check section per the platform-intent skill, name customer-facing surface state explicitly (functional / broken / partial), and not absorb customer-facing schedule slip silently in an "infrastructure complete" conclusion.
+
+This postscript does not modify the original audit's findings. It clarifies that the conclusion's framing was understated relative to the customer-facing state the Chrome live audit subsequently surfaced.
