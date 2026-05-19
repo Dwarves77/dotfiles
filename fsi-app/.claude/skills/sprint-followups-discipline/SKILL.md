@@ -302,6 +302,34 @@ Before any sweep dispatch starts, the dispatch brief lists:
 
 The pre-flight report documents the enumeration count and the criterion. The execution report documents the full pass/fail matrix and explicitly calls out any discrepancy between the enumeration and the original scope brief.
 
+## Source-credibility-model load-trigger rule
+
+This rule was added 2026-05-19 alongside the encoding of the source-credibility-model skill. Per the architectural conversation that produced the skill (decisions captured at `docs/sprint-2/source-credibility-model-decisions-2026-05-19.md`), the credibility model is binding on a wide range of dispatches but lives in its own skill rather than this discipline. This rule names which dispatches must load source-credibility-model so the credibility-model concerns are not skipped because the dispatcher forgot to add the skill to the load list.
+
+**Binding rule.** Load `source-credibility-model` skill on any dispatch that:
+
+1. Touches the `sources` table (read or write)
+2. Touches `source_citations` or `intelligence_item_citations` edge tables
+3. Modifies `tier`, `base_tier`, `effective_tier`, `tier_override`, `override_reason`, `override_date`, or `bias_tag*` columns on sources
+4. Touches the candidate review surface (`canonical_source_candidates` table, admin canonical-sources review components, `/api/admin/canonical-sources/*` routes)
+5. Modifies the Haiku recommend-classification endpoints (`canonical-sources/recommend-classification`, `sources/recommend-classification`)
+6. Modifies the verification pipeline (`src/lib/sources/verification.ts`)
+7. Adds or modifies customer-facing credibility signal rendering on any of the seven surfaces (Regulations, Research, Market Intel, Operations, Community, Map, Intelligence Assistant)
+8. Changes the discovery loop (citation extraction in `src/app/api/agent/run/route.ts`, source resolution in any consumer, candidate promotion criteria)
+9. Adds or modifies citation network scoring (`src/lib/trust.ts`), recency decay, or override semantics
+
+Load is mandatory, not advisory. Without the skill loaded, the dispatch cannot ground its credibility decisions in the canonical model and risks drift from the operator-approved framework.
+
+**What this rule is NOT.**
+
+- NOT a substitute for `sprint-followups-discipline` itself (this discipline still owes loop closure, DP compliance, and the sources-schema-touch precondition where applicable). The source-credibility-model load is ADDITIVE.
+- NOT a requirement to apply every credibility-model element to every dispatch. The skill specifies which elements apply where. A small bugfix that touches a credibility-affected surface still loads the skill but applies only the relevant section.
+- NOT a self-scanning mechanism. Option B (skills self-describe triggers; discipline scans frontmatter at dispatch start) was considered and rejected for one-skill-deployment cost. If the project adds 5+ domain skills with overlapping triggers, revisit.
+
+**How to apply.** At dispatch brief authoring time, check the trigger list above against the dispatch's scope. If any trigger fires, add `source-credibility-model` to the skill load list in the brief. The dispatch's pre-work report names the skill as loaded.
+
+**Worked example.** A Build 8 (Research horizon-scan) dispatch touches `sources` (reads for filtering), `intelligence_item_citations` (reads for citation count display), and customer-facing credibility signal rendering (Research surface per Q9: tier + bias tag + citation count + recency). Triggers 1, 2, and 7 fire. The dispatch brief loads source-credibility-model alongside sprint-followups-discipline, caros-ledge-platform-intent, and environmental-policy-and-innovation. The dispatch's design implements the Q9 Research signal set per source-credibility-model Section 8.
+
 ## Anti-Patterns
 
 These behaviors mean the skill was loaded but not followed:
