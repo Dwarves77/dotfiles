@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 
 function getServiceClient() {
   return createClient(
@@ -30,6 +31,18 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getServiceClient();
+
+    // Platform-admin gate (OBS-17, Sprint 2 Build 6). Prior implementation
+    // had no admin gate beyond requireAuth, meaning any authenticated user
+    // could provision Auth users + org memberships. Closed by reading
+    // profiles.is_platform_admin via the service-role client.
+    const admin = await isPlatformAdmin(auth.userId, supabase);
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Platform admin access required" },
+        { status: 403, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
 
     // Create the user via Supabase Auth Admin API
     const { data: userData, error: createError } = await supabase.auth.admin.createUser({
@@ -91,6 +104,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = getServiceClient();
+
+    // Platform-admin gate (OBS-17, Sprint 2 Build 6). The list spans
+    // org_memberships across ALL orgs — must be gated on platform admin.
+    const admin = await isPlatformAdmin(auth.userId, supabase);
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Platform admin access required" },
+        { status: 403, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
 
     const { data, error } = await supabase
       .from("org_memberships")

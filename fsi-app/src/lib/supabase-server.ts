@@ -1813,18 +1813,19 @@ export async function fetchAwaitingReview(
 
 // Inline platform-admin check (avoids importing from src/lib/auth/admin.ts
 // to keep this module self-contained; mirrors that helper exactly).
+// Updated 2026-05-18 (Sprint 2 Build 6 / OBS-17) to read
+// profiles.is_platform_admin instead of org_memberships.role; was conflating
+// workspace-membership role with the platform-layer staff flag.
 async function isPlatformAdminInline(
   userId: string,
   supabase: ReturnType<typeof getServiceSupabase>
 ): Promise<boolean> {
   if (!userId) return false;
   const { data, error } = await supabase
-    .from("org_memberships")
-    .select("role")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
+    .from("profiles")
+    .select("is_platform_admin")
+    .eq("id", userId)
     .maybeSingle();
   if (error || !data) return false;
-  return data.role === "owner" || data.role === "admin";
+  return data.is_platform_admin === true;
 }

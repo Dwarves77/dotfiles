@@ -13,9 +13,9 @@
 // `requires_individual_review` — bulk-approve does not silently call
 // the recommender for thousands of items.
 //
-// Auth: requireAuth + admin role check via org_memberships (light gate
-// — same pattern as /decide).
-// Rate-limited.
+// Auth: requireAuth + isPlatformAdmin gate via profiles.is_platform_admin
+// (OBS-17, Sprint 2 Build 6). Prior comment claimed an org_memberships
+// admin gate, but none was actually wired; only requireAuth ran. Rate-limited.
 //
 // Returns a per-candidate result so the UI can surface partial successes.
 
@@ -23,6 +23,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 
 function getServiceClient() {
   return createClient(
@@ -57,6 +58,17 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getServiceClient();
+
+  // Platform-admin gate (OBS-17, Sprint 2 Build 6). Service-role client
+  // bypasses RLS so the profiles lookup works regardless of caller scoping.
+  const admin = await isPlatformAdmin(auth.userId, supabase);
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Platform admin access required" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
   const now = new Date().toISOString();
 
   const { data: candidates, error: loadErr } = await supabase

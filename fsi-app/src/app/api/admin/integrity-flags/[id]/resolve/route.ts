@@ -31,6 +31,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 
 type ResolveAction = "replace_url" | "regenerate" | "mark_resolved";
 
@@ -47,22 +48,15 @@ function getServiceClient() {
   );
 }
 
+// Platform-admin gate via profiles.is_platform_admin (OBS-17, Sprint 2 Build 6).
 async function requireAdminRole(
   supabase: ReturnType<typeof getServiceClient>,
   userId: string
 ): Promise<NextResponse | null> {
-  const { data: membership } = await supabase
-    .from("org_memberships")
-    .select("role")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  const role = membership?.role;
-  if (role !== "owner" && role !== "admin") {
+  const admin = await isPlatformAdmin(userId, supabase);
+  if (!admin) {
     return NextResponse.json(
-      { error: "Admin role required" },
+      { error: "Platform admin access required" },
       { status: 403 }
     );
   }

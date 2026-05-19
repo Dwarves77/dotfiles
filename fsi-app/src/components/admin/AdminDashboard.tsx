@@ -253,6 +253,13 @@ export function AdminDashboard({
     setScanning(false);
   };
 
+  // Audit log tab hidden from the strip until the audit_log read endpoint
+  // ships (OBS-23, Sprint 2 Build 6). The tab body remains rendered when
+  // activeTab === "audit" so deep-links and IssuesQueue tap-throughs that
+  // route to "audit" still resolve to a ComingSoonBanner rather than a
+  // blank panel; KNOWN_RENDERED_TABS keeps "audit" listed for the same
+  // reason. To re-enable: re-add { id: "audit", label: "Audit log", count: 0 }
+  // below and remove this comment.
   const tabs: { id: AdminTab; label: string; count: number }[] = [
     { id: "orgs", label: "Organizations", count: orgs.length },
     { id: "integrations", label: "API & integrations", count: 0 },
@@ -263,7 +270,6 @@ export function AdminDashboard({
     { id: "coverage-matrix", label: "Coverage matrix", count: 0 },
     { id: "bulk-import", label: "Bulk add sources", count: 0 },
     { id: "scan", label: "Regulatory scan", count: 0 },
-    { id: "audit", label: "Audit log", count: 0 },
   ];
 
   return (
@@ -271,7 +277,7 @@ export function AdminDashboard({
       <EditorialMasthead
         eyebrow="Caro's Ledge · Platform Operations"
         title="Admin"
-        meta="Organizations · integrations · sources · staged updates · regulatory scan · audit"
+        meta="Organizations · integrations · sources · staged updates · regulatory scan"
       />
 
       <div style={{ padding: "28px 36px 60px" }}>
