@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 // Phase C: 4-step full-page wizard (kept accessible for return visits at
@@ -11,14 +11,22 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 //   3. Sector       — multi-select via SectorSelector (highlighted niches up top)
 //   4. Notifications — NotificationPreferences component
 // Final state: confirmation + "Browse the community" CTA → /community
+//
+// orgId requirement: the wizard's Step 3 writes to workspace_settings.sector_profile
+// (the workspace-anchored destination the dashboard reads). Users without a workspace
+// are bounced to /workspace/new to create one first, then back here.
 
 export default async function OnboardingPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const bootstrap = await resolveServerBootstrap();
 
-  if (!user) redirect("/login?redirect=/onboarding");
+  if (!bootstrap.user) redirect("/login?redirect=/onboarding");
+  if (!bootstrap.orgId) redirect("/workspace/new");
 
-  return <OnboardingWizard userId={user.id} userEmail={user.email || ""} />;
+  return (
+    <OnboardingWizard
+      userId={bootstrap.user.id}
+      userEmail={bootstrap.user.email || ""}
+      orgId={bootstrap.orgId}
+    />
+  );
 }
