@@ -1,0 +1,114 @@
+{
+  "generated_at": "2026-05-19T18:41:22.225Z",
+  "migration_path": "C:\\Users\\jason\\dotfiles-wt-q3-tier-opinions\\fsi-app\\supabase\\migrations\\091_source_tier_opinions.sql",
+  "table_existed_pre_apply": false,
+  "function_existed_pre_apply": false,
+  "apply_status": "OK",
+  "table_exists_post_apply": true,
+  "columns": [
+    {
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "column_name": "target_source_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "opining_source_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "intelligence_item_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "column_name": "opined_tier",
+      "data_type": "integer",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "opinion_source",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "opined_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    }
+  ],
+  "indexes": [
+    {
+      "indexname": "source_tier_opinions_opinion_source_idx",
+      "indexdef": "CREATE INDEX source_tier_opinions_opinion_source_idx ON public.source_tier_opinions USING btree (opinion_source)"
+    },
+    {
+      "indexname": "source_tier_opinions_pkey",
+      "indexdef": "CREATE UNIQUE INDEX source_tier_opinions_pkey ON public.source_tier_opinions USING btree (id)"
+    },
+    {
+      "indexname": "source_tier_opinions_target_opined_idx",
+      "indexdef": "CREATE INDEX source_tier_opinions_target_opined_idx ON public.source_tier_opinions USING btree (target_source_id, opined_at DESC)"
+    }
+  ],
+  "constraints": [
+    {
+      "conname": "source_tier_opinions_intelligence_item_id_fkey",
+      "def": "FOREIGN KEY (intelligence_item_id) REFERENCES intelligence_items(id) ON DELETE SET NULL"
+    },
+    {
+      "conname": "source_tier_opinions_opined_tier_check",
+      "def": "CHECK (((opined_tier >= 1) AND (opined_tier <= 7)))"
+    },
+    {
+      "conname": "source_tier_opinions_opining_source_id_fkey",
+      "def": "FOREIGN KEY (opining_source_id) REFERENCES sources(id) ON DELETE SET NULL"
+    },
+    {
+      "conname": "source_tier_opinions_opinion_source_check",
+      "def": "CHECK ((opinion_source = ANY (ARRAY['haiku_brief_classifier'::text, 'haiku_verification'::text, 'operator_review'::text])))"
+    },
+    {
+      "conname": "source_tier_opinions_pkey",
+      "def": "PRIMARY KEY (id)"
+    },
+    {
+      "conname": "source_tier_opinions_target_source_id_fkey",
+      "def": "FOREIGN KEY (target_source_id) REFERENCES sources(id) ON DELETE CASCADE"
+    }
+  ],
+  "function_exists_post_apply": true,
+  "function_signature": {
+    "args": "window_days integer",
+    "result": "TABLE(target_source_id uuid, current_base_tier integer, opined_tiers integer[], opinion_count bigint, distinct_disagreeing_tiers integer)"
+  },
+  "smoke_default_window_row_count": 0,
+  "smoke_default_window_rows": [],
+  "smoke_custom_window_row_count": 0,
+  "table_comment_present": true,
+  "ledger_state_pre_backfill": [
+    {
+      "version": "088",
+      "name": "citation_stats_rpc"
+    }
+  ],
+  "ledger_backfill_inserted": true,
+  "ledger_state_post": [
+    {
+      "version": "091",
+      "name": "source_tier_opinions"
+    }
+  ]
+}
