@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-05-19T01:06:12.273Z",
+  "stage_1_expected_total": 451,
+  "stage_1_expected_parseable": 362,
+  "total_rows_jurisdictions_populated_iso_empty": 451,
+  "rows_with_parseable_canonical_tokens": 398,
+  "samples": [
+    {
+      "id": "007f42b1-265a-4504-8bd1-ea1557d410ad",
+      "title": "TxDOT Freight Planning: Statewide Framework and Resources",
+      "jurisdictions": [
+        "US-TX"
+      ],
+      "expected_derived_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "01555561-c536-4dbf-ac00-583235feb111",
+      "title": "Arkansas State Legislature 95th General Assembly - Fiscal Session 2026",
+      "jurisdictions": [
+        "US-AR"
+      ],
+      "expected_derived_iso": [
+        "US"
+      ]
+    },
+    {
+      "id": "015c28f1-b972-4b8b-80de-14f160076d54",
+      "title": "Prince Edward Island Assembly Website - Bot Detection and Access Restriction",
+      "jurisdictions": [
+        "PE"
+      ],
+      "expected_derived_iso": [
+        "PE"
+      ]
+    },
+    {
+      "id": "02da3c3c-6c28-4a2d-bdc0-0831cecab90e",
+      "title": "International Institute for Conservation - Professional Guidance and Standards for Historic and Artistic Works Conservation",
+      "jurisdictions": [
+        "GB",
+        "GLOBAL"
+      ],
+      "expected_derived_iso": [
+        "GB"
+      ]
+    },
+    {
+      "id": "03b5f234-3624-4fef-acec-922bd75bb46e",
+      "title": "Norway Enacts Zero-Emission Requirements for Passenger Ships in World Heritage Fjords (Effective January 1, 2025 for Ships <10,000 GT)",
+      "jurisdictions": [
+        "NO"
+      ],
+      "expected_derived_iso": [
+        "NO"
+      ]
+    }
+  ],
+  "drift_from_stage_1": 0,
+  "drift_material": false
+}

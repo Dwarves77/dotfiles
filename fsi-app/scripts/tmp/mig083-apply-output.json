@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-05-19T01:08:13.993Z",
+  "migration_path": "C:\\Users\\jason\\dotfiles-mig083\\fsi-app\\supabase\\migrations\\083_trigger_derive_jurisdiction_iso.sql",
+  "helper_existed_pre_apply": false,
+  "apply_status": "OK",
+  "helper_exists_post_apply": true,
+  "trigger_body_has_derive_step": true,
+  "ledger_state_pre_backfill": [
+    {
+      "version": "081",
+      "name": "admin_signal_documentation",
+      "has_stmts": false
+    },
+    {
+      "version": "082",
+      "name": "operator_queues_and_routing",
+      "has_stmts": false
+    }
+  ],
+  "row_082_shape": {
+    "version": "082",
+    "name": "operator_queues_and_routing",
+    "stmts_null": true,
+    "stmts_len": 0
+  },
+  "ledger_backfill_inserted": true,
+  "ledger_state_post": [
+    {
+      "version": "083",
+      "name": "trigger_derive_jurisdiction_iso"
+    }
+  ]
+}
