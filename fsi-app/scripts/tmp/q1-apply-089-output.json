@@ -1,0 +1,160 @@
+{
+  "applied": true,
+  "table_exists": [
+    {
+      "t": "intelligence_item_citations"
+    }
+  ],
+  "columns": [
+    {
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "column_name": "intelligence_item_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "source_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "detected_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    },
+    {
+      "column_name": "origin",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    }
+  ],
+  "indexes": [
+    {
+      "indexname": "intelligence_item_citations_item_idx",
+      "indexdef": "CREATE INDEX intelligence_item_citations_item_idx ON public.intelligence_item_citations USING btree (intelligence_item_id)"
+    },
+    {
+      "indexname": "intelligence_item_citations_pkey",
+      "indexdef": "CREATE UNIQUE INDEX intelligence_item_citations_pkey ON public.intelligence_item_citations USING btree (id)"
+    },
+    {
+      "indexname": "intelligence_item_citations_source_idx",
+      "indexdef": "CREATE INDEX intelligence_item_citations_source_idx ON public.intelligence_item_citations USING btree (source_id)"
+    },
+    {
+      "indexname": "intelligence_item_citations_source_recency_idx",
+      "indexdef": "CREATE INDEX intelligence_item_citations_source_recency_idx ON public.intelligence_item_citations USING btree (source_id, detected_at DESC)"
+    },
+    {
+      "indexname": "intelligence_item_citations_unique_edge",
+      "indexdef": "CREATE UNIQUE INDEX intelligence_item_citations_unique_edge ON public.intelligence_item_citations USING btree (intelligence_item_id, source_id, origin)"
+    }
+  ],
+  "constraints": [
+    {
+      "conname": "intelligence_item_citations_origin_check",
+      "contype": "c",
+      "def": "CHECK ((origin = ANY (ARRAY['sources_used_backfill'::text, 'agent_extraction'::text, 'manual'::text])))"
+    },
+    {
+      "conname": "intelligence_item_citations_intelligence_item_id_fkey",
+      "contype": "f",
+      "def": "FOREIGN KEY (intelligence_item_id) REFERENCES intelligence_items(id) ON DELETE CASCADE"
+    },
+    {
+      "conname": "intelligence_item_citations_source_id_fkey",
+      "contype": "f",
+      "def": "FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE"
+    },
+    {
+      "conname": "intelligence_item_citations_pkey",
+      "contype": "p",
+      "def": "PRIMARY KEY (id)"
+    },
+    {
+      "conname": "intelligence_item_citations_unique_edge",
+      "contype": "u",
+      "def": "UNIQUE (intelligence_item_id, source_id, origin)"
+    }
+  ],
+  "backfill_count": {
+    "c": 752
+  },
+  "total_count": {
+    "c": 752
+  },
+  "origin_distribution": [
+    {
+      "origin": "sources_used_backfill",
+      "c": 752
+    }
+  ],
+  "expected_count": {
+    "c": 752
+  },
+  "sample_rows": [
+    {
+      "id": "0427e3cd-a217-4f9d-ad17-6d9239123e1e",
+      "intelligence_item_id": "92f4d247-d709-4347-8b4f-ed3e0b6927cc",
+      "source_id": "f1d93783-84c7-452e-b1e3-7a5af48f001f",
+      "detected_at": "2026-05-19T16:43:04.395Z",
+      "origin": "sources_used_backfill",
+      "item_title": "edie Sustainability Business News and Resources Portal",
+      "source_name": "Edie"
+    },
+    {
+      "id": "acd92970-f68c-4066-ab70-e23bd06f6e5b",
+      "intelligence_item_id": "856166be-0cf8-4c0e-8b2d-dbded771f0d5",
+      "source_id": "c75ea058-f29a-4606-a76e-bb0295565958",
+      "detected_at": "2026-05-11T21:20:03.939Z",
+      "origin": "sources_used_backfill",
+      "item_title": "Financial Conduct Authority - Main Portal and Regulatory Resources",
+      "source_name": "UK Financial Conduct Authority (FCA)"
+    },
+    {
+      "id": "9fc5a348-55d0-4ba9-9662-efe09cc65405",
+      "intelligence_item_id": "8cb6e73e-1c35-428f-8f5c-f1ee51a9e169",
+      "source_id": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+      "detected_at": "2026-05-11T21:19:28.551Z",
+      "origin": "sources_used_backfill",
+      "item_title": "European Banking Authority - Key Regulatory Updates and Supervisory Framework",
+      "source_name": "European Banking Authority (EBA)"
+    }
+  ],
+  "ledger_backfilled": true,
+  "ledger_recent": [
+    {
+      "version": "091",
+      "name": "source_tier_opinions"
+    },
+    {
+      "version": "089",
+      "name": "intelligence_item_citations"
+    },
+    {
+      "version": "088",
+      "name": "citation_stats_rpc"
+    },
+    {
+      "version": "087",
+      "name": "canonicalize_source_urls"
+    },
+    {
+      "version": "086",
+      "name": "analytical_press_routing"
+    },
+    {
+      "version": "085",
+      "name": "d16_document_063_column_shadowing"
+    }
+  ]
+}
