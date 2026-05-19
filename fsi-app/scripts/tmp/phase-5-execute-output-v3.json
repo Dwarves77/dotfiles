@@ -1,0 +1,439 @@
+{
+  "mode": "--execute",
+  "started_at": "2026-05-18T18:02:06.143Z",
+  "preflight": {
+    "stage": "preflight",
+    "iso_empty_count": 451,
+    "losers_present": 6,
+    "winners_present": 5,
+    "trigger_state": "enabled",
+    "queue_tables": "present",
+    "global_processing_paused": true,
+    "existing_severity_vocab": [
+      {
+        "severity": "major",
+        "n": 4
+      },
+      {
+        "severity": "minor",
+        "n": 1
+      }
+    ],
+    "snapshot_tables_present": [
+      "pending_jurisdiction_review_pre_phase5",
+      "ingest_rejections_pre_phase5",
+      "intelligence_items_pre_phase5",
+      "item_supersessions_pre_phase5"
+    ],
+    "snapshot_reuse": true
+  },
+  "verification": {
+    "stage": "verification",
+    "samples": [
+      {
+        "id": "v1-all-canonical",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v2-canonical-plus-continent",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v3-canonical-plus-region",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "LATAM",
+            "flagged_reason": "region_bucket",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "LATAM",
+            "flagged_reason": "region_bucket",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v4-canonical-plus-undefined-group",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "G7",
+            "flagged_reason": "undefined_group",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "G7",
+            "flagged_reason": "undefined_group",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v5-canonical-plus-waterway",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v6-canonical-plus-ministry",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "MINISTRY OF CLIMATE",
+            "rejection_reason": "institutional"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "MINISTRY OF CLIMATE",
+            "rejection_reason": "institutional"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v7-canonical-plus-county",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "BIHOR COUNTY",
+            "rejection_reason": "below_granularity"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "BIHOR COUNTY",
+            "rejection_reason": "below_granularity"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v8-unparseable",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [
+          {
+            "raw_value": "ZZZNONSENSE123",
+            "rejection_reason": "unparseable"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "ZZZNONSENSE123",
+            "rejection_reason": "unparseable"
+          }
+        ],
+        "canonical_out": [],
+        "pass": true
+      },
+      {
+        "id": "v9-multi-mixed",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "manual_pjr": [
+          {
+            "current_value": "ASIA",
+            "flagged_reason": "continent",
+            "source_column": "jurisdictions"
+          }
+        ],
+        "trigger_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "manual_ir": [
+          {
+            "raw_value": "CARSON_RIVER_WATERSHED",
+            "rejection_reason": "non_geographic"
+          }
+        ],
+        "canonical_out": [
+          "US"
+        ],
+        "pass": true
+      },
+      {
+        "id": "v10-nyc-borough",
+        "pjr_match": true,
+        "ir_match": true,
+        "expect_match": true,
+        "trigger_pjr": [],
+        "manual_pjr": [],
+        "trigger_ir": [],
+        "manual_ir": [],
+        "canonical_out": [
+          "US-NYC"
+        ],
+        "pass": true
+      }
+    ],
+    "pass": true
+  },
+  "snapshots": {
+    "stage": "snapshots",
+    "tables_created": [],
+    "tables_reused": [
+      {
+        "snapshot": "intelligence_items_pre_phase5",
+        "source": "intelligence_items",
+        "row_count": 655
+      },
+      {
+        "snapshot": "pending_jurisdiction_review_pre_phase5",
+        "source": "pending_jurisdiction_review",
+        "row_count": 107
+      },
+      {
+        "snapshot": "ingest_rejections_pre_phase5",
+        "source": "ingest_rejections",
+        "row_count": 0
+      },
+      {
+        "snapshot": "item_supersessions_pre_phase5",
+        "source": "item_supersessions",
+        "row_count": 5
+      }
+    ],
+    "retention_target": "2026-05-25"
+  },
+  "workload_a": {
+    "skipped": true,
+    "reason": "--skip-workload-a flag"
+  },
+  "workload_b": {
+    "stage": "workload_b",
+    "clusters": [
+      {
+        "name": "LL97",
+        "winner_id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+        "loser_ids": [
+          "b8b6fde3-2087-47c0-89c7-1b3bb944138c",
+          "d56ca4e1-5f68-4bf8-9c88-47ecfee986f0"
+        ],
+        "supersession_ids": [
+          "53953d3a-1d97-4685-936a-6ec8d085bf52",
+          "8c0d684f-b3b7-4aae-b979-36ef68809bf8"
+        ],
+        "xref_rewrites": 0
+      },
+      {
+        "name": "EPA Phase 3",
+        "winner_id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+        "loser_ids": [
+          "33ca228c-e966-4b35-9ec2-01cf0da9c80a",
+          "bec305e1-1ce7-4dbe-a599-32dd63927c36"
+        ],
+        "supersession_ids": [
+          "67dc21ed-2b42-46d6-917c-8a95fc494636",
+          "846128e8-4e40-4dc8-9f4e-89a36f281591"
+        ],
+        "xref_rewrites": 0
+      },
+      {
+        "name": "Norway Fjords",
+        "winner_id": "03b5f234-3624-4fef-acec-922bd75bb46e",
+        "loser_ids": [
+          "82f09535-ef34-4674-a16c-e7d9753b41bf"
+        ],
+        "supersession_ids": [
+          "611af601-9b3f-445e-9c5b-5ec7abf8557d"
+        ],
+        "xref_rewrites": 0
+      },
+      {
+        "name": "Matrix Hudson",
+        "winner_id": "fb86ee11-08ba-47a5-8cbd-5a8079dfc1c2",
+        "loser_ids": [
+          "daaa7e3a-61fc-4c53-adba-81d9e636133f"
+        ],
+        "supersession_ids": [
+          "2a8dfca0-cb6f-43fd-8467-d34e0febc874"
+        ],
+        "xref_rewrites": 0,
+        "winner_hidden_reason": "rc8_review_pending"
+      }
+    ]
+  },
+  "eu_automotive": {
+    "stage": "eu_automotive_populate",
+    "winner_id": "3ae89ce6-2f4f-43ed-a7ab-ee930e6dd1a8",
+    "instrument_type": "eu_regulation",
+    "instrument_identifier": "2024/1610"
+  },
+  "post_flight": {
+    "stage": "post_flight",
+    "empty_jurisdictions_without_pjr": 5,
+    "gate_7_2a_pass": false,
+    "canonical_key_duplicates": [],
+    "gate_7_2b_pass": true,
+    "final_queue_counts": {
+      "pjr": 107,
+      "ir": 130
+    },
+    "obs2_two_letter_hits": [],
+    "obs2_iso_hits": [],
+    "gate_7_2d_pass": true,
+    "loser_hidden_reasons": [
+      {
+        "id": "d56ca4e1-5f68-4bf8-9c88-47ecfee986f0",
+        "hidden_reason": "rc9_dedup_archived"
+      },
+      {
+        "id": "82f09535-ef34-4674-a16c-e7d9753b41bf",
+        "hidden_reason": "rc9_dedup_archived"
+      },
+      {
+        "id": "b8b6fde3-2087-47c0-89c7-1b3bb944138c",
+        "hidden_reason": "rc9_dedup_archived"
+      },
+      {
+        "id": "daaa7e3a-61fc-4c53-adba-81d9e636133f",
+        "hidden_reason": "rc9_dedup_archived"
+      },
+      {
+        "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+        "hidden_reason": "rc9_dedup_archived"
+      },
+      {
+        "id": "33ca228c-e966-4b35-9ec2-01cf0da9c80a",
+        "hidden_reason": "rc9_dedup_archived"
+      }
+    ],
+    "winners_final_state": [
+      {
+        "id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+        "instrument_type": "local_law",
+        "instrument_identifier": "97/2019",
+        "hidden_reason": null
+      },
+      {
+        "id": "fb86ee11-08ba-47a5-8cbd-5a8079dfc1c2",
+        "instrument_type": "market_signal",
+        "instrument_identifier": "matrix-hudson-2br-lottery",
+        "hidden_reason": "rc8_review_pending"
+      },
+      {
+        "id": "03b5f234-3624-4fef-acec-922bd75bb46e",
+        "instrument_type": null,
+        "instrument_identifier": "world-heritage-fjords-ZE-2026",
+        "hidden_reason": null
+      },
+      {
+        "id": "3ae89ce6-2f4f-43ed-a7ab-ee930e6dd1a8",
+        "instrument_type": "eu_regulation",
+        "instrument_identifier": "2024/1610",
+        "hidden_reason": null
+      },
+      {
+        "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+        "instrument_type": "federal_rule",
+        "instrument_identifier": "RIN 2060-AV50",
+        "hidden_reason": null
+      }
+    ],
+    "supersessions_created_today": 6,
+    "all_gates_pass": false
+  },
+  "execute_complete": true,
+  "ended_at": "2026-05-18T18:02:19.083Z"
+}

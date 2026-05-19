@@ -1,0 +1,181 @@
+{
+  "iso_empty_with_jurisdictions": {
+    "n": "457"
+  },
+  "nyc_items": [
+    {
+      "value": "NEW YORK CITY",
+      "n_items": "5"
+    }
+  ],
+  "loser_uuids_present": [
+    {
+      "id": "33ca228c-e966-4b35-9ec2-01cf0da9c80a",
+      "title": "EPA Final Rule: Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles – Phase 3 (MY 2027+)"
+    },
+    {
+      "id": "82f09535-ef34-4674-a16c-e7d9753b41bf",
+      "title": "Zero-Emission Requirements for World Heritage Fjords: Implementation Timeline and Compliance Rules Adopted"
+    },
+    {
+      "id": "b8b6fde3-2087-47c0-89c7-1b3bb944138c",
+      "title": "Local Law 97: NYC Greenhouse Gas Emissions Reduction Requirements for Buildings"
+    },
+    {
+      "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+      "title": "Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles Phase 3"
+    },
+    {
+      "id": "d56ca4e1-5f68-4bf8-9c88-47ecfee986f0",
+      "title": "New York City Local Law 97 of 2019 - Building Emissions Limits and Compliance Requirements"
+    },
+    {
+      "id": "daaa7e3a-61fc-4c53-adba-81d9e636133f",
+      "title": "Matrix Hudson 2BR/1BA Affordable Rental Unit - Lottery Application Deadline August 8, 2026"
+    }
+  ],
+  "winner_uuids_present": [
+    {
+      "id": "03b5f234-3624-4fef-acec-922bd75bb46e",
+      "title": "Norway Enacts Zero-Emission Requirements for Passenger Ships in World Heritage Fjords (Effective January 1, 2025 for Ships <10,000 GT)",
+      "jurisdictions": [
+        "MINISTRY OF CLIMATE AND ENVIRONMENT",
+        "NO",
+        "NORWEGIAN MARITIME AUTHORITY"
+      ],
+      "jurisdiction_iso": [],
+      "instrument_type": null,
+      "instrument_identifier": null
+    },
+    {
+      "id": "3ae89ce6-2f4f-43ed-a7ab-ee930e6dd1a8",
+      "title": "EU Heavy-Duty Vehicle CO2 Emission Standards: 2025 Automotive Package Amendment and Revised Compliance Targets",
+      "jurisdictions": [
+        "EU",
+        "EUROPEAN_UNION"
+      ],
+      "jurisdiction_iso": [],
+      "instrument_type": null,
+      "instrument_identifier": null
+    },
+    {
+      "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+      "title": "EPA Heavy-Duty Phase 3 Rule",
+      "jurisdictions": [
+        "US"
+      ],
+      "jurisdiction_iso": [
+        "US",
+        "US-CA"
+      ],
+      "instrument_type": null,
+      "instrument_identifier": null
+    },
+    {
+      "id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+      "title": "NYC Local Law 97 — Building Carbon Emissions Caps",
+      "jurisdictions": [
+        "US"
+      ],
+      "jurisdiction_iso": [
+        "US-NY",
+        "US-NYC"
+      ],
+      "instrument_type": null,
+      "instrument_identifier": null
+    },
+    {
+      "id": "fb86ee11-08ba-47a5-8cbd-5a8079dfc1c2",
+      "title": "Matrix Hudson Unit Lottery Opening - 2BR Affordable Rental at 80% AMI in Boston",
+      "jurisdictions": [
+        "BOSTON",
+        "US-MA"
+      ],
+      "jurisdiction_iso": [],
+      "instrument_type": null,
+      "instrument_identifier": null
+    }
+  ],
+  "item_supersessions_severity_vocab": [
+    {
+      "severity": "major",
+      "n": "4"
+    },
+    {
+      "severity": "minor",
+      "n": "1"
+    }
+  ],
+  "item_supersessions_columns": [
+    {
+      "column_name": "id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "column_name": "old_item_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "new_item_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "supersession_date",
+      "data_type": "date",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "severity",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": null
+    },
+    {
+      "column_name": "note",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "column_default": "''::text"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "column_default": "now()"
+    }
+  ],
+  "ingestion_control_latest": [
+    {
+      "id": "ffccc60f-bf1d-4899-82fe-0596d49d8720",
+      "source_id": "5a81a775-3ea6-4e5b-a468-7b5cf7dbd215",
+      "action": "auto_run_disabled",
+      "actor": "cold_start",
+      "reason": "wave1a foundation cold start",
+      "created_at": "2026-05-10T03:29:28.777Z"
+    }
+  ],
+  "queue_tables": {
+    "table_name": "ingest_rejections",
+    "pjr_total": "107",
+    "ir_total": "0"
+  },
+  "hidden_reason_col": {
+    "column_name": "hidden_reason",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  "item_cross_references_loser_hits": {
+    "n": "0"
+  },
+  "trigger_state": {
+    "tgname": "trg_intelligence_items_normalize_jurisdictions",
+    "tgenabled": "O"
+  },
+  "snapshot_tables_present": []
+}
