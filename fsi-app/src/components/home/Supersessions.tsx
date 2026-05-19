@@ -9,11 +9,13 @@ interface SupersessionsProps {
 }
 
 /** Trim a long title to a short ID-like label for the strip card.
- *  The supersession seed already includes oldTitle/newTitle as the
- *  human-friendly short labels (e.g. "MEPC.304(72)") — fall back to
- *  the resource title only when oldTitle/newTitle is missing. */
-function shortLabel(raw: string | undefined, fallback: string | undefined, id: string): string {
-  const candidate = (raw && raw.trim()) || (fallback && fallback.trim()) || id;
+ *  Prefer the supersession's own oldTitle/newTitle, then the resolved
+ *  resource title. When neither is present the row's internal identifier
+ *  is NOT shown to the customer (single-character identifiers like
+ *  "g2"/"ss1" are internal); we render a neutral pending label instead. */
+function shortLabel(raw: string | undefined, fallback: string | undefined): string {
+  const candidate = (raw && raw.trim()) || (fallback && fallback.trim()) || "";
+  if (!candidate) return "Title pending";
   if (candidate.length > 32) return candidate.slice(0, 30).trim() + "…";
   return candidate;
 }
@@ -39,8 +41,8 @@ export function Supersessions({ supersessions, resourceMap }: SupersessionsProps
       {cards.map((s, i) => {
         const oldR = resourceMap.get(s.old);
         const newR = resourceMap.get(s.new);
-        const oldLabel = shortLabel(s.oldTitle, oldR?.title, s.old);
-        const newLabel = shortLabel(s.newTitle, newR?.title, s.new);
+        const oldLabel = shortLabel(s.oldTitle, oldR?.title);
+        const newLabel = shortLabel(s.newTitle, newR?.title);
         const dateLabel = s.date ? s.date.slice(0, 7) : "";
         const successorHref = newR ? `/regulations/${s.new}` : null;
         const card = (

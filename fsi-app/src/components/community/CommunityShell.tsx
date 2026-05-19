@@ -104,7 +104,7 @@ export function CommunityShell({
       />
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <CommunityMasthead onSearchSubmit={() => showToast("Search rolling out — Phase D")} />
+        <CommunityMasthead onSearchSubmit={() => showToast("Search coming soon")} />
         <CommunityRegionTabs
           regions={regions}
           counts={regionCounts}

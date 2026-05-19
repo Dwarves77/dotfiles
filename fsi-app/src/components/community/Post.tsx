@@ -292,8 +292,8 @@ export function Post({
         <button
           type="button"
           disabled
-          aria-label="Reactions (coming in Phase D)"
-          title="Reactions ship in Phase D"
+          aria-label="Reactions (coming soon)"
+          title="Reactions coming soon"
           style={{
             background: "transparent",
             border: "1px solid var(--color-border)",

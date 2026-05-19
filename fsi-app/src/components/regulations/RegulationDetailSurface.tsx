@@ -1654,7 +1654,7 @@ function PenaltyCalculatorPanel({ resource: r }: { resource: Resource }) {
     return (
       <PlaceholderPanel
         title="Penalty schedule"
-        copy="No structured penalty data on file for this regulation yet. When the ingestion worker populates penalty_range / cost_mechanism / enforcement_body, the schedule will appear here."
+        copy="No structured penalty data on file for this regulation yet. The schedule will appear here as penalty information is added."
       />
     );
   }

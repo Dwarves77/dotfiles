@@ -105,7 +105,7 @@ export default function VendorsPage() {
 
   const showComingSoon = () => {
     setToast({
-      message: "Vendor directory backend launches in Phase D",
+      message: "Vendor directory coming soon",
       visible: true,
     });
   };

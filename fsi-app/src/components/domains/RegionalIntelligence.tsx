@@ -816,8 +816,7 @@ export function RegionalIntelligence() {
             No regional profiles for this region yet
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
-            Regional intelligence profiles are added as the source monitoring system expands coverage.
-            The monitoring worker scans sources and populates regional data automatically.
+            Regional intelligence profiles will appear here as coverage expands.
           </p>
         </div>
       )}

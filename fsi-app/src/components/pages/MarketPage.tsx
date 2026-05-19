@@ -335,13 +335,13 @@ function SectionTemplate({
           <EmptyState
             title={
               section === "tech"
-                ? "Technology intelligence not yet ingested"
-                : "Price signals not yet ingested"
+                ? "Technology intelligence coming soon"
+                : "Price signals coming soon"
             }
             body={
               section === "tech"
-                ? "Battery, SAF, hydrogen, marine fuels, and other technology categories will populate as the worker writes item_type = 'technology' or 'innovation' records."
-                : "Energy prices, carbon markets, critical minerals, trade restrictions, and chokepoints will populate as the worker writes item_type = 'market_signal' records."
+                ? "Battery, SAF, hydrogen, marine fuels, and other technology categories will appear here as coverage expands."
+                : "Energy prices, carbon markets, critical minerals, trade restrictions, and chokepoints will appear here as coverage expands."
             }
           />
         ) : (
@@ -785,26 +785,33 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 
 function groupByCategory(items: Resource[]): { category: string; items: Resource[] }[] {
   const map = new Map<string, Resource[]>();
+  // Map normalized key → canonical display label. Normalization collapses
+  // case and separator variants so an item with topic "technology" and
+  // an item that falls back to the "Technology" fallback bucket do not
+  // render as two adjacent identical accordions (the duplicate-category
+  // render bug previously visible on /market). Canonical labels are
+  // stored on first sighting so display casing is stable.
+  const labelByKey = new Map<string, string>();
+  const normalize = (s: string): string =>
+    s.toLowerCase().replace(/[_\-\s]+/g, "");
   for (const it of items) {
-    // Prefer explicit topic, fall back to sub. When both are missing,
-    // group items by their item-type-derived label rather than the
-    // generic "Uncategorized" string. The previous "Uncategorized" key
-    // turned every untagged technology and market_signal item into
-    // a single noisy bucket; bucketing by item_type keeps the
-    // grouping honest and surfaces the root cause (missing topic
-    // backfill) at the data layer rather than the render layer.
     const fallback =
       it.type === "technology" || it.type === "innovation"
         ? "Technology"
         : it.type === "market_signal"
           ? "Market signal"
           : "Other";
-    const key = it.topic || it.sub || fallback;
+    const raw = it.topic || it.sub || fallback;
+    const key = normalize(raw);
+    if (!labelByKey.has(key)) labelByKey.set(key, raw);
     const arr = map.get(key) || [];
     arr.push(it);
     map.set(key, arr);
   }
-  return Array.from(map.entries()).map(([category, items]) => ({ category, items }));
+  return Array.from(map.entries()).map(([key, items]) => ({
+    category: labelByKey.get(key) || key,
+    items,
+  }));
 }
 
 function prettifyCategory(s: string): string {

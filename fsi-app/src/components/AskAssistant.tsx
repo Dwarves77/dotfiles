@@ -145,7 +145,7 @@ export function AskAssistant() {
               Ask me anything about freight sustainability
             </p>
             <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
-              I have access to all regulations, market data, and technology intelligence on the platform.
+              I can help you surface relevant content across the platform: regulations, market signals, research, jurisdictional operations intelligence, and community discussions. I help you find what is relevant; you make the decision.
             </p>
             <div className="mt-4 space-y-1.5">
               {[

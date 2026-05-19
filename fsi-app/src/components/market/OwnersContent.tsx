@@ -85,13 +85,12 @@ export function OwnersContent({ items, section }: OwnersContentProps) {
             color: "var(--text-2)",
           }}
         >
-          Per-owner content feed pending assignee backfill on{" "}
+          Per-owner content feed coming soon for{" "}
           {section === "tech"
             ? "technology and innovation items"
             : "market signal items"}
-          . As <code style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11.5 }}>action_owner</code> populates,
-          this rail groups items by owner with the owner's role shown
-          inline.
+          . When owner assignments are added, this rail groups items by
+          owner with the owner's role shown inline.
         </p>
       ) : (
         <ul

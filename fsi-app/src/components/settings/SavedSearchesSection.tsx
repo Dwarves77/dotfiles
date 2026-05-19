@@ -131,8 +131,7 @@ export function SavedSearchesSection() {
           className="text-[11px] mt-1"
           style={{ color: "var(--color-text-muted)" }}
         >
-          Stored locally in this browser. Cross-device sync ships in
-          Phase D once the saved_searches table lands.
+          Stored locally in this browser. Cross-device sync coming soon.
         </p>
       </div>
 

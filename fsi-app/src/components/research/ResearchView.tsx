@@ -334,7 +334,7 @@ export function ResearchView({
               borderRadius: "var(--r-sm)",
             }}
           >
-            Showing the most recent <b style={{ color: "var(--text)" }}>{shown}</b> of <b style={{ color: "var(--text)" }}>{total}</b> pipeline items. Pagination beyond the first page lands with the load-more cursor (Phase D).
+            Showing the most recent <b style={{ color: "var(--text)" }}>{shown}</b> of <b style={{ color: "var(--text)" }}>{total}</b> pipeline items. Additional results coming soon.
           </div>
         )}
         {/* Legend strip */}
@@ -437,7 +437,7 @@ export function ResearchView({
               fontStyle: "italic",
             }}
           >
-            Source coverage matrix arriving with registry rollup, ETA Phase D
+            Source coverage matrix coming soon
           </span>
         </div>
 

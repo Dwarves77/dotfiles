@@ -301,7 +301,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           <StatTile
             label="Watching"
             value={0}
-            meta="regulations (Phase D)"
+            meta="regulations"
           />
           <StatTile
             label="Posts · Briefs"
@@ -327,11 +327,11 @@ export function UserProfilePage({ userId, userEmail }: Props) {
                 onClick={() => setTab(t.key)}
                 title={
                   gated
-                    ? "Coming soon — Phase D (multi-tenant workspaces)"
+                    ? "Coming soon (multi-tenant workspaces)"
                     : undefined
                 }
                 aria-label={
-                  gated ? `${t.label} — coming soon, Phase D` : t.label
+                  gated ? `${t.label}, coming soon` : t.label
                 }
                 className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors inline-flex items-center gap-1.5"
                 style={{
@@ -436,19 +436,19 @@ export function UserProfilePage({ userId, userEmail }: Props) {
             {tab === "organization" && (
               <PanelComingSoon
                 title="Workspace organization"
-                description="Multi-tenant workspaces ship in Phase D. Until then, your account is its own workspace."
+                description="Multi-tenant workspaces coming soon. Until then, your account is its own workspace."
               />
             )}
             {tab === "members" && (
               <PanelComingSoon
                 title="Members & roles"
-                description="Inviting teammates and assigning roles ships in Phase D alongside multi-tenant workspaces."
+                description="Inviting teammates and assigning roles coming soon alongside multi-tenant workspaces."
               />
             )}
             {tab === "billing" && (
               <PanelComingSoon
                 title="Billing & plan"
-                description="Plans, seats, and invoicing ship in Phase D. Phase C accounts have full read-only access."
+                description="Plans, seats, and invoicing coming soon. Current accounts have full read-only access."
               />
             )}
           </div>
@@ -879,7 +879,7 @@ function PanelComingSoon({
   description: string;
 }) {
   return (
-    <Card title={title} meta="Coming soon — multi-tenant in Phase D">
+    <Card title={title} meta="Coming soon — multi-tenant">
       <p
         className="text-sm"
         style={{ color: "var(--color-text-secondary)" }}
