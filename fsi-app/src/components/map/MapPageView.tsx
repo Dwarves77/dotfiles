@@ -70,7 +70,15 @@ interface MapPageViewProps {
   initialRegionFilter?: string | null;
 }
 
-type Mode = "all" | "ocean" | "air" | "road" | "facility";
+// D14 resolution (2026-05-19): per caros-ledge-platform-intent SKILL.md
+// Section 4, Map is a geographic visual layer over Regulations content, NOT
+// a separate content category. The "facility" mode option exceeded Map's
+// scope (Regulations content covers regulatory items, not facility-level
+// operational metadata; facility data belongs on /operations per skill
+// Section 3). Removed from toggle. If facility-by-region visualization
+// becomes a product need, that is a skill-amendment dispatch (operator-
+// authorized) followed by a Map scope-expansion build, not a quiet toggle.
+type Mode = "all" | "ocean" | "air" | "road";
 
 // ── Urgency tone helpers ──
 
@@ -167,17 +175,6 @@ export function MapPageView(props: MapPageViewProps) {
           });
 
     if (mode === "all") return isoFiltered;
-    if (mode === "facility") {
-      // No transport modes implies a facility-style item; preserve the
-      // editorial intent ("Facility" in the toolbar) without inventing
-      // a column. Includes resources with a domain marker for facilities
-      // (domain 6) when present.
-      return isoFiltered.filter(
-        (r) =>
-          r.domain === 6 ||
-          (Array.isArray(r.modes) && r.modes.length === 0)
-      );
-    }
     return isoFiltered.filter(
       (r) =>
         (Array.isArray(r.modes) && r.modes.includes(mode)) ||
@@ -308,7 +305,6 @@ export function MapPageView(props: MapPageViewProps) {
               { id: "ocean" as const, label: "Ocean" },
               { id: "air" as const, label: "Air" },
               { id: "road" as const, label: "Road" },
-              { id: "facility" as const, label: "Facility" },
             ]).map((m) => (
               <button
                 key={m.id}

@@ -294,6 +294,18 @@ The Stage 2 reconciliation strategy choice hinges on this verdict. If the operat
 
 **Stage 2 decision needed:** (1) author a placeholder `070_workspace_intelligence_rpcs.sql` file that documents what the migration was understood to do, with a header note that the original source was deleted and the file is a reconstruction for source-history continuity; OR (2) accept the loss and document in the ledger or release notes that 070 is a "schema-recorded, source-lost" entry. Option 1 has narrative value but invites confusion if the reconstructed file is read as authoritative. Option 2 is honest and cheap.
 
+---
+
+**Correction 2026-05-19 (post-D15 reconstruction).** Two factual claims above are wrong; preserved for audit trail but DO NOT propagate forward:
+
+1. **"The strong inference is that 070 originally CREATEd the 5 RPCs"** is WRONG. The D15 reconstruction dispatch (commit `c85982d` on `fix/mig-070-reconstruction`, merged via `e9287d9` family) recovered the ORIGINAL 070 file from git history (blob `d51bccf` at commit `651ae78`, authored 2026-05-11, 308 lines). The original 070 created **3 RPCs**, not 5: `get_market_intel_items`, `get_research_items`, `get_operations_items`. The other 2 RPCs in 071's tiebreaker scope (`get_workspace_intelligence_dashboard`, `get_workspace_intelligence_listings`) originated in **migrations 064 and 066** respectively. The discovery doc's inference cited 071's header phrasing ("5 row-set RPCs") but conflated 071's modification-scope with 070's creation-scope.
+
+2. **"The file was deleted before the synthesis dispatch"** is partly wrong. The file was never present on master; it was authored on a feature branch but did not survive the squash to master. Loss mechanism is "branch squash dropped the migrations dir change," not "deletion."
+
+**Resolution path taken:** Option 1 (reconstruct from authoritative source), made possible by git history recovery that the discovery doc did not attempt. The reconstructed file at `fsi-app/supabase/migrations/070_phase1_routing_rpcs.sql` is the VERBATIM 308-line original, not a current-state snapshot. Replay parity preserved (070 creates 3 RPCs; 071 + 073 CREATE OR REPLACE chains apply on top; final state identical to production). OBS-40 closed; D15 resolved.
+
+**Precedent for future discovery + reconstruction sequences:** when a reconstruction dispatch surfaces evidence that contradicts the discovery doc's inferences, the agent surfaces and corrects the inference rather than silently aligning the reconstruction to the doc. This is the integrity rule from `environmental-policy-and-innovation` applied to discovery synthesis (no extrapolation; if evidence emerges contradicting prior inference, surface the divergence rather than preserve the inference). Encoded as a binding rule in `sprint-followups-discipline` SKILL.md "Inference correction rule" section added 2026-05-19.
+
 ### Finding 6: Multi-file versions (006 and 007)
 
 **Files in source inventory.**

@@ -174,6 +174,31 @@ Carry an OBS coverage table and a DP compliance section with the same structure,
 
 Carry the coverage table for OBS entries the planning decision affects. Use the Decision column to surface scope assignments rather than per-OBS implementation moves.
 
+## Inference correction rule: when reconstruction surfaces evidence contradicting discovery
+
+This rule was added 2026-05-19 after a discovery-doc inference (Stage 1 schema reconciliation Finding 5: "070 created 5 RPCs") was contradicted by evidence surfaced during reconstruction (git history showed 070 created 3 RPCs; the other 2 originated in 064 and 066). The reconstruction dispatch surfaced and corrected the inference rather than silently aligning the reconstruction to the discovery doc's expectation.
+
+**Binding rule.** When a downstream dispatch (reconstruction, implementation, audit, or any synthesis that touches a previously-investigated surface) surfaces EVIDENCE that contradicts a PRIOR DISPATCH's INFERENCE, the downstream dispatch MUST:
+
+1. Surface the contradiction explicitly in its report. Name the prior dispatch + inference + the contradicting evidence.
+2. Correct the prior dispatch's doc with a clearly-marked postscript (e.g. "Correction YYYY-MM-DD") that preserves the original wrong claim for audit trail but states the corrected fact and cites the evidence source.
+3. Cross-reference the correction from the downstream dispatch's own deliverable so future readers see the lineage.
+4. DO NOT silently align the downstream work to the wrong inference. If the inference was "X is 5 things" and evidence proves "X is 3 things," ship the 3-thing version with the correction, not the 5-thing version.
+
+This is the `environmental-policy-and-innovation` integrity rule applied to investigation work: no extrapolation, no preservation of an inference when contradicting evidence is in hand.
+
+**Why this rule exists.** Without it, downstream dispatches reading a discovery doc treat its inferences as facts, propagating the wrong claim forward. A reconstruction that "matches what the discovery doc said" looks correct on paper but silently overrides the actual evidence with the prior dispatch's guess. The integrity rule requires evidence-grounded output; this rule extends that requirement to inter-dispatch synthesis.
+
+**Worked example (the case that triggered this rule).**
+
+Stage 1 schema reconciliation discovery (docs/sprint-1/schema-reconciliation-discovery-2026-05-18.md Finding 5) inferred that migration 070 created 5 RPCs, based on migration 071's header phrasing "5 row-set RPCs". The inference conflated 071's modification-scope (which COVERED 5 RPCs created across several migrations) with 070's creation-scope. The discovery doc explicitly labeled this as a "strong inference" but did not test it against git history.
+
+D15 reconstruction dispatch (commit c85982d) recovered the original 070 file from git history (blob d51bccf at commit 651ae78, 308 lines). Original 070 created 3 RPCs: get_market_intel_items, get_research_items, get_operations_items. The other 2 RPCs (get_workspace_intelligence_dashboard, get_workspace_intelligence_listings) originated in migrations 064 and 066 respectively.
+
+The reconstruction dispatch could have silently aligned: write a 070 file that creates all 5 RPCs to match the discovery doc's inference, treating the doc as authoritative. Instead, it surfaced the contradiction in its report, noted the lineage correctly in the reconstruction file's header, shipped the verbatim 3-RPC original from git history, and triggered this skill amendment to encode the precedent.
+
+**How to apply.** When you read a discovery or audit doc as input to your dispatch, treat its inferences with the same skepticism you would treat any unverified claim. If your dispatch surfaces evidence (live DB state, git history, file content, runtime behavior) that contradicts a prior inference, apply this rule: surface, correct, cite, never silently align.
+
 ## Planning-doc rule: skill-closed scope is NOT an operator decision point
 
 This rule was added 2026-05-18 after a Sprint 2 planning doc presented two decision points (D7 Research repositioning, D14 Map Facility toggle) where the relevant skill (`caros-ledge-platform-intent`) had already defined the page intent. The planning doc framed them as "operator chooses Option A vs Option B" when the skill's Section 3 and Section 4 had already closed the scope. Operator caught the contradiction; the discipline did not.
