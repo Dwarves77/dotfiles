@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+
+  const admin = await isPlatformAdmin(auth.userId, supabase);
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Platform admin access required" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
   // 4h cooldown gate. Migration 024 must be applied for this to be enforced.
   // If the table is missing (migration not yet applied), the cooldown is silently
