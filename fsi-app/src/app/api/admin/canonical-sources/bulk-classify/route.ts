@@ -27,6 +27,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 export const maxDuration = 60;
 
@@ -172,12 +173,15 @@ export async function POST(request: NextRequest) {
 
   // Pre-resolve which URLs already exist in sources registry — those skip
   // classification entirely (existing source will be reused on approve).
-  const urls = [...new Set(cands.map((c) => c.candidate_url))];
+  // Q10: canonicalize both sides so trailing-slash / www / case drift does
+  // not produce a redundant Haiku classification on what is already a
+  // registered source.
+  const urls = [...new Set(cands.map((c) => canonicalizeUrl(c.candidate_url)))];
   const { data: existingSources } = await supabase
     .from("sources")
     .select("url")
     .in("url", urls);
-  const existingUrlSet = new Set((existingSources || []).map((s: any) => s.url));
+  const existingUrlSet = new Set((existingSources || []).map((s: any) => canonicalizeUrl(s.url)));
 
   // Pre-load parent items for grounding context (one batched query)
   const parentIds = [...new Set(cands.map((c) => c.intelligence_item_id))];
@@ -192,7 +196,7 @@ export async function POST(request: NextRequest) {
   // Build the to-classify list, skipping cached + already-in-registry rows
   const toClassify = cands.filter((c) => {
     if (c.recommended_classification) return false;
-    if (existingUrlSet.has(c.candidate_url)) return false;
+    if (existingUrlSet.has(canonicalizeUrl(c.candidate_url))) return false;
     return true;
   });
 
@@ -200,7 +204,7 @@ export async function POST(request: NextRequest) {
   let alreadyInRegistry = 0;
   for (const c of cands) {
     if (c.recommended_classification) alreadyCached++;
-    else if (existingUrlSet.has(c.candidate_url)) alreadyInRegistry++;
+    else if (existingUrlSet.has(canonicalizeUrl(c.candidate_url))) alreadyInRegistry++;
   }
 
   // Run classifications with concurrency=5

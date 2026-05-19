@@ -30,6 +30,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 const HEAD_TIMEOUT_MS = 8000;
 const MAX_ROWS = 500;
@@ -406,7 +407,11 @@ export async function POST(request: NextRequest) {
     try {
       const u = new URL(row.url);
       if (u.protocol === "http:" || u.protocol === "https:") {
-        wellFormedUrls.add(row.url);
+        // Q10: insert the canonicalized form so the IN query against
+        // sources.url (whose values were canonicalized by migration 087)
+        // matches even when the bulk-import row carries a trailing-slash /
+        // www / case variant of the same URL.
+        wellFormedUrls.add(canonicalizeUrl(row.url));
       }
     } catch {
       // ignore — invalid URLs are caught in validateRow
@@ -420,7 +425,7 @@ export async function POST(request: NextRequest) {
       .select("id, url")
       .in("url", [...wellFormedUrls]);
     for (const r of srcRows || []) {
-      existingByUrl.set((r as { url: string }).url, (r as { id: string }).id);
+      existingByUrl.set(canonicalizeUrl((r as { url: string }).url), (r as { id: string }).id);
     }
   }
 
@@ -453,7 +458,7 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    const dupId = existingByUrl.get(row.url) || null;
+    const dupId = existingByUrl.get(canonicalizeUrl(row.url)) || null;
     if (dupId) {
       preview.push({
         row_index: i,
@@ -574,7 +579,9 @@ export async function POST(request: NextRequest) {
 
     const newProvisional = {
       name: row.name,
-      url: row.url,
+      // Q10: canonicalize the URL on insert so the provisional_sources row
+      // matches the convention enforced by migration 087.
+      url: canonicalizeUrl(row.url),
       description: row.notes || "",
       discovered_via: "manual_add" as const,
       provisional_tier: 7,
