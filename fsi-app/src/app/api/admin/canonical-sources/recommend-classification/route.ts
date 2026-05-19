@@ -27,6 +27,63 @@ function getServiceClient() {
   );
 }
 
+// Per Q4 bias tag vocabulary (Section 6 of source-credibility-model SKILL.md).
+// Mirrored as a runtime allowlist so we can reject malformed Haiku output
+// before it reaches the cache or the bias-tag write path. Keep in sync with
+// migration 092's source_bias_tags_vocabulary_chk constraint AND the parallel
+// validator in src/app/api/admin/sources/recommend-classification/route.ts.
+const BIAS_TAG_VOCAB: Record<string, ReadonlyArray<string>> = {
+  funding: [
+    "industry-funded",
+    "government-funded",
+    "foundation-funded",
+    "subscription-supported",
+    "academic-institutional",
+    "mixed-funded",
+    "funding-opaque",
+  ],
+  methodology: [
+    "peer-reviewed",
+    "methodologically-transparent",
+    "analytical-synthesis",
+    "editorial-opinion",
+    "advocacy",
+    "factual-reporting",
+    "standards-defining",
+  ],
+  stakeholder: [
+    "industry-incumbent",
+    "industry-challenger",
+    "regulator-aligned",
+    "environmental-advocate",
+    "independent-research",
+    "customer-perspective",
+    "labor-perspective",
+    "investor-perspective",
+  ],
+};
+
+function validateBiasTags(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== "object" || Array.isArray(value)) return false;
+  const obj = value as Record<string, unknown>;
+  for (const dim of ["funding", "methodology", "stakeholder"]) {
+    const arr = obj[dim];
+    if (arr === undefined) continue;
+    if (!Array.isArray(arr)) return false;
+    for (const entry of arr) {
+      if (typeof entry !== "object" || entry === null) return false;
+      const e = entry as Record<string, unknown>;
+      if (typeof e.tag !== "string" || !BIAS_TAG_VOCAB[dim].includes(e.tag)) return false;
+      if (typeof e.confidence !== "number" || e.confidence < 0 || e.confidence > 1) return false;
+    }
+  }
+  for (const k of Object.keys(obj)) {
+    if (!["funding", "methodology", "stakeholder"].includes(k)) return false;
+  }
+  return true;
+}
+
 const CLASSIFICATION_SYSTEM_PROMPT = `You classify candidate canonical sources for a freight sustainability intelligence platform. Your output is a single JSON object — no prose, no markdown, no code fences.
 
 Schema and constraints (apply exactly):
@@ -58,6 +115,23 @@ transport_modes (array of strings, choose all that apply):
 topic_tags (array of strings, choose all that apply, 0-3 values):
   emissions | fuels | transport | reporting | packaging | corridors | research
 
+bias_tags (object with three keys: funding, methodology, stakeholder). Each key maps to an array of {tag, confidence} pairs where tag is from the per-dimension vocabulary below and confidence is a number 0.00-1.00 reflecting how sure you are this tag applies to this source. Emit zero or more tags per dimension; multi-value is expected (most sources carry multiple tags within at least one dimension). The three dimensions are orthogonal; a single source can carry any combination across them.
+
+  Dimension 1 — funding (Funding / Institutional Affiliation):
+    industry-funded | government-funded | foundation-funded | subscription-supported | academic-institutional | mixed-funded | funding-opaque
+
+  Dimension 2 — methodology (Methodological Orientation):
+    peer-reviewed | methodologically-transparent | analytical-synthesis | editorial-opinion | advocacy | factual-reporting | standards-defining
+
+  Dimension 3 — stakeholder (Stakeholder Position):
+    industry-incumbent | industry-challenger | regulator-aligned | environmental-advocate | independent-research | customer-perspective | labor-perspective | investor-perspective
+
+Bias-tag confidence guidance: use >=0.80 when the source's bias is unambiguous from its institutional identity (e.g. ICCT is unambiguously foundation-funded and independent-research; EUR-Lex is unambiguously government-funded and regulator-aligned). Use 0.65-0.79 when the bias is likely but the source could plausibly be assigned differently. Use <0.65 when you are uncertain; emit the tag at low confidence rather than omitting if you have substantive evidence. The downstream pipeline auto-applies >=0.80 tags, surfaces 0.65-0.79 tags to operator review, and discards <0.65 tags.
+
+Bias tags apply to external publisher sources only. Do not propose bias tags on user-generated content, on the platform's own internal records, or on sources whose institutional identity is too thin to ground any tag above 0.65.
+
+ICCT worked example (operator-supplied): funding [{tag: "foundation-funded", confidence: 0.90}], methodology [{tag: "methodologically-transparent", confidence: 0.85}, {tag: "analytical-synthesis", confidence: 0.85}], stakeholder [{tag: "independent-research", confidence: 0.85}, {tag: "environmental-advocate", confidence: 0.80}].
+
 rationale (string, 1-2 sentences): explain the tier choice in plain language, citing the candidate's role and authority. Reference the parent item's regulatory context if useful.
 
 Analytical-press routing (additive guidance per platform-intent skill Section 3 + migration 086): trade journals, sustainability reporting outlets, and industry analyst commentary with named editorial provenance (Loadstar, FreightWaves, Edie, GreenBiz, Environmental Finance, Splash247, Supply Chain Digital, Reuters Sustainable Business and similar outlets) map to category='research' (Research surface, not Market Intel) with source_role='trade_press'. Use tier 5 for straight news reporting; tier 6 for analysis, opinion, or horizon-scanning commentary. Reuters trade-press analytical reporting is tier 5; outlets that lead with editorial analysis (Loadstar, FreightWaves Sustainability, Edie, GreenBiz, Environmental Finance, Splash247 Green, Supply Chain Digital) are tier 6. Underlying source-row routing landed in migration 086 (sources.category='research', sources.source_role='trade_press', sources.tier per outlet).
@@ -65,7 +139,7 @@ Analytical-press routing (additive guidance per platform-intent skill Section 3 
 The candidate is a canonical-source replacement for an existing intelligence item whose source coverage is stale or missing. The parent item's domain, jurisdictions, and topic tags are provided as grounding — bias the candidate's classification to match unless the URL clearly indicates a different scope.
 
 Output JSON only. Example:
-{"tier":1,"domains":[1],"jurisdictions":["eu"],"transport_modes":["ocean","road","air"],"topic_tags":["emissions","reporting"],"rationale":"EUR-Lex Official Journal page is binding EU law and the canonical primary text for the parent regulation; tier 1 is exact-fit."}`;
+{"tier":1,"domains":[1],"jurisdictions":["eu"],"transport_modes":["ocean","road","air"],"topic_tags":["emissions","reporting"],"bias_tags":{"funding":[{"tag":"government-funded","confidence":0.95}],"methodology":[{"tag":"factual-reporting","confidence":0.85}],"stakeholder":[{"tag":"regulator-aligned","confidence":0.90}]},"rationale":"EUR-Lex Official Journal page is binding EU law and the canonical primary text for the parent regulation; tier 1 is exact-fit."}`;
 
 interface Body {
   candidateId: string;
@@ -152,7 +226,12 @@ Output the JSON object only.`;
   try {
     const resp = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 600,
+      // 1200 vs original 600: prompt now requires bias_tags as a nested
+      // object with up to ~22 tag/confidence pairs across three dimensions,
+      // plus the existing classification fields. The original 600-token cap
+      // truncated cleanly on a no-bias source but ran out partway through
+      // the bias_tags object on richer sources.
+      max_tokens: 1200,
       system: CLASSIFICATION_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
@@ -179,7 +258,8 @@ Output the JSON object only.`;
     Array.isArray(recommendation.jurisdictions) &&
     Array.isArray(recommendation.transport_modes) &&
     Array.isArray(recommendation.topic_tags) &&
-    typeof recommendation.rationale === "string";
+    typeof recommendation.rationale === "string" &&
+    validateBiasTags(recommendation.bias_tags);
   if (!okShape) {
     return NextResponse.json(
       { error: "Model returned malformed classification", raw: recommendation },
