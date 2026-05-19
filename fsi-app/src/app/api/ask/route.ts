@@ -49,9 +49,19 @@ type FetchedItem = {
 type Citation = {
   item_id: string;
   title: string;
+  source_id: string | null;
   source_url: string | null;
   source_name: string | null;
   source_tier: number | null;
+  // Q8/OBS-28 provenance fields (v1 semantics; revisit when Q1
+  // brief->source edge table lands). citation_count is the count of
+  // intelligence_items where source_id = $1 OR sources_used @> [$1];
+  // recency is max(added_date) over the same set. Both are nullable
+  // because a source with zero citations (rare in the Assistant context
+  // because the cited item is itself a citation but the source may still
+  // not be referenced elsewhere) returns count=0 and recency=null.
+  citation_count: number | null;
+  recency: string | null;
 };
 
 // POST /api/ask — Intelligence Assistant (research helper, not decision engine).
@@ -302,9 +312,12 @@ ${sourcesContext}`;
           validatedCitations.push({
             item_id: match.id,
             title: match.title,
+            source_id: match.source?.id ?? match.source_id ?? null,
             source_url: match.source_url ?? match.source?.url ?? null,
             source_name: match.source?.name ?? null,
             source_tier: match.source?.tier ?? null,
+            citation_count: null,
+            recency: null,
           });
         }
       } else {
@@ -324,6 +337,52 @@ ${sourcesContext}`;
           raw: candidate,
           reason: "URL not present in fetched item set or registered sources",
         });
+      }
+    }
+
+    // Q8/OBS-28 provenance enrichment.
+    //
+    // Each validated citation carries a source_id (or null). For the
+    // unique non-null source_ids, call get_source_citation_stats(UUID[])
+    // (migration 088) for a single round trip that returns
+    // (source_id, citation_count, recency) per source. Merge back onto
+    // the matching citations. Failures are non-fatal: if the RPC errors,
+    // the citations still surface without the count/recency fields, and
+    // the frontend renders the rest of the provenance panel.
+    const uniqueSourceIds = Array.from(
+      new Set(
+        validatedCitations
+          .map((c) => c.source_id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      )
+    );
+    if (uniqueSourceIds.length > 0) {
+      try {
+        const { data: statsRows, error: statsErr } = await supabase.rpc(
+          "get_source_citation_stats",
+          { source_ids: uniqueSourceIds }
+        );
+        if (!statsErr && Array.isArray(statsRows)) {
+          const statsBySourceId = new Map<string, { citation_count: number | null; recency: string | null }>();
+          for (const r of statsRows as Array<{ source_id: string; citation_count: number | null; recency: string | null }>) {
+            statsBySourceId.set(r.source_id, {
+              citation_count: r.citation_count ?? null,
+              recency: r.recency ?? null,
+            });
+          }
+          for (const c of validatedCitations) {
+            if (c.source_id) {
+              const s = statsBySourceId.get(c.source_id);
+              if (s) {
+                c.citation_count = s.citation_count;
+                c.recency = s.recency;
+              }
+            }
+          }
+        }
+      } catch {
+        // Swallow: provenance enrichment is supplementary; citations still
+        // surface without it.
       }
     }
 

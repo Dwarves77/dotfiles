@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-05-19T17:06:36.887Z",
+  "migration_path": "C:\\Users\\jason\\dotfiles-wt-q8-assistant-citations\\fsi-app\\supabase\\migrations\\088_citation_stats_rpc.sql",
+  "rpc_existed_pre_apply": false,
+  "apply_status": "OK",
+  "rpc_signature_post_apply": [
+    {
+      "proname": "get_source_citation_stats",
+      "args": "source_ids uuid[]",
+      "result_type": "TABLE(source_id uuid, citation_count integer, recency timestamp with time zone)"
+    }
+  ],
+  "rpc_smoke_test": [
+    {
+      "source_id": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+      "citation_count": 1,
+      "recency": "2026-05-11T00:00:00.000Z"
+    },
+    {
+      "source_id": "87894622-d165-4ca0-84dd-13c433058616",
+      "citation_count": 2,
+      "recency": "2026-04-11T00:00:00.000Z"
+    },
+    {
+      "source_id": "fa6d6470-6b45-452a-9bc6-6fdff4ec44ae",
+      "citation_count": 1,
+      "recency": "2026-02-28T00:00:00.000Z"
+    }
+  ],
+  "ledger_state_pre_backfill": [
+    {
+      "version": "085",
+      "name": "d16_document_063_column_shadowing"
+    },
+    {
+      "version": "086",
+      "name": "analytical_press_routing"
+    },
+    {
+      "version": "087",
+      "name": "canonicalize_source_urls"
+    }
+  ],
+  "ledger_backfill_inserted": true,
+  "ledger_state_post": [
+    {
+      "version": "088",
+      "name": "citation_stats_rpc"
+    }
+  ]
+}
