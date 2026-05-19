@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { ALL_SECTORS } from "@/lib/constants";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Button } from "@/components/ui/Button";
 import { NotificationPreferences, DEFAULT_NOTIFICATION_PREFS } from "@/components/profile/NotificationPreferences";
 import {
@@ -54,11 +55,13 @@ type Step = 1 | 2 | 3 | 4 | 5;
 interface Props {
   userId: string;
   userEmail: string;
+  orgId: string;
 }
 
-export function OnboardingWizard({ userId, userEmail }: Props) {
+export function OnboardingWizard({ userId, userEmail, orgId }: Props) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
+  const setSectorProfile = useWorkspaceStore((s) => s.setSectorProfile);
 
   const [step, setStep] = useState<Step>(1);
   const [path, setPath] = useState<"fresh" | null>(null);
@@ -125,23 +128,43 @@ export function OnboardingWizard({ userId, userEmail }: Props) {
     return true;
   };
 
+  // Writes the sector selection to `workspace_settings.sector_profile` for the
+  // current workspace. This is the workspace-anchored destination the dashboard
+  // (resolveServerBootstrap → getAppData) actually reads to filter intelligence.
+  //
+  // Prior to 2026-05-18 this writer targeted `profiles.sector_overrides`
+  // (per-user override layer). That destination was wrong: the per-user → per-
+  // workspace composition layer described at lib/api/server-bootstrap.ts:42-46
+  // is not wired into the dashboard query path, so per-user writes were
+  // functionally inert. Founder-of-fresh-org would pick sectors, see no error,
+  // and the dashboard would render against an empty workspace_settings.
+  // sector_profile. Fix per docs/sprint-1/onboarding-audit-2026-05-18.md
+  // Section D (REC-OBS-O-2). The wizard now writes the workspace-anchored
+  // destination directly; the orphaned components/onboarding/SectorOnboarding.tsx
+  // was retired in the same change.
+  //
+  // /onboarding's server gate (app/onboarding/page.tsx) bounces users with no
+  // workspace to /workspace/new, so orgId is always present here.
   const persistSectors = async () => {
     setSectorError(null);
     setSavingSectors(true);
     const { error } = await supabase
-      .from("profiles")
+      .from("workspace_settings")
       .update(
         {
-          sector_overrides: sectors,
-          updated_at: new Date().toISOString(),
+          sector_profile: sectors,
         }
       )
-      .eq("id", userId);
+      .eq("org_id", orgId);
     setSavingSectors(false);
     if (error) {
       setSectorError(error.message);
       return false;
     }
+    // Sync the client-side workspace store so any same-session UI reading
+    // sectorProfile (FilterBar, SectorSelector defaults, scoring) reflects the
+    // new selection without a full reload.
+    setSectorProfile(sectors);
     return true;
   };
 
