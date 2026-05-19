@@ -59,6 +59,8 @@ topic_tags (array of strings, choose all that apply, 0-3 values):
 
 rationale (string, 1-2 sentences): explain the tier choice in plain language, citing the candidate's role and authority. Reference the parent item's regulatory context if useful.
 
+Analytical-press routing (additive guidance per platform-intent skill Section 3 + migration 086): trade journals, sustainability reporting outlets, and industry analyst commentary with named editorial provenance (Loadstar, FreightWaves, Edie, GreenBiz, Environmental Finance, Splash247, Supply Chain Digital, Reuters Sustainable Business and similar outlets) map to category='research' (Research surface, not Market Intel) with source_role='trade_press'. Use tier 5 for straight news reporting; tier 6 for analysis, opinion, or horizon-scanning commentary. Reuters trade-press analytical reporting is tier 5; outlets that lead with editorial analysis (Loadstar, FreightWaves Sustainability, Edie, GreenBiz, Environmental Finance, Splash247 Green, Supply Chain Digital) are tier 6. Underlying source-row routing landed in migration 086 (sources.category='research', sources.source_role='trade_press', sources.tier per outlet).
+
 The candidate is a canonical-source replacement for an existing intelligence item whose source coverage is stale or missing. The parent item's domain, jurisdictions, and topic tags are provided as grounding — bias the candidate's classification to match unless the URL clearly indicates a different scope.
 
 Output JSON only. Example:

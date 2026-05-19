@@ -445,6 +445,8 @@ The Onboarding fix that DID land (sector destination correction) is preserved; t
 
 **If editorial draft-staging needs a surface:** that is a separate admin-chrome dispatch (Phase 7-adjacent operator surface). It does NOT live on Research per the skill. Surface that need to operator as a discrete dispatch; do not roll it into Build 8.
 
+**Source_role surfacing (fold-in from track-a-analytical-press dispatch 2026-05-19):** Build 8 customer-facing UI must surface `source_role` as tag/badge/filter so users distinguish institutional research (`academic_research`, `standards_body`, `intergovernmental_body`) from trade press (`trade_press`). Verification level (`tier`) is the secondary signal. Underlying data routing for the 8 analytical-press sources (Loadstar, FreightWaves Sustainability, Edie, GreenBiz, Environmental Finance, Splash247 Green, Supply Chain Digital, Reuters Sustainable Business) was fixed in migration 086 with `category='research'`, `source_role='trade_press'`, `tier=5` (Reuters news reporting) or `tier=6` (analytical commentary outlets); future analytical-press sources follow the same routing per the classifier intake prompt update in the same dispatch.
+
 **Migration note (gap #10 from 2026-05-18 plan critique):** the current Research surface functions as an editorial draft-staging queue. Moving Research to the skill-defined horizon-scan destination shifts the editorial draft-staging affordance off this surface; if operators currently rely on /research for draft-staging UX, that workflow needs an admin-chrome replacement before Build 8 ships, OR Build 8 ships with a transitional period where /research carries both views temporarily (admin-chrome path forward; not a skill compromise).
 
 ### Build 9: Operations content build
