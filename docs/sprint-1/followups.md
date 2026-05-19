@@ -310,6 +310,26 @@ The single `/admin` route at `fsi-app/src/app/admin/page.tsx` gates on inline `o
 
 **Action.** Phase 7 design dispatch MUST cite OBS-17 in its OBS coverage table and demonstrate that the redesigned `/admin` route gates on `requirePlatformAdmin()` (or an equivalent platform-scoped helper). RLS-only compensation is NOT acceptable as the sole defense; the route-level gate must match the surface scope.
 
+### 2026-05-19 Reopen
+
+This OBS was closed by commit 6d18773 (Build 6 admin-gating sweep). Closure was premature.
+
+The 2026-05-19 code-level positive-test audit (dispatched after seeding jasonlosh@hotmail.com with `is_platform_admin=true`) found 13 admin API routes that authenticate via `requireAuth()` but do NOT call `isPlatformAdmin()`; any authenticated user could hit them regardless of platform-admin status.
+
+Track B-code re-enumeration (commit 4c7b546) applied enumerate-first discipline (Glob `src/app/api/admin/**/*.ts`, grep each for `requireAuth` and `isPlatformAdmin`) and found:
+
+- The 13 routes from the prior audit's list
+- **4 additional ungated routes** the prior audit missed: `sources/[id]/fetch-now`, `sources/[id]/pause`, `sources/[id]/regenerate-brief`, `sources/[id]/visibility`
+- **2 routes the prior audit miscalled as `requireAuth`-only**: `recompute-trust`, `spot-check/recurring`; these gate via `x-worker-secret` header (cron-only endpoints called by GitHub Actions); adding `isPlatformAdmin` would break crons. Correctly excluded from fix scope.
+
+Net fix scope: 15 routes gated in commit 4c7b546.
+
+**Reopened because the methodological pattern that produced the original gap recurred in the verification audit itself.** This OBS now serves as audit-trail anchor for the methodology fix landed in this same dispatch (new Sweep-discipline rule in `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`).
+
+**State:** Open (reopened 2026-05-19; tracking until full discipline closure observable on subsequent sweeps).
+
+**Cross-references:** OBS-50 (this dispatch), Sweep-discipline rule in `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`.
+
 ---
 
 ## OBS-18: `/market` "Watch this week" alerts SideCard is non-interactive
@@ -843,3 +863,61 @@ The corrective source is `docs/sprint-1/schema-reconciliation-discovery-2026-05-
 - **OBS-25:** Schema Reconciliation Stage 1/2 work; this Cleared annotation is the doc-loop closure for the phantom finding the original Critical #2 framing surfaced.
 
 **Action.** None. Update any audit-script `expectedTables` array to remove `recurring_spot_check_log` if/when next touched.
+
+---
+
+## OBS-50: Build 6 admin-gating sweep methodology gap
+
+**State:** Implemented (Track B-code commit 4c7b546 + Sweep-discipline rule in `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`)
+**Captured:** 2026-05-19
+**Cross-references:** OBS-17 (reopened with this dispatch), Sweep-discipline rule in `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`
+
+### Finding
+
+The Build 6 admin-gating sweep (commit 6d18773) closed OBS-17 prematurely. Sweep enumerated only routes the dispatcher recalled, not the full `/api/admin/**` route surface. 13 routes were missed.
+
+A 2026-05-19 code-level positive-test audit (run after seeding `jasonlosh@hotmail.com` with `is_platform_admin=true`) found the 13 missed routes BUT also exhibited its own methodology errors: missed 4 additional ungated routes under `src/app/api/admin/sources/[id]/*` and miscalled 2 worker-secret routes (`recompute-trust`, `spot-check/recurring`) as `requireAuth`-only based on directory location rather than file content.
+
+### Routes fixed (commit 4c7b546)
+
+15 routes had `isPlatformAdmin(auth.userId, supabase)` check inserted after `requireAuth()`, matching the canonical pattern from `sources/bulk-import/route.ts:331`:
+
+Originally on prior-audit list (11):
+
+- `src/app/api/admin/b2-progress/route.ts`
+- `src/app/api/admin/canonical-sources/bulk-classify/route.ts`
+- `src/app/api/admin/canonical-sources/decide/route.ts`
+- `src/app/api/admin/canonical-sources/pending/route.ts`
+- `src/app/api/admin/canonical-sources/recommend-classification/route.ts`
+- `src/app/api/admin/intersections/route.ts`
+- `src/app/api/admin/scan/route.ts`
+- `src/app/api/admin/sources/all/route.ts`
+- `src/app/api/admin/sources/pause-global/route.ts` (both GET and POST handlers)
+- `src/app/api/admin/sources/promote/route.ts`
+- `src/app/api/admin/sources/recommend-classification/route.ts`
+
+Newly discovered by Track B-code re-enumeration (4):
+
+- `src/app/api/admin/sources/[id]/fetch-now/route.ts`
+- `src/app/api/admin/sources/[id]/pause/route.ts`
+- `src/app/api/admin/sources/[id]/regenerate-brief/route.ts`
+- `src/app/api/admin/sources/[id]/visibility/route.ts`
+
+Correctly EXCLUDED from fix scope (2 worker-secret routes):
+
+- `src/app/api/admin/recompute-trust/route.ts`; gates via `x-worker-secret`; adding `isPlatformAdmin` would break GitHub Actions crons
+- `src/app/api/admin/spot-check/recurring/route.ts`; same pattern
+
+### Root cause
+
+Both Build 6 sweep AND the 2026-05-19 audit relied on RECALLED or DIRECTORY-INFERRED scope rather than fully enumerating the surface via Glob and grep'ing each enumerated route.
+
+### Durable fix
+
+New binding rule added to `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`: **Sweep-discipline rule: enumerate the full surface before claiming completeness**. Mandates that any sweep dispatch first enumerate the COMPLETE surface family (Glob, schema query, or equivalent) and verify each enumerated item against the audit criterion before claiming completeness. Worked example in the rule cites this specific Build 6 to 2026-05-19 audit to Track B-code re-enumeration sequence.
+
+### Resolution
+
+- Code fix: commit 4c7b546 (15 routes gated, typecheck clean)
+- Methodology fix: Sweep-discipline rule in skill amendment (this dispatch's commit SHA, fill in after commit)
+- Future sweeps now bound by the Sweep-discipline rule

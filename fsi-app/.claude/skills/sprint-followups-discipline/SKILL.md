@@ -266,6 +266,42 @@ When Build 8 (Research horizon-scan) dispatches and adds a consumer of `classifi
 4. Synthesize the coverage table in your dispatch's pre-flight section, before the design content.
 5. If the synthesis is clean, proceed with the new consumer addition. If the synthesis surfaces suspect or indeterminate findings, halt the new-consumer work, surface findings + suggested remediation scope, and wait for operator decision.
 
+## Sweep-discipline rule: enumerate the full surface before claiming completeness
+
+This rule was added 2026-05-19 after two recurring methodology failures in this session and a third confirmed by operator reference. The Build 6 admin-gating sweep (commit 6d18773) missed 13 admin routes that any authenticated user could hit, because the sweep enumerated only routes the dispatcher recalled rather than globbing the route surface. The subsequent 2026-05-19 code-level positive-test audit (dispatched after seeding jasonlosh@hotmail.com with `is_platform_admin=true`) found the 13 Build-6-missed routes but ALSO had two methodology errors of its own: it missed 4 additional ungated routes under the `src/app/api/admin/sources/[id]/*` pattern, AND it miscalled `recompute-trust` and `spot-check/recurring` as `requireAuth`-only based on directory location rather than file content (those routes intentionally gate via `x-worker-secret` for cron access). The Tier 2 hygiene sweep earlier in the same session exhibited the same pattern in the opposite direction: it went beyond the original scope brief and caught Phase-D leaks in surfaces not in the original brief; enumerate-first would have correctly included those leaks in the original brief instead of discovering them by accident. All three failures share one root cause: the sweep relied on recalled or pattern-matched scope rather than fully enumerating the surface family.
+
+**Binding rule.** When running a sweep dispatch (security sweep, consistency sweep, audit, or any dispatch whose deliverable is "verify every item in a surface-family meets a criterion"), the dispatch MUST:
+
+1. Identify the surface family being swept (route family, column family, constraint family, file pattern, schema element family). Name it precisely.
+2. Enumerate the COMPLETE surface via Glob, schema query, or equivalent fully-enumerative method. Document the enumeration count and the criterion being checked in the dispatch's pre-flight report.
+3. Verify each enumerated item against the audit criterion. Do not skip items because they "seem obviously fine" or "are unlikely to be wrong" — those exact intuitions are how Build 6 missed 13 routes and how the 2026-05-19 audit missed 4 more.
+4. Surface ANY discrepancies between the enumeration and the original scope brief. Sweeps frequently expand scope (more items meet the audit criterion than the brief anticipated), correct scope (some items in the brief don't actually belong to the surface family), or relocate scope (items that look like they belong to one family actually belong to another, like the worker-secret cron routes that look like admin routes but gate differently). The dispatch report calls out the discrepancy explicitly.
+
+**What this rule is NOT.**
+
+- NOT a license to expand the FIX scope indefinitely. The enumeration bounds the verification work; the fix work remains bounded by what the dispatch is authorized to change. If enumeration surfaces ungated routes beyond what the operator authorized fixing, surface them and ask, do not auto-fix.
+- NOT a requirement to fix everything found. The rule requires complete enumeration and complete verification. What to fix is a separate authorization decision.
+- NOT applicable to design or implementation dispatches scoped to a specific change. A dispatch like "add a new column to sources" doesn't owe a sweep — only sweep-type dispatches owe enumerate-first discipline.
+- NOT a substitute for the sources-schema-touch precondition or the inference-correction rule. Sweep-discipline complements them: enumerate-first prevents the same class of methodology failure from recurring across sweep-shaped dispatches.
+
+**Worked example (the Build 6 → 2026-05-19 audit → Track B-code re-enumeration sequence).**
+
+Build 6 admin-gating sweep (commit 6d18773) enumerated remembered admin routes and verified each calls `isPlatformAdmin`. The sweep was incomplete: 13 routes were missed because the dispatcher relied on recall rather than `Glob` of `src/app/api/admin/**/*.ts`. OBS-17 closed prematurely.
+
+2026-05-19 code-level positive-test audit re-audited admin gating. It found the 13 routes Build 6 missed but had two methodology errors: (a) missed 4 additional ungated routes under `src/app/api/admin/sources/[id]/*` because its enumeration was incomplete in that subdirectory, (b) miscalled `recompute-trust` and `spot-check/recurring` as `requireAuth`-only based on directory location, not file content (they gate via `x-worker-secret` header, intentional for cron access).
+
+Track B-code dispatch (commit 4c7b546) applied enumerate-first discipline: pre-flight Globbed `src/app/api/admin/**/*.ts` to produce a 28-route table, grepped each for `requireAuth` and `isPlatformAdmin`, and built a complete pass/fail matrix. The matrix correctly identified 15 PASS + 13 prior-audit-FAIL + 4 newly-discovered FAIL + 2 worker-secret OTHER. Net fix scope correctly bounded at 15 routes. The same enumerate-first move on Build 6 would have prevented the 13-route gap; the same move on the 2026-05-19 audit would have prevented the 4-route gap and the 2 miscalls.
+
+**How to apply.**
+
+Before any sweep dispatch starts, the dispatch brief lists:
+1. The surface family being swept (e.g., "all routes under `src/app/api/admin/**`").
+2. The enumeration method that will produce a complete list (e.g., "Glob `src/app/api/admin/**/*.ts`").
+3. The criterion being checked (e.g., "does the route call `isPlatformAdmin` after `requireAuth`?").
+4. The expected scope of fixes if applicable (e.g., "fix any route that calls `requireAuth` without `isPlatformAdmin`").
+
+The pre-flight report documents the enumeration count and the criterion. The execution report documents the full pass/fail matrix and explicitly calls out any discrepancy between the enumeration and the original scope brief.
+
 ## Anti-Patterns
 
 These behaviors mean the skill was loaded but not followed:
