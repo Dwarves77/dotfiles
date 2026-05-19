@@ -152,8 +152,7 @@ export function AffectedLanesCard({ resource: r }: AffectedLanesCardProps) {
           fontStyle: "italic",
         }}
       >
-        Lane-pair, volume, and origin/destination data not yet in schema.
-        Workspace shipment integration will populate this card.
+        Affected lanes will appear here once your workspace shipment data is connected.
       </div>
     </div>
   );
