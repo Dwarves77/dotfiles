@@ -231,6 +231,41 @@ Per `caros-ledge-platform-intent` Section 3, Research is "horizon-scan content w
 
 The corrective: revise the plan to retire Option A; surface Build 8 as a single-path implementation; if editorial draft-staging belongs somewhere, identify a different surface (admin chrome) and dispatch it separately.
 
+## Sources-schema-touch precondition: verify existing consumer wiring before adding new consumers
+
+This rule was added 2026-05-19 after the D16 column-shadowing closure verification (commit 51321b4 family) surfaced a structural pattern: when migration 063 partially applied (2 columns shadowed and silently no-op'd, 12 columns applied cleanly), the audit confirming zero existing-consumer breakage on the shadowed columns explicitly excluded the 12 successfully-applied columns. Future builds (Build 7 Market Intel, Build 8 Research, Build 9 Operations, Build 11 Dashboard) all touch `sources` and will add new consumers of those columns. Verifying existing consumer wiring at the moment of new-consumer addition is the correct discipline, but scoping the verification inside any one build packet leaves the other builds exposed and lets the per-build verification scope keep drifting.
+
+**Binding rule.** Any dispatch that touches the `sources` table OR adds a consumer of `sources` columns (read, write, filter, join, type definition) MUST, before adding the new consumer:
+
+1. Identify the origin migration SQL for each `sources` column the dispatch touches (the migration that created the column AND any subsequent migration that altered its shape, constraints, or default).
+2. Audit all current `src/` consumers of those columns and verify they assume the actual deployed shape, not the intended-at-some-point shape from a no-op'd migration, and not the proposed-but-unapplied shape from a draft migration.
+3. Surface any consumer that assumes a different shape than the origin migration's deployed reality. Surface to the operator; do not silently refactor.
+4. Only after the precondition audit reports clean (or after the operator decides on remediation scope for any non-clean findings) may the dispatch add its new consumer.
+
+**What this precondition is NOT.**
+
+- NOT a license to refactor existing consumers. The precondition gates ADDITIONS only. A consumer that exists and works against the actual schema, even if its assumption pattern is defensive or redundant, is out of scope.
+- NOT a retroactive audit obligation. The precondition fires when a new consumer is being added; it does not require periodic re-audits of unchanging consumers.
+- NOT a substitute for the integrity rule. Consumer wiring assumptions are documentary evidence; the actual deployed schema (live DB) is authoritative. If consumer code and origin migration agree but the live DB differs (migration applied incorrectly, manual schema drift), the live DB wins and a new migration captures the reconciliation.
+
+**Worked example (the 12 columns from migration 063).**
+
+The 12 columns from migration 063 that applied cleanly: `source_role`, `secondary_roles`, `scope_topics`, `scope_modes`, `scope_verticals`, `expected_output`, `classification_assigned_at`, `classification_observed_distribution`, `observed_correctness_count`, `last_observed_at`, `classification_confidence`, `classification_rationale`. These collectively introduce a 5-axis classification framework whose consumer wiring has not been audited as comprehensively as the shadowed `tier` and `jurisdictions` columns now have.
+
+When Build 7 (Market Intel signal aggregation) dispatches and adds a consumer of, say, `source_role`, the precondition fires: read migration 063 to see the column's intended shape; grep `src/` for current `source_role` consumers; verify each one assumes the migration-063 shape rather than some other inferred shape. If any consumer assumes a different shape, surface to operator. Then add the Build 7 consumer.
+
+When Build 8 (Research horizon-scan) dispatches and adds a consumer of `classification_confidence`, the precondition fires again with `classification_confidence` as the focus column. The audit pattern is the same: origin migration + current consumers + assumption-vs-reality check.
+
+**Audit-pattern precedent.** The D16 closure verification (2026-05-19) demonstrated the audit pattern: parallel Explore-agent dispatches across four code-path families (classifier/scoring lib, API routes + server handlers, UI components + view pages, types/stores/scripts/workers/tests) with a tight per-agent contract (file:line + assumption + actual-vs-intended + works-or-breaks classification). Three sections per agent report: Correct / Suspect / Indeterminate. Synthesis in the parent dispatch as a coverage table. Future precondition audits should adopt the same pattern: parallel agents, narrow per-agent scope contract, three-section report shape, parent dispatch synthesis.
+
+**How to apply.**
+
+1. Before drafting the new consumer code, list every `sources` column the dispatch will touch (read, write, filter, join, or reference in a type definition).
+2. For each column, identify its origin migration and read that migration in full.
+3. Dispatch parallel read-only audit agents per the D16 precedent. Each agent gets a narrow code-path-family scope and the three-section report contract.
+4. Synthesize the coverage table in your dispatch's pre-flight section, before the design content.
+5. If the synthesis is clean, proceed with the new consumer addition. If the synthesis surfaces suspect or indeterminate findings, halt the new-consumer work, surface findings + suggested remediation scope, and wait for operator decision.
+
 ## Anti-Patterns
 
 These behaviors mean the skill was loaded but not followed:
