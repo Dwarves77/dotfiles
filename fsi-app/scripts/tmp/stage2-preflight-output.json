@@ -1,0 +1,140 @@
+{
+  "generated_at": "2026-05-19T01:00:28.243Z",
+  "ledger": {
+    "total_recorded": 53,
+    "expected_unrecorded": [
+      "026",
+      "027",
+      "028",
+      "029",
+      "030",
+      "031",
+      "032",
+      "033",
+      "034",
+      "035",
+      "036",
+      "037",
+      "038",
+      "039",
+      "040",
+      "041",
+      "042",
+      "043",
+      "044",
+      "045",
+      "046",
+      "047",
+      "048",
+      "049",
+      "050",
+      "070",
+      "078"
+    ],
+    "still_unrecorded": [
+      "026",
+      "027",
+      "028",
+      "029",
+      "030",
+      "031",
+      "032",
+      "033",
+      "034",
+      "035",
+      "036",
+      "037",
+      "038",
+      "039",
+      "040",
+      "041",
+      "042",
+      "043",
+      "044",
+      "045",
+      "046",
+      "047",
+      "048",
+      "049",
+      "050",
+      "078"
+    ],
+    "unexpectedly_recorded": [
+      "070"
+    ],
+    "drift_from_stage1": true
+  },
+  "recompute_agent_integrity_flag": {
+    "function_exists": true,
+    "phrase_audit": {
+      "expected_5_present": [
+        {
+          "phrase": "replace the source URL",
+          "present": true
+        },
+        {
+          "phrase": "do not act on (any |the )?prior brief",
+          "present": true
+        },
+        {
+          "phrase": "specific article, regulatory text, or guidance document",
+          "present": true
+        },
+        {
+          "phrase": "unable to verify",
+          "present": true
+        },
+        {
+          "phrase": "could not confirm",
+          "present": true
+        }
+      ],
+      "dropped_3_absent": [
+        {
+          "phrase": "integrity rule",
+          "absent": true
+        },
+        {
+          "phrase": "should be there",
+          "absent": true
+        },
+        {
+          "phrase": "if .{1,40}? was intended",
+          "absent": true
+        }
+      ]
+    },
+    "body_matches_044": true,
+    "halt_required": false
+  },
+  "schema_sanity": {
+    "integrity_flags_absent": true,
+    "phantom_recurring_spot_check_log_absent": true,
+    "tables_found": []
+  },
+  "ledger_shape": {
+    "columns": [
+      {
+        "column_name": "version",
+        "data_type": "text",
+        "is_nullable": "NO"
+      },
+      {
+        "column_name": "statements",
+        "data_type": "ARRAY",
+        "is_nullable": "YES"
+      },
+      {
+        "column_name": "name",
+        "data_type": "text",
+        "is_nullable": "YES"
+      }
+    ],
+    "sample_row": {
+      "version": "001",
+      "name": "schema",
+      "statements_type": "array[10]",
+      "statements_first_100": "-- FSI Phase 2: Database Schema\r\n-- 10 tables for Freight Sustainability Intelligence\r\n\r\n-- ─── Reso"
+    }
+  }
+}
