@@ -1,0 +1,330 @@
+{
+  "sources_row_count": 796,
+  "sources_duplicate_set_count": 9,
+  "sources_duplicate_rows_total": 18,
+  "sources_duplicate_sets": [
+    {
+      "canonical_url": "https://splash247.com/",
+      "members": [
+        {
+          "id": "295fba96-2a55-4430-a5b5-3548992c6df4",
+          "url": "https://splash247.com/",
+          "name": "Splash247",
+          "status": "active",
+          "created_at": "2026-04-28T07:17:57.320Z"
+        },
+        {
+          "id": "b2588399-4cf6-40fc-9129-3f9b44c4b356",
+          "url": "https://splash247.com/",
+          "name": "Splash247",
+          "status": "active",
+          "created_at": "2026-04-05T05:02:06.995Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://freightwaves.com/",
+      "members": [
+        {
+          "id": "de15227a-ce56-49f5-8ebb-8758c5794d67",
+          "url": "https://freightwaves.com/",
+          "name": "FreightWaves",
+          "status": "active",
+          "created_at": "2026-04-28T07:17:56.678Z"
+        },
+        {
+          "id": "111c637d-49b3-4ab2-b7bf-5dcb6aa8e114",
+          "url": "https://freightwaves.com/",
+          "name": "FreightWaves",
+          "status": "active",
+          "created_at": "2026-04-05T05:02:06.576Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://breeam.com/",
+      "members": [
+        {
+          "id": "ef347aa7-6dc2-40b8-ac18-6555f964c037",
+          "url": "https://breeam.com/",
+          "name": "BREEAM (BRE Global)",
+          "status": "active",
+          "created_at": "2026-04-05T00:56:52.262Z"
+        },
+        {
+          "id": "dcb667a7-c489-478b-97a6-8c82e451c4b6",
+          "url": "https://breeam.com/",
+          "name": "BRE Group (Building Research Establishment)",
+          "status": "active",
+          "created_at": "2026-04-29T18:13:11.777Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://nrel.gov/transportation/research",
+      "members": [
+        {
+          "id": "1a760dfb-1e89-4416-a594-8d92778fb2e4",
+          "url": "https://nrel.gov/transportation/research",
+          "name": "National Renewable Energy Laboratory (NREL) / U.S. Department of Energy",
+          "status": "active",
+          "created_at": "2026-04-29T22:43:41.711Z"
+        },
+        {
+          "id": "56dff28e-afa1-4bfa-9b1d-e999e37802b6",
+          "url": "https://nrel.gov/transportation/research",
+          "name": "National Renewable Energy Laboratory (NREL) / National Laboratory of the Rockies (NLR)",
+          "status": "active",
+          "created_at": "2026-04-29T22:44:15.403Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://csrf.ac.uk/",
+      "members": [
+        {
+          "id": "071dff9e-4841-4955-8c04-9012c7836a49",
+          "url": "https://csrf.ac.uk/",
+          "name": "Centre for Sustainable Road Freight",
+          "status": "active",
+          "created_at": "2026-04-05T00:56:52.262Z"
+        },
+        {
+          "id": "c096820c-e857-4173-b60d-9af004a0d73d",
+          "url": "https://csrf.ac.uk/",
+          "name": "Centre for Sustainable Road Freight (University of Cambridge / Heriot-Watt University / University of Westminster)",
+          "status": "active",
+          "created_at": "2026-04-29T17:47:06.670Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://mlit.go.jp/en",
+      "members": [
+        {
+          "id": "10528abf-f3bb-4245-b844-8c35de0daf49",
+          "url": "https://mlit.go.jp/en",
+          "name": "Japan MLIT",
+          "status": "provisional",
+          "created_at": "2026-04-11T21:27:58.012Z"
+        },
+        {
+          "id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+          "url": "https://mlit.go.jp/en",
+          "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+          "status": "active",
+          "created_at": "2026-04-29T19:12:55.295Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://climatemachine.mit.edu/",
+      "members": [
+        {
+          "id": "622d0e55-ed6c-4ec2-83a0-229425f73797",
+          "url": "https://climatemachine.mit.edu/",
+          "name": "MIT Climate Machine",
+          "status": "active",
+          "created_at": "2026-04-05T00:56:52.262Z"
+        },
+        {
+          "id": "addc7d05-cb54-4a70-99a4-1b0f85308bff",
+          "url": "https://climatemachine.mit.edu/",
+          "name": "MIT Climate Machine (Massachusetts Institute of Technology)",
+          "status": "active",
+          "created_at": "2026-04-29T20:21:18.236Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://flk.npc.gov.cn/",
+      "members": [
+        {
+          "id": "dae165c8-a279-4612-a579-08119cb73031",
+          "url": "https://flk.npc.gov.cn/",
+          "name": "National Database of Laws and Regulations (China)",
+          "status": "active",
+          "created_at": "2026-04-05T00:56:52.262Z"
+        },
+        {
+          "id": "b4b04ad0-7884-4722-9bc5-19137708254c",
+          "url": "https://flk.npc.gov.cn/",
+          "name": "General Office of the Standing Committee of the National People's Congress of the People's Republic of China",
+          "status": "active",
+          "created_at": "2026-04-29T22:06:50.922Z"
+        }
+      ]
+    },
+    {
+      "canonical_url": "https://climate-laws.org/",
+      "members": [
+        {
+          "id": "7d939fc1-0356-4ed0-8026-c39df58db71f",
+          "url": "https://climate-laws.org/",
+          "name": "Climate Change Laws of the World",
+          "status": "active",
+          "created_at": "2026-04-05T00:56:52.262Z"
+        },
+        {
+          "id": "410466f8-21d2-4d51-a601-f1dc71923683",
+          "url": "https://climate-laws.org/",
+          "name": "Sabin Center Climate Laws Database",
+          "status": "active",
+          "created_at": "2026-04-28T07:17:58.755Z"
+        }
+      ]
+    }
+  ],
+  "provisional_sources_row_count": 407,
+  "provisional_sources_duplicate_set_count": 0,
+  "provisional_sources_duplicate_rows_total": 0,
+  "provisional_sources_duplicate_sets": [],
+  "cross_table_collisions_count": 29,
+  "cross_table_collisions": [
+    {
+      "canonical_url": "https://wyoleg.gov/",
+      "provisional_id": "3bb1783a-b8fe-4080-b65c-7c2028b981ab",
+      "provisional_url": "https://wyoleg.gov/"
+    },
+    {
+      "canonical_url": "https://mde.maryland.gov/programs/air/ClimateChange/Pages/index.aspx",
+      "provisional_id": "15dda23c-6a8b-4111-8daa-47783b4b0031",
+      "provisional_url": "https://mde.maryland.gov/programs/air/ClimateChange/Pages/index.aspx"
+    },
+    {
+      "canonical_url": "https://adem.alabama.gov/",
+      "provisional_id": "2025425c-0cb8-4ba5-b77a-51e878937c4b",
+      "provisional_url": "https://adem.alabama.gov/"
+    },
+    {
+      "canonical_url": "https://ontario.ca/page/ministry-environment-conservation-parks",
+      "provisional_id": "277dbb4a-9ddb-4001-9530-d76fed8c4609",
+      "provisional_url": "https://ontario.ca/page/ministry-environment-conservation-parks"
+    },
+    {
+      "canonical_url": "https://cleanenergyregulator.gov.au/",
+      "provisional_id": "a7add8e8-8b4e-45a8-841e-4a1f764ebde9",
+      "provisional_url": "https://cleanenergyregulator.gov.au/"
+    },
+    {
+      "canonical_url": "https://dec.alaska.gov/",
+      "provisional_id": "c37e9742-9110-4aa8-9bbf-df70d426c09e",
+      "provisional_url": "https://dec.alaska.gov/"
+    },
+    {
+      "canonical_url": "https://awac.be/",
+      "provisional_id": "34106876-d171-4903-b2b1-91da8f71c2c8",
+      "provisional_url": "https://awac.be/"
+    },
+    {
+      "canonical_url": "https://adeq.state.ar.us/",
+      "provisional_id": "23c20266-25aa-4a7a-befd-63ccc0ff3683",
+      "provisional_url": "https://adeq.state.ar.us/"
+    },
+    {
+      "canonical_url": "https://azleg.gov/",
+      "provisional_id": "b5e71375-f242-4ee8-83e6-e62e3a94352c",
+      "provisional_url": "https://azleg.gov/"
+    },
+    {
+      "canonical_url": "https://mingor.gov.hr/",
+      "provisional_id": "054130e4-2f5a-4912-9763-4251e5da501d",
+      "provisional_url": "https://mingor.gov.hr/"
+    },
+    {
+      "canonical_url": "https://gov.mb.ca/sd",
+      "provisional_id": "c3bbf4c1-e71d-484d-b86b-b20f2101d7ad",
+      "provisional_url": "https://gov.mb.ca/sd"
+    },
+    {
+      "canonical_url": "https://saskatchewan.ca/government/government-structure/ministries/environment",
+      "provisional_id": "82c97845-6d5e-4004-add7-eeed5f83925c",
+      "provisional_url": "https://saskatchewan.ca/government/government-structure/ministries/environment"
+    },
+    {
+      "canonical_url": "https://wa.gov.au/organisation/department-of-water-and-environmental-regulation",
+      "provisional_id": "5ab19f87-de43-4df3-b025-83fd1c4f8860",
+      "provisional_url": "https://wa.gov.au/organisation/department-of-water-and-environmental-regulation"
+    },
+    {
+      "canonical_url": "https://novascotia.ca/nse",
+      "provisional_id": "f69d897f-c4eb-4286-93e4-dfa4d830deb6",
+      "provisional_url": "https://novascotia.ca/nse"
+    },
+    {
+      "canonical_url": "https://deq.idaho.gov/",
+      "provisional_id": "805fe3fe-ab88-4779-ba9c-e5aa7b026225",
+      "provisional_url": "https://deq.idaho.gov/"
+    },
+    {
+      "canonical_url": "https://princeedwardisland.ca/en/topic/environment-energy-and-climate-action",
+      "provisional_id": "d5a21e0b-c3bd-40e7-bffb-9e75f3bea145",
+      "provisional_url": "https://princeedwardisland.ca/en/topic/environment-energy-and-climate-action"
+    },
+    {
+      "canonical_url": "https://in.gov/idem",
+      "provisional_id": "fe807600-b944-4292-885e-644541b09d51",
+      "provisional_url": "https://in.gov/idem"
+    },
+    {
+      "canonical_url": "https://epa.ie/",
+      "provisional_id": "e32a94fc-9dc1-4ca6-bab0-9b1c005b432f",
+      "provisional_url": "https://epa.ie/"
+    },
+    {
+      "canonical_url": "https://mase.gov.it/",
+      "provisional_id": "7afc0b36-a230-4307-b344-92aeb354892c",
+      "provisional_url": "https://mase.gov.it/"
+    },
+    {
+      "canonical_url": "https://pca.state.mn.us/",
+      "provisional_id": "ed3ccb8c-5001-4e2e-ba1a-85fc909f8c45",
+      "provisional_url": "https://pca.state.mn.us/"
+    },
+    {
+      "canonical_url": "https://leg.state.nv.us/",
+      "provisional_id": "e9dfbafb-5540-4f95-bd56-58ef1e6274d8",
+      "provisional_url": "https://leg.state.nv.us/"
+    },
+    {
+      "canonical_url": "https://mmediu.ro/",
+      "provisional_id": "e0409c35-f29c-4b3a-8c17-130afa04e180",
+      "provisional_url": "https://mmediu.ro/"
+    },
+    {
+      "canonical_url": "https://miteco.gob.es/",
+      "provisional_id": "8b3b98de-d694-4a09-afda-3a0d400dca12",
+      "provisional_url": "https://miteco.gob.es/"
+    },
+    {
+      "canonical_url": "https://doee.dc.gov/",
+      "provisional_id": "0b769b43-1bd4-4136-bbfb-d7f57ece5d94",
+      "provisional_url": "https://doee.dc.gov/"
+    },
+    {
+      "canonical_url": "https://drna.pr.gov/",
+      "provisional_id": "3b83de34-de61-448a-afab-2a10d7885ac4",
+      "provisional_url": "https://drna.pr.gov/"
+    },
+    {
+      "canonical_url": "https://legvi.org/",
+      "provisional_id": "b611f3d2-2133-4b0b-8640-7e05b5785d65",
+      "provisional_url": "https://legvi.org/"
+    },
+    {
+      "canonical_url": "https://dpnr.vi.gov/environmental-protection",
+      "provisional_id": "c0a93052-471a-4973-8969-93edb8c07dc2",
+      "provisional_url": "https://dpnr.vi.gov/environmental-protection"
+    },
+    {
+      "canonical_url": "https://vdot.virginia.gov/travel-traffic/freight",
+      "provisional_id": "8ce2c6b1-98ce-4f74-aa79-a8b6c4252e35",
+      "provisional_url": "https://vdot.virginia.gov/travel-traffic/freight"
+    },
+    {
+      "canonical_url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX%3A32023R0956",
+      "provisional_id": "9338089e-18de-4392-9215-53d5332c6f48",
+      "provisional_url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX%3A32023R0956"
+    }
+  ]
+}

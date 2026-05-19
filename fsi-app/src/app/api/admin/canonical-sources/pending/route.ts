@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 function getServiceClient() {
   return createClient(
@@ -58,14 +59,18 @@ export async function GET(request: NextRequest) {
   // Look up which candidate URLs are already in the sources registry — saves
   // the UI a per-candidate query when deciding whether to show the approve
   // flow's new-source insert step.
-  const candidateUrls = [...new Set((candidates || []).map((c) => c.candidate_url))];
-  let existingSources = new Map<string, string>(); // url → source.id
+  // Q10: canonicalize both sides of the comparison. The lookup map is
+  // canonical-keyed so the per-candidate `existingSources.get(canonical(c.candidate_url))`
+  // resolves to a hit even when the candidate URL differs in
+  // trailing-slash / www-prefix / case from the registered sources.url.
+  const candidateUrls = [...new Set((candidates || []).map((c) => canonicalizeUrl(c.candidate_url)))];
+  let existingSources = new Map<string, string>(); // canonical-url → source.id
   if (candidateUrls.length > 0) {
     const { data: srcRows } = await supabase
       .from("sources")
       .select("id, url")
       .in("url", candidateUrls);
-    existingSources = new Map((srcRows || []).map((s) => [s.url, s.id]));
+    existingSources = new Map((srcRows || []).map((s) => [canonicalizeUrl(s.url), s.id]));
   }
 
   // Group candidates by item
@@ -83,7 +88,7 @@ export async function GET(request: NextRequest) {
     }
     grouped[groupKey].candidates.push({
       ...c,
-      existing_source_id: existingSources.get(c.candidate_url) || null,
+      existing_source_id: existingSources.get(canonicalizeUrl(c.candidate_url)) || null,
     });
   }
 

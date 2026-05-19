@@ -9,6 +9,7 @@ import { browserlessRender, BrowserlessError, type BrowserlessResult } from "@/l
 import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
 import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
 import { checkFetchQuality } from "@/lib/sources/fetch-quality";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SCAN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour per source URL
@@ -243,7 +244,7 @@ export async function POST(request: NextRequest) {
       .select(
         "id, last_scanned, status, tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url"
       )
-      .eq("url", sourceUrl)
+      .eq("url", canonicalizeUrl(sourceUrl))
       .single()) as { data: SourceLookupRow | null; error: { message: string; code?: string } | null };
     if (sourceLookupError) {
       console.warn(
@@ -516,10 +517,11 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
 
       for (const c of citations) {
         try {
+          const canonCitedUrl = canonicalizeUrl(c.url);
           const { data: existingSource } = await supabase
             .from("sources")
             .select("id, total_citations, confirmation_count")
-            .eq("url", c.url)
+            .eq("url", canonCitedUrl)
             .maybeSingle();
 
           if (existingSource) {
@@ -553,7 +555,7 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
           const { data: existingProv } = await supabase
             .from("provisional_sources")
             .select("id, citation_count, citing_source_ids, highest_citing_tier")
-            .eq("url", c.url)
+            .eq("url", canonCitedUrl)
             .maybeSingle();
 
           if (existingProv) {
@@ -581,7 +583,7 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
 
           const { error: insertErr } = await supabase.from("provisional_sources").insert({
             name: c.name.slice(0, 200),
-            url: c.url,
+            url: canonCitedUrl,
             description: c.why.slice(0, 500),
             discovered_via: "citation_detection",
             cited_by_source_id: citingId,

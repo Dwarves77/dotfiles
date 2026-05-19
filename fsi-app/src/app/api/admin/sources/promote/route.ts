@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 function getServiceClient() {
   return createClient(
@@ -90,9 +91,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the new source row from the provisional record + reviewer fields.
+    // Q10: canonicalize defensively — the provisional row's URL was canonicalized
+    // on insert post-migration 087, but a pre-migration row promoted now would
+    // still carry a non-canonical URL.
     const newSource = {
       name: prov.name,
-      url: prov.url,
+      url: canonicalizeUrl(prov.url),
       description: prov.description || "",
       tier: body.tier,
       tier_at_creation: body.tier,

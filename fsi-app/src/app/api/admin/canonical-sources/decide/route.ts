@@ -34,6 +34,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 function getServiceClient() {
   return createClient(
@@ -109,7 +110,12 @@ export async function POST(request: NextRequest) {
     const editPayload: Record<string, any> = {};
     for (const k of ["candidate_url", "candidate_title", "candidate_publisher"] as const) {
       if (body.editedFields[k] !== undefined) {
-        editPayload[k] = body.editedFields[k];
+        // Q10: canonicalize the edited URL so the candidate row stores the
+        // canonical form, matching the convention used by the sources
+        // registry after migration 087.
+        editPayload[k] = k === "candidate_url"
+          ? canonicalizeUrl(body.editedFields[k] as string)
+          : body.editedFields[k];
       }
     }
     if (Object.keys(editPayload).length > 0) {
@@ -190,7 +196,7 @@ export async function POST(request: NextRequest) {
     }
     const newSource = {
       name: cand.candidate_publisher || cand.candidate_title || cand.candidate_url,
-      url: cand.candidate_url,
+      url: canonicalizeUrl(cand.candidate_url),
       description: cand.candidate_title || "",
       tier: body.tier,
       tier_at_creation: body.tier,
@@ -243,12 +249,15 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Update intelligence_items to point at the resolved source.
+  // Update intelligence_items to point at the resolved source. Q10:
+  // canonicalize source_url so the denormalised cache stays in sync with
+  // the canonicalized sources.url (otherwise `.eq("source_url", source.url)`
+  // queries in other routes would silently miss this row).
   const { error: itemUpdErr } = await supabase
     .from("intelligence_items")
     .update({
       source_id: sourceId,
-      source_url: cand.candidate_url,
+      source_url: canonicalizeUrl(cand.candidate_url),
       updated_at: now,
     })
     .eq("id", cand.intelligence_item_id);

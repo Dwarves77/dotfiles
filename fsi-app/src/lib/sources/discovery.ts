@@ -34,6 +34,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { isIsoCode, isoToDisplayLabel } from "@/lib/jurisdictions/iso";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import {
   verifyCandidate,
   type VerificationCandidate,
@@ -505,7 +506,7 @@ async function verifyOrFallback(
     try {
       const fallbackRow: Record<string, unknown> = {
         name: candidate.name,
-        url: candidate.url,
+        url: canonicalizeUrl(candidate.url),
         description: candidate.rationale || "",
         // Reuse the existing CHECK-allowed value most aligned with the
         // discovery agent ("worker_search" was originally minted for this

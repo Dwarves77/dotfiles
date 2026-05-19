@@ -24,6 +24,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 function getServiceClient() {
   return createClient(
@@ -84,13 +85,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No matching candidates found" }, { status: 404 });
   }
 
-  // Pre-resolve existing-source URLs in one query
-  const urls = [...new Set(cands.map((c) => c.candidate_url))];
+  // Pre-resolve existing-source URLs in one query.
+  // Q10: canonicalize both query input and map key so trailing-slash / www /
+  // case drift between candidate_url and the registered sources.url resolves
+  // correctly. Without canonicalization the per-candidate
+  // `existingSources.get(cand.candidate_url)` would silently miss matching
+  // rows and cause a duplicate INSERT.
+  const urls = [...new Set(cands.map((c) => canonicalizeUrl(c.candidate_url)))];
   const { data: srcRows } = await supabase
     .from("sources")
     .select("id, url")
     .in("url", urls);
-  const existingSources = new Map<string, string>((srcRows || []).map((s: any) => [s.url, s.id]));
+  const existingSources = new Map<string, string>((srcRows || []).map((s: any) => [canonicalizeUrl(s.url), s.id]));
 
   const results: any[] = [];
   const requiresReview: any[] = [];
@@ -108,7 +114,8 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    let sourceId = existingSources.get(cand.candidate_url) || null;
+    const canonCandidateUrl = canonicalizeUrl(cand.candidate_url);
+    let sourceId = existingSources.get(canonCandidateUrl) || null;
     let createdSource = false;
 
     if (!sourceId) {
@@ -131,7 +138,7 @@ export async function POST(request: NextRequest) {
 
       const newSource = {
         name: cand.candidate_publisher || cand.candidate_title || cand.candidate_url,
-        url: cand.candidate_url,
+        url: canonCandidateUrl,
         description: cand.candidate_title || "",
         tier: rec.tier,
         tier_at_creation: rec.tier,
@@ -166,7 +173,7 @@ export async function POST(request: NextRequest) {
       createdSource = true;
       createdSourceCount++;
       // Add to lookup so later candidates with the same URL reuse it
-      existingSources.set(cand.candidate_url, sourceId);
+      existingSources.set(canonCandidateUrl, sourceId);
 
       await supabase.from("source_trust_events").insert({
         source_id: sourceId,
@@ -184,12 +191,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update intelligence_items
+    // Update intelligence_items. Q10: write the canonical form so the
+    // denormalised intelligence_items.source_url stays in sync with the
+    // canonicalized sources.url; otherwise `.eq("source_url", source.url)`
+    // queries elsewhere would silently miss this row.
     const { error: itemUpdErr } = await supabase
       .from("intelligence_items")
       .update({
         source_id: sourceId,
-        source_url: cand.candidate_url,
+        source_url: canonCandidateUrl,
         updated_at: now,
       })
       .eq("id", cand.intelligence_item_id);

@@ -25,6 +25,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -800,13 +801,23 @@ function getServiceClient(): SupabaseClient {
 // ────────────────────────────────────────────────────────────────────────────
 
 export async function verifyCandidate(
-  candidate: VerificationCandidate,
+  candidateIn: VerificationCandidate,
   opts?: { skipDuplicateCheck?: boolean; dryRun?: boolean; supabase?: SupabaseClient }
 ): Promise<VerificationResult> {
   const startedAt = Date.now();
   const supabase = opts?.supabase ?? getServiceClient();
   const skipDuplicateCheck = opts?.skipDuplicateCheck ?? false;
   const dryRun = opts?.dryRun ?? false;
+
+  // Q10: canonicalize at the entry point so every downstream lookup, insert,
+  // and audit-log write uses the canonical form. checkDuplicate, the H-row
+  // sources insert, and the M-row provisional_sources insert all read
+  // candidate.url; canonicalizing once here makes the whole pipeline
+  // resolution-parity safe without per-callsite plumbing.
+  const candidate: VerificationCandidate = {
+    ...candidateIn,
+    url: canonicalizeUrl(candidateIn.url),
+  };
 
   const log: VerificationLog = {
     candidate_url: candidate.url,

@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -205,17 +206,21 @@ Return ONLY the JSON object, no other text.`,
     // Stage new sources as provisional
     const sourcesAdded = [];
     for (const src of newSources.slice(0, 5)) {
+      // Q10: canonicalize before lookup AND insert so trailing-slash / www /
+      // case drift between the AI-emitted URL and the registered form do not
+      // produce silent duplicates.
+      const canonUrl = src.url ? canonicalizeUrl(src.url) : src.url;
       // Check if source URL already exists
       const { data: existingSource } = await supabase
         .from("sources")
         .select("id")
-        .eq("url", src.url)
+        .eq("url", canonUrl)
         .single();
 
       if (!existingSource && src.url) {
         await supabase.from("provisional_sources").upsert({
           name: src.name,
-          url: src.url,
+          url: canonUrl,
           description: src.publishes || "",
           discovered_via: "worker_search",
           status: "pending_review",
