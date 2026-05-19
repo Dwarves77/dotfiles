@@ -1,0 +1,312 @@
+{
+  "generated_at": "2026-05-19T01:01:26.608Z",
+  "steps": [
+    {
+      "name": "apply_048",
+      "file": "C:\\Users\\jason\\dotfiles-stage2\\fsi-app/supabase/migrations/048_integrity_flags_platform.sql",
+      "bytes": 5828
+    },
+    {
+      "name": "verify_048",
+      "table_present": true,
+      "indexes": [
+        "idx_integrity_flags_category",
+        "idx_integrity_flags_status",
+        "idx_integrity_flags_subject",
+        "integrity_flags_pkey"
+      ],
+      "policies": [
+        "integrity_flags_admin_read",
+        "integrity_flags_admin_update",
+        "integrity_flags_service_role_write"
+      ]
+    },
+    {
+      "name": "apply_049",
+      "file": "C:\\Users\\jason\\dotfiles-stage2\\fsi-app/supabase/migrations/049_perf_v2_indexes.sql",
+      "bytes": 3667
+    },
+    {
+      "name": "verify_049",
+      "indexes": [
+        "idx_intel_items_added_date_desc",
+        "idx_item_supersessions_new",
+        "idx_item_supersessions_old"
+      ]
+    },
+    {
+      "name": "apply_050",
+      "file": "C:\\Users\\jason\\dotfiles-stage2\\fsi-app/supabase/migrations/050_integrity_flags_workflow_gap.sql",
+      "bytes": 1161
+    },
+    {
+      "name": "verify_050",
+      "constraint_def": "CHECK ((category = ANY (ARRAY['design_drift'::text, 'data_quality'::text, 'source_issue'::text, 'coverage_gap'::text, 'data_integrity'::text, 'surface_concern'::text, 'workflow_gap'::text])))",
+      "widened_to_workflow_gap": true
+    },
+    {
+      "name": "backfill_ledger",
+      "results": [
+        {
+          "version": "026",
+          "name": "research_pipeline_stage",
+          "statement_count": 5,
+          "inserted": true
+        },
+        {
+          "version": "027",
+          "name": "user_profiles",
+          "statement_count": 16,
+          "inserted": true
+        },
+        {
+          "version": "028",
+          "name": "community_groups",
+          "statement_count": 22,
+          "inserted": true
+        },
+        {
+          "version": "029",
+          "name": "community_group_members",
+          "statement_count": 33,
+          "inserted": true
+        },
+        {
+          "version": "030",
+          "name": "community_posts",
+          "statement_count": 21,
+          "inserted": true
+        },
+        {
+          "version": "031",
+          "name": "community_topics",
+          "statement_count": 19,
+          "inserted": true
+        },
+        {
+          "version": "032",
+          "name": "community_notifications_moderation",
+          "statement_count": 39,
+          "inserted": true
+        },
+        {
+          "version": "033",
+          "name": "jurisdiction_iso",
+          "statement_count": 34,
+          "inserted": true
+        },
+        {
+          "version": "034",
+          "name": "staged_updates_materialization_error",
+          "statement_count": 5,
+          "inserted": true
+        },
+        {
+          "version": "035",
+          "name": "agent_integrity_flags",
+          "statement_count": 14,
+          "inserted": true
+        },
+        {
+          "version": "036",
+          "name": "admin_notifications_rpc",
+          "statement_count": 7,
+          "inserted": true
+        },
+        {
+          "version": "037",
+          "name": "source_verification",
+          "statement_count": 11,
+          "inserted": true
+        },
+        {
+          "version": "038",
+          "name": "bulk_import_audit",
+          "statement_count": 7,
+          "inserted": true
+        },
+        {
+          "version": "039",
+          "name": "coverage_matrix_rpc",
+          "statement_count": 4,
+          "inserted": true
+        },
+        {
+          "version": "040",
+          "name": "discovery_provenance",
+          "statement_count": 4,
+          "inserted": true
+        },
+        {
+          "version": "041",
+          "name": "post_promotions",
+          "statement_count": 15,
+          "inserted": true
+        },
+        {
+          "version": "042",
+          "name": "community_region_counts_rpc",
+          "statement_count": 4,
+          "inserted": true
+        },
+        {
+          "version": "043",
+          "name": "security_advisor_fixes",
+          "statement_count": 15,
+          "inserted": true
+        },
+        {
+          "version": "044",
+          "name": "integrity_flag_trigger_tune",
+          "statement_count": 3,
+          "inserted": true
+        },
+        {
+          "version": "045",
+          "name": "orphan_slugs_and_acf_dedup",
+          "statement_count": 5,
+          "inserted": true
+        },
+        {
+          "version": "046",
+          "name": "community_rls_recursion_fix",
+          "statement_count": 20,
+          "inserted": true
+        },
+        {
+          "version": "047",
+          "name": "workspace_intelligence_slim_rpc",
+          "statement_count": 2,
+          "inserted": true
+        },
+        {
+          "version": "048",
+          "name": "integrity_flags_platform",
+          "statement_count": 20,
+          "inserted": true
+        },
+        {
+          "version": "049",
+          "name": "perf_v2_indexes",
+          "statement_count": 8,
+          "inserted": true
+        },
+        {
+          "version": "050",
+          "name": "integrity_flags_workflow_gap",
+          "statement_count": 3,
+          "inserted": true
+        }
+      ]
+    },
+    {
+      "name": "verify_ledger",
+      "expected_count": 25,
+      "actual_count": 25,
+      "rows": [
+        {
+          "version": "026",
+          "name": "research_pipeline_stage"
+        },
+        {
+          "version": "027",
+          "name": "user_profiles"
+        },
+        {
+          "version": "028",
+          "name": "community_groups"
+        },
+        {
+          "version": "029",
+          "name": "community_group_members"
+        },
+        {
+          "version": "030",
+          "name": "community_posts"
+        },
+        {
+          "version": "031",
+          "name": "community_topics"
+        },
+        {
+          "version": "032",
+          "name": "community_notifications_moderation"
+        },
+        {
+          "version": "033",
+          "name": "jurisdiction_iso"
+        },
+        {
+          "version": "034",
+          "name": "staged_updates_materialization_error"
+        },
+        {
+          "version": "035",
+          "name": "agent_integrity_flags"
+        },
+        {
+          "version": "036",
+          "name": "admin_notifications_rpc"
+        },
+        {
+          "version": "037",
+          "name": "source_verification"
+        },
+        {
+          "version": "038",
+          "name": "bulk_import_audit"
+        },
+        {
+          "version": "039",
+          "name": "coverage_matrix_rpc"
+        },
+        {
+          "version": "040",
+          "name": "discovery_provenance"
+        },
+        {
+          "version": "041",
+          "name": "post_promotions"
+        },
+        {
+          "version": "042",
+          "name": "community_region_counts_rpc"
+        },
+        {
+          "version": "043",
+          "name": "security_advisor_fixes"
+        },
+        {
+          "version": "044",
+          "name": "integrity_flag_trigger_tune"
+        },
+        {
+          "version": "045",
+          "name": "orphan_slugs_and_acf_dedup"
+        },
+        {
+          "version": "046",
+          "name": "community_rls_recursion_fix"
+        },
+        {
+          "version": "047",
+          "name": "workspace_intelligence_slim_rpc"
+        },
+        {
+          "version": "048",
+          "name": "integrity_flags_platform"
+        },
+        {
+          "version": "049",
+          "name": "perf_v2_indexes"
+        },
+        {
+          "version": "050",
+          "name": "integrity_flags_workflow_gap"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "committed": true
+}
