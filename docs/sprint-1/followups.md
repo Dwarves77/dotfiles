@@ -315,41 +315,41 @@ The single `/admin` route at `fsi-app/src/app/admin/page.tsx` gates on inline `o
 ## OBS-18: `/market` "Watch this week" alerts SideCard is non-interactive
 
 **Source:** System audit 2026-05-18 post-PR-#122, Section G drift finding DRIFT-G.1
-**Phase:** 7 (admin chrome and customer-facing surfaces) BINDING CONSTRAINT
+**Phase:** Sprint 2 Build 7 (Market Intel content + signal aggregation engine) per Sprint 2 plan
 **Priority:** Medium (customer-facing value-delivery gap)
 
 `MarketPage.tsx:368-384` SideCard renders `{watchCount + elevatedCount}` followed by "alerts" (data-driven, not hard-coded). Clickthrough wiring is BROKEN: the SideCard is a static `<div>` with no `onClick`, no `<Link>`, no `href`. The summary text below names categories ("technologies" / "price signals") but provides no navigation. The operator sees a number, cannot act on it, and must cross-reference the StatStrip tiles manually to find the alert items.
 
-**Binding constraint for Phase 7.** Phase 7 design dispatch MUST address the alerts card clickthrough. Two acceptable patterns: (1) wire the SideCard as a button that activates the matching priority filter on the same page, OR (2) wire it as a `<Link>` to a filtered view. The operator must be able to reach the alert items from the count in one click.
+**Revised routing (2026-05-18 doc cleanup).** The original entry routed remediation to Phase 7 design. That routing was wrong. Phase 7 is admin chrome and operator triage UI per caros-ledge-platform-intent SKILL.md Section 4; not customer-facing. Routing customer-facing remediation to Phase 7 is an instance of the anti-pattern the platform-intent skill was rewritten to forbid (see skill Section 11). Correct owner is Sprint 2 Build 7 (Market Intel build) per Sprint 2 plan; the alerts SideCard interactivity is one element of the broader Market Intel feature build.
 
 **Cross-references.**
 
-- **DP-1 (Single-Pane Operator Review):** customer-facing pages are OUT of DP-1 scope per the principle's exclusions, BUT this finding shares the operator-experience theme that surfaces show counts without click-through. Treat the spirit of DP-1 (decisions are reachable from where the operator sees them) as guidance.
-- **OBS-14:** same operator-experience theme on operator surfaces; both manifest from the same UI debt pattern.
+- **OBS-26 (category routing wiring):** Build 7 depends on Build 4 (category routing) landing first; Market Intel cannot deliver differentiated alerts until /market stops sharing the unfiltered payload with /operations.
+- **OBS-20:** /market EmptyState worker-language; another Market Intel build remediation item.
+- **OBS-31:** the original Phase 7 routing on this entry is one of the anti-pattern instances catalogued for doc cleanup.
 
-**Action.** Phase 7 design dispatch addresses the alerts card and the related "Coverage snapshot unavailable" and other non-interactive customer-facing summaries.
+**Action.** Sprint 2 Build 7 (Market Intel) addresses the alerts card clickthrough as part of the signal aggregation engine build. Two acceptable patterns: (1) wire the SideCard as a button that activates the matching priority filter on the same page, OR (2) wire it as a `<Link>` to a filtered view. The operator must be able to reach the alert items from the count in one click. Build 7 dispatch owns design and implementation.
 
 ---
 
 ## OBS-19: `/operations` region-level "Coming soon Phase D" banner mis-attributes wiring gap as coverage gap
 
 **Source:** System audit 2026-05-18 post-PR-#122, Section G drift finding DRIFT-G.2
-**Phase:** 7 (customer-facing) or Phase 6 (ingest wiring) BINDING CONSTRAINT
+**Phase:** Sprint 2 Build 9 (Operations content build) per Sprint 2 plan
 **Priority:** Medium (customer-facing value-delivery gap; data exists but UI does not show it)
 
 `OperationsPage.tsx:446-450` fires a `ComingSoonBanner` labeled "Phase D" when an open region exists but `chips.every(c => c.items.length === 0)`. The region IS in the `regions` array (so it has items), but none of the 5 chip regex matchers (Solar, Electricity, Labor, EV Charging, Green Building from CHIP_DEFS at lines 64-70) caught any of the items. Real ingested items slot nowhere visible. The banner mis-communicates the cause: the user reads "coming soon" and assumes coverage gap, but the actual cause is a wiring gap (matcher regex coverage).
 
-**Binding constraint.** Phase 7 (or Phase 6 if the fix lives in the ingest layer) MUST address one of:
-1. Surface an "Uncategorized" fallback chip that renders any items that didn't match Solar/Electricity/Labor/EV/Green Building.
-2. Relax the chip matchers to catch the actual ingested-item title patterns.
-3. Replace the "Phase D" banner copy with accurate language ("Items present but not categorized by current matchers; review needed") in the interim.
+**Revised routing (2026-05-18 doc cleanup).** The original entry routed remediation to Phase 7 (customer-facing) or Phase 6 (ingest wiring) as a binding constraint. That routing was wrong on two counts. First, Phase 7 is admin chrome and operator triage UI per caros-ledge-platform-intent SKILL.md Section 4, not customer-facing. Second, the chip-matcher remediations proposed (uncategorized fallback chip, relaxed regex, accurate banner copy) are content-surface fixes superseded by the deeper Operations build per Sprint 2 plan Build 9. Operations is structured content plus Intelligence Assistant plus customer judgment per skill Section 3, NOT a separate decision-engine UI build. The regex chip matchers themselves are the wrong product shape; Build 9 replaces them with structured content sections per the Operations Profile 8-section format defined in environmental-policy-and-innovation. The Tier 2 fixes already removed the "Coming soon Phase D" customer-facing copy leak.
 
 **Cross-references.**
 
+- **OBS-29 (Operations as content build):** the framing correction; the prior "separate decision-engine UI" framing was the same anti-pattern the platform-intent skill was rewritten to forbid.
+- **OBS-26 (category routing wiring):** Build 9 depends on Build 4 (category routing) landing first; Operations cannot deliver structured content until /operations stops sharing the unfiltered payload with /market.
+- **OBS-31:** the original Phase 7 / Phase 6 routing on this entry is one of the anti-pattern instances catalogued for doc cleanup.
 - **OBS-15:** both findings share the theme of UI surfaces under-displaying real ingested data; OBS-15 is the brief-citation manifestation, OBS-19 is the operations-page manifestation.
-- **OBS-13 (gate 7.2a):** OBS-13 captures a similar pattern at the jurisdiction layer (items with all-rejected jurisdictions have no per-item triage path); OBS-19 captures the analogous pattern at the operations chip layer.
 
-**Action.** Phase 7 design dispatch (or Phase 6 if scoped to ingest) cites OBS-19 and chooses one of the three remediation options. The "Phase D" banner copy MUST NOT be retained for rows where items exist but matchers missed them.
+**Action.** Sprint 2 Build 9 (Operations content build) supersedes the chip-matcher remediations. Build 9 replaces the chip matchers and the banner with structured content per the platform-intent skill Section 3 capabilities (regulatory feasibility by region, regional resource availability, labor markets, materials sourcing, infrastructure capacity, operational cost data). Build 9 is multi-sprint scope per Sprint 2 plan; the Intelligence Assistant (Build 5) handles cross-cutting questions during research.
 
 ---
 
@@ -418,3 +418,428 @@ Migrations 071, 072, 073, 074, 075, 076, 077, 079, 080, 081, 082 are present in 
 - **DP-1:** the consolidated single-pane operator review surface required by DP-1 will eventually need the audit log inline; the current placeholder is the precursor.
 
 **Action.** Phase 7 design dispatch chooses: (1) hide the tab until the audit_log read endpoint ships, OR (2) implement a minimal read view. Tab strip should not advertise functionality that does not exist.
+
+---
+
+## OBS-24: Trigger `_normalize_jurisdictions` does not derive `jurisdiction_iso` from canonical jurisdictions
+
+**Source:** Critical investigations 2026-05-18 (Critical #1)
+**Phase:** Sprint 2 Tier 3 Build 3 (migration 083) per Sprint 2 plan
+**Priority:** HIGH
+
+The trigger function `_intelligence_items_normalize_jurisdictions` normalizes the `jurisdictions` text array but does not derive `jurisdiction_iso` from it. 362 of 655 intelligence_items rows carry populated canonical `jurisdictions` tokens (alpha-2 country codes and ISO 3166-2 subdivision tokens that the canonical CASE map produced) but empty `jurisdiction_iso`. Phase 5 backfill did not cause this; the trigger semantic itself never wrote to `jurisdiction_iso`. The audit's 10-row sample extrapolated to 451 rows affected at first count; the precise post-backfill count is 362. Downstream effects: ISO-keyed queries (Map jurisdictional filters, region-scoped routing) miss rows that carry the canonical token but not the ISO derivation.
+
+**Cross-references.**
+
+- **OBS-4 (Implemented):** the `source_column` discriminator handles the column-scoped read-write coupling for triage; OBS-24 is orthogonal (derivation gap, not routing gap).
+- **OBS-13:** the 5-row all-rejected-jurisdictions set is a different scope (rejected tokens with no canonical replacement); OBS-24 covers rows that DO have canonical tokens but no ISO derivation.
+- **OBS-25:** Stage 2 schema reconciliation must complete first so migration 083 lands on a clean ledger.
+
+**Action.** Sprint 2 Build 3 authors migration 083 extending `_normalize_jurisdictions` (or adding a helper called from the trigger) to derive `derived_iso` from canonical `jurisdictions` tokens. Alpha-2 token emits as-is; subdivision token emits parent country code; union and dedupe; merge into `jurisdiction_iso` only if empty (defensive choice; operator decides defensive-vs-aggressive). One-shot UPDATE on affected rows; idempotent. Build 3 dispatches after Build 1 (Stage 2 reconciliation) completes.
+
+---
+
+## OBS-25: 25-migration schema ledger drift (CLEARED via Schema Reconciliation Stage 1 Build, pending Stage 2 closure)
+
+**Source:** Critical investigations 2026-05-18 (Critical #2), refined by Schema Reconciliation Stage 1 discovery 2026-05-18
+**Phase:** Schema Reconciliation Stage 2 (Sprint 2 Tier 3 Build 1) per Sprint 2 plan
+**Priority:** CRITICAL (Stage 1 closed the diagnostic; Stage 2 closes the remediation)
+
+`supabase_migrations.schema_migrations` is missing 25 consecutive versions (026 to 050) plus version 070 (file deleted, ledger entry present) and version 078 (PR sequencing artifact, OBS-21). Stage 1 discovery (`docs/sprint-1/schema-reconciliation-discovery-2026-05-18.md`) determined the precise state: of the 026-050 block, 21 are FULLY APPLIED out-of-band (ledger does not know but schema objects exist), 2 are DML-only riders (045, 050), and 2 are GENUINELY UNAPPLIED (048 creates `integrity_flags` table; 049 creates 3 perf indexes). Migration 048 absence means production UI components (`IntegrityFlagsView`, `PlatformIntegrityFlagsView`) and three API surfaces silently return empty. The earlier framing of `recurring_spot_check_log` as a code-references-but-no-migration case was a false alarm; see OBS-N below for the Cleared annotation.
+
+**Cross-references.**
+
+- **OBS-17:** the `/admin` route gate scope-mismatch assumes `integrity_flags` exists; Stage 2 closure unblocks Build 6 (`requirePlatformAdmin()` + /admin gate fix).
+- **OBS-14:** triage UI inline-source-metadata expectations also assume `integrity_flags` exists.
+- **OBS-21:** migration 078 ledger gap (PR sequencing artifact); same root cause family.
+- **OBS-40:** migration 070 file deletion (Stage 2 decides reconstruct vs accept).
+
+**Action.** Sprint 2 Build 1 (Schema Reconciliation Stage 2) applies the HYBRID strategy per Stage 1 recommendation: backfill ledger entries 026-047 (21 entries; pure INSERT, no schema work), backfill ledger entries 045 + 050 (DML riders), apply migrations 048 + 049 + 050 in order on the live DB (CREATE TABLE / CREATE INDEX with IF NOT EXISTS guards), verify `recompute_agent_integrity_flag` body matches migration 044 not 035 before backfilling, decide migration 070 reconstruct-vs-accept-loss (OBS-40), decide migration 063 column-shadowing remediation path (OBS-30). Stage 1 closed the diagnostic; Stage 2 closes the remediation.
+
+---
+
+## OBS-26: Category-aware routing RPCs orphaned; intelligence pages share unfiltered payload (was REC-OBS-G)
+
+**Source:** Alignment audit 2026-05-18 Section B, confirmed by Schema Reconciliation Stage 1 discovery
+**Phase:** Sprint 2 Tier 3 Build 4 (foundation under Builds 7, 8, 9) per Sprint 2 plan
+**Priority:** HIGH
+
+Three category-aware RPCs exist in the live DB (`get_market_intel_items`, `get_research_items`, `get_operations_items`) and would route content to the correct intelligence page per source category if invoked. No code in `fsi-app/src` calls them. /market and /operations both call `get_workspace_intelligence_slim` and share the same unfiltered payload; /research has no category filter at all. The four intelligence pages therefore do not differentiate content by source category. This is foundation work: Sprint 2 Builds 7 (Market Intel), 8 (Research), and 9 (Operations) all depend on category routing landing first; without it, those builds rest on a payload that mixes all four source categories indiscriminately.
+
+Additionally, the role-to-category mappings in the orphan RPCs would still misroute several sources per the rewritten platform-intent skill Section 3: IMO + ICAO route to Research in the orphan RPC but skill places intergovernmental binding-law bodies in Regulations; Carbon Trust + Project Drawdown route to Operations in the orphan RPC but skill places quantified-climate-research bodies in Research; FreightWaves + Loadstar + GreenBiz + Environmental Finance + Splash247 + Supply Chain Digital route to Market Intel in the orphan RPC but skill places industry analytical press with named editorial provenance in Research. Mapping refinement is part of Build 4 scope.
+
+**Cross-references.**
+
+- **OBS-9 (classifier feedback loop, Deferred to Sprint 2):** Sprint 2 pre-decisions on rule-promotion vs score-recalibration interact with category routing; the Sprint 2 classifier work informs whether `source_role` taxonomy gets refined (option a) or a canonical `classification_category` column is added to `sources` (option b).
+- **OBS-14, OBS-17:** /admin surfaces that consume the category-aware payloads inherit the routing scope decision.
+- **OBS-18, OBS-19, OBS-36:** all downstream of category routing wiring; Market Intel non-interactive alerts, Operations chip-matcher mis-attribution, and Regulations taxonomy bleed (Gallery Climate Coalition, Decarb Hub) all resolve as side effects when routing wires correctly.
+- **OBS-27, OBS-28:** Intelligence Assistant quality (skill loading + citation surfacing) depends on category routing because the SELECT redesign should also route by category to deliver page-appropriate results.
+
+**Action.** Sprint 2 Build 4 wires the three category-aware RPCs into application code (`getResourcesOnly` replacement or augmentation for /market and /operations; `getResearchPipeline` replacement or augmentation for /research). Operator decision required before dispatch: option a (refine role mapping in routing RPCs; faster, less correct long-term) vs option b (add canonical `classification_category` column to `sources`; slower, structurally correct, depends on classifier work OBS-9). Build 4 is foundation under Builds 7, 8, 9.
+
+---
+
+## OBS-27: Intelligence Assistant zero platform skill loading at query time (was Assistant F-1)
+
+**Source:** Intelligence Assistant audit 2026-05-18 Section A
+**Phase:** Sprint 2 Tier 3 Build 5 per Sprint 2 plan
+**Priority:** HIGH
+
+The Assistant's `/api/ask` route is a single-shot LLM proxy with a thin Supabase context injection. It loads zero platform skills at query time. The system prompt is a hardcoded string template; `environmental-policy-and-innovation` content (canonical taxonomy, integrity rule, severity vocabulary, format-mapping rules, intersection-detection contract, source-type hierarchy) never enters the prompt. A grep across `fsi-app/src` for `SKILL.md` or `environmental-policy-and-innovation` finds 9 matching files, none in `/api/ask`; the matches live in regeneration and classifier paths, not the user-facing Assistant. Per caros-ledge-platform-intent SKILL.md Section 4 the Assistant is required to be grounded in skill content. The current implementation is grounded only in Claude's training data plus 30 row summaries. Decision-engine behavior (F-2) was constrained in Tier 1 via prompt surgery; skill-grounding remains absent.
+
+**Cross-references.**
+
+- **OBS-26:** category routing wiring is upstream; the Assistant SELECT redesign in Build 5 should route by category so the Assistant returns page-appropriate items.
+- **OBS-28:** structured citation surfacing requires the SELECT field additions Build 5 owns; the two findings co-deliver in Build 5.
+- **OBS-29:** Operations as content build framing constrains the Assistant scope; the Assistant is the cross-cutting research helper, not the Operations decision engine.
+
+**Action.** Sprint 2 Build 5 designs the skill-loading mechanism for Assistant runtime. Read environmental-policy-and-innovation SKILL.md (and possibly caros-ledge-platform-intent SKILL.md) at query time; embed relevant sections into system prompt context. Token-budget mitigation likely required (selective skill content loading based on query intent, possibly RAG retrieval over full skill inclusion). Verification: test against the Chrome audit's verified-failing queries ("What CBAM obligations are due in Q2 2026") to confirm response is grounded in platform content, not LLM training data.
+
+---
+
+## OBS-28: Intelligence Assistant citation surfacing structurally impossible (was Assistant F-3)
+
+**Source:** Intelligence Assistant audit 2026-05-18 Sections B + C
+**Phase:** Sprint 2 Tier 3 Build 5 per Sprint 2 plan
+**Priority:** HIGH
+
+The `/api/ask` route SELECTs from `intelligence_items` with the columns `title, summary, why_matters, key_data, category, jurisdictions, transport_modes, priority, status`. It omits `source_id`, `source_url`, `url`, `intersection_summary`, `related_items`, `full_brief`, `format_type`, `urgency_tier`, `topic_tags`. Per environmental-policy-and-innovation "Database Field Emission", these are the fields that ground a brief in a verifiable source and support intersection surfacing. None reach the Assistant. The sources query similarly omits URLs and the source_id linkage. The prompt instructs "Cite specific regulations and data points" as a string-level instruction but the LLM has no URLs or item IDs to cite that route back to platform records. Any cited URL would be a training-data hallucination, not a platform record. Post-processing is absent; the route returns the raw text verbatim with no citation validation. Response shape is `{answer, model}` free text; no `citations` field.
+
+**Cross-references.**
+
+- **OBS-27:** skill loading is the companion Tier 3 fix; both co-deliver in Build 5.
+- **OBS-15 (Briefs cite journal homepages without article-level source context):** the Assistant inherits OBS-15's article-level opacity; Phase 6 ingest owner for field generation, but Build 5 must update the Assistant SELECT to consume the article-level fields once they land.
+- **OBS-26:** category routing wiring is upstream; the SELECT redesign should integrate with category-aware payloads.
+
+**Action.** Sprint 2 Build 5 redesigns the intelligence_items SELECT to include the source attribution and intersection-readiness fields. Adds citation post-processing that validates cited item_ids exist; rejects fabricated citations. Authors response shape that supports structured citations (item_id + source URL + title) routing to platform records. Frontend rendering updated to surface citations as links to /regulations/[slug] or equivalent. Verification: test queries on each page; confirm responses cite specific platform items by id; confirm citations route correctly; confirm response content matches what the user can verify on the linked page.
+
+---
+
+## OBS-29: Operations is a content build, NOT a separate decision-engine UI (was REC-OBS-H)
+
+**Source:** Alignment audit 2026-05-18 Section G, codified in caros-ledge-platform-intent SKILL.md rewrite at 49628a0 (Sections 3, 4, 11)
+**Phase:** Sprint 2 Tier 4 Build 9 (multi-sprint scope) per Sprint 2 plan
+**Priority:** HIGH (framing correction; build scope correction)
+
+The prior version of the platform-intent skill (commit 2429d4a) and the alignment audit authored against it both framed Operations as a separate cross-functional decision-engine UI build. That framing is wrong per the rewritten skill Section 3: Operations surfaces structured content; the customer reads the content and uses the Intelligence Assistant for cross-cutting questions during research; synthesis happens through structured content plus Assistant plus customer judgment, NOT through a separate decision-engine UI. Skill Section 11 lists "Operations as separate decision-engine UI build" as an explicit anti-pattern. Current state: 6 of 7 Operations capabilities per skill Section 3 are ABSENT (regulatory feasibility by region, regional resource availability, labor markets, materials sourcing, infrastructure capacity, operational cost data); only stub gallery with regex chip matchers exists. The Operations build is large because the content is large, not because the product shape requires a separate decision engine.
+
+**Cross-references.**
+
+- **OBS-19 (revised):** the prior Phase 7 / Phase 6 routing on OBS-19 was the same anti-pattern manifestation; the chip-matcher remediations are superseded by Build 9.
+- **OBS-26:** Build 9 depends on Build 4 (category routing wiring) so /operations stops sharing the unfiltered payload with /market.
+- **OBS-27, OBS-28:** the Intelligence Assistant is the cross-cutting answer helper for Operations decisions; Build 9 depends on Build 5 (Assistant quality).
+- **OBS-31:** the original "separate decision-engine UI" framing is one of the anti-pattern instances catalogued for doc cleanup.
+
+**Action.** Sprint 2 Build 9 scopes Operations as a structured content build per the Operations Profile 8-section format defined in environmental-policy-and-innovation. Each of the 7 capabilities is plausibly its own sub-build; total scope is Sprint 2 through Sprint 5 per the platform-intent skill. Anyone scoping a separate decision-engine UI is over-scoping per skill Section 11; surface for operator correction.
+
+---
+
+## OBS-30: Migration 063 column shadowing on `sources.tier` + `sources.jurisdictions`
+
+**Source:** Schema Reconciliation Stage 1 discovery 2026-05-18
+**Phase:** Sprint 2+ (decision required) per Sprint 2 plan
+**Priority:** MEDIUM
+
+Migration 063's `IF NOT EXISTS` column adds silently no-op for `sources.tier` and `sources.jurisdictions` because migration 004 already created them with incompatible types (INT vs TEXT, NOT NULL vs NULL). The 5-axis classification framework's intended schema change for these two columns never took effect. The columns exist; their types do not match what 063 intended. Downstream code that assumes the 063 types (TEXT-keyed tier values, nullable jurisdictions) interacts with 004 types (INT tier, NOT NULL jurisdictions).
+
+**Cross-references.**
+
+- **OBS-25:** discovered during Schema Reconciliation Stage 1; Stage 2 decides the remediation path.
+- **OBS-26:** category routing wiring may inform whether `sources.tier` should align with the canonical four-category split or stay as the INT tier vocabulary.
+
+**Action.** Sprint 2+ decision: option (a) ALTER fix to migrate existing columns to the 063 intended types (requires data migration); option (b) accept divergence and document; option (c) parallel columns with the 063 types living alongside the 004 types. Stage 2 Build 1 may surface a recommendation; operator decides.
+
+---
+
+## OBS-31: Sprint 1 docs contain anti-pattern framings the platform-intent skill was created to prevent (was REC-OBS-I)
+
+**Source:** Alignment audit 2026-05-18 Section G, codified in caros-ledge-platform-intent SKILL.md rewrite at 49628a0
+**Phase:** Sprint 1 doc cleanup pass (this dispatch closes the loop)
+**Priority:** MEDIUM (governance hygiene)
+
+Four Sprint 1 doc artifacts carry framings that the rewritten platform-intent skill Section 11 now lists as anti-patterns. (1) OBS-18 routed Market Intel customer-facing remediation to Phase 7 (admin chrome). (2) OBS-19 routed Operations customer-facing remediation to Phase 7 (admin chrome) or Phase 6 (ingest wiring) and proposed chip-matcher remediations rather than the deeper content build; the implicit framing was Operations as a separate decision-engine UI build. (3) `docs/sprint-1/system-audit-2026-05-18.md` conclusion (line ~314) states "Sprint 1 has shipped substantive infrastructure" without acknowledging the customer-facing value gap was understated. (4) `docs/sprint-1/critical-investigations-2026-05-18.md` sequencing language (lines ~237-252) absorbs customer-facing schedule slip silently. All four artifacts predate the skill rewrite at commit 49628a0.
+
+**Cross-references.**
+
+- **OBS-18, OBS-19:** revised in this doc cleanup dispatch (2026-05-18) to route to Sprint 2 Builds 7 + 9 respectively.
+- **OBS-29:** the Operations as content build framing correction is the substantive resolution behind OBS-19's revision.
+- **caros-ledge-platform-intent SKILL.md** Section 11 (Anti-Patterns): canonical list of forbidden framings.
+
+**Action.** This dispatch (Sprint 2 Build 2 doc cleanup) covers the four artifacts: OBS-18 and OBS-19 revised in place; system-audit-2026-05-18.md gets a Post-Sprint-1 Acknowledgment postscript; critical-investigations-2026-05-18.md gets a Post-Sprint-1 Acknowledgment postscript. Future audits and dispatches inherit the corrected framings via the rewritten skill and the followups doc.
+
+---
+
+## OBS-32: Community sidebar placement contradicts co-equal surface model
+
+**Source:** Alignment audit 2026-05-18 + Chrome live audit; codified by caros-ledge-platform-intent SKILL.md Section 3 (Community as core, co-equal with the four intelligence pages)
+**Phase:** Sprint 2 Tier 4 Build 10 (structural alignment) per Sprint 2 plan
+**Priority:** MEDIUM
+
+The sidebar separates Community from the intelligence-pages block and places it in the account-chrome zone. This visually communicates Community as a sibling app or sub-feature rather than as a core customer-facing surface co-equal with Regulations, Market Intel, Research, and Operations. Per the rewritten platform-intent skill, Community is one of the five customer-facing surfaces and addresses the freight industry information-isolation problem; treating it as account-chrome contradicts the binding model. Chrome divergence on Community entry (OBS-33) compounds the placement issue.
+
+**Cross-references.**
+
+- **OBS-33:** chrome divergence on Community entry; both findings are Build 10 structural alignment scope.
+- **OBS-34:** region taxonomy fork (Community uses friendly names; intelligence surfaces use ISO codes); structural unification under Build 10.
+- **OBS-35:** Community cohort gap (all vendors art-logistics-specific); cohort expansion under Build 10.
+
+**Action.** Sprint 2 Build 10 (Community structural alignment) moves Community from account-chrome zone to intelligence-pages block (co-equal with Regulations, Market Intel, Research, Operations).
+
+---
+
+## OBS-33: Community chrome divergence on entry ("← Back to Caro's Ledge" reflow)
+
+**Source:** Chrome live audit 2026-05-18
+**Phase:** Sprint 2 Tier 4 Build 10 (structural alignment) per Sprint 2 plan
+**Priority:** MEDIUM
+
+Community routes carry a "← Back to Caro's Ledge" navigation reflow that intelligence pages do not carry. The chrome divergence reinforces the placement issue captured in OBS-32: Community visually presents as a separate app the user must navigate back from, rather than as a co-equal surface within the platform.
+
+**Cross-references.**
+
+- **OBS-32:** sidebar placement; both findings are Build 10 structural alignment scope.
+
+**Action.** Sprint 2 Build 10 unifies Community chrome with intelligence pages; the "Back to Caro's Ledge" reflow is removed; Community routes share the same chrome as the four intelligence pages.
+
+---
+
+## OBS-34: Region taxonomy fork between Community and intelligence surfaces
+
+**Source:** Alignment audit 2026-05-18 + Chrome live audit
+**Phase:** Sprint 2 (region taxonomy unification work; can run in Build 10 or as a parallel small dispatch) per Sprint 2 plan
+**Priority:** MEDIUM
+
+Community uses friendly region names (EU/Europe, United Kingdom). Intelligence surfaces use ISO codes (US-CA, AU-ACT). Two vocabularies for the same concept across the platform create cross-surface friction: a Community thread tagged "EU/Europe" does not surface alongside intelligence items tagged `eu`. Region taxonomy unification is required to support cross-surface routing and the eventual Map cross-cutting use (visualizing Community working group presence by region per skill Section 4).
+
+**Cross-references.**
+
+- **OBS-26 (category routing):** category routing wiring may also surface region-keyed filter requirements; coordinate unification with Build 4.
+- **OBS-32, OBS-33:** Build 10 structural alignment; region unification is the data-layer companion to the chrome alignment.
+
+**Action.** Sprint 2 region taxonomy unification: Community adopts ISO codes (or both adopt friendly names; operator decides). Future audit dispatch may surface additional jurisdictional content fields across intelligence_items that require alignment.
+
+---
+
+## OBS-35: Community cohort gap; all vendors art-logistics-specific
+
+**Source:** Alignment audit 2026-05-18, Multi-Tenant Foundation Workstream B post-audit
+**Phase:** Sprint 2+ Community cohort expansion per Sprint 2 plan
+**Priority:** MEDIUM
+
+Community vendor directory entries (Chenue, Mtec, Earthcrate, Rokbox) are all art-logistics-specific. Zero coverage for the broader cohorts the platform-intent skill names as architectural intent (live events, luxury goods, automotive, humanitarian; expansion: broader freight forwarding across air, road, ocean, rail). Working groups currently shipped per Workstream B carry the same cohort narrowness. This is a dual-posture narrowing per the platform-intent skill: Community serves current art-logistics scope only, not expansion-time users.
+
+**Cross-references.**
+
+- **OBS-32, OBS-33, OBS-34:** Build 10 structural alignment; cohort expansion is the content companion to structural alignment.
+- **caros-ledge-platform-intent SKILL.md** "Dual posture is the default": narrowing without flagging is forbidden; this OBS surfaces the narrowing.
+
+**Action.** Sprint 2+ Community cohort expansion: vendor directory and working-group taxonomy extended beyond current art-logistics cohort to cover the broader freight-forwarding cohort per ALL_SECTORS. Coordinates with sector_profile-driven Community group seeding for new workspaces (deferred per operator onboarding de-prioritization; cohort expansion is the prerequisite content work that does not depend on onboarding mechanics).
+
+---
+
+## OBS-36: Regulations taxonomy bleed (industry coalitions and initiatives surfacing under Regulations)
+
+**Source:** Chrome live audit 2026-05-18
+**Phase:** Downstream of OBS-26 category routing wiring (Sprint 2 Tier 3 Build 4) per Sprint 2 plan
+**Priority:** MEDIUM
+
+Gallery Climate Coalition and The Decarb Hub surface under /regulations. Both are industry coalitions/initiatives, not binding regulatory content; they belong under Market Intel or Research per the rewritten platform-intent skill Section 3 (`item_type` in `regulation, directive, standard, guidance, framework` for Regulations; `market_signal, initiative` for Market Intel; `research_finding` for Research). The bleed is a downstream symptom of OBS-26 (category-aware RPCs orphaned; all four intelligence pages share the unfiltered payload). Once Build 4 wires routing correctly with refined mappings, this OBS clears as a side effect.
+
+**Cross-references.**
+
+- **OBS-26:** root cause; Build 4 wires routing and refines mappings.
+
+**Action.** No standalone action required. Build 4 verification includes sampling /regulations to confirm Gallery Climate Coalition + Decarb Hub no longer surface there. If items still bleed post-Build-4, surface as a new OBS for mapping refinement.
+
+---
+
+## OBS-37: Intelligence Assistant inline-interaction redesign (Option B per operator decision)
+
+**Source:** Chrome live audit 2026-05-18, Intelligence Assistant audit Section B
+**Phase:** Sprint 2+ Tier 4 (per-page vs floating Assistant unification) per Sprint 2 plan
+**Priority:** MEDIUM
+
+Per-page `AiPromptBar` instances on /market, /research, /operations, /regulations, /map look scoped (placeholder copy says "Ask anything about market intel" etc.) but the wire is identical to the global floating button. The bars dispatch CustomEvent `open-ask-assistant` with only `{question}` in detail; page, active filters, active tab, category are all dropped. Operator decision documented in Sprint 2 plan: Option B (inline-interaction redesign) is the chosen direction; per-page bars should pass page-scoped context (active filters, current category, item ids in view) into the Assistant payload, and the Assistant should respond in an inline panel rather than the global floating modal where context permits.
+
+**Cross-references.**
+
+- **OBS-27, OBS-28:** Tier 3 skill-loading + citation surfacing fixes are upstream of Tier 4 inline-interaction redesign; Build 5 lands first.
+
+**Action.** Sprint 2+ Tier 4 dispatch redesigns per-page AiPromptBar instances to pass page-scoped context and renders responses inline where context permits.
+
+---
+
+## OBS-38: 26 SECURITY DEFINER functions in operator domain (privilege-escalation surface)
+
+**Source:** Schema Reconciliation Stage 1 discovery 2026-05-18 (operator vs supabase_internal domain split)
+**Phase:** Future audit dispatch (separate workstream) per Sprint 2 plan
+**Priority:** LOW (bounded but worth scheduling)
+
+The operator domain carries 26 SECURITY DEFINER project functions. Each is a privilege-escalation surface: functions execute with the definer's role rather than the caller's, which may bypass RLS in unintended paths. The set has not been audited row by row for whether each function's elevated privileges are necessary for its purpose. Risk is bounded (definer is platform-admin or service-role; functions are scoped to specific domain operations) but the surface area is non-trivial.
+
+**Cross-references.**
+
+- **OBS-17:** /admin route gate scope-mismatch is in the same security family; both surface RLS-vs-route-gate compensation patterns.
+
+**Action.** Future audit dispatch enumerates the 26 functions, classifies each by purpose, flags any whose elevated privileges are not necessary, and proposes remediation (drop SECURITY DEFINER where unnecessary; restrict EXECUTE grants where necessary). Bounded scope; suitable for a separate small audit dispatch.
+
+---
+
+## OBS-39: Map mode toggle "Facility" scope drift per skill Section 4
+
+**Source:** Chrome live audit 2026-05-18, codified by caros-ledge-platform-intent SKILL.md Section 4 (Map is a view of Regulations content; not a separate content category)
+**Phase:** Operator decision (Sprint 2 small dispatch OR skill rescope) per Sprint 2 plan
+**Priority:** LOW
+
+The /map page exposes a "Facility" mode toggle. Per the rewritten platform-intent skill Section 4, Map is a geographic visual layer over Regulations content; it does not surface its own content category. A Facility mode exceeds Regulations scope (facilities are not regulatory content; they are operational entities). Two operator-decision paths: (a) remove "Facility" from the toggle and keep Map as a view of Regulations per skill; (b) formally rescope Map to include Facility data and update the skill Section 4 accordingly.
+
+**Cross-references.**
+
+- **caros-ledge-platform-intent SKILL.md** Section 4 (Map as view of Regulations): the binding framing.
+
+**Action.** Operator decision. If option (a), small dispatch removes Facility from the toggle. If option (b), skill rewrite first (per skill authority grant; framing changes require operator-stated correction with strong emphasis).
+
+---
+
+## OBS-40: Migration 070 file deletion; RPCs intact via 071/073 CREATE OR REPLACE
+
+**Source:** Schema Reconciliation Stage 1 discovery 2026-05-18
+**Phase:** Schema Reconciliation Stage 2 (Sprint 2 Tier 3 Build 1) decision per Sprint 2 plan
+**Priority:** LOW
+
+Migration 070 is recorded in `supabase_migrations.schema_migrations` but the file is deleted from disk. The 5 RPCs that migration 071 references "from 070" all live in the live DB (created via CREATE OR REPLACE in 071 and 073). Schema state is intact; the loss is source-history only (operators cannot inspect the original 070 SQL to understand what was intended).
+
+**Cross-references.**
+
+- **OBS-25:** Schema Reconciliation Stage 2 closure includes this decision.
+
+**Action.** Stage 2 Build 1 decides: (a) reconstruct migration 070 placeholder file from the live RPC definitions (preserves history; operator effort moderate); (b) accept the source-history loss and document. Operator decides during Build 1 dispatch.
+
+---
+
+## OBS-41: Dashboard regulation-centric; does not reflect five-surface model
+
+**Source:** Chrome live audit 2026-05-18
+**Phase:** Sprint 2+ Tier 4 Build 11 (Dashboard five-surface refactor) per Sprint 2 plan
+**Priority:** LOW
+
+The Dashboard surfaces Regulations content prominently with auxiliary tiles for the other surfaces; it does not present the five customer-facing surfaces (Regulations, Market Intel, Research, Operations, Community) as co-equal entry points. Per the rewritten platform-intent skill, the five-surface model is canonical; the Dashboard should reflect it as the entry-point overview rather than a Regulations-skewed view.
+
+**Cross-references.**
+
+- **OBS-26:** Build 11 depends on Build 4 (category routing) so the Dashboard can show differentiated content per surface.
+- **OBS-32:** Build 11 depends on Build 10 (Community structural alignment) so Community appears as co-equal in Dashboard navigation.
+
+**Action.** Sprint 2+ Build 11 (Dashboard five-surface refactor) restructures the Dashboard against the binding five-surface model. Prerequisites: Builds 4 and 10.
+
+---
+
+## OBS-42: `item_supersessions` joined `intelligence_items` rows have missing or test-quality titles
+
+**Source:** Tier 2 UI hygiene investigation 2026-05-18 (surfaced by the "Title pending" fallback fix on Dashboard REPLACED rail)
+**Phase:** Sprint 2 data-quality dispatch per Sprint 2 plan
+**Priority:** LOW
+
+The Tier 2 fix on the Dashboard REPLACED rail (ss1, ss2, ss3, ss5 entries) added a `title` projection to the fetch layer. The root cause was a missing `title` in the SELECT; the joined `intelligence_items` rows themselves may carry test-quality or missing titles that surface elsewhere if/when those rows appear in non-Dashboard contexts.
+
+**Cross-references.**
+
+- **Tier 2 commit (TBD):** the fetch-layer fix; data-layer follow-up is this OBS.
+
+**Action.** Sprint 2 data-quality dispatch enumerates `item_supersessions` rows whose joined `intelligence_items` carry missing or test-quality titles; surfaces for operator triage (rename, archive, or accept).
+
+---
+
+## OBS-43: `/admin` audit log tab placeholder post-Tier-2 state
+
+**Source:** System audit 2026-05-18 (OBS-23 already covers); this entry covers the post-Tier-2 state if it persists
+**Phase:** Sprint 2 per Sprint 2 plan
+**Priority:** LOW
+
+OBS-23 captured the audit log tab placeholder. Tier 2 UI hygiene removed Phase-D leak copy but the tab itself remains a reachable ComingSoonBanner if no further build addresses it. This entry tracks the placeholder state post-Tier-2 for the Sprint 2 small dispatch that picks one of OBS-23's two options (hide the tab until the audit_log read endpoint ships, or implement a minimal read view).
+
+**Cross-references.**
+
+- **OBS-23:** parent finding; this entry is the post-Tier-2 continuation.
+- **OBS-17:** /admin route gate is the upstream surface; Build 6 (`requirePlatformAdmin()`) lands before tab fate is decided.
+
+**Action.** Sprint 2 small dispatch picks one of OBS-23's two options after Build 6 lands.
+
+---
+
+## OBS-44: Tier 1 Assistant decision-engine prompt constraint (Implemented)
+
+**Source:** Intelligence Assistant audit 2026-05-18 (Assistant F-2); Tier 1 fix dispatch
+**Phase:** Tier 1 (shipped)
+**Priority:** Implemented
+**Status:** IMPLEMENTED on `feat/tier1-assistant-constraint` at commit e0b1f98 (pending merge to main per operator decision D1).
+
+The Assistant's `/api/ask` system prompt instructed decision-engine behavior (WHAT TO DO about it, owners, deadlines, per-sector risk grades). Tier 1 prompt surgery constrained the prompt to research-helper framing per caros-ledge-platform-intent SKILL.md Section 4. Live walkthrough evidence (CBAM response with action plan + owners + per-sector risk) confirmed the F-2 finding pre-fix.
+
+**Cross-references.**
+
+- **OBS-27, OBS-28:** Tier 3 fixes (skill loading + citation surfacing) remain open; Tier 1 closed only the prompt drift, not the underlying grounding gap.
+
+**Action.** None pre-merge; operator authorizes merge per Sprint 2 plan operator decision point D1.
+
+---
+
+## OBS-45: Tier 2 UI hygiene fixes batch (Implemented)
+
+**Source:** System audit + Chrome live audit 2026-05-18; Tier 2 fix dispatch
+**Phase:** Tier 2 (shipped)
+**Priority:** Implemented
+**Status:** IMPLEMENTED on `feat/tier2-ui-hygiene` at commit 9b97c3c (pending merge to main per operator decision D1).
+
+Tier 2 closed a batch of customer-facing UI hygiene findings surfaced across the audits:
+
+- Phase-D copy leaks (14 instances): /research load-more, /research source coverage matrix, OnboardingWizard LinkedIn card, Community search toast, Community events backend, Community vendors backend, reactions API route copy, Settings notifications (Phase-C/D), BriefingScheduleSection, SavedSearchesSection, UserProfilePage (multiple), Community Post reactions, Moderation actions (PHASE_D_NOTE_MUTE constant + Phase D fallback toast), Operations ComingSoonBanner
+- Database identifier leaks (4+ instances): /market intelligence_items.market_data, /market action_owner, "ingest" / "source monitoring system" leaks (WatchlistSidebar + RegionalIntelligence)
+- Worker-language leaks (5+ instances): /market EmptyState (item_type), /regulations detail (ingestion worker populates penalty_range), /operations (regional_data + multiple), Affected Lanes worker-language /regulations detail (Tier 2 supplementary)
+- Duplicate Technology category on /market: render-layer key collision between topic + fallback string
+- Dashboard REPLACED rail test/seed data (ss1, ss2, ss3, ss5): fetch-layer omission of `title`; legacy_id leaked as display (root cause: missing `title` projection)
+- Assistant static self-description omitted Research + Community surfaces (Tier 2 supplementary)
+
+**Cross-references.**
+
+- **OBS-20:** /market EmptyState worker-language; closed via Tier 2 (full sector-anchored copy remains Sprint 2 Build 7 follow-up).
+- **OBS-42:** Dashboard REPLACED rail fix surfaces upstream data-quality follow-up.
+- **caros-ledge-platform-intent SKILL.md** Section 11 (Anti-Patterns): phase-language leaking to customer-facing UI is an explicit anti-pattern; Tier 2 closed the leaks.
+
+**Action.** None pre-merge; operator authorizes merge per Sprint 2 plan operator decision point D1.
+
+---
+
+## OBS-46: Onboarding sector destination fix (Implemented)
+
+**Source:** Onboarding audit 2026-05-18; Onboarding fix dispatch
+**Phase:** Onboarding fix (shipped)
+**Priority:** Implemented
+**Status:** IMPLEMENTED on `fix/onboarding-sector-destination` at commit c42db14 (pending merge to main per operator decision D1).
+
+The OnboardingWizard wrote sector overrides to the wrong column (per-user composition layer was unwired). The fix corrects the persistence to `profiles.sector_overrides` and deletes the orphan SectorOnboarding.tsx. Other onboarding gaps remain DEFERRED per operator direction (email-delivered invitations, LinkedIn import, chrome polish on NoWorkspaceLanding, sector taxonomy expansion in wizard, invitation-accept includes wizard).
+
+**Cross-references.**
+
+- **caros-ledge-platform-intent SKILL.md** Section 4 (Onboarding flow): onboarding is cross-cutting; this fix preserves the sector_profile customization path for expansion-time users.
+
+**Action.** None pre-merge; operator authorizes merge per Sprint 2 plan operator decision point D1.
+
+---
+
+## OBS-47: `recurring_spot_check_log` phantom finding (Cleared)
+
+**Source:** Schema Reconciliation Stage 1 discovery 2026-05-18 (corrective source); earlier framing in critical-investigations-2026-05-18.md was incorrect
+**Phase:** N/A
+**Priority:** Cleared
+**Status:** CLEARED 2026-05-18 doc cleanup pass.
+
+The earlier critical investigation (`docs/sprint-1/critical-investigations-2026-05-18.md`) framed `recurring_spot_check_log` as a code-references-but-no-migration-source case requiring author migration or remove code references. Schema Reconciliation Stage 1 discovery confirmed the table is a phantom: no live table, no migration file anywhere, and a grep across `fsi-app/src` finds zero references. The audit-script's `expectedTables` array misframed it as a finding. No remediation required.
+
+The corrective source is `docs/sprint-1/schema-reconciliation-discovery-2026-05-18.md` ("One alleged code-source drift is a phantom"). Future audits should not include `recurring_spot_check_log` in expected-tables enumeration.
+
+**Cross-references.**
+
+- **OBS-25:** Schema Reconciliation Stage 1/2 work; this Cleared annotation is the doc-loop closure for the phantom finding the original Critical #2 framing surfaced.
+
+**Action.** None. Update any audit-script `expectedTables` array to remove `recurring_spot_check_log` if/when next touched.

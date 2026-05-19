@@ -269,3 +269,17 @@ Phase 7 design is blocked: `integrity_flags` does not exist as a Phase 7 surface
 - PR #122 merge recommendation: PROCEED with caveat.
 - Proposed OBS-24 (trigger semantic gap) and OBS-25 (schema ledger drift) NOT YET ADDED; operator authorizes.
 - Phase 6 and Phase 7 design dispatches HELD pending operator decisions on the above.
+
+---
+
+## Post-Sprint-1 Acknowledgment (added 2026-05-18 doc cleanup)
+
+The sequencing language at lines ~237-252 above ("Phase 6 design CAN proceed... Recommend reconciliation first... Phase 7 design dispatch proceeds in parallel with Phase 6 once integrity_flags exists") absorbed customer-facing schedule slip silently. The recommended sequence (Stage 2 reconciliation, then Phase 6 design, then Phase 7 design) advanced foundation work without naming that none of those phases close any customer-facing surface. The Chrome live audit (operator-conducted, 2026-05-18) made the cost of that silence concrete: customer-visible pages were broken in ways the Phase 6 + Phase 7 sequence would not have addressed.
+
+The caros-ledge-platform-intent SKILL.md was rewritten at commit 49628a0 specifically to forbid this anti-pattern. Section 11 (Anti-Patterns) lists: "Phase 7 will fix Market Intel / Research / Operations / Community" (Phase 7 is admin chrome and operator triage UI, not customer-facing surfaces); "Phase 6 will fix customer-facing surfaces" (Phase 6 is ingest wiring, not customer-facing UX); "Silently absorbing schedule slip for customer-facing surfaces when infrastructure work expands." All three apply to this investigation's sequencing language.
+
+The corrective decision (operator direction, 2026-05-18) deferred onboarding mechanics explicitly and prioritized customer-facing surface builds via the Sprint 2 plan at `docs/sprint-2/sprint-2-planning-2026-05-18.md`. The Sprint 2 plan enumerates Builds 4 (category routing wiring), 5 (Intelligence Assistant Tier 3 fixes), 7 (Market Intel), 8 (Research), 9 (Operations), 10 (Community structural alignment), and 11 (Dashboard five-surface refactor) as the work that actually closes the customer-facing value gap. Stage 2 schema reconciliation (Build 1) and migration 083 (Build 3) remain prerequisites for the Tier 3 + Tier 4 work, but the operator-experience reality is that the customer-facing surfaces, not Phase 6 / Phase 7, are what users see.
+
+Future critical investigations should emit the Value Delivery Check section per the platform-intent skill, name the customer-facing schedule impact explicitly when foundation work expands, and not absorb the slip silently in a "recommended sequence" framing.
+
+This postscript does not modify the original investigation's findings (Critical #1 and Critical #2 root causes are accurate; Stage 1 reconciliation later refined #2 from "25 unrecorded migrations + integrity_flags missing + recurring_spot_check_log absent" to "23 fully-applied out-of-band + 048 + 049 genuinely unapplied + recurring_spot_check_log is a phantom"). It clarifies that the sequencing recommendation absorbed customer-facing slip.
