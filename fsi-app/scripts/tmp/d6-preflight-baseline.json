@@ -1,0 +1,238 @@
+{
+  "rpc_bodies": [
+    {
+      "proname": "get_market_intel_items",
+      "def": "CREATE OR REPLACE FUNCTION public.get_market_intel_items(p_org_id uuid)\n RETURNS TABLE(id uuid, legacy_id text, title text, summary text, what_is_it text, why_matters text, key_data text[], tags text[], domain integer, category text, item_type text, source_id uuid, source_url text, jurisdictions text[], transport_modes text[], verticals text[], status text, severity text, confidence text, priority text, entry_into_force date, compliance_deadline date, next_review_date date, added_date date, last_verified timestamp with time zone, is_archived boolean, effective_priority text, effective_archived boolean)\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  PERFORM public._assert_org_membership(p_org_id);\r\n  RETURN QUERY\r\n  SELECT\r\n    ii.id, ii.legacy_id, ii.title, ii.summary, ii.what_is_it, ii.why_matters,\r\n    ii.key_data, ii.tags, ii.domain, ii.category, ii.item_type,\r\n    ii.source_id, ii.source_url, ii.jurisdictions, ii.transport_modes,\r\n    ii.verticals, ii.status, ii.severity, ii.confidence, ii.priority,\r\n    ii.entry_into_force, ii.compliance_deadline, ii.next_review_date,\r\n    ii.added_date, ii.last_verified, ii.is_archived,\r\n    ii.effective_priority, ii.effective_archived\r\n  FROM public._workspace_active_items(p_org_id) ii\r\n  JOIN public.sources s ON s.id = ii.source_id\r\n  WHERE s.source_role IN (\r\n      'trade_press',\r\n      'industry_data_provider',\r\n      'vendor_corporate',\r\n      'industry_association'\r\n    )\r\n  ORDER BY\r\n    CASE ii.effective_priority\r\n      WHEN 'CRITICAL' THEN 1\r\n      WHEN 'HIGH'     THEN 2\r\n      WHEN 'MODERATE' THEN 3\r\n      WHEN 'LOW'      THEN 4\r\n      ELSE 5\r\n    END,\r\n    ii.added_date DESC,\r\n    ii.id ASC;\r\nEND;\r\n$function$\n"
+    },
+    {
+      "proname": "get_operations_items",
+      "def": "CREATE OR REPLACE FUNCTION public.get_operations_items(p_org_id uuid)\n RETURNS TABLE(id uuid, legacy_id text, title text, summary text, what_is_it text, why_matters text, key_data text[], tags text[], domain integer, category text, item_type text, source_id uuid, source_url text, jurisdictions text[], transport_modes text[], verticals text[], status text, severity text, confidence text, priority text, entry_into_force date, compliance_deadline date, next_review_date date, added_date date, last_verified timestamp with time zone, is_archived boolean, effective_priority text, effective_archived boolean)\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  PERFORM public._assert_org_membership(p_org_id);\r\n  RETURN QUERY\r\n  SELECT\r\n    ii.id, ii.legacy_id, ii.title, ii.summary, ii.what_is_it, ii.why_matters,\r\n    ii.key_data, ii.tags, ii.domain, ii.category, ii.item_type,\r\n    ii.source_id, ii.source_url, ii.jurisdictions, ii.transport_modes,\r\n    ii.verticals, ii.status, ii.severity, ii.confidence, ii.priority,\r\n    ii.entry_into_force, ii.compliance_deadline, ii.next_review_date,\r\n    ii.added_date, ii.last_verified, ii.is_archived,\r\n    ii.effective_priority, ii.effective_archived\r\n  FROM public._workspace_active_items(p_org_id) ii\r\n  JOIN public.sources s ON s.id = ii.source_id\r\n  WHERE s.source_role = 'statistical_data_agency'\r\n  ORDER BY\r\n    CASE ii.effective_priority\r\n      WHEN 'CRITICAL' THEN 1\r\n      WHEN 'HIGH'     THEN 2\r\n      WHEN 'MODERATE' THEN 3\r\n      WHEN 'LOW'      THEN 4\r\n      ELSE 5\r\n    END,\r\n    ii.added_date DESC,\r\n    ii.id ASC;\r\nEND;\r\n$function$\n"
+    },
+    {
+      "proname": "get_research_items",
+      "def": "CREATE OR REPLACE FUNCTION public.get_research_items(p_org_id uuid)\n RETURNS TABLE(id uuid, legacy_id text, title text, summary text, what_is_it text, why_matters text, key_data text[], tags text[], domain integer, category text, item_type text, source_id uuid, source_url text, jurisdictions text[], transport_modes text[], verticals text[], status text, severity text, confidence text, priority text, entry_into_force date, compliance_deadline date, next_review_date date, added_date date, last_verified timestamp with time zone, is_archived boolean, effective_priority text, effective_archived boolean)\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  PERFORM public._assert_org_membership(p_org_id);\r\n  RETURN QUERY\r\n  SELECT\r\n    ii.id, ii.legacy_id, ii.title, ii.summary, ii.what_is_it, ii.why_matters,\r\n    ii.key_data, ii.tags, ii.domain, ii.category, ii.item_type,\r\n    ii.source_id, ii.source_url, ii.jurisdictions, ii.transport_modes,\r\n    ii.verticals, ii.status, ii.severity, ii.confidence, ii.priority,\r\n    ii.entry_into_force, ii.compliance_deadline, ii.next_review_date,\r\n    ii.added_date, ii.last_verified, ii.is_archived,\r\n    ii.effective_priority, ii.effective_archived\r\n  FROM public._workspace_active_items(p_org_id) ii\r\n  JOIN public.sources s ON s.id = ii.source_id\r\n  WHERE (\r\n      s.source_role IN ('intergovernmental_body', 'academic_research')\r\n      OR (s.source_role = 'standards_body' AND COALESCE(ii.status, 'monitoring') NOT IN ('in_force', 'adopted'))\r\n      OR (s.source_role = 'primary_legal_authority' AND ii.status = 'proposed')\r\n    )\r\n  ORDER BY\r\n    CASE ii.effective_priority\r\n      WHEN 'CRITICAL' THEN 1\r\n      WHEN 'HIGH'     THEN 2\r\n      WHEN 'MODERATE' THEN 3\r\n      WHEN 'LOW'      THEN 4\r\n      ELSE 5\r\n    END,\r\n    ii.added_date DESC,\r\n    ii.id ASC;\r\nEND;\r\n$function$\n"
+    }
+  ],
+  "sources_role_distribution": [
+    {
+      "source_role": "primary_legal_authority",
+      "n": 507
+    },
+    {
+      "source_role": "intergovernmental_body",
+      "n": 77
+    },
+    {
+      "source_role": "academic_research",
+      "n": 50
+    },
+    {
+      "source_role": "statistical_data_agency",
+      "n": 39
+    },
+    {
+      "source_role": "__NULL__",
+      "n": 39
+    },
+    {
+      "source_role": "trade_press",
+      "n": 29
+    },
+    {
+      "source_role": "industry_association",
+      "n": 26
+    },
+    {
+      "source_role": "standards_body",
+      "n": 16
+    },
+    {
+      "source_role": "vendor_corporate",
+      "n": 7
+    },
+    {
+      "source_role": "industry_data_provider",
+      "n": 3
+    },
+    {
+      "source_role": "government_press",
+      "n": 1
+    }
+  ],
+  "totals": {
+    "sources_total": 794,
+    "active_items": 644
+  },
+  "org_id": "a0000000-0000-0000-0000-000000000001",
+  "get_market_intel_items_error": "Authentication required",
+  "get_research_items_error": "Authentication required",
+  "get_operations_items_error": "Authentication required",
+  "exception_matches": {
+    "intergov_to_regs": [
+      {
+        "id": "a5697e5f-377a-4226-a00f-2488a20b1ddb",
+        "name": "IMDG Code — IMO Dangerous Goods",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "b550de65-5e9a-451b-89ee-daf240551859",
+        "name": "IMO ISPS Code",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "68cbe865-33fb-4d56-b79f-4a39393bed22",
+        "name": "International Civil Aviation Organization (ICAO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "f7360ba7-5b98-4967-826d-6fd1961f1a62",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "70aea436-0087-49f2-a6c4-0b273eb1972c",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "65d53daf-bcd6-4081-aa36-fe8f40be41cd",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "eafcc677-0153-4a86-9b7b-18fee1e6044b",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "64f5f70d-1443-45e4-a5fa-51756499f9ee",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "2c88abc4-7564-4aca-9575-59404ba2d965",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "04c4aeca-ae1f-47f8-91a1-53ec4c12d2e0",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "357d58d1-bf83-4882-983d-9217728e4edf",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "b2c2b6fd-3127-438e-a050-fc0417a3c60d",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "920e84dd-cd56-429f-8ac5-b0b76aaab028",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "669899ef-7c42-4c53-a809-b19f59eed777",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "72a1868d-3567-4d2e-97bf-3f6a83b45eaf",
+        "name": "International Maritime Organization (IMO)",
+        "source_role": "intergovernmental_body"
+      },
+      {
+        "id": "2d0d2d7f-acee-4cc7-a887-30ae581bb7f8",
+        "name": "International Maritime Organization (IMO) / Republic of Korea Partnership Project",
+        "source_role": "intergovernmental_body"
+      }
+    ],
+    "trade_press_to_research": [
+      {
+        "id": "6faa1d15-e7b5-44bf-95b7-df9334cdb7c9",
+        "name": "BizClik Media (Supply Chain Digital)",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "111c637d-49b3-4ab2-b7bf-5dcb6aa8e114",
+        "name": "FreightWaves",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "9e5ff2fe-94be-4225-a7fa-7b77a0453e79",
+        "name": "FreightWaves",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "de15227a-ce56-49f5-8ebb-8758c5794d67",
+        "name": "FreightWaves",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "d55e91db-dc9b-42a9-9854-ddd4f1d670ee",
+        "name": "FreightWaves",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "1ed3f79c-9d4c-4ae7-a443-0683edbd7f47",
+        "name": "GreenBiz",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "d96111d4-b9e7-432a-a9b4-ee79fc4dee1d",
+        "name": "GreenBiz (Trellis Group)",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "928dd768-e5f0-4a71-8157-9335df8116db",
+        "name": "Reuters Sustainable Business",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "b2588399-4cf6-40fc-9129-3f9b44c4b356",
+        "name": "Splash247",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "295fba96-2a55-4430-a5b5-3548992c6df4",
+        "name": "Splash247",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "96f795c2-97fa-4f6e-84d8-cf3b158c8e14",
+        "name": "Splash247 (Asia Shipping Media)",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "9f11c216-6ce6-44ca-831f-f70528b17e1b",
+        "name": "The Loadstar",
+        "source_role": "trade_press"
+      },
+      {
+        "id": "0b049c06-e6aa-483a-ae65-048d1afb0068",
+        "name": "The Loadstar",
+        "source_role": "trade_press"
+      }
+    ],
+    "stat_agency_to_research": [
+      {
+        "id": "5ef07695-889c-40f8-a488-00b2f702f5b1",
+        "name": "Carbon Trust",
+        "source_role": "statistical_data_agency"
+      },
+      {
+        "id": "6d184dc2-fc25-403f-b14d-32f48637aac8",
+        "name": "Carbon Trust",
+        "source_role": "statistical_data_agency"
+      },
+      {
+        "id": "971e661f-4c7b-4639-98cd-3489e7150d5a",
+        "name": "Project Drawdown (drawdown.org)",
+        "source_role": "statistical_data_agency"
+      }
+    ]
+  }
+}
