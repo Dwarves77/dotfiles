@@ -811,57 +811,25 @@ export async function fetchResearchPipelineRows(
 // Sustainability"). When the canonical-category schema column lands
 // post-Sprint-2, this src-side filter retires in favour of the column.
 
-const RESEARCH_BOUND_INTERGOV: readonly string[] = ["imo", "icao"];
+// D6 resolution (migration 084, commit pending): the source-to-category
+// mapping that used to live as name-pattern exception lists here has been
+// ported into the canonical sources.category column. The three RPCs
+// (get_market_intel_items, get_research_items, get_operations_items) now
+// query sources.category directly. The src-side fetchers below just call
+// the RPCs and trust their output.
+//
+// The status-conditional logic for standards_body and primary_legal_authority
+// items (which can route to Research based on item-level status even when
+// their source's default category is regulatory) is preserved inside
+// get_research_items per migration 084.
+//
+// Adding new sources or new source categories is now a DATA entry on the
+// sources record, not a code change here. Build 7 (Market Intel signal
+// aggregation) and future source additions benefit from this.
 
-const RESEARCH_BOUND_TRADE_PRESS: readonly string[] = [
-  "freightwaves",
-  "loadstar",
-  "greenbiz",
-  "environmental finance",
-  "splash247",
-  "supply chain digital",
-  "edie",
-  "reuters sustainable business",
-];
-
-const RESEARCH_BOUND_STAT_AGENCY: readonly string[] = [
-  "carbon trust",
-  "project drawdown",
-];
-
-function nameMatchesAny(name: string | null, patterns: readonly string[]): boolean {
-  if (!name) return false;
-  const lower = name.toLowerCase();
-  return patterns.some((p) => lower.includes(p));
-}
-
-// Build a uuid → sources.name map for every source_id present in the
-// supplied RPC rows. Single round-trip to the sources table; bounded by
-// the number of distinct source_ids in the page payload.
-async function fetchSourceNameMap(
-  sourceIds: string[]
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  if (!sourceIds.length) return map;
-  try {
-    const supabase = getServiceSupabase();
-    const { data } = await supabase
-      .from("sources")
-      .select("id, name")
-      .in("id", sourceIds);
-    (data || []).forEach((row: any) => {
-      if (row?.id) map.set(row.id, row.name || "");
-    });
-  } catch (e) {
-    console.error("fetchSourceNameMap failed:", e);
-  }
-  return map;
-}
-
-// Translate one RPC row (slim+ shape returned by get_*_items orphan RPCs)
-// into a Resource. Mirrors fetchWorkspaceResources's mapper, minus the
-// timeline join (the category-routed surfaces render row-level metadata,
-// not timelines).
+// Translate one RPC row (slim+ shape returned by get_*_items RPCs) into a
+// Resource. Mirrors fetchWorkspaceResources's mapper, minus the timeline join
+// (the category-routed surfaces render row-level metadata, not timelines).
 function rpcRowToResource(row: any): Resource {
   return {
     id: row.legacy_id || row.id,
@@ -894,19 +862,18 @@ export interface CategoryRoutedResult {
   total: number;
 }
 
-// Internal helper. Calls an orphan RPC, fetches the joined source names,
-// applies the exception filter, and projects to Resource[].
+// Internal helper. Calls the category-routing RPC; projects rows to
+// Resource[]. The RPC body itself enforces routing via sources.category
+// (migration 084); no src-side filtering needed.
 async function runCategoryRpc(
   orgId: string | null,
   rpcName:
     | "get_market_intel_items"
     | "get_research_items"
-    | "get_operations_items",
-  exclude: { byName?: readonly string[] } = {},
-  include: { extras?: Resource[] } = {}
+    | "get_operations_items"
 ): Promise<CategoryRoutedResult> {
   if (!isSupabaseConfigured() || !orgId) {
-    return { resources: include.extras || [], total: (include.extras || []).length };
+    return { resources: [], total: 0 };
   }
   try {
     const serviceClient = getServiceSupabase();
@@ -915,139 +882,37 @@ async function runCategoryRpc(
     });
     if (error || !rows) {
       console.error(`[category-routing] ${rpcName} error:`, error);
-      return { resources: include.extras || [], total: (include.extras || []).length };
+      return { resources: [], total: 0 };
     }
-
-    // Build the name map for exclusion testing in one round-trip.
-    const sourceIds: string[] = Array.from(
-      new Set(
-        (rows as any[])
-          .map((r) => r.source_id)
-          .filter((id: any) => typeof id === "string")
-      )
-    );
-    const nameMap = await fetchSourceNameMap(sourceIds);
-
-    const excludePatterns = exclude.byName || [];
-    const filtered: Resource[] = [];
-    for (const row of rows as any[]) {
-      const sourceName = row.source_id ? nameMap.get(row.source_id) || "" : "";
-      if (excludePatterns.length && nameMatchesAny(sourceName, excludePatterns)) {
-        continue;
-      }
-      filtered.push(rpcRowToResource(row));
-    }
-
-    // Merge in any extras (used by Research to pull in trade_press +
-    // statistical_data_agency items that route to Research per the skill).
-    const combined = include.extras ? [...filtered, ...include.extras] : filtered;
-    // Deduplicate by id (extras may share ids with the primary RPC return
-    // in the unlikely-but-possible case of duplicate source registrations).
-    const seen = new Set<string>();
-    const deduped: Resource[] = [];
-    for (const r of combined) {
-      if (seen.has(r.id)) continue;
-      seen.add(r.id);
-      deduped.push(r);
-    }
-
-    return { resources: deduped, total: deduped.length };
+    const resources = (rows as any[]).map(rpcRowToResource);
+    return { resources, total: resources.length };
   } catch (e) {
     console.error(`[category-routing] ${rpcName} failed:`, e);
-    return { resources: include.extras || [], total: (include.extras || []).length };
+    return { resources: [], total: 0 };
   }
 }
 
-// /market fetcher. Pulls get_market_intel_items (trade_press +
-// industry_data_provider + vendor_corporate + industry_association) MINUS
-// the trade-press outlets that the skill routes to Research.
+// /market fetcher. RPC filters on sources.category = 'market_news'.
 export async function fetchMarketIntelItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_market_intel_items", {
-    byName: RESEARCH_BOUND_TRADE_PRESS,
-  });
+  return runCategoryRpc(orgId, "get_market_intel_items");
 }
 
-// /research fetcher. Pulls get_research_items (intergovernmental_body +
-// academic_research + standards_body for non-in-force standards +
-// proposed primary legal authority) MINUS IMO + ICAO (skill routes those
-// to Regulations). Then pulls the additional trade-press outlets and the
-// statistical_data_agency Research-bound outlets (Carbon Trust, Project
-// Drawdown) from their native RPCs and merges them in.
+// /research fetcher. RPC filters on sources.category = 'research' OR the
+// item-level status conditionals for standards_body and primary_legal_authority
+// (preserved from the original 070/073 RPC; per migration 084).
 export async function fetchResearchItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
-  if (!isSupabaseConfigured() || !orgId) {
-    return { resources: [], total: 0 };
-  }
-  try {
-    const serviceClient = getServiceSupabase();
-    const [marketRes, opsRes] = await Promise.all([
-      serviceClient.rpc("get_market_intel_items", { p_org_id: orgId }),
-      serviceClient.rpc("get_operations_items", { p_org_id: orgId }),
-    ]);
-
-    // Collect source_ids from extras candidates.
-    const extraCandidates: any[] = [];
-    if (!marketRes.error && marketRes.data) {
-      extraCandidates.push(...(marketRes.data as any[]));
-    }
-    if (!opsRes.error && opsRes.data) {
-      extraCandidates.push(...(opsRes.data as any[]));
-    }
-
-    const extraSourceIds: string[] = Array.from(
-      new Set(
-        extraCandidates
-          .map((r) => r.source_id)
-          .filter((id: any) => typeof id === "string")
-      )
-    );
-    const extraNameMap = await fetchSourceNameMap(extraSourceIds);
-
-    // Filter market-intel rows down to ONLY the Research-bound trade-press
-    // outlets, and operations rows down to ONLY the Research-bound
-    // statistical-data-agency outlets.
-    const marketExtras: Resource[] = [];
-    if (!marketRes.error && marketRes.data) {
-      for (const row of marketRes.data as any[]) {
-        const name = row.source_id ? extraNameMap.get(row.source_id) || "" : "";
-        if (nameMatchesAny(name, RESEARCH_BOUND_TRADE_PRESS)) {
-          marketExtras.push(rpcRowToResource(row));
-        }
-      }
-    }
-    const opsExtras: Resource[] = [];
-    if (!opsRes.error && opsRes.data) {
-      for (const row of opsRes.data as any[]) {
-        const name = row.source_id ? extraNameMap.get(row.source_id) || "" : "";
-        if (nameMatchesAny(name, RESEARCH_BOUND_STAT_AGENCY)) {
-          opsExtras.push(rpcRowToResource(row));
-        }
-      }
-    }
-
-    return runCategoryRpc(
-      orgId,
-      "get_research_items",
-      { byName: RESEARCH_BOUND_INTERGOV },
-      { extras: [...marketExtras, ...opsExtras] }
-    );
-  } catch (e) {
-    console.error("fetchResearchItems failed:", e);
-    return { resources: [], total: 0 };
-  }
+  return runCategoryRpc(orgId, "get_research_items");
 }
 
-// /operations fetcher. Pulls get_operations_items (statistical_data_agency)
-// MINUS Carbon Trust and Project Drawdown (skill routes those to Research).
+// /operations fetcher. RPC filters on sources.category = 'operational_data'.
 export async function fetchOperationsItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_operations_items", {
-    byName: RESEARCH_BOUND_STAT_AGENCY,
-  });
+  return runCategoryRpc(orgId, "get_operations_items");
 }
 
 // ── Master Fetch ─────────────────────────────────────────────

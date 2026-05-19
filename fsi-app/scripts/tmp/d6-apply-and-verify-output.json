@@ -1,0 +1,1945 @@
+{
+  "pre": {
+    "market": [
+      {
+        "id": "79e73a30-8e06-4702-98d9-80ec2a3514ad",
+        "title": "Gallery Climate Coalition: International Art Sector Sustainability Initiative and Carbon Accounting Framework",
+        "source_name": "Gallery Climate Coalition (about + resources)"
+      },
+      {
+        "id": "1f006cfa-e1ce-401a-9d82-999cdbc85d64",
+        "title": "CER Sustainability Topics Landing Page",
+        "source_name": "CER – Community of European Railway and Infrastructure Companies"
+      },
+      {
+        "id": "bd6bc712-a684-4f11-b6fc-7e782f6f01be",
+        "title": "ICOM-CC International Conservation Professionals Network - 2026 Conference and Membership Information",
+        "source_name": "ICOM Committee for Conservation (ICOM-CC)"
+      },
+      {
+        "id": "d0d76892-0145-486a-8bd2-d150a45f01cb",
+        "title": "American Alliance of Museums - Professional Resources and Museum Excellence Framework",
+        "source_name": "American Alliance of Museums (AAM)"
+      },
+      {
+        "id": "02da3c3c-6c28-4a2d-bdc0-0831cecab90e",
+        "title": "International Institute for Conservation - Professional Guidance and Standards for Historic and Artistic Works Conservation",
+        "source_name": "International Institute for Conservation (IIC)"
+      },
+      {
+        "id": "05b786f8-8753-4e81-923e-ee9d76c56609",
+        "title": "EcoVadis: Enterprise Sustainability Intelligence and Ratings Platform Overview",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "bdc42a68-baab-438b-a41f-3c68421fd79c",
+        "title": "FIATA",
+        "source_name": "FIATA Sustainability"
+      },
+      {
+        "id": "19f08fcc-5f81-44cc-b3db-fe25f1717845",
+        "title": "EcoVadis",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "6c59d250-5658-406b-b313-ca38b7b4915f",
+        "title": "EcoVadis 2025 Purpose Report: $2.5T Global Spend Now Governed by Sustainability Risk Insights",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "c18a8545-8a73-42ea-8daf-8b90faddbaff",
+        "title": "Maritime CCS Infrastructure Expansion and IMO Net-Zero Framework Development Accelerate in May 2026",
+        "source_name": "Maritime Carbon Intelligence"
+      },
+      {
+        "id": "3ed4f908-cc26-4bdd-ad6f-64cfb6b49cbe",
+        "title": "BloombergNEF Energy Storage Market Enters 100-Gigawatt Era with Emerging Trade and Industrial Policy Impacts",
+        "source_name": "BloombergNEF Energy Storage"
+      },
+      {
+        "id": "8ac4846b-753c-4fe1-af68-0ccd4b647a41",
+        "title": "American Trucking Associations",
+        "source_name": "American Trucking Associations"
+      },
+      {
+        "id": "23cf67df-1fc5-47e0-9acc-3e37ceac91c5",
+        "title": "CLECAT Strategic Priorities 2024-2029 and EU Transport Regulation Updates",
+        "source_name": "CLECAT (European Forwarder Federation)"
+      },
+      {
+        "id": "6a8036a0-41b5-4aa3-a118-5ac05f1f4e71",
+        "title": "Community of European Railways - Organizational Overview",
+        "source_name": "CER – Community of European Railway and Infrastructure Companies"
+      },
+      {
+        "id": "29132ca6-9172-45ab-95c2-e7fd7b8aa62a",
+        "title": "European Clean Trucking Alliance",
+        "source_name": "European Clean Trucking Alliance (ECTA)"
+      },
+      {
+        "id": "58bf0406-3be9-45bd-a2c8-b7c9d0b5c1a4",
+        "title": "European Clean Trucking Alliance",
+        "source_name": "European Clean Trucking Alliance (ECTA)"
+      },
+      {
+        "id": "831f9e63-42a9-4546-9bc6-281e04cea4f6",
+        "title": "Getting to Zero: Green Corridors",
+        "source_name": "Global Maritime Forum"
+      },
+      {
+        "id": "577f9536-6c8d-4ba8-a1d6-e50026f73f6d",
+        "title": "Julie's Bicycle May 2026 Sector Opportunities and BFI Sustainable Screen Programme Expansion",
+        "source_name": "Julie's Bicycle"
+      },
+      {
+        "id": "7ae06612-5467-40ca-a9b3-e6dc14601b44",
+        "title": "First Movers Coalition - WEF Global Sustainability Initiative",
+        "source_name": "World Economic Forum"
+      },
+      {
+        "id": "e227e2c4-c486-4e33-a08f-7e500ec2d4fe",
+        "title": "EU Cross-Border Transport Rules Extend to Vans from July 1, 2026: Key Compliance Requirements",
+        "source_name": "IRU Environment"
+      },
+      {
+        "id": "aea2e314-8969-4242-b4cf-54223707bdfb",
+        "title": "GHG Protocol",
+        "source_name": "GHG Protocol"
+      },
+      {
+        "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+        "title": "Global Maritime Forum Green Corridors Initiative: 50+ Trade Routes Catalyzing Zero-Emission Shipping Transition",
+        "source_name": "Global Maritime Forum (manager of the Getting to Zero Coalition)"
+      },
+      {
+        "id": "80329428-319b-40ca-9bc9-5a11cea2ee33",
+        "title": "Seatrade Maritime News Feed - Global Shipping Market Intelligence",
+        "source_name": "Seatrade Maritime News"
+      },
+      {
+        "id": "9333c734-7943-4777-b3bd-d1736a3ba6e6",
+        "title": "EV Market Digest: Tesla Event Postponement, GM V2H Systems, Regional EV Sales Growth, and Pricing Pressures (May 2026)",
+        "source_name": "Electrek"
+      },
+      {
+        "id": "8107ba33-30e8-4e73-bee2-dd967f995114",
+        "title": "EcoVadis Sustainability Platform: Comprehensive ESG & Supply Chain Compliance Solution",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "06d01f75-0ed1-43cc-ac06-390d812c7fe4",
+        "title": "Thomson Reuters Regulatory Intelligence Platform - Global Compliance Monitoring Solution",
+        "source_name": "Thomson Reuters Regulatory Intelligence"
+      },
+      {
+        "id": "52eadc84-b3ea-4a80-8173-30b7d5435d4f",
+        "title": "EcoVadis Blog",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "d30bc25d-11cf-48bb-b987-989e060f8c6b",
+        "title": "CDP Supply Chain",
+        "source_name": "CDP Supply Chain"
+      },
+      {
+        "id": "be729a3a-df16-4010-a269-ba1dbf7a8692",
+        "title": "JOC (Journal of Commerce)",
+        "source_name": "Journal of Commerce (S&P Global)"
+      },
+      {
+        "id": "9fe7578b-b019-4b92-ad0b-57a93e0c51a9",
+        "title": "Lloyd's List Maritime Intelligence: Hormuz Crisis Drives Tanker Demand and Route Optimization",
+        "source_name": "Lloyd's List"
+      },
+      {
+        "id": "3fb2905b-35b8-4fe9-b52c-28ae12df3ff0",
+        "title": "Sustainability Magazine",
+        "source_name": "BizClik Media (Sustainability Magazine)"
+      },
+      {
+        "id": "5fec12c6-23be-4a7f-b2d3-4b8e9faadc22",
+        "title": "IATA Sustainable Aviation Fuel (SAF) Framework and Net Zero Roadmap",
+        "source_name": "International Air Transport Association (IATA)"
+      },
+      {
+        "id": "2b7bbd3a-d479-44c4-8341-72c82c1eff3d",
+        "title": "CleanTechnica Clean Tech News Roundup - May 2026: Offshore Wind Infrastructure Gaps, EV Market Expansion, and Energy Transition Updates",
+        "source_name": "CleanTechnica"
+      },
+      {
+        "id": "09f8d920-068e-49ff-8973-b1344c0d9701",
+        "title": "Getting to Zero Coalition",
+        "source_name": "UNFCCC"
+      },
+      {
+        "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+        "title": "Sustainable Aviation Fuel (SAF) Production & Pricing",
+        "source_name": "International Air Transport Association (IATA)"
+      },
+      {
+        "id": "85a44451-3aec-4375-93ed-e1eaaacc2f89",
+        "title": "Aviation Week: Sustainability",
+        "source_name": "Aviation Week Network (Informa)"
+      },
+      {
+        "id": "a1fd9574-3be2-48f2-ab3a-4c8b92ca6cc0",
+        "title": "Getting to Zero Coalition - World Economic Forum Sustainability Initiative",
+        "source_name": "World Economic Forum"
+      },
+      {
+        "id": "7ae77ef8-211a-4f20-ad88-341c8dcdae65",
+        "title": "First Movers Coalition",
+        "source_name": "U.S. Department of State"
+      },
+      {
+        "id": "3b026e42-8cdb-4cba-8541-9650b840c847",
+        "title": "European Clean Trucking Alliance Drives Rapid Decarbonization of Road Freight Sector",
+        "source_name": "European Clean Trucking Alliance (ECTA)"
+      },
+      {
+        "id": "16696c96-f60a-48c5-bcc6-1c2ebe4c08d4",
+        "title": "H2Accelerate EU Initiative",
+        "source_name": "H2Accelerate Collaboration (industry consortium: Daimler Truck, Volvo Group, Iveco, Shell, Linde, TotalEnergies, TEAL Mobility, Hyundai Hydrogen Mobility, et al.)"
+      },
+      {
+        "id": "6b55b53d-f383-453a-a029-707b86b80013",
+        "title": "World Economic Forum First Movers Coalition - Global Climate Innovation Initiative",
+        "source_name": "World Economic Forum"
+      },
+      {
+        "id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+        "title": "Air Cargo Market Dynamics: Elevated Rates, Geopolitical Impacts, and Capacity Adjustments (May 2026)",
+        "source_name": "Air Cargo News"
+      },
+      {
+        "id": "d9315d6c-0ce6-48a3-8f7c-5066e9a68299",
+        "title": "Journal of Commerce Market Feed: Supply Chain Disruptions, Rate Pressures, and Regulatory Changes Across Transportation Sectors",
+        "source_name": "Journal of Commerce (JOC)"
+      },
+      {
+        "id": "96050141-ed4a-466f-9fac-0b14c1658bdd",
+        "title": "Climate Change Laws of the World: Comprehensive Global Climate Policy Database and Search Tool",
+        "source_name": "Sabin Center Climate Laws Database"
+      },
+      {
+        "id": "d4a1a8ec-88ca-47cb-b8d6-5a10454e0605",
+        "title": "CER (European Railways)",
+        "source_name": "CER – Community of European Railway and Infrastructure Companies"
+      },
+      {
+        "id": "0bbd757c-112f-4d1f-ace8-c8fe73857ae1",
+        "title": "Major Corporate and Institutional Renewable Energy Investments Signal Accelerating Clean Energy Transition (May 2026)",
+        "source_name": "ESG Today"
+      },
+      {
+        "id": "e69e4c63-4d9d-480e-8a52-e201ccf5c1a2",
+        "title": "InsideEVs May 2026 News Digest: Market Consolidation, Technology Innovation, and Competitive Shifts in EV Industry",
+        "source_name": "InsideEVs"
+      }
+    ],
+    "research": [
+      {
+        "id": "bd9a1a6b-2966-41df-b595-63ccad090f90",
+        "title": "GEF Leadership and Organizational Structure",
+        "source_name": "Global Environment Facility (GEF) — official secretariat site"
+      },
+      {
+        "id": "432a5042-1a51-4713-bfa0-8aca3fbfee62",
+        "title": "ASEAN Transport Strategic Plan 2016-2025 and Regional Cooperation Framework",
+        "source_name": "ASEAN Main Portal (asean.org)"
+      },
+      {
+        "id": "ee129098-5f10-4c22-9c7f-95082f8650ac",
+        "title": "SBTi",
+        "source_name": "Science Based Targets initiative"
+      },
+      {
+        "id": "02ad37c7-8a11-434b-8626-55e92087fbc9",
+        "title": "OECD Environmental Finance Publication",
+        "source_name": "Organisation for Economic Co-operation and Development (OECD)"
+      },
+      {
+        "id": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+        "title": "ITF-OECD Automated and Autonomous Driving Resource",
+        "source_name": "International Transport Forum (ITF/OECD)"
+      },
+      {
+        "id": "3373d06e-22a6-4287-8aac-173169159177",
+        "title": "IRENA Critical Materials for EV Batteries Report - Access Unavailable",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "c3004aa0-2e9a-4912-90b2-de095a69f670",
+        "title": "OECD Environment Policy Area - Access Verification",
+        "source_name": "OECD (Organisation for Economic Co-operation and Development)"
+      },
+      {
+        "id": "412ffbf4-34cf-4347-8ee5-c809748a4ed2",
+        "title": "ICAO Carbon Calculator",
+        "source_name": "International Civil Aviation Organization"
+      },
+      {
+        "id": "efcc9f45-c7c7-4e06-8cb6-fc85348b8f2f",
+        "title": "Global EV Outlook 2024 - IEA Market Assessment",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "1293f278-bdbe-4a19-98e9-f37395e5b7a5",
+        "title": "GRI Standards Platform - Cookie Consent and Data Management Policy",
+        "source_name": "Global Reporting Initiative (GRI)"
+      },
+      {
+        "id": "8d256568-54c3-46e9-b1c0-ad7c17c35819",
+        "title": "Container Shipping Market Update: Spot Rate Fluctuations, War-Risk Insurance Products, and Port Competition Dynamics",
+        "source_name": "The Loadstar"
+      },
+      {
+        "id": "7d2f8d88-46b6-4998-a10e-75093500f46c",
+        "title": "ISO 14083",
+        "source_name": "ISO 14083"
+      },
+      {
+        "id": "b88753be-8ed4-4392-9cee-9f472c208513",
+        "title": "Warehouse Solar & BESS ROI Analysis",
+        "source_name": "National Renewable Energy Laboratory (NREL)"
+      },
+      {
+        "id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+        "title": "WTO Trade and Environment Framework: Key Initiatives on Climate, Plastics, and Fossil Fuel Subsidy Reform",
+        "source_name": "World Trade Organization (WTO)"
+      },
+      {
+        "id": "f3510df3-0fdc-49a8-b33c-c45ed78494f8",
+        "title": "The Loadstar Supply Chain News Feed - May 9, 2026",
+        "source_name": "The Loadstar"
+      },
+      {
+        "id": "31b18416-9059-4294-96dd-38666468ecf8",
+        "title": "9th Multi-Stakeholder Forum on Science, Technology and Innovation for the Sustainable Development Goals (STI Forum 2024)",
+        "source_name": "United Nations Department of Economic and Social Affairs (UN DESA)"
+      },
+      {
+        "id": "ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+        "title": "The Global Wage Report Series - ILO Research Resource",
+        "source_name": "ILO Global Wage Report"
+      },
+      {
+        "id": "c2af2fc0-6792-443f-8c24-ce24f9665aa4",
+        "title": "ITF International Transport Forum",
+        "source_name": "OECD"
+      },
+      {
+        "id": "2648d4ad-eac5-406b-888c-d551d5e1d403",
+        "title": "UNCTAD Sustainable Freight Transport Framework: Six-Step Strategic Planning Methodology for Global Supply Chain Decarbonization",
+        "source_name": "UNCTAD (UN Trade and Development)"
+      },
+      {
+        "id": "67c6e313-e501-48ec-82be-944296aad8db",
+        "title": "ADB Celebrates 30-Year Europe Partnership, Signals Private Sector Investment Opportunities in Asian Transport",
+        "source_name": "Asian Development Bank (ADB)"
+      },
+      {
+        "id": "d8305603-0aaf-4dcf-b6be-8b2d5d9fec19",
+        "title": "IEA Data and Statistics Explorer Platform",
+        "source_name": "IEA Data and Statistics Hub"
+      },
+      {
+        "id": "6af04bf0-bebd-4dd5-a900-72974c87fa69",
+        "title": "IPCC Second-Order Draft Review Period Opens for Special Report on Climate Change and Cities",
+        "source_name": "Intergovernmental Panel on Climate Change (IPCC)"
+      },
+      {
+        "id": "0f93eb09-bf90-4092-a5fd-239bc50f6cc1",
+        "title": "ECLAC Regional Development Framework and 2030 Agenda Implementation Roadmap",
+        "source_name": "ECLAC / CEPAL – United Nations"
+      },
+      {
+        "id": "54fb8bfe-676e-4222-afb0-96dbf10affca",
+        "title": "Institute for Market Transformation Announces David B. Goldstein Fellowship Program",
+        "source_name": "IMT — Institute for Market Transformation"
+      },
+      {
+        "id": "93366a82-dd93-4f72-9397-3db9e52b12f9",
+        "title": "FreightWaves Sustainability",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "947e08f3-0136-423d-8f62-03bb071bad49",
+        "title": "IEA Electricity Mid-Year Update 2025 - Key Market and Grid Analysis",
+        "source_name": "IEA Electricity Mid-Year Update"
+      },
+      {
+        "id": "88927b29-7af5-467d-a0c0-f5ff3069b8a5",
+        "title": "Splash247 Green",
+        "source_name": "Splash247 (Asia Shipping Media)"
+      },
+      {
+        "id": "f92fab46-b7c8-4ebb-ba87-ff54d18aeaf2",
+        "title": "Lloyd's Register Maritime Decarbonisation Hub: Leadership and Evidence for Sustainable Shipping",
+        "source_name": "Lloyd's Register Group (lr.org)"
+      },
+      {
+        "id": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+        "title": "Industrial Electricity Tariff Benchmarks by Jurisdiction",
+        "source_name": "IEA Energy Prices Database"
+      },
+      {
+        "id": "45006684-2f39-4107-934a-e8420c7fbbbb",
+        "title": "OECD ITF Decarbonising Transport Initiative",
+        "source_name": "International Transport Forum"
+      },
+      {
+        "id": "c2e45859-5e28-4042-8a37-ac8515a302ae",
+        "title": "MIT Center for Transportation & Logistics",
+        "source_name": "MIT Center for Transportation and Logistics"
+      },
+      {
+        "id": "5f9e9fb4-f72e-46b9-b0bd-cece2bb4f906",
+        "title": "Shareholder Conviction on ESG Strengthens While Brand Communication Lags Consumer Demand",
+        "source_name": "GreenBiz"
+      },
+      {
+        "id": "c3fa4cc2-f168-4784-bf78-dda5c022843e",
+        "title": "Alternative Fuels Insight (IRENA/IMO)",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "f982289b-fa8f-4d95-b507-903d0683c611",
+        "title": "WTO Environment & Trade",
+        "source_name": "World Trade Organization (WTO)"
+      },
+      {
+        "id": "620f2692-2825-4aa8-a5e1-1361e70848fa",
+        "title": "Embedding Social Vulnerability in UK Climate Adaptation Policy: Dr Katie Jenkins on the British Academy Fellowship",
+        "source_name": "Tyndall Centre for Climate Research"
+      },
+      {
+        "id": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+        "title": "Project JOLT Advances eHGV Real-World Trials; Decarbonization Challenges and Digital Innovation in Road Freight",
+        "source_name": "Centre for Sustainable Road Freight"
+      },
+      {
+        "id": "dde5a446-cdfd-4cff-a6ba-40e12f3c0a65",
+        "title": "ICAP Allowance Price Explorer: Terms of Use and Data Documentation",
+        "source_name": "International Carbon Action Partnership (ICAP)"
+      },
+      {
+        "id": "e948b3a9-6784-4eaa-97b7-d955fd4edc1e",
+        "title": "ICCT",
+        "source_name": "ICCT Freight"
+      },
+      {
+        "id": "627da433-864b-4d60-98e6-3248726a3738",
+        "title": "World Resources Institute",
+        "source_name": "World Resources Institute (WRI)"
+      },
+      {
+        "id": "8ff93a7e-5256-4d31-959b-2172de16ae8f",
+        "title": "IRENA Abu Dhabi",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+        "title": "Environmental Finance",
+        "source_name": "United Nations Development Programme (UNDP)"
+      },
+      {
+        "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+        "title": "GLEC Framework (Air Freight)",
+        "source_name": "Smart Freight Centre / GLEC Framework"
+      },
+      {
+        "id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+        "title": "IEA Global Hydrogen Review 2025 - Market Analysis and Strategic Insights",
+        "source_name": "IEA Global Hydrogen Review"
+      },
+      {
+        "id": "6627ef8b-5ca1-49a4-9442-7cc201c78a07",
+        "title": "International Roadcheck Week 2026: Anticipated Market Disruption and Inspection Impact on Freight Rates",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "c54cd5f2-779a-4a74-9614-ea38a0e6d55f",
+        "title": "9th Multi-Stakeholder Forum on Science, Technology and Innovation for the Sustainable Development Goals (STI Forum 2024)",
+        "source_name": "United Nations Department of Economic and Social Affairs (UN DESA)"
+      },
+      {
+        "id": "46c528f5-c366-4738-98f5-db9accea8780",
+        "title": "UNCTAD Sustainable Transport",
+        "source_name": "UNCTAD (UN Trade and Development)"
+      },
+      {
+        "id": "629c2d63-fd96-4226-974e-a4c3fbe4f9bb",
+        "title": "Carbon Trust Climate Action Plans and Business Sustainability Framework",
+        "source_name": "Carbon Trust"
+      },
+      {
+        "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+        "title": "ADB Celebrates European Partnership and Highlights Private Sector Opportunities in Sustainable Transport",
+        "source_name": "Asian Development Bank (ADB)"
+      },
+      {
+        "id": "50ccd5cc-d278-43ad-98c1-596153c1d714",
+        "title": "Smart Freight Centre Releases Updated GLEC Framework Version 3.0",
+        "source_name": "Smart Freight Centre"
+      },
+      {
+        "id": "538c2774-e271-4e8f-b03d-2385b705b862",
+        "title": "Carbon Trust: Global Organization Overview and Net Zero Transition Services",
+        "source_name": "Carbon Trust"
+      },
+      {
+        "id": "e241fe75-8627-4759-a7dd-a25e9db146bf",
+        "title": "IMO Net-Zero Framework",
+        "source_name": "International Maritime Organization"
+      },
+      {
+        "id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+        "title": "UNCTAD Transport Infrastructure and Services Programme: Global Guidance on Port Resilience and Sustainable Freight Transport",
+        "source_name": "UNCTAD (UN Trade and Development)"
+      },
+      {
+        "id": "8e1ce829-3a35-4105-a75b-33ca2e3e1e57",
+        "title": "Project Drawdown",
+        "source_name": "Project Drawdown (drawdown.org)"
+      },
+      {
+        "id": "9f34b7c4-c567-4c66-825a-5c146d1b8597",
+        "title": "NSRDB - National Solar Radiation Database",
+        "source_name": "NREL NSRDB National Solar Radiation Database"
+      },
+      {
+        "id": "6d2ec398-6dea-4fd8-ad65-53c7cda2520d",
+        "title": "IEA Policies & Measures",
+        "source_name": "IEA Policies and Measures Database"
+      },
+      {
+        "id": "85a7a629-744d-4e59-9b9a-959cf76e5226",
+        "title": "IPCC Opens Second-Order Draft Review for Special Report on Climate Change and Cities (March 2027 Release)",
+        "source_name": "Intergovernmental Panel on Climate Change (IPCC)"
+      },
+      {
+        "id": "08b0a1b3-ff0f-4bcb-9b8e-bc05a7c2cb47",
+        "title": "UN SDGs 9 & 13",
+        "source_name": "United Nations Department of Economic and Social Affairs (UN DESA)"
+      },
+      {
+        "id": "cc0958fb-6453-4163-8363-27515817597f",
+        "title": "CORSIA (ICAO)",
+        "source_name": "International Civil Aviation Organization"
+      },
+      {
+        "id": "8a9af9ef-0fe5-40c8-b8f4-dd97a316a574",
+        "title": "IMF Port Watch - Chokepoint 6 Monitoring",
+        "source_name": "International Monetary Fund (IMF)"
+      },
+      {
+        "id": "d4dd6677-8ff8-4445-b818-5ed6f8d3c911",
+        "title": "48th ASEAN Summit Outcomes and Regional Cooperation Initiatives - May 2026",
+        "source_name": "ASEAN Main Portal (asean.org)"
+      },
+      {
+        "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+        "title": "Battery & Electric Vehicle Technology",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "cd392833-f16c-447e-9f80-229bd2635060",
+        "title": "System Advisor Model (SAM) - NREL Energy Cost and Performance Tool",
+        "source_name": "NREL System Advisor Model (SAM)"
+      },
+      {
+        "id": "262ac5f2-4fbe-4968-bde7-f5f68821cc59",
+        "title": "Critical Minerals & EV Supply Chain",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "9baa3126-52d5-42f8-8748-192d390f8d4c",
+        "title": "Mission Innovation Clean Shipping",
+        "source_name": "Mission Innovation"
+      },
+      {
+        "id": "ab362011-bea5-4cc3-95b2-c185ced3c2de",
+        "title": "International Roadcheck 2026: May 12-14 Inspection Focus on ELDs and Cargo Securement Expected to Impact Freight Markets",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "ece93c54-871b-4cf3-9f39-a4a2e9691574",
+        "title": "OECD Automated and Autonomous Driving Research",
+        "source_name": "OECD iLibrary"
+      },
+      {
+        "id": "27f22c4f-9d58-4ff6-afc5-1aad5b229d91",
+        "title": "May 2026 Maritime Intelligence Brief: Hormuz Instability Drives War Risk Innovation, Nuclear Shipping Initiative Launched, Dry Bulk M&A Escalates",
+        "source_name": "Splash247"
+      },
+      {
+        "id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+        "title": "International Roadcheck 2026: ELD and Cargo Securement Focus Expected to Impact Spot Rates and Capacity",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "4a6d21d7-0ec7-46e6-b20f-14f867f9d77d",
+        "title": "PVWatts Calculator - NREL Solar Performance Estimation Tool",
+        "source_name": "NREL PVWatts Calculator"
+      },
+      {
+        "id": "7c78a23c-a335-4756-a050-cdae92e7a2ee",
+        "title": "REVERB: Music Industry Environmental Action Initiative",
+        "source_name": "REVERB"
+      },
+      {
+        "id": "af277afd-b925-4583-852a-eaa6db310888",
+        "title": "IEA Global EV Outlook 2024 - Access Verification",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "5faf8f8c-8054-4724-8c11-6e2c8fb12c95",
+        "title": "GreenBiz Supply Chain",
+        "source_name": "GreenBiz (Trellis Group)"
+      },
+      {
+        "id": "5351d10b-62e7-42ec-98bf-c18595a9c20d",
+        "title": "IADB Transport Sector Framework - Access Blocked",
+        "source_name": "Inter-American Development Bank (IDB)"
+      },
+      {
+        "id": "ca6fa630-e8d3-4948-b0a8-20856cd17343",
+        "title": "ECLAC Organizational Overview and Regional Mandate",
+        "source_name": "ECLAC / CEPAL – United Nations"
+      },
+      {
+        "id": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+        "title": "Transportation 2050: Pathways for Decarbonization and Climate Resilience in Latin America and the Caribbean",
+        "source_name": "Inter-American Development Bank (IDB) – IDB Publications"
+      },
+      {
+        "id": "e9723d32-6006-42d2-bbdd-02f191629b5e",
+        "title": "GRI Standards",
+        "source_name": "Global Reporting Initiative (GRI)"
+      },
+      {
+        "id": "e37a5c9a-5dcb-4b44-a9c9-79d2b0b58df7",
+        "title": "IPCC Climate Reports",
+        "source_name": "Intergovernmental Panel on Climate Change (IPCC)"
+      },
+      {
+        "id": "b26de8fc-a6b6-46e5-8f9d-7ea9c96e7b09",
+        "title": "Supply Chain Digital",
+        "source_name": "BizClik Media (Supply Chain Digital)"
+      },
+      {
+        "id": "5b07f503-8dbc-4bb4-b801-6359b5ab6018",
+        "title": "Logistics Labor Cost & Availability Benchmarks",
+        "source_name": "International Labour Organization (ILO)"
+      },
+      {
+        "id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+        "title": "ECLAC (UN Latin America)",
+        "source_name": "ECLAC / CEPAL – United Nations"
+      },
+      {
+        "id": "e360e82f-c710-47c5-b14f-8a20bb0ccd7a",
+        "title": "OECD Environment",
+        "source_name": "OECD (Organisation for Economic Co-operation and Development)"
+      },
+      {
+        "id": "663f593c-8834-45c9-bddd-05c334538c54",
+        "title": "Maritime Chokepoint Monitoring",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+        "title": "IEA Electricity Price Data for Large Industrial Customers (2019-2024)",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "9118aab6-bafe-43d8-9944-baf8dc698aab",
+        "title": "Mission Innovation Shipping Mission: Net-Zero Industries Award 2024 and MI-9 Global Collaboration Framework",
+        "source_name": "Mission Innovation"
+      },
+      {
+        "id": "b6fd00bf-2573-4103-8f67-216c8bec66c7",
+        "title": "World Energy Outlook 2025 Free Dataset Released by IEA",
+        "source_name": "IEA World Energy Outlook Dataset"
+      },
+      {
+        "id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+        "title": "IEA Global Supply Chains of EV Batteries Report",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+        "title": "China's Environmental Code: First Climate Legislation Supporting 2060 Carbon Neutrality Goal",
+        "source_name": "CCICED Secretariat"
+      },
+      {
+        "id": "88c3a053-e5c4-44f2-b1cb-ecb1a313090a",
+        "title": "MIT Climate Machine: First Comprehensive Assessment of Live Music Emissions in US and UK (2025)",
+        "source_name": "MIT Climate Machine"
+      },
+      {
+        "id": "8a95cc9a-6f50-47fc-8c94-0153f1c8eefb",
+        "title": "Bureau Veritas Marine & Offshore: Comprehensive Decarbonization and Sustainability Compliance Framework",
+        "source_name": "Bureau Veritas Marine & Offshore"
+      },
+      {
+        "id": "156ec17c-9be4-48b8-92f7-f00aed7bc91b",
+        "title": "GRI Standards Download Portal - Cookie Policy and Website Consent Management",
+        "source_name": "Global Reporting Initiative (GRI)"
+      },
+      {
+        "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+        "title": "International Transport Forum 2019 - General Rules",
+        "source_name": "International Transport Forum (ITF) at the OECD"
+      },
+      {
+        "id": "d136c88c-8816-4727-b15d-a80b96f0f57b",
+        "title": "Reuters Sustainability Coverage - General Monitoring",
+        "source_name": "Reuters Sustainable Business"
+      },
+      {
+        "id": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+        "title": "Autonomous & Connected Freight Technology",
+        "source_name": "International Transport Forum (ITF/OECD)"
+      },
+      {
+        "id": "c828810c-d371-4562-81c1-d64584ec4f40",
+        "title": "World Bank Transport Sector Strategy: Jobs Creation and Economic Development Framework",
+        "source_name": "World Bank Group"
+      },
+      {
+        "id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+        "title": "Solar & Battery Energy Storage for Warehouses",
+        "source_name": "National Renewable Energy Laboratory (NREL)"
+      },
+      {
+        "id": "0c03b4bd-98f0-4513-9176-c4b656db8803",
+        "title": "World Bank Carbon Pricing Dashboard",
+        "source_name": "World Bank Carbon Pricing Dashboard"
+      },
+      {
+        "id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+        "title": "Port of Los Angeles Green",
+        "source_name": "Port of Los Angeles (Los Angeles Harbor Department)"
+      },
+      {
+        "id": "ad5b78ea-ddf1-4df0-a532-0d2829df96cf",
+        "title": "ASEAN Transport Strategic Plan",
+        "source_name": "ASEAN Main Portal (asean.org)"
+      },
+      {
+        "id": "5e0af336-e997-47ae-a235-b7b155d742bb",
+        "title": "GEF (Global Environment Facility)",
+        "source_name": "World Bank — Financial Intermediary Funds Trustee"
+      },
+      {
+        "id": "ea6cfff1-fd20-43b9-813b-718110727190",
+        "title": "ABS Website Cookie Policy and Data Collection Notice",
+        "source_name": "ABS Sustainability"
+      },
+      {
+        "id": "0a8b8ef0-0c6c-406c-a5b5-321709fa5237",
+        "title": "World Bank Transport Strategy: Jobs, Growth, and Development Focus Areas",
+        "source_name": "World Bank Group"
+      },
+      {
+        "id": "c26f4ac6-cd91-4bc8-b0c2-84766f9072f6",
+        "title": "Carbon Allowance Price Intelligence",
+        "source_name": "World Bank Group (with ICAP data support)"
+      },
+      {
+        "id": "ae628786-ad32-4dd4-bd43-64a812029966",
+        "title": "IRENA Power Generation Costs - Access Unavailable",
+        "source_name": "IRENA Renewable Power Generation Costs"
+      },
+      {
+        "id": "7e4f2b36-81a0-4769-85ae-e70e475076cd",
+        "title": "IRENA Pathway to Decarbonise the Shipping Sector by 2050",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "b680a0b8-239c-4556-b627-aebddbbfae60",
+        "title": "IDB Sustainable LatAm Transport",
+        "source_name": "Inter-American Development Bank (IDB)"
+      },
+      {
+        "id": "ebf3e5a1-b4d6-4d71-9022-6b26b7eef5b4",
+        "title": "Sabin Center-UNEP Annual Conference on Global Climate Litigation",
+        "source_name": "Sabin Center for Climate Change Law"
+      },
+      {
+        "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+        "title": "ADB Sustainable Transport",
+        "source_name": "Asian Development Bank (ADB)"
+      },
+      {
+        "id": "38322420-45a2-474a-b910-23b2dd215c49",
+        "title": "ISSB IFRS S2",
+        "source_name": "IFRS / ISSB Sustainability Standards"
+      },
+      {
+        "id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+        "title": "DNV Quarterly Insights: Regulatory Updates in Maritime, Food Safety, Cybersecurity, and Net-Zero Compliance (Q2 2026)",
+        "source_name": "DNV Maritime Regulatory Updates"
+      },
+      {
+        "id": "dce1881d-ecfe-461f-8b95-4ad052d47f3e",
+        "title": "ILOstat - International Labour Organization Statistical Database",
+        "source_name": "ILOSTAT"
+      }
+    ],
+    "operations": [
+      {
+        "id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+        "title": "EIA Spot Prices for Crude Oil and Petroleum Products - Daily Data",
+        "source_name": "US EIA Petroleum Spot Prices"
+      },
+      {
+        "id": "d6a9889f-20a6-4b4f-a846-e52fe9f18340",
+        "title": "Major Economic Indicators Summary - May 2026: CPI, Unemployment, Employment, and Wage Data",
+        "source_name": "U.S. Bureau of Labor Statistics (BLS)"
+      },
+      {
+        "id": "708e0b02-6663-42ee-b138-74c80898291e",
+        "title": "ESPO Green Ports",
+        "source_name": "European Sea Ports Organisation (ESPO)"
+      },
+      {
+        "id": "bf734379-188e-48b6-b3ff-76e70c85ccfa",
+        "title": "ESPO (European Sea Ports Organisation)",
+        "source_name": "European Sea Ports Organisation (ESPO) / EcoPorts"
+      },
+      {
+        "id": "7ff81425-54de-427f-b7a1-0d9e1ab1e60a",
+        "title": "Measurabl Ordinance Filing Platform: Automated Compliance Support for Energy and Water Reporting Requirements",
+        "source_name": "Measurabl — Building Benchmarking Tracker"
+      },
+      {
+        "id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+        "title": "Crude Oil & Jet Fuel Price Intelligence",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "22e1d608-20d0-4fb1-a5ab-59639605d8fc",
+        "title": "Climate Change Laws of the World Database - Global Climate Legislation and Policy Search",
+        "source_name": "Climate Change Laws of the World"
+      },
+      {
+        "id": "11794ed7-7a03-4819-a1c6-85125e8eff90",
+        "title": "EIA Spot Prices for Crude Oil and Petroleum Products - Monthly Data",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "7fd6fbf1-9428-4e24-aaf1-21ecf29b861b",
+        "title": "Natural Gas Spot and Futures Prices (NYMEX) - Daily Data",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+        "title": "Green Building Certification Standards for Logistics",
+        "source_name": "U.S. Green Building Council (USGBC)"
+      },
+      {
+        "id": "71b03469-c11c-4218-8b44-c1fec3ffda25",
+        "title": "U.S. Bureau of Labor Statistics - Major Economic Indicators April 2026",
+        "source_name": "U.S. Bureau of Labor Statistics (BLS)"
+      },
+      {
+        "id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+        "title": "India Regional Operations Profile",
+        "source_name": "International Council on Clean Transportation (ICCT)"
+      },
+      {
+        "id": "b8da154a-149e-483a-9198-7039850006fc",
+        "title": "LNG & Natural Gas Price Intelligence",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "f57d0f58-65be-47ef-8ee7-82aab1c8c732",
+        "title": "Rotterdam Port SMR Supply Chain Study and Labor Productivity Optimization Initiative",
+        "source_name": "SmartPort (partnership of EUR, TU Delft, Port of Rotterdam Authority, Municipality of Rotterdam, Deltalinqs, TNO, Deltares)"
+      },
+      {
+        "id": "8e5a62ba-2393-4b81-a6ca-546e985cc052",
+        "title": "TNO Mobility & Logistics",
+        "source_name": "TNO (Netherlands Organisation for Applied Scientific Research)"
+      },
+      {
+        "id": "93982f32-3e34-4ffa-9fef-1b1afb5ad411",
+        "title": "Hydrogen Insight: Industry Intelligence on Clean Hydrogen Market Developments and Policy",
+        "source_name": "Hydrogen Insight"
+      },
+      {
+        "id": "ed63f522-96bd-4aac-b828-a216f34b90a9",
+        "title": "U.S. Energy Information Administration Short-Term Energy Outlook",
+        "source_name": "US EIA Short-Term Energy Outlook"
+      },
+      {
+        "id": "0339e2b7-a092-4d79-a363-82620855d95a",
+        "title": "The Decarb Hub: Industry Initiative for Sustainable Shipping Decarbonization",
+        "source_name": "Lloyd's Register Maritime Decarbonisation Hub (thedecarbhub.org)"
+      },
+      {
+        "id": "b3b32236-047c-4011-a79b-25913a70a662",
+        "title": "USGBC LEED Framework and 2026 Initiatives",
+        "source_name": "U.S. Green Building Council (USGBC)"
+      },
+      {
+        "id": "c0a2dfb3-e394-4e88-8acd-60a714339c4a",
+        "title": "Lloyd's Register Decarbonisation Hub",
+        "source_name": "Lloyd's Register Foundation (lrfoundation.org.uk)"
+      },
+      {
+        "id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+        "title": "Yara Clean Ammonia",
+        "source_name": "Yara International ASA"
+      },
+      {
+        "id": "3581c084-9486-4085-82cc-b650380bd83d",
+        "title": "GLEC Framework v3",
+        "source_name": "Smart Freight Centre"
+      },
+      {
+        "id": "340ddf31-e533-4e2d-b2a6-5b6b1b70e470",
+        "title": "DP World Sustainability Strategy: Net Zero Pathway and ESG Framework Alignment",
+        "source_name": "DP World (dpworld.com)"
+      },
+      {
+        "id": "2e3ef7e7-25e3-4cca-8ef6-79e67b1e0000",
+        "title": "EIA Natural Gas Data Portal - U.S. Energy Information Administration",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "b0d9737e-5e8a-4a81-89bb-921c172219fd",
+        "title": "DP World Sustainability",
+        "source_name": "DP World (dpworld.com)"
+      },
+      {
+        "id": "4d240f75-1d06-4d94-912c-4c7449e95deb",
+        "title": "Blue Visby Solution Completes Second Series of Prototype Trials Demonstrating Significant GHG Emissions Reductions",
+        "source_name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)"
+      },
+      {
+        "id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+        "title": "Zero Emission Maritime Buyers Alliance (ZEMBA) Launched by Aspen Institute, Amazon, Patagonia, and Tchibo",
+        "source_name": "The Aspen Institute"
+      },
+      {
+        "id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+        "title": "Blue Visby Solution",
+        "source_name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)"
+      },
+      {
+        "id": "371d2218-f515-4453-8fac-02120ab4fe42",
+        "title": "EIA Open Data Portal - U.S. Energy Information Administration",
+        "source_name": "US EIA Open Data API"
+      },
+      {
+        "id": "eb6641da-ce23-49aa-add6-a5a876d422b0",
+        "title": "McKinsey Insights: AI, Quantum Computing, and Enterprise Digital Transformation Trends",
+        "source_name": "McKinsey Sustainability"
+      }
+    ]
+  },
+  "pre_counts": {
+    "market": 47,
+    "research": 110,
+    "operations": 30
+  },
+  "migration_applied": true,
+  "category_distribution": [
+    {
+      "category": "regulatory",
+      "n": 540
+    },
+    {
+      "category": "research",
+      "n": 127
+    },
+    {
+      "category": "market_news",
+      "n": 52
+    },
+    {
+      "category": "__NULL__",
+      "n": 39
+    },
+    {
+      "category": "operational_data",
+      "n": 36
+    }
+  ],
+  "post": {
+    "market": [
+      {
+        "id": "bd6bc712-a684-4f11-b6fc-7e782f6f01be",
+        "title": "ICOM-CC International Conservation Professionals Network - 2026 Conference and Membership Information",
+        "source_name": "ICOM Committee for Conservation (ICOM-CC)"
+      },
+      {
+        "id": "d0d76892-0145-486a-8bd2-d150a45f01cb",
+        "title": "American Alliance of Museums - Professional Resources and Museum Excellence Framework",
+        "source_name": "American Alliance of Museums (AAM)"
+      },
+      {
+        "id": "02da3c3c-6c28-4a2d-bdc0-0831cecab90e",
+        "title": "International Institute for Conservation - Professional Guidance and Standards for Historic and Artistic Works Conservation",
+        "source_name": "International Institute for Conservation (IIC)"
+      },
+      {
+        "id": "79e73a30-8e06-4702-98d9-80ec2a3514ad",
+        "title": "Gallery Climate Coalition: International Art Sector Sustainability Initiative and Carbon Accounting Framework",
+        "source_name": "Gallery Climate Coalition (about + resources)"
+      },
+      {
+        "id": "1f006cfa-e1ce-401a-9d82-999cdbc85d64",
+        "title": "CER Sustainability Topics Landing Page",
+        "source_name": "CER – Community of European Railway and Infrastructure Companies"
+      },
+      {
+        "id": "05b786f8-8753-4e81-923e-ee9d76c56609",
+        "title": "EcoVadis: Enterprise Sustainability Intelligence and Ratings Platform Overview",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "bdc42a68-baab-438b-a41f-3c68421fd79c",
+        "title": "FIATA",
+        "source_name": "FIATA Sustainability"
+      },
+      {
+        "id": "19f08fcc-5f81-44cc-b3db-fe25f1717845",
+        "title": "EcoVadis",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "6c59d250-5658-406b-b313-ca38b7b4915f",
+        "title": "EcoVadis 2025 Purpose Report: $2.5T Global Spend Now Governed by Sustainability Risk Insights",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "c18a8545-8a73-42ea-8daf-8b90faddbaff",
+        "title": "Maritime CCS Infrastructure Expansion and IMO Net-Zero Framework Development Accelerate in May 2026",
+        "source_name": "Maritime Carbon Intelligence"
+      },
+      {
+        "id": "3ed4f908-cc26-4bdd-ad6f-64cfb6b49cbe",
+        "title": "BloombergNEF Energy Storage Market Enters 100-Gigawatt Era with Emerging Trade and Industrial Policy Impacts",
+        "source_name": "BloombergNEF Energy Storage"
+      },
+      {
+        "id": "8ac4846b-753c-4fe1-af68-0ccd4b647a41",
+        "title": "American Trucking Associations",
+        "source_name": "American Trucking Associations"
+      },
+      {
+        "id": "23cf67df-1fc5-47e0-9acc-3e37ceac91c5",
+        "title": "CLECAT Strategic Priorities 2024-2029 and EU Transport Regulation Updates",
+        "source_name": "CLECAT (European Forwarder Federation)"
+      },
+      {
+        "id": "6a8036a0-41b5-4aa3-a118-5ac05f1f4e71",
+        "title": "Community of European Railways - Organizational Overview",
+        "source_name": "CER – Community of European Railway and Infrastructure Companies"
+      },
+      {
+        "id": "29132ca6-9172-45ab-95c2-e7fd7b8aa62a",
+        "title": "European Clean Trucking Alliance",
+        "source_name": "European Clean Trucking Alliance (ECTA)"
+      },
+      {
+        "id": "58bf0406-3be9-45bd-a2c8-b7c9d0b5c1a4",
+        "title": "European Clean Trucking Alliance",
+        "source_name": "European Clean Trucking Alliance (ECTA)"
+      },
+      {
+        "id": "831f9e63-42a9-4546-9bc6-281e04cea4f6",
+        "title": "Getting to Zero: Green Corridors",
+        "source_name": "Global Maritime Forum"
+      },
+      {
+        "id": "577f9536-6c8d-4ba8-a1d6-e50026f73f6d",
+        "title": "Julie's Bicycle May 2026 Sector Opportunities and BFI Sustainable Screen Programme Expansion",
+        "source_name": "Julie's Bicycle"
+      },
+      {
+        "id": "7ae06612-5467-40ca-a9b3-e6dc14601b44",
+        "title": "First Movers Coalition - WEF Global Sustainability Initiative",
+        "source_name": "World Economic Forum"
+      },
+      {
+        "id": "e227e2c4-c486-4e33-a08f-7e500ec2d4fe",
+        "title": "EU Cross-Border Transport Rules Extend to Vans from July 1, 2026: Key Compliance Requirements",
+        "source_name": "IRU Environment"
+      },
+      {
+        "id": "aea2e314-8969-4242-b4cf-54223707bdfb",
+        "title": "GHG Protocol",
+        "source_name": "GHG Protocol"
+      },
+      {
+        "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+        "title": "Global Maritime Forum Green Corridors Initiative: 50+ Trade Routes Catalyzing Zero-Emission Shipping Transition",
+        "source_name": "Global Maritime Forum (manager of the Getting to Zero Coalition)"
+      },
+      {
+        "id": "80329428-319b-40ca-9bc9-5a11cea2ee33",
+        "title": "Seatrade Maritime News Feed - Global Shipping Market Intelligence",
+        "source_name": "Seatrade Maritime News"
+      },
+      {
+        "id": "9333c734-7943-4777-b3bd-d1736a3ba6e6",
+        "title": "EV Market Digest: Tesla Event Postponement, GM V2H Systems, Regional EV Sales Growth, and Pricing Pressures (May 2026)",
+        "source_name": "Electrek"
+      },
+      {
+        "id": "8107ba33-30e8-4e73-bee2-dd967f995114",
+        "title": "EcoVadis Sustainability Platform: Comprehensive ESG & Supply Chain Compliance Solution",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "06d01f75-0ed1-43cc-ac06-390d812c7fe4",
+        "title": "Thomson Reuters Regulatory Intelligence Platform - Global Compliance Monitoring Solution",
+        "source_name": "Thomson Reuters Regulatory Intelligence"
+      },
+      {
+        "id": "52eadc84-b3ea-4a80-8173-30b7d5435d4f",
+        "title": "EcoVadis Blog",
+        "source_name": "EcoVadis"
+      },
+      {
+        "id": "d30bc25d-11cf-48bb-b987-989e060f8c6b",
+        "title": "CDP Supply Chain",
+        "source_name": "CDP Supply Chain"
+      },
+      {
+        "id": "be729a3a-df16-4010-a269-ba1dbf7a8692",
+        "title": "JOC (Journal of Commerce)",
+        "source_name": "Journal of Commerce (S&P Global)"
+      },
+      {
+        "id": "9fe7578b-b019-4b92-ad0b-57a93e0c51a9",
+        "title": "Lloyd's List Maritime Intelligence: Hormuz Crisis Drives Tanker Demand and Route Optimization",
+        "source_name": "Lloyd's List"
+      },
+      {
+        "id": "3fb2905b-35b8-4fe9-b52c-28ae12df3ff0",
+        "title": "Sustainability Magazine",
+        "source_name": "BizClik Media (Sustainability Magazine)"
+      },
+      {
+        "id": "5fec12c6-23be-4a7f-b2d3-4b8e9faadc22",
+        "title": "IATA Sustainable Aviation Fuel (SAF) Framework and Net Zero Roadmap",
+        "source_name": "International Air Transport Association (IATA)"
+      },
+      {
+        "id": "2b7bbd3a-d479-44c4-8341-72c82c1eff3d",
+        "title": "CleanTechnica Clean Tech News Roundup - May 2026: Offshore Wind Infrastructure Gaps, EV Market Expansion, and Energy Transition Updates",
+        "source_name": "CleanTechnica"
+      },
+      {
+        "id": "09f8d920-068e-49ff-8973-b1344c0d9701",
+        "title": "Getting to Zero Coalition",
+        "source_name": "UNFCCC"
+      },
+      {
+        "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+        "title": "Sustainable Aviation Fuel (SAF) Production & Pricing",
+        "source_name": "International Air Transport Association (IATA)"
+      },
+      {
+        "id": "85a44451-3aec-4375-93ed-e1eaaacc2f89",
+        "title": "Aviation Week: Sustainability",
+        "source_name": "Aviation Week Network (Informa)"
+      },
+      {
+        "id": "a1fd9574-3be2-48f2-ab3a-4c8b92ca6cc0",
+        "title": "Getting to Zero Coalition - World Economic Forum Sustainability Initiative",
+        "source_name": "World Economic Forum"
+      },
+      {
+        "id": "7ae77ef8-211a-4f20-ad88-341c8dcdae65",
+        "title": "First Movers Coalition",
+        "source_name": "U.S. Department of State"
+      },
+      {
+        "id": "3b026e42-8cdb-4cba-8541-9650b840c847",
+        "title": "European Clean Trucking Alliance Drives Rapid Decarbonization of Road Freight Sector",
+        "source_name": "European Clean Trucking Alliance (ECTA)"
+      },
+      {
+        "id": "16696c96-f60a-48c5-bcc6-1c2ebe4c08d4",
+        "title": "H2Accelerate EU Initiative",
+        "source_name": "H2Accelerate Collaboration (industry consortium: Daimler Truck, Volvo Group, Iveco, Shell, Linde, TotalEnergies, TEAL Mobility, Hyundai Hydrogen Mobility, et al.)"
+      },
+      {
+        "id": "6b55b53d-f383-453a-a029-707b86b80013",
+        "title": "World Economic Forum First Movers Coalition - Global Climate Innovation Initiative",
+        "source_name": "World Economic Forum"
+      },
+      {
+        "id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+        "title": "Air Cargo Market Dynamics: Elevated Rates, Geopolitical Impacts, and Capacity Adjustments (May 2026)",
+        "source_name": "Air Cargo News"
+      },
+      {
+        "id": "d9315d6c-0ce6-48a3-8f7c-5066e9a68299",
+        "title": "Journal of Commerce Market Feed: Supply Chain Disruptions, Rate Pressures, and Regulatory Changes Across Transportation Sectors",
+        "source_name": "Journal of Commerce (JOC)"
+      },
+      {
+        "id": "96050141-ed4a-466f-9fac-0b14c1658bdd",
+        "title": "Climate Change Laws of the World: Comprehensive Global Climate Policy Database and Search Tool",
+        "source_name": "Sabin Center Climate Laws Database"
+      },
+      {
+        "id": "d4a1a8ec-88ca-47cb-b8d6-5a10454e0605",
+        "title": "CER (European Railways)",
+        "source_name": "CER – Community of European Railway and Infrastructure Companies"
+      },
+      {
+        "id": "0bbd757c-112f-4d1f-ace8-c8fe73857ae1",
+        "title": "Major Corporate and Institutional Renewable Energy Investments Signal Accelerating Clean Energy Transition (May 2026)",
+        "source_name": "ESG Today"
+      },
+      {
+        "id": "e69e4c63-4d9d-480e-8a52-e201ccf5c1a2",
+        "title": "InsideEVs May 2026 News Digest: Market Consolidation, Technology Innovation, and Competitive Shifts in EV Industry",
+        "source_name": "InsideEVs"
+      }
+    ],
+    "research": [
+      {
+        "id": "262ac5f2-4fbe-4968-bde7-f5f68821cc59",
+        "title": "Critical Minerals & EV Supply Chain",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+        "title": "Battery & Electric Vehicle Technology",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+        "title": "Solar & Battery Energy Storage for Warehouses",
+        "source_name": "National Renewable Energy Laboratory (NREL)"
+      },
+      {
+        "id": "0c03b4bd-98f0-4513-9176-c4b656db8803",
+        "title": "World Bank Carbon Pricing Dashboard",
+        "source_name": "World Bank Carbon Pricing Dashboard"
+      },
+      {
+        "id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+        "title": "ECLAC (UN Latin America)",
+        "source_name": "ECLAC / CEPAL – United Nations"
+      },
+      {
+        "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+        "title": "ADB Sustainable Transport",
+        "source_name": "Asian Development Bank (ADB)"
+      },
+      {
+        "id": "e241fe75-8627-4759-a7dd-a25e9db146bf",
+        "title": "IMO Net-Zero Framework",
+        "source_name": "International Maritime Organization"
+      },
+      {
+        "id": "412ffbf4-34cf-4347-8ee5-c809748a4ed2",
+        "title": "ICAO Carbon Calculator",
+        "source_name": "International Civil Aviation Organization"
+      },
+      {
+        "id": "c2af2fc0-6792-443f-8c24-ce24f9665aa4",
+        "title": "ITF International Transport Forum",
+        "source_name": "OECD"
+      },
+      {
+        "id": "f982289b-fa8f-4d95-b507-903d0683c611",
+        "title": "WTO Environment & Trade",
+        "source_name": "World Trade Organization (WTO)"
+      },
+      {
+        "id": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+        "title": "Autonomous & Connected Freight Technology",
+        "source_name": "International Transport Forum (ITF/OECD)"
+      },
+      {
+        "id": "ad5b78ea-ddf1-4df0-a532-0d2829df96cf",
+        "title": "ASEAN Transport Strategic Plan",
+        "source_name": "ASEAN Main Portal (asean.org)"
+      },
+      {
+        "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+        "title": "GLEC Framework (Air Freight)",
+        "source_name": "Smart Freight Centre / GLEC Framework"
+      },
+      {
+        "id": "cd392833-f16c-447e-9f80-229bd2635060",
+        "title": "System Advisor Model (SAM) - NREL Energy Cost and Performance Tool",
+        "source_name": "NREL System Advisor Model (SAM)"
+      },
+      {
+        "id": "c26f4ac6-cd91-4bc8-b0c2-84766f9072f6",
+        "title": "Carbon Allowance Price Intelligence",
+        "source_name": "World Bank Group (with ICAP data support)"
+      },
+      {
+        "id": "b88753be-8ed4-4392-9cee-9f472c208513",
+        "title": "Warehouse Solar & BESS ROI Analysis",
+        "source_name": "National Renewable Energy Laboratory (NREL)"
+      },
+      {
+        "id": "8e1ce829-3a35-4105-a75b-33ca2e3e1e57",
+        "title": "Project Drawdown",
+        "source_name": "Project Drawdown (drawdown.org)"
+      },
+      {
+        "id": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+        "title": "Industrial Electricity Tariff Benchmarks by Jurisdiction",
+        "source_name": "IEA Energy Prices Database"
+      },
+      {
+        "id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+        "title": "Port of Los Angeles Green",
+        "source_name": "Port of Los Angeles (Los Angeles Harbor Department)"
+      },
+      {
+        "id": "ca6fa630-e8d3-4948-b0a8-20856cd17343",
+        "title": "ECLAC Organizational Overview and Regional Mandate",
+        "source_name": "ECLAC / CEPAL – United Nations"
+      },
+      {
+        "id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+        "title": "UNCTAD Transport Infrastructure and Services Programme: Global Guidance on Port Resilience and Sustainable Freight Transport",
+        "source_name": "UNCTAD (UN Trade and Development)"
+      },
+      {
+        "id": "93366a82-dd93-4f72-9397-3db9e52b12f9",
+        "title": "FreightWaves Sustainability",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "b680a0b8-239c-4556-b627-aebddbbfae60",
+        "title": "IDB Sustainable LatAm Transport",
+        "source_name": "Inter-American Development Bank (IDB)"
+      },
+      {
+        "id": "7c78a23c-a335-4756-a050-cdae92e7a2ee",
+        "title": "REVERB: Music Industry Environmental Action Initiative",
+        "source_name": "REVERB"
+      },
+      {
+        "id": "627da433-864b-4d60-98e6-3248726a3738",
+        "title": "World Resources Institute",
+        "source_name": "World Resources Institute (WRI)"
+      },
+      {
+        "id": "432a5042-1a51-4713-bfa0-8aca3fbfee62",
+        "title": "ASEAN Transport Strategic Plan 2016-2025 and Regional Cooperation Framework",
+        "source_name": "ASEAN Main Portal (asean.org)"
+      },
+      {
+        "id": "c3fa4cc2-f168-4784-bf78-dda5c022843e",
+        "title": "Alternative Fuels Insight (IRENA/IMO)",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "5faf8f8c-8054-4724-8c11-6e2c8fb12c95",
+        "title": "GreenBiz Supply Chain",
+        "source_name": "GreenBiz (Trellis Group)"
+      },
+      {
+        "id": "54fb8bfe-676e-4222-afb0-96dbf10affca",
+        "title": "Institute for Market Transformation Announces David B. Goldstein Fellowship Program",
+        "source_name": "IMT — Institute for Market Transformation"
+      },
+      {
+        "id": "6627ef8b-5ca1-49a4-9442-7cc201c78a07",
+        "title": "International Roadcheck Week 2026: Anticipated Market Disruption and Inspection Impact on Freight Rates",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "663f593c-8834-45c9-bddd-05c334538c54",
+        "title": "Maritime Chokepoint Monitoring",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "5b07f503-8dbc-4bb4-b801-6359b5ab6018",
+        "title": "Logistics Labor Cost & Availability Benchmarks",
+        "source_name": "International Labour Organization (ILO)"
+      },
+      {
+        "id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+        "title": "IEA Global Supply Chains of EV Batteries Report",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "b26de8fc-a6b6-46e5-8f9d-7ea9c96e7b09",
+        "title": "Supply Chain Digital",
+        "source_name": "BizClik Media (Supply Chain Digital)"
+      },
+      {
+        "id": "5e0af336-e997-47ae-a235-b7b155d742bb",
+        "title": "GEF (Global Environment Facility)",
+        "source_name": "World Bank — Financial Intermediary Funds Trustee"
+      },
+      {
+        "id": "d136c88c-8816-4727-b15d-a80b96f0f57b",
+        "title": "Reuters Sustainability Coverage - General Monitoring",
+        "source_name": "Reuters Sustainable Business"
+      },
+      {
+        "id": "dde5a446-cdfd-4cff-a6ba-40e12f3c0a65",
+        "title": "ICAP Allowance Price Explorer: Terms of Use and Data Documentation",
+        "source_name": "International Carbon Action Partnership (ICAP)"
+      },
+      {
+        "id": "ea6cfff1-fd20-43b9-813b-718110727190",
+        "title": "ABS Website Cookie Policy and Data Collection Notice",
+        "source_name": "ABS Sustainability"
+      },
+      {
+        "id": "e9723d32-6006-42d2-bbdd-02f191629b5e",
+        "title": "GRI Standards",
+        "source_name": "Global Reporting Initiative (GRI)"
+      },
+      {
+        "id": "38322420-45a2-474a-b910-23b2dd215c49",
+        "title": "ISSB IFRS S2",
+        "source_name": "IFRS / ISSB Sustainability Standards"
+      },
+      {
+        "id": "08b0a1b3-ff0f-4bcb-9b8e-bc05a7c2cb47",
+        "title": "UN SDGs 9 & 13",
+        "source_name": "United Nations Department of Economic and Social Affairs (UN DESA)"
+      },
+      {
+        "id": "c2e45859-5e28-4042-8a37-ac8515a302ae",
+        "title": "MIT Center for Transportation & Logistics",
+        "source_name": "MIT Center for Transportation and Logistics"
+      },
+      {
+        "id": "cc0958fb-6453-4163-8363-27515817597f",
+        "title": "CORSIA (ICAO)",
+        "source_name": "International Civil Aviation Organization"
+      },
+      {
+        "id": "8ff93a7e-5256-4d31-959b-2172de16ae8f",
+        "title": "IRENA Abu Dhabi",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "e37a5c9a-5dcb-4b44-a9c9-79d2b0b58df7",
+        "title": "IPCC Climate Reports",
+        "source_name": "Intergovernmental Panel on Climate Change (IPCC)"
+      },
+      {
+        "id": "9baa3126-52d5-42f8-8748-192d390f8d4c",
+        "title": "Mission Innovation Clean Shipping",
+        "source_name": "Mission Innovation"
+      },
+      {
+        "id": "ee129098-5f10-4c22-9c7f-95082f8650ac",
+        "title": "SBTi",
+        "source_name": "Science Based Targets initiative"
+      },
+      {
+        "id": "88927b29-7af5-467d-a0c0-f5ff3069b8a5",
+        "title": "Splash247 Green",
+        "source_name": "Splash247 (Asia Shipping Media)"
+      },
+      {
+        "id": "dce1881d-ecfe-461f-8b95-4ad052d47f3e",
+        "title": "ILOstat - International Labour Organization Statistical Database",
+        "source_name": "ILOSTAT"
+      },
+      {
+        "id": "46c528f5-c366-4738-98f5-db9accea8780",
+        "title": "UNCTAD Sustainable Transport",
+        "source_name": "UNCTAD (UN Trade and Development)"
+      },
+      {
+        "id": "6d2ec398-6dea-4fd8-ad65-53c7cda2520d",
+        "title": "IEA Policies & Measures",
+        "source_name": "IEA Policies and Measures Database"
+      },
+      {
+        "id": "7d2f8d88-46b6-4998-a10e-75093500f46c",
+        "title": "ISO 14083",
+        "source_name": "ISO 14083"
+      },
+      {
+        "id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+        "title": "Environmental Finance",
+        "source_name": "United Nations Development Programme (UNDP)"
+      },
+      {
+        "id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+        "title": "IEA Global Hydrogen Review 2025 - Market Analysis and Strategic Insights",
+        "source_name": "IEA Global Hydrogen Review"
+      },
+      {
+        "id": "e360e82f-c710-47c5-b14f-8a20bb0ccd7a",
+        "title": "OECD Environment",
+        "source_name": "OECD (Organisation for Economic Co-operation and Development)"
+      },
+      {
+        "id": "0f93eb09-bf90-4092-a5fd-239bc50f6cc1",
+        "title": "ECLAC Regional Development Framework and 2030 Agenda Implementation Roadmap",
+        "source_name": "ECLAC / CEPAL – United Nations"
+      },
+      {
+        "id": "e948b3a9-6784-4eaa-97b7-d955fd4edc1e",
+        "title": "ICCT",
+        "source_name": "ICCT Freight"
+      },
+      {
+        "id": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+        "title": "Transportation 2050: Pathways for Decarbonization and Climate Resilience in Latin America and the Caribbean",
+        "source_name": "Inter-American Development Bank (IDB) – IDB Publications"
+      },
+      {
+        "id": "8a95cc9a-6f50-47fc-8c94-0153f1c8eefb",
+        "title": "Bureau Veritas Marine & Offshore: Comprehensive Decarbonization and Sustainability Compliance Framework",
+        "source_name": "Bureau Veritas Marine & Offshore"
+      },
+      {
+        "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+        "title": "ADB Celebrates European Partnership and Highlights Private Sector Opportunities in Sustainable Transport",
+        "source_name": "Asian Development Bank (ADB)"
+      },
+      {
+        "id": "0a8b8ef0-0c6c-406c-a5b5-321709fa5237",
+        "title": "World Bank Transport Strategy: Jobs, Growth, and Development Focus Areas",
+        "source_name": "World Bank Group"
+      },
+      {
+        "id": "c3004aa0-2e9a-4912-90b2-de095a69f670",
+        "title": "OECD Environment Policy Area - Access Verification",
+        "source_name": "OECD (Organisation for Economic Co-operation and Development)"
+      },
+      {
+        "id": "ece93c54-871b-4cf3-9f39-a4a2e9691574",
+        "title": "OECD Automated and Autonomous Driving Research",
+        "source_name": "OECD iLibrary"
+      },
+      {
+        "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+        "title": "International Transport Forum 2019 - General Rules",
+        "source_name": "International Transport Forum (ITF) at the OECD"
+      },
+      {
+        "id": "1293f278-bdbe-4a19-98e9-f37395e5b7a5",
+        "title": "GRI Standards Platform - Cookie Consent and Data Management Policy",
+        "source_name": "Global Reporting Initiative (GRI)"
+      },
+      {
+        "id": "7e4f2b36-81a0-4769-85ae-e70e475076cd",
+        "title": "IRENA Pathway to Decarbonise the Shipping Sector by 2050",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "02ad37c7-8a11-434b-8626-55e92087fbc9",
+        "title": "OECD Environmental Finance Publication",
+        "source_name": "Organisation for Economic Co-operation and Development (OECD)"
+      },
+      {
+        "id": "156ec17c-9be4-48b8-92f7-f00aed7bc91b",
+        "title": "GRI Standards Download Portal - Cookie Policy and Website Consent Management",
+        "source_name": "Global Reporting Initiative (GRI)"
+      },
+      {
+        "id": "3373d06e-22a6-4287-8aac-173169159177",
+        "title": "IRENA Critical Materials for EV Batteries Report - Access Unavailable",
+        "source_name": "International Renewable Energy Agency (IRENA)"
+      },
+      {
+        "id": "629c2d63-fd96-4226-974e-a4c3fbe4f9bb",
+        "title": "Carbon Trust Climate Action Plans and Business Sustainability Framework",
+        "source_name": "Carbon Trust"
+      },
+      {
+        "id": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+        "title": "Project JOLT Advances eHGV Real-World Trials; Decarbonization Challenges and Digital Innovation in Road Freight",
+        "source_name": "Centre for Sustainable Road Freight"
+      },
+      {
+        "id": "5351d10b-62e7-42ec-98bf-c18595a9c20d",
+        "title": "IADB Transport Sector Framework - Access Blocked",
+        "source_name": "Inter-American Development Bank (IDB)"
+      },
+      {
+        "id": "67c6e313-e501-48ec-82be-944296aad8db",
+        "title": "ADB Celebrates 30-Year Europe Partnership, Signals Private Sector Investment Opportunities in Asian Transport",
+        "source_name": "Asian Development Bank (ADB)"
+      },
+      {
+        "id": "ae628786-ad32-4dd4-bd43-64a812029966",
+        "title": "IRENA Power Generation Costs - Access Unavailable",
+        "source_name": "IRENA Renewable Power Generation Costs"
+      },
+      {
+        "id": "af277afd-b925-4583-852a-eaa6db310888",
+        "title": "IEA Global EV Outlook 2024 - Access Verification",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+        "title": "WTO Trade and Environment Framework: Key Initiatives on Climate, Plastics, and Fossil Fuel Subsidy Reform",
+        "source_name": "World Trade Organization (WTO)"
+      },
+      {
+        "id": "947e08f3-0136-423d-8f62-03bb071bad49",
+        "title": "IEA Electricity Mid-Year Update 2025 - Key Market and Grid Analysis",
+        "source_name": "IEA Electricity Mid-Year Update"
+      },
+      {
+        "id": "c828810c-d371-4562-81c1-d64584ec4f40",
+        "title": "World Bank Transport Sector Strategy: Jobs Creation and Economic Development Framework",
+        "source_name": "World Bank Group"
+      },
+      {
+        "id": "8a9af9ef-0fe5-40c8-b8f4-dd97a316a574",
+        "title": "IMF Port Watch - Chokepoint 6 Monitoring",
+        "source_name": "International Monetary Fund (IMF)"
+      },
+      {
+        "id": "6af04bf0-bebd-4dd5-a900-72974c87fa69",
+        "title": "IPCC Second-Order Draft Review Period Opens for Special Report on Climate Change and Cities",
+        "source_name": "Intergovernmental Panel on Climate Change (IPCC)"
+      },
+      {
+        "id": "f92fab46-b7c8-4ebb-ba87-ff54d18aeaf2",
+        "title": "Lloyd's Register Maritime Decarbonisation Hub: Leadership and Evidence for Sustainable Shipping",
+        "source_name": "Lloyd's Register Group (lr.org)"
+      },
+      {
+        "id": "bd9a1a6b-2966-41df-b595-63ccad090f90",
+        "title": "GEF Leadership and Organizational Structure",
+        "source_name": "Global Environment Facility (GEF) — official secretariat site"
+      },
+      {
+        "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+        "title": "IEA Electricity Price Data for Large Industrial Customers (2019-2024)",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "50ccd5cc-d278-43ad-98c1-596153c1d714",
+        "title": "Smart Freight Centre Releases Updated GLEC Framework Version 3.0",
+        "source_name": "Smart Freight Centre"
+      },
+      {
+        "id": "efcc9f45-c7c7-4e06-8cb6-fc85348b8f2f",
+        "title": "Global EV Outlook 2024 - IEA Market Assessment",
+        "source_name": "International Energy Agency (IEA)"
+      },
+      {
+        "id": "45006684-2f39-4107-934a-e8420c7fbbbb",
+        "title": "OECD ITF Decarbonising Transport Initiative",
+        "source_name": "International Transport Forum"
+      },
+      {
+        "id": "9f34b7c4-c567-4c66-825a-5c146d1b8597",
+        "title": "NSRDB - National Solar Radiation Database",
+        "source_name": "NREL NSRDB National Solar Radiation Database"
+      },
+      {
+        "id": "2648d4ad-eac5-406b-888c-d551d5e1d403",
+        "title": "UNCTAD Sustainable Freight Transport Framework: Six-Step Strategic Planning Methodology for Global Supply Chain Decarbonization",
+        "source_name": "UNCTAD (UN Trade and Development)"
+      },
+      {
+        "id": "b6fd00bf-2573-4103-8f67-216c8bec66c7",
+        "title": "World Energy Outlook 2025 Free Dataset Released by IEA",
+        "source_name": "IEA World Energy Outlook Dataset"
+      },
+      {
+        "id": "ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+        "title": "The Global Wage Report Series - ILO Research Resource",
+        "source_name": "ILO Global Wage Report"
+      },
+      {
+        "id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+        "title": "China's Environmental Code: First Climate Legislation Supporting 2060 Carbon Neutrality Goal",
+        "source_name": "CCICED Secretariat"
+      },
+      {
+        "id": "27f22c4f-9d58-4ff6-afc5-1aad5b229d91",
+        "title": "May 2026 Maritime Intelligence Brief: Hormuz Instability Drives War Risk Innovation, Nuclear Shipping Initiative Launched, Dry Bulk M&A Escalates",
+        "source_name": "Splash247"
+      },
+      {
+        "id": "c54cd5f2-779a-4a74-9614-ea38a0e6d55f",
+        "title": "9th Multi-Stakeholder Forum on Science, Technology and Innovation for the Sustainable Development Goals (STI Forum 2024)",
+        "source_name": "United Nations Department of Economic and Social Affairs (UN DESA)"
+      },
+      {
+        "id": "31b18416-9059-4294-96dd-38666468ecf8",
+        "title": "9th Multi-Stakeholder Forum on Science, Technology and Innovation for the Sustainable Development Goals (STI Forum 2024)",
+        "source_name": "United Nations Department of Economic and Social Affairs (UN DESA)"
+      },
+      {
+        "id": "4a6d21d7-0ec7-46e6-b20f-14f867f9d77d",
+        "title": "PVWatts Calculator - NREL Solar Performance Estimation Tool",
+        "source_name": "NREL PVWatts Calculator"
+      },
+      {
+        "id": "538c2774-e271-4e8f-b03d-2385b705b862",
+        "title": "Carbon Trust: Global Organization Overview and Net Zero Transition Services",
+        "source_name": "Carbon Trust"
+      },
+      {
+        "id": "5f9e9fb4-f72e-46b9-b0bd-cece2bb4f906",
+        "title": "Shareholder Conviction on ESG Strengthens While Brand Communication Lags Consumer Demand",
+        "source_name": "GreenBiz"
+      },
+      {
+        "id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+        "title": "DNV Quarterly Insights: Regulatory Updates in Maritime, Food Safety, Cybersecurity, and Net-Zero Compliance (Q2 2026)",
+        "source_name": "DNV Maritime Regulatory Updates"
+      },
+      {
+        "id": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+        "title": "ITF-OECD Automated and Autonomous Driving Resource",
+        "source_name": "International Transport Forum (ITF/OECD)"
+      },
+      {
+        "id": "620f2692-2825-4aa8-a5e1-1361e70848fa",
+        "title": "Embedding Social Vulnerability in UK Climate Adaptation Policy: Dr Katie Jenkins on the British Academy Fellowship",
+        "source_name": "Tyndall Centre for Climate Research"
+      },
+      {
+        "id": "85a7a629-744d-4e59-9b9a-959cf76e5226",
+        "title": "IPCC Opens Second-Order Draft Review for Special Report on Climate Change and Cities (March 2027 Release)",
+        "source_name": "Intergovernmental Panel on Climate Change (IPCC)"
+      },
+      {
+        "id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+        "title": "International Roadcheck 2026: ELD and Cargo Securement Focus Expected to Impact Spot Rates and Capacity",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "88c3a053-e5c4-44f2-b1cb-ecb1a313090a",
+        "title": "MIT Climate Machine: First Comprehensive Assessment of Live Music Emissions in US and UK (2025)",
+        "source_name": "MIT Climate Machine"
+      },
+      {
+        "id": "8d256568-54c3-46e9-b1c0-ad7c17c35819",
+        "title": "Container Shipping Market Update: Spot Rate Fluctuations, War-Risk Insurance Products, and Port Competition Dynamics",
+        "source_name": "The Loadstar"
+      },
+      {
+        "id": "9118aab6-bafe-43d8-9944-baf8dc698aab",
+        "title": "Mission Innovation Shipping Mission: Net-Zero Industries Award 2024 and MI-9 Global Collaboration Framework",
+        "source_name": "Mission Innovation"
+      },
+      {
+        "id": "ab362011-bea5-4cc3-95b2-c185ced3c2de",
+        "title": "International Roadcheck 2026: May 12-14 Inspection Focus on ELDs and Cargo Securement Expected to Impact Freight Markets",
+        "source_name": "FreightWaves"
+      },
+      {
+        "id": "d4dd6677-8ff8-4445-b818-5ed6f8d3c911",
+        "title": "48th ASEAN Summit Outcomes and Regional Cooperation Initiatives - May 2026",
+        "source_name": "ASEAN Main Portal (asean.org)"
+      },
+      {
+        "id": "d8305603-0aaf-4dcf-b6be-8b2d5d9fec19",
+        "title": "IEA Data and Statistics Explorer Platform",
+        "source_name": "IEA Data and Statistics Hub"
+      },
+      {
+        "id": "ebf3e5a1-b4d6-4d71-9022-6b26b7eef5b4",
+        "title": "Sabin Center-UNEP Annual Conference on Global Climate Litigation",
+        "source_name": "Sabin Center for Climate Change Law"
+      },
+      {
+        "id": "f3510df3-0fdc-49a8-b33c-c45ed78494f8",
+        "title": "The Loadstar Supply Chain News Feed - May 9, 2026",
+        "source_name": "The Loadstar"
+      }
+    ],
+    "operations": [
+      {
+        "id": "7fd6fbf1-9428-4e24-aaf1-21ecf29b861b",
+        "title": "Natural Gas Spot and Futures Prices (NYMEX) - Daily Data",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "7ff81425-54de-427f-b7a1-0d9e1ab1e60a",
+        "title": "Measurabl Ordinance Filing Platform: Automated Compliance Support for Energy and Water Reporting Requirements",
+        "source_name": "Measurabl — Building Benchmarking Tracker"
+      },
+      {
+        "id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+        "title": "Green Building Certification Standards for Logistics",
+        "source_name": "U.S. Green Building Council (USGBC)"
+      },
+      {
+        "id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+        "title": "EIA Spot Prices for Crude Oil and Petroleum Products - Daily Data",
+        "source_name": "US EIA Petroleum Spot Prices"
+      },
+      {
+        "id": "d6a9889f-20a6-4b4f-a846-e52fe9f18340",
+        "title": "Major Economic Indicators Summary - May 2026: CPI, Unemployment, Employment, and Wage Data",
+        "source_name": "U.S. Bureau of Labor Statistics (BLS)"
+      },
+      {
+        "id": "708e0b02-6663-42ee-b138-74c80898291e",
+        "title": "ESPO Green Ports",
+        "source_name": "European Sea Ports Organisation (ESPO)"
+      },
+      {
+        "id": "bf734379-188e-48b6-b3ff-76e70c85ccfa",
+        "title": "ESPO (European Sea Ports Organisation)",
+        "source_name": "European Sea Ports Organisation (ESPO) / EcoPorts"
+      },
+      {
+        "id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+        "title": "Crude Oil & Jet Fuel Price Intelligence",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "22e1d608-20d0-4fb1-a5ab-59639605d8fc",
+        "title": "Climate Change Laws of the World Database - Global Climate Legislation and Policy Search",
+        "source_name": "Climate Change Laws of the World"
+      },
+      {
+        "id": "11794ed7-7a03-4819-a1c6-85125e8eff90",
+        "title": "EIA Spot Prices for Crude Oil and Petroleum Products - Monthly Data",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "71b03469-c11c-4218-8b44-c1fec3ffda25",
+        "title": "U.S. Bureau of Labor Statistics - Major Economic Indicators April 2026",
+        "source_name": "U.S. Bureau of Labor Statistics (BLS)"
+      },
+      {
+        "id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+        "title": "India Regional Operations Profile",
+        "source_name": "International Council on Clean Transportation (ICCT)"
+      },
+      {
+        "id": "b8da154a-149e-483a-9198-7039850006fc",
+        "title": "LNG & Natural Gas Price Intelligence",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "f57d0f58-65be-47ef-8ee7-82aab1c8c732",
+        "title": "Rotterdam Port SMR Supply Chain Study and Labor Productivity Optimization Initiative",
+        "source_name": "SmartPort (partnership of EUR, TU Delft, Port of Rotterdam Authority, Municipality of Rotterdam, Deltalinqs, TNO, Deltares)"
+      },
+      {
+        "id": "8e5a62ba-2393-4b81-a6ca-546e985cc052",
+        "title": "TNO Mobility & Logistics",
+        "source_name": "TNO (Netherlands Organisation for Applied Scientific Research)"
+      },
+      {
+        "id": "93982f32-3e34-4ffa-9fef-1b1afb5ad411",
+        "title": "Hydrogen Insight: Industry Intelligence on Clean Hydrogen Market Developments and Policy",
+        "source_name": "Hydrogen Insight"
+      },
+      {
+        "id": "ed63f522-96bd-4aac-b828-a216f34b90a9",
+        "title": "U.S. Energy Information Administration Short-Term Energy Outlook",
+        "source_name": "US EIA Short-Term Energy Outlook"
+      },
+      {
+        "id": "0339e2b7-a092-4d79-a363-82620855d95a",
+        "title": "The Decarb Hub: Industry Initiative for Sustainable Shipping Decarbonization",
+        "source_name": "Lloyd's Register Maritime Decarbonisation Hub (thedecarbhub.org)"
+      },
+      {
+        "id": "b3b32236-047c-4011-a79b-25913a70a662",
+        "title": "USGBC LEED Framework and 2026 Initiatives",
+        "source_name": "U.S. Green Building Council (USGBC)"
+      },
+      {
+        "id": "c0a2dfb3-e394-4e88-8acd-60a714339c4a",
+        "title": "Lloyd's Register Decarbonisation Hub",
+        "source_name": "Lloyd's Register Foundation (lrfoundation.org.uk)"
+      },
+      {
+        "id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+        "title": "Yara Clean Ammonia",
+        "source_name": "Yara International ASA"
+      },
+      {
+        "id": "3581c084-9486-4085-82cc-b650380bd83d",
+        "title": "GLEC Framework v3",
+        "source_name": "Smart Freight Centre"
+      },
+      {
+        "id": "340ddf31-e533-4e2d-b2a6-5b6b1b70e470",
+        "title": "DP World Sustainability Strategy: Net Zero Pathway and ESG Framework Alignment",
+        "source_name": "DP World (dpworld.com)"
+      },
+      {
+        "id": "2e3ef7e7-25e3-4cca-8ef6-79e67b1e0000",
+        "title": "EIA Natural Gas Data Portal - U.S. Energy Information Administration",
+        "source_name": "U.S. Energy Information Administration (EIA)"
+      },
+      {
+        "id": "b0d9737e-5e8a-4a81-89bb-921c172219fd",
+        "title": "DP World Sustainability",
+        "source_name": "DP World (dpworld.com)"
+      },
+      {
+        "id": "4d240f75-1d06-4d94-912c-4c7449e95deb",
+        "title": "Blue Visby Solution Completes Second Series of Prototype Trials Demonstrating Significant GHG Emissions Reductions",
+        "source_name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)"
+      },
+      {
+        "id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+        "title": "Zero Emission Maritime Buyers Alliance (ZEMBA) Launched by Aspen Institute, Amazon, Patagonia, and Tchibo",
+        "source_name": "The Aspen Institute"
+      },
+      {
+        "id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+        "title": "Blue Visby Solution",
+        "source_name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)"
+      },
+      {
+        "id": "371d2218-f515-4453-8fac-02120ab4fe42",
+        "title": "EIA Open Data Portal - U.S. Energy Information Administration",
+        "source_name": "US EIA Open Data API"
+      },
+      {
+        "id": "eb6641da-ce23-49aa-add6-a5a876d422b0",
+        "title": "McKinsey Insights: AI, Quantum Computing, and Enterprise Digital Transformation Trends",
+        "source_name": "McKinsey Sustainability"
+      }
+    ]
+  },
+  "post_counts": {
+    "market": 47,
+    "research": 110,
+    "operations": 30
+  },
+  "parity": {
+    "market": {
+      "pre_count": 47,
+      "post_count": 47,
+      "parity": true,
+      "only_in_pre": [],
+      "only_in_post": []
+    },
+    "research": {
+      "pre_count": 110,
+      "post_count": 110,
+      "parity": true,
+      "only_in_pre": [],
+      "only_in_post": []
+    },
+    "operations": {
+      "pre_count": 30,
+      "post_count": 30,
+      "parity": true,
+      "only_in_pre": [],
+      "only_in_post": []
+    }
+  },
+  "parity_overall": true
+}
