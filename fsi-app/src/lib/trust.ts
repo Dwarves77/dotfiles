@@ -588,3 +588,303 @@ function frequencyToDays(frequency: string): number {
     default: return 0;
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+// Q7: Discovery Loop Promotion Thresholds + Daily Recompute
+// ══════════════════════════════════════════════════════════════
+//
+// Per Q7 (docs/sprint-2/source-credibility-model-decisions-2026-05-19.md)
+// and the source-credibility-model skill, Section 4 and Section 5.
+//
+// This block defines:
+//   1. Q7_CONFIG: thresholds for review-queue surfacing, citation-
+//      frequency promotion, weighted-sum promotion, tier-opinion
+//      disagreement flagging.
+//   2. TIER_WEIGHTS: per-tier citation weight (T1=1.0 ... T7=0).
+//      A T1 citation contributes weight 1.0; a T7 citation contributes 0
+//      because T7 means "authority unestablished" and amplifying T7
+//      citations would amplify uncertainty.
+//   3. evaluateCandidatePromotion(): given a source_id, sums the
+//      tier-weighted, decayed citation contributions and reports
+//      whether the source clears the Q7 promotion threshold.
+//   4. recomputeEffectiveTier(): given a source_id, derives the
+//      effective tier per the model formula
+//      COALESCE(tier_override, computed_dynamic_tier, base_tier).
+//
+// Schema note (Q7 worktree predates Q2 + Q5):
+//   - Current sources schema has `tier` (INT 1-7); not yet
+//     `base_tier`/`effective_tier` (Q2) or `tier_override` (Q5).
+//   - Until Q2/Q5 land, both functions read `tier` as base_tier and
+//     skip the override branch. The COALESCE shape is preserved so
+//     the swap at migration time is mechanical.
+//   - source_trust_events.event_type CHECK constraint currently
+//     restricts values to a fixed set; 'effective_tier_recompute'
+//     is NOT in the set. The daily batch uses the existing
+//     'tier_promotion' / 'tier_demotion' values to log tier changes;
+//     adding a recompute-specific event_type is a separate migration.
+//
+// Q6 conflict note: Q6 dispatch lands the recency-decay function on
+// the same file. When merged, Q6 owns decayFactor() and TIER_WEIGHTS
+// MUST resolve to the same Q7 values defined below (T1=1.0 ... T7=0);
+// if Q6 lands first with TIER_WEIGHTS, this block references the
+// existing constant.
+
+export const Q7_CONFIG = {
+  /** Classifier confidence above which a discovered candidate surfaces to the operator review queue. */
+  CLASSIFIER_CONFIDENCE_REVIEW_THRESHOLD: 0.65,
+  /** Number of independent citations above which a candidate promotes to operator review regardless of confidence. */
+  CITATION_FREQUENCY_PROMOTION_THRESHOLD: 3,
+  /** Tier-weighted, decayed citation sum above which a candidate is eligible for tier elevation. */
+  PROMOTION_WEIGHTED_SUM_THRESHOLD: 2.5,
+  /** Lookback window for the tier-opinion disagreement aggregation, in days. */
+  TIER_OPINION_DISAGREEMENT_WINDOW_DAYS: 90,
+  /** Count of disagreeing opinions within the window that triggers operator review of the source's tier. */
+  TIER_OPINION_DISAGREEMENT_COUNT_THRESHOLD: 5,
+  /** Expected operator review queue arrival rate per week, [min, max]. Used to calibrate thresholds. */
+  EXPECTED_QUEUE_RATE_PER_WEEK: [5, 15] as [number, number],
+} as const;
+
+/**
+ * Per-tier citation weight used in the tier-weighted citation sum.
+ * T7 = 0: a source whose authority is unestablished does not contribute
+ * credibility signal to anything it cites (amplifying T7 would amplify
+ * uncertainty, not credibility).
+ *
+ * Verbatim per Q7 decision. Q6 dispatch will add decay; the weights
+ * here MUST match whatever Q6 defines (Q7 is the authoritative source
+ * for the weight values per the decisions doc).
+ */
+export const TIER_WEIGHTS: Record<SourceTier, number> = {
+  1: 1.0,
+  2: 0.85,
+  3: 0.7,
+  4: 0.5,
+  5: 0.3,
+  6: 0.15,
+  7: 0,
+};
+
+/**
+ * Recency decay factor for a citation timestamp.
+ *
+ * Half-life curve: a citation at `now` contributes 1.0; at `now - half_life`
+ * contributes 0.5; at `now - 2 * half_life` contributes 0.25.
+ *
+ * Q6 owns the canonical implementation; this is a placeholder that uses
+ * the upper end of the Q7 documented range (24 months) until Q6 merges.
+ * When Q6 lands, the merge resolution removes this stub and imports the
+ * Q6 export instead.
+ */
+export const Q7_DEFAULT_HALF_LIFE_DAYS = 24 * 30; // 24 months, upper end of Q7's 18-24 month tunable range.
+
+export function decayFactor(
+  detectedAt: string | Date,
+  now: Date = new Date(),
+  halfLifeDays: number = Q7_DEFAULT_HALF_LIFE_DAYS
+): number {
+  const detectedTime = typeof detectedAt === "string" ? new Date(detectedAt).getTime() : detectedAt.getTime();
+  const ageDays = (now.getTime() - detectedTime) / 86400000;
+  if (ageDays <= 0) return 1.0;
+  return Math.pow(0.5, ageDays / halfLifeDays);
+}
+
+// ── Supabase-like client shape used by the Q7 functions ──
+// Kept minimal so the functions are usable from both the Next.js
+// runtime (admin client) and the daily batch script (service-role
+// client). Both expose the same .from().select()/update()/insert() API.
+
+export interface SupabaseLikeClient {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (table: string) => any;
+}
+
+export interface CitationRow {
+  citing_source_id: string;
+  cited_source_id: string;
+  detected_at: string;
+}
+
+export interface PromotionEvaluationResult {
+  source_id: string;
+  should_promote: boolean;
+  weighted_sum: number;
+  citation_count: number;
+  reasoning: string;
+}
+
+/**
+ * Sum tier-weighted, decayed citation contributions for a single cited source.
+ *
+ * Reads source_citations rows where cited_source_id = sourceId, joins each
+ * citing source to its tier, applies TIER_WEIGHTS and decayFactor, sums.
+ *
+ * Returns { weighted_sum, citation_count, should_promote, reasoning }.
+ */
+export async function evaluateCandidatePromotion(
+  client: SupabaseLikeClient,
+  sourceId: string,
+  now: Date = new Date(),
+  halfLifeDays: number = Q7_DEFAULT_HALF_LIFE_DAYS
+): Promise<PromotionEvaluationResult> {
+  // Fetch citations into this source.
+  const { data: citations, error: citErr } = await client
+    .from("source_citations")
+    .select("citing_source_id, cited_source_id, detected_at")
+    .eq("cited_source_id", sourceId);
+
+  if (citErr) {
+    throw new Error(`evaluateCandidatePromotion: failed to read source_citations for ${sourceId}: ${citErr.message}`);
+  }
+
+  const rows = (citations ?? []) as CitationRow[];
+  const citation_count = rows.length;
+
+  if (citation_count === 0) {
+    return {
+      source_id: sourceId,
+      should_promote: false,
+      weighted_sum: 0,
+      citation_count: 0,
+      reasoning: "no citations",
+    };
+  }
+
+  // Fetch tier for each unique citing source. After Q2 lands the read
+  // column becomes effective_tier; today it is tier.
+  const citingIds = Array.from(new Set(rows.map((r) => r.citing_source_id)));
+  const { data: citerSources, error: srcErr } = await client
+    .from("sources")
+    .select("id, tier")
+    .in("id", citingIds);
+
+  if (srcErr) {
+    throw new Error(`evaluateCandidatePromotion: failed to read sources for citers of ${sourceId}: ${srcErr.message}`);
+  }
+
+  const tierById = new Map<string, number>();
+  for (const s of (citerSources ?? []) as Array<{ id: string; tier: number }>) {
+    tierById.set(s.id, s.tier);
+  }
+
+  let weighted_sum = 0;
+  for (const row of rows) {
+    const tier = tierById.get(row.citing_source_id);
+    if (tier == null) continue; // Citer source not found (deleted or RLS-filtered); skip.
+    if (tier < 1 || tier > 7) continue; // Defensive: out-of-range tier; skip.
+    const weight = TIER_WEIGHTS[tier as SourceTier];
+    const decay = decayFactor(row.detected_at, now, halfLifeDays);
+    weighted_sum += weight * decay;
+  }
+
+  const should_promote =
+    weighted_sum >= Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD &&
+    citation_count >= Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD;
+
+  const reasoning = should_promote
+    ? `weighted_sum=${weighted_sum.toFixed(3)} >= ${Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD} AND citations=${citation_count} >= ${Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD} (promote)`
+    : `weighted_sum=${weighted_sum.toFixed(3)} citations=${citation_count} below thresholds (sum>=${Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD}, citations>=${Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD})`;
+
+  return {
+    source_id: sourceId,
+    should_promote,
+    weighted_sum,
+    citation_count,
+    reasoning,
+  };
+}
+
+export interface EffectiveTierRecomputeResult {
+  source_id: string;
+  before_tier: SourceTier;
+  after_tier: SourceTier;
+  changed: boolean;
+  base_tier: SourceTier;
+  computed_dynamic_tier: SourceTier;
+  tier_override: SourceTier | null;
+  weighted_sum: number;
+  citation_count: number;
+  reasoning: string;
+}
+
+/**
+ * Recompute the effective tier for a single source.
+ *
+ * Formula: effective_tier = COALESCE(tier_override, computed_dynamic_tier, base_tier).
+ *
+ * computed_dynamic_tier is derived from base_tier plus the network signal:
+ *   - if weighted_sum >= PROMOTION_WEIGHTED_SUM_THRESHOLD and base_tier > 1,
+ *     promote one tier (lower number = higher tier).
+ *   - otherwise computed_dynamic_tier = base_tier.
+ *
+ * The Q7 promotion logic intentionally promotes by ONE tier per recompute.
+ * Multi-tier jumps are deliberate operator decisions, not batch outcomes.
+ * Demotion is OUT OF SCOPE for Q7 (owned by the existing evaluateDemotion
+ * path in this module, which fires on conflicts/inaccessibility).
+ *
+ * Schema note (pre-Q2 / pre-Q5): we read `tier` as base_tier and treat
+ * tier_override as always-null. When Q2/Q5 land, the read becomes
+ * { base_tier, tier_override } and the COALESCE wires through.
+ */
+export async function recomputeEffectiveTier(
+  client: SupabaseLikeClient,
+  sourceId: string,
+  now: Date = new Date(),
+  halfLifeDays: number = Q7_DEFAULT_HALF_LIFE_DAYS
+): Promise<EffectiveTierRecomputeResult> {
+  // Read the source row. Pre-Q2: only `tier` exists. Post-Q2/Q5 the
+  // select list extends to base_tier, effective_tier, tier_override.
+  const { data: src, error: srcErr } = await client
+    .from("sources")
+    .select("id, tier")
+    .eq("id", sourceId)
+    .single();
+
+  if (srcErr) {
+    throw new Error(`recomputeEffectiveTier: failed to read source ${sourceId}: ${srcErr.message}`);
+  }
+  if (!src) {
+    throw new Error(`recomputeEffectiveTier: source ${sourceId} not found`);
+  }
+
+  const baseTierNum = (src as { tier: number }).tier;
+  if (baseTierNum < 1 || baseTierNum > 7) {
+    throw new Error(`recomputeEffectiveTier: source ${sourceId} has out-of-range tier=${baseTierNum}`);
+  }
+  const base_tier = baseTierNum as SourceTier;
+  const tier_override: SourceTier | null = null; // Pre-Q5; will read column when Q5 lands.
+
+  // before_tier is the currently-stored effective signal. Pre-Q2 this
+  // is just `tier`; post-Q2 it becomes effective_tier.
+  const before_tier = base_tier;
+
+  // Sum citation network signal.
+  const promo = await evaluateCandidatePromotion(client, sourceId, now, halfLifeDays);
+
+  // Promote by one tier if eligible and not already T1.
+  let computed_dynamic_tier: SourceTier = base_tier;
+  if (promo.should_promote && base_tier > 1) {
+    computed_dynamic_tier = (base_tier - 1) as SourceTier;
+  }
+
+  // COALESCE(tier_override, computed_dynamic_tier, base_tier).
+  const after_tier: SourceTier = tier_override ?? computed_dynamic_tier ?? base_tier;
+
+  const changed = after_tier !== before_tier;
+
+  const reasoning = changed
+    ? `effective_tier ${before_tier} -> ${after_tier}: base=${base_tier} override=${tier_override ?? "null"} computed=${computed_dynamic_tier} (${promo.reasoning})`
+    : `effective_tier unchanged at ${after_tier}: base=${base_tier} override=${tier_override ?? "null"} computed=${computed_dynamic_tier} (${promo.reasoning})`;
+
+  return {
+    source_id: sourceId,
+    before_tier,
+    after_tier,
+    changed,
+    base_tier,
+    computed_dynamic_tier,
+    tier_override,
+    weighted_sum: promo.weighted_sum,
+    citation_count: promo.citation_count,
+    reasoning,
+  };
+}
