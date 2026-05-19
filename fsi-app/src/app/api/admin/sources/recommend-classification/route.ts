@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
 function getServiceClient() {
@@ -86,6 +87,14 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getServiceClient();
+
+  const admin = await isPlatformAdmin(auth.userId, supabase);
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Platform admin access required" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
   const { data: prov, error: loadErr } = await supabase
     .from("provisional_sources")

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
 const CURRENT_SKILL_VERSION = "2026-04-29";
@@ -27,6 +28,14 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
 
   const supabase = getServiceClient();
+
+  const admin = await isPlatformAdmin(auth.userId, supabase);
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Platform admin access required" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
   const { data: rows, error } = await supabase
     .from("intelligence_items")
