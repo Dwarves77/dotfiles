@@ -12,7 +12,11 @@ import {
   fetchAwaitingReview,
   fetchWorkspaceAggregates,
   fetchWorkspaceAggregatesScoped,
+  fetchMarketIntelItems,
+  fetchResearchItems,
+  fetchOperationsItems,
   type ScopeFilter,
+  type CategoryRoutedResult,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -28,7 +32,7 @@ import type {
 // Re-export the Phase 3 widget types so HomeSurface and the widget files
 // can import them from a single module rather than reaching into
 // supabase-server directly.
-export type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates, ScopeFilter };
+export type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates, ScopeFilter, CategoryRoutedResult };
 
 /**
  * Cache invalidation tag for workspace data. Mutation routes
@@ -555,5 +559,94 @@ export async function getScopedWorkspaceAggregates(
       totalJurisdictions: 0,
       lastUpdatedAt: null,
     };
+  }
+}
+
+// ── Sprint 2 Build 4: category-routed fetchers ───────────────
+//
+// Each wraps the corresponding fetcher in supabase-server.ts behind
+// unstable_cache keyed by orgId. 60s revalidate, tagged APP_DATA_TAG so
+// override / staged-update mutation routes invalidate them in lockstep
+// with getAppData and the scoped aggregates. Anonymous and no-org callers
+// share the orgId=null cache bucket (empty result).
+//
+// Routing rules per environmental-policy-and-innovation SKILL.md
+// Section 3 are encoded src-side in supabase-server.ts; see the
+// "Category-Aware Routing Fetchers" block there for the exception lists
+// (IMO/ICAO → Regulations, FreightWaves/Loadstar/etc → Research, Carbon
+// Trust + Project Drawdown → Research).
+
+const cachedMarketIntel = unstable_cache(
+  async (orgId: string | null): Promise<CategoryRoutedResult> => {
+    return fetchMarketIntelItems(orgId);
+  },
+  ["market-intel-items-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+const cachedResearch = unstable_cache(
+  async (orgId: string | null): Promise<CategoryRoutedResult> => {
+    return fetchResearchItems(orgId);
+  },
+  ["research-items-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+const cachedOperations = unstable_cache(
+  async (orgId: string | null): Promise<CategoryRoutedResult> => {
+    return fetchOperationsItems(orgId);
+  },
+  ["operations-items-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+/**
+ * Fetch the /market category-routed row payload. Wraps
+ * get_market_intel_items, MINUS the trade-press outlets the skill routes
+ * to Research (FreightWaves, Loadstar, GreenBiz, Environmental Finance,
+ * Splash247, Supply Chain Digital, Edie, Reuters Sustainable Business).
+ *
+ * Falls back to an empty result on error so the page still renders.
+ */
+export async function getMarketIntelItems(): Promise<CategoryRoutedResult> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    return await cachedMarketIntel(orgId);
+  } catch (e) {
+    console.error("getMarketIntelItems failed, returning empty:", e);
+    return { resources: [], total: 0 };
+  }
+}
+
+/**
+ * Fetch the /research category-routed row payload. Pulls the orphan
+ * get_research_items RPC (intergovernmental_body + academic_research +
+ * standards_body for non-in-force + proposed primary legal authority)
+ * MINUS IMO + ICAO (skill routes those to Regulations), PLUS Research-bound
+ * trade-press outlets and Research-bound statistical-data-agency outlets
+ * (Carbon Trust, Project Drawdown).
+ */
+export async function getResearchItems(): Promise<CategoryRoutedResult> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    return await cachedResearch(orgId);
+  } catch (e) {
+    console.error("getResearchItems failed, returning empty:", e);
+    return { resources: [], total: 0 };
+  }
+}
+
+/**
+ * Fetch the /operations category-routed row payload. Wraps
+ * get_operations_items (statistical_data_agency) MINUS Carbon Trust and
+ * Project Drawdown (skill routes those to Research).
+ */
+export async function getOperationsItems(): Promise<CategoryRoutedResult> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    return await cachedOperations(orgId);
+  } catch (e) {
+    console.error("getOperationsItems failed, returning empty:", e);
+    return { resources: [], total: 0 };
   }
 }

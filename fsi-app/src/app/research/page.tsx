@@ -1,5 +1,9 @@
 import { ResearchView, type ResearchPipelineItem } from "@/components/research/ResearchView";
-import { getResearchPipeline, getScopedWorkspaceAggregates } from "@/lib/data";
+import {
+  getResearchItems,
+  getResearchPipeline,
+  getScopedWorkspaceAggregates,
+} from "@/lib/data";
 
 // Note: previous `export const revalidate = 60` removed.
 // Per docs/ISR-WRITE-INVESTIGATION.md, /research was the *only* page with
@@ -8,31 +12,59 @@ import { getResearchPipeline, getScopedWorkspaceAggregates } from "@/lib/data";
 // correct here — the new fetcher reads cookies via the authed Supabase
 // server client.
 
-// Research scope: the surface presents the entire pipeline of intelligence
-// items (no item_type / domain narrowing, just pipeline_stage filtering on
-// the client). Pass an empty filter so the scoped aggregates RPC degrades
-// to workspace-wide totals — the same scope the page renders. We still go
-// through getScopedWorkspaceAggregates so the cache key is stable and the
-// 069 RPC contract is the canonical source.
+// Research scope: the surface presents the horizon-scan slice per
+// environmental-policy-and-innovation Section 3. Pass an empty filter so
+// the scoped aggregates RPC degrades to workspace-wide totals; the
+// category-routing layer (getResearchItems) narrows the row payload to
+// the Research-bound source set.
 const RESEARCH_SCOPE = {};
 
 export default async function Research() {
   const t0 = Date.now();
-  // Pull the pipeline rows AND scoped aggregates in parallel. The fetcher
-  // uses the cookie-aware authed Supabase server client (mirrors
-  // /operations and /market) instead of the prior inline anon-key fetcher.
-  // `total` reflects the true row count so the page can show "Showing N of M"
-  // instead of silently truncating at 100.
-  const [pipeline, aggregates] = await Promise.all([
+  // Sprint 2 Build 4: category routing wiring (OBS-26 / REC-OBS-G).
+  //
+  // Previously this page rendered pipeline rows fetched by intelligence_items
+  // query alone, with no category filter (is_archived=false only). That
+  // surfaced regulatory drafts, market signals, and operations content
+  // alongside actual horizon-scan research, conflating the surfaces.
+  //
+  // Now /research intersects the pipeline rows with the category-routed
+  // ID allow-list from getResearchItems, which applies skill Section 3
+  // rules:
+  //   - IMO + ICAO removed (route to Regulations)
+  //   - FreightWaves / Loadstar / GreenBiz / Environmental Finance /
+  //     Splash247 / Supply Chain Digital / Edie / Reuters Sustainable
+  //     Business added in (skill places trade-press analytical content
+  //     here, not Market Intel)
+  //   - Carbon Trust + Project Drawdown added in (skill places these
+  //     here, not Operations)
+  //
+  // The pipeline_stage UI control still functions; it filters within the
+  // category-routed slice.
+  const [pipeline, research, aggregates] = await Promise.all([
     getResearchPipeline(),
+    getResearchItems(),
     getScopedWorkspaceAggregates(RESEARCH_SCOPE),
   ]);
-  console.log(`[perf] /research data ${Date.now() - t0}ms`);
+  console.log(
+    `[perf] /research data ${Date.now() - t0}ms (pipeline=${pipeline.total}, category-routed=${research.total})`
+  );
+
+  // Build the allow-list of IDs from the category-routed payload.
+  // research.resources carries legacy_id || uuid IDs (rpcRowToResource
+  // mapper), matching the IDs the pipeline fetcher emits.
+  const allow = new Set(research.resources.map((r) => r.id));
+  // If the category RPC came back empty (anon / no-auth / RPC failure
+  // path), don't apply the filter — render the pipeline view as before so
+  // the surface is never blank.
+  const filteredRows = allow.size
+    ? pipeline.rows.filter((r) => allow.has(r.id))
+    : pipeline.rows;
 
   // Adapter: ResearchPipelineRow → ResearchPipelineItem (the existing UI
   // shape). owner / partnerFlagged are placeholders preserved from the
   // previous fetcher pending the owner-attribution work.
-  const items: ResearchPipelineItem[] = pipeline.rows.map((r) => ({
+  const items: ResearchPipelineItem[] = filteredRows.map((r) => ({
     id: r.id,
     title: r.title,
     summary: r.summary,
@@ -50,7 +82,7 @@ export default async function Research() {
     <ResearchView
       items={items}
       aggregates={aggregates}
-      total={pipeline.total}
+      total={allow.size ? filteredRows.length : pipeline.total}
       shown={items.length}
       cap={pipeline.cap}
     />
