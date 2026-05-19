@@ -167,12 +167,44 @@ Carry an OBS coverage table and a DP compliance section with the same structure,
 ```
 ## OBS Surfaced During This Dispatch
 
-- **OBS-N: [title]** — captured at `docs/sprint-N/followups.md`. Source: [where it surfaced]. Owner: [phase or sprint]. Cross-references: [related OBS].
+- **OBS-N: [title]**, captured at `docs/sprint-N/followups.md`. Source: [where it surfaced]. Owner: [phase or sprint]. Cross-references: [related OBS].
 ```
 
 ### Sprint planning or sequencing dispatches
 
 Carry the coverage table for OBS entries the planning decision affects. Use the Decision column to surface scope assignments rather than per-OBS implementation moves.
+
+## Planning-doc rule: skill-closed scope is NOT an operator decision point
+
+This rule was added 2026-05-18 after a Sprint 2 planning doc presented two decision points (D7 Research repositioning, D14 Map Facility toggle) where the relevant skill (`caros-ledge-platform-intent`) had already defined the page intent. The planning doc framed them as "operator chooses Option A vs Option B" when the skill's Section 3 and Section 4 had already closed the scope. Operator caught the contradiction; the discipline did not.
+
+**Binding rule.** Operator decision points in planning docs MUST respect skill-defined scope. Skill-closed scope CANNOT be re-opened as a planning-layer decision. Concretely:
+
+- If the platform-intent skill (Section 3) defines a customer-facing surface's intent (e.g., "Research is horizon-scan content with analytical or quantitative depth"), the build dispatch for that surface implements that intent. The planning doc does NOT present "should we build Research as horizon-scan or as something else?" as an operator decision.
+- If a cross-cutting capability's scope is defined in the skill (e.g., "Map is a geographic visual layer over Regulations content"), the planning doc does NOT present "should we rescope Map to include Facility content?" as an operator decision.
+- The operator's decision authority IS preserved over: build sequencing, build prerequisites, schema strategy options, build scope within a skill-defined intent (e.g., which Market Intel sources to add first), tactical-vs-strategic implementation paths.
+- The operator's decision authority is NOT extended over: scope redefinition for surfaces or capabilities the skill has already defined.
+
+**If the planning author believes the skill's scope definition needs revision**, that goes through a skill-amendment dispatch with explicit operator authorization for skill modification (per `caros-ledge-platform-intent` SKILL.md Section "Authority Grant" / "You are NOT authorized to: Modify this skill's platform model framing without explicit operator authorization with strong-emphasis correction"). Skill revision is NOT a planning-layer decision option.
+
+**How to apply when authoring a planning doc:**
+
+1. For each candidate operator decision point you draft, identify the skill section(s) that touch the same scope.
+2. If the skill closes the scope (states a binding answer), strike the decision point. Document the skill citation; surface the build dispatch as "implement per skill Section X" rather than "operator chooses".
+3. If the skill leaves the scope open (silent, or explicitly defers to operator), the decision point is valid. Cite which skill section confirms operator discretion.
+4. If the planning author believes the skill needs revision to enable a different scope, dispatch a skill amendment FIRST (with operator authorization) and ONLY THEN add the corresponding decision point to the plan. Do not present the rescope as a plan option.
+
+**What this rule prevents.** Without this rule, planning docs accumulate "Option A vs Option B" decision points where Option B silently negates the skill's already-stated scope. The operator either (a) selects Option B and the build ships against an intent that contradicts the skill, or (b) catches the contradiction during review and the planning cycle restarts. Either path wastes the planning work.
+
+**Worked example (the case that triggered this rule).**
+
+Sprint 2 planning doc Build 8 (Research) presented:
+- Option A: Research stays as editorial draft-staging queue
+- Option B: Research becomes customer-facing horizon-scan destination
+
+Per `caros-ledge-platform-intent` Section 3, Research is "horizon-scan content with analytical or quantitative depth." The skill closes the scope. There is no Option A to consider. The build dispatch is "implement Research per skill Section 3 horizon-scan destination framing." If the planning author believed editorial draft-staging should be a Research surface, that would require a skill amendment (operator-authorized) BEFORE the plan presents it as an option.
+
+The corrective: revise the plan to retire Option A; surface Build 8 as a single-path implementation; if editorial draft-staging belongs somewhere, identify a different surface (admin chrome) and dispatch it separately.
 
 ## Anti-Patterns
 

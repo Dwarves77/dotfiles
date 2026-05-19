@@ -7,6 +7,8 @@
 
 **Operator priority for this plan:** make the customer-facing surfaces actually deliver. Onboarding is explicitly DE-PRIORITIZED per operator direction; if the surfaces a new user lands on are broken, onboarding mechanics are moot.
 
+**Revision notes 2026-05-18 (post-operator critique):** This plan was revised after operator caught the planning doc re-opening skill-closed scope as decision points. Specifically D7 (Research repositioning) and D14 (Map Facility toggle rescope) were retired; per `caros-ledge-platform-intent` SKILL.md Sections 3 and 4, those scopes are already closed by the skill. The corrective discipline now lives in `sprint-followups-discipline` SKILL.md "Planning-doc rule: skill-closed scope is NOT an operator decision point". Additionally, this revision incorporates 12 gap items from the operator critique: count incoherence OBS, prompt-seed inconsistency, onboarding live-audit deferred item, OBS-9 classifier sequencing clarification, HVAC re-test in Build 5, Sprint 1 closure definition, D6 tradeoff explicit, Operations Build 9 decision-point structure, effort estimate revision, Build 4 risk mitigation strengthening. See "Plan revision changelog" section at end of doc for the full list.
+
 **Source materials synthesized:**
 - [System audit 2026-05-18](docs/sprint-1/system-audit-2026-05-18.md)
 - [Critical investigations 2026-05-18](docs/sprint-1/critical-investigations-2026-05-18.md)
@@ -193,7 +195,9 @@ Currently in followups.md: OBS-1 through OBS-23 (committed at 3d887c0). Audit fi
 | Number | Title | Severity | Owner |
 |---|---|---|---|
 | OBS-38 | 26 SECURITY DEFINER functions in operator domain (privilege-escalation surface) | LOW | Future audit dispatch (separate workstream) |
-| OBS-39 | Map mode toggle "Facility" scope drift per skill Section 4 | LOW | Operator decision (remove from toggle OR rescope Map + update skill) |
+| OBS-39 | Map mode toggle "Facility" scope drift per skill Section 4 | LOW | Operator authorizes Tier 2 sweep to REMOVE Facility from toggle (only valid plan-layer action per skill; rescope is skill-amendment dispatch not plan decision) |
+| **OBS-48** | **Per-surface count incoherence (added 2026-05-18 revision; gap #1).** Dashboard 643 vs /market 69+35 vs /operations 68+52 vs /research 643+144 vs /regulations 585/586 vs /map 643+100; customer cannot tell which count is canonical. Downstream of OBS-26 (category routing orphan); should reconcile post-Build-4 and be verified by Build 11. | MEDIUM | Build 11 Dashboard refactor (verifies post-Build-4 reconciliation) |
+| **OBS-49** | **Intelligence Assistant prompt-seed inconsistency between floating and per-page bars (added 2026-05-18 revision; gap #2).** Floating Assistant and per-page "Ask anything" prompts draw from different scaffolds (different seed-chip sets + possibly different prompt fragments). | MEDIUM | Build 5 verification covers it; OBS-37 (inline-interaction redesign Option B) addresses long-term |
 | OBS-40 | Migration 070 file deletion; RPCs intact via 071/073 CREATE OR REPLACE; source-history loss only | LOW | Stage 2 decides reconstruct vs accept |
 | OBS-41 | Dashboard regulation-centric; does not reflect five-surface model | LOW | Sprint 2+ Tier 4 |
 | OBS-42 | `item_supersessions` joined `intelligence_items` rows have missing or test-quality titles (surfaced by Tier 2's "Title pending" fix) | LOW | Sprint 2 data-quality dispatch |
@@ -222,7 +226,19 @@ Per sprint-followups-discipline, FIXED items should be captured in followups.md 
 
 Six work items per platform-intent skill Section 7, plus three cross-cutting items.
 
-### Sprint 2 Tier 3 (foundation work, ~1-2 weeks total)
+### Sprint 1 closure definition (added 2026-05-18 revision)
+
+Sprint 1 is officially CLOSED when ALL of the following land:
+1. PR #122 merges to master (Phase 5 implementation)
+2. `feat/tier1-assistant-constraint` merges (Tier 1 Assistant prompt surgery)
+3. `feat/tier2-ui-hygiene` merges (Tier 2 UI hygiene + supplementary)
+4. `fix/onboarding-sector-destination` merges (OnboardingWizard sector destination fix)
+5. `feat/schema-reconciliation-stage2` merges (Stage 2 schema work; commit 2e8f329)
+6. `docs/sprint-1-cleanup-and-obs-additions` merges (Build 2 doc cleanup + OBS additions)
+
+Sprint 2 builds can dispatch before Sprint 1 fully closes (the merges are bounded operator actions, not sequencing blockers). But Sprint 1 closure ceremony is the operator's confirmation that the foundation is sealed.
+
+### Sprint 2 Tier 3 (foundation work; revised effort estimate 2-4 weeks total)
 
 Order matters: REC-OBS-G category routing wiring is the foundation under Market Intel, Research, Operations builds. Schema reconciliation Stage 2 is the foundation under Intelligence Assistant skill loading + integrity_flags admin surfaces.
 
@@ -242,7 +258,7 @@ These build against the Tier 3 foundation. Each is plausibly its own sprint sequ
 | # | Build | Estimated scope | Prerequisite |
 |---|---|---|---|
 | 7 | Market Intel content + signal aggregation engine | Sprint-level | OBS-26 (category routing) + Tier 3 #5 (Assistant quality) |
-| 8 | Research repositioning decision + horizon-scan engine build | Sprint-level | OBS-26 + operator repositioning decision (editorial queue stays OR Research becomes horizon-scan destination) |
+| 8 | Research horizon-scan engine build (implement per skill Section 3) | Sprint-level | OBS-26 |
 | 9 | Operations content build (structured content per skill Section 3; NOT separate decision-engine UI) | Multi-sprint (largest scope) | OBS-26 + Tier 3 #5 (Assistant is the cross-cutting answer helper for Operations decisions) |
 | 10 | Community structural alignment + cohort expansion (OBS-32 + OBS-33 + OBS-34 + OBS-35) | Sprint-level | None (parallelizable with 7-9) |
 | 11 | Dashboard five-surface refactor (OBS-41) | Medium (1-2 weeks) | OBS-26 + sidebar placement (OBS-32) |
@@ -256,6 +272,8 @@ These build against the Tier 3 foundation. Each is plausibly its own sprint sequ
 | Onboarding chrome polish (NoWorkspaceLanding) | Operator de-prioritized | After customer-facing surfaces deliver value |
 | Invitation-accept includes wizard | Operator de-prioritized | After customer-facing surfaces deliver value |
 | Sector taxonomy expansion in wizard | Operator de-prioritized; ALL_SECTORS already surfaced | After customer-facing surfaces deliver value |
+| **Onboarding live end-to-end audit (gap #3 from 2026-05-18 critique)** | Email-verification blocked Chrome walkthrough; code-level audit at `docs/sprint-1/onboarding-audit-2026-05-18.md` exists but live walkthrough never landed | After SMTP is configured OR a test-account bypass workflow is documented |
+| **OBS-9 classifier feedback loop (gap #4 clarification)** | Sprint 3+ explicit; NOT a Sprint 2 build. Build 4 (category routing) uses option a tactical wiring that does NOT depend on classifier loop; option b (canonical column) WOULD depend on classifier loop which is Sprint 3+ | Sprint 3 planning |
 
 The Onboarding fix that DID land (sector destination correction) is preserved; this is about NOT building further onboarding capability until surfaces deliver.
 
@@ -349,6 +367,12 @@ The Onboarding fix that DID land (sector destination correction) is preserved; t
 
 **Risk:** medium. Role mapping refinement risks breaking surfaces that currently work via the unfiltered payload (some items shift from one surface to another). Verification matters.
 
+### Build 5 verification additions (added 2026-05-18 revision; gaps #2 + #5)
+
+**Gap #2 (prompt-seed inconsistency):** the Chrome Assistant audit found the floating Assistant and per-page "Ask anything" prompt bars draw from different prompt scaffolds (different seed-chip sets, possibly different system prompt fragments). Build 5 verification MUST cover both surfaces: floating Assistant from each page + the per-page Ask bar on /market, /research, /operations, /regulations, /map. If the two scaffolds diverge in skill grounding behavior, surface for unification dispatch.
+
+**Gap #5 (HVAC vs hiring boundary re-test):** the Chrome Assistant audit flagged this query as ambiguous; the test did not produce a verifiable distinct response. Build 5 verification includes re-submitting "Should I invest in an HVAC monitoring system or hire two people to do it manually for our Dubai warehouse?" against the post-Build-5 Assistant. Expected: research-helper response surfacing relevant content + tradeoffs + explicit "the decision is yours" framing. Decision-engine response (recommend HVAC OR recommend hire) = Build 5 has failed and Tier 1 + Tier 3 framings are not being honored.
+
 ### Build 5: Intelligence Assistant skill loading + citation surfacing + SELECT redesign (OBS-27 + OBS-28)
 
 **Goal:** Assistant grounds responses in environmental-policy-and-innovation skill content + platform records; structured citations route to platform records; F-1 + F-3 closed.
@@ -406,22 +430,22 @@ The Onboarding fix that DID land (sector destination correction) is preserved; t
 - Alert prioritization: workspace-sector-scoped vs platform-wide
 - Cost time-series schema: how granular, what storage pattern
 
-### Build 8: Research repositioning + horizon-scan engine
+### Build 8: Research horizon-scan engine build
 
-**Sprint-level scope.** Operator decides repositioning first.
+**Sprint-level scope.** Implements Research per `caros-ledge-platform-intent` SKILL.md Section 3 (Research is the customer-facing horizon-scan destination). The previously-drafted "repositioning decision" was retired in the 2026-05-18 plan revision because the skill closes this scope; see retired D7 in the decision matrix and the `sprint-followups-discipline` SKILL.md "Planning-doc rule" for the discipline that catches this kind of contradiction.
 
 **Skill load:** caros-ledge-platform-intent Section 3 (Research scope), environmental-policy-and-innovation (Research Summary format 6 sections), frontend-design, sprint-followups-discipline.
 
-**Repositioning decision (operator):**
-- Option A: Research stays as editorial draft-staging queue. Customer-facing horizon-scan destination goes to a different surface (e.g., a sub-tab on Regulations, or a new surface).
-- Option B: Research becomes the customer-facing horizon-scan destination. Editorial draft-staging moves to admin chrome.
-
-**If Option B (skill-aligned):**
+**Scope (per skill Section 3):**
 - Source registry verification: ensure analytical-press sources (Loadstar, FreightWaves Sustainability, Edie, GreenBiz, Environmental Finance, Splash247 Green, Supply Chain Digital, Reuters Sustainable Business analytical, Journal of Sustainable Transportation, IEA, IRENA, IPCC, World Bank, OECD, ICAP, Carbon Trust, Project Drawdown) are live ingest pipelines, not legacy resource entries
 - Scanning logic: pull articles from analytical-press sources at intervals; classify as `research_finding` item_type; emit Research Summary briefs per the 6-section format
 - Source coverage matrix implementation: replace hard-coded placeholder; unhide the tab
 - `publishedThisWeek` callout titles as Links (close audit DRIFT-G.3 / Tier 2 partial coverage)
 - Cross-reference surfacing for Operations decision-support context
+
+**If editorial draft-staging needs a surface:** that is a separate admin-chrome dispatch (Phase 7-adjacent operator surface). It does NOT live on Research per the skill. Surface that need to operator as a discrete dispatch; do not roll it into Build 8.
+
+**Migration note (gap #10 from 2026-05-18 plan critique):** the current Research surface functions as an editorial draft-staging queue. Moving Research to the skill-defined horizon-scan destination shifts the editorial draft-staging affordance off this surface; if operators currently rely on /research for draft-staging UX, that workflow needs an admin-chrome replacement before Build 8 ships, OR Build 8 ships with a transitional period where /research carries both views temporarily (admin-chrome path forward; not a skill compromise).
 
 ### Build 9: Operations content build
 
@@ -463,9 +487,25 @@ The Onboarding fix that DID land (sector destination correction) is preserved; t
 
 **Medium scope (1-2 weeks).**
 
-**Scope:** Dashboard surfaces content from all five customer-facing surfaces (currently regulation-centric per Chrome audit). The five-surface model from platform-intent skill Section 3 is the structuring framework. Dashboard becomes an entry-point overview rather than a Regulations-skewed view.
+**Scope:** Dashboard surfaces content from all five customer-facing surfaces (currently regulation-centric per Chrome audit). The five-surface model from platform-intent skill Section 3 is the structuring framework. Dashboard becomes an entry-point overview rather than a Regulations-skewed view. Includes resolving the **count incoherence** per gap #1: surfaces currently report counts that don't reconcile (Dashboard 643 vs /market 69+35 vs /operations 68+52 vs /research 643+144 vs /regulations 585/586 vs /map 643+100); customer can't tell which number is canonical. Post-Build-4 (category routing), the per-surface counts SHOULD reconcile to the source-category split; Build 11 verifies and surfaces a single canonical count on Dashboard.
 
 **Prerequisite:** Build 4 (category routing) so dashboard can show differentiated content per surface; Build 10 (Community structural alignment) so Community appears as co-equal in Dashboard navigation.
+
+### Build 9 operator decision points (added 2026-05-18 revision; gap #9)
+
+Operations Build 9 (largest scope; multi-sprint) needs the same per-capability decision-point structure that Build 7 (Market Intel) carries. Operator decisions needed BEFORE each capability sub-build dispatches:
+
+| Capability | Operator decision |
+|---|---|
+| Regulatory feasibility by region | Schema: do we materialize per-region applicability as a join table OR compute at query time from `intelligence_items.jurisdictions` array? |
+| Regional resource availability (materials, recyclables) | Data source: which registry / scraper / vendor feed? Operator's existing supplier relationships? |
+| Labor markets | Data source: LinkedIn Economic Graph (paid) vs BLS API + alternates (free, US-only) vs commercial wage data (paid, global) |
+| Materials sourcing | Data source: trade-show database scrape vs broker-curated list vs supplier API integrations |
+| Infrastructure capacity | Data source: port APIs (e.g., MarineTraffic) vs rail authority feeds vs government data portals |
+| Operational cost data | Data source + granularity: per-jurisdiction electricity rates, diesel/SAF pricing, port handling, drayage; how granular (per port, per region, per country); what storage pattern (cost time-series shared with Build 7) |
+| Decision-engine cross-capability synthesis | The Intelligence Assistant handles cross-cutting questions per skill Section 4; Build 9 ensures structured content is queryable by the Assistant. No separate "synthesis UI" build per skill rewrite. |
+
+Each capability is plausibly its own sub-sprint; operator authorizes individually.
 
 ---
 
@@ -498,15 +538,15 @@ Decisions required before Sprint 2 dispatches:
 | D3 | Authorize Schema reconciliation Stage 2 dispatch | Stage 2 held; integrity_flags stays absent; ledger drift continues |
 | D4 | Authorize doc cleanup + OBS additions consolidation (Build 2) | Findings stay in audit docs; not propagated to followups.md |
 | D5 | Authorize Critical #1 migration 083 (Build 3) | 362-451 rows stay with empty jurisdiction_iso |
-| D6 | Category routing wiring path: option a (refine role mapping) vs option b (add canonical column) | Held until decided; Build 4 cannot dispatch |
-| D7 | Research repositioning: Option A (stays editorial queue) vs Option B (becomes horizon-scan destination) | Held until decided; Build 8 cannot dispatch |
+| D6 | Category routing wiring path: option a (refine role mapping in src) vs option b (add canonical category column to sources + new migration) | Held until decided; Build 4 cannot dispatch. **Tradeoff note** (added 2026-05-18 plan revision): option a is faster and ships immediately but creates technical debt that option b eventually undoes when the canonical category column lands; the routing logic that lives in TypeScript filter-conditions today moves into a single SQL column. Option a is acceptable as a Sprint 2 tactical choice; option b is the skill-aligned long-term state and depends on classifier feedback loop (OBS-9) being in scope. |
+| ~~D7~~ | ~~Research repositioning: Option A vs Option B~~ | **RETIRED 2026-05-18 plan revision.** Per `caros-ledge-platform-intent` SKILL.md Section 3, Research IS the customer-facing horizon-scan destination. The skill closes this scope; it is NOT an operator decision point. Build 8 implements Research per the skill. If editorial draft-staging needs a surface, that is a separate admin-chrome dispatch (Phase 7-adjacent), not a Research repositioning. See `sprint-followups-discipline` SKILL.md "Planning-doc rule: skill-closed scope is NOT an operator decision point" for the discipline that catches this kind of contradiction. |
 | D8 | Authorize Build 5 (Intelligence Assistant Tier 3 fixes: skill loading + citation + SELECT) | Held; Assistant stays under Tier 1 prompt-only constraint |
 | D9 | Authorize Build 6 (`requirePlatformAdmin()` + /admin gate) | Held; /admin gate scope mismatch persists |
 | D10 | Authorize Build 7 (Market Intel) | Held |
 | D11 | Authorize Build 9 (Operations content; multi-sprint) | Held |
 | D12 | Authorize Build 10 (Community structural alignment) | Held |
 | D13 | Authorize Build 11 (Dashboard five-surface refactor) | Held |
-| D14 | Map "Facility" mode toggle: remove from toggle OR formally rescope Map | Held; flagged in code; operator chooses post-Tier-2 |
+| D14 | Map "Facility" mode toggle: remove from toggle (per skill Section 4) | **REVISED 2026-05-18 plan revision.** Only valid action at plan layer: remove `Facility` from the Map mode toggle. Per `caros-ledge-platform-intent` SKILL.md Section 4, Map is a geographic visual layer over Regulations content, NOT a separate content category. The previously-stated "formally rescope Map" option is invalid at the plan layer because it presupposes a skill amendment; if Map's scope needs revision, that is a separate operator-authorized skill-amendment dispatch (per the skill's "Authority Grant" requirement for "strong-emphasis correction"). The Tier 2 UI hygiene dispatch flagged Facility for operator; this revision closes the ambiguity. |
 | D15 | Migration 070 file: reconstruct placeholder OR accept loss | Held; deferred to Stage 2 dispatch |
 | D16 | Migration 063 column shadowing: ALTER fix OR accept divergence OR parallel columns | Held; deferred to Sprint 2 schema work |
 | D17 | Onboarding email + LinkedIn + chrome polish | DEFERRED per operator; not in Sprint 2 scope |
@@ -517,7 +557,7 @@ Decisions required before Sprint 2 dispatches:
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Category routing wiring (Build 4) shifts items between surfaces; existing users see content disappear from familiar pages | Medium | Medium | Communicate change in release notes; provide cross-surface search; verify mapping refinement against skill Section 3 |
+| Category routing wiring (Build 4) shifts items between surfaces; existing users see content disappear from familiar pages | Medium | Medium-High (revised per gap #12) | Multiple mitigations stacked: (a) communicate change in release notes with before/after item lists for the largest-cohort workspace (Dietl/Rockit); (b) preserve cross-surface search so an item moved from /market to /research is still findable; (c) Dashboard (Build 11) surfaces a unified "recently moved between surfaces" affordance during the transition window; (d) consider grandfathering specific high-traffic items (e.g., Reuters Sustainable Switch entries) briefly on both surfaces with a "primary" tag if the cohort signals confusion; (e) preserve URLs (`/market/[id]` stays valid even if item logically belongs to Research now via a permanent redirect to `/research/[id]`). The "communicate in release notes" mitigation alone is insufficient. |
 | Intelligence Assistant skill loading inflates response latency (Build 5) | High | Low-Medium | Profile token usage; selective skill content loading based on query intent; consider RAG retrieval over full skill inclusion |
 | Operations content build over-scopes as decision-engine UI despite skill rewrite | Medium | High | Skill rewrite Section 11 anti-pattern explicit; sprint-followups-discipline Value Delivery Check section catches violations; per-build dispatch report scrutinized |
 | Stage 2 schema reconciliation breaks downstream queries that depended on out-of-band state | Low | High | Backfill-ledger path is non-destructive; apply-missing path uses IF NOT EXISTS guards; rehearse on non-production environment if available |
@@ -526,6 +566,31 @@ Decisions required before Sprint 2 dispatches:
 | Customer-facing schedule slip during multi-sprint Operations build | High | High | Sprint 2 mid-sprint audit catches early; weekly progress reports include Value Delivery Check sections; surface slip explicitly per skill discipline |
 
 ---
+
+## Plan revision changelog (2026-05-18)
+
+After the plan's initial publication at commit 25a0637, the operator surfaced 12 gaps + 2 skill-contradiction findings (D7 + D14 as decision points re-opening skill-closed scope). This revision incorporates the corrections:
+
+| Revision | Source critique | Plan change |
+|---|---|---|
+| **D7 retired** | Skill contradiction (Section 3 closes Research scope) | Removed from decision matrix; Build 8 description rewritten to single-path "implement per skill Section 3" |
+| **D14 revised** | Skill contradiction (Section 4 closes Map scope) | Removed rescope option; only "remove Facility from toggle" is valid plan-layer action |
+| **Build 8 description revised** | Skill contradiction follow-on | "Repositioning decision + horizon-scan engine build" → "Research horizon-scan engine build (implement per skill Section 3)" |
+| **D6 tradeoff added** | Gap #7 (option a creates tech debt option b undoes) | Tradeoff note added to D6 row in decision matrix |
+| **Build 11 count-incoherence task added** | Gap #1 | Build 11 scope expanded to verify count reconciliation post-Build-4 |
+| **OBS-48 + OBS-49 candidates added** | Gaps #1 + #2 | New recommended OBS candidates surfaced in roadmap |
+| **Onboarding live-audit deferred** | Gap #3 | Added to DEFERRED-per-operator table |
+| **OBS-9 sequencing clarified** | Gap #4 | DEFERRED-per-operator row now states "Sprint 3+ explicit" |
+| **Build 5 verification additions** | Gaps #2 + #5 | Prompt-seed coverage + HVAC re-test added to Build 5 verification scope |
+| **Sprint 1 closure defined** | Gap #6 | New section "Sprint 1 closure definition" enumerates 6 merge-gate items |
+| **Tier 2 broader-sweep meta-rule** | Gap #8 | Encoded in sprint-followups-discipline skill amendment, not in plan |
+| **Operations Build 9 decision-point structure** | Gap #9 | New "Build 9 operator decision points" subsection added |
+| **Build 8 migration note** | Gap #10 | Added transition-period note for editorial draft-staging workflow |
+| **Tier 3 effort estimate revised** | Gap #11 | Section header "~1-2 weeks" → "2-4 weeks" |
+| **Build 4 mitigation strengthened** | Gap #12 | Risk register row revised with 5 stacked mitigations instead of 1 |
+| **sprint-followups-discipline skill amended** | Skill-contradiction meta-finding | New "Planning-doc rule" section added to skill: skill-closed scope cannot be re-opened as planning decision; corrective worked example references this exact case |
+
+The discipline failure surfaced by D7 + D14 is now encoded as a binding rule in `sprint-followups-discipline`. Future planning docs that re-open skill-closed scope as operator decisions will be caught during the discipline's pre-authoring review.
 
 ## Methodology notes
 
