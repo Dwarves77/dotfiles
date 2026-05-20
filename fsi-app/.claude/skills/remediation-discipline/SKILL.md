@@ -48,7 +48,7 @@ The threshold deliberately favors class-treatment when in doubt. Over-codificati
 
 ## Section 4: Remediation Strategy by Category
 
-Six confirmed categories with full worked examples in Section 7:
+Seven confirmed categories with full worked examples in Section 7:
 
 1. **Batch resilience** — long-running scripts need retry/reconnect/idempotency/rate-limit/progress primitives extracted into a shared library
 2. **Sweep methodology** — sweeps must enumerate the surface (Glob, schema query, equivalent) before claiming completeness; recall-based or pattern-matched enumeration misses items silently
@@ -56,6 +56,7 @@ Six confirmed categories with full worked examples in Section 7:
 4. **API contract gaps** — silent failures from format/version mismatches (URL canonicalization, timestamp normalization, identifier matching across system boundaries) need primitive extraction
 5. **Tool reliability** — agent-layer tools (Glob, etc.) sometimes return inconsistent results across contexts; defensive discipline + root-cause investigation when bandwidth allows
 6. **Architectural codification** — when a model exists as transcript or operator memory but not as canonical reference, encoding it as a skill is the class fix; prevents future drift and reinvention
+7. **Worktree cleanup discipline** — worktree removal is multi-step (git worktree remove + filesystem rm + config registry sweep); audit dispatches that read config without filesystem validation produce false positives
 
 ## Section 4.5: Categories Where Principle Applies (Worked Examples Pending)
 
@@ -206,6 +207,18 @@ Each example follows the template: What failed → Class problem → Class fix �
 **Meta-lesson worth surfacing.** Before building new primitives, invoke existing skills to verify nothing already owns the discipline. The using-superpowers skill mandates this; we missed it because the worktree workflow felt project-internal. The 22 stale worktrees were the compound interest on that improvisation. Adding to anti-pattern 5: "reinventing" includes inventing PARALLEL CONVENTIONS that bypass existing primitives, not just inventing new code.
 
 **Sub-issue (OBS-53, second-order class problem).** The cleanup script's fallback path was not junction-aware. When `git worktree remove --force` failed on a specific worktree (Windows path edge case), the operator fallback `rm -rf` followed an internal `node_modules` junction back to the main repo and destroyed `C:/Users/jason/dotfiles/fsi-app/node_modules`. Required `npm install` to restore. Resolution: cleanup script extended with junction-aware fallback that removes junctions explicitly (via `rmdir` not `rm -rf`) before recursive removal. Documented in this same dispatch.
+
+**Sub-issue (OBS-54 sub-finding, third-order class problem).** The 3-axis skill audit (commit `383974e`, 2026-05-20) reported drift across 3 worktrees; sync sub-dispatches found only 1 actually existed on disk. The other 2 paths were stale `additionalDirectories` entries in `~/.claude/settings.json` left from earlier worktree creations and never cleaned at worktree-removal time. A wider sweep found 6 total stale entries spanning 4 missing paths (`dotfiles-migration-026`, `dotfiles-hotfix-surfaces`, `dotfiles-wt-track-b-doc`, `dotfiles-wt-skill-credibility`).
+
+**Resolution: 3-step worktree-cleanup-after-merge discipline (codified in this same dispatch).** Worktree cleanup is multi-step:
+
+1. `git worktree remove <path>` (or `--force` if needed). Detaches the worktree from git's bookkeeping.
+2. `rm -rf <worktree-path>` IF the directory persists after step 1. Use junction-aware fallback per OBS-53.
+3. Remove every `additionalDirectories` entry in `~/.claude/settings.json` (and any similar config registry, including permission `allow` rules pointing into the worktree path) that references the removed worktree's path.
+
+`finishing-a-development-branch` Step 6 handles step 1 automatically for worktrees under the recognized paths convention. Steps 2 and 3 still require explicit discipline; the convention does not subsume them. Extending `fsi-app/scripts/cleanup-merged-worktrees.mjs` to also perform step 3 (config-registry sweep) is a primitive-extraction candidate; bundle with the next worktree-cleanup-script touch.
+
+**Binding lesson for audit dispatches.** Drift detection that relies on path registration (settings.json, config files, skill registries) without filesystem validation produces false positives. Audit dispatches that scan registered paths MUST validate filesystem presence (`test -d` or equivalent) before treating an entry as a drift instance to remediate. The 3-axis audit's AXIS 2 (load discipline + drift) is the worked instance: it reported 3 drifting worktrees from registered paths; only 1 was real. Going-forward audit-dispatch briefs include filesystem-validation as a pre-flight step.
 
 ## Section 8: Anti-Patterns
 
