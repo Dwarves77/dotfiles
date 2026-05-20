@@ -1286,3 +1286,74 @@ Next discipline-engine touch OR next operator-driven scratch zone cleanup. Not u
 ### Per remediation-discipline recognition
 
 Signals fired: 4 (the exemption represents a class shape where convention bears the discipline rather than mechanical enforcement). 1 of 4 signals → instance-level today; if a scratch-script promotion surfaces the gap in practice, escalate to class fix per approach 2 above.
+
+---
+
+## OBS-62: Phase 1.5 architectural-decision-in-docstring gap (OPENED AND CLOSED 2026-05-20 in same dispatch)
+
+**State**: Closed via class fix + instance fix + recognition-signal codification (all in Sprint Architecture commit)
+**Captured**: 2026-05-20 (opened) / 2026-05-20 (closed) — same dispatch
+**Cross-references**: Phase 1.5 closure commit 9a95afb, F8 fitness function (Sprint Architecture), Signal 5 (remediation-discipline Section 3), OBS-63 (subordinate F4 deferred-product-decision tracking)
+
+### Finding (open)
+
+Phase 1.5 closure preserved the server-centric dual-write design via documentation comments in 3 client UI files (CanonicalSourceReview.tsx, ProvisionalReviewCard.tsx, AskAssistant.tsx). The architectural rationale was sound (clients shouldn't know about internal schema split). The gap: rationale lived in docstrings, not in a mechanical gate. Future client code could violate the design silently — no fitness function existed to catch `body.tier = X` assignments in client files.
+
+This represents the exact application-layer enforcement gap Sprint Architecture is designed to close: skill principles applied via documentation are not enforced; they survive only as long as a human reads them. Mechanical systems do not detect violations.
+
+### Resolution (closed same dispatch via Option C atomic landing)
+
+1. **F8 fitness function** (Sprint Architecture Phase 4): mechanically enforces that no client-side file under fsi-app/src/components/, fsi-app/src/app/**/*.tsx, fsi-app/src/stores/, or fsi-app/src/hooks/ may write tier-shaped fields (body.tier, body.base_tier, body.effective_tier). Object literals containing tier-shaped keys near fetch/POST/PUT calls also fail. Override available via trailing `// fitness-allow: F8 (reason)` comment.
+
+2. **Bundled refactor** (atomic with F8 landing): renamed `body.tier = tier;` to `body.assignedTier = tier;` in CanonicalSourceReview.tsx and ProvisionalReviewCard.tsx. Server handlers (api/admin/canonical-sources/decide, api/admin/sources/promote) updated to read `body.assignedTier ?? body.tier` (assignedTier preferred; tier fallback during F8 rollout window). Audit log payloads preserve the resolved value.
+
+3. **Signal 5 codification** (remediation-discipline Section 3): added 5th recognition signal "Preservation-argument-against-dispatch" covering both agent-proposed and operator-proposed preservation arguments. The signal makes the pattern visible at recognition time rather than after a deviation surfaces. Worked example references this OBS.
+
+### Per remediation-discipline recognition
+
+Signals fired on the original Phase 1.5 deviation: 4 (reinventing — future client code would redecide tier-write pattern), 5 (preservation-argument-against-dispatch). 2 of 5 → class confirmed. Class fix is the mechanical encoding (F8) plus the recognition-signal codification (Signal 5) so future preservation arguments are caught at recognition.
+
+### Pattern demonstrated by this OBS lifecycle
+
+OBS-62 is the worked example of the "open-and-close-in-same-dispatch" lifecycle: when a class issue surfaces during dispatch scoping AND can be remediated within the dispatch's scope, the OBS opens and closes atomically. The lifecycle entry preserves the lesson for future audit; the closure timestamp matches the open timestamp; the resolution links to the class-fix mechanism. This is the inverse of long-deferral OBS entries (e.g., OBS-58 worktree cleanup step-3 automation still queued) — both shapes are valid; the choice depends on whether the class fix fits the current dispatch or needs its own.
+
+---
+
+## OBS-63: Phase 1.5 + cold-start intelligence_items inserts use F4 override pending product decision on urgency_score default
+
+**State**: Open (product decision deferred; fitness-allow overrides land with explicit tracking)
+**Captured**: 2026-05-20 (Sprint Architecture Phase 4 F4 fitness function landing surfaced these)
+**Cross-references**: F4 fitness function (Sprint Architecture), environmental-policy-and-innovation skill (urgency_score domain rules), Phase 1.5 closure commit 9a95afb
+
+### Finding
+
+F4 fitness function (intelligence-items-urgency-score) requires every literal-object insert into intelligence_items to include `urgency_score`. Two production code paths fail this check:
+
+1. **`fsi-app/src/app/api/community/posts/[id]/promote/route.ts:358`** — community-promoted items insert with `priority`, `jurisdictions`, `domain` but no `urgency_score`. Relies on schema default for the column.
+
+2. **`fsi-app/scripts/wave1-cold-start.mjs:457`** — cold-start backfill script populates `urgency_tier` (text category: watch/elevated/stable/informational) from Haiku classification output but does NOT set `urgency_score` (numeric). Relies on schema default.
+
+Both are real F4 findings in the sense that the insert is missing the explicit field. The question is whether the schema default is the right semantic for these paths OR whether a derived value should be set explicitly.
+
+### Why deferred (not resolved in Sprint Architecture dispatch)
+
+This is a product decision about brief urgency semantics:
+
+- For community-promoted items: should urgency_score default to mid (5)? Inherit from `priority`? Be set explicitly by admin during the re-classify step?
+- For cold-start backfill: should urgency_score be derived from urgency_tier (e.g., watch→8, elevated→6, stable→4, informational→2)? Or left null pending operator score?
+
+Both surface customer-facing brief ranking. Setting a wrong default could affect downstream sort/filter on Regulations, Market Intel, Research, Operations surfaces unpredictably. The right value requires operator + product judgment.
+
+### Current state (this commit)
+
+Both inserts have `// fitness-allow: F4 (...; tracked in OBS-63)` overrides on the insert opening line. Per remediation-discipline Section 3 Signal 5 (preservation-argument-against-dispatch): explicit acceptance of a gap via an OBS-tracked override is preferable to silent skip OR to setting a guessed value without operator input.
+
+### Resolution shape (when bundled)
+
+Small dispatch (~30-45 min):
+1. Operator decides default-urgency policy for community-promoted items AND for cold-start backfill (separately; different contexts).
+2. Update both insert sites to set urgency_score explicitly per the decisions.
+3. Remove the `// fitness-allow: F4` overrides; F4 passes naturally.
+4. Close OBS-63.
+
+Bundle when operator has product attention for this; not urgent (schema defaults handle runtime).

@@ -92,9 +92,12 @@ export async function POST(request: NextRequest) {
   const now = new Date().toISOString();
 
   if (body.decision === "approve") {
-    if (!body.tier || body.tier < 1 || body.tier > 7) {
+    // F8 (Sprint Architecture): client sends tier via body.assignedTier (semantically-named,
+    // not schema-shaped). Legacy body.tier fallback during F8 rollout window.
+    const assignedTier = body.assignedTier ?? body.tier;
+    if (!assignedTier || assignedTier < 1 || assignedTier > 7) {
       return NextResponse.json(
-        { error: "tier (1-7) is required for approve" },
+        { error: "assignedTier (1-7) is required for approve" },
         { status: 400 }
       );
     }
@@ -109,9 +112,9 @@ export async function POST(request: NextRequest) {
       description: prov.description || "",
       // Phase 1.5: Q2 split. base_tier = operator promotion choice;
       // effective_tier initialized equal per Day 1 invariant.
-      base_tier: body.tier,
-      effective_tier: body.tier,
-      tier_at_creation: body.tier,
+      base_tier: assignedTier,
+      effective_tier: assignedTier,
+      tier_at_creation: assignedTier,
       domains: body.domains || [],
       jurisdictions: body.jurisdictions || [],
       transport_modes: body.transport_modes || [],
@@ -164,7 +167,7 @@ export async function POST(request: NextRequest) {
         decision: "approve",
         reviewerNotes: body.reviewerNotes || null,
         classification: {
-          tier: body.tier,
+          tier: body.assignedTier ?? body.tier,
           domains: body.domains,
           jurisdictions: body.jurisdictions,
           transport_modes: body.transport_modes,

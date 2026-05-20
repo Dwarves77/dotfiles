@@ -685,14 +685,13 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
         if (cand.existing_source_id) {
           body.existingSourceId = cand.existing_source_id;
         } else {
-          // Phase 1.5 (Q2 base_tier + effective_tier split): client sends
-          // operator-confirmed tier value as body.tier. Server
-          // (api/admin/canonical-sources/decide/route.ts) dual-writes to
-          // base_tier and effective_tier on the new sources row per the
-          // Day 1 invariant (both equal at insert time; Q7 batch
-          // converges effective_tier over time). Audit log preserves
-          // body.tier as the canonical operator-decision payload.
-          body.tier = tier;
+          // Phase 1.5 + F8 (Sprint Architecture): client must not write
+          // tier-shaped fields directly. Send operator-chosen tier value
+          // via a semantically-named field; server route handler reads
+          // body.assignedTier and dual-writes to base_tier + effective_tier
+          // on the new sources row per the Day 1 invariant (both equal at
+          // insert time; Q7 batch converges effective_tier over time).
+          body.assignedTier = tier;
           body.domains = domains;
           body.jurisdictions = jurisdictions;
           body.transport_modes = modes;

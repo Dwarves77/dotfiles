@@ -329,6 +329,35 @@ This rule was added 2026-05-19 alongside the encoding of the source-credibility-
 8. Changes the discovery loop (citation extraction in `src/app/api/agent/run/route.ts`, source resolution in any consumer, candidate promotion criteria)
 9. Adds or modifies citation network scoring (`src/lib/trust.ts`), recency decay, or override semantics
 
+**Enumerated route paths in scope (added 2026-05-20 alongside Sprint Architecture F7 fitness function).** Per F7's cross-reference check, the route paths below are part of the credibility-affected surface and any commit touching them must attest `Skill-loaded: source-credibility-model`. New routes that touch the sources table must be added here:
+
+- `/api/admin/canonical-sources/decide` (candidate review write path)
+- `/api/admin/canonical-sources/bulk-approve` (bulk candidate review)
+- `/api/admin/canonical-sources/bulk-classify` (LLM bulk classification)
+- `/api/admin/canonical-sources/recommend-classification` (Haiku recommendation)
+- `/api/admin/sources/promote` (provisional → source promotion)
+- `/api/admin/sources/all` (admin source registry listing)
+- `/api/admin/sources/recommend-classification` (Haiku recommendation, sources)
+- `/api/admin/sources/bulk-import` (admin bulk import)
+- `/api/admin/sources/[id]/fetch-now` (admin operational)
+- `/api/admin/sources/[id]/regenerate-brief` (admin operational, customer-output)
+- `/api/admin/sources/[id]/visibility` (admin operational)
+- `/api/admin/sources/[id]/pause` (admin operational)
+- `/api/admin/sources/[id]/tier-override` (Q5 override write path)
+- `/api/admin/integrity-flags` (admin/audit; reads sources via join)
+- `/api/admin/recompute-trust` (Q6/Q7 daily trust recompute; worker-secret-gated)
+- `/api/admin/q7-daily-recompute` (Q7 cron entry; worker-secret-gated)
+- `/api/admin/spot-check/recurring` (scheduled spot-check; worker-secret-gated)
+- `/api/admin/scan` (admin scan)
+- `/api/sources` (public-facing sources listing)
+- `/api/ask` (Intelligence Assistant; reads sources for credibility-context display)
+- `/api/agent/run` (brief generation; citation propagation reads sources)
+- `/api/data/fetch-source` (admin/internal source fetch)
+- `/api/data/scan-all` (admin/internal scan)
+- `/api/staged-updates` (admin staging surface)
+- `/api/worker/check-sources` (scheduler)
+- `/api/worker/drain-first-fetch` (first-fetch drain)
+
 Load is mandatory, not advisory. Without the skill loaded, the dispatch cannot ground its credibility decisions in the canonical model and risks drift from the operator-approved framework.
 
 **What this rule is NOT.**

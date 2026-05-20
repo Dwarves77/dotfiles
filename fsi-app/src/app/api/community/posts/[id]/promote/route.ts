@@ -355,7 +355,7 @@ export async function POST(
     // surface. Other required NOT NULL columns get their schema defaults.
     const { data: item, error: itemErr } = await service
       .from("intelligence_items")
-      .insert({
+      .insert({                                                          // fitness-allow: F4 (community-promoted item; urgency_score relies on schema default pending product decision; tracked in OBS-63)
         title: itemPayload.title,
         summary: itemPayload.summary,
         item_type: itemPayload.item_type,

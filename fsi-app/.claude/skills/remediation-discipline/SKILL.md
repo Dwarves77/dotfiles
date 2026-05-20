@@ -31,12 +31,13 @@ The autonomous-loop strategic frame depends on durable resilience primitives. A 
 
 ## Section 3: Recognition Criteria
 
-When a failure surfaces, evaluate four signals:
+When a failure surfaces, evaluate five signals:
 
 1. **Recurrence**: has this pattern surfaced before in any form? (Same root cause, different surface; same failure mode, different consumer.)
 2. **Infrastructure-variation cause**: is the root cause something the platform should absorb (timeout, disconnect, rate limit, version drift, tool snapshot inconsistency)?
 3. **Shared codepath**: do multiple places use the same broken pattern?
 4. **Reinventing-the-wheel signal**: would another agent solving a similar problem rebuild the same patch?
+5. **Preservation-argument-against-dispatch**: did an agent OR an operator propose "the existing design already handles this" against an explicit dispatch instruction or explicit caution? When this argument lands, the rationale typically survives only as a docstring or completion-report note — mechanical systems do not detect violations. The architectural decision is implicit, not enforced.
 
 **Threshold rule:**
 
@@ -45,6 +46,14 @@ When a failure surfaces, evaluate four signals:
 - 1 signal fires → judgment call surfaced to operator at remediation scoping
 
 The threshold deliberately favors class-treatment when in doubt. Over-codification of one-off failures is cheaper to correct (anti-pattern 3 surfaces it; the rule retracts) than missed-class-treatment of recurring failures (every new instance costs the same patch effort).
+
+**Signal 5 treatment (preservation-argument).** Class fix is to encode the preservation argument as a fitness function or equivalent mechanical check at the same dispatch that surfaced it. Per OBS-62 worked example (Sprint Architecture, 2026-05-20): Phase 1.5 closure proposed preserving the server-centric dual-write design via documentation comments; the rationale was sound, but absent F8 fitness function, future client code could violate the design silently. Same dispatch added F8 + fixed the 2 instances + codified Signal 5 itself. Treatment shape:
+
+1. Recognize the preservation argument when proposing OR receiving it (either agent → operator OR operator → agent direction).
+2. Ask: can this argument be mechanically expressed? If yes, encode it as a fitness function (or equivalent). If no, either re-examine whether the argument is actually sound, OR explicitly accept the gap with an OBS entry tracking the residual risk.
+3. Land the mechanical check in the SAME dispatch that proposes the preservation argument. Splitting risks the encoding never happening.
+
+The pattern applies symmetrically: agent making a preservation argument against operator dispatch (Phase 1.5 dual-write case), and operator making a preservation argument against agent caution (the REPO_ROOT "no risk" case earlier the same day where operator's confident dismissal of investigation triggered the same pattern, different domain). Both produce documentation-survives-but-no-mechanism gaps. Signal 5 covers both.
 
 ## Section 4: Remediation Strategy by Category
 

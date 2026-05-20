@@ -13,7 +13,9 @@ Catalog of the Rules-as-Code (RaC) discipline engine at `fsi-app/.discipline/` p
 | 2 | d6e26d2 | Manifest registers all 11 rules; full test count 211 |
 | 3 | (parallel agent work; integrated in Wave 4) | `commit-msg` hook + install script + GitHub Actions CI workflow |
 | 4 | c097b09 | REPO_ROOT class-fix (3 of 4 files; removes hardcoded path), CI workflow simplification, hook + CI + inventory integration, 217 tests |
-| OBS-59 follow-up | (this commit) | Bundle: getRepoRoot() env-override + explicit-error fallback, residual runner.test.mjs:11 class-fix, 12th rule (content-check layer), Vercel inventory correction. 12 rules registered. |
+| OBS-59 follow-up | 510b637 | Bundle: getRepoRoot() env-override + explicit-error fallback, residual runner.test.mjs:11 class-fix, 12th rule (content-check layer), Vercel inventory correction. 12 rules registered. |
+| Phase 1.5 close | 9a95afb | Q2 base_tier + effective_tier consumer migration: 18 list files migrated, 2 scope expansions, 8 NEEDS-DECISION confirmed no-op, 3 UI documented. |
+| Sprint Architecture | (this commit) | Phase 4 application-layer enforcement: 8 fitness functions (F1-F8) at fsi-app/.discipline/fitness/ with whole-repo scan + override mechanism + CI job. Phase 5 dispatch lifecycle tracking via UUID commit trailers + audit script at fsi-app/.discipline/dispatch/. Phase 1.5 F8-violation refactor (atomic per Option C). Skill amendment: remediation-discipline Signal 5 (preservation-argument-against-dispatch). OBS-62 open-and-close lifecycle demonstrated; OBS-63 deferred. |
 
 ## Architecture
 
@@ -21,7 +23,7 @@ Catalog of the Rules-as-Code (RaC) discipline engine at `fsi-app/.discipline/` p
 fsi-app/.discipline/
   README.md                       contract doc for rule authors
   INSTALL.md                      operator install + bypass docs
-  manifest.mjs                    rule registry (11 rules)
+  manifest.mjs                    rule registry (12 rules)
   runner.mjs                      engine entry: commit-msg / ci / fixture modes
   install-hooks.mjs               idempotent installer for local hooks
   install-hooks.test.mjs          6 unit tests for the installer
@@ -32,7 +34,32 @@ fsi-app/.discipline/
     result.mjs                    PASS / FAIL / SKIP result shape
     context.mjs                   CheckContext builder + getRepoRoot()
     predicates.mjs                shared check helpers
-    predicates.test.mjs           39 predicate tests
+    predicates.test.mjs           43 predicate tests
+  rules/                          (12 attestation + 1 content-check)
+  fitness/                        (8 application-layer fitness functions; Sprint Architecture)
+    README.md
+    manifest.mjs
+    runner.mjs                    whole-repo scan + per-function checks
+    runner.test.mjs               4 integration tests
+    lib/
+      glob.mjs                    file enumeration helpers
+      result.mjs
+      file-content.mjs            cached reader + override detection
+    functions/
+      F1-sources-tier-columns.mjs           + .test.mjs (10 tests)
+      F2-admin-routes-isPlatformAdmin.mjs   + .test.mjs (8 tests)
+      F3-src-no-discipline-imports.mjs      + .test.mjs (9 tests)
+      F4-intelligence-items-urgency-score.mjs + .test.mjs (8 tests)
+      F5-briefs-cite-registered-sources.mjs + .test.mjs (8 tests)
+      F6-migrations-numeric-ordering.mjs    + .test.mjs (7 tests)
+      F7-sources-routes-skill-attestation.mjs + .test.mjs (5 tests)
+      F8-client-server-tier-boundary.mjs    + .test.mjs (10 tests)
+  dispatch/                       (Phase 5: dispatch lifecycle tracking)
+    README.md
+    start.mjs                     mints a UUID per dispatch; operator records
+    audit.mjs                     queries git for commits + claims + outcomes by UUID
+    start.test.mjs                6 unit tests
+    audit.test.mjs                4 unit tests
   rules/
     001-sweep-discipline.mjs                       + .test.mjs (13 tests)
     002-source-credibility-load-trigger.mjs        + .test.mjs (16 tests)

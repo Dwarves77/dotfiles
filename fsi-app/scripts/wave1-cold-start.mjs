@@ -454,7 +454,7 @@ async function main() {
           costUsd = cls.cost_usd_estimated ?? 0;
           const { data: itemRow, error: itemErr } = await supabase
             .from("intelligence_items")
-            .insert({
+            .insert({                                                    // fitness-allow: F4 (cold-start populates urgency_tier text category; urgency_score numeric pending product decision per OBS-63)
               title: (cls.title_candidate ?? source.name ?? source.url).slice(0, 200),
               domain: 1,
               source_id: source.id,

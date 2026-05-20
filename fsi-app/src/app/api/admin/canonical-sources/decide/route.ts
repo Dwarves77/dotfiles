@@ -198,9 +198,14 @@ export async function POST(request: NextRequest) {
 
   if (!sourceId) {
     // No existing source for this URL — create one.
-    if (!body.tier || body.tier < 1 || body.tier > 7) {
+    // F8 (Sprint Architecture): client sends operator-chosen tier value via
+    // body.assignedTier (semantically-named, not schema-shaped). Fallback to
+    // legacy body.tier for any client that hasn't migrated yet (deprecation
+    // window during F8 rollout; remove the fallback once F8 catches all callers).
+    const assignedTier = body.assignedTier ?? body.tier;
+    if (!assignedTier || assignedTier < 1 || assignedTier > 7) {
       return NextResponse.json(
-        { error: "tier (1-7) is required when creating a new source" },
+        { error: "assignedTier (1-7) is required when creating a new source" },
         { status: 400 }
       );
     }
@@ -211,9 +216,9 @@ export async function POST(request: NextRequest) {
       // Phase 1.5: Q2 split. base_tier = operator-selected classifier value;
       // effective_tier initialized equal per Day 1 invariant (Q7 batch
       // converges effective_tier over time). tier_at_creation preserved.
-      base_tier: body.tier,
-      effective_tier: body.tier,
-      tier_at_creation: body.tier,
+      base_tier: assignedTier,
+      effective_tier: assignedTier,
+      tier_at_creation: assignedTier,
       domains: body.domains || [],
       jurisdictions: body.jurisdictions || [],
       transport_modes: body.transport_modes || [],
@@ -251,7 +256,7 @@ export async function POST(request: NextRequest) {
         candidateId: body.candidateId,
         intelligenceItemId: cand.intelligence_item_id,
         classification: {
-          tier: body.tier,
+          tier: body.assignedTier ?? body.tier,
           domains: body.domains,
           jurisdictions: body.jurisdictions,
           transport_modes: body.transport_modes,
