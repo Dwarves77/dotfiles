@@ -23,10 +23,9 @@ import {
   buildContextForProposedCommit,
   buildContextForExistingCommit,
   buildContextFromFixture,
+  getRepoRoot,
 } from './lib/context.mjs';
 import { STATUS } from './lib/result.mjs';
-
-const REPO_ROOT = 'C:/Users/jason/dotfiles';
 
 function parseArgs(argv) {
   const out = { mode: null };
@@ -71,7 +70,7 @@ async function main() {
       return runOnContext(ctx, args);
     }
     if (args.range) {
-      const shas = execFileSync('git', ['-C', REPO_ROOT, 'log', '--format=%H', args.range], { encoding: 'utf-8' })
+      const shas = execFileSync('git', ['-C', getRepoRoot(), 'log', '--format=%H', args.range], { encoding: 'utf-8' })
         .trim()
         .split(/\r?\n/)
         .filter(Boolean)

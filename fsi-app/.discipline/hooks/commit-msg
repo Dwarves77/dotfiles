@@ -1,0 +1,38 @@
+#!/bin/sh
+# Installed from fsi-app/.discipline/hooks/commit-msg
+# Sprint Foundation Wave 3 (Agent D), 2026-05-20.
+#
+# Invokes the Rules-as-Code discipline engine against the proposed commit.
+# The engine reads the proposed commit message (passed as $1 by git) plus
+# the currently staged files, and exits 0 on compliance / 1 on violation.
+#
+# Emergency bypass: git commit --no-verify  (bypasses pre-commit + commit-msg).
+# A future Phase 6 may surface bypass usage in audit reports.
+
+set -u
+
+MESSAGE_FILE="$1"
+
+# Locate repo root via git so the hook works from any subdirectory or worktree.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+  echo "discipline hook: cannot resolve repo root via 'git rev-parse --show-toplevel'; skipping check." >&2
+  exit 0
+fi
+
+RUNNER="$REPO_ROOT/fsi-app/.discipline/runner.mjs"
+if [ ! -f "$RUNNER" ]; then
+  echo "discipline hook: runner not found at $RUNNER; skipping check." >&2
+  exit 0
+fi
+
+# Require node. If missing, warn but do not block; surfacing > punishing a
+# broken environment (matches dispatch guidance).
+if ! command -v node >/dev/null 2>&1; then
+  echo "discipline hook: 'node' not found in PATH; cannot run discipline engine." >&2
+  echo "discipline hook: install Node.js (https://nodejs.org) to re-enable the commit gate." >&2
+  echo "discipline hook: skipping check (commit allowed)." >&2
+  exit 0
+fi
+
+exec node "$RUNNER" --mode=commit-msg --message-file="$MESSAGE_FILE"

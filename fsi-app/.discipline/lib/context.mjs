@@ -6,10 +6,22 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { filesMatching as filesMatchingHelper, hasFileMatching as hasFileMatchingHelper } from './predicates.mjs';
 
-const REPO_ROOT = 'C:/Users/jason/dotfiles';
+// Resolve repo root lazily and cache. Uses git rev-parse --show-toplevel so
+// the engine works wherever the repo lives (operator's Windows tree, CI's
+// Linux checkout, a worktree). Falls back to cwd if git is unavailable.
+let _repoRootCache = null;
+export function getRepoRoot() {
+  if (_repoRootCache !== null) return _repoRootCache;
+  try {
+    _repoRootCache = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf-8' }).trim();
+  } catch {
+    _repoRootCache = process.cwd();
+  }
+  return _repoRootCache;
+}
 
 function git(args, options = {}) {
-  return execFileSync('git', ['-C', REPO_ROOT, ...args], {
+  return execFileSync('git', ['-C', getRepoRoot(), ...args], {
     encoding: 'utf-8',
     ...options,
   });

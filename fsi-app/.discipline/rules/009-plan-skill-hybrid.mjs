@@ -20,8 +20,7 @@ import {
   commitMessageHasLine,
   commitMessageLines,
 } from '../lib/predicates.mjs';
-
-const REPO_ROOT = 'C:/Users/jason/dotfiles';
+import { getRepoRoot } from '../lib/context.mjs';
 
 // Branch name fragments that signal multi-dispatch coordination. Conservative
 // list; the self-attestation pathway picks up coordinations whose branch name
@@ -58,7 +57,7 @@ function parseCoordinationCount(ctx) {
 //   either fsi-app/docs/plans/... or docs/plans/...
 function resolvePlanFilePath(reference) {
   if (isAbsolute(reference)) return reference;
-  return resolve(REPO_ROOT, reference);
+  return resolve(getRepoRoot(), reference);
 }
 
 // Extract the plan-file path from a "Plan-file: <path>" line, stripping any
@@ -135,7 +134,7 @@ export const rule = {
         remediation: [
           'Author the plan file at the referenced path BEFORE referencing it in a commit.',
           'Per `superpowers:writing-plans`, the plan file enumerates the dispatches, names dependencies, and surfaces decision points.',
-          `Missing files (resolved against ${REPO_ROOT}):`,
+          `Missing files (resolved against ${getRepoRoot()}):`,
           ...missing.map((m) => `    ${m.ref} -> ${m.abs}`),
         ].join('\n  '),
       });

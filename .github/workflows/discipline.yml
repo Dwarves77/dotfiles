@@ -1,0 +1,102 @@
+name: Discipline engine
+
+# Runs the Rules-as-Code (RaC) discipline engine on every push to master
+# and every pull request targeting master. Server-side enforcement of the
+# 11 binding rules from fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md,
+# so a local --no-verify or a missing/disabled commit-msg hook cannot bypass
+# the policy. Engine, predicates, and rule modules live in
+# fsi-app/.discipline/ (Sprint Foundation Waves 0-2).
+#
+# Two jobs run independently on the same triggers:
+#
+#   validate-commits       — executes the engine against the relevant commit(s)
+#                            and fails the build on any rule FAIL.
+#   test-discipline-engine — executes the unit tests for the engine itself
+#                            (predicates + every rule + runner), so a rule
+#                            regression is caught before it merges.
+#
+# Either job failing fails the workflow; PR merge is blocked when this
+# workflow is set as a required check (Repo -> Settings -> Branches).
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  validate-commits:
+    name: Validate commits against discipline rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 gives full history so:
+          #   - push to master: --commit=$GITHUB_SHA can read the commit + its parents
+          #   - pull_request:   origin/<base>..HEAD range resolution works
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run discipline engine (push to master)
+        if: github.event_name == 'push'
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -u
+          echo "Validating commit $COMMIT_SHA"
+          node fsi-app/.discipline/runner.mjs \
+            --mode=ci \
+            --commit="$COMMIT_SHA"
+
+      - name: Run discipline engine (pull request)
+        if: github.event_name == 'pull_request'
+        env:
+          # PR head SHA (not the synthetic merge commit) so the engine
+          # validates the actual commits the PR proposes to add.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -u
+          # Make sure origin/<base> is resolvable from the checkout. The
+          # checkout action gives us refs/remotes/origin/<base> for the
+          # target branch on pull_request events, but we re-fetch defensively
+          # in case of a force-push between checkout and run.
+          git fetch --no-tags origin "$BASE_REF" || true
+          RANGE="origin/${BASE_REF}..${HEAD_SHA}"
+          echo "Validating commit range $RANGE"
+          node fsi-app/.discipline/runner.mjs \
+            --mode=ci \
+            --range="$RANGE"
+
+  test-discipline-engine:
+    name: Discipline engine unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # The unit tests use fixtures (buildContextFromFixture) and do not
+        # shell out to git, so a shallow checkout is sufficient.
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run discipline test suite
+        # node --test runs each file in its own process and reports TAP.
+        # Globs are expanded by the shell, so the runner sees a flat list.
+        run: |
+          set -eu
+          node --test \
+            fsi-app/.discipline/lib/*.test.mjs \
+            fsi-app/.discipline/rules/*.test.mjs \
+            fsi-app/.discipline/runner.test.mjs
