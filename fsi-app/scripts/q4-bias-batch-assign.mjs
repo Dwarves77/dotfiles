@@ -35,9 +35,35 @@
 //   node scripts/q4-bias-batch-assign.mjs --dry-run
 //     Sample run that prints what would happen but writes NOTHING to the DB.
 //
+//   node scripts/q4-bias-batch-assign.mjs --limit <n>
+//     Bounded slice of the eligible source list (deterministic ORDER BY id).
+//     Useful for smoke-testing patch changes without committing to a full
+//     batch run. Behaves like sample mode (printing projection) at the
+//     requested slice size.
+//
 // Rate limiting: 1.2 seconds between Haiku calls (well under the 50 RPM
 // Anthropic default for Tier 1, generous under higher tiers). Tunable via
 // --interval-ms <number>.
+//
+// Resilience (added 2026-05-20 in feat/q4-batch-resilience; see OBS-51):
+//
+//   - Anthropic SDK calls retry on transient errors (Request timed out,
+//     network/connection errors, 5xx HTTP status) with exponential backoff
+//     1s / 2s / 4s, max 3 retries per source. After exhaustion the per-source
+//     try/catch logs the failure and the batch CONTINUES to the next source.
+//   - The pg layer uses pg.Pool rather than a single pg.Client, plus a
+//     withDbRetry() wrapper that detects 'Connection terminated', ECONNRESET,
+//     and pg client error events. The pool reconnects transparently; the
+//     wrapper retries the failed query up to 3 times. After exhaustion the
+//     per-source try/catch logs and continues.
+//   - Per-source error isolation: ONE source's classification or write
+//     failure NEVER crashes the whole batch (summary.failed counts the
+//     skip; the next source proceeds normally).
+//   - Idempotency preserved: re-running the script after a partial batch
+//     skips sources that already carry haiku_* or operator_* rows per the
+//     existing UNIQUE (source_id, dimension, tag) constraint + ON CONFLICT
+//     DO NOTHING write path. The classification semantics, threshold buckets,
+//     and tag vocabulary are unchanged.
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -142,6 +168,106 @@ function getAnthropicKey() {
 }
 
 // -----------------------------------------------------------------------
+// RESILIENCE: retry helpers (added 2026-05-20 per OBS-51)
+//
+// The Q4 sample run was clean at 20 sources; the full 776-source run failed
+// at source 21 (Anthropic Request timed out) and source 22 (pg Connection
+// terminated unexpectedly). Sample-scale validation does not exercise
+// long-running batch failure modes; OBS-51 captures the discipline. These
+// wrappers and the Pool switch make the script resilient against those two
+// classes of failure without changing classification semantics.
+// -----------------------------------------------------------------------
+
+const MAX_ANTHROPIC_RETRIES = 3;
+const MAX_DB_RETRIES = 3;
+const RETRY_BACKOFF_MS = [1000, 2000, 4000];
+
+function isTransientAnthropicError(err) {
+  // Match on message text + SDK status/code shape. The Anthropic SDK
+  // surfaces APIConnectionTimeoutError, APIConnectionError, and HTTP-status-
+  // bearing errors with status >= 500. We retry all of these plus generic
+  // network/timeout signals.
+  const msg = (err?.message || String(err)).toLowerCase();
+  if (msg.includes("request timed out")) return true;
+  if (msg.includes("timeout")) return true;
+  if (msg.includes("network")) return true;
+  if (msg.includes("connection")) return true;
+  if (msg.includes("econnreset")) return true;
+  if (msg.includes("etimedout")) return true;
+  if (msg.includes("socket hang up")) return true;
+  const status = err?.status ?? err?.response?.status;
+  if (typeof status === "number" && status >= 500 && status < 600) return true;
+  if (typeof status === "number" && status === 429) return true; // rate limit
+  return false;
+}
+
+function isTransientDbError(err) {
+  const msg = (err?.message || String(err)).toLowerCase();
+  if (msg.includes("connection terminated")) return true;
+  if (msg.includes("connection ended")) return true;
+  if (msg.includes("econnreset")) return true;
+  if (msg.includes("etimedout")) return true;
+  if (msg.includes("client has encountered a connection error")) return true;
+  if (msg.includes("server closed the connection")) return true;
+  // pg error code 57P01 = admin_shutdown, 57P02 = crash_shutdown, 57P03 = cannot_connect_now
+  if (err?.code === "57P01" || err?.code === "57P02" || err?.code === "57P03") return true;
+  return false;
+}
+
+async function withAnthropicRetry(fn, label) {
+  let lastErr;
+  for (let attempt = 0; attempt <= MAX_ANTHROPIC_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt === MAX_ANTHROPIC_RETRIES || !isTransientAnthropicError(err)) {
+        throw err;
+      }
+      const backoff = RETRY_BACKOFF_MS[attempt] ?? RETRY_BACKOFF_MS[RETRY_BACKOFF_MS.length - 1];
+      process.stdout.write(
+        `\n    [retry ${attempt + 1}/${MAX_ANTHROPIC_RETRIES}] Anthropic ${label}: ${err.message}; backing off ${backoff}ms\n    `
+      );
+      RUN_STATS.anthropic_retries++;
+      await sleep(backoff);
+    }
+  }
+  throw lastErr;
+}
+
+async function withDbRetry(fn, label) {
+  let lastErr;
+  for (let attempt = 0; attempt <= MAX_DB_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt === MAX_DB_RETRIES || !isTransientDbError(err)) {
+        throw err;
+      }
+      const backoff = RETRY_BACKOFF_MS[attempt] ?? RETRY_BACKOFF_MS[RETRY_BACKOFF_MS.length - 1];
+      process.stdout.write(
+        `\n    [retry ${attempt + 1}/${MAX_DB_RETRIES}] DB ${label}: ${err.message}; backing off ${backoff}ms\n    `
+      );
+      RUN_STATS.db_retries++;
+      await sleep(backoff);
+      // pg.Pool auto-creates fresh connections when the prior one is dead;
+      // no manual reconnect needed. The next fn() invocation will check out
+      // a healthy connection.
+    }
+  }
+  throw lastErr;
+}
+
+// Module-level counters surfaced in the run summary. Initialized here so
+// the retry wrappers can increment without threading state through every
+// function call.
+const RUN_STATS = {
+  anthropic_retries: 0,
+  db_retries: 0,
+};
+
+// -----------------------------------------------------------------------
 // CORE: classify one source
 // -----------------------------------------------------------------------
 
@@ -178,12 +304,15 @@ function validateBiasTags(value) {
 }
 
 async function classifyOne(client, source) {
-  const resp = await client.messages.create({
-    model: HAIKU_MODEL,
-    max_tokens: 1000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildUserMessage(source) }],
-  });
+  const resp = await withAnthropicRetry(
+    () => client.messages.create({
+      model: HAIKU_MODEL,
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: buildUserMessage(source) }],
+    }),
+    `messages.create source=${source.id}`
+  );
   const text = resp.content.filter(b => b.type === "text").map(b => b.text).join("");
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) throw new Error(`No JSON object in model output for source ${source.id}`);
@@ -244,7 +373,10 @@ async function writeAssignments(pgc, sourceId, buckets, dryRun) {
     VALUES ${placeholders.join(", ")}
     ON CONFLICT (source_id, dimension, tag) DO NOTHING
   `;
-  const res = await pgc.query(sql, values);
+  const res = await withDbRetry(
+    () => pgc.query(sql, values),
+    `INSERT source_bias_tags source=${sourceId}`
+  );
   return res.rowCount;
 }
 
@@ -267,19 +399,22 @@ async function loadSources(pgc, limit) {
      ORDER BY s.id
      ${limit ? `LIMIT ${limit}` : ""}
   `;
-  const r = await pgc.query(sql);
+  const r = await withDbRetry(() => pgc.query(sql), `loadSources limit=${limit ?? "none"}`);
   return r.rows;
 }
 
 async function loadTotalEligible(pgc) {
-  const r = await pgc.query(`
-    SELECT COUNT(*)::int AS n FROM public.sources s
-    WHERE NOT EXISTS (
-      SELECT 1 FROM public.source_bias_tags sbt
-        WHERE sbt.source_id = s.id
-          AND sbt.assignment_source IN ('operator_confirmed', 'operator_set')
-    )
-  `);
+  const r = await withDbRetry(
+    () => pgc.query(`
+      SELECT COUNT(*)::int AS n FROM public.sources s
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.source_bias_tags sbt
+          WHERE sbt.source_id = s.id
+            AND sbt.assignment_source IN ('operator_confirmed', 'operator_set')
+      )
+    `),
+    "loadTotalEligible"
+  );
   return r.rows[0].n;
 }
 
@@ -293,31 +428,69 @@ function sleep(ms) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const mode =
-    args.includes("--full") ? "full" :
-    args.includes("--dry-run") ? "dry-run" :
-    "sample";
+  // --dry-run and --limit are flag modifiers that combine with the
+  // primary mode. Primary mode: --full | sample (default). Flag modifiers:
+  // --dry-run (skip DB writes), --limit <n> (bound slice size to n; defaults
+  // to SAMPLE_SIZE if not present and mode is sample).
+  const isFull = args.includes("--full");
+  const dryRun = args.includes("--dry-run");
+  const limitIdx = args.indexOf("--limit");
+  const limitVal = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : null;
+  if (limitIdx >= 0 && (!Number.isFinite(limitVal) || limitVal <= 0)) {
+    throw new Error("--limit requires a positive integer");
+  }
+  const mode = isFull ? "full" : dryRun ? "dry-run" : limitVal != null ? "limit" : "sample";
   const intervalIdx = args.indexOf("--interval-ms");
   const intervalMs = intervalIdx >= 0 ? parseInt(args[intervalIdx + 1], 10) : DEFAULT_INTERVAL_MS;
-  const dryRun = mode === "dry-run";
 
   const conn = buildConnectionString();
   const apiKey = getAnthropicKey();
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not in .env.local");
 
-  const pgc = new pg.Client({ connectionString: conn });
-  await pgc.connect();
-  const client = new Anthropic({ apiKey });
+  // pg.Pool replaces the single pg.Client used previously. Rationale per
+  // OBS-51: the long-running full-batch run failed at source 22 with
+  // "Connection terminated unexpectedly" because the single Client cannot
+  // recover from a pooler-side disconnect. pg.Pool transparently creates
+  // fresh connections; combined with withDbRetry() this survives idle
+  // disconnects from the Supabase pooler over multi-hour runs.
+  //
+  // idleTimeoutMillis: 30000 - close idle clients after 30s so the pool
+  //   doesn't hold connections during the inter-call 1.2s sleep AND so
+  //   the pool sheds dead idle connections quickly.
+  // connectionTimeoutMillis: 10000 - fail fast on initial connection so
+  //   the retry wrapper can kick in rather than hanging.
+  // max: 2 - this script is strictly sequential; one active query at a
+  //   time. Keep the pool small.
+  const pgc = new pg.Pool({
+    connectionString: conn,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    max: 2,
+  });
+  // Surface pool-level errors that fire outside an in-flight query. The
+  // pool emits 'error' on idle-client disconnects; logging keeps them
+  // visible without crashing the process (default Node behavior on
+  // unhandled EventEmitter 'error' is to crash).
+  pgc.on("error", (err) => {
+    process.stderr.write(`\n[pool error] ${err.message}\n`);
+  });
+  // Anthropic SDK: configure a generous per-request timeout so the SDK
+  // surfaces transient timeouts as catchable errors (rather than the
+  // process hanging on a stuck socket). The retry wrapper handles the
+  // recovery loop.
+  const client = new Anthropic({ apiKey, timeout: 60_000, maxRetries: 0 });
 
-  console.log(`Mode: ${mode}`);
+  console.log(`Mode: ${mode}${limitVal != null ? ` (limit=${limitVal})` : ""}${dryRun && mode !== "dry-run" ? " (dry-run: no DB writes)" : ""}`);
   console.log(`Interval between Haiku calls: ${intervalMs}ms`);
 
   const totalEligible = await loadTotalEligible(pgc);
   console.log(`Total eligible sources (no operator_* tags): ${totalEligible}`);
 
-  const sources = mode === "full"
-    ? await loadSources(pgc, null)
-    : await loadSources(pgc, SAMPLE_SIZE);
+  let sliceLimit;
+  if (mode === "full") sliceLimit = null;
+  else if (limitVal != null) sliceLimit = limitVal;
+  else sliceLimit = SAMPLE_SIZE;
+  const sources = await loadSources(pgc, sliceLimit);
   console.log(`Processing ${sources.length} source(s).\n`);
 
   const summary = {
@@ -369,9 +542,16 @@ async function main() {
 
       process.stdout.write(`auto=${buckets.auto.length} review=${buckets.review.length} discard=${buckets.discarded.length}\n`);
     } catch (err) {
+      // Per-source error isolation: log the failed source's id + name +
+      // error, then CONTINUE to the next source. This is the OBS-51
+      // guarantee — one source's failure (Anthropic timeout exhausted
+      // after 3 retries, pg disconnect that did not recover after 3
+      // retries, malformed model output, anything) does NOT crash the
+      // whole batch. The summary.failed counter tracks the skipped
+      // sources for operator review.
       summary.failed++;
       summary.per_source.push({ id: s.id, name: s.name, error: err.message });
-      process.stdout.write(`FAILED: ${err.message}\n`);
+      process.stdout.write(`FAILED (source ${s.id}): ${err.message}\n`);
     }
     if (i < sources.length - 1) await sleep(intervalMs);
   }
@@ -379,6 +559,8 @@ async function main() {
   console.log("\n=== Summary ===");
   console.log(`Classified: ${summary.classified}`);
   console.log(`Failed: ${summary.failed}`);
+  console.log(`Anthropic retries triggered: ${RUN_STATS.anthropic_retries}`);
+  console.log(`DB retries triggered: ${RUN_STATS.db_retries}`);
   console.log(`Auto-applied rows (haiku_auto_high_confidence): ${summary.auto_rows_written}`);
   console.log(`Review-queue rows (haiku_proposed_low_confidence): ${summary.review_rows_written}`);
   console.log(`Discarded (<0.65 confidence): ${summary.discarded_count}`);
