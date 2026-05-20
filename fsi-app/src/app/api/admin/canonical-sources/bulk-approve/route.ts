@@ -140,7 +140,10 @@ export async function POST(request: NextRequest) {
         name: cand.candidate_publisher || cand.candidate_title || cand.candidate_url,
         url: canonCandidateUrl,
         description: cand.candidate_title || "",
-        tier: rec.tier,
+        // Phase 1.5: Q2 split. base_tier = AI-recommended classifier value;
+        // effective_tier initialized equal per Day 1 invariant.
+        base_tier: rec.tier,
+        effective_tier: rec.tier,
         tier_at_creation: rec.tier,
         domains: rec.domains,
         jurisdictions: rec.jurisdictions,

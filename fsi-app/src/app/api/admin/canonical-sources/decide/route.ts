@@ -208,7 +208,11 @@ export async function POST(request: NextRequest) {
       name: cand.candidate_publisher || cand.candidate_title || cand.candidate_url,
       url: canonicalizeUrl(cand.candidate_url),
       description: cand.candidate_title || "",
-      tier: body.tier,
+      // Phase 1.5: Q2 split. base_tier = operator-selected classifier value;
+      // effective_tier initialized equal per Day 1 invariant (Q7 batch
+      // converges effective_tier over time). tier_at_creation preserved.
+      base_tier: body.tier,
+      effective_tier: body.tier,
       tier_at_creation: body.tier,
       domains: body.domains || [],
       jurisdictions: body.jurisdictions || [],

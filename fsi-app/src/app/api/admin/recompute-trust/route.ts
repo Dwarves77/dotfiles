@@ -43,10 +43,13 @@ export async function POST(request: NextRequest) {
   // Pull every source and recompute. Schema uses flat trust_score_* columns.
   // Per-source paused rows are skipped so their last-known trust score is
   // preserved while the source is intentionally on hold.
+  // Phase 1.5: base_tier per scoring-internals default rule (trust
+  // recompute is a scoring internal; the Bayesian prior is anchored
+  // to the structural classification, not the dynamic credibility signal).
   const { data: sources, error } = await supabase
     .from("sources")
     .select(
-      "id, name, tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked"
+      "id, name, base_tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked"
     )
     .eq("processing_paused", false);
 
@@ -90,7 +93,8 @@ export async function POST(request: NextRequest) {
     };
 
     const score = computeTrustScore(metrics);
-    const overall = computeOverallScore(metrics, s.tier as SourceTier);
+    // Phase 1.5: base_tier per scoring-internals default rule.
+    const overall = computeOverallScore(metrics, s.base_tier as SourceTier);
 
     const { error: updateErr } = await supabase
       .from("sources")
@@ -117,8 +121,9 @@ export async function POST(request: NextRequest) {
     else if (overall <= 80) distribution["61-80"]++;
     else distribution["81-100"]++;
 
-    if (!byTier[s.tier]) byTier[s.tier] = [];
-    byTier[s.tier].push(overall);
+    // Phase 1.5: byTier rollup keyed on base_tier per scoring-internals rule.
+    if (!byTier[s.base_tier]) byTier[s.base_tier] = [];
+    byTier[s.base_tier].push(overall);
   }
 
   const tierAverages: Record<string, { n: number; avg: number; min: number; max: number }> = {};

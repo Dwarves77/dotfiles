@@ -21,7 +21,10 @@ import { GlobalPauseToggle, SourceRowControls } from "@/components/sources/Sourc
 
 function TierSummaryCard({ tier, sources }: { tier: SourceTier; sources: Source[] }) {
   const def = SOURCE_TIER_DEFINITIONS[tier];
-  const tierSources = sources.filter((s) => s.tier === tier);
+  // Phase 1.5: base_tier per admin/registry default rule (structural
+  // inventory groups by classifier judgment; matches source_health_summary
+  // view's GROUP BY column choice). Admin needs the static tier counts.
+  const tierSources = sources.filter((s) => s.base_tier === tier);
   const active = tierSources.filter((s) => s.status === "active").length;
   const stale = tierSources.filter((s) => s.status === "stale").length;
   const inaccessible = tierSources.filter((s) => s.status === "inaccessible").length;
@@ -125,7 +128,8 @@ function SourceRow({ source }: { source: Source }) {
             border: "1px solid var(--color-border)",
           }}
         >
-          T{source.tier}
+          {/* Phase 1.5: base_tier per admin default rule (structural classification). */}
+          T{source.base_tier}
         </span>
 
         {/* Name */}

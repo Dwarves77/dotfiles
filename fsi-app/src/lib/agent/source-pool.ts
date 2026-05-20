@@ -57,9 +57,12 @@ export async function buildSourcePool(
   // Pull every active, workspace-visible source. The pool selection runs
   // client-side after this single query — registry size is currently <200
   // rows so over-the-wire cost is trivial.
+  // Phase 1.5: select base_tier + effective_tier per Q2 split. Agent pool
+  // scoring weights dynamic credibility per skill Section 8 Assistant
+  // signal set; we coalesce to base_tier when effective_tier is null.
   const { data: rows, error } = await supabase
     .from("sources")
-    .select("id, url, name, description, tier, trust_score_overall, domains, jurisdictions, topic_tags")
+    .select("id, url, name, description, base_tier, effective_tier, trust_score_overall, domains, jurisdictions, topic_tags")
     .eq("status", "active")
     .eq("admin_only", false);
 
@@ -70,6 +73,11 @@ export async function buildSourcePool(
   const itemDomain = item.domain ?? null;
   const itemJurisdictions = new Set(item.jurisdictions || []);
   const itemTopics = new Set(item.topic_tags || []);
+
+  // Phase 1.5: per-row effective tier resolution. effective_tier per Q2
+  // (customer-facing default rule; agent pool feeds Assistant per skill
+  // Section 8); fall back to base_tier.
+  const tierOf = (r: any): number => (r.effective_tier ?? r.base_tier);
 
   // Score each source against the item.
   const scored: ScoredSource[] = [];
@@ -99,7 +107,7 @@ export async function buildSourcePool(
         url: r.url,
         name: r.name,
         description: r.description || "",
-        tier: r.tier,
+        tier: tierOf(r),
         trust_score_overall: r.trust_score_overall || 0,
         score,
         reasons,
@@ -115,10 +123,10 @@ export async function buildSourcePool(
   if (scored.length < MIN_RELEVANT) {
     const haveIds = new Set(scored.map((s) => s.id));
     const fillers = (rows as any[])
-      .filter((r) => !haveIds.has(r.id) && r.tier <= 3)
+      .filter((r) => !haveIds.has(r.id) && tierOf(r) <= 3)
       .map((r) => ({
         id: r.id, url: r.url, name: r.name, description: r.description || "",
-        tier: r.tier, trust_score_overall: r.trust_score_overall || 0,
+        tier: tierOf(r), trust_score_overall: r.trust_score_overall || 0,
         score: 0, reasons: ["filler-low-tier"],
       }))
       .sort((a, b) => a.tier - b.tier || b.trust_score_overall - a.trust_score_overall);
@@ -140,7 +148,7 @@ export async function buildSourcePool(
         pool = [
           {
             id: primary.id, url: primary.url, name: primary.name, description: primary.description || "",
-            tier: primary.tier, trust_score_overall: primary.trust_score_overall || 0,
+            tier: tierOf(primary), trust_score_overall: primary.trust_score_overall || 0,
             score: 99, reasons: ["primary-source"],
           } as ScoredSource,
           ...pool,

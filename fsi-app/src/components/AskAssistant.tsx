@@ -21,6 +21,11 @@ type Citation = {
   source_id: string | null;
   source_url: string | null;
   source_name: string | null;
+  // Phase 1.5 (Q2 base_tier + effective_tier split): wire format preserved
+  // as a single resolved value. Server (api/ask/route.ts) resolves
+  // source.effective_tier ?? source.base_tier ?? null per the Assistant
+  // signal set (skill Section 8). The client receives the dynamic
+  // credibility signal; no client-side fallback needed.
   source_tier: number | null;
   citation_count: number | null;
   recency: string | null;

@@ -359,12 +359,15 @@ export interface DemotionEvaluation {
 // Evaluate whether a source is eligible for promotion
 
 export function evaluatePromotion(source: Source): PromotionEvaluation | null {
+  // Phase 1.5: base_tier per scoring-internals default rule (promotion
+  // evaluates the structural classification, not the dynamic credibility
+  // signal; promoting effective_tier would create feedback loops with Q7).
   // T1 sources cannot be promoted further
-  if (source.tier === 1) return null;
+  if (source.base_tier === 1) return null;
 
   // Find the criteria for promoting from this tier
   const criteria = PROMOTION_CRITERIA.find(
-    (c) => c.from_tier === source.tier
+    (c) => c.from_tier === source.base_tier
   );
   if (!criteria) return null;
 
@@ -418,8 +421,9 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
   const triggers_fired: DemotionEvaluation["triggers_fired"] = [];
 
   for (const trigger of DEMOTION_TRIGGERS) {
+    // Phase 1.5: base_tier per scoring-internals default rule.
     // Only check triggers that apply to this tier
-    if (!trigger.tiers_affected.includes(source.tier)) continue;
+    if (!trigger.tiers_affected.includes(source.base_tier)) continue;
 
     let fired = false;
     let currentValue = "";
@@ -492,13 +496,14 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
     }
   }
 
+  // Phase 1.5: base_tier per scoring-internals default rule.
   // Recommended tier: one step down from current
-  const recommendedTier = Math.min(7, source.tier + 1) as SourceTier;
+  const recommendedTier = Math.min(7, source.base_tier + 1) as SourceTier;
 
   return {
     triggered: triggers_fired.length > 0,
     triggers_fired,
-    recommended_tier: triggers_fired.length > 0 ? recommendedTier : source.tier,
+    recommended_tier: triggers_fired.length > 0 ? recommendedTier : source.base_tier,
   };
 }
 
@@ -828,12 +833,13 @@ export async function evaluateCandidatePromotion(
     };
   }
 
-  // Fetch tier for each unique citing source. After Q2 lands the read
-  // column becomes effective_tier; today it is tier.
+  // Phase 1.5: Q2 read is effective_tier per skill Section 4 (citation
+  // network weight reflects the citing source's current credibility signal).
+  // Fall back to base_tier if effective_tier is null.
   const citingIds = Array.from(new Set(rows.map((r) => r.citing_source_id)));
   const { data: citerSources, error: srcErr } = await client
     .from("sources")
-    .select("id, tier")
+    .select("id, base_tier, effective_tier")
     .in("id", citingIds);
 
   if (srcErr) {
@@ -841,8 +847,8 @@ export async function evaluateCandidatePromotion(
   }
 
   const tierById = new Map<string, number>();
-  for (const s of (citerSources ?? []) as Array<{ id: string; tier: number }>) {
-    tierById.set(s.id, s.tier);
+  for (const s of (citerSources ?? []) as Array<{ id: string; base_tier: number; effective_tier: number | null }>) {
+    tierById.set(s.id, s.effective_tier ?? s.base_tier);
   }
 
   let weighted_sum = 0;
@@ -900,20 +906,18 @@ export interface EffectiveTierRecomputeResult {
  * Demotion is OUT OF SCOPE for Q7 (owned by the existing evaluateDemotion
  * path in this module, which fires on conflicts/inaccessibility).
  *
- * Schema note (pre-Q2 / pre-Q5): we read `tier` as base_tier and treat
- * tier_override as always-null. When Q2/Q5 land, the read becomes
- * { base_tier, tier_override } and the COALESCE wires through.
+ * Phase 1.5 (Q2 + Q5 landed): reads base_tier + tier_override + effective_tier
+ * directly. The COALESCE formula is wired through end-to-end.
  */
 export async function recomputeEffectiveTier(
   client: SupabaseLikeClient,
   sourceId: string,
   halfLifeMonths: number = HALF_LIFE_MONTHS
 ): Promise<EffectiveTierRecomputeResult> {
-  // Read the source row. Pre-Q2: only `tier` exists. Post-Q2/Q5 the
-  // select list extends to base_tier, effective_tier, tier_override.
+  // Phase 1.5: select base_tier + effective_tier + tier_override directly.
   const { data: src, error: srcErr } = await client
     .from("sources")
-    .select("id, tier")
+    .select("id, base_tier, effective_tier, tier_override")
     .eq("id", sourceId)
     .single();
 
@@ -924,16 +928,17 @@ export async function recomputeEffectiveTier(
     throw new Error(`recomputeEffectiveTier: source ${sourceId} not found`);
   }
 
-  const baseTierNum = (src as { tier: number }).tier;
+  const row = src as { base_tier: number; effective_tier: number | null; tier_override: number | null };
+  const baseTierNum = row.base_tier;
   if (baseTierNum < 1 || baseTierNum > 7) {
-    throw new Error(`recomputeEffectiveTier: source ${sourceId} has out-of-range tier=${baseTierNum}`);
+    throw new Error(`recomputeEffectiveTier: source ${sourceId} has out-of-range base_tier=${baseTierNum}`);
   }
   const base_tier = baseTierNum as SourceTier;
-  const tier_override: SourceTier | null = null; // Pre-Q5; will read column when Q5 lands.
+  const tier_override: SourceTier | null =
+    row.tier_override == null ? null : (row.tier_override as SourceTier);
 
-  // before_tier is the currently-stored effective signal. Pre-Q2 this
-  // is just `tier`; post-Q2 it becomes effective_tier.
-  const before_tier = base_tier;
+  // before_tier is the currently-stored effective signal. Q2 column present.
+  const before_tier = (row.effective_tier ?? base_tier) as SourceTier;
 
   // Sum citation network signal.
   const promo = await evaluateCandidatePromotion(client, sourceId, halfLifeMonths);

@@ -232,11 +232,15 @@ function classifyVerdict(input: {
 async function fetchSample(supabase: SupabaseClient): Promise<SampledSource[]> {
   const lookbackISO = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
+  // Phase 1.5: base_tier per admin verification default rule (spot-check
+  // operates on the structural classifier judgment, not the dynamic
+  // credibility signal). The output `tier` field carries the structural
+  // value into downstream verification re-classification.
   const { data, error } = await supabase
     .from("source_verifications")
     .select(
       `ai_relevance_score, ai_freight_score, ai_trust_tier, verification_tier, created_at, resulting_source_id,
-       sources:resulting_source_id ( id, name, url, tier, status )`
+       sources:resulting_source_id ( id, name, url, base_tier, status )`
     )
     .eq("verification_tier", "H")
     .gte("created_at", lookbackISO)
@@ -250,7 +254,7 @@ async function fetchSample(supabase: SupabaseClient): Promise<SampledSource[]> {
     ai_relevance_score: number | null;
     ai_freight_score: number | null;
     ai_trust_tier: string | null;
-    sources: { id: string; name: string; url: string; tier: number; status: string } | null;
+    sources: { id: string; name: string; url: string; base_tier: number; status: string } | null;
   };
 
   // PostgREST single-FK joins return a single embedded object; cast through
@@ -268,7 +272,8 @@ async function fetchSample(supabase: SupabaseClient): Promise<SampledSource[]> {
     source_id: row.sources!.id,
     name: row.sources!.name,
     url: row.sources!.url,
-    tier: row.sources!.tier,
+    // Phase 1.5: base_tier per admin verification default rule.
+    tier: row.sources!.base_tier,
     original_relevance: row.ai_relevance_score,
     original_freight: row.ai_freight_score,
     original_trust_tier: row.ai_trust_tier,

@@ -222,7 +222,9 @@ function mapSourceRow(row: any): Source {
     name: row.name,
     url: row.url,
     description: row.description || "",
-    tier: row.tier,
+    // Phase 1.5: Q2 base_tier + effective_tier (replaces single tier).
+    base_tier: row.base_tier,
+    effective_tier: row.effective_tier ?? null,
     tier_at_creation: row.tier_at_creation,
     intelligence_types: row.intelligence_types || [],
     domains: row.domains || [],
@@ -254,7 +256,11 @@ const SOURCE_COLUMNS = [
   "name",
   "url",
   "description",
-  "tier",
+  // Phase 1.5: Q2 split. base_tier (provenance) + effective_tier (dynamic)
+  // replace the legacy tier column. Both projected; consumers choose
+  // per the default rule.
+  "base_tier",
+  "effective_tier",
   "tier_at_creation",
   "intelligence_types",
   "domains",
@@ -303,7 +309,9 @@ async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
   let query = supabase
     .from("sources")
     .select(SOURCE_COLUMNS)
-    .order("tier", { ascending: true });
+    // Phase 1.5: order by base_tier per default rule (stable structural
+    // ordering through dynamic recompute; preserves UI list determinism).
+    .order("base_tier", { ascending: true });
   if (!includeAdminOnly) {
     // Workspace-facing default — hide admin_only sources from regular users.
     // The admin dashboard fetches the unfiltered list via /api/admin/sources/all.

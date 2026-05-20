@@ -69,7 +69,7 @@ async function getPerBriefFlags(
       agent_integrity_flagged_at,
       agent_integrity_resolved_at,
       updated_at,
-      source:sources(id, name, tier, url)
+      source:sources(id, name, base_tier, url)
       `
     )
     .eq("agent_integrity_flag", true)
@@ -95,7 +95,9 @@ async function getPerBriefFlags(
     sourceUrl: row.source_url,
     sourceId: row.source_id,
     sourceName: row.source?.name || null,
-    sourceTier: row.source?.tier || null,
+    // Phase 1.5: base_tier per admin/audit default rule (integrity-flags
+    // is admin-facing operator review of source-emitted item content).
+    sourceTier: row.source?.base_tier || null,
     phrase: row.agent_integrity_phrase,
     flaggedAt: row.agent_integrity_flagged_at,
     updatedAt: row.updated_at,

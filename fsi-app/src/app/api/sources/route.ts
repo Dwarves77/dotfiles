@@ -25,10 +25,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createClient(url, key);
+    // Phase 1.5: order by effective_tier per customer-facing default rule
+    // (public sources listing renders the dynamic credibility signal;
+    // NULLs last so pre-recompute rows order stably at the end).
     const { data, error } = await supabase
       .from("sources")
       .select("*")
-      .order("tier", { ascending: true });
+      .order("effective_tier", { ascending: true, nullsFirst: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

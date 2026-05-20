@@ -30,7 +30,11 @@ interface SourceLookupRow {
   id: string;
   last_scanned: string | null;
   status: string;
-  tier: number | null;
+  // Phase 1.5: Q2 split. base_tier + effective_tier projected from sources.
+  // The agent uses effective_tier per skill Section 4 (citation propagation
+  // weights the citing source's dynamic credibility signal).
+  base_tier: number | null;
+  effective_tier: number | null;
   access_method: string | null;
   api_endpoint_url: string | null;
   api_auth_method: string | null;
@@ -42,7 +46,11 @@ interface SourceLookupRowSafe {
   id: string;
   last_scanned: string | null;
   status: string;
-  tier: number | null;
+  // Phase 1.5: Q2 split. base_tier + effective_tier projected from sources.
+  // The agent uses effective_tier per skill Section 4 (citation propagation
+  // weights the citing source's dynamic credibility signal).
+  base_tier: number | null;
+  effective_tier: number | null;
   access_method: string | null;
   api_endpoint_url: string | null;
   api_auth_method: string | null;
@@ -239,10 +247,11 @@ export async function POST(request: NextRequest) {
 
   try {
     // ── Step 2: Source lookup with all access_method routing fields ──
+    // Phase 1.5: project base_tier + effective_tier per Q2 split.
     const { data: sourceRecord, error: sourceLookupError } = (await supabase
       .from("sources")
       .select(
-        "id, last_scanned, status, tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url"
+        "id, last_scanned, status, base_tier, effective_tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url"
       )
       .eq("url", canonicalizeUrl(sourceUrl))
       .single()) as { data: SourceLookupRow | null; error: { message: string; code?: string } | null };
@@ -514,14 +523,21 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
     let tierOpinionsRecorded = 0;
     if (sourceRecord?.id && citations.length) {
       const citingId = sourceRecord.id;
-      const citingTier = sourceRecord.tier;
+      // Phase 1.5: effective_tier per skill Section 4 (Q7 citation-network
+      // scoring weights the citing source's dynamic credibility signal at
+      // citation-detection time). Fall back to base_tier if null.
+      const citingTier = sourceRecord.effective_tier ?? sourceRecord.base_tier;
 
       for (const c of citations) {
         try {
           const canonCitedUrl = canonicalizeUrl(c.url);
+          // Phase 1.5: project base_tier per Q2 split. The tier-opinion
+          // comparison below uses the structural classifier judgment
+          // (base_tier) per source-credibility-model skill Section 5 —
+          // tier-opinions are evidence about the classifier's choice.
           const { data: existingSource } = await supabase
             .from("sources")
-            .select("id, tier, total_citations, confirmation_count")
+            .select("id, base_tier, total_citations, confirmation_count")
             .eq("url", canonCitedUrl)
             .maybeSingle();
 
@@ -557,9 +573,11 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
               // read so the on-write path stays simple, and we preserve the
               // full history (agreeing opinions still inform confidence in the
               // current tier). Migration 091.
+              // Phase 1.5: read base_tier (classifier structural judgment)
+              // for tier-opinion comparison per skill Section 5.
               const existingTier =
-                typeof (existingSource as { tier?: number | null }).tier === "number"
-                  ? (existingSource as { tier: number }).tier
+                typeof (existingSource as { base_tier?: number | null }).base_tier === "number"
+                  ? (existingSource as { base_tier: number }).base_tier
                   : null;
               if (
                 Number.isInteger(c.tier) &&

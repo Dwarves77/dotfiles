@@ -30,7 +30,11 @@ Currently catalogued via the credibility-component contract doc at `docs/sprint-
   - `SignalStrength` — Market Intel pill
   - `ProvenancePanel` — composing all of above
 - **Source components** at `src/components/sources/`:
-  - `SourceProvenanceBadge` — legacy tier display; migration to `CredibilityBadge` documented in the contract doc
+  - `SourceProvenanceBadge` — tier display; Phase 1.5 (2026-05-20): renders `source.effective_tier ?? source.base_tier` per customer-facing default rule. Migration to `CredibilityBadge` documented in the contract doc.
+  - `SourceHealthDashboard` — admin source health surface; Phase 1.5: groups + filters by `base_tier` per admin/audit default rule.
+  - `CanonicalSourceReview` — candidate review surface; Phase 1.5: client sends `body.tier`; server (`api/admin/canonical-sources/decide`) dual-writes to `base_tier` + `effective_tier` per Day 1 invariant.
+  - `ProvisionalReviewCard` — provisional promotion surface; Phase 1.5: same dual-write pattern as `CanonicalSourceReview`.
+- **Other touched in Phase 1.5**: `AskAssistant` (Intelligence Assistant; `Citation.source_tier` populated server-side with `effective_tier ?? base_tier` per Assistant signal set).
 
 ## Source of truth
 

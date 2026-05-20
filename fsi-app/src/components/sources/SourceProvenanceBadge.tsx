@@ -28,7 +28,10 @@ export function SourceProvenanceBadge({ sourceId }: SourceProvenanceBadgeProps) 
   const source = sources.find((s) => s.id === sourceId);
   if (!source) return null;
 
-  const tier = source.tier;
+  // Phase 1.5: effective_tier per customer-facing default rule (source
+  // provenance badge renders the dynamic credibility signal). Fall back
+  // to base_tier if effective_tier is null.
+  const tier = source.effective_tier ?? source.base_tier;
   const accent = TIER_ACCENT[tier] || "#475569";
   const score = source.trust_score?.overall ?? null;
 

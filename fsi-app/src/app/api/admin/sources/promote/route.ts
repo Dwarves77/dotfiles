@@ -107,7 +107,10 @@ export async function POST(request: NextRequest) {
       name: prov.name,
       url: canonicalizeUrl(prov.url),
       description: prov.description || "",
-      tier: body.tier,
+      // Phase 1.5: Q2 split. base_tier = operator promotion choice;
+      // effective_tier initialized equal per Day 1 invariant.
+      base_tier: body.tier,
+      effective_tier: body.tier,
       tier_at_creation: body.tier,
       domains: body.domains || [],
       jurisdictions: body.jurisdictions || [],

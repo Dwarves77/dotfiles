@@ -96,6 +96,13 @@ export function ProvisionalReviewCard({ ps, onActionDone }: Props) {
       const { data: { session } } = await supabase.auth.getSession();
       const body: any = { provisionalSourceId: ps.id, decision, reviewerNotes: notes };
       if (decision === "approve") {
+        // Phase 1.5 (Q2 base_tier + effective_tier split): client sends
+        // operator-confirmed tier value as body.tier. Server
+        // (api/admin/sources/promote/route.ts) dual-writes to base_tier
+        // and effective_tier on the new sources row per the Day 1
+        // invariant (both equal at insert time; Q7 batch converges
+        // effective_tier over time). Audit log preserves body.tier as
+        // the canonical operator-decision payload.
         body.tier = tier;
         body.domains = domains;
         body.jurisdictions = jurisdictions;

@@ -40,10 +40,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Phase 1.5: order by base_tier per admin/registry default rule
+  // (admin source registry orders by structural classification).
   const { data, error } = await supabase
     .from("sources")
     .select("*")
-    .order("tier", { ascending: true });
+    .order("base_tier", { ascending: true });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

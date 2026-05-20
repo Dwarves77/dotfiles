@@ -42,7 +42,11 @@ type FetchedItem = {
     id: string;
     name: string | null;
     url: string | null;
-    tier: number | null;
+    // Phase 1.5: Q2 split. effective_tier per Intelligence Assistant
+    // signal set (skill Section 8 Assistant row) — inline citations
+    // render the dynamic credibility signal. Fall back to base_tier.
+    base_tier: number | null;
+    effective_tier: number | null;
   } | null;
 };
 
@@ -126,7 +130,8 @@ export async function POST(request: NextRequest) {
           id,
           name,
           url,
-          tier
+          base_tier,
+          effective_tier
         )
         `
       )
@@ -158,11 +163,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch top sources for general credibility context (kept from Tier 1).
+    // Phase 1.5: project base_tier + effective_tier per Q2 split; render
+    // effective_tier per Assistant signal set (skill Section 8). Order by
+    // base_tier for stable list ordering through Q7 recomputes.
     const { data: sources } = await supabase
       .from("sources")
-      .select("name, tier, status, update_frequency")
+      .select("name, base_tier, effective_tier, status, update_frequency")
       .eq("status", "active")
-      .order("tier")
+      .order("base_tier")
       .limit(20);
 
     // Per-item context block. Each item carries id, title, severity,
@@ -174,8 +182,10 @@ export async function POST(request: NextRequest) {
     // for a human to read and easier for server-side validation.
     const itemsContext = items
       .map((i, idx) => {
+        // Phase 1.5: effective_tier per Assistant signal set; fall back to base_tier.
+        const sourceTier = i.source?.effective_tier ?? i.source?.base_tier ?? null;
         const sourceLabel = i.source?.name
-          ? `${i.source.name} (Tier ${i.source.tier ?? "?"})`
+          ? `${i.source.name} (Tier ${sourceTier ?? "?"})`
           : "no canonical source on record";
         const briefSnippet = i.full_brief
           ? i.full_brief.slice(0, FULL_BRIEF_CHARS_PER_ITEM) +
@@ -203,7 +213,8 @@ export async function POST(request: NextRequest) {
 
     const sourcesContext =
       (sources ?? [])
-        .map((s) => `- ${s.name} (Tier ${s.tier}, ${s.status}, updates ${s.update_frequency})`)
+        // Phase 1.5: effective_tier per Assistant signal set; fall back to base_tier.
+        .map((s) => `- ${s.name} (Tier ${s.effective_tier ?? s.base_tier}, ${s.status}, updates ${s.update_frequency})`)
         .join("\n") || "No sources available";
 
     // System prompt. Tier 1 stripped decision-engine framing; Tier 3 adds
@@ -315,7 +326,8 @@ ${sourcesContext}`;
             source_id: match.source?.id ?? match.source_id ?? null,
             source_url: match.source_url ?? match.source?.url ?? null,
             source_name: match.source?.name ?? null,
-            source_tier: match.source?.tier ?? null,
+            // Phase 1.5: effective_tier per Assistant signal set; fall back to base_tier.
+            source_tier: match.source?.effective_tier ?? match.source?.base_tier ?? null,
             citation_count: null,
             recency: null,
           });

@@ -42,14 +42,18 @@ export async function POST(request: NextRequest) {
     // run; operators re-enable per source after vetting, so by default
     // the worker has nothing to do until at least one source has been
     // turned back on.
+    // Phase 1.5: base_tier per system-internal default rule (scheduling
+    // priority is anchored to structural classification, not the dynamic
+    // credibility signal; using effective_tier would re-shuffle the queue
+    // on every Q7 recompute).
     const { data: dueSources, error: queueError } = await supabase
       .from("sources")
-      .select("id, name, url, tier, update_frequency, last_checked, access_method, auto_run_enabled")
+      .select("id, name, url, base_tier, update_frequency, last_checked, access_method, auto_run_enabled")
       .eq("status", "active")
       .eq("processing_paused", false)
       .eq("auto_run_enabled", true)
       .or(`next_scheduled_check.is.null,next_scheduled_check.lte.${new Date().toISOString()}`)
-      .order("tier", { ascending: true })
+      .order("base_tier", { ascending: true })
       .limit(10); // Process 10 sources per run
 
     if (queueError) {

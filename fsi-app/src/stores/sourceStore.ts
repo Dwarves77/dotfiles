@@ -104,7 +104,12 @@ export function filterSources(
   filters: SourceFilters
 ): Source[] {
   return sources.filter((s) => {
-    if (filters.tiers.length > 0 && !filters.tiers.includes(s.tier)) return false;
+    // Phase 1.5: effective_tier per customer-facing default rule (sources
+    // registry page filter operates on the dynamic credibility signal).
+    // Fall back to base_tier if effective_tier is null (Day 1 invariant
+    // backs base_tier).
+    const t = s.effective_tier ?? s.base_tier;
+    if (filters.tiers.length > 0 && !filters.tiers.includes(t)) return false;
     if (filters.statuses.length > 0 && !filters.statuses.includes(s.status)) return false;
     if (filters.domains.length > 0 && !filters.domains.some((d) => s.domains.includes(d as IntelligenceDomain))) return false;
     if (filters.jurisdictions.length > 0 && !filters.jurisdictions.some((j) => s.jurisdictions.includes(j))) return false;

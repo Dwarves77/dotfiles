@@ -531,7 +531,14 @@ export interface Source {
   description: string;             // What this source publishes and why it matters
 
   // Classification
-  tier: SourceTier;                // Current trust tier (1-7)
+  // Phase 1.5: Q2 split. base_tier is the static provenance classification
+  // (classifier or operator at registration); effective_tier is the dynamic
+  // computed credibility signal (COALESCE(tier_override, computed_dynamic_tier,
+  // base_tier)) recomputed by the Q7 daily batch. Most customer-facing
+  // consumers read effective_tier; admin/audit/system-internal reads use
+  // base_tier. See docs/sprint-2/Phase-1.5-consumer-migration-list.md.
+  base_tier: SourceTier;           // Static provenance classification (1-7)
+  effective_tier: SourceTier | null; // Computed dynamic tier (COALESCE chain; nullable until Q7 first run)
   tier_at_creation: SourceTier;    // What tier this source was assigned when first added
   intelligence_types: IntelligenceType[];
   domains: IntelligenceDomain[];

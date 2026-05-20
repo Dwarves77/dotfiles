@@ -76,7 +76,11 @@ interface SourceRow {
   status: string | null;
   processing_paused: boolean | null;
   auto_run_enabled: boolean | null;
-  tier: number | null;
+  // Phase 1.5: Q2 split. effective_tier per skill Section 4 — the
+  // classifier input wants the credibility signal it would have used at
+  // classification time (the dynamic value, not the structural one).
+  base_tier: number | null;
+  effective_tier: number | null;
   access_method: string | null;
   api_endpoint_url: string | null;
   api_auth_method: string | null;
@@ -195,7 +199,9 @@ async function preFetchAndClassify(
         source_id: source.id,
         source_url: source.url,
         source_name: source.name,
-        source_tier: source.tier,
+        // Phase 1.5: effective_tier per skill Section 4 (classifier input
+        // wants the dynamic credibility signal; fall back to base_tier).
+        source_tier: source.effective_tier ?? source.base_tier,
         text,
       },
       ANTHROPIC_API_KEY
@@ -405,10 +411,12 @@ export async function POST(request: NextRequest) {
 
     // Look up source row. Includes access_method routing fields so the
     // pre-fetch below can mirror /api/agent/run's fetchByAccessMethod.
+    // Phase 1.5: select base_tier + effective_tier (Q2 split); the
+    // classifier input downstream uses effective_tier per skill Section 4.
     const { data: source, error: srcErr } = (await supabase
       .from("sources")
       .select(
-        "id, url, name, status, processing_paused, auto_run_enabled, tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url"
+        "id, url, name, status, processing_paused, auto_run_enabled, base_tier, effective_tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url"
       )
       .eq("id", row.source_id)
       .maybeSingle()) as { data: SourceRow | null; error: { message: string } | null };
