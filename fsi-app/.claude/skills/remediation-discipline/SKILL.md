@@ -191,6 +191,22 @@ Each example follows the template: What failed → Class problem → Class fix �
 
 **Note.** This is a PROACTIVE class fix, not failure-driven. The class-over-instance principle applies to architectural codification too, not just bug-driven remediation. Same lens: would future work reinvent? Yes → codify.
 
+### Example 7: Bypassing-existing-infrastructure — worktree cleanup
+
+**What failed.** Operator audit (2026-05-20) surfaced 22+ stale git worktrees at `C:/Users/jason/dotfiles-wt-*` from merged-branch dispatches in this session and prior. Worktrees accumulated because the sibling-to-repo-root path convention this session adopted did not match the paths that `superpowers:finishing-a-development-branch` (FaDB) recognizes as eligible for automatic cleanup. FaDB only auto-cleans worktrees under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`; sibling paths are treated as host-managed; FaDB refuses to remove them. Cleanup never ran.
+
+**Class problem.** Not "we lack cleanup logic" — FaDB owns cleanup discipline. The actual class problem was "we built worktree creation in a way that hid our worktrees from the skill that would have cleaned them up." This is a non-obvious form of anti-pattern 5 (reinventing primitives): we weren't writing new cleanup code, we were creating a parallel convention that bypassed an existing primitive.
+
+**Class fix.** Two-part conformance:
+- Going-forward: new worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB recognized paths. FaDB Step 6 auto-cleanup applies on dispatch completion. Convention note added to sprint-followups-discipline.
+- Instance cleanup: `fsi-app/scripts/cleanup-merged-worktrees.mjs` enumerates worktrees, verifies merge state + cleanliness + push state, removes worktree + deletes branch in --execute mode. Auto-excludes protect-list. Dry-run default. Bulk-cleaned 15 session-merged worktrees at commit 261a751.
+
+**Recognition signals fired.** Signal 1 (recurrence — 22+ instances), Signal 3 (shared codepath — every dispatch creates worktree the same way), Signal 4 (reinventing — built parallel cleanup convention to address what FaDB already solved). 3 of 4 → class confirmed.
+
+**Meta-lesson worth surfacing.** Before building new primitives, invoke existing skills to verify nothing already owns the discipline. The using-superpowers skill mandates this; we missed it because the worktree workflow felt project-internal. The 22 stale worktrees were the compound interest on that improvisation. Adding to anti-pattern 5: "reinventing" includes inventing PARALLEL CONVENTIONS that bypass existing primitives, not just inventing new code.
+
+**Sub-issue (OBS-53, second-order class problem).** The cleanup script's fallback path was not junction-aware. When `git worktree remove --force` failed on a specific worktree (Windows path edge case), the operator fallback `rm -rf` followed an internal `node_modules` junction back to the main repo and destroyed `C:/Users/jason/dotfiles/fsi-app/node_modules`. Required `npm install` to restore. Resolution: cleanup script extended with junction-aware fallback that removes junctions explicitly (via `rmdir` not `rm -rf`) before recursive removal. Documented in this same dispatch.
+
 ## Section 8: Anti-Patterns
 
 Six anti-patterns that mean the principle is loaded but not applied:

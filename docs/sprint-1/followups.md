@@ -1016,6 +1016,17 @@ Small bounded fix (~20-30 min). Bundle with next worktree-cleanup-script touch O
 
 Signals fired: 1 (recurrence — this is the second-order class problem from worktree cleanup itself), 2 (infrastructure-variation — Windows junction behavior), 4 (reinventing — any future cleanup script would face this). 3 of 4 → class confirmed for the fallback path.
 
+### Resolution
+
+Bundled with Part 4 remediation-discipline skill amendment (2026-05-20). Two-part fix shipped in `fsi-app/scripts/cleanup-merged-worktrees.mjs`:
+
+- Added `listJunctions()` + `removeJunction()` + `safeRemoveDirectory()` helpers. When `git worktree remove --force` fails, the fallback enumerates junctions/symlinks under the worktree (via PowerShell `Get-ChildItem -LinkType Junction`), removes each junction explicitly via `cmd /c rmdir` (removes the junction without following it), THEN runs `rm -rf` on the remaining directory contents safely.
+- `git worktree prune` runs after junction-aware fallback to clean up the now-orphaned worktree registration.
+
+Both changes preserve the script's dry-run default + protect-list + clean/pushed safety checks. Future cleanup runs hit the fallback path cleanly without risking destruction of junction targets (e.g., main repo's node_modules).
+
+OBS-53 closed.
+
 ## OBS-54: Skill load discipline drift across worktrees (3-axis audit P0 finding)
 
 **State**: Resolved 2026-05-20 (worktree syncs pending in commit; class fix codified)

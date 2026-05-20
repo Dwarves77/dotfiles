@@ -170,6 +170,60 @@ if (!EXECUTE) {
   process.exit(0);
 }
 
+// Junction-aware fallback (OBS-53 fix, 2026-05-20). When git worktree
+// remove --force fails on Windows (e.g., path edge cases, locked files),
+// the LAST RESORT is filesystem-level removal. But naive `rm -rf` follows
+// junctions transparently on Windows, which can destroy the junction
+// TARGET's contents (e.g., main repo's node_modules if the worktree had
+// a node_modules junction pointing there). The fallback:
+//   1. Enumerate junctions under the worktree path (rare cases:
+//      node_modules junction created by sub-agents during dispatch setup)
+//   2. Remove each junction via `rmdir` (NOT `rm -rf`; rmdir removes the
+//      junction itself without following it)
+//   3. THEN remove the worktree directory recursively
+// Powershell + cmd combination because Git Bash on Windows doesn't have
+// reliable junction detection.
+function listJunctions(worktreePath) {
+  // PowerShell: enumerate reparse points under the worktree
+  const cmd = `powershell -NoProfile -Command "Get-ChildItem -Path '${worktreePath}' -Recurse -Force -ErrorAction SilentlyContinue | Where-Object { $_.LinkType -eq 'Junction' -or $_.LinkType -eq 'SymbolicLink' } | Select-Object -ExpandProperty FullName"`;
+  try {
+    const out = execSync(cmd, { encoding: "utf8" }).trim();
+    return out ? out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function removeJunction(junctionPath) {
+  // Use cmd /c rmdir which removes the junction without following it
+  try {
+    execSync(`cmd /c rmdir "${junctionPath.replace(/\//g, "\\")}"`, { encoding: "utf8" });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, err: err.message };
+  }
+}
+
+function safeRemoveDirectory(worktreePath) {
+  // Junction-aware recursive removal:
+  // 1. Find any junctions/symlinks inside the worktree
+  // 2. Remove each junction explicitly (rmdir, does not follow)
+  // 3. Then rm -rf the remaining directory contents
+  const junctions = listJunctions(worktreePath);
+  for (const j of junctions) {
+    const r = removeJunction(j);
+    if (!r.ok) {
+      return { ok: false, err: `junction removal failed at ${j}: ${r.err}` };
+    }
+  }
+  try {
+    execSync(`rm -rf "${worktreePath}"`, { encoding: "utf8" });
+    return { ok: true, junctionsRemoved: junctions.length };
+  } catch (err) {
+    return { ok: false, err: err.message };
+  }
+}
+
 console.log("");
 console.log("=== Executing removals ===");
 let removedCount = 0;
@@ -177,12 +231,24 @@ let failedCount = 0;
 for (const d of removable) {
   const wtRemove = gitSafe(`worktree remove "${d.path}"`);
   if (!wtRemove.ok) {
-    // Retry with --force in case of untracked file lockups (node_modules junctions on Windows)
+    // Retry with --force in case of untracked file lockups
     const wtForce = gitSafe(`worktree remove --force "${d.path}"`);
     if (!wtForce.ok) {
-      console.log(`  FAIL  ${d.name}: ${wtForce.err.split("\n")[0]}`);
-      failedCount++;
-      continue;
+      // Last resort: junction-aware filesystem removal (OBS-53 fix).
+      // Removes any node_modules / nested junctions FIRST so they don't
+      // get followed by the recursive remove and destroy junction targets.
+      console.log(`  fallback  ${d.name}: git worktree remove failed; using junction-aware filesystem cleanup`);
+      const fsRm = safeRemoveDirectory(d.path);
+      if (!fsRm.ok) {
+        console.log(`  FAIL  ${d.name}: ${fsRm.err.split("\n")[0]}`);
+        failedCount++;
+        continue;
+      }
+      // After fs removal, prune git's now-orphaned worktree registration
+      gitSafe("worktree prune");
+      if (fsRm.junctionsRemoved > 0) {
+        console.log(`  fallback  ${d.name}: removed ${fsRm.junctionsRemoved} junction(s) before recursive rm`);
+      }
     }
   }
   const branchDelete = gitSafe(`branch -d ${d.branch}`);
