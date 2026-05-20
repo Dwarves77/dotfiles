@@ -1138,3 +1138,39 @@ Resolved in this commit. This commit's own message follows the new format (Loop-
 ### Per remediation-discipline recognition
 
 Signals fired: 1 (recurrence — spans all design and implementation commits), 4 (reinventing — every dispatch redecides whether to emit). 2 of 4 → class confirmed; class fix shipped as 8th named binding rule.
+
+## OBS-58: Worktree cleanup script step-3 (config-registry sweep) automation
+
+**State**: Open (queued for next worktree-cleanup-script touch)
+**Captured**: 2026-05-20
+**Cross-references**: OBS-53 (junction-aware fallback), OBS-54 (3-step pattern), remediation-discipline Section 4 category 7 + Section 7 Example 7, worktree class fix commit `261a751`, junction-fix commit `535295c`
+
+### Finding
+
+The worktree cleanup discipline is 3-step per remediation-discipline Example 7:
+
+1. `git worktree remove` (handled by `fsi-app/scripts/cleanup-merged-worktrees.mjs`)
+2. Filesystem cleanup with junction-aware fallback (handled by the same script after the OBS-53 fix in commit `535295c`)
+3. Config-registry sweep on `~/.claude/settings.json` `additionalDirectories` (CURRENTLY MANUAL)
+
+Step 3 currently relies on operator memory to sweep `~/.claude/settings.json` after each cleanup pass. Per remediation-discipline Section 5 primitive-extraction patterns, the discipline-via-memory shape is anti-pattern; the discipline should be enforced by the tool.
+
+### Class-fix shape
+
+Extend `fsi-app/scripts/cleanup-merged-worktrees.mjs` with step 3:
+
+1. Read `~/.claude/settings.json` (parse JSON)
+2. For each entry in `permissions.additionalDirectories`: check whether the path still exists on disk
+3. For entries pointing to now-removed worktrees: drop them
+4. Write back with the same formatting (preserve operator's structure)
+5. Report in the script's existing summary output: `Settings.json: N stale entries removed`
+
+Plus: dry-run support (matches existing `--execute` discipline; default reports without modifying settings.json).
+
+### Bundle when
+
+Next worktree-cleanup-script touch. Bounded ~30-45 min. Not urgent (operator's manual sweep handles current state); the automation prevents future-operator from re-doing it.
+
+### Per remediation-discipline recognition
+
+Signals fired: 1 (recurrence — every worktree cleanup needs all 3 steps; today's manual sweep was operator memory), 4 (reinventing — operator memory currently bears the discipline). 2 of 4 → class confirmed for the automation; class fix is primitive-extraction shape per Section 5.

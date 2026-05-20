@@ -473,6 +473,72 @@ This rule was added 2026-05-20 alongside the Plan-skill hybrid rule. Per operato
 
 If a verification cannot be performed (e.g., production DB inaccessible from dispatch context), the dispatch surfaces the unverified claim explicitly and routes the verification to an operator-owned step. "Cannot verify in dispatch; operator to confirm via X" is acceptable; silent completion claim without verification is not.
 
+## Inventory-artifact emission rule
+
+This rule was added 2026-05-20 alongside the establishment of `docs/inventories/` as the canonical state-artifact directory. Sister to the Dispatch-artifact commit-summary rule (8th binding rule): that rule captures per-dispatch OBS/DP outcomes in commit messages; this rule captures cross-dispatch state inventories in operator-readable files so future dispatches don't re-spelunk the file tree to know what exists.
+
+Triggered by the 3-axis skill audit (commit `383974e`) which produced a one-off `docs/skill-inventory.md` to fix immediate visibility but did NOT codify the discipline for the general pattern. Subsequent operator framing: "substantial dispatches should produce operator-readable artifacts" extends from skills to routes, migrations, worktrees, env vars, cron jobs, OBS status, components, and any future state-carrying surface where re-spelunking has compounding cost.
+
+**Binding rule.** Every SUBSTANTIAL dispatch MUST update the relevant entry in `docs/inventories/<type>.md` AND include an `Inventory-emission:` line in the merge commit body. Format:
+
+```
+Inventory-emission: docs/inventories/<type>.md N entries added/changed/removed
+```
+
+When the dispatch touches multiple inventories, emit one line per inventory.
+
+**What "substantial" means.** A dispatch is substantial if ANY of:
+
+- Takes >30 min agent time
+- Touches >5 files
+- Ships a binding rule, primitive, or shared utility
+- Ships a schema migration
+- Adds/removes/significantly modifies a route, scheduled job, component, env var, worktree, or OBS entry
+- Is itself a sprint-planning, audit, or remediation dispatch
+
+Investigation-only and hotfix dispatches (the same ones this skill's "When to Apply" skips) do not owe inventory emission unless the investigation surfaces a new inventory-relevant entity.
+
+**Inventory types (non-exhaustive; extensible).** The table below lists the inventory types identified through 2026-05-20. Stub files exist for the first 8 (load-bearing in the next 2-4 weeks); the remaining types are conceptually defined here as the complete-picture reference, with stub files landing when the first substantial dispatch touches the surface.
+
+| Type | Canonical path | Updated when | Stub status |
+|---|---|---|---|
+| skills | `docs/inventories/skills.md` | A custom skill is added, modified, or archived | Populated (2026-05-20) |
+| routes | `docs/inventories/routes.md` | An API route is added, removed, or its auth/method/purpose changes | Stub (2026-05-20) |
+| migrations | `docs/inventories/migrations.md` | A migration file is added or applied; ledger backfilled | Stub (2026-05-20) |
+| worktrees | `docs/inventories/worktrees.md` | A worktree is created or removed | Stub (2026-05-20) |
+| env-vars | `docs/inventories/env-vars.md` | A new env var dependency is introduced | Stub (2026-05-20) |
+| cron-jobs | `docs/inventories/cron-jobs.md` | A scheduled job is added, removed, or its schedule changes | Stub (2026-05-20) |
+| obs-status | `docs/inventories/obs-status.md` | An OBS entry is added, reopened, or closed (aggregates the 8th rule's per-commit closures) | Stub (2026-05-20) |
+| components | `docs/inventories/components.md` | A shared component is added or its props contract changes | Stub (2026-05-20) |
+| schema | `docs/inventories/schema.md` | A table or view's columns/constraints change (distinct from migrations history; this captures CURRENT state) | Not yet created; stub lands on first schema-touching substantial dispatch |
+| source-registry | `docs/inventories/source-registry.md` | Source population changes meaningfully (tier distribution, bias tag distribution, queue size shifts) | Not yet created; stub lands on first source-registry dispatch (e.g., next bias-batch re-tune or candidate-promotion run) |
+| review-queues | `docs/inventories/review-queues.md` | Classifier output changes substantially or a queue retune lands | Not yet created; stub lands on next classifier or queue-management dispatch |
+| plans | `docs/inventories/plans.md` | A multi-dispatch plan is authored, executed, or archived (per the 9th binding rule, Plan-skill hybrid) | Not yet created; stub lands on the next 3+ dispatch coordination |
+
+New inventory types are added when a new state-carrying surface emerges. Adding a type is itself a substantial dispatch that updates this rule's table; creating a stub on first touch satisfies the discipline. The table is non-exhaustive by construction; the conceptual list keeps the rule honest about not-yet-complete coverage rather than pretending stub-presence equals comprehensive cataloging.
+
+**Closure-line format.**
+
+```
+Inventory-emission: docs/inventories/skills.md +1 entry (new-skill-name)
+Inventory-emission: docs/inventories/routes.md +3 entries, -1 entry (new admin routes; deprecated old endpoint)
+Inventory-emission: docs/inventories/migrations.md +1 entry (098)
+Inventory-emission: docs/inventories/<type>.md no changes  (when the dispatch touches the surface but no inventory entry changes)
+```
+
+`git log --grep="Inventory-emission"` enumerates every commit that touched inventory state.
+
+**What this rule is NOT.**
+
+- NOT a requirement to maintain inventories that don't yet exist. Stub files at `docs/inventories/<type>.md` mark intent; populated form happens when a substantial dispatch first touches the surface.
+- NOT a substitute for the source-of-truth files themselves. Inventories are operator-readable mirrors; the actual route files / migration files / etc. remain canonical.
+- NOT applicable to dispatches the parent skill skips (investigation-only, hotfix, research-only, conversation-only).
+- NOT a requirement to update every inventory on every dispatch. Only inventories whose surface the dispatch actually touches.
+
+**How to apply.** At dispatch-scoping time, the brief identifies which inventories the dispatch will touch. At dispatch-close, the agent updates the relevant inventory file(s) and emits one `Inventory-emission:` line per inventory in the merge commit body.
+
+**Worked example.** This very commit. It codifies the Inventory-artifact emission rule and relocates `docs/skill-inventory.md` to `docs/inventories/skills.md` (establishing the directory) and creates 7 stub entries (routes, migrations, worktrees, env-vars, cron-jobs, obs-status, components). The commit body carries both a `Loop-closure:` line (per the 8th binding rule) AND `Inventory-emission:` lines (per this 11th binding rule), practicing both disciplines in the same commit that codifies the second.
+
 ## Anti-Patterns
 
 These behaviors mean the skill was loaded but not followed:
