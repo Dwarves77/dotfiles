@@ -53,8 +53,16 @@ function getServiceClient() {
 }
 
 export async function POST(request: NextRequest) {
-  const secret = request.headers.get("x-worker-secret");
-  if (secret !== WORKER_SECRET) {
+  // Accept either x-worker-secret (external cron / manual curl) or
+  // Authorization: Bearer ${CRON_SECRET} (Vercel Cron convention; see
+  // vercel.json crons array). Both auth paths converge on the same
+  // WORKER_SECRET / CRON_SECRET value (single source of truth deploy-side).
+  const workerSecret = request.headers.get("x-worker-secret");
+  const authHeader = request.headers.get("authorization");
+  const bearerSecret = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length)
+    : null;
+  if (workerSecret !== WORKER_SECRET && bearerSecret !== WORKER_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

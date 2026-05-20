@@ -968,3 +968,50 @@ After operator architectural conversation reframed the Q4 patch as instance-only
   - **Batch-script resilience rule** (7th named binding rule) — mandates library use for long-running batch scripts; references this OBS-51 as trigger
 
 OBS-51 closed. The discipline is now load-bearing for every future remediation conversation; the library is the default for every future batch script (within its applicability scope); the codified rules propagate the discipline through dispatch-brief authorship.
+
+## OBS-52: Methodology classifier prompt refinement (deferred investigation)
+
+**State**: Open (deferred investigation; not blocking)
+**Captured**: 2026-05-20
+**Cross-references**: D1 Option B retune (migration 097), Q4 batch script, source-credibility-model SKILL.md Section 6 (bias vocabulary)
+
+### Finding
+
+D1 investigation surfaced that the methodology dimension over-flags into the review queue at ~3x the rate of funding/stakeholder dimensions (208 unique sources in methodology review vs 65 funding / 152 stakeholder). The top two over-flagged tags are `methodology/methodologically-transparent` (78 occurrences) and `methodology/analytical-synthesis` (73 occurrences), accounting for 29% of all review rows.
+
+Hypothesis: either the prompt definitions for these two tags are too close together (genuine semantic overlap creates classifier uncertainty between them), OR the dimension needs more granular tags that better disambiguate. The classifier confidence band concentrates in 0.70-0.79 for methodology, suggesting the model can identify the dimension is relevant but cannot confidently pick the specific tag.
+
+### Decision (deferred investigation)
+
+D1 Option B retune (methodology stays at 0.80; funding + stakeholder bump to 0.75) accepts methodology operator-in-loop as appropriate for genuine judgment-call tags. This OBS captures the prompt-refinement question as a future investigation: after the review queue drains via operator confirm/reject pass, examine which methodology tags operators consistently confirm vs reject. If a pattern emerges (e.g., operators always reject `analytical-synthesis` in favor of `methodologically-transparent` on sources that classifier flagged ambiguously), refine the prompt definitions or split the tag.
+
+### Not blocking
+
+This investigation has no urgency. Option B retune handles the queue size issue. The prompt refinement is a quality-of-classifier improvement that lands when operator has bandwidth to examine review-queue confirm/reject patterns.
+
+## OBS-53: Worktree cleanup script junction-aware fix
+
+**State**: Open (small bounded fix; bundle with next cleanup-script touch)
+**Captured**: 2026-05-20
+**Cross-references**: `fsi-app/scripts/cleanup-merged-worktrees.mjs`, worktree class fix dispatch (commit 261a751)
+
+### Finding
+
+When the cleanup script's `git worktree remove --force` fails (e.g., Windows path edge cases), the operator fallback to manual `rm -rf` follows internal node_modules junctions and destroys the JUNCTION TARGET's contents. Specifically: during the worktree cleanup, q5-tier-override's worktree remove failed; main session `rm -rf C:/Users/jason/dotfiles-wt-q5-tier-override` followed the worktree's node_modules junction back to `C:/Users/jason/dotfiles/fsi-app/node_modules` and destroyed the main repo's node_modules. Required `npm install` to restore (~2 min).
+
+### Class-fix shape
+
+The cleanup script needs a junction-aware fallback path. When `git worktree remove --force` fails:
+1. Detect any node_modules junction in the worktree (read junction target via `fsutil reparsepoint query` or equivalent)
+2. Remove the junction itself (not the target) via `rmdir <junction-path>` (NOT `rm -rf`)
+3. Then `rm -rf` the rest of the worktree directory safely
+
+Plus: convention note explicitly warns against unconditional `rm -rf` on Windows worktree paths if junctions might exist.
+
+### Bundle when
+
+Small bounded fix (~20-30 min). Bundle with next worktree-cleanup-script touch OR with the Part 4 remediation-discipline 7th worked example follow-up (which references this class fix lineage anyway).
+
+### Per remediation-discipline recognition
+
+Signals fired: 1 (recurrence — this is the second-order class problem from worktree cleanup itself), 2 (infrastructure-variation — Windows junction behavior), 4 (reinventing — any future cleanup script would face this). 3 of 4 → class confirmed for the fallback path.

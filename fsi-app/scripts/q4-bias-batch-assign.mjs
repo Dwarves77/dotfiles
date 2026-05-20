@@ -79,8 +79,25 @@ import {
 // -----------------------------------------------------------------------
 
 const SAMPLE_SIZE = 20;
-const HIGH_CONFIDENCE_THRESHOLD = 0.80;
+
+// Per-dimension auto-confidence thresholds (D1 Option B, 2026-05-20).
+// methodology stays at 0.80 (tags like methodologically-transparent vs
+// analytical-synthesis require methodology examination; operator-in-loop
+// is appropriate). funding + stakeholder bump to 0.75 (usually clearer
+// from institutional context; classifier was unnecessarily conservative
+// per D1 investigation showing 84% of methodology rows in review queue
+// vs ~26% for funding).
+const HIGH_CONFIDENCE_THRESHOLDS = {
+  funding: 0.75,
+  methodology: 0.80,
+  stakeholder: 0.75,
+};
 const REVIEW_QUEUE_THRESHOLD = 0.65;
+
+function autoThresholdFor(dimension) {
+  return HIGH_CONFIDENCE_THRESHOLDS[dimension] ?? 0.80;
+}
+
 const DEFAULT_INTERVAL_MS = 1200;
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
@@ -315,12 +332,15 @@ async function classifyOne(client, source) {
 
 function bucketByConfidence(biasTags) {
   // Returns { auto: [{dimension,tag,confidence}], review: [...], discarded: [...] }
+  // Per-dimension auto threshold: funding/stakeholder >= 0.75; methodology >= 0.80
+  // (D1 Option B; see HIGH_CONFIDENCE_THRESHOLDS).
   const out = { auto: [], review: [], discarded: [] };
   for (const dim of ["funding", "methodology", "stakeholder"]) {
+    const autoThreshold = autoThresholdFor(dim);
     const arr = biasTags[dim] || [];
     for (const { tag, confidence } of arr) {
       const row = { dimension: dim, tag, confidence };
-      if (confidence >= HIGH_CONFIDENCE_THRESHOLD) out.auto.push(row);
+      if (confidence >= autoThreshold) out.auto.push(row);
       else if (confidence >= REVIEW_QUEUE_THRESHOLD) out.review.push(row);
       else out.discarded.push(row);
     }
