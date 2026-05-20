@@ -393,6 +393,26 @@ These behaviors mean the skill was loaded but not followed:
 - **Authoring new DP entries without operator authorization.** The agent may surface candidate principles in followups OBS entries or in dispatch reports, but does not add a new DP-N to `docs/design-principles.md` without operator authorization (see the authorship rule in the registry).
 - **Skipping the skill on "small" dispatches.** A small dispatch that touches a phase surface still owes loop closure. The skill applies by dispatch type (design or implementation on a phase), not by perceived scope size.
 
+## Worktree path convention
+
+When a dispatch (this discipline or any other) creates a git worktree, the worktree path MUST be under `C:/Users/jason/dotfiles/.worktrees/wt-<dispatch-name>` (i.e., inside the repo at `.worktrees/`). This is the path that `superpowers:finishing-a-development-branch` (FaDB) recognizes as eligible for automatic cleanup in its Step 6 provenance check.
+
+DO NOT create worktrees as siblings to the repo root (`C:/Users/jason/dotfiles-wt-<name>`). That convention bypasses FaDB's provenance check; FaDB will refuse to clean those worktrees because it treats them as host-managed. Stale worktrees accumulate.
+
+This convention was added 2026-05-20 after operator audit found 22+ stale worktrees at sibling-path convention. Cleanup script at `fsi-app/scripts/cleanup-merged-worktrees.mjs` handles the historical bulk cleanup of sibling-path worktrees; going-forward worktrees follow the `.worktrees/` convention so FaDB Step 6 handles cleanup automatically on dispatch completion.
+
+When writing a dispatch brief that instructs an agent to set up a worktree, use:
+
+```
+git -C C:/Users/jason/dotfiles worktree add C:/Users/jason/dotfiles/.worktrees/wt-<dispatch-name> -b feat/<branch-name> master
+```
+
+NOT:
+
+```
+git -C C:/Users/jason/dotfiles worktree add C:/Users/jason/dotfiles-wt-<dispatch-name> -b feat/<branch-name> master
+```
+
 ## Integration With the Standing Skill-Load Rule
 
 This skill loads alongside, not instead of, domain-relevant skills. On a Phase 6 brief-generation dispatch, the agent loads `environmental-policy-and-innovation` (governs brief content rules) AND this skill (governs OBS loop closure). On a Phase 7 triage UI dispatch, the agent loads `frontend-design` (governs UI patterns) AND this skill. Skill load is additive, not exclusive.
