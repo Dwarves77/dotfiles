@@ -1,6 +1,16 @@
 ---
 name: source-credibility-model
 description: Source credibility model for Caro's Ledge. Defines the six-element credibility system (type-based tier, bias tags, citation-network credibility, source discovery loop, operator override, recency decay), the bias tag vocabulary, the customer-facing signal sets per surface, and operational criteria for credibility-affecting work. Load on any dispatch that touches sources table, source_citations or brief-to-source edge tables, tier/base_tier/effective_tier/tier_override columns, bias_tag columns, the candidate review surface, Haiku classification endpoints, customer-facing credibility signal rendering, the discovery loop, or citation network scoring + decay + override semantics. Extends environmental-policy-and-innovation's 6-level Source Type Hierarchy. Customer-facing signal sets per surface align with caros-ledge-platform-intent's five-surface model.
+when_to_load:
+  - "Touches the sources table (read or write)"
+  - "Touches source_citations or intelligence_item_citations edge tables"
+  - "Modifies tier, base_tier, effective_tier, tier_override, override_reason, override_date, or bias_tag* columns on sources"
+  - "Touches the candidate review surface (canonical_source_candidates table, admin canonical-sources review components, /api/admin/canonical-sources/* routes)"
+  - "Modifies the Haiku recommend-classification endpoints (canonical-sources/recommend-classification, sources/recommend-classification)"
+  - "Modifies the verification pipeline (src/lib/sources/verification.ts)"
+  - "Adds or modifies customer-facing credibility signal rendering on any of the seven surfaces (Regulations, Research, Market Intel, Operations, Community, Map, Intelligence Assistant)"
+  - "Changes the discovery loop (citation extraction in src/app/api/agent/run/route.ts, source resolution in any consumer, candidate promotion criteria)"
+  - "Adds or modifies citation network scoring (src/lib/trust.ts), recency decay, or override semantics"
 ---
 
 # Source Credibility Model

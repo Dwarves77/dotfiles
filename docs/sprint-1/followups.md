@@ -1015,3 +1015,115 @@ Small bounded fix (~20-30 min). Bundle with next worktree-cleanup-script touch O
 ### Per remediation-discipline recognition
 
 Signals fired: 1 (recurrence — this is the second-order class problem from worktree cleanup itself), 2 (infrastructure-variation — Windows junction behavior), 4 (reinventing — any future cleanup script would face this). 3 of 4 → class confirmed for the fallback path.
+
+## OBS-54: Skill load discipline drift across worktrees (3-axis audit P0 finding)
+
+**State**: Resolved 2026-05-20 (worktree syncs pending in commit; class fix codified)
+**Captured**: 2026-05-20
+**Cross-references**: feedback memory `always-use-project-skills`, sprint-followups-discipline standing dispatch-inventory rule, CLAUDE.md "Standing dispatch-inventory rule" section
+
+### Finding
+
+The 3-axis skill audit (2026-05-20) found drift across worktrees in two dimensions:
+
+1. **Missing skill copies.** `dotfiles-wt-track-b-doc` was missing `remediation-discipline` AND `source-credibility-model` (3 of 5 custom skills present). `dotfiles-wt-skill-credibility` was missing `remediation-discipline` (4 of 5 present). Dispatches from these worktrees silently skipped the missing skills' triggers.
+
+2. **Stale `sprint-followups-discipline` copies.** Main version (52,800 bytes, 2026-05-20) included the May 19 source-credibility-model load-trigger rule (9 triggers), May 20 remediation-discipline load-trigger rule (5 triggers), and Batch-script resilience rule. `dotfiles-wt-track-b-doc` was 43,709 bytes (17% behind, missing all 3 new sections). `dotfiles-wt-skill-credibility` was 47,269 bytes (9% behind, partial).
+
+### Class-fix shape
+
+Three-part fix:
+
+1. **Self-describing frontmatter triggers.** All 5 custom skills now carry `when_to_load:` blocks in their YAML frontmatter listing the triggering conditions. Dispatchers can scan all 5 frontmatter blocks programmatically rather than relying on memory.
+
+2. **Standing dispatch-inventory rule in CLAUDE.md.** Codifies that every Caro's Ledge dispatch begins with a skill-inventory pass scanning `when_to_load:` blocks. Backs up the operator memory `always-use-project-skills`.
+
+3. **Per-worktree skill sync.** Worktree-creation discipline includes copying current main skills via `git checkout main -- .claude/skills/`. Bundled into this commit's worktree-sync sub-dispatches.
+
+### Bundle when
+
+Resolved in this commit. Sync sub-dispatches handle worktree updates.
+
+### Per remediation-discipline recognition
+
+Signals fired: 1 (recurrence — drift across 3 worktrees), 3 (shared codepath — same skill file in N copies), 4 (reinventing — every worktree creation reinvents the sync). 3 of 4 → class confirmed; class fix shipped.
+
+## OBS-55: Plan-skill aspirational status (writing-plans + executing-plans + verification-before-completion)
+
+**State**: Resolved as discipline rescope 2026-05-20 (hybrid framing for plan skills; universal for verification)
+**Captured**: 2026-05-20
+**Cross-references**: sprint-followups-discipline Plan-skill hybrid rule, sprint-followups-discipline Verification-before-completion required rule
+
+### Finding
+
+AXIS 3 of the 3-axis skill audit found `superpowers:writing-plans` and `superpowers:executing-plans` aspirational: zero plan files exist in `fsi-app/docs/plans/`, and major coordinations (Track A + Track B, Multi-tenant A + B + C, Q1 through Q10 credibility model work, remediation-discipline encoding) ran memory-driven via worktree naming and transcript. `superpowers:verification-before-completion` had the same artifact-emission gap.
+
+### Class-fix shape
+
+Operator-decided rescope (P4 of the audit):
+
+1. **Plan-skill hybrid rule.** Plans required for coordinations spanning 3+ dispatches; single-dispatch and 2-dispatch sequences run memory-driven. Plan files land at `fsi-app/docs/plans/<date>-<coordination-name>.md`. Codified in sprint-followups-discipline as the 9th named binding rule.
+
+2. **Verification-before-completion required rule (universal).** Per operator nuance: verification is universally valuable regardless of dispatch size, so it does NOT bundle with the plan-skill hybrid framing. Every dispatch surfaces verification evidence in its completion claim. Codified in sprint-followups-discipline as the 10th named binding rule.
+
+### Bundle when
+
+Resolved in this commit (rule codification only). First plan-file-required coordination will surface the next instance and validate the rule.
+
+### Per remediation-discipline recognition
+
+Signals fired: 4 (reinventing — every coordination redecides whether to write a plan). 1 of 4 → judgment-call boundary; operator confirmed rescope to hybrid framing. Class confirmed; class fix shipped as codified discipline.
+
+## OBS-56: Plugin replication drift risk (expo triplet, vercel version duplication)
+
+**State**: Documented (no functional change required; out of stack)
+**Captured**: 2026-05-20
+**Cross-references**: `fsi-app/.claude/PLUGIN-NOTES.md`
+
+### Finding
+
+AXIS 1 of the 3-axis skill audit found two plugin replication patterns with drift risk:
+
+1. **Expo triplet.** 12 Expo skills are replicated identically across three plugin packages (`expo-app-design/1.0.0`, `expo-deployment/1.0.0`, `upgrading-expo/1.0.0`). Updating one copy leaves two stale.
+
+2. **Vercel version duplication.** All 26 Vercel skills exist in both `0.42.1` and `0.43.0` plugin versions.
+
+### Class-fix shape
+
+Vercel and Expo are not on the Caro's Ledge stack (Next.js + Supabase, not Vercel deploy or Expo native). Drift risk is theoretical for now. Documented the convention in `fsi-app/.claude/PLUGIN-NOTES.md`: do not edit plugin skill files in place; if a customization is needed, fork into `fsi-app/.claude/skills/` with a namespaced name.
+
+### Bundle when
+
+No bundle needed; promoted to OBS-57 worked example if Caro's Ledge ever adopts Vercel deploy or Expo native and the drift surfaces.
+
+### Per remediation-discipline recognition
+
+Signals fired: 4 (reinventing — every plugin update potentially reinvents the conflict). 1 of 4 → judgment-call boundary; defaulted to instance treatment (documentation only) per operator P5 selection. If pattern recurs across more plugins, promote to class.
+
+## OBS-57: sprint-followups OBS+DP output not surfacing in commit artifacts
+
+**State**: Resolved as discipline addition 2026-05-20 (Dispatch-artifact commit-summary rule)
+**Captured**: 2026-05-20
+**Cross-references**: sprint-followups-discipline Dispatch-artifact commit-summary rule
+
+### Finding
+
+AXIS 3 of the 3-axis skill audit found that the sprint-followups-discipline Output Format Requirement prescribes OBS coverage tables and DP compliance sections in dispatch reports, but commits and merge messages did not surface them. Recent binding-rule codification commits (ae8734c sweep-discipline, 6065dea source-credibility-model load-trigger, ea99c71 remediation-discipline encoding) verified loop closure happened (rules landed in the right places) but the OBS/DP outcome list was not visible in git log.
+
+### Class-fix shape
+
+Per operator P2 selection (both: require commit summary AND keep dispatch report tables), added Dispatch-artifact commit-summary rule as 8th named binding rule in sprint-followups-discipline. Format:
+
+```
+Loop-closure: OBS-N COVER; OBS-M DEFER; OBS-K NO ACTION; DP-1 PASS; DP-2 N/A
+```
+
+Goes in the merge commit body. `git log --grep="Loop-closure"` enumerates every dispatch that closed the loop.
+
+### Bundle when
+
+Resolved in this commit. This commit's own message follows the new format (Loop-closure line below).
+
+### Per remediation-discipline recognition
+
+Signals fired: 1 (recurrence — spans all design and implementation commits), 4 (reinventing — every dispatch redecides whether to emit). 2 of 4 → class confirmed; class fix shipped as 8th named binding rule.

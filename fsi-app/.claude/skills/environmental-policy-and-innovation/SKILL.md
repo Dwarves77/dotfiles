@@ -1,6 +1,15 @@
 ---
 name: environmental-policy-and-innovation
 description: Freight sustainability intelligence system. Tracks ESG regulations, environmental policies, and sustainability standards affecting international freight forwarding across air, road, and ocean transport. Produces workspace-anchored regulatory fact documents and competitive intelligence across 7 topic categories, 8 jurisdictions, 4 impact dimensions, urgency scoring, and format-specific section structures per intelligence item type. Integrity-first: facts only, no invented content, gaps explicitly labeled.
+when_to_load:
+  - "Touches intelligence_items, briefs, regulatory facts, or any of the 5 brief format types (regulatory fact document, technology profile, operations profile, market signal brief, research summary)"
+  - "Touches the 7 topic categories (emissions, fuels, transport, reporting, packaging, corridors, research)"
+  - "Touches the 8 jurisdiction taxonomies (EU, US, UK, LatAm, Asia, HK, MEAF, Global)"
+  - "Touches the urgency scoring or format-section structures"
+  - "Generates customer-facing brief content (any agent prompt that produces briefs)"
+  - "Modifies the integrity rule enforcement (no invention, gap labeling, sourced facts, cause-and-effect chain sourcing)"
+  - "Touches source classification using the 6-level Source Type Hierarchy (which source-credibility-model extends)"
+  - "Touches the source-category taxonomy that caros-ledge-platform-intent's five intelligence surfaces map to"
 ---
 
 # Freight Sustainability Intelligence
@@ -37,6 +46,15 @@ Specific applications of the integrity rule:
 - Explicit gap labeling. When facts on a topic don't fully answer the analytical question, the agent presents the facts and states what is unresolved. "The regulation defines X but does not address Y. No authoritative guidance has been published as of [date]." Not "X means Y."
 - No invented anticipated events. The anticipated-guidance section is populated only from announced or scheduled events with sourced dates.
 - Source classification at every claim. The 6-level source hierarchy is applied to every claim, not just the sources list.
+
+## Cross-Skill Scope
+
+Other Caro's Ledge skills extend or depend on this skill. Load is additive, not exclusive.
+
+- **`source-credibility-model`** extends the 6-level Source Type Hierarchy to add citation-network scoring, bias tags, recency decay, and operator override logic. Load alongside this skill on any dispatch touching source credibility computation.
+- **`caros-ledge-platform-intent`** uses this skill's source-category taxonomy (regulation, directive, standard, guidance, framework, market_signal, initiative, research_finding, technology, innovation, tool, regional_data) to map content to the five customer-facing surfaces (Regulations, Market Intel, Research, Operations, Community).
+- **`sprint-followups-discipline`** enforces this skill's integrity rule at the dispatch-report level via the Inference correction rule (no extrapolation from inferences when contradicting evidence is in hand). Cross-dispatch synthesis inherits this skill's grounding requirements.
+- **`remediation-discipline`** applies the integrity rule to remediation work: no invented worked examples, concrete instances only, gap labeling on unverified pattern recurrence.
 
 ## Operating Principle: Creative intelligence, accurate grounding
 

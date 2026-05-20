@@ -1,6 +1,12 @@
 ---
 name: remediation-discipline
-description: Class-over-instance remediation discipline for Caro's Ledge platform engineering. When a problem surfaces, determines whether the failure is class or instance, then chooses remediation accordingly. Class-problem remediations address the class via primitive extraction, codified discipline, and refactor of known adjacent instances. Instance-only patches are appropriate only when the failure is genuinely scope-bounded; otherwise they are anti-pattern. Load on any remediation, post-mortem, hotfix, failure-response, or primitive-extraction dispatch. Provides the class-vs-instance recognition criteria, primitive extraction patterns, discipline codification thresholds, and worked examples from Caro's Ledge platform work. The principle is platform-engineering-agnostic; worked examples are session-specific because that is the available corpus, but the discipline transfers to any platform engineering remediation work.
+description: Class-over-instance remediation discipline for Caro's Ledge platform engineering. When a problem surfaces, determines whether the failure is class or instance, then chooses remediation accordingly. Class-problem remediations address the class via primitive extraction, codified discipline, and refactor of known adjacent instances. Instance-only patches are appropriate only when the failure is genuinely scope-bounded; otherwise they are anti-pattern. Load on any remediation, post-mortem, hotfix, failure-response, or primitive-extraction dispatch. Provides the class-vs-instance recognition criteria, primitive extraction patterns, discipline codification thresholds, and worked examples from Caro's Ledge platform work. The principle is platform-engineering-agnostic; worked examples are session-specific because that is the available corpus, but the discipline transfers to any platform engineering remediation work. Coordinates with sprint-followups-discipline for cross-dispatch loop closure and named binding rule codification.
+when_to_load:
+  - "Framed as remediation, post-mortem, hotfix, or failure response"
+  - "Investigating a recurring pattern across multiple instances"
+  - "Extracting a primitive, library, or shared utility"
+  - "Adding a new binding rule to any discipline skill"
+  - "Scoping the response to a surfaced bug, regression, or production incident"
 ---
 
 # Remediation Discipline

@@ -1,6 +1,17 @@
 ---
 name: sprint-followups-discipline
 description: Sprint followup loop-closure discipline plus binding design-principle enforcement for Caro's Ledge phase and sprint work. Every design dispatch and implementation dispatch on any Caro's Ledge sprint sequence (Sprint 1, Sprint 2, future sprints) and any phase (5, 6, 7, 8, 9, 10, 11, future phases) MUST read TWO inputs: (1) the current sprint's followups doc (enumerate every open OBS entry, cover or defer with reasoning), and (2) `docs/design-principles.md` (verify the dispatch's design complies with every DP entry, binary yes/no). The dispatch report carries an OBS coverage table AND a DP compliance section. Without this discipline OBS entries become write-only and DP violations ship unnoticed; either way operator-experience friction compounds. Loads alongside domain-relevant skills (e.g. environmental-policy-and-innovation for intelligence_items work, frontend-design for UI work).
+when_to_load:
+  - "Every Caro's Ledge design dispatch (any sprint, any phase)"
+  - "Every Caro's Ledge implementation dispatch (any sprint, any phase)"
+  - "Sprint planning or sequencing dispatches that allocate scope across phases"
+  - "Skill-load reviews and standing-rule updates that affect phase-dispatch defaults"
+  - "Borderline cases (small refactors with design choices): default to load"
+when_to_skip:
+  - "Investigation-only dispatches (capture new OBS but no loop closure owed)"
+  - "Hotfix dispatches scoped to a single defect with no design surface"
+  - "Research-only dispatches with no design or implementation output"
+  - "Conversation, status-check, and report-only dispatches"
 ---
 
 # Sprint Followups Discipline
@@ -378,6 +389,89 @@ Triggered by OBS-51 (Q4 sources 21/22 failure: sample-scale validation passed; f
 **How to apply.** When a dispatch creates or modifies a batch script, the brief explicitly lists which library primitives are consumed and why each was chosen. The script imports from the library; inline retry/Pool/rate-limit/progress logic is anti-pattern (remediation-discipline Section 8 anti-pattern 5: reinventing primitives).
 
 **Worked example.** Q4 batch script (`fsi-app/scripts/q4-bias-batch-assign.mjs`) consumes `isAnthropicRetryable` + `isPgRetryable` predicates from the library (full primitive migration deferred; v1 validates library consumption). Q7 daily batch script (`fsi-app/scripts/cron/q7-daily-recompute.mjs`) refactor deferred because it uses Supabase client not pg.Pool; the library doesn't fit cleanly. Both deferrals are documented in the script headers and tracked for follow-up.
+
+## Dispatch-artifact commit-summary rule
+
+This rule was added 2026-05-20 after the 3-axis skill audit found that OBS coverage tables and DP compliance sections are emitted in dispatch reports but do not surface in git commit artifacts. The skill's Output Format Requirement section prescribes the table format for dispatch reports; this rule adds a complementary requirement at the commit-artifact layer so loop-closure evidence is git-log auditable.
+
+**Binding rule.** Every merge commit for a design or implementation dispatch on a Caro's Ledge sprint phase MUST include a one-line summary in the commit message body that states OBS coverage outcomes and DP compliance results. Format:
+
+```
+Loop-closure: OBS-N COVER; OBS-M DEFER; OBS-K NO ACTION; DP-1 PASS; DP-2 N/A
+```
+
+The full tables remain in the dispatch report (this is belt-and-suspenders, not a replacement). The dispatch report is authoritative for reasoning; the commit summary is the audit trail.
+
+**What this rule is NOT.**
+
+- NOT a requirement on intermediate commits in a feature branch. Only the merge commit (or final squashed commit) owes the summary.
+- NOT a substitute for the OBS coverage table in the dispatch report. The table provides reasoning per OBS; the commit summary provides the outcome list.
+- NOT applicable to dispatches that this skill does NOT apply to (investigation-only, hotfix, research-only, conversation-only). Those dispatches do not owe OBS coverage at all.
+
+**How to apply.** When authoring a merge commit message for a dispatch this skill applies to, after the commit subject and body paragraphs, include a line beginning with `Loop-closure:` followed by the OBS outcome list and DP compliance list. `git log --grep="Loop-closure"` enumerates every dispatch that closed the loop.
+
+**Worked example.** A Phase 7 triage UI design merge commit would include:
+
+```
+Phase 7 triage UI design
+
+Adds third triage tab for all-rejected jurisdictions; inline source
+metadata strip on every queue surface; canonical-replacement pickers.
+
+Loop-closure: OBS-13 COVER; OBS-14 COVER; OBS-15 DEFER (Phase 6 dep);
+  OBS-4/6/8/9/10/11/12 NO ACTION; OBS-7 DEFER (counsel); DP-1 PASS
+```
+
+Anchors the dispatch report to a single auditable commit-log line.
+
+## Plan-skill hybrid rule
+
+This rule was added 2026-05-20 after the 3-axis skill audit found `superpowers:writing-plans` and `superpowers:executing-plans` aspirational (no plan files exist in `fsi-app/docs/plans/`; major coordinations ran memory-driven via worktree naming and transcript). Calibrating skill load discipline to actual practice: plans required for multi-dispatch coordinations, memory-driven coordination acceptable for single or 2-dispatch work.
+
+**Binding rule.** Load `superpowers:writing-plans` and `superpowers:executing-plans` on any coordination that spans 3+ dispatches (typical case: a multi-track work plan like Track A + Track B + Track C, or a multi-phase build like Q1 through Q10 of a credibility model rollout). For single-dispatch work or 2-dispatch sequences (e.g., one design dispatch + its implementation), memory-driven coordination via conversation transcript and worktree naming is acceptable.
+
+**What "3+ dispatches" means:**
+
+- Three or more separately-dispatched agent runs that share a common goal and need coordination between them
+- Multi-track parallel work where the tracks compose into a single deliverable
+- Multi-phase implementation where each phase has its own dispatch but the phases must sequence correctly
+
+When a 3+ dispatch coordination is being scoped, the scoping conversation produces a plan file at `fsi-app/docs/plans/<date>-<coordination-name>.md` BEFORE the first dispatch fires. The plan file enumerates the dispatches, names dependencies, and surfaces decision points.
+
+**What this rule is NOT.**
+
+- NOT a requirement for single-dispatch design or implementation work. A single design dispatch + its single implementation dispatch is 2 dispatches; memory-driven is fine.
+- NOT a requirement for hotfix sequences (typically 1 dispatch or 2 if a follow-up surfaces).
+- NOT a requirement for investigation or audit dispatches (typically 1 dispatch; if the audit findings warrant a multi-dispatch remediation, the remediation phase triggers this rule for the remediation plan).
+- NOT a substitute for `verification-before-completion` discipline (see next rule; verification applies regardless of dispatch count).
+
+**How to apply.** At coordination-scoping time, count the dispatches the coordination will require. If 3+, draft a plan file in `fsi-app/docs/plans/` and use `superpowers:writing-plans` to structure it. The first dispatch's brief references the plan file. Subsequent dispatches load `superpowers:executing-plans` and check off completed steps. If a single-dispatch sequence later grows past 2 dispatches, retroactively author a plan file at that point.
+
+**Worked example.** Track A + Track B + Track C parallel sweeps for an OBS-51 follow-up: 3+ dispatches with hard inter-dependencies (Track C waits on Tracks A+B findings). Plan file drafted before Track A fires. By contrast, a single Phase 7 triage UI dispatch + its implementation merge is 2 dispatches; memory-driven scoping is acceptable.
+
+## Verification-before-completion required rule
+
+This rule was added 2026-05-20 alongside the Plan-skill hybrid rule. Per operator nuance: verification-before-completion is universally valuable, not just for multi-dispatch work, so it does NOT bundle with the plan-skill hybrid framing.
+
+**Binding rule.** Load `superpowers:verification-before-completion` on every dispatch regardless of size or count. Every claim of "complete" must cite the verification command(s) and the observed output before the dispatch report ends with that claim. Schema migrations applied, tests passed, branch merged, primitive extracted, UI rendered: each requires evidence.
+
+**What this rule is NOT.**
+
+- NOT a requirement to surface verification evidence in every commit message (that is covered by the Dispatch-artifact commit-summary rule for OBS/DP outcomes only).
+- NOT a requirement to write tests where none exist (the skill is verification-before-completion, not test-driven-development; verification can be running existing tests, schema queries, smoke tests, observation of UI behavior).
+- NOT a substitute for code review or operator approval (verification is the agent's owed evidence, not the final go/no-go).
+
+**How to apply.** Before any dispatch report ends with a completion claim, the agent runs at least one verification command relevant to the change and surfaces the command + output in the report. Examples:
+
+- Schema migration: `psql -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'sources';"` showing the new column landed
+- Code change: `npx tsc --noEmit` showing zero errors, plus a smoke test if the change has runtime behavior
+- Component edit: descriptive observation of the change in the running app, or screenshot
+- Library extraction: `node -e "require('./lib/X').foo()"` showing the primitive works
+- Branch merge: `git log -1 --format=%H` showing the merge commit lands
+
+**Worked example.** A schema-migration dispatch that adds `sources.effective_tier` ends with: "Verification: ran `psql -c \"SELECT column_name, data_type FROM information_schema.columns WHERE table_name='sources' AND column_name='effective_tier';\"` returned `effective_tier | integer`, confirming column added. Triggered consumer code update at `src/lib/trust.ts:42`; ran `npx tsc --noEmit` returned zero errors, confirming no type-system breaks."
+
+If a verification cannot be performed (e.g., production DB inaccessible from dispatch context), the dispatch surfaces the unverified claim explicitly and routes the verification to an operator-owned step. "Cannot verify in dispatch; operator to confirm via X" is acceptable; silent completion claim without verification is not.
 
 ## Anti-Patterns
 

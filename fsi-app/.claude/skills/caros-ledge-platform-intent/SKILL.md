@@ -1,6 +1,13 @@
 ---
 name: caros-ledge-platform-intent
 description: Caro's Ledge platform value proposition, the binding five-surface customer-facing model, and the customer-facing value-delivery discipline. The platform is a freight sustainability intelligence SaaS with two coupled value halves, intelligence (four pages: Regulations, Market Intel, Research, Operations, mapped to the source-category taxonomy in environmental-policy-and-innovation) and community (one surface: Community, co-equal with the four pages, addressing the freight industry information-isolation problem). Cross-cutting capabilities include Map (geographic view of Regulations content) and Intelligence Assistant (research helper grounded in platform skills and content, NOT a synthesis or decision engine). Serves freight forwarders (current scope: art logistics, live events, luxury goods, automotive, humanitarian; expansion: broader freight forwarding across air, road, ocean, rail). Every dispatch on Caro's Ledge build sequencing, design, audit, or implementation MUST emit the structured Value Delivery Check section listing the five surfaces explicitly. Loads alongside environmental-policy-and-innovation, sprint-followups-discipline, frontend-design.
+when_to_load:
+  - "Any Caro's Ledge build sequencing dispatch (sprint planning, phase scoping, build allocation)"
+  - "Any Caro's Ledge design dispatch (phase design, feature design, surface design)"
+  - "Any Caro's Ledge audit dispatch (alignment audit, sweep, code review of customer-facing surfaces)"
+  - "Any Caro's Ledge implementation dispatch (phase build, feature build, schema work)"
+  - "Any dispatch touching the five customer-facing surfaces (Regulations, Market Intel, Research, Operations, Community) or cross-cutting capabilities (Map, Intelligence Assistant)"
+  - "Borderline cases: default to load and emit the Value Delivery Check section"
 ---
 
 # Caro's Ledge Platform Intent

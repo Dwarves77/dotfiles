@@ -27,6 +27,35 @@ The cost of skipping this discipline has been logged: PR-A1's investigation prev
 
 Reference for the pattern: `fsi-app/scripts/pr-a1-investigate.mjs` (read-only investigation), `fsi-app/scripts/pr-a1-execute.mjs` (per-step authorized writes with inline verification), `docs/pr-a1-investigation-2026-05-06.json` and `docs/pr-a1-execute-log.json` (the durable artifacts each phase produced).
 
+## Standing dispatch-inventory rule (in force from 2026-05-20)
+
+**Every Caro's Ledge dispatch begins with a skill-inventory pass before any other work.** The agent inventories the 5 custom platform skills (`caros-ledge-platform-intent`, `sprint-followups-discipline`, `source-credibility-model`, `environmental-policy-and-innovation`, `remediation-discipline`) plus the load-bearing superpowers (`verification-before-completion` always; `writing-plans` + `executing-plans` for 3+ dispatch coordinations; `dispatching-parallel-agents`, `using-git-worktrees`, `subagent-driven-development`, `finishing-a-development-branch` as the dispatch context warrants).
+
+Each custom skill carries a `when_to_load:` block in its YAML frontmatter listing the triggering conditions. The agent scans those blocks against the dispatch's scope and loads every skill whose triggers fire. Cross-skill load is additive, not exclusive: multiple skills typically apply to one dispatch.
+
+This rule exists because skill load was previously discretionary (operator memory + the dispatcher's recall), and the 3-axis skill audit (2026-05-20) found drift in two dimensions: worktrees with stale or missing skill copies, and load-trigger rules added to `sprint-followups-discipline` that were not propagated. The class fix is self-describing frontmatter triggers + this standing rule + per-worktree skill sync discipline.
+
+**How to apply.** The agent's pre-work report enumerates every custom skill considered and explicitly notes which loaded with which triggering condition fired. Example pre-work entry:
+
+```
+Skills loaded:
+- caros-ledge-platform-intent (trigger: implementation dispatch on five-surface model)
+- sprint-followups-discipline (trigger: design dispatch on Sprint 2)
+- source-credibility-model (trigger: dispatch touches sources table, citation scoring)
+- environmental-policy-and-innovation (trigger: dispatch touches intelligence_items)
+
+Skills considered, not loaded:
+- remediation-discipline (no failure-response framing; not a hotfix)
+```
+
+The pre-work entry is part of the dispatch report's standard preamble.
+
+**What this rule is NOT.**
+
+- NOT a replacement for the operator's standing memory feedback (`always-use-project-skills`). The memory captures the operator's intent; this rule captures the mechanism.
+- NOT applicable to non-Caro's Ledge work (Pet Pursuit, other projects). Those projects have their own skill sets and inventory passes.
+- NOT a license to skip the OBS coverage table or DP compliance section. Skill inventory is BEFORE the loop-closure discipline; both are required.
+
 ## Code-vs-data state separation (in force from 2026-05-06)
 
 Code state and data state are separate stores with separate change mechanisms.
