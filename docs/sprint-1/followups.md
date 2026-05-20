@@ -954,3 +954,17 @@ Item 3 patch dispatch (feat/q4-batch-resilience) shipped:
 - Per-source error isolation: failures log and continue to next source
 
 Discipline rule captured here as OBS-51 so future dispatch briefs for long-running batches reference it explicitly.
+
+### Resolution part 2 (2026-05-20, class-fix landing)
+
+After operator architectural conversation reframed the Q4 patch as instance-only-where-it-should-be-class, the durable class fix landed via remediation-discipline skill dispatch (feat/remediation-discipline-skill):
+
+- **New skill** at `fsi-app/.claude/skills/remediation-discipline/SKILL.md` codifies the class-over-instance principle as a binding skill with 6 worked examples (Q4 batch failure is Section 7 example 1) + 2 emerging patterns tracked (agent-permission environment, worktree filesystem inconsistency).
+- **New library** at `fsi-app/scripts/lib/batch-primitives.mjs` extracts the resilience primitives (`withRetry`, `withRateLimit`, `withIdempotency`, `createPgPool`, `createProgressReporter`) + helper predicates (`isAnthropicRetryable`, `isPgRetryable`, `isGenericRetryable`). Unit tests at `fsi-app/scripts/lib/batch-primitives.test.mjs` cover caller-impact semantics.
+- **Q4 batch script** refactored to consume library predicates (`isAnthropicRetryable`, `isPgRetryable`); full primitive migration deferred to follow-up (v1 validates library consumption).
+- **Q7 batch script refactor deferred**: Q7 uses Supabase client not pg.Pool; library's `createPgPool` doesn't fit cleanly. Surface mismatch tracked; future expansion of library can address Supabase-client resilience separately.
+- **Two new binding rules** in `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`:
+  - **Remediation-discipline load-trigger rule** (6th named binding rule) — names which dispatches must load remediation-discipline
+  - **Batch-script resilience rule** (7th named binding rule) — mandates library use for long-running batch scripts; references this OBS-51 as trigger
+
+OBS-51 closed. The discipline is now load-bearing for every future remediation conversation; the library is the default for every future batch script (within its applicability scope); the codified rules propagate the discipline through dispatch-brief authorship.

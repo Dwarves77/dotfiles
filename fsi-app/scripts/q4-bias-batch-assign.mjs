@@ -69,6 +69,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  isAnthropicRetryable,
+  isPgRetryable,
+} from "./lib/batch-primitives.mjs";
 
 // -----------------------------------------------------------------------
 // CONFIG
@@ -182,37 +186,14 @@ const MAX_ANTHROPIC_RETRIES = 3;
 const MAX_DB_RETRIES = 3;
 const RETRY_BACKOFF_MS = [1000, 2000, 4000];
 
-function isTransientAnthropicError(err) {
-  // Match on message text + SDK status/code shape. The Anthropic SDK
-  // surfaces APIConnectionTimeoutError, APIConnectionError, and HTTP-status-
-  // bearing errors with status >= 500. We retry all of these plus generic
-  // network/timeout signals.
-  const msg = (err?.message || String(err)).toLowerCase();
-  if (msg.includes("request timed out")) return true;
-  if (msg.includes("timeout")) return true;
-  if (msg.includes("network")) return true;
-  if (msg.includes("connection")) return true;
-  if (msg.includes("econnreset")) return true;
-  if (msg.includes("etimedout")) return true;
-  if (msg.includes("socket hang up")) return true;
-  const status = err?.status ?? err?.response?.status;
-  if (typeof status === "number" && status >= 500 && status < 600) return true;
-  if (typeof status === "number" && status === 429) return true; // rate limit
-  return false;
-}
-
-function isTransientDbError(err) {
-  const msg = (err?.message || String(err)).toLowerCase();
-  if (msg.includes("connection terminated")) return true;
-  if (msg.includes("connection ended")) return true;
-  if (msg.includes("econnreset")) return true;
-  if (msg.includes("etimedout")) return true;
-  if (msg.includes("client has encountered a connection error")) return true;
-  if (msg.includes("server closed the connection")) return true;
-  // pg error code 57P01 = admin_shutdown, 57P02 = crash_shutdown, 57P03 = cannot_connect_now
-  if (err?.code === "57P01" || err?.code === "57P02" || err?.code === "57P03") return true;
-  return false;
-}
+// isAnthropicRetryable + isPgRetryable are imported from
+// scripts/lib/batch-primitives.mjs per the Batch-script resilience rule
+// (sprint-followups-discipline 7th named rule). The inline predicates that
+// previously lived here were the original Q4 resilience patch; v2 refactor
+// (2026-05-20, feat/remediation-discipline-skill) consolidates the predicate
+// shape with other batch scripts via the library.
+const isTransientAnthropicError = isAnthropicRetryable;
+const isTransientDbError = isPgRetryable;
 
 async function withAnthropicRetry(fn, label) {
   let lastErr;

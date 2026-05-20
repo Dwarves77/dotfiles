@@ -1,0 +1,222 @@
+---
+name: remediation-discipline
+description: Class-over-instance remediation discipline for Caro's Ledge platform engineering. When a problem surfaces, determines whether the failure is class or instance, then chooses remediation accordingly. Class-problem remediations address the class via primitive extraction, codified discipline, and refactor of known adjacent instances. Instance-only patches are appropriate only when the failure is genuinely scope-bounded; otherwise they are anti-pattern. Load on any remediation, post-mortem, hotfix, failure-response, or primitive-extraction dispatch. Provides the class-vs-instance recognition criteria, primitive extraction patterns, discipline codification thresholds, and worked examples from Caro's Ledge platform work. The principle is platform-engineering-agnostic; worked examples are session-specific because that is the available corpus, but the discipline transfers to any platform engineering remediation work.
+---
+
+# Remediation Discipline
+
+## Section 1: Purpose and Scope
+
+This skill owns the class-over-instance principle, the recognition criteria for distinguishing class from instance failures, the primitive extraction patterns, the discipline codification thresholds, and the worked examples library.
+
+This skill does NOT own domain-specific remediation logic. A credibility-model failure loads `source-credibility-model` alongside this skill; an admin-gating failure loads whatever applies; this skill is the META-DISCIPLINE that determines HOW to scope any remediation. Cross-skill load is additive, not exclusive.
+
+The principle is platform-engineering-agnostic. The worked examples in Section 7 are session-specific because that is the available corpus; the discipline transfers to any platform engineering remediation work in any project (Caro's Ledge today, Pet Pursuit or future projects tomorrow). When this skill ports to another project, the principle and recognition criteria port unchanged; the worked-examples library grows with that project's instances.
+
+## Section 2: The Class-Over-Instance Principle
+
+**Binding statement (verbatim):**
+
+> When a problem surfaces, determine whether the failure is class or instance. Class-problem remediations address the class via primitive extraction, codified discipline, and refactor of known adjacent instances. Instance-only patches are appropriate only when the failure is genuinely scope-bounded; otherwise they are anti-pattern.
+
+Why this matters: ad-hoc instance patches compound. Each batch script discovers connection-pool timeouts the same way. Each sweep dispatch misses items in the same way. Each schema rename breaks consumers the same way. Patching each occurrence as it surfaces costs the same effort per occurrence, multiplied by N occurrences. Class fixes are bounded one-time investment that prevent the failure from recurring across all known and future instances of the class.
+
+The autonomous-loop strategic frame depends on durable resilience primitives. A platform that requires operator intervention on every infrastructure variation cannot operate autonomously. The class-over-instance discipline is how the platform absorbs infrastructure realities instead of failing on them.
+
+## Section 3: Recognition Criteria
+
+When a failure surfaces, evaluate four signals:
+
+1. **Recurrence**: has this pattern surfaced before in any form? (Same root cause, different surface; same failure mode, different consumer.)
+2. **Infrastructure-variation cause**: is the root cause something the platform should absorb (timeout, disconnect, rate limit, version drift, tool snapshot inconsistency)?
+3. **Shared codepath**: do multiple places use the same broken pattern?
+4. **Reinventing-the-wheel signal**: would another agent solving a similar problem rebuild the same patch?
+
+**Threshold rule:**
+
+- 2+ signals fire → treat as class
+- 0 signals fire → treat as instance
+- 1 signal fires → judgment call surfaced to operator at remediation scoping
+
+The threshold deliberately favors class-treatment when in doubt. Over-codification of one-off failures is cheaper to correct (anti-pattern 3 surfaces it; the rule retracts) than missed-class-treatment of recurring failures (every new instance costs the same patch effort).
+
+## Section 4: Remediation Strategy by Category
+
+Six confirmed categories with full worked examples in Section 7:
+
+1. **Batch resilience** — long-running scripts need retry/reconnect/idempotency/rate-limit/progress primitives extracted into a shared library
+2. **Sweep methodology** — sweeps must enumerate the surface (Glob, schema query, equivalent) before claiming completeness; recall-based or pattern-matched enumeration misses items silently
+3. **Type-system drift** — schema-vs-code compatibility breaks require compatibility shim + per-consumer migration, not flag-day rename
+4. **API contract gaps** — silent failures from format/version mismatches (URL canonicalization, timestamp normalization, identifier matching across system boundaries) need primitive extraction
+5. **Tool reliability** — agent-layer tools (Glob, etc.) sometimes return inconsistent results across contexts; defensive discipline + root-cause investigation when bandwidth allows
+6. **Architectural codification** — when a model exists as transcript or operator memory but not as canonical reference, encoding it as a skill is the class fix; prevents future drift and reinvention
+
+## Section 4.5: Categories Where Principle Applies (Worked Examples Pending)
+
+The principle is platform-engineering-agnostic. These categories don't have full worked examples in this session's corpus yet, but the class-over-instance lens applies identically. Promotion to a full category in Section 4 happens when a concrete instance surfaces and gets remediated. Tracking them here ensures the skill's scope is unambiguous and future failures get class-treatment from the start.
+
+- **Cache inconsistency** — cache-and-store drift, invalidation patterns, stale read failures across services
+- **Migration coordination** — schema changes vs deployed code, deployment-order dependencies, rollback strategy
+- **Permission gaps** — access control sweep methodology beyond just admin gating
+- **Observability gaps** — logging coverage, tracing, alerting infrastructure as platform primitive vs per-service
+- **Error reporting gaps** — user-facing error handling patterns, error-state recovery
+- **Configuration drift** — env-specific config management, secret rotation, credential hygiene
+- **Background job orchestration** — cron, workers, queues; the underlying coordination patterns
+- **Inter-service contracts** — API versioning, event schema management, deprecation patterns
+- **State machine consistency** — multi-step workflows, idempotency at every step, recovery paths
+- **Connection lifecycle management** — beyond pg pools: HTTP clients, websockets, third-party SDK connections
+
+Plus two patterns emerging in this session's corpus that need root-cause investigation before promotion to full worked example:
+
+- **Agent-permission environment**: sub-agents hitting Edit/Write/Bash permission denials on worktree paths. Main-session takeover is the consistent remediation. Surfaced 4+ times this session (Track B-doc v1, Skill encoding, remediation-discipline dispatch itself, and at least one other). Pattern hypothesis: worktree-specific permission scope in sub-agent context, OR tool-specific denial semantics. Needs systematic investigation to extract a primitive remediation (or to fix the underlying permission scope).
+- **Worktree filesystem inconsistency**: sub-agents finding files differently than main session or other sub-agents at the SAME SHA. Surfaced 4+ times (Q1, Q3, Q6, Q10 reports each mention variant of "docs/sprint-1/followups.md not visible in my worktree"). Pattern hypothesis: filesystem snapshot or cache inconsistency in tool layer. Defensive discipline applied case-by-case (try direct Read when Glob returns nothing for an expected path); root cause not yet investigated.
+
+Both emerging patterns need systematic investigation before promotion. They are tracked here so future agents apply defensive discipline and surface new instances toward eventual root-cause-investigation dispatch.
+
+## Section 5: Primitive Extraction Patterns
+
+When primitive extraction is justified:
+
+- Recurrence threshold: 2+ confirmed instances of the same broken pattern
+- Reinventing-the-wheel signal: another agent solving a similar problem would rebuild the same logic
+- Bounded surface: the primitive's scope is well-defined (single concern, single responsibility)
+
+Naming conventions:
+
+- Verb-noun for actions (`createPgPool`, `canonicalizeUrl`)
+- `with-` prefix for wrappers around async functions (`withRetry`, `withRateLimit`, `withIdempotency`)
+- Helper predicates named `is<Property>` (`isAnthropicRetryable`, `isPgRetryable`)
+
+Migration pattern:
+
+1. Extract the primitive into the library; write header docs and unit tests for caller-impact semantics
+2. Refactor the first instance to consume the primitive; verify behavior parity with smoke test
+3. Refactor known adjacent instances in the SAME dispatch; ship as a bundle so the library is validated against multiple consumers
+4. Codify the discipline (Section 6 thresholds) so future occurrences default to library consumption
+
+Testing:
+
+- Primitive: unit tests on caller-impact semantics (e.g., retry predicate logic, rate-limit interval enforcement). The cost of getting a primitive's semantics wrong is silent over-retry / under-retry / over-permissive / under-permissive at every consumer.
+- Consumer: integration smoke test (e.g., `--dry-run --limit N` against live state) confirms the refactor preserves behavior.
+
+Reference implementation: `fsi-app/scripts/lib/batch-primitives.mjs` (added 2026-05-20 as the concrete class fix for batch resilience; see Section 7 worked example 1).
+
+## Section 6: Discipline Codification Thresholds
+
+When a recurring pattern earns a binding rule:
+
+- 2+ worked examples documenting the pattern + the class fix
+- Operator authorization for the rule's exact phrasing
+- Rule lands in `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md` as a named binding rule (Option A pattern, consistent with source-credibility-model load-trigger rule and Sweep-discipline rule precedents)
+
+Skill content (in Section 7 of this skill or in the relevant domain skill) can document patterns BEFORE they have rules. Rules require operator-confirmed promotion. The skill is the example library; the rule is the binding enforcement.
+
+Where the rule lands:
+
+- Cross-cutting discipline rules (load-trigger for a domain skill; methodology rule like Sweep-discipline): sprint-followups-discipline as a new named binding rule
+- Domain-specific scoring/computation rules: the domain skill's relevant section
+- Schema or migration discipline: sprint-followups-discipline (since dispatch reports need to apply it)
+
+Anti-pattern: codification before sufficient examples (one occurrence is not a pattern; making a rule with one recurrence creates an unfilled obligation that may not generalize).
+
+## Section 7: Worked Examples
+
+Each example follows the template: What failed → Class problem → Class fix → Recognition signals fired.
+
+### Example 1: Batch resilience — Q4 sources 21/22
+
+**What failed.** The Q4 bias-classification batch script (`fsi-app/scripts/q4-bias-batch-assign.mjs`) ran 20 sources cleanly in its sample validation, then failed at sources 21+22 of the 776-source full batch with two distinct errors: Anthropic API request timed out at source 21 (Yukon Department of Environment); pg client emitted `Connection terminated unexpectedly` at source 22 (International Transport Forum), crashing the script unrecoverably. Sample validation (20 sources) didn't trigger either failure mode reliably because: Anthropic API timeouts are intermittent network events with low per-call probability; Supabase pooler disconnects idle connections after a window that 20 fast calls don't expose.
+
+**Class problem.** Long-running batch scripts lack durable resilience primitives. Every batch reinvents retry/reconnect/rate-limit/idempotency from scratch. Q4 was the first instance to fail visibly; Q7 daily recompute would have hit the same pg-disconnect failure mode at first production run; every future LLM batch (classifier re-runs, brief regeneration) would re-discover Anthropic timeouts the same way.
+
+**Class fix.** Extracted `fsi-app/scripts/lib/batch-primitives.mjs` with `withRetry`, `withRateLimit`, `withIdempotency`, `createPgPool`, `createProgressReporter` primitives. Refactored Q4 batch script + Q7 daily batch script to consume the library. Codified Batch-script resilience rule as 7th named binding rule in sprint-followups-discipline. Extended OBS-51 with Resolution section pointing at the library + rule + refactors.
+
+**Recognition signals fired.** Signal 2 (infrastructure-variation: Anthropic timeout + pg disconnect are platform realities); signal 4 (reinventing-the-wheel: every future batch would rebuild). Class confirmed.
+
+### Example 2: Sweep methodology — Build 6 admin gating
+
+**What failed.** The Build 6 admin-gating sweep (commit 6d18773) enumerated remembered admin routes and verified each calls `isPlatformAdmin`. The sweep missed 13 routes because the dispatcher relied on recall rather than `Glob src/app/api/admin/**/*.ts`. A 2026-05-19 code-level positive-test audit (dispatched after seeding `jasonlosh@hotmail.com` with `is_platform_admin=true`) found the 13 Build-6-missed routes but ALSO missed 4 additional ungated routes under the `sources/[id]/` subtree AND miscalled 2 worker-secret cron routes as `requireAuth`-only based on directory location. Track B-code re-enumeration (commit 4c7b546) applied enumerate-first discipline (Glob the surface + grep each enumerated route) and produced a correct 15-route fix scope.
+
+**Class problem.** Sweep dispatches that enumerate from memory or pattern-match miss items; the failure mode is invisible until a later sweep catches the gap. Pattern applies to any sweep on any surface family (route, column, constraint, file pattern).
+
+**Class fix.** Sweep-discipline rule (4th named binding rule in sprint-followups-discipline, commit ae8734c) mandates Glob-first or schema-query-first enumeration + criterion check per enumerated item + explicit discrepancy surfacing in the dispatch report.
+
+**Recognition signals fired.** Signal 1 (recurrence: Build 6 + 2026-05-19 audit + Track B-code, three sweeps three failure-modes); signal 4 (reinventing: any future sweep on any surface family would reinvent). Class confirmed.
+
+### Example 3: Type-system drift — Q2 schema-vs-code break
+
+**What failed.** Q2 migration 090 renamed `sources.tier` to `sources.base_tier` and added `sources.effective_tier`. Deployed master code (at commit 537ad38 and earlier) still read `sources.tier`. Production reads broke immediately at the PostgREST column-resolution layer. Sample validation insufficient because the codebase uses stringly-typed Supabase clients (no generated `Database` types); typecheck didn't catch the breakage at compile time, only at request time in production.
+
+**Class problem.** Schema migrations that rename or restructure columns break deployed consumers silently when the type system doesn't surface the drift at compile time. Pattern recurs anywhere schema and code drift independently.
+
+**Class fix.** Compatibility-shim pattern: migration 094 added `sources.tier` back as a regular column synced to `base_tier` via BEFORE INSERT OR UPDATE trigger plus CHECK constraint enforcing the lockstep. Phase 1.5 consumer migration switches each call site explicitly to `base_tier` or `effective_tier` per operator-decided default rule (customer-facing → effective; admin/system-internal → base). Shim drops via cleanup migration once Phase 1.5 verification confirms all consumers migrated.
+
+**Recognition signals fired.** Signal 3 (shared codepath: ~50 consumer sites across ~25 files); signal 4 (reinventing: every future schema rename would face same drift). Class confirmed.
+
+### Example 4: API contract gaps — Q10 URL canonicalization
+
+**What failed.** Source registry lookups did exact-string URL matches across 10 resolution sites in `src/lib/sources/` and `src/app/api/admin/canonical-sources/`. Citations with trailing-slash/www/query-param drift silently failed to resolve to the registered source, instead creating duplicates in `provisional_sources`. The pattern was invisible until a deliberate duplicate scan surfaced 9 duplicate sets in `sources` + 29 cross-table collisions between `sources` and `provisional_sources`.
+
+**Class problem.** Identifier comparisons across system boundaries need canonicalization. Same class includes timestamp normalization, jurisdiction code matching, any normalize-before-compare pattern.
+
+**Class fix.** Extracted `canonicalizeUrl` helper at `fsi-app/src/lib/sources/url-canonicalize.ts`. Applied at all 10 enumerated resolution sites. Migration 087 backfilled existing URLs (`sources.url`, `provisional_sources.url`, AND `intelligence_items.source_url` denormalized cache; the cache was a Suspect in the Sources-schema-touch precondition audit and surfaced for resolution rather than silently broken). Q10 duplicate-merge dispatch deferred per operator (bounded operator-merge work).
+
+**Recognition signals fired.** Signal 3 (shared codepath: 10 resolution sites with same broken pattern); signal 4 (reinventing: future source-resolution code without the helper would rebuild). Class confirmed.
+
+### Example 5: Tool reliability — Glob filesystem snapshot inconsistency
+
+**What failed.** Glob tool calls in different sub-agent contexts at the SAME git SHA returned different results for the same path pattern. Specifically `docs/sprint-1/followups.md` was visible in some worktree contexts and not in others. Surfaced 4+ times across Q1, Q3, Q6, Q10 sub-agent reports each mentioning a variant of "docs/sprint-1/followups.md not visible in my worktree."
+
+**Class problem.** Agent-layer tooling occasionally returns inconsistent filesystem state across contexts. Pattern is platform-tool-layer; root cause not yet investigated. Hypothesis space: stale filesystem snapshot in tool implementation; per-worktree visibility variance; permission-scope inheritance from main session.
+
+**Class fix (partial).** Defensive discipline encoded in dispatch briefs: "if Glob returns 'No files found' for a path you expect to exist, try direct Read of the expected path AND a Bash ls as backstop before concluding absence." No primitive extracted yet because root cause unknown. Tracked as emerging pattern (Section 4.5) pending systematic investigation. Promotion to full primitive-extraction class fix happens when root cause is understood.
+
+**Recognition signals fired.** Signal 1 (recurrence: 4+ instances); signal 2 (infrastructure-variation: tool layer). Class confirmed; class FIX is partial.
+
+### Example 6: Architectural codification — source-credibility-model encoding as proactive class fix
+
+**What failed.** Not a failure in the usual sense. The six-element source credibility model existed only as a long architectural conversation transcript (2026-05-19 conversation that closed 10 questions Q1-Q10). Without canonical encoding, future dispatches would reference the model from operator memory or by re-reading transcripts, with inevitable drift as the model evolved. Build 8 (Research) would re-derive the Q9 Research signal set from scratch; effective_tier consumers would re-derive the COALESCE formula; bias vocabulary would drift across classifier prompt updates.
+
+**Class problem.** Architectural decisions that live only in transcript become unreferenceable; future work reinvents or drifts. Pattern applies to any architectural decision: data models, design principles, vocabularies, signal sets, formulas.
+
+**Class fix.** Encode as canonical skill: `fsi-app/.claude/skills/source-credibility-model/SKILL.md` (commit 6065dea) with the full six-element model, verbatim Q4 bias vocabulary, verbatim Q7 thresholds, verbatim Q9 signal-set table, cross-references to env-policy hierarchy + platform-intent + design-principles + the decisions doc. Plus Source-credibility-model load-trigger rule as 5th named binding rule in sprint-followups-discipline (Option A pattern) so future dispatches load the skill at the right moments.
+
+**Recognition signals fired.** Signal 4 (reinventing: every future build touching credibility surfaces would re-derive the model from transcript). Class confirmed.
+
+**Note.** This is a PROACTIVE class fix, not failure-driven. The class-over-instance principle applies to architectural codification too, not just bug-driven remediation. Same lens: would future work reinvent? Yes → codify.
+
+## Section 8: Anti-Patterns
+
+Six anti-patterns that mean the principle is loaded but not applied:
+
+1. **Instance patches that should have been class fixes.** The Q4 original framing ("just patch the script") before operator redirected to library extraction. Symptom: the patch fits the specific failure but doesn't address the class. The same patch is about to be made again on the next batch script when it fails the same way.
+
+2. **Over-application.** Treating genuinely one-off issues as class problems when 0 signals fire. Creates over-engineering. Data anomalies, one-time migration artifacts, account-specific config edge cases, time-bounded issues do not warrant primitive extraction or rule codification. Use Section 9 boundaries.
+
+3. **Codification before sufficient examples.** Making a rule with one recurrence; insufficient grounding. The rule may not generalize beyond the one case; future dispatches inherit an obligation that doesn't match their reality. Wait for the 2nd confirmed instance.
+
+4. **Skill scope creep.** Adding categories to this skill beyond what worked examples justify. The skill's worked-example library grows with evidence, not speculation. Section 4.5 captures emerging patterns; promotion to Section 4 requires a full worked example demonstrating the class fix.
+
+5. **Reinventing primitives (concrete).** Any time an agent writes retry logic, Pool configuration, progress reporting, or rate limiting inline in a new batch script, that is reinventing. Library reference goes in the dispatch brief at scoping time. If the primitive doesn't exist for the use case, the dispatch first extracts the primitive into the library, then consumes it. Same applies to URL canonicalization (helper exists at `src/lib/sources/url-canonicalize.ts`), compatibility shim patterns (migration 094 shape is the template), and any other primitive in this skill's example library.
+
+6. **Premature primitive extraction (counterpart to anti-pattern 3).** Extracting a primitive into the library before the second instance exists. Same evidence threshold as codification: 2+ confirmed instances before extraction. Speculative primitive design often misses generalization needs because there is only one consumer to validate the abstraction against.
+
+## Section 9: When the Principle Doesn't Apply
+
+Genuinely one-off remediations where class-over-instance does not apply:
+
+- **Data anomalies in specific records.** A single source with bad data, a single user account with corrupted state, a single intelligence_item with malformed source_url. Fix the record, not a class.
+- **One-time migration artifacts.** Legacy data from before a convention was established. The class no longer exists going forward.
+- **Operator-specific configuration edge cases.** Account-scoped setup that doesn't generalize across the user base.
+- **Time-bounded issues that will naturally resolve.** Deprecated upstream API in its sunset window; transient infrastructure events from a known platform incident.
+
+Recognition criteria (Section 3) help draw the line. 0 signals fire → instance. The skill is deliberately not overapplied; not every failure is class-shaped.
+
+## Section 10: Cross-References
+
+- **`sprint-followups-discipline`**: owns the binding rules; remediation-discipline rules land here as named rules (Remediation-discipline load-trigger as 6th named rule; Batch-script resilience rule as 7th). The Sweep-discipline rule (4th named) and Source-credibility-model load-trigger rule (5th named) are remediation-discipline class fixes from earlier in this session.
+- **`source-credibility-model`**: domain-specific; remediation-discipline applies to credibility failures the same as anywhere else. Worked example 6 of this skill references the source-credibility-model encoding as a proactive class fix.
+- **`caros-ledge-platform-intent`**: platform architecture; doesn't overlap. Value Delivery Check binding on remediation dispatches via this skill's load.
+- **`environmental-policy-and-innovation`**: domain content; doesn't overlap. Integrity rule applies to remediation work (no invented worked examples; concrete instances only).
+- **`fsi-app/scripts/lib/batch-primitives.mjs`**: the concrete library that implements Section 5's primitive extraction pattern for batch-script resilience. Reference implementation.
+- **`docs/sprint-1/followups.md` OBS-51**: captures the Q4 sample-scale-validation discipline note; OBS-51 Resolution section points back at this skill.

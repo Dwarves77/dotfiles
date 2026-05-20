@@ -330,6 +330,55 @@ Load is mandatory, not advisory. Without the skill loaded, the dispatch cannot g
 
 **Worked example.** A Build 8 (Research horizon-scan) dispatch touches `sources` (reads for filtering), `intelligence_item_citations` (reads for citation count display), and customer-facing credibility signal rendering (Research surface per Q9: tier + bias tag + citation count + recency). Triggers 1, 2, and 7 fire. The dispatch brief loads source-credibility-model alongside sprint-followups-discipline, caros-ledge-platform-intent, and environmental-policy-and-innovation. The dispatch's design implements the Q9 Research signal set per source-credibility-model Section 8.
 
+## Remediation-discipline load-trigger rule
+
+This rule was added 2026-05-20 alongside the encoding of the remediation-discipline skill (`fsi-app/.claude/skills/remediation-discipline/SKILL.md`). The skill codifies the class-over-instance principle for remediation work and lives in its own skill rather than this discipline. This rule names which dispatches must load remediation-discipline so the class-over-instance lens is applied consistently at remediation scoping time, not after the fact.
+
+**Binding rule.** Load `remediation-discipline` skill on any dispatch that:
+
+1. Is framed as remediation, post-mortem, hotfix, or failure response
+2. Is investigating a recurring pattern across multiple instances
+3. Is extracting a primitive, library, or shared utility
+4. Is adding a new binding rule to any discipline skill
+5. Is scoping the response to a surfaced bug, regression, or production incident
+
+Load is mandatory, not advisory. Without the skill loaded, the dispatch may default to instance-only patches without checking whether the failure is class-shaped. Section 3 of the skill provides the recognition criteria (4 signals + threshold rule) that determines class vs instance.
+
+**What this rule is NOT.**
+
+- NOT a requirement to apply the class-over-instance principle to every dispatch. Design and implementation dispatches that aren't responding to a failure don't owe class-vs-instance analysis. The skill is REMEDIATION-shaped.
+- NOT a substitute for `sprint-followups-discipline` itself. Loop closure + DP compliance + sweep discipline + sources-schema-touch precondition all still apply.
+
+**How to apply.** At dispatch brief authoring time, check the trigger list above against the dispatch's framing. If any trigger fires, add `remediation-discipline` to the skill load list. The dispatch's pre-work report names the skill as loaded and applies the recognition criteria (Section 3) to the failure being remediated.
+
+**Worked example.** The Q4 batch failure (sources 21/22, Anthropic timeout + pg disconnect) triggered remediation. Operator framed Path (a) as instance-only patch initially. Loading remediation-discipline at scoping time would have surfaced the class-shape (recognition signals 2 + 4 fire) before the patch dispatch fired, leading directly to the bundled library-extraction dispatch instead of the patch-then-library sequence actually executed. Future remediation dispatches load this skill at scoping to make the class call upfront.
+
+## Batch-script resilience rule
+
+This rule was added 2026-05-20 as the codified instance of remediation-discipline's class fix for batch-script resilience (see remediation-discipline Section 7 worked example 1).
+
+**Binding rule.** Any dispatch that creates or modifies a long-running batch script (>50 iterations, especially external API calls or persistent DB connections) MUST use the batch-primitives library at `fsi-app/scripts/lib/batch-primitives.mjs` OR document why it cannot.
+
+Sample-only validation does NOT satisfy batch-robustness gates. The dispatch brief explicitly names the failure modes the sample WON'T reveal and confirms library primitives handle them:
+- Retry-with-backoff on external API errors (timeouts, network, 429, 5xx) via `withRetry(fn, { isRetryable })`
+- Reconnect-on-disconnect for persistent DB connections via `createPgPool` (Pool handles natively; no separate retry wrapper needed for the connection layer)
+- Rate limit enforcement on external API calls via `withRateLimit`
+- Per-iteration error isolation: one item's failure does NOT crash the whole batch (achieved via try/catch around the wrapped fn within the loop)
+- Idempotency via `withIdempotency` so re-runs skip completed work
+- Hook-based progress reporting via `createProgressReporter`
+
+Triggered by OBS-51 (Q4 sources 21/22 failure: sample-scale validation passed; full-batch hit Anthropic timeout + pg disconnect immediately at source 21+22).
+
+**What this rule is NOT.**
+
+- NOT a requirement to use every primitive in every batch. A pure-SQL batch (e.g., Q7 daily recompute) doesn't need `withRetry` or `withRateLimit`. Use the primitives that match the batch's failure surface.
+- NOT applicable to scripts that use Supabase client (`createClient` from `@supabase/supabase-js`) instead of `pg.Pool`. Supabase client manages its own connection lifecycle; library `createPgPool` doesn't apply. Surface that mismatch in the dispatch brief; future expansion of the library can address Supabase-client resilience separately.
+- NOT a license to skip integration verification. Library primitives are unit-tested; consumer batches still owe smoke-test verification (--dry-run --limit N) before production runs.
+
+**How to apply.** When a dispatch creates or modifies a batch script, the brief explicitly lists which library primitives are consumed and why each was chosen. The script imports from the library; inline retry/Pool/rate-limit/progress logic is anti-pattern (remediation-discipline Section 8 anti-pattern 5: reinventing primitives).
+
+**Worked example.** Q4 batch script (`fsi-app/scripts/q4-bias-batch-assign.mjs`) consumes `isAnthropicRetryable` + `isPgRetryable` predicates from the library (full primitive migration deferred; v1 validates library consumption). Q7 daily batch script (`fsi-app/scripts/cron/q7-daily-recompute.mjs`) refactor deferred because it uses Supabase client not pg.Pool; the library doesn't fit cleanly. Both deferrals are documented in the script headers and tracked for follow-up.
+
 ## Anti-Patterns
 
 These behaviors mean the skill was loaded but not followed:
