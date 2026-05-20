@@ -921,3 +921,36 @@ New binding rule added to `fsi-app/.claude/skills/sprint-followups-discipline/SK
 - Code fix: commit 4c7b546 (15 routes gated, typecheck clean)
 - Methodology fix: Sweep-discipline rule in skill amendment (this dispatch's commit SHA, fill in after commit)
 - Future sweeps now bound by the Sweep-discipline rule
+
+---
+
+## OBS-51: Sample-scale validation insufficient for batch-scale guarantees
+
+**State**: Implemented (discipline note; future enforcement via dispatch brief patterns)
+**Captured**: 2026-05-20
+**Cross-references**: OBS-Q4 batch failure context (Q4 sample run was 20/20 clean; full batch failed at source 21+22 with two distinct error modes neither triggered at 20-source scale)
+
+### Finding
+
+The Q4 bias-classification batch script passed sample validation (20 sources, 0 failures) and was dispatched against the full 776-source batch. It failed at source 21 (Anthropic API timeout) and source 22 (pg connection terminated) — both error modes that don't reliably trigger at 20-source scale because:
+- Anthropic API timeouts are intermittent network events; probability of hitting one in 20 calls is low
+- Supabase pooler disconnects idle connections after a period; 20 fast calls don't expose this
+
+### Discipline rule (going forward)
+
+Any dispatch brief for a long-running batch script (>50 iterations, especially involving external API calls or persistent DB connections) MUST require the script to include from the start:
+- Retry-with-backoff on external API errors (timeouts, network, 5xx)
+- Reconnect-on-disconnect for persistent DB connections (or use connection pooling)
+- Per-iteration error isolation (one source's failure does NOT crash the whole batch)
+- Progress logging with idempotency-friendly state (so re-runs skip completed work)
+
+Sample validation is necessary but NOT sufficient. The dispatch brief explicitly names the failure modes the sample WON'T reveal and demands them addressed.
+
+### Resolution
+
+Item 3 patch dispatch (feat/q4-batch-resilience) shipped:
+- Anthropic-timeout retry with exponential backoff (1s/2s/4s, max 3 retries per source)
+- pg reconnect-on-disconnect (or pg.Pool pattern) with max 3 reconnect attempts per operation
+- Per-source error isolation: failures log and continue to next source
+
+Discipline rule captured here as OBS-51 so future dispatch briefs for long-running batches reference it explicitly.
