@@ -38,11 +38,13 @@ test('runner: --list prints both rules', () => {
 });
 
 test('runner: fixture for trivial commit exits 0', () => {
+  // 'chore:' subject avoids rule 003's remediation-discipline-load-trigger (matches fix:/hotfix:/etc).
+  // 1-file commit avoids rule 010's verification trigger (trivial).
   const result = runFixture(
-    'fix: typo',
+    'chore: typo',
     [{ path: 'README.md', additions: 1, deletions: 1 }]
   );
-  assert.equal(result.exitCode, 0);
+  assert.equal(result.exitCode, 0, `expected exit 0, got ${result.exitCode}. Output:\n${result.output}`);
 });
 
 test('runner: fixture for substantial commit missing both lines exits 1', () => {
@@ -56,7 +58,9 @@ test('runner: fixture for substantial commit missing both lines exits 1', () => 
   assert.ok(result.output.includes('[011]'));
 });
 
-test('runner: fixture for substantial commit with both lines exits 0', () => {
+test('runner: fixture for substantial commit with required attestation lines exits 0', () => {
+  // Substantial (10 files) feat commit must satisfy 008 (Loop-closure), 010 (Verification), 011 (Inventory-emission).
+  // Other rules skip: no sources, no scripts, no plan files, no sweep subject.
   const result = runFixture(
     [
       'feat: ship the thing',
@@ -65,6 +69,7 @@ test('runner: fixture for substantial commit with both lines exits 0', () => {
       '',
       'Loop-closure: OBS-1 COVER; DP-1 PASS',
       'Inventory-emission: no inventory surfaces touched',
+      'Verification: ran node --test fsi-app/.discipline; observed 211 pass, 0 fail',
     ].join('\n'),
     Array.from({ length: 10 }, (_, i) => ({ path: `fsi-app/src/f${i}.ts`, additions: 5, deletions: 5 }))
   );
