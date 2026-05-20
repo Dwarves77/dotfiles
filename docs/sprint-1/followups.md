@@ -1357,3 +1357,39 @@ Small dispatch (~30-45 min):
 4. Close OBS-63.
 
 Bundle when operator has product attention for this; not urgent (schema defaults handle runtime).
+
+---
+
+## OBS-64: Sprint Architecture verification surface gap (build-compilation not gated) — closed via F9 in this commit
+
+**State**: Closed (F9 fitness function lands in this commit + 2 type fixes in DecideBody / PromoteBody)
+**Captured**: 2026-05-20
+**Cross-references**: Sprint Architecture commit 2494a74 (the commit that broke Vercel build), F8 fitness function + Phase 1.5 refactor (root cause: F8 renamed body.tier → body.assignedTier in 2 routes' runtime reads but the type definitions weren't updated), Signal 5 in remediation-discipline (preservation-argument-against-dispatch is the same class as "tests pass implies it compiles")
+
+### Finding
+
+Sprint Architecture commit `2494a74` shipped F8 + bundled Phase 1.5 refactor (`body.tier` → `body.assignedTier` in client + server-side `body.assignedTier ?? body.tier` fallback). All discipline gates passed: 327 tests passed, 9 attestation rules + 8 fitness functions clean against the codebase. Vercel CI then ran `npm run build` and TypeScript compilation failed because `DecideBody` and `PromoteBody` type definitions did not include `assignedTier`.
+
+The verification surface had a gap. The gates ran `node --test` (which uses fixtures and doesn't exercise full route-handler type-checking) and ran the fitness suite (pattern checks against file content), but neither ran `tsc --noEmit` against the project. The convention "all tests pass" was operating in place of the mechanism "the project compiles."
+
+This is the exact Signal 5 pattern: a refactor was made, gates passed, mechanical verification of one specific layer (type-checking) was absent. Same class as Phase 1.5's UI documentation gap that motivated F8 itself.
+
+### Resolution (this commit; Option C atomic bundle)
+
+1. **Type fixes (instance)**: `DecideBody` and `PromoteBody` in canonical-sources/decide and admin/sources/promote route handlers now include `assignedTier?: number` alongside the legacy `tier?: number`. Both routes' code already read `body.assignedTier ?? body.tier`; only the type def was missing.
+
+2. **F9 fitness function (class fix)**: new `fsi-app/.discipline/fitness/functions/F9-build-compiles.mjs` invokes `tsc --noEmit` against the `fsi-app/` project. Any TypeScript compilation error fails F9. Runs as part of the standard fitness suite in CI; recommended exclusion from commit-msg hook by default (would add ~10-15s to every commit). Future pre-push hook is the natural extension if local-loop build feedback becomes important.
+
+3. **Triage performed**: grep'd codebase for all instances of the F8 server-side fallback pattern (`body.assignedTier ?? body.tier`, `// F8 (Sprint Architecture)`, `// legacy body.tier`). Two routes affected; both already type-fixed in this commit. No other instances.
+
+### Class lesson (codified)
+
+Signal 5 from remediation-discipline already covers this pattern. The specific F9 addition closes the verification-surface gap concretely: future refactors that update runtime but not types fail F9 locally before push. The class fix is mechanically encoded.
+
+### Per remediation-discipline recognition
+
+Signals fired on the underlying gap: 4 (reinventing — future refactors would redecide which verification layers to run), 5 (preservation-argument-against-dispatch — "tests pass" + "discipline gates clean" operating in place of "build compiles"). 2 of 5 → class confirmed. F9 is the mechanical encoding; Signal 5 documentation already exists.
+
+### Open question (deferred follow-up; not bundled here)
+
+F10 candidate: full `next build` (not just tsc --noEmit). Heavier (~30-60s), catches more (e.g., Next.js-specific build errors, runtime config errors). Could land as a CI-only fitness function (separate from the standard suite). Operator decides whether to add now or wait for first instance.

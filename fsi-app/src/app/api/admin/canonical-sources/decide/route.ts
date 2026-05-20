@@ -58,7 +58,11 @@ interface DecideBody {
     candidate_title?: string;
     candidate_publisher?: string;
   };
-  // Classification (used only when creating a new source)
+  // Classification (used only when creating a new source).
+  // F8 (Sprint Architecture): clients send assignedTier; legacy tier accepted
+  // as fallback during F8 rollout window. Both map to base_tier + effective_tier
+  // dual-write on the new sources row per the Day 1 invariant.
+  assignedTier?: number;
   tier?: number;
   domains?: number[];
   jurisdictions?: string[];

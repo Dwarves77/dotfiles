@@ -9,6 +9,7 @@ import { fitnessFunction as F5 } from './functions/F5-briefs-cite-registered-sou
 import { fitnessFunction as F6 } from './functions/F6-migrations-numeric-ordering.mjs';
 import { fitnessFunction as F7 } from './functions/F7-sources-routes-skill-attestation.mjs';
 import { fitnessFunction as F8 } from './functions/F8-client-server-tier-boundary.mjs';
+import { fitnessFunction as F9 } from './functions/F9-build-compiles.mjs';
 
 export const fitnessFunctions = [
   F1,
@@ -19,6 +20,7 @@ export const fitnessFunctions = [
   F6,
   F7,
   F8,
+  F9,
 ];
 
 export function getFunctionById(id) {
