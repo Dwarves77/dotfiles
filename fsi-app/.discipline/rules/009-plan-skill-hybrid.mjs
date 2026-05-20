@@ -10,7 +10,7 @@
 // Check:   commit body contains a "Plan-file:" line naming a file under
 //          fsi-app/docs/plans/<date>-<name>.md (or repo-root docs/plans/), AND that
 //          file actually exists on disk. The existence check uses node:fs.existsSync;
-//          relative paths resolve against the repo root (C:/Users/jason/dotfiles).
+//          relative paths resolve against the repo root discovered via getRepoRoot().
 
 import { existsSync } from 'node:fs';
 import { resolve, isAbsolute } from 'node:path';
@@ -53,7 +53,7 @@ function parseCoordinationCount(ctx) {
 
 // Resolve a plan-file reference to an absolute path. Accepts:
 //   absolute path (used verbatim)
-//   relative path (resolved against REPO_ROOT)
+//   relative path (resolved against the discovered repo root)
 //   either fsi-app/docs/plans/... or docs/plans/...
 function resolvePlanFilePath(reference) {
   if (isAbsolute(reference)) return reference;

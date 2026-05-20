@@ -1174,3 +1174,48 @@ Next worktree-cleanup-script touch. Bounded ~30-45 min. Not urgent (operator's m
 ### Per remediation-discipline recognition
 
 Signals fired: 1 (recurrence — every worktree cleanup needs all 3 steps; today's manual sweep was operator memory), 4 (reinventing — operator memory currently bears the discipline). 2 of 4 → class confirmed for the automation; class fix is primitive-extraction shape per Section 5.
+
+---
+
+## OBS-59: REPO_ROOT hardcoded-path class issue + content-check layer + Vercel inventory correction
+
+**State**: Closed (bundled response landed in this commit)
+**Captured**: 2026-05-20
+**Cross-references**: Sprint Foundation Waves 0-4 (commits fab2e0e, d6e26d2, c097b09), remediation-discipline Section 4 (class-over-instance), 12th binding rule (Hardcoded user-home path, this commit), docs/inventories/skills.md Section 3 (Vercel correction)
+
+### Finding
+
+The Sprint Foundation engine shipped with the literal string `'C:/Users/jason/dotfiles'` hardcoded in 4 source files. All 4 were authored by Claude in this session (3 directly in Wave 0; 1 via a sub-agent prompt I authored in Wave 1). The class-fix landed in Wave 4 (`c097b09`) but missed `runner.test.mjs:11`. Operator surfaced the missed instance + asked an investigation dispatch about historical scope.
+
+Three concerns surfaced from the investigation:
+
+1. **One residual hardcoded path** (`runner.test.mjs:11`) still in the tree after Wave 4 claimed class-fix closure. Sweep discipline failure: I fixed the instances I had in mind, not all instances of the class.
+2. **`getRepoRoot()` silently fell back to `process.cwd()`** when git was unavailable, which would have caused confusing downstream failures rather than a clear "not in a git context" message.
+3. **No mechanical guard** against the class of bug recurring. The 11 attestation rules check commit messages and file paths but do not read file contents, so they could not have caught the hardcoded-path pattern.
+
+A fourth finding surfaced during the investigation but is orthogonal:
+
+4. **`docs/inventories/skills.md` Section 3 incorrectly claimed Caro's Ledge is off-stack from Vercel.** Evidence (`fsi-app/.vercel/project.json`, `fsi-app/vercel.json` cron) shows active Vercel deployment. The Wave 4 inventory rewrite copied the prior wrong claim without verifying it.
+
+### Resolution (bundled in this commit)
+
+1. **Residual class-fix**: `runner.test.mjs:11` rewritten to use `import.meta.dirname` instead of the hardcoded `'C:/Users/jason/dotfiles/...'` literal. Stale comment at `rules/009-plan-skill-hybrid.mjs:13` referencing the same hardcoded path removed.
+2. **Engine hardening**: `lib/context.mjs` `getRepoRoot()` now honors a `DISCIPLINE_REPO_ROOT` environment variable override first, then attempts `git rev-parse --show-toplevel`, then throws a clear error message instructing the operator on the two fixes. No more silent `process.cwd()` fallback.
+3. **Mechanical content-check layer**: New 12th binding rule `Hardcoded user-home path` ships as `fsi-app/.discipline/rules/012-hardcoded-user-path.mjs`. Reads the actual bytes of every staged code file via the new `ctx.getFileContent()` helper and fails the commit on any of: `C:/Users/`, `C:\Users\`, `/c/Users/`, `/home/jason/`, `/Users/jason/`. Asymmetric on purpose: Windows variants match any user (broad enough to catch OS layout); Unix variants match this operator's username specifically (narrow enough to avoid `/home/runner/` false positives on GitHub Actions). Skip paths: `node_modules/`, `.git/`, `fsi-app/scripts/tmp/`. Test coverage: 20 unit tests (regex behavior + trigger + check per pattern variant + multi-file aggregation + skip-path behavior + metadata).
+4. **Inventory correction**: `docs/inventories/skills.md` Section 3 rewritten with the actual deployment state. Full re-evaluation of which of the 26 Vercel plugin skills are now load-bearing vs dormant is deferred to a follow-up dispatch (see follow-ups below).
+
+### Per remediation-discipline recognition
+
+Signals fired on the underlying class issue: 1 (recurrence — same hardcoded path appeared in 4 separate files), 2 (multiple instances — 3 of 4 instances were direct Claude code, the 4th was propagated via my Agent C prompt), 4 (reinventing — every consumer of REPO_ROOT redecided how to compute it, all wrong). 3 of 4 signals → class confirmed. The Wave 4 class-fix was correct in shape but incomplete in scope; the operator's sweep-discipline-style follow-up caught the gap. This commit closes both the gap (residual instance) AND the class-of-bug (mechanical content check).
+
+### Architecture choice and migration plan (Option A vs B)
+
+The 12th rule lives in the same engine as the 11 attestation rules (Option A). Operator's long-term preference is Option B (split attestation vs content into separate systems) because the conceptual distinction is real and content checks will likely grow. Option A was chosen for this commit because: (1) the work was built before the operator's lean was expressed, (2) local commit-msg hook coverage means devs catch the pattern pre-push (Option B is CI-only by default), (3) one content rule does not yet justify a second system.
+
+**Migration trigger**: when content-check rules reach 2+ entries (rule 013 lands, or rule 012 grows new patterns that don't fit), extract rules tagged as content checks into a separate `.lint/` directory with its own CI workflow and a thin local-hook wrapper. Each rule module already encapsulates trigger + check, so the migration is mechanical: move the file, update a new manifest, point a runner-or-replacement at the new directory. The architecture note in `fsi-app/.discipline/manifest.mjs` documents this migration trigger.
+
+### Follow-ups (separate dispatches, not bundled here)
+
+1. **Vercel plugin skill re-evaluation**: audit each of the 26 Vercel plugin skills against Caro's Ledge's actual deployment usage. Update load triggers in `docs/inventories/skills.md`. Add genuinely load-bearing Vercel skills to the standing dispatch-inventory rule for relevant work types (cron, env vars, deployment). Bounded ~1-2 hours.
+2. **Content-check rule extraction (Option B migration)**: trigger when content-check rules reach 2+ entries. Move to `.lint/` directory with separate CI workflow. Bounded ~1 hour.
+3. **Item 2 Phase 1.5 agent (a320022) status check**: agent dispatched earlier in the session never returned. Bounded ~30 min to determine state (still running / silent failure / completed unreported).

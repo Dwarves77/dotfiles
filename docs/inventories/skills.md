@@ -86,11 +86,15 @@ Located at `~/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/sk
 | `receiving-code-review` + `requesting-code-review` | Code review protocols. | Single-operator project; no formal review tier |
 | `writing-skills` | Skill authoring discipline. | Custom skills authored ad-hoc; this skill would tighten the loop if regular skill creation resumes |
 
-## Section 3: Vercel plugin (mostly dormant, off-stack)
+## Section 3: Vercel plugin (mixed; deeper audit pending per OBS-59)
 
 Located at `~/.claude/plugins/cache/claude-plugins-official/vercel/0.43.0/skills/` (and a duplicate 0.42.1 version per PLUGIN-NOTES.md). 26 skills.
 
-**Caro's Ledge does not currently deploy to Vercel** (uses Supabase + custom hosting). All Vercel skills are dormant by default. Relevant ones if Vercel deploy is ever adopted:
+**Correction landed 2026-05-20 (OBS-59 follow-up).** The prior "Caro's Ledge does not currently deploy to Vercel" claim was incorrect. Evidence: `fsi-app/.vercel/project.json` exists; `fsi-app/vercel.json` declares `framework: nextjs`, region `iad1`, and an active cron pointing at `/api/admin/q7-daily-recompute`. Caro's Ledge IS deployed to Vercel.
+
+Implication for the 26 plugin skills below: some are likely load-bearing (`vercel-cli`, `vercel-functions`, `nextjs`, `env-vars`, `deployments-cicd`, `runtime-cache`, `routing-middleware` for the kinds of work Caro's Ledge does today), and some remain dormant (`next-forge`, `chat-sdk`, `vercel-firewall`, `vercel-sandbox`, `marketplace`, `workflow` until the relevant feature surfaces). The full re-evaluation is deferred to a follow-up dispatch (tracked in OBS-59). Until that audit lands, treat any Vercel-touching dispatch as potentially needing one or more of these skills loaded; review the table below and select based on the dispatch's actual scope.
+
+Skills relevant if the dispatch touches Vercel deployment, env vars, cron, edge functions, or Next.js cache:
 
 | Skill | Purpose |
 |---|---|

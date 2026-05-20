@@ -6,9 +6,13 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve as resolvePath } from 'node:path';
 
-const RUNNER = 'C:/Users/jason/dotfiles/fsi-app/.discipline/runner.mjs';
+// Resolve the runner via import.meta.dirname so this test works on any
+// machine (operator's Windows tree, Linux CI, anyone else's clone) without
+// the hardcoded user-home path that previously lived here. Caught by the
+// OBS-59 follow-up investigation of the REPO_ROOT incident.
+const RUNNER = resolvePath(import.meta.dirname, 'runner.mjs');
 
 function runFixture(message, files) {
   const dir = mkdtempSync(join(tmpdir(), 'discipline-test-'));

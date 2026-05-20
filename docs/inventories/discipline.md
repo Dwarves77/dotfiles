@@ -12,7 +12,8 @@ Catalog of the Rules-as-Code (RaC) discipline engine at `fsi-app/.discipline/` p
 | 1 | (parallel agent work; integrated in Wave 2) | Rule modules for 001-007, 009, 010 (3 background agents in parallel worktree-style isolation) |
 | 2 | d6e26d2 | Manifest registers all 11 rules; full test count 211 |
 | 3 | (parallel agent work; integrated in Wave 4) | `commit-msg` hook + install script + GitHub Actions CI workflow |
-| 4 | (current commit) | REPO_ROOT class-fix (3 files; removes hardcoded path), CI workflow simplification, hook + CI + inventory integration, 217 tests |
+| 4 | c097b09 | REPO_ROOT class-fix (3 of 4 files; removes hardcoded path), CI workflow simplification, hook + CI + inventory integration, 217 tests |
+| OBS-59 follow-up | (this commit) | Bundle: getRepoRoot() env-override + explicit-error fallback, residual runner.test.mjs:11 class-fix, 12th rule (content-check layer), Vercel inventory correction. 12 rules registered. |
 
 ## Architecture
 
@@ -44,6 +45,7 @@ fsi-app/.discipline/
     009-plan-skill-hybrid.mjs                      + .test.mjs (18 tests)
     010-verification-before-completion.mjs         + .test.mjs (19 tests)
     011-inventory-artifact-emission.mjs            + .test.mjs (13 tests)
+    012-hardcoded-user-path.mjs                    + .test.mjs (20 tests)   <- content-check layer; OBS-59
 
 .github/workflows/
   discipline.yml                  GitHub Actions: validate-commits + test-discipline-engine jobs
@@ -64,6 +66,7 @@ fsi-app/.discipline/
 | 009 | Plan-skill hybrid | `Plan-file: <path>` (file must exist) | Plan-skill hybrid rule |
 | 010 | Verification-before-completion | `Verification: ran <cmd>; observed <result>` | Verification-before-completion required rule |
 | 011 | Inventory-artifact emission | `Inventory-emission: docs/inventories/<type>.md +N entries` | Inventory-artifact emission rule |
+| 012 | Hardcoded user-home path | (no attestation; reads file CONTENTS via `ctx.getFileContent`) | Sprint Foundation incident response 2026-05-20 (OBS-59); first content-check rule |
 
 ## Operator install + use
 
@@ -111,9 +114,10 @@ Test count by file:
 | `rules/009-plan-skill-hybrid.test.mjs` | 18 |
 | `rules/010-verification-before-completion.test.mjs` | 19 |
 | `rules/011-inventory-artifact-emission.test.mjs` | 13 |
+| `rules/012-hardcoded-user-path.test.mjs` | 20 |
 | `runner.test.mjs` | 6 |
 | `install-hooks.test.mjs` | 6 |
-| **Total** | **217** |
+| **Total** | **241** (217 + 4 new getRepoRoot tests + 20 rule 012 tests) |
 
 ## Enforcement layers
 

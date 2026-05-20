@@ -18,7 +18,7 @@ import {
   touchedInventorySurfaces,
   _matchesPattern,
 } from './predicates.mjs';
-import { buildContextFromFixture } from './context.mjs';
+import { buildContextFromFixture, getRepoRoot, _clearRepoRootCache } from './context.mjs';
 
 // ---------------------------------------------------------------------------
 // commitMessageHasLine
@@ -343,4 +343,76 @@ test('touchedInventorySurfaces: detects obs-status from followups', () => {
     files: [{ path: 'docs/sprint-1/followups.md', additions: 25, deletions: 0 }],
   });
   assert.ok(touchedInventorySurfaces(ctx).includes('obs-status'));
+});
+
+// ---------------------------------------------------------------------------
+// getRepoRoot (OBS-59: env var override + explicit error outside git context)
+// ---------------------------------------------------------------------------
+
+test('getRepoRoot: honors DISCIPLINE_REPO_ROOT env var override', () => {
+  const savedEnv = process.env.DISCIPLINE_REPO_ROOT;
+  _clearRepoRootCache();
+  process.env.DISCIPLINE_REPO_ROOT = '/fake/override/path';
+  try {
+    assert.equal(getRepoRoot(), '/fake/override/path');
+  } finally {
+    if (savedEnv === undefined) delete process.env.DISCIPLINE_REPO_ROOT;
+    else process.env.DISCIPLINE_REPO_ROOT = savedEnv;
+    _clearRepoRootCache();
+  }
+});
+
+test('getRepoRoot: trims whitespace from env override', () => {
+  const savedEnv = process.env.DISCIPLINE_REPO_ROOT;
+  _clearRepoRootCache();
+  process.env.DISCIPLINE_REPO_ROOT = '  /trimmed/path  \n';
+  try {
+    assert.equal(getRepoRoot(), '/trimmed/path');
+  } finally {
+    if (savedEnv === undefined) delete process.env.DISCIPLINE_REPO_ROOT;
+    else process.env.DISCIPLINE_REPO_ROOT = savedEnv;
+    _clearRepoRootCache();
+  }
+});
+
+test('getRepoRoot: ignores empty env override and falls through to git', () => {
+  const savedEnv = process.env.DISCIPLINE_REPO_ROOT;
+  _clearRepoRootCache();
+  process.env.DISCIPLINE_REPO_ROOT = '   ';
+  try {
+    const root = getRepoRoot();
+    assert.ok(root.includes('dotfiles'), `expected git fallback to return dotfiles path, got: ${root}`);
+  } finally {
+    if (savedEnv === undefined) delete process.env.DISCIPLINE_REPO_ROOT;
+    else process.env.DISCIPLINE_REPO_ROOT = savedEnv;
+    _clearRepoRootCache();
+  }
+});
+
+test('getRepoRoot: throws clear error when no env var and git fails', () => {
+  // Simulate a non-git context by pointing PATH at an empty directory so the
+  // git binary cannot be found, then clearing the env override.
+  const savedEnv = process.env.DISCIPLINE_REPO_ROOT;
+  const savedPath = process.env.PATH;
+  const savedPathExt = process.env.PATHEXT;
+  _clearRepoRootCache();
+  delete process.env.DISCIPLINE_REPO_ROOT;
+  process.env.PATH = '';
+  process.env.PATHEXT = '';
+  try {
+    assert.throws(
+      () => getRepoRoot(),
+      (err) => {
+        assert.match(err.message, /discipline engine: could not determine repo root/);
+        assert.match(err.message, /DISCIPLINE_REPO_ROOT/);
+        return true;
+      }
+    );
+  } finally {
+    process.env.PATH = savedPath;
+    if (savedPathExt === undefined) delete process.env.PATHEXT;
+    else process.env.PATHEXT = savedPathExt;
+    if (savedEnv !== undefined) process.env.DISCIPLINE_REPO_ROOT = savedEnv;
+    _clearRepoRootCache();
+  }
 });
