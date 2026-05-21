@@ -19,10 +19,8 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 | Path | Branch | Status | Suggested disposition |
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
-| `dotfiles-wt-build-7` | `feat/build-7-market-intel` | Active (Phase 3 parallel agent, Build 7 Market Intel; actual path .worktrees/wt-build-7) | Merge to master when agent completes; FaDB cleanup post-merge |
-| `dotfiles-wt-build-9` | `feat/build-9-operations` | Active (Phase 3 parallel agent, Build 9 Operations; actual path .worktrees/wt-build-9) | Merge to master when agent completes; FaDB cleanup post-merge |
-| `dotfiles-wt-build-10` | `feat/build-10-community` | Active (Phase 3 parallel agent, Build 10 Community; actual path .worktrees/wt-build-10) | Merge to master when agent completes; FaDB cleanup post-merge |
-| `dotfiles-wt-linkedin` | `feat/linkedin-import` | Active (Phase 3 parallel agent, LinkedIn OAuth import; actual path .worktrees/wt-linkedin) | Merge to master when agent completes; FaDB cleanup post-merge |
+
+**Ephemeral parallel-agent worktrees under `.worktrees/`** (e.g., `wt-build-7`, `wt-linkedin`) are NOT listed here. The `.worktrees/` directory is developer-local transient state per the FaDB convention; C4 ignores it on both sides (live + inventory). Track only the main repo + historical preserved state.
 
 ## Preserved branches (worktree dirs removed; branches alive)
 

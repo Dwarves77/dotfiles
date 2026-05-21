@@ -87,11 +87,18 @@ export const consistencyCheck = {
     // historical `dotfiles-wt-<name>` form. Inventory entries that resolve
     // to the same path under EITHER format count as a match. This mirrors
     // the bidirectional intent of the existence check above.
+    //
+    // Worktrees under `.worktrees/` are EXEMPT from both directions of
+    // the check. The `.worktrees/` directory is developer-local transient
+    // state per the FaDB convention; parallel-agent worktrees created
+    // there exist only on the developer machine and disappear after
+    // FaDB cleanup. Forcing inventory tracking on every ephemeral
+    // worktree creates a local-state-vs-CI drift exactly like the
+    // migration 067 incident (file exists locally, missing in CI checkout).
     for (const livePath of liveWorktrees) {
+      const normalized = livePath.replace(/\\/g, '/');
+      if (normalized.includes('/.worktrees/')) continue; // ephemeral by convention
       const basename = livePath.split(/[\\/]/).pop();
-      // Match if inventory contains the basename directly, OR if it
-      // contains the historical `dotfiles-<basename>` form, OR (for the
-      // main repo) the bare "dotfiles" entry.
       const historicalForm = basename === 'dotfiles' ? 'dotfiles' : `dotfiles-${basename}`;
       const matched = inventoryPaths.has(basename) || inventoryPaths.has(historicalForm);
       if (!matched) {
