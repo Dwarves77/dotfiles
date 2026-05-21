@@ -1403,3 +1403,37 @@ Signals fired on the underlying gap: 4 (reinventing — future refactors would r
 ### Open question (deferred follow-up; not bundled here)
 
 F10 candidate: full `next build` (not just tsc --noEmit). Heavier (~30-60s), catches more (e.g., Next.js-specific build errors, runtime config errors). Could land as a CI-only fitness function (separate from the standard suite). Operator decides whether to add now or wait for first instance.
+
+
+---
+
+## OBS-65: Community region taxonomy diverges from intelligence ISO codes
+
+**State**: Open (deferred to a dedicated dispatch)
+**Captured**: 2026-05-21 (Build 10 / Community)
+**Cross-references**: `fsi-app/supabase/migrations/028_community_groups.sql` (region CHECK constraint), `fsi-app/src/lib/jurisdictions/iso.ts` (canonical ISO taxonomy), caros-ledge-platform-intent SKILL.md Section "The Five Customer-Facing Surfaces"
+
+### Finding
+
+Community uses an 8-bucket region enum locked at the schema level by the `community_groups.region` CHECK constraint: `EU | UK | US | LATAM | APAC | HK | MEA | GLOBAL`. The intelligence surfaces (Regulations, Map, Operations) use ISO 3166-1 alpha-2 codes plus a small free-text set per `src/lib/jurisdictions/iso.ts`: `US | GB | EU | SG | HK | JP | KR | CN | CA | AU` and so on. The two taxonomies overlap (`EU`, `HK`, `GLOBAL`) but diverge on the United Kingdom (Community: `UK`; intelligence: `GB`) and on the aggregate buckets (`LATAM`, `APAC`, `MEA` have no intelligence equivalent; intelligence has per-country codes that Community lacks).
+
+A user searching the intelligence surfaces by `GB` finds no Community groups even when active groups exist; a user filtering Community by `APAC` finds no Regulations rows even when several APAC jurisdictions carry binding regulation. Cross-surface coherence breaks at the region taxonomy boundary.
+
+### Why deferred from Build 10
+
+Resolution requires either:
+
+- A schema migration changing the CHECK constraint, possibly an enum cutover (`community_groups.region` and downstream callers including `CommunityRegionTabs`, browse filters, region-counts RPC), and a data backfill mapping legacy values to the canonical taxonomy. Or
+- A view layer / mapping table that translates between the two without touching `community_groups.region` directly. Lighter but adds an indirection.
+
+Either path is a dedicated dispatch with schema design, migration ordering against Builds 7 / 9, and product decisions on how aggregate buckets (`LATAM`, `APAC`, `MEA`) should map (single bucket → many countries, or strip the buckets entirely). Outside Build 10's customer-visible-stub-closure scope.
+
+### Recommended owner
+
+A community-and-intelligence-region-unification dispatch, post-Build-7/9 settle so the migration number does not collide. The dispatch should:
+
+1. Decide whether to retain aggregate buckets as virtual filters in the UI (mapping to multi-ISO sets) or drop them.
+2. Pick the canonical column name (`region` vs `region_iso`) and write a migration that either widens the CHECK or replaces the column.
+3. Backfill existing rows. The historical group seed is small (single-digit groups per region per the alignment audit), so the backfill is bounded.
+4. Update `CommunityRegionTabs`, the region-counts RPC, and the browse filter UI in lockstep with the migration.
+
