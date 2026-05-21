@@ -7,8 +7,9 @@ import { JURISDICTIONS, MODES } from "@/lib/constants";
 import { SectorSelector } from "@/components/profile/SectorSelector";
 import { AtAGlanceBlock } from "@/components/profile/AtAGlanceBlock";
 import { QuickLinksSection } from "@/components/profile/QuickLinksSection";
-// Phase 7 admin chrome — Organization tab.
+// Phase 7 admin chrome — Organization + Members tabs.
 import { OrganizationPanel } from "@/components/profile/OrganizationPanel";
+import { MembersPanel } from "@/components/profile/MembersPanel";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import {
@@ -316,10 +317,9 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           />
         </div>
 
-        {/* Tabs — phaseC: false tabs render with a lock icon + "Coming soon"
-            affordance so users see them as gated, not broken. They remain
-            clickable (the panel area renders the existing PanelComingSoon),
-            but the visual state communicates intent. */}
+        {/* Tabs — Phase 7 wired Organization + Members tabs. All tabs are
+            now phaseC: true; the lock-icon "Coming soon" affordance no
+            longer fires because every tab renders a functional surface. */}
         <div
           className="flex flex-wrap gap-0 border-b mt-8 mb-6"
           style={{ borderColor: "var(--color-border)" }}
@@ -443,10 +443,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
               <OrganizationPanel orgId={orgId} />
             )}
             {tab === "members" && (
-              <PanelComingSoon
-                title="Members & roles"
-                description="Inviting teammates and assigning roles coming soon alongside multi-tenant workspaces."
-              />
+              <MembersPanel orgId={orgId} callerUserId={userId} />
             )}
           </div>
 
@@ -861,27 +858,6 @@ function PanelActivity() {
         style={{ color: "var(--color-text-muted)" }}
       >
         Nothing yet.
-      </p>
-    </Card>
-  );
-}
-
-// ── Coming-soon panel ────────────────────────────────────────────────────
-
-function PanelComingSoon({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <Card title={title} meta="Coming soon — multi-tenant">
-      <p
-        className="text-sm"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        {description}
       </p>
     </Card>
   );
