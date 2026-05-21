@@ -115,7 +115,14 @@ export function WeeklyBriefing({
     aggregates.totalJurisdictions > 0
       ? aggregates.totalJurisdictions
       : new Set(resources.map((r) => r.jurisdiction || "global")).size;
-  const summary = `Tracking ${totalItems} regulatory resources across ${totalJurisdictions} jurisdictions.${
+  // Build 11 count coherence: the briefing is the top-priority slice of
+  // the workspace's intelligence corpus across all five surfaces. Prior
+  // copy said "regulatory resources" which read narrower than the
+  // underlying total (intelligence_items, which includes Market Intel,
+  // Research, and Operations items as well). The five-surface widget on
+  // the rail renders the per-surface breakdown so this summary stays
+  // faithful to the headline meta.
+  const summary = `Tracking ${totalItems} intelligence items across ${totalJurisdictions} jurisdictions.${
     briefing.newR.length > 0 ? ` ${briefing.newR.length} new this week.` : ""
   }`;
 

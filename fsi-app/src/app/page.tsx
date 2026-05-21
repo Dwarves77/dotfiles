@@ -23,6 +23,7 @@ import {
   getWorkspaceAggregates,
 } from "@/lib/data";
 import { getCriticalItemsSnapshot } from "@/lib/dashboard/critical-items";
+import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
@@ -40,10 +41,11 @@ export default async function Home() {
   // tiles, and the WeeklyBriefing summary need true workspace totals.
   // Aggregates ride the same APP_DATA_TAG cache so override mutations
   // invalidate both in lockstep.
-  const [data, aggregates, criticalSnapshot] = await Promise.all([
+  const [data, aggregates, criticalSnapshot, surfaceCoverage] = await Promise.all([
     getAppData(),
     getWorkspaceAggregates(),
     getCriticalItemsSnapshot(),
+    getSurfaceCoverageSnapshot(),
   ]);
   console.log(`[perf] / data ${Date.now() - t0}ms`);
 
@@ -70,7 +72,15 @@ export default async function Home() {
       : new Set(data.resources.map((r) => r.jurisdiction || "global")).size;
   const itemsCount =
     aggregates.totalItems > 0 ? aggregates.totalItems : data.resources.length;
-  const meta = `${dateStr} · ${itemsCount} regulations tracked · ${jurisdictionsCount} jurisdictions`;
+  // Build 11 count coherence: the masthead headline now describes the
+  // workspace's full intelligence corpus across the four routed surfaces
+  // (Regulations, Market Intel, Research, Operations) plus a tag for the
+  // Community surface co-equality. The DashboardHero tile sum
+  // (CRITICAL + HIGH + MODERATE + LOW) may differ from itemsCount when
+  // items carry NULL priority; that delta is now disclosed alongside the
+  // five-surface widget's "X active across 5 surfaces" count rather than
+  // mis-labelled as "regulations tracked".
+  const meta = `${dateStr} · ${itemsCount} intelligence items across 5 surfaces · ${jurisdictionsCount} jurisdictions`;
 
   return (
     <>
@@ -97,6 +107,7 @@ export default async function Home() {
         watchlistPromise={watchlistPromise}
         coverageGapsPromise={coverageGapsPromise}
         awaitingReviewPromise={awaitingReviewPromise}
+        surfaceCoverage={surfaceCoverage}
       />
     </>
   );

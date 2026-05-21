@@ -31,6 +31,8 @@ import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import { DashboardByOwner } from "@/components/home/DashboardByOwner";
 import { DashboardCoverageGaps } from "@/components/home/DashboardCoverageGaps";
 import { DashboardAwaitingReview } from "@/components/home/DashboardAwaitingReview";
+import { DashboardSurfaceCoverage } from "@/components/home/DashboardSurfaceCoverage";
+import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
@@ -72,6 +74,11 @@ interface HomeSurfaceProps {
   watchlistPromise: Promise<WatchlistItem[]>;
   coverageGapsPromise: Promise<CoverageGap[]>;
   awaitingReviewPromise: Promise<ReviewItem[]>;
+  // Build 11: per-surface coverage for the five-surface rail widget.
+  // Passed as a fully resolved snapshot rather than a promise because the
+  // page-level fetch (page.tsx) awaits it alongside aggregates for the
+  // count-coherence headline; downstream rendering is synchronous.
+  surfaceCoverage: SurfaceCoverageSnapshot;
 }
 
 export function HomeSurface({
@@ -86,6 +93,7 @@ export function HomeSurface({
   watchlistPromise,
   coverageGapsPromise,
   awaitingReviewPromise,
+  surfaceCoverage,
 }: HomeSurfaceProps) {
   const {
     resources: platformResources,
@@ -262,6 +270,14 @@ export function HomeSurface({
             gap: 36,
           }}
         >
+          {/* Build 11: five-surface coverage widget. Mounted at the top
+              of the rail per caros-ledge-platform-intent SKILL Section
+              "The Five Customer-Facing Surfaces": Regulations, Market
+              Intel, Research, Operations, and Community are co-equal
+              entry points. Pre-Build-11 the rail surfaced Regulations
+              priority breakdown and By Owner without representing the
+              other surfaces (OBS-41). */}
+          <DashboardSurfaceCoverage snapshot={surfaceCoverage} />
           <Suspense fallback={<RailSkeleton label="Watchlist" />}>
             <DashboardWatchlist promise={watchlistPromise} />
           </Suspense>
