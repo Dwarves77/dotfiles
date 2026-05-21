@@ -869,6 +869,44 @@ export function ResearchView({
 
 // ── Pipeline row ──
 
+/**
+ * Build 8.4: freshness color stripe on PipelineRow left edge.
+ *
+ * Reads Resource.addedDate (Supabase intelligence_items.added_date) and
+ * derives a freshness bucket. Threshold defaults from Build 8 plan
+ * decision 8.4.D1: fresh ≤7d, warming ≤30d, established ≤90d, stale >90d.
+ * Buckets map to a 4px left edge color stripe via Tailwind-free style
+ * (project doesn't use Tailwind for this surface). Renders nothing when
+ * addedDate is null/unparseable (no false freshness claim).
+ */
+type Freshness = "fresh" | "warming" | "established" | "stale";
+
+function freshnessFor(addedDate: string | null): Freshness | null {
+  if (!addedDate) return null;
+  const d = new Date(addedDate);
+  if (Number.isNaN(d.getTime())) return null;
+  const ageMs = Date.now() - d.getTime();
+  const day = 24 * 60 * 60 * 1000;
+  if (ageMs <= 7 * day) return "fresh";
+  if (ageMs <= 30 * day) return "warming";
+  if (ageMs <= 90 * day) return "established";
+  return "stale";
+}
+
+const FRESHNESS_STRIPE: Record<Freshness, string> = {
+  fresh: "#10B981",       // emerald-500
+  warming: "#3B82F6",     // blue-500
+  established: "#94A3B8", // slate-400
+  stale: "#D1D5DB",       // gray-300, muted (older + lower priority)
+};
+
+const FRESHNESS_LABEL: Record<Freshness, string> = {
+  fresh: "Fresh (≤7 days)",
+  warming: "Warming (≤30 days)",
+  established: "Established (≤90 days)",
+  stale: "Stale (>90 days)",
+};
+
 function PipelineRow({ item }: { item: ResearchPipelineItem }) {
   const [open, setOpen] = useState(false);
   const stage = normalizeStage(item.pipelineStage);
@@ -876,6 +914,7 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
   const region = regionLabel(item.jurisdictions);
   const mode = modeLabel(item.transportModes);
   const dateStr = item.addedDate ? formatDateUTC(item.addedDate) : "—";
+  const freshness = freshnessFor(item.addedDate);
 
   return (
     <div
@@ -886,7 +925,12 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
         marginBottom: 12,
         boxShadow: "var(--shadow)",
         overflow: "hidden",
+        // Build 8.4: 4px left-edge freshness stripe via inline border-left.
+        borderLeft: freshness
+          ? `4px solid ${FRESHNESS_STRIPE[freshness]}`
+          : "1px solid var(--border-sub)",
       }}
+      title={freshness ? FRESHNESS_LABEL[freshness] : undefined}
     >
       {/* Title row + chevron split: title is a <Link> to /regulations/[slug];
           chevron is a separate <button> that toggles expand/collapse.
