@@ -21,6 +21,7 @@ import { APP_DATA_TAG } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
+import { formatRelative, toDate } from "@/lib/relative-time";
 
 /**
  * Hotfix-3 Fix #3 (2026-05-07): platform-total count is workspace-agnostic
@@ -89,10 +90,16 @@ export default async function RegulationsPage({
   const jurisdictionsCount = new Set(
     data.resources.map((r) => r.jurisdiction || "global")
   ).size;
-  // No real "last sync" timestamp on the data shape today — placeholder
-  // copy aligns with the design preview ("last sync 4 min ago"). Replace
-  // with workspace.last_sync once that field surfaces from Supabase.
-  const meta = `${data.resources.length} regulations tracked · ${jurisdictionsCount} jurisdictions · last sync 4 min ago`;
+  // "Last sync" = most recent resource added to the platform. Resource.added
+  // is the ingestion timestamp (Supabase added_date column). If no resources
+  // or all timestamps are unparseable, omit the segment rather than show a
+  // hardcoded value.
+  const mostRecentAdded = data.resources
+    .map((r) => toDate(r.added))
+    .filter((d): d is Date => d !== null)
+    .reduce<Date | null>((acc, d) => (acc === null || d > acc ? d : acc), null);
+  const syncSegment = mostRecentAdded ? ` · last sync ${formatRelative(mostRecentAdded)}` : "";
+  const meta = `${data.resources.length} regulations tracked · ${jurisdictionsCount} jurisdictions${syncSegment}`;
 
   return (
     <>
