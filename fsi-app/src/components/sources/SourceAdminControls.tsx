@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Pause, Play, Download, RefreshCw, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Pause, Play, Download, RefreshCw, Loader2, Shield, RotateCcw, Check } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface ToastState { kind: "ok" | "err"; message: string }
 
@@ -280,6 +281,484 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
       {statusMsg && (
         <div className="text-[11px]" style={{ color: statusMsg.kind === "ok" ? "var(--color-success)" : "var(--color-error)" }}>
           {statusMsg.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Per-source tier-override control (Phase 7 admin chrome) ──
+//
+// Inline UI for setting / reverting the operator tier_override per
+// source-credibility-model skill Section 7 + ADR-002:
+//
+//   base_tier      = provenance (immutable per source family, set at
+//                    classification)
+//   tier_override  = operator override with mandatory reason
+//   effective_tier = COALESCE(tier_override, computed_dynamic_tier, base_tier)
+//
+// The control is mounted next to the existing SourceRowControls (pause /
+// fetch-now / regenerate-brief / visibility) so the operator can edit
+// every related source action from one screen per DP-1 (Single-Pane
+// Operator Review).
+//
+// Backed by /api/admin/sources/[id]/tier-override (GET for current state
+// + audit; POST for set/revert). Service-role writes happen server-side
+// only; the client posts the user's bearer token. Audit trail is shown
+// inline so the operator can see prior overrides without leaving the row.
+
+interface TierOverrideAuditEntry {
+  event_type: "tier_override" | "tier_override_revert";
+  reviewer_id: string | null;
+  created_at: string;
+  details: Record<string, unknown> | null;
+}
+
+interface TierOverrideState {
+  base_tier: number | null;
+  tier_override: number | null;
+  effective_tier: number | null;
+  override_reason: string | null;
+  override_date: string | null;
+  audit: TierOverrideAuditEntry[];
+}
+
+interface SourceTierOverrideControlProps {
+  sourceId: string;
+  initialBaseTier: number;
+  initialTierOverride: number | null;
+  initialEffectiveTier: number | null;
+}
+
+export function SourceTierOverrideControl({
+  sourceId,
+  initialBaseTier,
+  initialTierOverride,
+  initialEffectiveTier,
+}: SourceTierOverrideControlProps) {
+  const supabase = createSupabaseBrowserClient();
+  const [state, setState] = useState<TierOverrideState>({
+    base_tier: initialBaseTier,
+    tier_override: initialTierOverride,
+    effective_tier: initialEffectiveTier,
+    override_reason: null,
+    override_date: null,
+    audit: [],
+  });
+  const [loaded, setLoaded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<number>(
+    initialTierOverride ?? initialBaseTier
+  );
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [reverting, setReverting] = useState(false);
+  const [status, setStatus] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  function flash(kind: "ok" | "err", text: string) {
+    setStatus({ kind, text });
+    setTimeout(() => setStatus(null), 6000);
+  }
+
+  const load = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/admin/sources/${sourceId}/tier-override`, {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      });
+      if (!res.ok) return;
+      const payload = (await res.json()) as TierOverrideState;
+      setState(payload);
+      setSelectedTier(payload.tier_override ?? payload.base_tier ?? initialBaseTier);
+      setLoaded(true);
+    } catch {
+      // Silent fail: keep the initial props-derived view rather than
+      // erroring loudly. The operator can retry by toggling expanded.
+    }
+  }, [sourceId, supabase, initialBaseTier]);
+
+  // Lazy-load the GET state + audit only when the operator expands the
+  // panel. Avoids one fetch-per-row on dashboard render.
+  useEffect(() => {
+    if (expanded && !loaded) load();
+  }, [expanded, loaded, load]);
+
+  async function submitOverride() {
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) {
+      flash("err", "Reason required");
+      return;
+    }
+    if (state.base_tier !== null && selectedTier === state.base_tier && state.tier_override === null) {
+      flash("err", "Override matches base_tier; nothing to set. Revert instead.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/admin/sources/${sourceId}/tier-override`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          tier_override: selectedTier,
+          override_reason: trimmedReason,
+        }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        flash("err", payload?.error || `HTTP ${res.status}`);
+      } else {
+        // Optimistic update: reflect the new override in local state and
+        // immediately re-fetch so the audit list grows in place.
+        setState((prev) => ({
+          ...prev,
+          tier_override: payload.tier_override,
+          effective_tier: payload.after_tier,
+          override_reason: payload.override_reason,
+          override_date: payload.override_date,
+        }));
+        setReason("");
+        flash("ok", `Override saved: T${payload.before_tier} -> T${payload.after_tier}`);
+        await load();
+      }
+    } catch (e: any) {
+      flash("err", e.message || "Network error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function revertOverride() {
+    setReverting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/admin/sources/${sourceId}/tier-override`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          tier_override: null,
+          override_reason: reason.trim() || null,
+        }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        flash("err", payload?.error || `HTTP ${res.status}`);
+      } else {
+        setState((prev) => ({
+          ...prev,
+          tier_override: null,
+          effective_tier: payload.after_tier,
+          override_reason: null,
+          override_date: payload.override_date,
+        }));
+        setReason("");
+        flash("ok", `Reverted to base T${payload.after_tier}`);
+        await load();
+      }
+    } catch (e: any) {
+      flash("err", e.message || "Network error");
+    } finally {
+      setReverting(false);
+    }
+  }
+
+  const hasOverride = state.tier_override !== null;
+  const displayEffective =
+    state.effective_tier ?? state.tier_override ?? state.base_tier;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setExpanded((v) => !v);
+        }}
+        aria-expanded={expanded}
+        className="inline-flex items-center gap-2 px-2.5 py-1.5 text-[11px] rounded border self-start"
+        style={{
+          borderColor: hasOverride ? "var(--color-warning)" : "var(--color-border)",
+          backgroundColor: hasOverride
+            ? "rgba(217, 119, 6, 0.08)"
+            : "var(--color-surface)",
+          color: "var(--color-text-primary)",
+        }}
+      >
+        <Shield size={12} />
+        <span>
+          Base T{state.base_tier ?? "?"}
+          {" | "}
+          Effective T{displayEffective ?? "?"}
+          {hasOverride && (
+            <span
+              className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold"
+              style={{
+                color: "var(--color-warning)",
+                backgroundColor: "rgba(217, 119, 6, 0.12)",
+              }}
+            >
+              OVERRIDE T{state.tier_override}
+            </span>
+          )}
+        </span>
+        <span style={{ color: "var(--color-text-muted)" }}>
+          {expanded ? "Close" : "Edit"}
+        </span>
+      </button>
+
+      {expanded && (
+        <div
+          className="rounded-lg border p-3 space-y-3"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            borderColor: "var(--color-border)",
+            backgroundColor: "var(--color-surface-raised)",
+          }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+            <div>
+              <div
+                className="font-semibold uppercase tracking-wider"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Base tier
+              </div>
+              <div
+                className="text-sm font-semibold mt-0.5"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                T{state.base_tier ?? "?"}
+              </div>
+              <div
+                className="text-[10px] mt-0.5"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Immutable, set at classification
+              </div>
+            </div>
+            <div>
+              <div
+                className="font-semibold uppercase tracking-wider"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Effective tier
+              </div>
+              <div
+                className="text-sm font-semibold mt-0.5"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                T{displayEffective ?? "?"}
+              </div>
+              <div
+                className="text-[10px] mt-0.5"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                COALESCE(override, dynamic, base)
+              </div>
+            </div>
+            <div>
+              <div
+                className="font-semibold uppercase tracking-wider"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Override
+              </div>
+              <div
+                className="text-sm font-semibold mt-0.5"
+                style={{ color: hasOverride ? "var(--color-warning)" : "var(--color-text-muted)" }}
+              >
+                {hasOverride ? `T${state.tier_override}` : "(none)"}
+              </div>
+              {state.override_date && (
+                <div
+                  className="text-[10px] mt-0.5"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  {formatRelative(toDate(state.override_date) ?? new Date())}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {state.override_reason && (
+            <div
+              className="text-[11px] rounded p-2"
+              style={{
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-border-subtle)",
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              <span
+                className="font-semibold uppercase tracking-wider text-[10px]"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Current reason
+              </span>
+              <div className="mt-1">{state.override_reason}</div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Set override
+              </span>
+              <select
+                value={selectedTier}
+                onChange={(e) => setSelectedTier(parseInt(e.target.value, 10))}
+                className="px-2 py-1 text-xs rounded border"
+                style={{
+                  borderColor: "var(--color-border)",
+                  backgroundColor: "var(--color-surface)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                {[1, 2, 3, 4, 5, 6, 7].map((t) => (
+                  <option key={t} value={t}>
+                    T{t}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 flex-1 min-w-[200px]">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Reason (required when setting)
+              </span>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Operator domain knowledge justifying the override"
+                className="px-2 py-1 text-xs rounded border"
+                style={{
+                  borderColor: "var(--color-border)",
+                  backgroundColor: "var(--color-surface)",
+                  color: "var(--color-text-primary)",
+                }}
+              />
+            </label>
+            <button
+              onClick={submitOverride}
+              disabled={submitting || reverting}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] rounded border disabled:opacity-50"
+              style={{
+                borderColor: "var(--color-primary)",
+                backgroundColor: "var(--color-primary)",
+                color: "var(--color-invert-text)",
+              }}
+            >
+              {submitting ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+              {submitting ? "Saving..." : hasOverride ? "Update override" : "Set override"}
+            </button>
+            {hasOverride && (
+              <button
+                onClick={revertOverride}
+                disabled={submitting || reverting}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] rounded border disabled:opacity-50"
+                style={{
+                  borderColor: "var(--color-border)",
+                  backgroundColor: "var(--color-surface)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                {reverting ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
+                {reverting ? "Reverting..." : "Revert to base"}
+              </button>
+            )}
+          </div>
+
+          {status && (
+            <div
+              className="text-[11px]"
+              style={{
+                color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
+              }}
+            >
+              {status.text}
+            </div>
+          )}
+
+          {/* Audit trail (recent override events for this source) */}
+          {loaded && (
+            <div className="space-y-1.5">
+              <div
+                className="text-[10px] font-semibold uppercase tracking-wider"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Recent override audit
+              </div>
+              {state.audit.length === 0 ? (
+                <div
+                  className="text-[11px]"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  No prior override events.
+                </div>
+              ) : (
+                <ul className="space-y-1">
+                  {state.audit.map((ev, idx) => {
+                    const details = (ev.details || {}) as {
+                      before_tier?: number | null;
+                      after_tier?: number | null;
+                      previous_override?: number | null;
+                      reason?: string | null;
+                    };
+                    const when = toDate(ev.created_at);
+                    return (
+                      <li
+                        key={`${ev.created_at}-${idx}`}
+                        className="text-[11px] p-1.5 rounded"
+                        style={{
+                          backgroundColor: "var(--color-surface)",
+                          border: "1px solid var(--color-border-subtle)",
+                          color: "var(--color-text-secondary)",
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className="font-semibold"
+                            style={{
+                              color:
+                                ev.event_type === "tier_override"
+                                  ? "var(--color-warning)"
+                                  : "var(--color-text-secondary)",
+                            }}
+                          >
+                            {ev.event_type === "tier_override"
+                              ? `Set T${details.before_tier ?? "?"} -> T${details.after_tier ?? "?"}`
+                              : `Revert (prior T${details.previous_override ?? "?"})`}
+                          </span>
+                          <span
+                            className="tabular-nums"
+                            style={{ color: "var(--color-text-muted)" }}
+                          >
+                            {when ? formatRelative(when) : ev.created_at}
+                          </span>
+                        </div>
+                        {details.reason && (
+                          <div className="mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                            {details.reason}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

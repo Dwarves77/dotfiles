@@ -261,6 +261,11 @@ const SOURCE_COLUMNS = [
   // per the default rule.
   "base_tier",
   "effective_tier",
+  // Phase 7 admin chrome surfaces tier_override on the source row so the
+  // SourceTierOverrideControl renders the correct badge state without an
+  // extra fetch per row on collapsed admin view. Override audit history
+  // still loads lazily on expand via /api/admin/sources/[id]/tier-override.
+  "tier_override",
   "tier_at_creation",
   "intelligence_types",
   "domains",
