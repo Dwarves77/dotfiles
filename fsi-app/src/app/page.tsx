@@ -22,6 +22,7 @@ import {
   getAwaitingReview,
   getWorkspaceAggregates,
 } from "@/lib/data";
+import { getCriticalItemsSnapshot } from "@/lib/dashboard/critical-items";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
@@ -39,9 +40,10 @@ export default async function Home() {
   // tiles, and the WeeklyBriefing summary need true workspace totals.
   // Aggregates ride the same APP_DATA_TAG cache so override mutations
   // invalidate both in lockstep.
-  const [data, aggregates] = await Promise.all([
+  const [data, aggregates, criticalSnapshot] = await Promise.all([
     getAppData(),
     getWorkspaceAggregates(),
+    getCriticalItemsSnapshot(),
   ]);
   console.log(`[perf] / data ${Date.now() - t0}ms`);
 
@@ -79,6 +81,7 @@ export default async function Home() {
           <DashboardHero
             resources={data.resources}
             aggregates={aggregates}
+            criticalSnapshot={criticalSnapshot}
           />
         }
       />

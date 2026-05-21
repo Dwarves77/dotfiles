@@ -16,7 +16,7 @@ import {
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function isSupabaseConfigured(): boolean {
+export function isSupabaseConfigured(): boolean {
   return !!(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -34,7 +34,7 @@ function getSupabase() {
 // client. Used for reads where the org-scoped RPC isn't a fit (e.g. the
 // regulation detail page resolves a single item by UUID OR legacy_id, and
 // the anon client can't see base-table rows directly).
-function getServiceSupabase() {
+export function getServiceSupabase() {
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
