@@ -18,15 +18,15 @@
 
 ### A.1 Fresh built, waiting for mount
 
-- 7 credibility components (`CredibilityBadge`, `BiasBadge`, `CitationCountChip`, `JurisdictionChip`, `ProvenancePanel`, `RecencyChip`, `SignalStrength`) → Build 7/8/9
-- `/api/admin/sources/[id]/tier-override` route + columns → Phase 7 admin UI in SourceAdminControls
+- ~~7 credibility components~~ → CLOSED via Build 7/8/9/11: CredibilityBadge + BiasBadge + CitationCountChip + RecencyChip mounted on Research PipelineRow (Build 8.1-8.4), Market Intel cards (Build 7), Operations cards (Build 9), Dashboard WeeklyBriefing items (Build 11). ProvenancePanel + JurisdictionChip + SignalStrength remain available for ad-hoc mount; not customer-facing dead code.
+- ~~`/api/admin/sources/[id]/tier-override` route + columns~~ → CLOSED Phase 7: SourceTierOverrideControl in SourceAdminControls inlines base / effective / override + override form + revert + audit trail per DP-1 single-pane principle.
 
 ### A.2 Blueprint data layer (consumer in scheduled build)
 
-- `intelligence_item_citations` table + `get_source_citation_stats` RPC swap → Build 8 Dispatch 8.1 (now primary deliverable)
-- `source_bias_tags` table → BiasBadge mount in Build 7/8/9
-- `source_tier_opinions` table + `get_tier_opinion_disagreements` RPC → Phase 7 admin disagreement-review surface
-- `ingest_rejections` + `pending_jurisdiction_review` tables → Phase 7 admin triage queue
+- ~~`intelligence_item_citations` table + `get_source_citation_stats` RPC swap~~ → CLOSED Build 8.1 (migration 098 body swap landed).
+- ~~`source_bias_tags` table~~ → CLOSED Build 8.3: BiasBadge mounted on PipelineRow with source_bias_tags read path.
+- ~~`source_tier_opinions` table + `get_tier_opinion_disagreements` RPC~~ → CLOSED Phase 7: TierOpinionDisagreementsView surfaces every disagreement with accept/reject/defer actions; migration 099 adds RLS + review state columns.
+- ~~`ingest_rejections` + `pending_jurisdiction_review` tables~~ → CLOSED Phase 7: IngestRejectionsView + PendingJurisdictionReviewView mounted under new AdminDashboard tabs.
 
 ### A.3 Routes awaiting UI consumers
 
@@ -39,7 +39,7 @@
 
 ### A.4 Broken-but-needed (currently visible to customers; wire to real data)
 
-- `DashboardHero` hardcoded "3 inside 14 days" → Build 11 (workspace-anchored critical-items snapshot)
+- ~~`DashboardHero` hardcoded "3 inside 14 days"~~ → CLOSED Build 11: workspace-scoped critical-items snapshot via new `lib/dashboard/critical-items.ts` (compliance_deadline + item_timelines fallback).
 - `/regulations` hardcoded "last sync 4 min ago" → small wire-up to `workspace.last_sync`
 - `RegulationDetailSurface` "Workspace data pending" → workspace exposure RPC OR strip if exposure not in current blueprint scope
 - ~~`WatchlistSidebar` persistence pending~~ → CLOSED Build 7: rail renamed to "Highest-priority indicators" matching what it surfaces; pin-persistence disclaimer stripped (future user_watchlist work can restore the Watchlist label).
@@ -54,8 +54,8 @@
 - `GeopoliticalSignals` function → Build 7 Market Intel signal engine (geopolitical disruption is first-class freight market signal; Strait of Hormuz / supply chain disruption type). Phase-1 `GeopoliticalSignals.tsx` flagged for Build 7 to evaluate (reuse vs build new).
 - `SearchBar` / search function → Build 10 Community search + cross-surface search consideration in Build 11. Phase-1 `SearchBar` code flagged for reuse-or-rebuild evaluation.
 - `PageContext` + `AiPromptBar` (Intelligence Assistant UX) → dedicated small dispatch: assistant bar must expand inline as a drop-down, NOT open secondary popup. Cross-cutting on every surface.
-- `UserProfilePage` Organization tab → multi-tenant org chrome (ADR-001 three-layer tenant model; org IS blueprint core)
-- `UserProfilePage` Members tab → `org_memberships` management (blueprint core)
+- ~~`UserProfilePage` Organization tab~~ → CLOSED Phase 7: OrganizationPanel (identity + owner + member count + edit form + status banner) replaces PanelComingSoon.
+- ~~`UserProfilePage` Members tab~~ → CLOSED Phase 7: MembersPanel (role picker + save + revoke per row; owner cannot revoke self) wired via new `/api/orgs/[org_id]/members` route.
 
 ---
 
@@ -63,8 +63,8 @@
 
 - EmptyState "coming soon" copy rewording on /market and /operations → Build 7 + Build 9 absorb as side effect
 - Operations regex chip matchers → Build 9 explicit
-- Dashboard count incoherence (643 vs 69+35 etc) → Build 11
-- Dashboard regulation-skew (no Community surface) → Build 11 five-surface refactor
+- ~~Dashboard count incoherence (643 vs 69+35 etc)~~ → CLOSED Build 11: headline + tile sums + per-surface rail counts now reconcile by construction with explicit "uncategorized" bucket.
+- ~~Dashboard regulation-skew (no Community surface)~~ → CLOSED Build 11 + OBS-41: new DashboardSurfaceCoverage widget mounts all five surfaces as co-equal entry points.
 - ~~Community sidebar placement~~ → CLOSED Build 10: Community moved into intelligence-pages nav block between Operations and Map.
 - Community region taxonomy fork from intelligence surfaces → deferred to OBS-65 (Build 10 commit c600d36 documents divergence rationale).
 
@@ -162,3 +162,37 @@ Operator answers required:
 **Phase 5** — Source health architecture decision
 
 **Standing rules**: verify before remove; operator signoff required before deleting site code; WHAT/WHEN/WHY/STATE when surfacing for decisions; no new rules/fitness/checks without demonstrated value; close loops as completed; stop and surface if a verification reveals an unexpected gap.
+
+---
+
+## Phase 3 — Status (closed 2026-05-21)
+
+All 10 Category A wire-up dispatches landed on master:
+
+| Dispatch | Status | Master commit |
+|---|---|---|
+| 3.1 /regulations last-sync | CLOSED | earlier |
+| 3.2 Assistant inline UX | CLOSED | earlier |
+| 3.3 notifications fanout | CLOSED | 7c13f64 |
+| 3.4 Build 8 Research (8.1-8.4) | CLOSED | aa4ac6a + 8.2-8.4 |
+| 3.5 Build 7 Market Intel | CLOSED | 44d0b09 |
+| 3.6 Build 9 Operations | CLOSED | c6fa803 |
+| 3.7 Build 10 Community | CLOSED | 07982b8 |
+| 3.8 LinkedIn OAuth | CLOSED | b1b3f90 |
+| 3.9 Build 11 Dashboard | CLOSED | 6df86a6 |
+| 3.10 Phase 7 admin chrome | CLOSED | fd3ba2b |
+
+## Phase 4 — Status (investigation 2026-05-21)
+
+Category E investigation complete (`docs/plans/category-e-investigation-2026-05-21.md`, commit `e9819d3`). 17 items investigated; 2 already closed by Build 7/9 EmptyState rewrites (items 12 + 13); 3 LIVE not dead (items 6 SortRow, 16 tiers.ts comment, 17 firstFetchClassify); 11 remain pending operator decision. Operator decides item-by-item per `feedback_site_code_deletes_need_operator_signoff.md`.
+
+## Phase 5 — Status (investigation 2026-05-21)
+
+Source health architecture investigation complete (`docs/plans/source-health-architecture-investigation-2026-05-21.md`, commit `4d374e0`). 4 questions investigated with decision matrix. Key findings: `source_health_summary` view conclusively unused; dashboard conflates `trust_score.overall` with reliability slice; skill Section 8 amendment required if health becomes customer-facing; `ProvenancePanel` is lowest-reversibility-cost extension path. Operator decides.
+
+## Operator follow-ups (post-Phase-3)
+
+1. **Apply migration 099 to remote Supabase** — `099_tier_opinion_review_state.sql` adds RLS + review_state columns to `source_tier_opinions`. Phase 7 disagreement-review UI surface depends on this. Not applied by the dispatch agent (operator-authorized DB writes only).
+2. **Phase 4 Category E decisions** — 11 remaining items in `docs/plans/category-e-investigation-2026-05-21.md` need keep/wire/remove per item.
+3. **Phase 5 Source health decisions** — 4 questions in `docs/plans/source-health-architecture-investigation-2026-05-21.md`.
+4. **Workspace admin role expansion (optional)** — Phase 7 MembersPanel currently restricts role-change + revoke to owners. 2-line server change in `/api/orgs/[org_id]/members` if workspace `admin` role should also manage non-owner members.
