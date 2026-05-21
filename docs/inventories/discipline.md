@@ -18,7 +18,9 @@ Catalog of the Rules-as-Code (RaC) discipline engine at `fsi-app/.discipline/` p
 | Sprint Architecture | 2494a74 | Phase 4 application-layer enforcement: 8 fitness functions (F1-F8) at fsi-app/.discipline/fitness/ with whole-repo scan + override mechanism + CI job. Phase 5 dispatch lifecycle tracking via UUID commit trailers + audit script at fsi-app/.discipline/dispatch/. Phase 1.5 F8-violation refactor (atomic per Option C). Skill amendment: remediation-discipline Signal 5 (preservation-argument-against-dispatch). OBS-62 open-and-close lifecycle demonstrated; OBS-63 deferred. |
 | F9 hotfix | 5ed34fe | Vercel build break + F9 build-compiles fitness function; type fixes to DecideBody/PromoteBody; OBS-64 |
 | ADR System (Layer 3) | cf03400 | 9 retrospective ADRs at docs/decisions/ + adr-loader.mjs + 13th binding rule + audit ADR-Reference/Override + decisions.md inventory + sprint-followups-discipline gains 13th rule section |
-| Layer 4 + CI hotfix | (this commit) | 10 consistency checks at fsi-app/.discipline/consistency/ (C1-C10) + 14th binding rule + consistency runner + Consistency-Override audit; ADR-005 updated to mark Layer 4 complete; populated routes/migrations/cron-jobs/obs-status inventories (drift remediated per Option C); 8 historical sibling-path worktrees cleaned via parallel agents (branches preserved via archive tags); CI hotfix: npm ci added to fitness-check job (F9 tsc availability); glob.mjs fix (coverage SKIP_DIRS + trailing-slash ordering bug); F9 defensive parsing of tsc-not-found case. |
+| Layer 4 + CI hotfix | 8d42510 | 10 consistency checks at fsi-app/.discipline/consistency/ (C1-C10) + 14th binding rule + consistency runner + Consistency-Override audit; ADR-005 updated to mark Layer 4 complete; populated routes/migrations/cron-jobs/obs-status inventories (drift remediated per Option C); 8 historical sibling-path worktrees cleaned via parallel agents (branches preserved via archive tags); CI hotfix: npm ci added to fitness-check job (F9 tsc availability); glob.mjs fix (coverage SKIP_DIRS + trailing-slash ordering bug); F9 defensive parsing of tsc-not-found case. |
+| Rule 014 parser hotfix | 7d445a8 | Rule 014's failing-check parser was scanning stdout + stderr; "Running [Cn]" lines from stdout caused all 10 C-checks to be reported as failing in CI even when one drifted. Drift-detail filter also dropped the orphan-claim text. Fixed: parser scoped to stderr; full stderr captured. |
+| Layer 5a verification floor | (this commit) | 15th binding rule + ADR-010 + ADR-005 reframed Layer 5 into 5a (verification, lands) + 5b (dashboard, deferred). Post-push verification trailers (CI-Status + Deploy-Status) attest to the verified state of the parent commit before authoring the next. Closes the gap that allowed Sprint Architecture's Vercel build break, the outputFileTracingRoot mismatch persistence, and rule 014's CI failure to reach the operator before this dispatch detected them. |
 
 ## Architecture
 
@@ -97,6 +99,9 @@ fsi-app/.discipline/
 | 010 | Verification-before-completion | `Verification: ran <cmd>; observed <result>` | Verification-before-completion required rule |
 | 011 | Inventory-artifact emission | `Inventory-emission: docs/inventories/<type>.md +N entries` | Inventory-artifact emission rule |
 | 012 | Hardcoded user-home path | (no attestation; reads file CONTENTS via `ctx.getFileContent`) | Sprint Foundation incident response 2026-05-20 (OBS-59); first content-check rule |
+| 013 | ADR cross-reference | `ADR-Reference: ADR-NNN` (or `ADR-Override:` for explicit contradiction) per intersecting ADR | ADR System dispatch (Layer 3); ADR-009 |
+| 014 | Inventory consistency | (no attestation; runs consistency runner; `Consistency-Override: C-N (rationale; remediation-deadline)` overrides drift) | Layer 4 cross-skill consistency dispatch; ADR-005 |
+| 015 | Post-push verification | `CI-Status: PASS\|FAIL\|PENDING\|BOOTSTRAP\|N/A` + `Deploy-Status: READY\|ERROR\|BUILDING\|BOOTSTRAP\|N/A` (+ `Recheck-Timeline:` when PENDING/BUILDING); override via `Verification-Override:` | Post-push verification dispatch (Layer 5a); ADR-010 |
 
 ## Operator install + use
 

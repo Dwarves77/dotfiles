@@ -33,6 +33,7 @@ import { rule as rule011 } from './rules/011-inventory-artifact-emission.mjs';
 import { rule as rule012 } from './rules/012-hardcoded-user-path.mjs';
 import { rule as rule013 } from './rules/013-adr-cross-reference.mjs';
 import { rule as rule014 } from './rules/014-inventory-consistency.mjs';
+import { rule as rule015 } from './rules/015-post-push-verification.mjs';
 
 export const rules = [
   rule001,
@@ -49,6 +50,7 @@ export const rules = [
   rule012,
   rule013,
   rule014,
+  rule015,
 ];
 
 export function getRuleById(id) {

@@ -12,6 +12,7 @@ scope:
 supersedes: null
 related:
   - ADR-009
+  - ADR-010
 ---
 
 ## Context
@@ -55,12 +56,22 @@ Five-layer enforcement architecture, built in sequence:
 - Override mechanism: `Consistency-Override: C-N (rationale: ...; remediation-deadline: YYYY-MM-DD)` trailer per the rule 13 override pattern.
 - Audit script extension: `dispatch/audit.mjs` surfaces consistency overrides under "Consistency overrides (Layer 4; documented drift with remediation deadlines)".
 
-**Layer 5: Observability** (deferred; future sprint)
-- Dashboard surfacing override usage, bypass patterns, OBS state distribution, dispatch UUID audit aggregates
-- Triggered by Phase 6 in Sprint Foundation dispatch language
-- Not part of the customer-facing pre-requisite path
+**Layer 5: Verification + observability** (split into 5a + 5b after the 2026-05-21 reframing)
 
-Customer-facing work (Build 8 Research and onward) resumes after Layer 4 (cross-skill consistency) lands. Layer 5 is deferred indefinitely and does not block customer builds.
+The original framing was "Layer 5 = observability dashboard, deferred." That framing was incorrect: it bundled a load-bearing minimum (verification of pushed work) with a value-additive future polish (dashboard) and deferred both. Repeated incidents (rule 014 parser bug masking CI failures, Vercel outputFileTracingRoot mismatch persisting across pushes, Sprint Architecture's silent Vercel build break) demonstrated that the floor cannot be considered complete without verification. ADR-010 captures the reframing; this ADR is updated in-place to track the split:
+
+- **Layer 5a: Post-push verification** (15th binding rule; landed 2026-05-21)
+  - Every applicable commit on master must include `CI-Status:` and `Deploy-Status:` trailers attesting to the verified state of the parent commit.
+  - Override mechanism mirrors rule 13/14: `Verification-Override: <rationale>` with explicit acknowledgment of unverified state.
+  - Rule file: `fsi-app/.discipline/rules/015-post-push-verification.mjs`
+  - Decision record: ADR-010
+
+- **Layer 5b: Observability dashboard + drift detection** (still deferred; future sprint)
+  - Dashboard surfacing override usage, bypass patterns, OBS state distribution, dispatch UUID audit aggregates
+  - Triggered by Phase 6 in Sprint Foundation dispatch language
+  - Not part of the customer-facing pre-requisite path
+
+Customer-facing work (Build 8 Research and onward) resumes after Layer 5a lands (verification floor closed). Layer 5b is deferred indefinitely and does not block customer builds.
 
 ## Consequences
 
