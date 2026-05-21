@@ -42,10 +42,10 @@
 - `DashboardHero` hardcoded "3 inside 14 days" → Build 11 (workspace-anchored critical-items snapshot)
 - `/regulations` hardcoded "last sync 4 min ago" → small wire-up to `workspace.last_sync`
 - `RegulationDetailSurface` "Workspace data pending" → workspace exposure RPC OR strip if exposure not in current blueprint scope
-- `WatchlistSidebar` persistence pending → Build 7 alerts wiring
-- `CostTrajectoryChart` pending banner → Build 7 cost time-series schema + chart
-- `OwnersContent` coming soon → Build 7 owner attribution
-- `KeyMetricsRow` period selector → Build 7 time-period filtering
+- ~~`WatchlistSidebar` persistence pending~~ → CLOSED Build 7: rail renamed to "Highest-priority indicators" matching what it surfaces; pin-persistence disclaimer stripped (future user_watchlist work can restore the Watchlist label).
+- ~~`CostTrajectoryChart` pending banner~~ → CLOSED Build 7: slot removed from MarketPage; component file deleted. Cost time-series schema + chart returns when the data-source + granularity decision lands (per sprint-2 planning Build 9 operator decision matrix).
+- ~~`OwnersContent` coming soon~~ → CLOSED Build 7: component now returns null when no items have populated actionOwner (collapses the rail). Renders grouped feed automatically as soon as owner data lands.
+- ~~`KeyMetricsRow` period selector~~ → CLOSED Build 7: non-functional 30D/90D/1Y buttons removed; returns alongside the cost time-series schema.
 - `GroupHeader` Members + Settings "ships in C6" → Build 10
 - `CommunityShell` masthead search "Search coming soon" → Build 10 Postgres FTS
 - `CommunitySidebar` hardcoded unread/mentions → notifications fanout + Build 10

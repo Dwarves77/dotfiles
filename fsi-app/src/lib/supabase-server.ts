@@ -1050,6 +1050,56 @@ export async function fetchOperationsItems(
   return runCategoryRpc(orgId, "get_operations_items", { enrichCitations: true });
 }
 
+// ── Per-source citation stats (Build 7, Q9 chip mounts) ───────
+//
+// Build 8.1 added get_source_citation_stats reads inside
+// fetchResearchPipelineRows (per-row pipeline fetcher). Market Intel
+// consumes Resource[] from the category-routed fetcher above, so the
+// citation stats lookup lives outside the routing call and is decorated
+// onto the Resource list by the caller (the /market route).
+//
+// This helper accepts a list of source_ids (already deduplicated by the
+// caller) and returns a Map<source_id, { count, recency }>. Failure is
+// non-fatal: callers receive an empty Map and the UI degrades to no
+// citation chips (consistent with Build 8.1 ResearchView behavior).
+//
+// The RPC body (migration 098) reads from the intelligence_item_citations
+// edge table; same data plane as /research.
+export interface SourceCitationStat {
+  count: number;
+  recency: string | null;
+}
+
+export async function fetchSourceCitationStatsByIds(
+  sourceIds: string[]
+): Promise<Map<string, SourceCitationStat>> {
+  const out = new Map<string, SourceCitationStat>();
+  if (!isSupabaseConfigured() || sourceIds.length === 0) return out;
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .rpc("get_source_citation_stats", { source_ids: sourceIds });
+    if (error) {
+      console.error("[market] get_source_citation_stats error:", error.message);
+      return out;
+    }
+    if (Array.isArray(data)) {
+      for (const row of data) {
+        if (row && typeof row.source_id === "string") {
+          out.set(row.source_id, {
+            count: typeof row.citation_count === "number" ? row.citation_count : 0,
+            recency: row.recency ?? null,
+          });
+        }
+      }
+    }
+    return out;
+  } catch (e) {
+    console.error("[market] fetchSourceCitationStatsByIds failed:", e);
+    return out;
+  }
+}
+
 // ── Master Fetch ─────────────────────────────────────────────
 
 export interface SectorSynopsis {

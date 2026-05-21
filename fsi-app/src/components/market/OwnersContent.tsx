@@ -1,26 +1,25 @@
 "use client";
 
 /**
- * OwnersContent — per-owner feed rail on /market.
+ * OwnersContent, per-owner feed rail on /market.
  *
- * Per dispatch G + visual reconciliation §3.4:
- *   "Design right rail OWNERS, CONTENT with named editors (Rosa Vega,
- *    Tech readiness lead; Jin-soo Kim, Price signals reviewer);
- *    production has no named owners"
+ * Build 7 customer-visible stub closure: when no item in scope has a
+ * populated actionOwner, the component returns null and the rail
+ * collapses (no "coming soon" banner). The component still renders
+ * grouped content as soon as actionOwner data lands.
  *
- * Data layer status: EMPTY in the workspace.
- * - Resource.actionOwner exists in the schema but is unpopulated in
- *   seed-resources.json (`grep -c actionOwner` returns 0).
- * - intelligence_items.recommended_actions[].owner is also empty in
- *   the wire format consumed by /market.
- * - Named editor identities (Rosa Vega, Jin-soo Kim, Mia Santos) come
- *   from the design source-of-truth handoff, not from a staffing table
- *   in supabase. There is no `owners` or `editors` table.
+ * Data layer status:
+ *   - Resource.actionOwner exists in the schema but is unpopulated on
+ *     the seed payload and on intelligence_items in the current data
+ *     plane. The owner-backfill work is a separate data dispatch and
+ *     not in Build 7 scope; until it lands the rail stays hidden.
+ *   - There is no owners or editors staffing table; the named editor
+ *     identities in the design source were illustrative.
  *
- * Per #33 banner pattern: a single section banner explains the gap.
- * When actionOwner backfill ships (a separate data dispatch), this
- * component swaps to a grouped feed: items grouped by owner, latest
- * first, with the owner's role shown as a sub-line.
+ * Per the platform-intent skill Section 11 anti-pattern (no phase
+ * language to customers), the prior "Per-owner content feed coming
+ * soon..." banner is removed. When owner data is present the
+ * component renders the grouped feed as before.
  */
 
 import Link from "next/link";
@@ -28,7 +27,12 @@ import type { Resource } from "@/types/resource";
 
 interface OwnersContentProps {
   items: Resource[];
-  section: "tech" | "prices";
+  /**
+   * Reserved for future per-section copy. The component returns null when
+   * no owners are populated, so the prop is currently unused; keeping it
+   * optional preserves caller compatibility on /market.
+   */
+  section?: "tech" | "prices";
 }
 
 interface OwnerGroup {
@@ -36,7 +40,7 @@ interface OwnerGroup {
   items: Resource[];
 }
 
-export function OwnersContent({ items, section }: OwnersContentProps) {
+export function OwnersContent({ items }: OwnersContentProps) {
   // Group by actionOwner where populated. Items without actionOwner are
   // not assigned to a row (they would generate noise rows).
   const groups: OwnerGroup[] = (() => {
@@ -52,6 +56,11 @@ export function OwnersContent({ items, section }: OwnersContentProps) {
       .map(([owner, items]) => ({ owner, items }))
       .sort((a, b) => b.items.length - a.items.length);
   })();
+
+  // Build 7: when no items in scope have populated actionOwner, collapse
+  // the rail entirely (return null) rather than render a "coming soon"
+  // banner. The rail re-appears as soon as owner data lands.
+  if (groups.length === 0) return null;
 
   return (
     <div
@@ -73,27 +82,10 @@ export function OwnersContent({ items, section }: OwnersContentProps) {
           marginBottom: 10,
         }}
       >
-        Owners · Content
+        Owners, content
       </div>
 
-      {groups.length === 0 ? (
-        <p
-          style={{
-            fontSize: 12.5,
-            lineHeight: 1.55,
-            margin: 0,
-            color: "var(--text-2)",
-          }}
-        >
-          Per-owner content feed coming soon for{" "}
-          {section === "tech"
-            ? "technology and innovation items"
-            : "market signal items"}
-          . When owner assignments are added, this rail groups items by
-          owner with the owner's role shown inline.
-        </p>
-      ) : (
-        <ul
+      <ul
           style={{
             listStyle: "none",
             margin: 0,
@@ -170,8 +162,7 @@ export function OwnersContent({ items, section }: OwnersContentProps) {
               </ul>
             </li>
           ))}
-        </ul>
-      )}
+      </ul>
     </div>
   );
 }

@@ -19,8 +19,13 @@
  *       PolicySignals (POLICY ACCELERATION SIGNALS, sourced badges per CC3)
  *       FreightRelevanceCallout (yellow Dietl/Rockit-specific framing)
  *       KeyMetricsRow (KEY METRICS rows with delta indicators)
- *       CostTrajectoryChart (multi-line per cargo vertical)
  *       Category accordions (existing item feed)
+ *
+ *   Build 7 removed the CostTrajectoryChart slot. The component was a
+ *   "pending time-series population" banner with no chart, because no
+ *   historical cost time-series schema exists; the data-source +
+ *   granularity decision is open per sprint-2 planning Build 9 operator
+ *   matrix. The slot returns when that schema lands.
  *   - Right rail:
  *       WatchlistSidebar (highest-lifecycle items)
  *       OwnersContent (per-owner feed)
@@ -54,12 +59,13 @@ import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { WatchlistSidebar } from "@/components/market/WatchlistSidebar";
 import { KeyMetricsRow } from "@/components/market/KeyMetricsRow";
-import { CostTrajectoryChart } from "@/components/market/CostTrajectoryChart";
 import { PolicySignals } from "@/components/market/PolicySignals";
 import { FreightRelevanceCallout } from "@/components/market/FreightRelevanceCallout";
 import { OwnersContent } from "@/components/market/OwnersContent";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
 import type { Resource } from "@/types/resource";
-import type { WorkspaceAggregates } from "@/lib/data";
+import type { WorkspaceAggregates, SourceCitationStatsMap } from "@/lib/data";
 
 interface MarketPageProps {
   initialResources: Resource[];
@@ -70,6 +76,12 @@ interface MarketPageProps {
    * so existing callers / fallback paths still render with row-derived counts.
    */
   aggregates?: WorkspaceAggregates;
+  /**
+   * Build 7: per-source citation stats keyed by source_id. Mirrors Build 8.1
+   * /research pattern. Optional so the page renders without chips on fallback
+   * paths or when the RPC fails.
+   */
+  citationStats?: SourceCitationStatsMap;
 }
 
 type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
@@ -106,7 +118,7 @@ function isTabKey(s: string | null): s is TabKey {
   return s === "tech" || s === "prices";
 }
 
-export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
+export function MarketPage({ initialResources, aggregates, citationStats = {} }: MarketPageProps) {
   const searchParams = useSearchParams();
 
   const initialPriority = isPriorityKey(searchParams.get("priority"))
@@ -229,7 +241,10 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
             sectorProfile={sectorProfile}
             watchCount={counts.CRITICAL}
             elevatedCount={counts.HIGH}
-            renderCategoryBody={(items) => <TechBody items={items} />}
+            citationStats={citationStats}
+            priorityFilter={priorityFilter}
+            onAlertsClick={onTile("CRITICAL")}
+            renderCategoryBody={(items) => <TechBody items={items} citationStats={citationStats} />}
           />
         )}
         {tab === "prices" && (
@@ -241,7 +256,10 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
             sectorProfile={sectorProfile}
             watchCount={counts.CRITICAL}
             elevatedCount={counts.HIGH}
-            renderCategoryBody={(items) => <PriceBody items={items} />}
+            citationStats={citationStats}
+            priorityFilter={priorityFilter}
+            onAlertsClick={onTile("CRITICAL")}
+            renderCategoryBody={(items) => <PriceBody items={items} citationStats={citationStats} />}
             categoryHeaderHasWatch
           />
         )}
@@ -263,6 +281,9 @@ function SectionTemplate({
   sectorProfile,
   watchCount,
   elevatedCount,
+  citationStats,
+  priorityFilter,
+  onAlertsClick,
   renderCategoryBody,
   categoryHeaderHasWatch = false,
 }: {
@@ -273,6 +294,9 @@ function SectionTemplate({
   sectorProfile?: string[];
   watchCount: number;
   elevatedCount: number;
+  citationStats: SourceCitationStatsMap;
+  priorityFilter: PriorityKey | null;
+  onAlertsClick: () => void;
   renderCategoryBody: (items: Resource[]) => React.ReactNode;
   categoryHeaderHasWatch?: boolean;
 }) {
@@ -312,13 +336,22 @@ function SectionTemplate({
           />
         </div>
 
-        {/* KEY METRICS rows with delta indicators + period selector */}
-        <KeyMetricsRow items={items} />
+        {/* KEY METRICS rows with delta indicators */}
+        <KeyMetricsRow items={items} citationStats={citationStats} />
 
-        {/* COST TRAJECTORY chart (multi-vertical) */}
-        <CostTrajectoryChart verticals={sectorProfile} />
+        {/*
+          Build 7: the CostTrajectoryChart slot was a "pending time-series"
+          banner with no chart, because no historical cost time-series schema
+          exists. Operator did not authorize cost time-series schema work in
+          this dispatch (the data-source + granularity decision is open per
+          sprint-2 planning Build 9 operator-decision matrix), so the slot is
+          removed rather than continue to ship a placeholder. KEY METRICS
+          rows above carry single-point cost data via marketData.currentPrice;
+          delta-vs-prior-period stays on KeyMetricsRow when previousPrice is
+          available.
+        */}
 
-        {/* Category accordions — preserved from prior MarketPage */}
+        {/* Category accordions, preserved from prior MarketPage */}
         <div
           style={{
             fontSize: 10,
@@ -333,16 +366,8 @@ function SectionTemplate({
         </div>
         {groups.length === 0 ? (
           <EmptyState
-            title={
-              section === "tech"
-                ? "Technology intelligence coming soon"
-                : "Price signals coming soon"
-            }
-            body={
-              section === "tech"
-                ? "Battery, SAF, hydrogen, marine fuels, and other technology categories will appear here as coverage expands."
-                : "Energy prices, carbon markets, critical minerals, trade restrictions, and chokepoints will appear here as coverage expands."
-            }
+            title={emptyStateTitle(section, sectorProfile)}
+            body={emptyStateBody(section, sectorProfile)}
           />
         ) : (
           <div className="space-y-3">
@@ -362,19 +387,24 @@ function SectionTemplate({
       </div>
 
       <aside className="space-y-3 hidden lg:block">
-        <WatchlistSidebar items={items} />
+        <WatchlistSidebar items={items} citationStats={citationStats} />
         <OwnersContent items={items} section={section} />
 
+        {/*
+          Build 7, OBS-18 closure: the "Watch this week" alerts card was a
+          decorative count, not a control. It now click-throughs to a
+          CRITICAL-priority filtered view of the current tab (same toggle
+          semantics as the StatStrip Watch tile: clicking again clears).
+          Empty state stays inert because there is nothing to filter to.
+        */}
         {watchCount + elevatedCount > 0 ? (
-          <SideCard label="Watch this week" tone="alert">
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: "var(--high)", marginBottom: 6 }}>
-              {watchCount + elevatedCount} {watchCount + elevatedCount === 1 ? "alert" : "alerts"}
-            </div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-              {watchCount} watch-level item{watchCount === 1 ? "" : "s"} and {elevatedCount} elevated movement{elevatedCount === 1 ? "" : "s"} across tracked
-              {section === "tech" ? " technologies" : " price signals"}.
-            </p>
-          </SideCard>
+          <AlertsSideCard
+            section={section}
+            watchCount={watchCount}
+            elevatedCount={elevatedCount}
+            active={priorityFilter === "CRITICAL"}
+            onClick={onAlertsClick}
+          />
         ) : (
           <SideCard label="Watch this week">
             <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
@@ -396,56 +426,68 @@ function SectionTemplate({
 
 // ── Per-tab content body renderers ────────────────────────────────────
 
-function TechBody({ items }: { items: Resource[] }) {
+function TechBody({ items, citationStats }: { items: Resource[]; citationStats: SourceCitationStatsMap }) {
   return (
     <>
       <Label>Key items</Label>
       <div className="space-y-2">
-        {items.map((it) => (
-          // Card-level Link → /regulations/[slug] detail. No interactive
-          // children inside; clean wrap.
-          <Link
-            key={it.id}
-            href={`/regulations/${encodeURIComponent(it.id)}`}
-            prefetch={false}
-            style={{
-              display: "block",
-              background: "var(--bg)",
-              border: "1px solid var(--border-sub)",
-              borderRadius: "var(--r-sm)",
-              padding: "12px 14px",
-              textDecoration: "none",
-              color: "inherit",
-              cursor: "pointer",
-              transition: "background-color 120ms ease",
-            }}
-            className="hover:bg-[var(--raised)]"
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{it.title}</div>
-              <LifecyclePill priority={it.priority} />
-            </div>
-            {it.note && (
-              <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginTop: 4 }}>{it.note}</div>
-            )}
-          </Link>
-        ))}
+        {items.map((it) => {
+          // Build 7: Q9 chip mounts. Mirror Build 8.1 ResearchView pattern.
+          // CitationCountChip suppresses itself when count < 1. RecencyChip
+          // omits if recency is absent. Both fall back gracefully when the
+          // RPC was unavailable (citationStats is the empty map).
+          const stat = it.sourceId ? citationStats[it.sourceId] : undefined;
+          return (
+            <Link
+              key={it.id}
+              href={`/regulations/${encodeURIComponent(it.id)}`}
+              prefetch={false}
+              style={{
+                display: "block",
+                background: "var(--bg)",
+                border: "1px solid var(--border-sub)",
+                borderRadius: "var(--r-sm)",
+                padding: "12px 14px",
+                textDecoration: "none",
+                color: "inherit",
+                cursor: "pointer",
+                transition: "background-color 120ms ease",
+              }}
+              className="hover:bg-[var(--raised)]"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{it.title}</div>
+                <LifecyclePill priority={it.priority} />
+              </div>
+              {it.note && (
+                <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginTop: 4 }}>{it.note}</div>
+              )}
+              {(stat && stat.count >= 1) || stat?.recency ? (
+                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {stat && stat.count >= 1 && <CitationCountChip count={stat.count} />}
+                  {stat?.recency && <RecencyChip timestamp={stat.recency} />}
+                </div>
+              ) : null}
+            </Link>
+          );
+        })}
       </div>
     </>
   );
 }
 
-function PriceBody({ items }: { items: Resource[] }) {
+function PriceBody({ items, citationStats }: { items: Resource[]; citationStats: SourceCitationStatsMap }) {
   return (
     <div style={{ padding: "0 0 4px" }}>
       {items.map((it) => (
-        <PriceRow key={it.id} item={it} />
+        <PriceRow key={it.id} item={it} citationStats={citationStats} />
       ))}
     </div>
   );
 }
 
-function PriceRow({ item }: { item: Resource }) {
+function PriceRow({ item, citationStats }: { item: Resource; citationStats: SourceCitationStatsMap }) {
+  const stat = item.sourceId ? citationStats[item.sourceId] : undefined;
   return (
     // Card-level Link → /regulations/[slug] detail. No interactive
     // children inside; clean wrap.
@@ -503,6 +545,12 @@ function PriceRow({ item }: { item: Resource }) {
           <span style={{ color: "var(--text)" }}>{item.whyMatters || item.note}</span>
         </div>
       )}
+      {(stat && stat.count >= 1) || stat?.recency ? (
+        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {stat && stat.count >= 1 && <CitationCountChip count={stat.count} />}
+          {stat?.recency && <RecencyChip timestamp={stat.recency} />}
+        </div>
+      ) : null}
     </Link>
   );
 }
@@ -778,6 +826,122 @@ function EmptyState({ title, body }: { title: string; body: string }) {
       <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>{title}</p>
       <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.5 }}>{body}</p>
     </div>
+  );
+}
+
+// Build 7, OBS-20 closure: workspace-anchored EmptyState copy.
+//
+// Replaces the prior "Technology intelligence coming soon" / "Price signals
+// coming soon" titles. "Coming soon" is the platform-intent skill Section
+// 11 anti-pattern (phase-language leaking to customers); the rewrite states
+// what the workspace currently sees and which sectors are scoped, without
+// promising a delivery date the build sequence has not committed to.
+//
+// sectorProfile flows from useWorkspaceStore and is the current workspace's
+// configured sectors (e.g. ["art-logistics", "live-events"]). The empty
+// state is workspace-relative ("no items scoped for YOUR sectors"), not a
+// platform-wide claim ("nothing exists").
+function formatSectorList(sectors: string[] | undefined): string {
+  if (!sectors || sectors.length === 0) return "your configured sectors";
+  const pretty = sectors.map((s) =>
+    s.split(/[-_\s]+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+  );
+  if (pretty.length === 1) return pretty[0];
+  if (pretty.length === 2) return `${pretty[0]} and ${pretty[1]}`;
+  return `${pretty.slice(0, -1).join(", ")}, and ${pretty[pretty.length - 1]}`;
+}
+
+function emptyStateTitle(section: "tech" | "prices", sectorProfile?: string[]): string {
+  const scope = formatSectorList(sectorProfile);
+  return section === "tech"
+    ? `No technology readiness items scoped for ${scope}`
+    : `No market signals scoped for ${scope}`;
+}
+
+function emptyStateBody(section: "tech" | "prices", sectorProfile?: string[]): string {
+  const hasSectors = !!(sectorProfile && sectorProfile.length > 0);
+  if (section === "tech") {
+    return hasSectors
+      ? "Battery, SAF, hydrogen, marine fuels, and other technology categories surface here when items match your sector scope. Adjust your workspace sector profile in Settings to widen coverage, or check the priority filters above."
+      : "Battery, SAF, hydrogen, marine fuels, and other technology categories surface here once your workspace has a sector profile configured. Set a sector profile in Settings to anchor what you see.";
+  }
+  return hasSectors
+    ? "Carbon markets, fuel pricing, critical minerals, trade restrictions, and shipping chokepoints surface here when items match your sector scope. Adjust your workspace sector profile in Settings to widen coverage, or check the priority filters above."
+    : "Carbon markets, fuel pricing, critical minerals, trade restrictions, and shipping chokepoints surface here once your workspace has a sector profile configured. Set a sector profile in Settings to anchor what you see.";
+}
+
+// Build 7, OBS-18 closure: interactive alerts card. Renders as a <button>
+// so keyboard + screen-reader users get the same click-through to a
+// CRITICAL-priority filtered view that the StatStrip Watch tile already
+// provides. The `active` state is the active toggle indication (border
+// color + background) and the aria-pressed reflects the same.
+function AlertsSideCard({
+  section,
+  watchCount,
+  elevatedCount,
+  active,
+  onClick,
+}: {
+  section: "tech" | "prices";
+  watchCount: number;
+  elevatedCount: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const total = watchCount + elevatedCount;
+  const summaryNoun = section === "tech" ? "technologies" : "price signals";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={`${total} ${total === 1 ? "alert" : "alerts"} this week, click to ${active ? "clear" : "filter to"} watch-level items`}
+      style={{
+        background: "var(--high-bg)",
+        border: active ? "1px solid var(--high)" : "1px solid var(--high-bd)",
+        borderRadius: "var(--r-md)",
+        padding: "14px 16px",
+        boxShadow: "var(--shadow)",
+        cursor: "pointer",
+        textAlign: "left",
+        width: "100%",
+        font: "inherit",
+        color: "inherit",
+        transition: "border-color 120ms ease, background-color 120ms ease",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--high)",
+          marginBottom: 8,
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>Watch this week</span>
+        <span
+          style={{
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            color: "var(--text-2)",
+          }}
+        >
+          {active ? "Active filter, click to clear" : "Click to filter"}
+        </span>
+      </div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: "var(--high)", marginBottom: 6 }}>
+        {total} {total === 1 ? "alert" : "alerts"}
+      </div>
+      <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
+        {watchCount} watch-level item{watchCount === 1 ? "" : "s"} and {elevatedCount} elevated movement{elevatedCount === 1 ? "" : "s"} across tracked {summaryNoun}.
+      </p>
+    </button>
   );
 }
 

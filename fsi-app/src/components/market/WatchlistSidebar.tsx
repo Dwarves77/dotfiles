@@ -1,33 +1,44 @@
 "use client";
 
 /**
- * WatchlistSidebar — pinned indicators rail for /market.
+ * WatchlistSidebar, Highest-Priority Indicators rail for /market.
  *
- * Per dispatch G (F11/F11b/Decision #4) and visual reconciliation §3.4:
- *   "Design has WATCHLIST card listing 6 indicators with status pills;
- *    production has no WATCHLIST."
+ * Build 7 honest-rename: the rail used to be labelled "WATCHLIST" with a
+ * trailing disclaimer about pending user-pin persistence. Per the platform
+ * intent skill Section 11 anti-pattern against shipping phase-language to
+ * customer-facing UI, and per the Build 7 dispatch's customer-visible
+ * stub closure list, the rail is renamed to "Highest-priority indicators"
+ * which is what it actually surfaces today: the highest-lifecycle
+ * (Watch + Elevated) items in scope, sorted by priority then recency.
  *
- * Data layer status: NO backend persistence yet. There is no
- * `user_watchlist` or `workspace_watchlist` table in supabase migrations
- * 001-047, and `workspace_settings` does not carry a watchlist column.
- * Per the dispatch's "honest empty-state" rule (#33 banner pattern), we
- * derive a WATCHLIST view from the highest-lifecycle (Watch + Elevated)
- * items in scope. This is a read-only computed view, not user-editable
- * pinning. When backend persistence ships, this component swaps to a
- * subscribed list with the same row shape.
+ * No "user-pinned" affordance ships in this dispatch. If/when a
+ * user_watchlist table and pin UX lands in a later sprint, the
+ * component name and labelling can revert; until then, the label
+ * matches the data shape.
  *
- * NOT a halt condition: the dispatch explicitly authorizes rendering
- * honest empty-state when data is partial. Computed Watch/Elevated rows
- * are real signal, not a placeholder string.
+ * Build 8.1 + Build 7: Q9 chip mounts (CitationCountChip + RecencyChip)
+ * are rendered inline on each row when citationStats is provided. Chip
+ * contracts suppress on count zero / null recency, so rows without
+ * citation data render unchanged.
  */
 
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
+import type { SourceCitationStatsMap } from "@/lib/data";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
 
 interface WatchlistSidebarProps {
   items: Resource[];
   /** Maximum rows to show in the rail. Design uses ~6. */
   limit?: number;
+  /**
+   * Build 7: per-source citation stats keyed by source_id. When provided,
+   * each row renders a CitationCountChip + RecencyChip pair (suppress at
+   * count zero / null recency per chip contract). Mirrors Build 8.1 chip
+   * pattern from ResearchView.
+   */
+  citationStats?: SourceCitationStatsMap;
 }
 
 const TONE_COLOR = {
@@ -51,7 +62,7 @@ const PRIORITY_RANK: Record<Resource["priority"], number> = {
   LOW: 3,
 };
 
-export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
+export function WatchlistSidebar({ items, limit = 6, citationStats = {} }: WatchlistSidebarProps) {
   // Surface the most urgent items currently being tracked, prioritized
   // by lifecycle severity then by recency.
   const watchlist = [...items]
@@ -87,7 +98,7 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
           justifyContent: "space-between",
         }}
       >
-        <span>Watchlist</span>
+        <span>Highest-priority indicators</span>
         <span
           style={{
             fontSize: 9,
@@ -109,8 +120,9 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
             color: "var(--text-2)",
           }}
         >
-          No items in scope yet. The most urgent market signals will
-          appear here as coverage expands.
+          No watch-level or elevated items in scope for your workspace
+          right now. The most urgent market signals surface here when
+          they match your sector profile.
         </p>
       ) : (
         <ul
@@ -125,6 +137,8 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
         >
           {watchlist.map((it) => {
             const lc = LIFECYCLE[it.priority];
+            const stat = it.sourceId ? citationStats[it.sourceId] : undefined;
+            const showChips = (stat && stat.count >= 1) || stat?.recency;
             return (
               <li
                 key={it.id}
@@ -133,7 +147,7 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
                   borderBottom: "1px solid var(--border-sub)",
                 }}
               >
-                {/* Card-level Link → /regulations/[slug] detail. */}
+                {/* Card-level Link to /regulations/[slug] detail. */}
                 <Link
                   href={`/regulations/${encodeURIComponent(it.id)}`}
                   prefetch={false}
@@ -178,26 +192,18 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
                   >
                     {lc.label}
                   </span>
+                  {showChips && (
+                    <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
+                      {stat && stat.count >= 1 && <CitationCountChip count={stat.count} />}
+                      {stat?.recency && <RecencyChip timestamp={stat.recency} />}
+                    </div>
+                  )}
                 </Link>
               </li>
             );
           })}
         </ul>
       )}
-
-      <p
-        style={{
-          fontSize: 11,
-          color: "var(--text-2)",
-          marginTop: 10,
-          marginBottom: 0,
-          lineHeight: 1.45,
-          fontStyle: "italic",
-        }}
-      >
-        User-pinned watchlist persistence pending. Currently shows
-        highest-lifecycle items in scope.
-      </p>
     </div>
   );
 }

@@ -1,4 +1,9 @@
-import { getMarketIntelItems, getResourcesOnly, getScopedWorkspaceAggregates } from "@/lib/data";
+import {
+  getMarketIntelItems,
+  getResourcesOnly,
+  getScopedWorkspaceAggregates,
+  getSourceCitationStats,
+} from "@/lib/data";
 import { MarketPage } from "@/components/pages/MarketPage";
 
 // Scope filter for the aggregates RPC must mirror the page-scope intent:
@@ -39,5 +44,25 @@ export default async function Market() {
   const initialResources = marketIntel.resources.length
     ? marketIntel.resources
     : fallback.resources;
-  return <MarketPage initialResources={initialResources} aggregates={aggregates} />;
+
+  // Build 7: per-source citation stats for Q9 chip mounts on Market Intel
+  // cards, watchlist rail, and key metrics rows. Mirrors Build 8.1 ResearchView
+  // pattern. Fans out a single RPC call across the distinct source_ids on the
+  // page; failures degrade to no chips (empty map).
+  const distinctSourceIds = Array.from(
+    new Set(
+      initialResources
+        .map((r) => r.sourceId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    )
+  );
+  const citationStats = await getSourceCitationStats(distinctSourceIds);
+
+  return (
+    <MarketPage
+      initialResources={initialResources}
+      aggregates={aggregates}
+      citationStats={citationStats}
+    />
+  );
 }
