@@ -22,11 +22,19 @@ export default async function OnboardingPage() {
   if (!bootstrap.user) redirect("/login?redirect=/onboarding");
   if (!bootstrap.orgId) redirect("/workspace/new");
 
+  // LinkedIn import is gated by deployment config: the OAuth client must be
+  // provisioned (LINKEDIN_CLIENT_ID present). When unset, the wizard renders
+  // the LinkedIn card in a disabled state with explanatory copy rather than
+  // crashing on click. Keeping this server-side avoids leaking the client id
+  // to the browser bundle.
+  const linkedinEnabled = Boolean(process.env.LINKEDIN_CLIENT_ID);
+
   return (
     <OnboardingWizard
       userId={bootstrap.user.id}
       userEmail={bootstrap.user.email || ""}
       orgId={bootstrap.orgId}
+      linkedinEnabled={linkedinEnabled}
     />
   );
 }
