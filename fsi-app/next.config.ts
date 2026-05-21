@@ -3,11 +3,14 @@ import path from "path";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
 // Both outputFileTracingRoot and turbopack.root must resolve to the same path
-// (Next.js 16 enforcement; warning surfaced on Vercel deploy 2026-05-21 when
-// only turbopack.root was set explicitly and Vercel auto-detected
-// outputFileTracingRoot to a different path). Anchor both to the fsi-app
-// directory (where this file lives).
-const APP_ROOT = path.resolve(__dirname);
+// (Next.js 16 enforcement). On Vercel, the build context root is /vercel/path0
+// (the repo root, NOT the fsi-app subdirectory where next.config.ts lives).
+// Vercel auto-detects outputFileTracingRoot to that build-context root. To
+// avoid the mismatch warning, anchor both to the REPO root (parent of __dirname),
+// matching Vercel's auto-detected value rather than the file's own directory.
+// This is also correct semantically: file tracing should span the entire
+// repository so any cross-package dependencies are included.
+const APP_ROOT = path.resolve(__dirname, "..");
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: APP_ROOT,

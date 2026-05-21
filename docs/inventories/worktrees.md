@@ -4,9 +4,9 @@ Catalog of current git worktrees with branch + merged-status + lifecycle state. 
 
 ## Status
 
-**Post-cleanup state, 2026-05-21** (Layer 4 cross-skill consistency dispatch; aggressive cleanup of sibling-path worktrees executed by parallel background agents).
+**Post-cleanup state, 2026-05-21** (Layer 4 cross-skill consistency dispatch; aggressive cleanup of sibling-path worktrees executed by parallel background agents; remediation-discipline finalized after Layer 4 hotfix).
 
-Current state per `git worktree list`: **2 worktrees** = 1 main + 1 deferred-decision (`remediation-discipline`, unmerged tip awaiting operator review per Agent 1 finding).
+Current state per `git worktree list`: **1 worktree** (main repo only). All 11 historical sibling-path worktrees have been removed.
 
 All other historical sibling-path worktrees (`4issues`, `ecovadis`, `masthead-uuid`, `mt-A`, `mt-B`, `mt-C`, `rebase-99`, `rebase-104`, `q4-resilience`, `phase1.5-consumers`) have been removed. Their branches survive in `.git/refs/heads/` AND are tagged for permanent recoverability (where unmerged).
 
@@ -19,7 +19,6 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 | Path | Branch | Status | Suggested disposition |
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
-| `dotfiles-wt-remediation-discipline` | `feat/remediation-discipline-skill` | Unmerged tip: 2 commits ("sync FROM master") not in master at `cf03400`; ~11K LOC behind master | **Operator decision required**: are the 2 commits content-duplicates of work already on master (safe `git branch -D` + `git worktree remove --force`), or carry unique housekeeping (rebase first)? |
 
 ## Preserved branches (worktree dirs removed; branches alive)
 
@@ -54,12 +53,9 @@ git worktree add C:/Users/jason/dotfiles/.worktrees/wt-<name> <branch-name>
 - Re-fire as fresh PRs (the `rebase/pr-*` branches still carry the work)
 - Delete the branches (force-delete; work survives via archive tags)
 
-**`remediation-discipline` worktree**: 2 unmerged commits (`3b1e08a` + `6d09ecb`) labeled "sync FROM master" but the branch tip is ~11K LOC behind current master. Operator decides:
-- Force-delete (if commits are content-duplicates of master work)
-- Rebase and resolve (if commits carry unique housekeeping)
-- Keep as-is (if there's intent to merge later)
+**`mt-A/B/C` trilogy**: multi-tenant infrastructure work preserved via archive tags. Cleanup investigation 2026-05-21 confirmed all three already landed on master via PRs #114/#115/#116 (migrations 075/076/077 byte-identical). Archive tags + branches are redundant; operator can authorize deletion any time.
 
-**`mt-A/B/C` trilogy**: multi-tenant infrastructure work preserved via archive tags. Operator-pending coordinated decision: merge all three, rework, or intentionally retire.
+**`remediation-discipline` worktree**: REMOVED 2026-05-21 (Layer 4 hotfix dispatch). Investigation showed the 2 unmerged "sync FROM master" commits (`3b1e08a` + `6d09ecb`) were content-superseded — master had moved ahead via multiple subsequent landings (e8d03a7 + b66ae26). Branch force-deleted; worktree dir removed. Resolved.
 
 ## Maintenance trigger
 

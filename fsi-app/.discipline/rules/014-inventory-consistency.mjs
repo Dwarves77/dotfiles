@@ -30,9 +30,10 @@ export const rule = {
   },
 
   check(ctx) {
-    // Run the consistency runner; check exit code.
+    // Run the consistency runner; check exit code. Capture full output (no --quiet)
+    // so failure messages include the actual drift records for operator action.
     const runnerPath = join(getRepoRoot(), 'fsi-app/.discipline/consistency/runner.mjs');
-    const result = spawnSync('node', [runnerPath, '--quiet'], {
+    const result = spawnSync('node', [runnerPath], {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -59,11 +60,21 @@ export const rule = {
     const uncoveredFails = [...failingChecks].filter((c) => !overriddenChecks.has(c));
     if (uncoveredFails.length === 0 && failingChecks.size > 0) return pass();
 
+    // Extract drift detail lines from runner output so CI logs are actionable
+    // (previously only summary made it through with --quiet; CI couldn't see
+    // which specific records failed).
+    const driftDetail = result.stderr
+      .split(/\r?\n/)
+      .filter((l) => /\[C\d+\]|kind|detail|Location/.test(l))
+      .slice(0, 40);
+
     return fail({
       message: `Consistency runner failed (exit ${result.status}); ${uncoveredFails.length} check(s) have no override: ${uncoveredFails.join(', ')}.`,
       remediation: [
         'Either fix the drift (recommended) or add a Consistency-Override trailer per failing check.',
-        'Fix: run `node fsi-app/.discipline/consistency/runner.mjs` locally to see drift records; address them.',
+        'Drift detail captured from runner output:',
+        ...driftDetail.map((l) => '    ' + l.trim()),
+        'To reproduce locally: run `node fsi-app/.discipline/consistency/runner.mjs`',
         'Override format: `Consistency-Override: C-N (rationale: <non-empty text>; remediation-deadline: YYYY-MM-DD)`',
         'The remediation-deadline must be a future date by which the drift will be fixed.',
         'Override usage surfaces in audit; recurring overrides on the same check indicate a deeper issue.',
