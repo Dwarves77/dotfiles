@@ -101,6 +101,7 @@
 | 094 | 094_tier_compat_shim.sql | Migration 094: Compatibility shim for Q2 (migration 090) tier -> base_tier renam |
 | 097 | 097_q4_bias_retune_option_b.sql | Migration 097: D1 Option B retroactive retune. |
 | 098 | 098_get_source_citation_stats_edge_table.sql | Migration 098: get_source_citation_stats body swap. |
+| 099 | 099_tier_opinion_review_state.sql | Migration 099: tier-opinion review state (dismissed_at/by/reason) + RLS for Phase 7 disagreement review surface. |
 
 ## Maintenance trigger
 
