@@ -4,12 +4,13 @@ title: Platform model
 status: accepted
 date: 2026-05-20
 scope:
-  - "fsi-app/src/app/(tenant)/"
-  - "fsi-app/src/lib/tenancy.ts"
   - "fsi-app/src/lib/supabase-server.ts"
   - "fsi-app/src/lib/supabase-browser.ts"
-  - "fsi-app/src/middleware.ts"
   - "fsi-app/src/app/api/admin/canonical-sources/"
+# future_scope (files not yet created; will be added to scope when introduced):
+#   - fsi-app/src/app/(tenant)/   (tenant-scoped route group)
+#   - fsi-app/src/lib/tenancy.ts  (tenancy enforcement library)
+#   - fsi-app/src/middleware.ts   (request-level tenant resolution)
 supersedes: null
 related: []
 ---

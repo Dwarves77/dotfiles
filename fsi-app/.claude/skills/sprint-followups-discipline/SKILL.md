@@ -605,6 +605,32 @@ If override usage accumulates, audit surfaces the pattern; operator reviews whet
 
 **Worked example.** A commit modifying `fsi-app/src/lib/trust.ts` intersects ADR-002 (Tier model). The commit body must include `ADR-Reference: ADR-002`. If the change also touches `fsi-app/src/app/api/admin/canonical-sources/decide/route.ts`, ADR-003 (Server-centric dual-write) also intersects, requiring a second trailer line. Audit script (`fsi-app/.discipline/dispatch/audit.mjs`) surfaces ADR references per dispatch UUID.
 
+## Inventory consistency rule
+
+This rule was added 2026-05-21 as Layer 4 of the enforcement architecture (per ADR-005). Sister to the ADR cross-reference rule (13th binding rule, Layer 3); the 14th binding rule is the inventory-reality-check layer.
+
+**Binding rule.** Any commit on master modifying `docs/inventories/*.md` files MUST satisfy the consistency runner (10 C-checks). The runner verifies that inventories match codebase reality: every claimed entity exists, every existing entity is claimed, no orphans, no drift.
+
+**Override.** `Consistency-Override: C-N (rationale: <non-empty text>; remediation-deadline: YYYY-MM-DD)` trailer per failing check. The remediation-deadline must be a future date. Override surfaces in audit; recurring overrides on the same check indicate deeper issue.
+
+**Implementation.** Rule code at `fsi-app/.discipline/rules/014-inventory-consistency.mjs`. The rule invokes the consistency runner (`fsi-app/.discipline/consistency/runner.mjs`) and asserts exit 0 OR documented overrides for each failing check.
+
+**The 10 initial C-checks (Layer 4 dispatch)**:
+- C1 skills.md reality
+- C2 routes.md reality
+- C3 migrations.md reality
+- C4 worktrees.md reality
+- C5 env-vars.md reality
+- C6 cron-jobs.md reality
+- C7 decisions.md (ADR) reality
+- C8 obs-status.md reality
+- C9 discipline manifest consistency
+- C10 cross-skill reference integrity
+
+New C-checks land at `fsi-app/.discipline/consistency/checks/CN-name.mjs` + tests; manifest registration in `fsi-app/.discipline/consistency/manifest.mjs`.
+
+**Worked example.** A commit adding a new admin API route at `fsi-app/src/app/api/admin/foo/route.ts` triggers C2 if `docs/inventories/routes.md` is not updated to include the new route. Rule 014 invokes the runner; runner reports C2 drift; rule 014 fails with the C2 missing-claim message. Operator either updates `docs/inventories/routes.md` (fixes the drift; runner passes) OR adds `Consistency-Override: C2 (rationale: route is experimental; deferred to product decision; remediation-deadline: 2026-06-01)` (rare; surfaces in audit).
+
 ## Anti-Patterns
 
 These behaviors mean the skill was loaded but not followed:

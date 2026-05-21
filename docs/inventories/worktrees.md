@@ -4,44 +4,62 @@ Catalog of current git worktrees with branch + merged-status + lifecycle state. 
 
 ## Status
 
-**Populated 2026-05-20** (first substantive population of the inventory after the 2026-05-20 stub).
+**Post-cleanup state, 2026-05-21** (Layer 4 cross-skill consistency dispatch; aggressive cleanup of sibling-path worktrees executed by parallel background agents).
 
-Current state per `git worktree list`: **11 worktrees** = 1 main + 1 active in-flight + 2 protect-list (recently merged) + 8 carryover from prior sessions (unmerged; preserved by cleanup-script safety design).
+Current state per `git worktree list`: **2 worktrees** = 1 main + 1 deferred-decision (`remediation-discipline`, unmerged tip awaiting operator review per Agent 1 finding).
+
+All other historical sibling-path worktrees (`4issues`, `ecovadis`, `masthead-uuid`, `mt-A`, `mt-B`, `mt-C`, `rebase-99`, `rebase-104`, `q4-resilience`, `phase1.5-consumers`) have been removed. Their branches survive in `.git/refs/heads/` AND are tagged for permanent recoverability (where unmerged).
 
 ## Path convention (binding)
 
 New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB recognized paths. Sibling-to-repo-root convention (`dotfiles-wt-<name>`) is anti-pattern; bypasses FaDB cleanup discipline. See remediation-discipline Section 7 Example 7.
 
-## Worktree state
+## Current worktree state
 
-### Main + active in-flight
+| Path | Branch | Status | Suggested disposition |
+|---|---|---|---|
+| `dotfiles` | `master` | Main repo | Keep |
+| `dotfiles-wt-remediation-discipline` | `feat/remediation-discipline-skill` | Unmerged tip: 2 commits ("sync FROM master") not in master at `cf03400`; ~11K LOC behind master | **Operator decision required**: are the 2 commits content-duplicates of work already on master (safe `git branch -D` + `git worktree remove --force`), or carry unique housekeeping (rebase first)? |
 
-| Path | Branch | Ahead/Behind master | Last commit | Suggested disposition |
-|---|---|---|---|---|
-| `dotfiles` | `master` | n/a | varies | Keep |
-| `dotfiles-wt-phase1.5-consumers` | `feat/phase1.5-tier-consumer-migration` | (in flight) | 2026-05-19 | KEEP — Item 2 agent `a320022` still running |
+## Preserved branches (worktree dirs removed; branches alive)
 
-### Protect-list (recently merged; eligible for cleanup but preserved for operator review)
+Branches removed-with-worktree (no preservation needed; branch was merged):
+- `feat/q4-batch-resilience` (was at `2fc6524`; merged to master via `e082461`)
+- `feat/phase1.5-completion` (was at `9a95afb`; integrated into master via Phase 1.5 commit)
 
-| Path | Branch | Status | Last commit | Suggested disposition |
-|---|---|---|---|---|
-| `dotfiles-wt-q4-resilience` | `feat/q4-batch-resilience` | Merged to master (commit `e082461`) | 2026-05-20 | Safe to remove after next cleanup pass |
-| `dotfiles-wt-remediation-discipline` | `feat/remediation-discipline-skill` | Merged to master (commit `e8d03a7`) | 2026-05-20 | Safe to remove after next cleanup pass |
+Branches preserved via worktree-dir removal + `archive/*-preserve-2026-05-20` tags (unmerged work survives indefinitely):
 
-### Carryover from prior sessions (unmerged; operator-decision required)
+| Branch | Archive tag | Last commit (pre-archive) |
+|---|---|---|
+| `fix(ui)/4-issues-wt-2026-05-12` | `archive/fix-ui-4-issues-wt-2026-05-12-preserve-2026-05-20` (parens stripped for tag-name safety) | a3ca0e9 |
+| `fix/ecovadis-vendor-classification` | `archive/fix/ecovadis-vendor-classification-preserve-2026-05-20` | 2499a49 |
+| `fix/regulation-masthead-uuid` | `archive/fix/regulation-masthead-uuid-preserve-2026-05-20` | 6cb203b |
+| `feat/multi-tenant-A-schema-cleanup` | `archive/feat/multi-tenant-A-schema-cleanup-preserve-2026-05-20` | c98e90d |
+| `feat/multi-tenant-B-invitations` | `archive/feat/multi-tenant-B-invitations-preserve-2026-05-20` | 46efacb |
+| `feat/multi-tenant-C-rpc-membership-checks` | `archive/feat/multi-tenant-C-rpc-membership-checks-preserve-2026-05-20` | e39255e |
+| `rebase/pr-99-on-master` | `archive/rebase/pr-99-on-master-preserve-2026-05-20` | c700768 |
+| `rebase/pr-104-on-master` | `archive/rebase/pr-104-on-master-preserve-2026-05-20` | 9e88776 |
 
-Each carries 1-3 commits ahead of master with substantive work. Cleanup script preserves them by safety design (branch not merged into master). Operator can decide per-worktree: merge, cherry-pick, archive-and-discard, or keep-as-staging.
+Re-attach any preserved branch later via:
 
-| Path | Branch | Ahead | Behind | Last commit (date) | Commit subject | Suggested disposition |
-|---|---|---|---|---|---|---|
-| `dotfiles-wt-4issues` | `fix(ui)/4-issues-wt-2026-05-12` | 3 | 115 | 2026-05-12 | fix(regulations): surface penalty schedule + sector-aware exposure | Review for cherry-pick or rebase + merge; oldest of the carryovers; check whether the regulation fixes are still needed after Build 4 routing landed |
-| `dotfiles-wt-ecovadis` | `fix/ecovadis-vendor-classification` | 1 | 114 | 2026-05-15 | fix(classification): reclassify EcoVadis as vendor_corporate | Small data-fix branch; safe single-commit cherry-pick to master if still applicable; review against current `sources` table state for EcoVadis |
-| `dotfiles-wt-masthead-uuid` | `fix/regulation-masthead-uuid` | 1 | 114 | 2026-05-15 | fix(regulations): remove raw id from regulation detail masthead meta | Small UI fix; cherry-pick + merge if regulation detail masthead still has the UUID issue |
-| `dotfiles-wt-mt-A` | `feat/multi-tenant-A-schema-cleanup` | 1 | 100 | 2026-05-15 | feat(multi-tenant): consolidate user_profiles into profiles (Phase 1+2) | Part of mt-A/B/C trilogy; operator-decision multi-tenant work; coordinate decision across all three |
-| `dotfiles-wt-mt-B` | `feat/multi-tenant-B-invitations` | 1 | 100 | 2026-05-15 | feat(multi-tenant): B. invitations infrastructure + onboarding state machine | Same trilogy; coordinate with A + C |
-| `dotfiles-wt-mt-C` | `feat/multi-tenant-C-rpc-membership-checks` | 1 | 100 | 2026-05-15 | feat(multi-tenant): C. membership-scoped data access (RPC hardening + group pool) | Same trilogy; coordinate with A + B |
-| `dotfiles-wt-rebase-99` | `rebase/pr-99-on-master` | 1 | 102 | 2026-05-15 | fix(pages): /market /research /operations meet design framework + use true total | Was PR-99 rebase attempt; operator-decision on whether to re-fire as fresh PR or discard if PR-99 closed otherwise |
-| `dotfiles-wt-rebase-104` | `rebase/pr-104-on-master` | 1 | 102 | 2026-05-15 | refactor(rpcs): extract shared workspace-scope SQL function | Was PR-104 rebase attempt; same decision shape as rebase-99 |
+```
+git worktree add C:/Users/jason/dotfiles/.worktrees/wt-<name> <branch-name>
+```
+
+(Use FaDB-recognized `.worktrees/` path, not sibling-path anti-pattern.)
+
+## Operator-pending decisions
+
+**PR-99 and PR-104**: Agent 2's GitHub check confirmed both PRs CLOSED-without-merge on 2026-05-15. Operator decides whether to:
+- Re-fire as fresh PRs (the `rebase/pr-*` branches still carry the work)
+- Delete the branches (force-delete; work survives via archive tags)
+
+**`remediation-discipline` worktree**: 2 unmerged commits (`3b1e08a` + `6d09ecb`) labeled "sync FROM master" but the branch tip is ~11K LOC behind current master. Operator decides:
+- Force-delete (if commits are content-duplicates of master work)
+- Rebase and resolve (if commits carry unique housekeeping)
+- Keep as-is (if there's intent to merge later)
+
+**`mt-A/B/C` trilogy**: multi-tenant infrastructure work preserved via archive tags. Operator-pending coordinated decision: merge all three, rework, or intentionally retire.
 
 ## Maintenance trigger
 
@@ -49,9 +67,9 @@ Per Inventory-artifact emission rule: any dispatch that creates OR removes a wor
 
 ## Cleanup history
 
+- 2026-05-20 (Layer 4 aggressive cleanup): Two parallel background agents handled this. Agent 1 removed 2 merged worktrees (`q4-resilience` + `phase1.5-consumers`) via `git worktree remove --force` after merge-ancestor verification + clean-working-tree check; `remediation-discipline` aborted (unmerged tip). Agent 2 created 8 archive tags (`archive/*-preserve-2026-05-20`) for the unmerged carryover worktrees and removed their worktree dirs; all 8 branches survive on disk. Net: 10 sibling-path worktree dirs removed, 8 branches preserved via tags + refs, 2 branches deleted post-merge (work was already on master). `remediation-discipline` is the sole residual sibling-path worktree pending operator decision.
 - 2026-05-20: bulk-cleanup ran via `scripts/cleanup-merged-worktrees.mjs --execute` at master commit `261a751`. Removed 15 session-merged worktrees (q1-q8, q10, phase1-components, skill-credibility, track-a/b-code/b-doc, decisions-doc). Junction-aware fallback fix added 2026-05-20 at commit `535295c` after q5-tier-override cleanup destroyed main repo's node_modules.
 
 ## Known gaps
 
 - **OBS-58**: Step 3 of the worktree-cleanup 3-step pattern (config-registry sweep against `~/.claude/settings.json` additionalDirectories) is currently manual. Automating in `cleanup-merged-worktrees.mjs` is queued for next cleanup-script touch.
-- **Carryover decision**: the 8 carryover worktrees above need per-worktree operator decisions. None are clearly safe to force-discard given each has 1-3 commits with substantive work. The mt-A/B/C trilogy in particular looks like coordinated work that may want to land together or be intentionally retired together.

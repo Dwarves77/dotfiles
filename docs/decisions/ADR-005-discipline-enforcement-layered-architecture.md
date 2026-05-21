@@ -47,9 +47,13 @@ Five-layer enforcement architecture, built in sequence:
 - Override: `ADR-Override: ADR-NNN (rationale: ...)` trailer signals explicit contradiction; surfaces in audit
 - Mechanism: ADR loader + `rules/013-adr-cross-reference.mjs`
 
-**Layer 4: Cross-skill consistency check** (next dispatch)
+**Layer 4: Cross-skill consistency check** (Layer 4 dispatch, landed)
 - Inventories asserted against reality. Reality-scanner enumerates the codebase + skill definitions + ADR scope, compares to documented state in `docs/inventories/`, fails on drift.
 - Inverts rule 11's "if you touched X, update X.md" direction with "scan reality, verify it matches X.md."
+- Implementation: 10 C-checks at `fsi-app/.discipline/consistency/checks/` (C1 skills, C2 routes, C3 migrations, C4 worktrees, C5 env-vars, C6 cron-jobs, C7 decisions, C8 obs-status, C9 discipline manifest, C10 cross-skill refs).
+- 14th binding rule (`fsi-app/.discipline/rules/014-inventory-consistency.mjs`) gates commits touching `docs/inventories/*.md` on the consistency runner exit 0.
+- Override mechanism: `Consistency-Override: C-N (rationale: ...; remediation-deadline: YYYY-MM-DD)` trailer per the rule 13 override pattern.
+- Audit script extension: `dispatch/audit.mjs` surfaces consistency overrides under "Consistency overrides (Layer 4; documented drift with remediation deadlines)".
 
 **Layer 5: Observability** (deferred; future sprint)
 - Dashboard surfacing override usage, bypass patterns, OBS state distribution, dispatch UUID audit aggregates

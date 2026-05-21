@@ -157,7 +157,10 @@ export function isResearchOnly(ctx) {
 export function isConversationOnly(ctx) {
   if (!/^(docs|conversation|status|notes):/i.test(ctx.commitSubject)) return false;
   // Only true conversation: no code touched
-  return !ctx.stagedFiles.some((f) => /\.(ts|tsx|mjs|js|sql|json)$/.test(f.path));
+  if (ctx.stagedFiles.some((f) => /\.(ts|tsx|mjs|js|sql|json)$/.test(f.path))) return false;
+  // Inventory updates assert state and are NOT conversation-only (per rule 014 + ADR-005 Layer 4)
+  if (ctx.stagedFiles.some((f) => f.path.replaceAll('\\', '/').startsWith('docs/inventories/'))) return false;
+  return true;
 }
 
 // ===========================================================================

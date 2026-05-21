@@ -41,9 +41,18 @@ function findTsc() {
 function runTypecheck() {
   const tsc = findTsc();
   const fsiAppDir = join(getRepoRoot(), 'fsi-app');
+
+  // If no local tsc and no clear fallback: surface a precise error.
+  if (!tsc) {
+    return {
+      ok: false,
+      output: `tsc not found at ${join(fsiAppDir, 'node_modules/.bin/tsc')} (or .cmd). Install fsi-app dev dependencies first: cd fsi-app && npm ci`,
+      errCode: 'TSC_NOT_FOUND',
+    };
+  }
+
   // spawnSync with shell:true handles both POSIX `tsc` and Windows `tsc.cmd` shims.
-  // Local tsc is preferred (no network); npx fallback only if local not installed.
-  const cmd = tsc ? `"${tsc}" --noEmit -p "${fsiAppDir}"` : `npx --no-install tsc --noEmit -p "${fsiAppDir}"`;
+  const cmd = `"${tsc}" --noEmit -p "${fsiAppDir}"`;
   const result = spawnSync(cmd, {
     shell: true,
     encoding: 'utf-8',
@@ -78,10 +87,18 @@ export const fitnessFunction = {
     const lines = result.output.split(/\r?\n/);
     const errorLines = lines.filter((l) => /error TS\d+:/.test(l)).slice(0, 5);
 
+    // If tsc itself couldn't run (not installed), surface that distinctly
+    if (result.errCode === 'TSC_NOT_FOUND') {
+      return [violation(
+        1,
+        `${result.output}\n\nRemediation: ensure fsi-app dependencies are installed before running F9. In CI: add an "npm ci" step in fsi-app/ before invoking the fitness runner. Locally: run "cd fsi-app && npm install" once.`,
+      )];
+    }
+
     const summary = `TypeScript compilation failed (tsc --noEmit exit code ${result.errCode}).`;
     const errorSummary = errorLines.length > 0
       ? `\nFirst ${errorLines.length} error(s):\n${errorLines.map((l) => '    ' + l).join('\n')}`
-      : '\n(no error lines parsed; see full output by running: cd fsi-app && npx tsc --noEmit)';
+      : `\n(no error lines parsed; raw output below)\n${result.output.split(/\r?\n/).slice(0, 20).map((l) => '    ' + l).join('\n')}`;
 
     return [violation(
       1,

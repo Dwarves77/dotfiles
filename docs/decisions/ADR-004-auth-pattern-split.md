@@ -6,8 +6,12 @@ date: 2026-05-20
 scope:
   - "fsi-app/src/app/api/admin/"
   - "fsi-app/src/app/api/worker/"
-  - "fsi-app/src/lib/auth.ts"
-  - "fsi-app/src/lib/auth-server.ts"
+# future_scope (auth helper files may consolidate here when extracted):
+#   - fsi-app/src/lib/auth.ts
+#   - fsi-app/src/lib/auth-server.ts
+# Today, auth gates live inline at each route or via the requireAuth/isPlatformAdmin
+# functions that route handlers import. F2 fitness function enforces the dichotomy
+# regardless of where the auth functions are defined.
 supersedes: null
 related: []
 ---

@@ -167,6 +167,19 @@ function reportSingleDispatch(uuid) {
     console.log('');
   }
 
+  // Consistency overrides (Layer 4 rule 014)
+  const consistencyOverrides = [];
+  for (const c of commits) {
+    for (const v of extractAllTrailerValues(c.body, 'Consistency-Override')) {
+      consistencyOverrides.push({ sha: c.sha.slice(0, 10), value: v });
+    }
+  }
+  if (consistencyOverrides.length > 0) {
+    console.log('  Consistency overrides (Layer 4; documented drift with remediation deadlines):');
+    for (const l of consistencyOverrides) console.log(`    [${l.sha}] ${l.value}`);
+    console.log('');
+  }
+
   // Files touched across all commits
   const allFiles = new Set();
   for (const c of commits) {

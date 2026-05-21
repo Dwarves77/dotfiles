@@ -119,9 +119,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install fsi-app deps (required for F9 tsc invocation)
+        # F9 (build-compiles) runs tsc --noEmit; tsc is the fsi-app local devDep.
+        # Without npm install, F9 fails to invoke tsc on a fresh CI checkout.
+        # Surfaced 2026-05-21 via failed CI on commit cf03400.
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run fitness functions
-        # Whole-repo glob + read + check across the F1-F8 function suite.
+        # Whole-repo glob + read + check across the F1-F9 function suite.
         # Exit 0 = no violations; exit 1 = at least one violation; exit 2 = engine error.
         # Violations print file:line with the function id, message, and source skill section.
         run: node fsi-app/.discipline/fitness/runner.mjs

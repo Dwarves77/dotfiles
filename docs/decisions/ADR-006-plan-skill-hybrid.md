@@ -4,8 +4,9 @@ title: Plan-skill hybrid discipline (multi-dispatch coordination)
 status: accepted
 date: 2026-05-20
 scope:
-  - "docs/plans/"
   - "fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md"
+# future_scope (will be added when first 3+ dispatch coordination authors a plan):
+#   - docs/plans/
 supersedes: null
 related: []
 ---

@@ -15,7 +15,11 @@ import { readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { getRepoRoot } from '../../lib/context.mjs';
 
-const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage', '.vercel']);
+// Directories skipped during recursive walk. Conservative list: only directories
+// universally known to be build/tool output. NOT included: `coverage` (would skip
+// the legitimate /api/admin/coverage route file). If test-coverage output ever
+// lands at fsi-app/coverage/, add a path-based exclusion instead of a name-based one.
+const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', '.vercel']);
 
 export function globFiles(patterns) {
   const root = getRepoRoot();
@@ -43,6 +47,16 @@ function expandPattern(root, pattern) {
     return results;
   }
 
+  // dir/ (trailing slash; recursive walk of dir contents).
+  // Checked BEFORE the exact-path branch so patterns like "docs/decisions/"
+  // are treated as directory walks rather than missing files.
+  if (normalized.endsWith('/')) {
+    const baseDir = normalized.slice(0, -1);
+    const absBase = join(root, baseDir);
+    if (!existsSync(absBase)) return [];
+    return walkRecursive(absBase, root);
+  }
+
   // Exact path (no glob chars)
   if (!normalized.includes('*') && !normalized.includes('**')) {
     const abs = join(root, normalized);
@@ -61,14 +75,6 @@ function expandPattern(root, pattern) {
     const allFiles = walkRecursive(absBase, root);
     if (!tail) return allFiles.filter((f) => f.startsWith(baseDir + '/'));
     return allFiles.filter((f) => f.startsWith(baseDir + '/') && matchesTail(f, tail));
-  }
-
-  // dir/ (trailing slash; non-recursive listing)
-  if (normalized.endsWith('/')) {
-    const baseDir = normalized.slice(0, -1);
-    const absBase = join(root, baseDir);
-    if (!existsSync(absBase)) return [];
-    return walkRecursive(absBase, root);
   }
 
   // dir/*.ext (single-level)
