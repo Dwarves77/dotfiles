@@ -17,7 +17,7 @@
  *     is hooked up (the data shape is in place, just no input yet).
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -41,6 +41,11 @@ interface CommunitySidebarProps {
   topics: CommunityTopicSummary[];
 }
 
+interface GroupCounts {
+  unread: number;
+  mentions: number;
+}
+
 export function CommunitySidebar({
   currentUser,
   memberships,
@@ -53,6 +58,55 @@ export function CommunitySidebar({
   const publicGroups = memberships.filter(
     (m) => !m.starred && m.group.privacy === "public"
   );
+
+  // Build 10: fetch per-group notification counts from the lightweight
+  // /counts endpoint. The fanout dispatcher (commit 7c13f64) writes
+  // payload.group_id on reply + invite events; this read aggregates
+  // those rows so the sidebar pills surface real activity instead of
+  // the C4 placeholder zeros. Polling at 60s keeps the load tiny while
+  // ensuring the pills age out reasonably quickly after read-state
+  // changes elsewhere. RLS scopes the read to the caller; no caller
+  // can see another user's counts.
+  const [groupCounts, setGroupCounts] = useState<Map<string, GroupCounts>>(
+    () => new Map()
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/community/notifications/counts", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          groups: Array<{
+            group_id: string;
+            unread_count: number;
+            mention_count: number;
+          }>;
+        };
+        if (cancelled) return;
+        const next = new Map<string, GroupCounts>();
+        for (const row of json.groups ?? []) {
+          next.set(row.group_id, {
+            unread: row.unread_count,
+            mentions: row.mention_count,
+          });
+        }
+        setGroupCounts(next);
+      } catch {
+        // Network blip: leave the previous map in place rather than
+        // flashing pills to zero. Next poll round picks up the truth.
+      }
+    };
+    load();
+    const t = window.setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, []);
 
   return (
     <aside
@@ -180,7 +234,12 @@ export function CommunitySidebar({
         <SidebarSection label="Starred" count={starred.length}>
           {starred.length === 0 && <SidebarEmpty>Star a group to pin it here.</SidebarEmpty>}
           {starred.map((m) => (
-            <GroupRow key={m.group_id} membership={m} accent="starred" />
+            <GroupRow
+              key={m.group_id}
+              membership={m}
+              accent="starred"
+              counts={groupCounts.get(m.group_id)}
+            />
           ))}
         </SidebarSection>
 
@@ -193,7 +252,12 @@ export function CommunitySidebar({
             <SidebarEmpty>You&apos;re not in any private groups yet.</SidebarEmpty>
           )}
           {privateGroups.map((m) => (
-            <GroupRow key={m.group_id} membership={m} accent="private" />
+            <GroupRow
+              key={m.group_id}
+              membership={m}
+              accent="private"
+              counts={groupCounts.get(m.group_id)}
+            />
           ))}
         </SidebarSection>
 
@@ -206,7 +270,12 @@ export function CommunitySidebar({
             <SidebarEmpty>Join a public forum from Browse.</SidebarEmpty>
           )}
           {publicGroups.map((m) => (
-            <GroupRow key={m.group_id} membership={m} accent="public" />
+            <GroupRow
+              key={m.group_id}
+              membership={m}
+              accent="public"
+              counts={groupCounts.get(m.group_id)}
+            />
           ))}
         </SidebarSection>
 
@@ -503,16 +572,19 @@ function SidebarRow({
 function GroupRow({
   membership,
   accent,
+  counts,
 }: {
   membership: CommunityMembership;
   accent: "starred" | "private" | "public";
+  counts?: GroupCounts;
 }) {
-  // Phase C ships without notification wiring — these zeros are
-  // placeholders so the pill structure renders consistently. Once
-  // notifications + read-state ship (Phase D), feed the real values
-  // here from a server query of the notifications table.
-  const unread = 0;
-  const mentions = 0;
+  // Build 10: real counts arrive from /api/community/notifications/counts,
+  // fetched in CommunitySidebar and threaded down. The endpoint aggregates
+  // unread + mention rows from the notifications table written by the
+  // fanout dispatcher (commit 7c13f64). Zero when no row exists for the
+  // group, which keeps the pill structure stable for the empty case.
+  const unread = counts?.unread ?? 0;
+  const mentions = counts?.mentions ?? 0;
 
   let icon: React.ReactNode;
   let iconColor: string | undefined;

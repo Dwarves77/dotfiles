@@ -10,11 +10,11 @@
  *   2. Below it, a pill-shaped search input with a Cmd+K kbd hint and
  *      a Search button. Scope chips (All / Posts / Groups / People).
  *
- * Phase C constraint:
- *   The form submit fires onSearchSubmit. The parent (CommunityShell)
- *   wires that to a "Search rolling out — Phase D" toast. No real
- *   Postgres FTS query is wired up yet — that's deferred to Phase D
- *   along with the search results drawer.
+ * Build 10 update:
+ *   The form submit fires onSearchSubmit. CommunityShell wires that
+ *   to the real /api/community/search endpoint via CommunitySearchResults.
+ *   The masthead itself stays purely presentational; it doesn't know
+ *   what the parent does with the (query, scope) pair.
  */
 
 import { useEffect, useRef, useState } from "react";

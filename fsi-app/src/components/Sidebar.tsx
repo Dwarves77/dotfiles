@@ -25,12 +25,20 @@ interface NavItem {
   icon: typeof LayoutDashboard;
 }
 
+// Build 10 (2026-05-21): Community moved into the intelligence-pages
+// block (between Operations and Map) to reflect its co-equal status
+// with the four intelligence pages per caros-ledge-platform-intent
+// SKILL.md Section "The Five Customer-Facing Surfaces". Previously
+// Community sat in a spacer'd middle section that visually grouped it
+// with the user footer (account-chrome zone); that ranking
+// misrepresented its product role.
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/regulations", label: "Regulations", icon: Scale },
   { href: "/market", label: "Market Intel", icon: TrendingUp },
   { href: "/research", label: "Research", icon: GraduationCap },
   { href: "/operations", label: "Operations", icon: Globe },
+  { href: "/community", label: "Community", icon: MessageSquare },
   { href: "/map", label: "Map", icon: MapPin },
 ];
 
@@ -117,31 +125,8 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Spacer — pushes community to middle area */}
+      {/* Spacer — pushes user footer to the bottom of the rail */}
       <div className="flex-1" />
-
-      {/* Community — standalone middle section */}
-      <div className="px-2 py-2 border-t border-b" style={{ borderColor: "var(--color-border)" }}>
-        <Link
-          href="/community"
-          prefetch={false}
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
-            isActive("/community")
-              ? "font-semibold"
-              : "hover:bg-[var(--color-bg-raised)]"
-          )}
-          style={{
-            color: isActive("/community") ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-            backgroundColor: isActive("/community") ? "var(--color-active-bg)" : undefined,
-            borderLeft: isActive("/community") ? "3px solid var(--color-primary)" : "3px solid transparent",
-          }}
-        >
-          <MessageSquare size={18} strokeWidth={isActive("/community") ? 2.2 : 1.8} />
-          <span className="hidden lg:inline">Community</span>
-        </Link>
-      </div>
 
       {/* Bottom — user menu only (Settings is inside the dropdown) */}
       <div className="px-3 py-3">
