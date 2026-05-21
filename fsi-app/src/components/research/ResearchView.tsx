@@ -31,6 +31,7 @@ import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
 import { CitationCountChip } from "@/components/credibility/CitationCountChip";
 import { RecencyChip } from "@/components/credibility/RecencyChip";
+import { CredibilityBadge } from "@/components/credibility/CredibilityBadge";
 import type { WorkspaceAggregates } from "@/lib/data";
 
 // ── Types ──
@@ -52,6 +53,10 @@ export interface ResearchPipelineItem {
   citationCount: number | null;
   /** Build 8.1: most recent citation detected_at for this source. */
   lastCitedAt: string | null;
+  /** Build 8.2: source.base_tier (provenance; 1-7 or null). */
+  baseTier: number | null;
+  /** Build 8.2: source.effective_tier (dynamic; 1-7 or null; falls back to baseTier in render). */
+  effectiveTier: number | null;
   /** Owner / researcher (placeholder until owner field lands). */
   owner: string | null;
   partnerFlagged: boolean;
@@ -908,19 +913,33 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
           }}
           className="hover:bg-[var(--raised)]"
         >
-          {/* Source kicker — promoted per CC3 source-attribution prominence */}
+          {/* Source kicker — promoted per CC3 source-attribution prominence.
+              Build 8.2: tier badge inline with source name. Uses effectiveTier
+              with fallback to baseTier per ADR-002 customer-facing-surfaces
+              read rule. */}
           {item.sourceName && (
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--text-2)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 marginBottom: 4,
               }}
             >
-              {item.sourceName}
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--text-2)",
+                }}
+              >
+                {item.sourceName}
+              </span>
+              {(item.effectiveTier ?? item.baseTier) !== null && (
+                <CredibilityBadge tier={item.effectiveTier ?? item.baseTier} size="sm" />
+              )}
             </div>
           )}
           <div

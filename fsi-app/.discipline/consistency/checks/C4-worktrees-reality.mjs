@@ -82,10 +82,19 @@ export const consistencyCheck = {
       }
     }
 
-    // Each live git worktree: should be listed (by basename) in inventory
+    // Each live git worktree: should be listed in inventory by either its
+    // bare basename (new `.worktrees/wt-<name>` convention) OR the
+    // historical `dotfiles-wt-<name>` form. Inventory entries that resolve
+    // to the same path under EITHER format count as a match. This mirrors
+    // the bidirectional intent of the existence check above.
     for (const livePath of liveWorktrees) {
       const basename = livePath.split(/[\\/]/).pop();
-      if (!inventoryPaths.has(basename)) {
+      // Match if inventory contains the basename directly, OR if it
+      // contains the historical `dotfiles-<basename>` form, OR (for the
+      // main repo) the bare "dotfiles" entry.
+      const historicalForm = basename === 'dotfiles' ? 'dotfiles' : `dotfiles-${basename}`;
+      const matched = inventoryPaths.has(basename) || inventoryPaths.has(historicalForm);
+      if (!matched) {
         drifts.push(drift(
           DRIFT_KIND.MISSING_CLAIM,
           `Git worktree at ${livePath} (basename "${basename}") exists but is not listed in docs/inventories/worktrees.md.`,

@@ -723,6 +723,8 @@ export interface ResearchPipelineRow {
   addedDate: string | null;
   citationCount: number | null;   // Build 8.1: from get_source_citation_stats RPC
   lastCitedAt: string | null;     // Build 8.1: from get_source_citation_stats RPC
+  baseTier: number | null;        // Build 8.2: source.base_tier (provenance)
+  effectiveTier: number | null;   // Build 8.2: source.effective_tier (dynamic; falls back to base_tier in render)
 }
 
 export async function fetchResearchPipelineRows(
@@ -751,7 +753,7 @@ export async function fetchResearchPipelineRows(
     const { data, error } = await supabase
       .from("intelligence_items")
       .select(
-        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(id, name, url)"
+        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(id, name, url, base_tier, effective_tier)"
       )
       .eq("is_archived", false)
       .order("added_date", { ascending: false })
@@ -779,6 +781,8 @@ export async function fetchResearchPipelineRows(
         addedDate: row.added_date ?? null,
         citationCount: null,
         lastCitedAt: null,
+        baseTier: typeof src?.base_tier === "number" ? src.base_tier : null,
+        effectiveTier: typeof src?.effective_tier === "number" ? src.effective_tier : null,
       };
     });
 

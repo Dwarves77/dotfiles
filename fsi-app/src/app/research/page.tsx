@@ -78,6 +78,8 @@ export default async function Research() {
     addedDate: r.addedDate,
     citationCount: r.citationCount,
     lastCitedAt: r.lastCitedAt,
+    baseTier: r.baseTier,
+    effectiveTier: r.effectiveTier,
     owner: null,
     partnerFlagged: false,
   }));
