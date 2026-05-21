@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { ALL_SECTORS } from "@/lib/constants";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -56,15 +56,39 @@ interface Props {
   userId: string;
   userEmail: string;
   orgId: string;
+  // True when LINKEDIN_CLIENT_ID is provisioned for the current deployment.
+  // When false, the wizard renders the LinkedIn card disabled with a
+  // "not configured for this deployment" affordance rather than wiring the
+  // start endpoint (which would itself short-circuit to ?linkedin=error).
+  linkedinEnabled?: boolean;
 }
 
-export function OnboardingWizard({ userId, userEmail, orgId }: Props) {
+// Maps the failure-reason keys emitted by /api/auth/linkedin/callback to
+// user-facing toast copy. Unknown reasons fall through to a generic message.
+const LINKEDIN_ERROR_COPY: Record<string, string> = {
+  "not-configured": "LinkedIn import is not configured for this deployment.",
+  "not-authenticated": "Sign in first, then try LinkedIn import again.",
+  "state-mismatch": "LinkedIn import expired or the link was tampered with. Please try again.",
+  "missing-code": "LinkedIn didn't return an authorization code. Please try again.",
+  "provider-denied": "LinkedIn declined the request, or you cancelled the prompt.",
+  "token-exchange-failed": "Couldn't complete the LinkedIn handshake. Please try again.",
+  "profile-fetch-failed": "Couldn't read your LinkedIn profile. Please try again.",
+  "profile-upsert-failed": "We imported the LinkedIn data but couldn't save it. Please try again.",
+};
+
+function linkedinErrorMessage(reason: string | null): string {
+  if (!reason) return "LinkedIn import failed. Please try again.";
+  return LINKEDIN_ERROR_COPY[reason] ?? "LinkedIn import failed. Please try again.";
+}
+
+export function OnboardingWizard({ userId, userEmail, orgId, linkedinEnabled = false }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createSupabaseBrowserClient();
   const setSectorProfile = useWorkspaceStore((s) => s.setSectorProfile);
 
   const [step, setStep] = useState<Step>(1);
-  const [path, setPath] = useState<"fresh" | null>(null);
+  const [path, setPath] = useState<"fresh" | "linkedin" | null>(null);
 
   // Step 2 — Identity
   const [name, setName] = useState("");
@@ -74,6 +98,13 @@ export function OnboardingWizard({ userId, userEmail, orgId }: Props) {
   const [region, setRegion] = useState("global");
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [savingIdentity, setSavingIdentity] = useState(false);
+
+  // LinkedIn round-trip toast (non-modal). Set by the ?linkedin=error&reason=
+  // detector below and dismissed automatically after a short window.
+  const [linkedinToast, setLinkedinToast] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // Step 3 — Sectors
   const [sectors, setSectors] = useState<string[]>([]);
@@ -95,6 +126,57 @@ export function OnboardingWizard({ userId, userEmail, orgId }: Props) {
     setSectors((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
+
+  // LinkedIn round-trip handler. The callback route redirects back here with
+  // either ?linkedin=imported (success) or ?linkedin=error&reason=... On
+  // success we read the now-updated profile row and prefill the identity
+  // step so the user can review and continue. On failure we raise a non-
+  // modal toast and stay on step 1 so the user can retry or fall back to
+  // "Start fresh".
+  useEffect(() => {
+    const status = searchParams.get("linkedin");
+    if (!status) return;
+
+    // Strip the query params so a refresh does not re-fire the effect.
+    const cleaned = new URL(window.location.href);
+    cleaned.searchParams.delete("linkedin");
+    cleaned.searchParams.delete("reason");
+    window.history.replaceState(null, "", cleaned.toString());
+
+    if (status === "imported") {
+      setLinkedinToast({ tone: "success", message: "LinkedIn profile imported. Review your details and continue." });
+      setPath("linkedin");
+      (async () => {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, headline, linkedin_url")
+          .eq("id", userId)
+          .maybeSingle();
+        if (error || !data) return;
+        if (typeof data.full_name === "string" && data.full_name.length > 0) {
+          setName(data.full_name);
+        }
+        if (typeof data.headline === "string" && data.headline.length > 0) {
+          setRole(data.headline);
+        }
+        setStep(2);
+      })();
+      return;
+    }
+
+    if (status === "error") {
+      const reason = searchParams.get("reason");
+      setLinkedinToast({ tone: "error", message: linkedinErrorMessage(reason) });
+    }
+  }, [searchParams, supabase, userId]);
+
+  // Auto-dismiss the LinkedIn toast after 6 seconds so it does not linger
+  // through subsequent wizard interaction.
+  useEffect(() => {
+    if (!linkedinToast) return;
+    const t = setTimeout(() => setLinkedinToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [linkedinToast]);
 
   // ── Persistence helpers ───────────────────────────────────────────────
 
@@ -190,7 +272,10 @@ export function OnboardingWizard({ userId, userEmail, orgId }: Props) {
 
   const goNext = async () => {
     if (step === 1) {
-      if (path === "fresh") setStep(2);
+      // Both the "fresh" and "linkedin" (post-import) paths advance to the
+      // identity step. The linkedin path arrives here with prefilled state
+      // courtesy of the ?linkedin=imported effect above.
+      if (path === "fresh" || path === "linkedin") setStep(2);
       return;
     }
     if (step === 2) {
@@ -225,10 +310,48 @@ export function OnboardingWizard({ userId, userEmail, orgId }: Props) {
       style={{ backgroundColor: "var(--color-background)" }}
     >
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10">
+        {linkedinToast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-4 flex items-start gap-2 rounded-md border px-3 py-2 text-xs"
+            style={{
+              borderColor:
+                linkedinToast.tone === "success"
+                  ? "var(--color-success-border, var(--color-border))"
+                  : "var(--color-danger-border, var(--color-border))",
+              backgroundColor: "var(--color-surface)",
+              color: "var(--color-text-primary)",
+            }}
+          >
+            {linkedinToast.tone === "success" ? (
+              <Check size={14} style={{ marginTop: 1 }} />
+            ) : (
+              <AlertCircle size={14} style={{ marginTop: 1 }} />
+            )}
+            <span style={{ flex: 1 }}>{linkedinToast.message}</span>
+            <button
+              type="button"
+              onClick={() => setLinkedinToast(null)}
+              aria-label="Dismiss"
+              className="text-xs"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         <Header step={step} />
 
         <div className="mt-8">
-          {step === 1 && <StepChoosePath path={path} setPath={setPath} />}
+          {step === 1 && (
+            <StepChoosePath
+              path={path}
+              setPath={setPath}
+              linkedinEnabled={linkedinEnabled}
+            />
+          )}
 
           {step === 2 && (
             <StepIdentity
@@ -289,7 +412,7 @@ export function OnboardingWizard({ userId, userEmail, orgId }: Props) {
                 variant="primary"
                 onClick={goNext}
                 disabled={
-                  (step === 1 && path !== "fresh") ||
+                  (step === 1 && path !== "fresh" && path !== "linkedin") ||
                   (step === 2 && savingIdentity) ||
                   (step === 3 && (savingSectors || sectors.length === 0))
                 }
@@ -354,24 +477,54 @@ function Header({ step }: { step: Step }) {
 function StepChoosePath({
   path,
   setPath,
+  linkedinEnabled,
 }: {
-  path: "fresh" | null;
-  setPath: (p: "fresh" | null) => void;
+  path: "fresh" | "linkedin" | null;
+  setPath: (p: "fresh" | "linkedin" | null) => void;
+  linkedinEnabled: boolean;
 }) {
+  const startLinkedin = () => {
+    // Navigate via full document load so the server-issued state cookie is
+    // applied before the 302 hop to LinkedIn. router.push would not work
+    // here because the start endpoint Set-Cookie + redirect chain must be
+    // followed by the browser, not by the Next router.
+    window.location.href = "/api/auth/linkedin/start";
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {/* LinkedIn — coming soon stub */}
-      <div
-        className="rounded-lg border p-5 cursor-not-allowed"
+      {/* LinkedIn — live when LINKEDIN_CLIENT_ID is provisioned, disabled
+          with explanatory copy when the deployment is unconfigured. */}
+      <button
+        type="button"
+        onClick={linkedinEnabled ? startLinkedin : undefined}
+        disabled={!linkedinEnabled}
+        aria-disabled={!linkedinEnabled}
+        className={
+          "rounded-lg border p-5 text-left transition-colors " +
+          (linkedinEnabled
+            ? "cursor-pointer"
+            : "cursor-not-allowed")
+        }
         style={{
-          borderColor: "var(--color-border)",
-          backgroundColor: "var(--color-surface)",
-          opacity: 0.7,
+          borderColor:
+            linkedinEnabled && path === "linkedin"
+              ? "var(--color-active-border)"
+              : "var(--color-border)",
+          backgroundColor:
+            linkedinEnabled && path === "linkedin"
+              ? "var(--color-active-bg)"
+              : "var(--color-surface)",
+          opacity: linkedinEnabled ? 1 : 0.7,
         }}
       >
         <Linkedin
           size={22}
-          style={{ color: "var(--color-text-secondary)" }}
+          style={{
+            color: linkedinEnabled
+              ? "var(--color-primary)"
+              : "var(--color-text-secondary)",
+          }}
         />
         <h3
           className="text-base font-semibold mt-3"
@@ -383,22 +536,27 @@ function StepChoosePath({
           className="text-xs mt-1"
           style={{ color: "var(--color-text-secondary)" }}
         >
-          Pre-fill your name, role, and employer from your LinkedIn profile.
+          {linkedinEnabled
+            ? "Pre-fill your name, role, and employer from your LinkedIn profile."
+            : "LinkedIn import not configured for this deployment."}
         </p>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="mt-4 w-full px-3 py-2 text-xs font-medium rounded-md border cursor-not-allowed"
+        <span
+          className="inline-flex items-center gap-1 text-xs font-medium mt-4"
           style={{
-            borderColor: "var(--color-border)",
-            color: "var(--color-text-muted)",
-            backgroundColor: "transparent",
+            color: linkedinEnabled
+              ? "var(--color-primary)"
+              : "var(--color-text-muted)",
           }}
         >
-          Coming soon
-        </button>
-      </div>
+          {linkedinEnabled ? (
+            <>
+              Continue with LinkedIn <ArrowRight size={12} />
+            </>
+          ) : (
+            <>Unavailable</>
+          )}
+        </span>
+      </button>
 
       {/* Start fresh */}
       <button
