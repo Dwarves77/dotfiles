@@ -15,7 +15,7 @@ import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCar
 import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceReview";
 import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
 import { B2ProgressBanner } from "@/components/sources/B2ProgressBanner";
-import { GlobalPauseToggle, SourceRowControls } from "@/components/sources/SourceAdminControls";
+import { GlobalPauseToggle, SourceRowControls, SourceTierOverrideControl } from "@/components/sources/SourceAdminControls";
 
 // ── Tier Summary Card ──
 
@@ -251,6 +251,19 @@ function SourceRow({ source }: { source: Source }) {
               sourceId={source.id}
               initialPaused={!!(source as any).processing_paused}
               initialAdminOnly={!!(source as any).admin_only}
+            />
+          </div>
+
+          {/* Tier override control (Phase 7 admin chrome). Inline next to
+              the other per-source actions per DP-1 (Single-Pane Operator
+              Review): every related decision on the source is reachable
+              from this expanded row without tab-switching. */}
+          <div className="pt-3 border-t" style={{ borderColor: "var(--color-border-subtle)" }}>
+            <SourceTierOverrideControl
+              sourceId={source.id}
+              initialBaseTier={source.base_tier}
+              initialTierOverride={(source as unknown as { tier_override?: number | null }).tier_override ?? null}
+              initialEffectiveTier={source.effective_tier}
             />
           </div>
         </div>

@@ -49,6 +49,96 @@ function getServiceClient() {
   );
 }
 
+// GET /api/admin/sources/[id]/tier-override
+//
+// Returns the source's current override state plus a recent slice of the
+// override audit trail from source_trust_events. Used by SourceAdminControls
+// to render the inline tier-override surface (Phase 7 admin chrome).
+//
+// Response:
+//   {
+//     base_tier: number,
+//     tier_override: number | null,
+//     effective_tier: number | null,
+//     override_reason: string | null,
+//     override_date: string | null,
+//     audit: Array<{
+//       event_type: 'tier_override' | 'tier_override_revert',
+//       reviewer_id: string | null,
+//       created_at: string,
+//       details: Record<string, unknown>,
+//     }>,
+//   }
+//
+// Auth: requireAuth + isPlatformAdmin per the POST handler in this file.
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireAuth(request);
+  if (isAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const supabase = getServiceClient();
+
+  const admin = await isPlatformAdmin(auth.userId, supabase);
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Platform admin access required" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json(
+      { error: "source id required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { data: source, error: srcError } = await supabase
+    .from("sources")
+    .select("id, base_tier, tier_override, effective_tier, override_reason, override_date")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (srcError) {
+    return NextResponse.json(
+      { error: srcError.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (!source) {
+    return NextResponse.json(
+      { error: "source not found" },
+      { status: 404, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { data: events } = await supabase
+    .from("source_trust_events")
+    .select("event_type, reviewer_id, created_at, details")
+    .eq("source_id", id)
+    .in("event_type", ["tier_override", "tier_override_revert"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  return NextResponse.json(
+    {
+      base_tier: source.base_tier ?? null,
+      tier_override: source.tier_override ?? null,
+      effective_tier: source.effective_tier ?? null,
+      override_reason: source.override_reason ?? null,
+      override_date: source.override_date ?? null,
+      audit: events || [],
+    },
+    { headers: rateLimitHeaders(auth.userId) }
+  );
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -1,0 +1,335 @@
+// /api/orgs/[org_id]/members
+//
+// GET — list org_memberships for the caller's org. Caller must be a
+// member. Returns id, user_id, role, joined timestamp, and the joined
+// profile.full_name / avatar_url for display.
+//
+// PATCH — change a member's role. Owner-only. Body: { membership_id,
+// role }. Role must be one of the role-CHECK values; cannot demote
+// the only owner (server checks that count(owner) > 1 before allowing
+// an owner -> non-owner change on the only owner).
+//
+// DELETE — revoke a membership. Owner-only. Cannot revoke self
+// (owner cannot remove their own membership; explicit guard with a
+// 403 to make the operator surface unambiguous).
+//
+// Service-role writes only via this server route per operator binding
+// rule.
+
+import { NextRequest, NextResponse } from "next/server";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  requireCommunityAuth,
+  isCommunityAuthError,
+} from "@/lib/api/community-auth";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+
+function getServiceClient(): SupabaseClient {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+const VALID_ROLES = new Set(["owner", "admin", "member", "viewer"]);
+
+async function getMembership(
+  supabase: SupabaseClient,
+  orgId: string,
+  userId: string
+): Promise<{ id: string; role: string } | null> {
+  const { data } = await supabase
+    .from("org_memberships")
+    .select("id, role")
+    .eq("org_id", orgId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as { id: string; role: string } | null) ?? null;
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ org_id: string }> }
+) {
+  const auth = await requireCommunityAuth(request);
+  if (isCommunityAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const { org_id } = await params;
+  if (!org_id) {
+    return NextResponse.json(
+      { error: "org_id required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const service = getServiceClient();
+
+  const callerMembership = await getMembership(service, org_id, auth.userId);
+  if (!callerMembership) {
+    return NextResponse.json(
+      { error: "Not a member of this organization" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { data, error } = await service
+    .from("org_memberships")
+    .select(
+      "id, user_id, role, created_at, user:profiles!user_id(full_name, avatar_url)"
+    )
+    .eq("org_id", org_id)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // Resolve auth.users emails via the admin API so the operator UI can
+  // show recognizable identities for members without a profile row.
+  // Avoid one-shot admin.listUsers for large orgs; instead query for
+  // exactly the user_ids on this org.
+  const rows = (data || []) as Array<{
+    id: string;
+    user_id: string;
+    role: string;
+    created_at: string;
+    user: { full_name?: string | null; avatar_url?: string | null } | null;
+  }>;
+
+  return NextResponse.json(
+    {
+      members: rows.map((r) => ({
+        id: r.id,
+        user_id: r.user_id,
+        role: r.role,
+        joined_at: r.created_at,
+        display_name:
+          r.user?.full_name ?? `${String(r.user_id).slice(0, 8)}...`,
+        avatar_url: r.user?.avatar_url ?? null,
+      })),
+      caller_role: callerMembership.role,
+      caller_membership_id: callerMembership.id,
+    },
+    { headers: rateLimitHeaders(auth.userId) }
+  );
+}
+
+interface PatchBody {
+  membership_id?: string;
+  role?: string;
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ org_id: string }> }
+) {
+  const auth = await requireCommunityAuth(request);
+  if (isCommunityAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const { org_id } = await params;
+  if (!org_id) {
+    return NextResponse.json(
+      { error: "org_id required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  let body: PatchBody;
+  try {
+    body = (await request.json()) as PatchBody;
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const membershipId = typeof body.membership_id === "string" ? body.membership_id : null;
+  const role = typeof body.role === "string" ? body.role : null;
+
+  if (!membershipId) {
+    return NextResponse.json(
+      { error: "membership_id is required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (!role || !VALID_ROLES.has(role)) {
+    return NextResponse.json(
+      { error: "role must be one of: owner, admin, member, viewer" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const service = getServiceClient();
+
+  const callerMembership = await getMembership(service, org_id, auth.userId);
+  if (!callerMembership) {
+    return NextResponse.json(
+      { error: "Not a member of this organization" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (callerMembership.role !== "owner") {
+    return NextResponse.json(
+      { error: "Owner role required to change member roles" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // Read the target membership inside the same org for the demotion guard.
+  const { data: target } = await service
+    .from("org_memberships")
+    .select("id, user_id, role, org_id")
+    .eq("id", membershipId)
+    .maybeSingle();
+  if (!target || target.org_id !== org_id) {
+    return NextResponse.json(
+      { error: "membership not found in this org" },
+      { status: 404, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // Demotion guard: if the target is currently the only owner and the
+  // patch demotes them, refuse. The org must always have at least one
+  // owner.
+  if (target.role === "owner" && role !== "owner") {
+    const { count: ownerCount } = await service
+      .from("org_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org_id)
+      .eq("role", "owner");
+    if ((ownerCount ?? 0) <= 1) {
+      return NextResponse.json(
+        { error: "Cannot demote the only owner. Promote another member to owner first." },
+        { status: 409, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+  }
+
+  const { data, error } = await service
+    .from("org_memberships")
+    .update({ role })
+    .eq("id", membershipId)
+    .select("id, role")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  return NextResponse.json(
+    { membership: data },
+    { headers: rateLimitHeaders(auth.userId) }
+  );
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ org_id: string }> }
+) {
+  const auth = await requireCommunityAuth(request);
+  if (isCommunityAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const { org_id } = await params;
+  if (!org_id) {
+    return NextResponse.json(
+      { error: "org_id required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const url = new URL(request.url);
+  const membershipId = url.searchParams.get("membership_id");
+  if (!membershipId) {
+    return NextResponse.json(
+      { error: "membership_id query parameter required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const service = getServiceClient();
+
+  const callerMembership = await getMembership(service, org_id, auth.userId);
+  if (!callerMembership) {
+    return NextResponse.json(
+      { error: "Not a member of this organization" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (callerMembership.role !== "owner") {
+    return NextResponse.json(
+      { error: "Owner role required to revoke members" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { data: target } = await service
+    .from("org_memberships")
+    .select("id, user_id, role, org_id")
+    .eq("id", membershipId)
+    .maybeSingle();
+  if (!target || target.org_id !== org_id) {
+    return NextResponse.json(
+      { error: "membership not found in this org" },
+      { status: 404, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // Owner cannot revoke self. Surface as 403 with an explicit message
+  // rather than letting the request succeed and the operator lock
+  // themselves out of the org.
+  if (target.user_id === auth.userId) {
+    return NextResponse.json(
+      { error: "Owners cannot revoke their own membership" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // If the target is an owner, guard last-owner removal the same way
+  // PATCH does.
+  if (target.role === "owner") {
+    const { count: ownerCount } = await service
+      .from("org_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org_id)
+      .eq("role", "owner");
+    if ((ownerCount ?? 0) <= 1) {
+      return NextResponse.json(
+        { error: "Cannot revoke the only owner. Promote another member to owner first." },
+        { status: 409, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+  }
+
+  const { error } = await service
+    .from("org_memberships")
+    .delete()
+    .eq("id", membershipId);
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  return NextResponse.json(
+    { success: true, membership_id: membershipId },
+    { headers: rateLimitHeaders(auth.userId) }
+  );
+}
