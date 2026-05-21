@@ -24,6 +24,7 @@ import {
 } from "@/lib/data";
 import { getCriticalItemsSnapshot } from "@/lib/dashboard/critical-items";
 import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
+import { getDashboardCredibility } from "@/lib/dashboard/credibility";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
@@ -48,6 +49,16 @@ export default async function Home() {
     getSurfaceCoverageSnapshot(),
   ]);
   console.log(`[perf] / data ${Date.now() - t0}ms`);
+
+  // Build 11: Q9 credibility chip data for the dashboard's intelligence-item
+  // cards. Fetched server-side for the distinct source_ids in the bounded
+  // dashboard payload (LIMIT 50 from migration 064); WeeklyBriefing renders
+  // the top-5 of those so the credibility map size is naturally tiny.
+  // Mirrors Build 7/8/9 pattern: per-source tier + citation count + recency
+  // + bias tags, with chip suppression when the value is null/zero.
+  const credibilityBySourceId = await getDashboardCredibility(
+    data.resources.map((r) => r.sourceId)
+  );
 
   // Phase 3 widget data — kicked off as unawaited promises so the
   // editorial body and hero paint at the original time-to-first-paint
@@ -108,6 +119,7 @@ export default async function Home() {
         coverageGapsPromise={coverageGapsPromise}
         awaitingReviewPromise={awaitingReviewPromise}
         surfaceCoverage={surfaceCoverage}
+        credibilityBySourceId={credibilityBySourceId}
       />
     </>
   );

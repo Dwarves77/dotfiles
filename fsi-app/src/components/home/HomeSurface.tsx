@@ -33,6 +33,7 @@ import { DashboardCoverageGaps } from "@/components/home/DashboardCoverageGaps";
 import { DashboardAwaitingReview } from "@/components/home/DashboardAwaitingReview";
 import { DashboardSurfaceCoverage } from "@/components/home/DashboardSurfaceCoverage";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
+import type { SourceCredibilityMap } from "@/lib/dashboard/credibility";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
@@ -79,6 +80,12 @@ interface HomeSurfaceProps {
   // page-level fetch (page.tsx) awaits it alongside aggregates for the
   // count-coherence headline; downstream rendering is synchronous.
   surfaceCoverage: SurfaceCoverageSnapshot;
+  // Build 11: Q9 credibility map (source_id → tier + citation + bias).
+  // Plain serializable object (Record<string, profile>); RSC-safe per
+  // dispatch brief. WeeklyBriefing reads from this map for its top-5
+  // intelligence-item cards. Empty map degrades to no chips per the
+  // chip contracts.
+  credibilityBySourceId: SourceCredibilityMap;
 }
 
 export function HomeSurface({
@@ -94,6 +101,7 @@ export function HomeSurface({
   coverageGapsPromise,
   awaitingReviewPromise,
   surfaceCoverage,
+  credibilityBySourceId,
 }: HomeSurfaceProps) {
   const {
     resources: platformResources,
@@ -212,6 +220,7 @@ export function HomeSurface({
                 disputes={disputes}
                 auditDate={auditDate}
                 aggregates={aggregates}
+                credibilityBySourceId={credibilityBySourceId}
                 onToast={showToast}
               />
               <WhatChanged
