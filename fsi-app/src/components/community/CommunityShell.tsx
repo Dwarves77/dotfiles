@@ -37,6 +37,7 @@ import Link from "next/link";
 import { CommunitySidebar } from "./CommunitySidebar";
 import { CommunityMasthead } from "./CommunityMasthead";
 import { CommunityRegionTabs } from "./CommunityRegionTabs";
+import { CommunitySearchResults } from "./CommunitySearchResults";
 import { Toast } from "@/components/ui/Toast";
 import type {
   CommunityCurrentUser,
@@ -89,6 +90,16 @@ export function CommunityShell({
   const showToast = (message: string) =>
     setToast({ message, visible: true });
 
+  // Build 10: real search wired to /api/community/search. The dropdown
+  // mounts when the user submits with a non-empty query; closing it
+  // returns the surface to its default body. We capture the latest
+  // (query, scope) pair rather than the raw form so a scope toggle
+  // re-issues the search against the current query.
+  const [search, setSearch] = useState<
+    | null
+    | { query: string; scope: "all" | "posts" | "groups" | "people" }
+  >(null);
+
   return (
     <div
       style={{
@@ -104,7 +115,23 @@ export function CommunityShell({
       />
 
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <CommunityMasthead onSearchSubmit={() => showToast("Search coming soon")} />
+        <CommunityMasthead
+          onSearchSubmit={(query, scope) => {
+            const q = query.trim();
+            if (q.length < 2) {
+              showToast("Type at least 2 characters to search");
+              return;
+            }
+            setSearch({
+              query: q,
+              scope: scope.toLowerCase() as
+                | "all"
+                | "posts"
+                | "groups"
+                | "people",
+            });
+          }}
+        />
         <CommunityRegionTabs
           regions={regions}
           counts={regionCounts}
@@ -112,12 +139,20 @@ export function CommunityShell({
         />
 
         <div style={{ flex: 1, padding: "28px 36px", minWidth: 0 }}>
-          {children ?? (
-            <CommunityDefaultBody
-              memberships={memberships}
-              invitations={invitations}
-              currentUserName={currentUser.name}
+          {search ? (
+            <CommunitySearchResults
+              query={search.query}
+              scope={search.scope}
+              onClose={() => setSearch(null)}
             />
+          ) : (
+            children ?? (
+              <CommunityDefaultBody
+                memberships={memberships}
+                invitations={invitations}
+                currentUserName={currentUser.name}
+              />
+            )
           )}
         </div>
       </div>
