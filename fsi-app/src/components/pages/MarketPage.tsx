@@ -238,6 +238,8 @@ export function MarketPage({ initialResources, aggregates, citationStats = {} }:
             watchCount={counts.CRITICAL}
             elevatedCount={counts.HIGH}
             citationStats={citationStats}
+            priorityFilter={priorityFilter}
+            onAlertsClick={onTile("CRITICAL")}
             renderCategoryBody={(items) => <TechBody items={items} citationStats={citationStats} />}
           />
         )}
@@ -251,6 +253,8 @@ export function MarketPage({ initialResources, aggregates, citationStats = {} }:
             watchCount={counts.CRITICAL}
             elevatedCount={counts.HIGH}
             citationStats={citationStats}
+            priorityFilter={priorityFilter}
+            onAlertsClick={onTile("CRITICAL")}
             renderCategoryBody={(items) => <PriceBody items={items} citationStats={citationStats} />}
             categoryHeaderHasWatch
           />
@@ -274,6 +278,8 @@ function SectionTemplate({
   watchCount,
   elevatedCount,
   citationStats,
+  priorityFilter,
+  onAlertsClick,
   renderCategoryBody,
   categoryHeaderHasWatch = false,
 }: {
@@ -285,6 +291,8 @@ function SectionTemplate({
   watchCount: number;
   elevatedCount: number;
   citationStats: SourceCitationStatsMap;
+  priorityFilter: PriorityKey | null;
+  onAlertsClick: () => void;
   renderCategoryBody: (items: Resource[]) => React.ReactNode;
   categoryHeaderHasWatch?: boolean;
 }) {
@@ -345,16 +353,8 @@ function SectionTemplate({
         </div>
         {groups.length === 0 ? (
           <EmptyState
-            title={
-              section === "tech"
-                ? "Technology intelligence coming soon"
-                : "Price signals coming soon"
-            }
-            body={
-              section === "tech"
-                ? "Battery, SAF, hydrogen, marine fuels, and other technology categories will appear here as coverage expands."
-                : "Energy prices, carbon markets, critical minerals, trade restrictions, and chokepoints will appear here as coverage expands."
-            }
+            title={emptyStateTitle(section, sectorProfile)}
+            body={emptyStateBody(section, sectorProfile)}
           />
         ) : (
           <div className="space-y-3">
@@ -377,16 +377,21 @@ function SectionTemplate({
         <WatchlistSidebar items={items} citationStats={citationStats} />
         <OwnersContent items={items} section={section} />
 
+        {/*
+          Build 7, OBS-18 closure: the "Watch this week" alerts card was a
+          decorative count, not a control. It now click-throughs to a
+          CRITICAL-priority filtered view of the current tab (same toggle
+          semantics as the StatStrip Watch tile: clicking again clears).
+          Empty state stays inert because there is nothing to filter to.
+        */}
         {watchCount + elevatedCount > 0 ? (
-          <SideCard label="Watch this week" tone="alert">
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: "var(--high)", marginBottom: 6 }}>
-              {watchCount + elevatedCount} {watchCount + elevatedCount === 1 ? "alert" : "alerts"}
-            </div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-              {watchCount} watch-level item{watchCount === 1 ? "" : "s"} and {elevatedCount} elevated movement{elevatedCount === 1 ? "" : "s"} across tracked
-              {section === "tech" ? " technologies" : " price signals"}.
-            </p>
-          </SideCard>
+          <AlertsSideCard
+            section={section}
+            watchCount={watchCount}
+            elevatedCount={elevatedCount}
+            active={priorityFilter === "CRITICAL"}
+            onClick={onAlertsClick}
+          />
         ) : (
           <SideCard label="Watch this week">
             <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
@@ -808,6 +813,122 @@ function EmptyState({ title, body }: { title: string; body: string }) {
       <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>{title}</p>
       <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.5 }}>{body}</p>
     </div>
+  );
+}
+
+// Build 7, OBS-20 closure: workspace-anchored EmptyState copy.
+//
+// Replaces the prior "Technology intelligence coming soon" / "Price signals
+// coming soon" titles. "Coming soon" is the platform-intent skill Section
+// 11 anti-pattern (phase-language leaking to customers); the rewrite states
+// what the workspace currently sees and which sectors are scoped, without
+// promising a delivery date the build sequence has not committed to.
+//
+// sectorProfile flows from useWorkspaceStore and is the current workspace's
+// configured sectors (e.g. ["art-logistics", "live-events"]). The empty
+// state is workspace-relative ("no items scoped for YOUR sectors"), not a
+// platform-wide claim ("nothing exists").
+function formatSectorList(sectors: string[] | undefined): string {
+  if (!sectors || sectors.length === 0) return "your configured sectors";
+  const pretty = sectors.map((s) =>
+    s.split(/[-_\s]+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+  );
+  if (pretty.length === 1) return pretty[0];
+  if (pretty.length === 2) return `${pretty[0]} and ${pretty[1]}`;
+  return `${pretty.slice(0, -1).join(", ")}, and ${pretty[pretty.length - 1]}`;
+}
+
+function emptyStateTitle(section: "tech" | "prices", sectorProfile?: string[]): string {
+  const scope = formatSectorList(sectorProfile);
+  return section === "tech"
+    ? `No technology readiness items scoped for ${scope}`
+    : `No market signals scoped for ${scope}`;
+}
+
+function emptyStateBody(section: "tech" | "prices", sectorProfile?: string[]): string {
+  const hasSectors = !!(sectorProfile && sectorProfile.length > 0);
+  if (section === "tech") {
+    return hasSectors
+      ? "Battery, SAF, hydrogen, marine fuels, and other technology categories surface here when items match your sector scope. Adjust your workspace sector profile in Settings to widen coverage, or check the priority filters above."
+      : "Battery, SAF, hydrogen, marine fuels, and other technology categories surface here once your workspace has a sector profile configured. Set a sector profile in Settings to anchor what you see.";
+  }
+  return hasSectors
+    ? "Carbon markets, fuel pricing, critical minerals, trade restrictions, and shipping chokepoints surface here when items match your sector scope. Adjust your workspace sector profile in Settings to widen coverage, or check the priority filters above."
+    : "Carbon markets, fuel pricing, critical minerals, trade restrictions, and shipping chokepoints surface here once your workspace has a sector profile configured. Set a sector profile in Settings to anchor what you see.";
+}
+
+// Build 7, OBS-18 closure: interactive alerts card. Renders as a <button>
+// so keyboard + screen-reader users get the same click-through to a
+// CRITICAL-priority filtered view that the StatStrip Watch tile already
+// provides. The `active` state is the active toggle indication (border
+// color + background) and the aria-pressed reflects the same.
+function AlertsSideCard({
+  section,
+  watchCount,
+  elevatedCount,
+  active,
+  onClick,
+}: {
+  section: "tech" | "prices";
+  watchCount: number;
+  elevatedCount: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const total = watchCount + elevatedCount;
+  const summaryNoun = section === "tech" ? "technologies" : "price signals";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={`${total} ${total === 1 ? "alert" : "alerts"} this week, click to ${active ? "clear" : "filter to"} watch-level items`}
+      style={{
+        background: "var(--high-bg)",
+        border: active ? "1px solid var(--high)" : "1px solid var(--high-bd)",
+        borderRadius: "var(--r-md)",
+        padding: "14px 16px",
+        boxShadow: "var(--shadow)",
+        cursor: "pointer",
+        textAlign: "left",
+        width: "100%",
+        font: "inherit",
+        color: "inherit",
+        transition: "border-color 120ms ease, background-color 120ms ease",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--high)",
+          marginBottom: 8,
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>Watch this week</span>
+        <span
+          style={{
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            color: "var(--text-2)",
+          }}
+        >
+          {active ? "Active filter, click to clear" : "Click to filter"}
+        </span>
+      </div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: "var(--high)", marginBottom: 6 }}>
+        {total} {total === 1 ? "alert" : "alerts"}
+      </div>
+      <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
+        {watchCount} watch-level item{watchCount === 1 ? "" : "s"} and {elevatedCount} elevated movement{elevatedCount === 1 ? "" : "s"} across tracked {summaryNoun}.
+      </p>
+    </button>
   );
 }
 
