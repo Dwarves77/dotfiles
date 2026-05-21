@@ -4,7 +4,7 @@ Catalog of architectural decisions recorded as ADR files at `docs/decisions/`. E
 
 ## Status
 
-**Created 2026-05-20** (ADR System dispatch; Sprint Architecture Layer 3). Initial set: ADR-001 through ADR-009. ADR-010 added 2026-05-21 (post-push verification floor; Layer 5a reframing). Future ADRs land at decision time.
+**Created 2026-05-20** (ADR System dispatch; Sprint Architecture Layer 3). Initial set: ADR-001 through ADR-009. Future ADRs land at decision time. (ADR-010 briefly existed 2026-05-21 documenting a 15th binding rule for post-push verification; reverted same day per operator review of ceremony-vs-enforcement tradeoff. See ADR-005 postscript.)
 
 ## Lifecycle
 
@@ -28,7 +28,6 @@ Catalog of architectural decisions recorded as ADR files at `docs/decisions/`. E
 | ADR-007 | Bias-tag auto-cutoff threshold per dimension (D1 Option B) | accepted | q4-bias-batch script + recommend-classification routes + migration 097 + migration 092 |
 | ADR-008 | urgency_score default behavior for intelligence_items inserts | accepted | community/posts/promote, wave1-cold-start, src/lib/urgency.ts, scripts/lib/urgency.mjs; Option C-bias strict (PRIORITY/URGENCY_TIER → numeric mappings); 2026-05-21 |
 | ADR-009 | ADR system architecture (meta) | accepted | docs/decisions/, adr-loader.mjs, 013-adr-cross-reference.mjs, dispatch/audit.mjs |
-| ADR-010 | Post-push verification as discipline floor | accepted | fsi-app/.discipline/rules/015-post-push-verification.mjs (+test), docs/decisions/ADR-010-*.md; reframes ADR-005 Layer 5 into 5a (verification, lands) + 5b (dashboard, deferred); 2026-05-21 |
 
 ## ADR-008 resolution (closed 2026-05-21)
 

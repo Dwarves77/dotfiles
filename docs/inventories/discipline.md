@@ -20,7 +20,7 @@ Catalog of the Rules-as-Code (RaC) discipline engine at `fsi-app/.discipline/` p
 | ADR System (Layer 3) | cf03400 | 9 retrospective ADRs at docs/decisions/ + adr-loader.mjs + 13th binding rule + audit ADR-Reference/Override + decisions.md inventory + sprint-followups-discipline gains 13th rule section |
 | Layer 4 + CI hotfix | 8d42510 | 10 consistency checks at fsi-app/.discipline/consistency/ (C1-C10) + 14th binding rule + consistency runner + Consistency-Override audit; ADR-005 updated to mark Layer 4 complete; populated routes/migrations/cron-jobs/obs-status inventories (drift remediated per Option C); 8 historical sibling-path worktrees cleaned via parallel agents (branches preserved via archive tags); CI hotfix: npm ci added to fitness-check job (F9 tsc availability); glob.mjs fix (coverage SKIP_DIRS + trailing-slash ordering bug); F9 defensive parsing of tsc-not-found case. |
 | Rule 014 parser hotfix | 7d445a8 | Rule 014's failing-check parser was scanning stdout + stderr; "Running [Cn]" lines from stdout caused all 10 C-checks to be reported as failing in CI even when one drifted. Drift-detail filter also dropped the orphan-claim text. Fixed: parser scoped to stderr; full stderr captured. |
-| Layer 5a verification floor | (this commit) | 15th binding rule + ADR-010 + ADR-005 reframed Layer 5 into 5a (verification, lands) + 5b (dashboard, deferred). Post-push verification trailers (CI-Status + Deploy-Status) attest to the verified state of the parent commit before authoring the next. Closes the gap that allowed Sprint Architecture's Vercel build break, the outputFileTracingRoot mismatch persistence, and rule 014's CI failure to reach the operator before this dispatch detected them. |
+| Rule 15 + ADR-010 (added then reverted) | 40ac05d → (this commit) | A 15th binding rule (post-push verification via CI-Status + Deploy-Status trailers) + ADR-010 + ADR-005 Layer 5 split landed at 40ac05d, then reverted same day. Reason: the trailers transcribed information the dispatcher had already queried via gh api, without changing behavior. Replaced with a behavioral commitment (proactive operator-facing CI-failure reporting) rather than a rule-engine ceremony. Migration 067 was caught during the brief life of rule 15 — but by rule 014's already-existing parser fix, not by rule 15 itself. |
 
 ## Architecture
 
@@ -101,7 +101,6 @@ fsi-app/.discipline/
 | 012 | Hardcoded user-home path | (no attestation; reads file CONTENTS via `ctx.getFileContent`) | Sprint Foundation incident response 2026-05-20 (OBS-59); first content-check rule |
 | 013 | ADR cross-reference | `ADR-Reference: ADR-NNN` (or `ADR-Override:` for explicit contradiction) per intersecting ADR | ADR System dispatch (Layer 3); ADR-009 |
 | 014 | Inventory consistency | (no attestation; runs consistency runner; `Consistency-Override: C-N (rationale; remediation-deadline)` overrides drift) | Layer 4 cross-skill consistency dispatch; ADR-005 |
-| 015 | Post-push verification | `CI-Status: PASS\|FAIL\|PENDING\|BOOTSTRAP\|N/A` + `Deploy-Status: READY\|ERROR\|BUILDING\|BOOTSTRAP\|N/A` (+ `Recheck-Timeline:` when PENDING/BUILDING); override via `Verification-Override:` | Post-push verification dispatch (Layer 5a); ADR-010 |
 
 ## Operator install + use
 

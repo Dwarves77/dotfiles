@@ -63,9 +63,8 @@ test('runner: fixture for substantial commit missing both lines exits 1', () => 
 });
 
 test('runner: fixture for substantial commit with required attestation lines exits 0', () => {
-  // Substantial (10 files) feat commit must satisfy 008 (Loop-closure), 010 (Verification),
-  // 011 (Inventory-emission), and 015 (CI-Status + Deploy-Status). Other rules skip:
-  // no sources, no scripts, no plan files, no sweep subject.
+  // Substantial (10 files) feat commit must satisfy 008 (Loop-closure), 010 (Verification), 011 (Inventory-emission).
+  // Other rules skip: no sources, no scripts, no plan files, no sweep subject.
   const result = runFixture(
     [
       'feat: ship the thing',
@@ -75,8 +74,6 @@ test('runner: fixture for substantial commit with required attestation lines exi
       'Loop-closure: OBS-1 COVER; DP-1 PASS',
       'Inventory-emission: no inventory surfaces touched',
       'Verification: ran node --test fsi-app/.discipline; observed 211 pass, 0 fail',
-      'CI-Status: PASS',
-      'Deploy-Status: READY',
     ].join('\n'),
     Array.from({ length: 10 }, (_, i) => ({ path: `fsi-app/src/f${i}.ts`, additions: 5, deletions: 5 }))
   );
