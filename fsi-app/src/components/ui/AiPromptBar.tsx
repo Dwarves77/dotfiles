@@ -20,7 +20,7 @@
  * preview behavior in dashboard-v3.html.
  */
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Sparkles } from "lucide-react";
 
 interface AiPromptBarProps {
@@ -38,6 +38,7 @@ export function AiPromptBar({
   onSubmit,
 }: AiPromptBarProps) {
   const [value, setValue] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,8 +47,15 @@ export function AiPromptBar({
     if (onSubmit) {
       onSubmit(question);
     } else {
+      // Pass the bar's bounding rect as an anchor so the global AskAssistant
+      // can drop down from the bar's position instead of floating in the
+      // corner. AskAssistant falls back to top-center if anchor is missing.
+      const rect = formRef.current?.getBoundingClientRect();
+      const anchor = rect
+        ? { top: rect.bottom, left: rect.left, width: rect.width }
+        : null;
       window.dispatchEvent(
-        new CustomEvent("open-ask-assistant", { detail: { question } })
+        new CustomEvent("open-ask-assistant", { detail: { question, anchor } })
       );
     }
     setValue("");
@@ -65,6 +73,7 @@ export function AiPromptBar({
       }}
     >
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
         className="flex items-center gap-3 rounded-full px-4 py-1.5"
         style={{

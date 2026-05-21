@@ -236,8 +236,15 @@ function CitationPanel({ citation, index }: { citation: Citation; index: number 
   );
 }
 
+interface AnchorRect {
+  top: number;
+  left: number;
+  width: number;
+}
+
 export function AskAssistant() {
   const [isOpen, setIsOpen] = useState(false);
+  const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -246,12 +253,16 @@ export function AskAssistant() {
   const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
 
   // Listen for open-ask-assistant events from AiPromptBar.
-  // The event may carry { question } in detail; if present we auto-submit.
+  // The event may carry { question, anchor } in detail. The anchor (the
+  // submitting bar's bounding rect) lets the assistant drop down from the
+  // bar's position; absence falls back to a top-center drawer.
   useEffect(() => {
     const handler = (e: Event) => {
-      const ce = e as CustomEvent<{ question?: string }>;
+      const ce = e as CustomEvent<{ question?: string; anchor?: AnchorRect | null }>;
       const q = ce.detail?.question?.trim();
+      const a = ce.detail?.anchor;
       setIsOpen(true);
+      setAnchor(a ?? null);
       if (q) {
         setInput(q);
         setTimeout(() => {
@@ -336,13 +347,53 @@ export function AskAssistant() {
     );
   }
 
+  // Drop-down positioning: if a bar anchor was supplied, drop down from
+  // its position (top = anchor.bottom + small gap; horizontally anchored
+  // to the bar's left edge + matched width, capped at 768px to avoid
+  // overrunning narrow viewports). If no anchor (floating-button launch),
+  // render as a top-center drawer below the global header.
+  const VIEWPORT_GUTTER = 16;
+  const PANEL_MAX_WIDTH = 768;
+  const PANEL_HEIGHT = "min(70vh, 560px)";
+
+  const positioningStyle: React.CSSProperties = anchor
+    ? {
+        position: "fixed",
+        top: Math.round(anchor.top + 8),
+        left: Math.round(
+          Math.max(
+            VIEWPORT_GUTTER,
+            Math.min(
+              anchor.left,
+              (typeof window !== "undefined" ? window.innerWidth : 1280) -
+                Math.min(anchor.width, PANEL_MAX_WIDTH) -
+                VIEWPORT_GUTTER
+            )
+          )
+        ),
+        width: Math.min(Math.max(anchor.width, 360), PANEL_MAX_WIDTH),
+        maxHeight: PANEL_HEIGHT,
+        height: PANEL_HEIGHT,
+        zIndex: 50,
+      }
+    : {
+        position: "fixed",
+        top: 72,
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: `min(calc(100vw - ${VIEWPORT_GUTTER * 2}px), ${PANEL_MAX_WIDTH}px)`,
+        maxHeight: PANEL_HEIGHT,
+        height: PANEL_HEIGHT,
+        zIndex: 50,
+      };
+
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] rounded-xl border shadow-2xl flex flex-col"
+      className="rounded-xl border shadow-2xl flex flex-col"
       style={{
+        ...positioningStyle,
         backgroundColor: "var(--color-surface)",
         borderColor: "var(--color-border)",
-        height: "500px",
         boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
       }}
     >
