@@ -48,6 +48,7 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { urgencyScoreFromPriority } from "@/lib/urgency";
 
 // ──────────────────────────────────────────────────────────────
 // Constants and validators
@@ -353,14 +354,18 @@ export async function POST(
     // (Regulatory & Legislative) is the safe default for community-sourced
     // promotions; the admin can re-classify after the fact via the admin
     // surface. Other required NOT NULL columns get their schema defaults.
+    // ADR-008 (urgency_score default behavior; accepted 2026-05-21 Option C-bias):
+    // explicit urgency_score derived from priority via PRIORITY_TO_URGENCY_SCORE
+    // mapping. No silent schema default; F4 enforces.
     const { data: item, error: itemErr } = await service
       .from("intelligence_items")
-      .insert({                                                          // fitness-allow: F4 (community-promoted item; urgency_score relies on schema default pending product decision; tracked in OBS-63)
+      .insert({
         title: itemPayload.title,
         summary: itemPayload.summary,
         item_type: itemPayload.item_type,
         source_url: itemPayload.source_url,
         priority: itemPayload.priority,
+        urgency_score: urgencyScoreFromPriority(itemPayload.priority as string | null),
         jurisdictions: itemPayload.jurisdictions ?? [],
         domain: 1,
       })

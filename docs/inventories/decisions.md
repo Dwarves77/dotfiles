@@ -26,16 +26,12 @@ Catalog of architectural decisions recorded as ADR files at `docs/decisions/`. E
 | ADR-005 | Discipline enforcement layered architecture (5 layers) | accepted | fsi-app/.discipline/, .claude/skills/, docs/decisions/, docs/inventories/, .github/workflows/discipline.yml |
 | ADR-006 | Plan-skill hybrid discipline (3+ dispatch coordination threshold) | accepted | docs/plans/, sprint-followups-discipline SKILL.md |
 | ADR-007 | Bias-tag auto-cutoff threshold per dimension (D1 Option B) | accepted | q4-bias-batch script + recommend-classification routes + migration 097 + migration 092 |
-| ADR-008 | urgency_score default behavior for intelligence_items inserts | **proposed** | community/posts/promote, wave1-cold-start, migrations; **operator decision pending** |
+| ADR-008 | urgency_score default behavior for intelligence_items inserts | accepted | community/posts/promote, wave1-cold-start, src/lib/urgency.ts, scripts/lib/urgency.mjs; Option C-bias strict (PRIORITY/URGENCY_TIER → numeric mappings); 2026-05-21 |
 | ADR-009 | ADR system architecture (meta) | accepted | docs/decisions/, adr-loader.mjs, 013-adr-cross-reference.mjs, dispatch/audit.mjs |
 
-## ADR-008 operator decision pending
+## ADR-008 resolution (closed 2026-05-21)
 
-Three options enumerated in ADR-008 body. Once operator decides:
-- Update ADR-008 status from `proposed` to `accepted`
-- Update F4 fitness function per chosen option (option c removes the two existing overrides; options a/b adjust F4 to permit absent field with documented default)
-- Update OBS-63 status from `Open` to `Closed`
-- Small follow-up commit (single dispatch)
+Operator selected Option C-bias (strict, no default). ADR-008 now status=accepted with explicit mapping decisions recorded. F4 stays strict; the two prior `// fitness-allow: F4` overrides have been removed. Shared mapping library lives at `fsi-app/src/lib/urgency.ts` (TS) + `fsi-app/scripts/lib/urgency.mjs` (MJS mirror). OBS-63 closed.
 
 ## How to add a new ADR
 

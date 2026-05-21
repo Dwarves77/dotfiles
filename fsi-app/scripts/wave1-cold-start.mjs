@@ -26,6 +26,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { appendFileSync, mkdirSync, existsSync } from "node:fs";
 import { checkFetchQuality } from "./lib/fetch-quality.mjs";
+import { urgencyScoreFromTier } from "./lib/urgency.mjs";
 
 process.on("unhandledRejection", (reason) => {
   console.error("[unhandledRejection]", reason);
@@ -452,9 +453,13 @@ async function main() {
         } else {
           const cls = await haikuClassify(source, fetched);
           costUsd = cls.cost_usd_estimated ?? 0;
+          // ADR-008 (urgency_score default behavior; accepted 2026-05-21 Option C-bias):
+          // explicit urgency_score derived from urgency_tier via URGENCY_TIER_TO_SCORE
+          // mapping (informational=2, stable=4, elevated=6, watch=8). Unknown tier
+          // values default to 4 (stable midpoint) so the integrity rule holds.
           const { data: itemRow, error: itemErr } = await supabase
             .from("intelligence_items")
-            .insert({                                                    // fitness-allow: F4 (cold-start populates urgency_tier text category; urgency_score numeric pending product decision per OBS-63)
+            .insert({
               title: (cls.title_candidate ?? source.name ?? source.url).slice(0, 200),
               domain: 1,
               source_id: source.id,
@@ -462,6 +467,7 @@ async function main() {
               severity: cls.severity ?? null,
               priority: cls.priority ?? "MODERATE",
               urgency_tier: cls.urgency_tier ?? null,
+              urgency_score: urgencyScoreFromTier(cls.urgency_tier),
               item_type: cls.item_type ?? "regulation",
               topic_tags: cls.topic_tags ?? [],
               summary: cls.summary ?? "",

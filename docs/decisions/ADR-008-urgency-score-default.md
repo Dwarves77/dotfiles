@@ -1,12 +1,13 @@
 ---
 id: ADR-008
 title: urgency_score default behavior for intelligence_items inserts
-status: proposed
-date: 2026-05-20
+status: accepted
+date: 2026-05-21
 scope:
+  - "fsi-app/src/lib/urgency.ts"
+  - "fsi-app/scripts/lib/urgency.mjs"
   - "fsi-app/src/app/api/community/posts/[id]/promote/route.ts"
   - "fsi-app/scripts/wave1-cold-start.mjs"
-  - "fsi-app/supabase/migrations/"
 supersedes: null
 related: []
 ---
@@ -29,9 +30,29 @@ The question is: what's the canonical urgency_score behavior when not specified 
 
 ## Decision
 
-PROPOSED — awaiting operator decision.
+**Accepted 2026-05-21 per Option C-bias (strict, no default; derive from existing data).**
 
-Once operator decides, ADR-008 transitions to status=accepted; the chosen option is codified; F4 either tightens (option c: removes overrides; requires every insert site to set urgency_score) OR accommodates (options a/b: documents the default; F4 may permit absent field when schema default is present).
+The operator selected Option (c) with the refinement that both callers have data they could map to a numeric urgency, so "strict" is operationally easy. Specifically:
+
+- **Caller 1** (`community/posts/[id]/promote/route.ts`): sets `urgency_score: urgencyScoreFromPriority(itemPayload.priority)`. The mapping is defined in `fsi-app/src/lib/urgency.ts` via `PRIORITY_TO_URGENCY_SCORE`:
+  - LOW → 3
+  - MODERATE → 5
+  - HIGH → 7
+  - CRITICAL → 9
+
+- **Caller 2** (`scripts/wave1-cold-start.mjs`): sets `urgency_score: urgencyScoreFromTier(cls.urgency_tier)`. The mapping is mirrored in `fsi-app/scripts/lib/urgency.mjs` via `URGENCY_TIER_TO_SCORE`:
+  - informational → 2
+  - stable → 4
+  - elevated → 6
+  - watch → 8
+
+- **F4 fitness function**: stays strict. The two prior `// fitness-allow: F4` overrides are removed in this commit. Future callers must include `urgency_score` explicitly; F4 enforces.
+
+- **Shared mapping library**: defined in parallel TS + MJS files (`fsi-app/src/lib/urgency.ts` and `fsi-app/scripts/lib/urgency.mjs`) because the two callers live in different module systems. Both files document each other; keep in sync when extending.
+
+- **Scale chosen**: 1-10 numeric range. No explicit DB CHECK constraint on `urgency_score`; the column is `NUMERIC`. The 1-10 convention is implicit in the consumer surface (`urgencyScore: r.urgency_score` rendered as a numeric badge in `src/lib/supabase-server.ts`). Midpoint-of-quartile mappings keep the scale interpretable: each input category lands at a sensible midrange value.
+
+- **Unknown inputs**: helper functions default to a midrange value (`PRIORITY_TO_URGENCY_SCORE.MODERATE` = 5, `URGENCY_TIER_TO_SCORE.stable` = 4) so the integrity rule (every brief has SOME numeric urgency for ranking) is satisfied even when the input is malformed.
 
 ## Consequences (per option)
 
@@ -57,6 +78,9 @@ The three options above ARE the alternatives. Operator selects.
 ## References
 
 - F4 fitness function: `fsi-app/.discipline/fitness/functions/F4-intelligence-items-urgency-score.mjs`
-- OBS-63 (urgency_score deferred product decision)
+- Shared urgency mapping (TS): `fsi-app/src/lib/urgency.ts`
+- Shared urgency mapping (MJS): `fsi-app/scripts/lib/urgency.mjs`
+- OBS-63 (urgency_score deferred product decision; closed 2026-05-21 via this ADR's acceptance)
 - environmental-policy-and-innovation skill (urgency-tier vs urgency-score taxonomy)
-- Sprint Architecture commit 2494a74 (F4 fitness function + 2 overrides landed)
+- Sprint Architecture commit 2494a74 (F4 fitness function + 2 overrides initially landed)
+- ADR-008 resolution commit (this commit; closes the loop)

@@ -1321,9 +1321,19 @@ OBS-62 is the worked example of the "open-and-close-in-same-dispatch" lifecycle:
 
 ## OBS-63: Phase 1.5 + cold-start intelligence_items inserts use F4 override pending product decision on urgency_score default
 
-**State**: Open (product decision deferred; fitness-allow overrides land with explicit tracking)
+**State**: Closed 2026-05-21 (ADR-008 accepted per Option C-bias; F4 overrides removed; explicit mappings applied)
 **Captured**: 2026-05-20 (Sprint Architecture Phase 4 F4 fitness function landing surfaced these)
-**Cross-references**: F4 fitness function (Sprint Architecture), environmental-policy-and-innovation skill (urgency_score domain rules), Phase 1.5 closure commit 9a95afb
+**Closed**: 2026-05-21 via ADR-008 acceptance + small follow-up dispatch
+**Cross-references**: F4 fitness function, ADR-008 (accepted with mappings), `fsi-app/src/lib/urgency.ts`, `fsi-app/scripts/lib/urgency.mjs`, environmental-policy-and-innovation skill, Phase 1.5 closure commit 9a95afb, Sprint Architecture commit 2494a74
+
+### Resolution
+
+Operator selected Option C-bias (strict, no default). Both callers now derive `urgency_score` explicitly from existing-data:
+
+- `community/posts/[id]/promote/route.ts`: derives from `priority` text via `PRIORITY_TO_URGENCY_SCORE` (LOW=3, MODERATE=5, HIGH=7, CRITICAL=9)
+- `scripts/wave1-cold-start.mjs`: derives from `urgency_tier` text via `URGENCY_TIER_TO_SCORE` (informational=2, stable=4, elevated=6, watch=8)
+
+Both `// fitness-allow: F4` overrides removed. F4 stays strict. Mapping rationale + range justification in ADR-008.
 
 ### Finding
 
