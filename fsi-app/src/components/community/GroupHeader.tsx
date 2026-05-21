@@ -6,19 +6,20 @@
  * Visual reference: design_handoff_2026-04/preview/community.html
  * `.group-head` block — icon plate, group name, privacy pill, member
  * count, weekly post count, last-active dot, role badge, and right-
- * aligned actions (Star toggle, Members button, Settings button).
+ * aligned actions (Star toggle, Members button, Settings button,
+ * Invite button when admin).
  *
- * The Members and Settings buttons are stubs in C4 — the modals land
- * in C6/C7. The Star toggle is live and writes to
- * community_group_members.starred for the current user via
- * PATCH /api/community/groups/[id]/star.
+ * Build 10 lifted the Members and Settings buttons out of stub-toast
+ * mode into real modals (MembersModal + SettingsModal in
+ * GroupModals.tsx). The Invite button is admin-only and opens
+ * InviteModal which wraps the existing /api/community/groups/[id]/invite
+ * route and the /api/community/invitations/[id]/revoke route.
  *
- * Phase C constraint: Members modal and Settings modal stubs render
- * a small toast on click rather than mounting empty modals. Once the
- * directory + admin tooling lands, swap the click handler to open the
- * relevant modal.
+ * The Star toggle is live and writes to community_group_members.starred
+ * for the current user via PATCH /api/community/groups/[id]/star.
  */
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Lock,
@@ -26,8 +27,10 @@ import {
   Star,
   Users,
   Settings as SettingsIcon,
+  UserPlus,
 } from "lucide-react";
 import type { CommunityGroupSummary } from "./types";
+import { MembersModal, SettingsModal, InviteModal } from "./GroupModals";
 
 interface GroupHeaderProps {
   group: CommunityGroupSummary & { description?: string | null };
@@ -42,10 +45,22 @@ interface GroupHeaderProps {
 }
 
 export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
+  const router = useRouter();
   const [starred, setStarred] = useState<boolean>(membership?.starred ?? false);
   const [busyStar, setBusyStar] = useState(false);
+  const [activeModal, setActiveModal] = useState<
+    "members" | "settings" | "invite" | null
+  >(null);
+  // Local override so a Settings save updates the header without a
+  // round-trip through the server component.
+  const [groupOverride, setGroupOverride] = useState<{
+    name?: string;
+    privacy?: "public" | "private";
+    description?: string | null;
+  }>({});
 
-  const isPrivate = group.privacy === "private";
+  const effective = { ...group, ...groupOverride };
+  const isPrivate = effective.privacy === "private";
   const role = membership?.role;
   const isAdmin = role === "admin";
 
@@ -59,7 +74,7 @@ export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
   const iconLabel =
     group.region && group.region.length <= 3
       ? group.region
-      : (group.name
+      : (effective.name
           .split(/\s+/)
           .map((p) => p[0])
           .filter(Boolean)
@@ -154,7 +169,7 @@ export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
             color: "var(--color-text-primary)",
           }}
         >
-          {group.name}
+          {effective.name}
         </h1>
         <div
           style={{
@@ -166,7 +181,7 @@ export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
             flexWrap: "wrap",
           }}
         >
-          <PrivacyPill privacy={group.privacy} />
+          <PrivacyPill privacy={effective.privacy} />
           <span>
             <b style={{ color: "var(--color-text-primary)" }}>
               {group.member_count}
@@ -216,19 +231,71 @@ export function GroupHeader({ group, membership, onToast }: GroupHeaderProps) {
         )}
         <IconButton
           label="Members"
-          onClick={() => onToast?.("Members directory ships in C6")}
+          onClick={() => setActiveModal("members")}
         >
           <Users size={14} />
         </IconButton>
         {isAdmin && (
           <IconButton
+            label="Invite member"
+            onClick={() => setActiveModal("invite")}
+          >
+            <UserPlus size={14} />
+          </IconButton>
+        )}
+        {isAdmin && (
+          <IconButton
             label="Group settings"
-            onClick={() => onToast?.("Group settings ship in C6")}
+            onClick={() => setActiveModal("settings")}
           >
             <SettingsIcon size={14} />
           </IconButton>
         )}
       </div>
+
+      {activeModal === "members" && (
+        <MembersModal
+          groupId={group.id}
+          groupName={effective.name}
+          callerRole={role ?? null}
+          onClose={() => setActiveModal(null)}
+          onToast={onToast}
+          onAfterLeave={() => {
+            // Leave bounces the user back to the community home;
+            // they no longer have membership-scoped access to the
+            // current group page.
+            router.push("/community");
+            router.refresh();
+          }}
+        />
+      )}
+      {activeModal === "settings" && isAdmin && (
+        <SettingsModal
+          group={{
+            id: group.id,
+            name: effective.name,
+            description: effective.description ?? group.description ?? null,
+            privacy: effective.privacy,
+          }}
+          onClose={() => setActiveModal(null)}
+          onToast={onToast}
+          onSaved={(next) =>
+            setGroupOverride({
+              name: next.name,
+              description: next.description,
+              privacy: next.privacy,
+            })
+          }
+        />
+      )}
+      {activeModal === "invite" && isAdmin && (
+        <InviteModal
+          groupId={group.id}
+          groupName={effective.name}
+          onClose={() => setActiveModal(null)}
+          onToast={onToast}
+        />
+      )}
     </header>
   );
 }
