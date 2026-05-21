@@ -33,9 +33,9 @@
 - `/api/admin/sources/discover` → CoverageMatrixView discover button
 - `/api/admin/sources/recently-auto-approved` → SourceHealthDashboard sub-tab
 - `/api/admin/sources/verify` → operator-investigate-then-decide (possibly superseded internally)
-- `/api/community/groups/[id]/invite` → Build 10
-- `/api/community/invitations/[id]/revoke` → Build 10
-- `/api/notifications/trigger` → Build 10 OR separate notifications-fanout dispatch (bell + preferences already wired)
+- ~~`/api/community/groups/[id]/invite`~~ → CLOSED Build 10 InviteModal wires this route.
+- `/api/community/invitations/[id]/revoke` → Build 10 InviteModal lists outstanding invites; revoke action pending follow-up dispatch.
+- ~~`/api/notifications/trigger`~~ → CLOSED via notifications fanout dispatch (reply + invite + moderation + promote + mention via shared `dispatchNotification`).
 
 ### A.4 Broken-but-needed (currently visible to customers; wire to real data)
 
@@ -46,9 +46,9 @@
 - ~~`CostTrajectoryChart` pending banner~~ → CLOSED Build 7: slot removed from MarketPage; component file deleted. Cost time-series schema + chart returns when the data-source + granularity decision lands (per sprint-2 planning Build 9 operator decision matrix).
 - ~~`OwnersContent` coming soon~~ → CLOSED Build 7: component now returns null when no items have populated actionOwner (collapses the rail). Renders grouped feed automatically as soon as owner data lands.
 - ~~`KeyMetricsRow` period selector~~ → CLOSED Build 7: non-functional 30D/90D/1Y buttons removed; returns alongside the cost time-series schema.
-- `GroupHeader` Members + Settings "ships in C6" → Build 10
-- `CommunityShell` masthead search "Search coming soon" → Build 10 Postgres FTS
-- `CommunitySidebar` hardcoded unread/mentions → notifications fanout + Build 10
+- ~~`GroupHeader` Members + Settings "ships in C6"~~ → CLOSED Build 10: MembersModal + SettingsModal + InviteModal wired via new `/api/community/groups/[id]/members`, `/settings`, `/invite-candidates`, `/invitations` routes.
+- ~~`CommunityShell` masthead search "Search coming soon"~~ → CLOSED Build 10: masthead search dropdown via new `/api/community/search?q=&scope=` (ILIKE; FTS deferred to OBS follow-up).
+- ~~`CommunitySidebar` hardcoded unread/mentions~~ → CLOSED Build 10: unread + mention counts now wired via `/api/community/notifications/counts`.
 - `ResearchView` source coverage matrix → Build 8 explicit scope
 - `OnboardingWizard` LinkedIn import → LinkedIn OAuth + profile-mapping (operator confirmed: KEEP)
 - `GeopoliticalSignals` function → Build 7 Market Intel signal engine (geopolitical disruption is first-class freight market signal; Strait of Hormuz / supply chain disruption type). Phase-1 `GeopoliticalSignals.tsx` flagged for Build 7 to evaluate (reuse vs build new).
@@ -65,8 +65,8 @@
 - Operations regex chip matchers → Build 9 explicit
 - Dashboard count incoherence (643 vs 69+35 etc) → Build 11
 - Dashboard regulation-skew (no Community surface) → Build 11 five-surface refactor
-- Community sidebar placement → Build 10
-- Community region taxonomy fork from intelligence surfaces → Build 10
+- ~~Community sidebar placement~~ → CLOSED Build 10: Community moved into intelligence-pages nav block between Operations and Map.
+- Community region taxonomy fork from intelligence surfaces → deferred to OBS-65 (Build 10 commit c600d36 documents divergence rationale).
 
 ---
 
