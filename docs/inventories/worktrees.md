@@ -19,6 +19,10 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 | Path | Branch | Status | Suggested disposition |
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
+| `wt-build-7` | `feat/build-7` | Parallel Build 7 sibling dispatch | Keep until Build 7 lands or is archived |
+| `wt-build-9` | `feat/build-9` | Parallel Build 9 sibling dispatch | Keep until Build 9 lands or is archived |
+| `wt-build-10` | `feat/build-10` | Parallel Build 10 sibling dispatch | Keep until Build 10 lands or is archived |
+| `wt-linkedin` | `feat/linkedin-import` | LinkedIn OAuth onboarding import dispatch (this entry's commit) | Remove after PR merge per FaDB Step 6 |
 
 ## Preserved branches (worktree dirs removed; branches alive)
 
