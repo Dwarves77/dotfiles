@@ -19,8 +19,13 @@
  *       PolicySignals (POLICY ACCELERATION SIGNALS, sourced badges per CC3)
  *       FreightRelevanceCallout (yellow Dietl/Rockit-specific framing)
  *       KeyMetricsRow (KEY METRICS rows with delta indicators)
- *       CostTrajectoryChart (multi-line per cargo vertical)
  *       Category accordions (existing item feed)
+ *
+ *   Build 7 removed the CostTrajectoryChart slot. The component was a
+ *   "pending time-series population" banner with no chart, because no
+ *   historical cost time-series schema exists; the data-source +
+ *   granularity decision is open per sprint-2 planning Build 9 operator
+ *   matrix. The slot returns when that schema lands.
  *   - Right rail:
  *       WatchlistSidebar (highest-lifecycle items)
  *       OwnersContent (per-owner feed)
@@ -54,7 +59,6 @@ import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { WatchlistSidebar } from "@/components/market/WatchlistSidebar";
 import { KeyMetricsRow } from "@/components/market/KeyMetricsRow";
-import { CostTrajectoryChart } from "@/components/market/CostTrajectoryChart";
 import { PolicySignals } from "@/components/market/PolicySignals";
 import { FreightRelevanceCallout } from "@/components/market/FreightRelevanceCallout";
 import { OwnersContent } from "@/components/market/OwnersContent";
@@ -335,10 +339,19 @@ function SectionTemplate({
         {/* KEY METRICS rows with delta indicators */}
         <KeyMetricsRow items={items} citationStats={citationStats} />
 
-        {/* COST TRAJECTORY chart (multi-vertical) */}
-        <CostTrajectoryChart verticals={sectorProfile} />
+        {/*
+          Build 7: the CostTrajectoryChart slot was a "pending time-series"
+          banner with no chart, because no historical cost time-series schema
+          exists. Operator did not authorize cost time-series schema work in
+          this dispatch (the data-source + granularity decision is open per
+          sprint-2 planning Build 9 operator-decision matrix), so the slot is
+          removed rather than continue to ship a placeholder. KEY METRICS
+          rows above carry single-point cost data via marketData.currentPrice;
+          delta-vs-prior-period stays on KeyMetricsRow when previousPrice is
+          available.
+        */}
 
-        {/* Category accordions — preserved from prior MarketPage */}
+        {/* Category accordions, preserved from prior MarketPage */}
         <div
           style={{
             fontSize: 10,

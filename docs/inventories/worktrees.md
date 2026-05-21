@@ -19,6 +19,10 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 | Path | Branch | Status | Suggested disposition |
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
+| `wt-build-7` | `feat/build-7-market-intel` | Active (Sprint 2 Build 7 Market Intel dispatch) | Remove after merge |
+| `wt-build-9` | `feat/build-9-operations` | Active (Sprint 2 Build 9 Operations dispatch, parallel agent) | Remove after merge |
+| `wt-build-10` | `feat/build-10-community` | Active (Sprint 2 Build 10 Community dispatch, parallel agent) | Remove after merge |
+| `wt-linkedin` | `feat/linkedin-import` | Active (LinkedIn import dispatch, parallel agent) | Remove after merge |
 
 ## Preserved branches (worktree dirs removed; branches alive)
 

@@ -1,24 +1,25 @@
 "use client";
 
 /**
- * WatchlistSidebar — pinned indicators rail for /market.
+ * WatchlistSidebar, Highest-Priority Indicators rail for /market.
  *
- * Per dispatch G (F11/F11b/Decision #4) and visual reconciliation §3.4:
- *   "Design has WATCHLIST card listing 6 indicators with status pills;
- *    production has no WATCHLIST."
+ * Build 7 honest-rename: the rail used to be labelled "WATCHLIST" with a
+ * trailing disclaimer about pending user-pin persistence. Per the platform
+ * intent skill Section 11 anti-pattern against shipping phase-language to
+ * customer-facing UI, and per the Build 7 dispatch's customer-visible
+ * stub closure list, the rail is renamed to "Highest-priority indicators"
+ * which is what it actually surfaces today: the highest-lifecycle
+ * (Watch + Elevated) items in scope, sorted by priority then recency.
  *
- * Data layer status: NO backend persistence yet. There is no
- * `user_watchlist` or `workspace_watchlist` table in supabase migrations
- * 001-047, and `workspace_settings` does not carry a watchlist column.
- * Per the dispatch's "honest empty-state" rule (#33 banner pattern), we
- * derive a WATCHLIST view from the highest-lifecycle (Watch + Elevated)
- * items in scope. This is a read-only computed view, not user-editable
- * pinning. When backend persistence ships, this component swaps to a
- * subscribed list with the same row shape.
+ * No "user-pinned" affordance ships in this dispatch. If/when a
+ * user_watchlist table and pin UX lands in a later sprint, the
+ * component name and labelling can revert; until then, the label
+ * matches the data shape.
  *
- * NOT a halt condition: the dispatch explicitly authorizes rendering
- * honest empty-state when data is partial. Computed Watch/Elevated rows
- * are real signal, not a placeholder string.
+ * Build 8.1 + Build 7: Q9 chip mounts (CitationCountChip + RecencyChip)
+ * are rendered inline on each row when citationStats is provided. Chip
+ * contracts suppress on count zero / null recency, so rows without
+ * citation data render unchanged.
  */
 
 import Link from "next/link";
@@ -97,7 +98,7 @@ export function WatchlistSidebar({ items, limit = 6, citationStats = {} }: Watch
           justifyContent: "space-between",
         }}
       >
-        <span>Watchlist</span>
+        <span>Highest-priority indicators</span>
         <span
           style={{
             fontSize: 9,
@@ -119,8 +120,9 @@ export function WatchlistSidebar({ items, limit = 6, citationStats = {} }: Watch
             color: "var(--text-2)",
           }}
         >
-          No items in scope yet. The most urgent market signals will
-          appear here as coverage expands.
+          No watch-level or elevated items in scope for your workspace
+          right now. The most urgent market signals surface here when
+          they match your sector profile.
         </p>
       ) : (
         <ul
@@ -202,20 +204,6 @@ export function WatchlistSidebar({ items, limit = 6, citationStats = {} }: Watch
           })}
         </ul>
       )}
-
-      <p
-        style={{
-          fontSize: 11,
-          color: "var(--text-2)",
-          marginTop: 10,
-          marginBottom: 0,
-          lineHeight: 1.45,
-          fontStyle: "italic",
-        }}
-      >
-        User-pinned watchlist persistence pending. Currently shows
-        highest-lifecycle items in scope.
-      </p>
     </div>
   );
 }
