@@ -1,5 +1,11 @@
 // Integration tests for the runner. Verifies the engine wires manifest → trigger → check → result correctly.
 // Run: node --test fsi-app/.discipline/runner.test.mjs
+//
+// Post-slim (2026-05-21): engine cut to 2 rules (012, 014). The original
+// substantial-commit fixtures (which exercised the deleted Loop-closure / Verification /
+// Inventory-emission attestation rules) are replaced with fixtures that exercise
+// the remaining gates: rule 012 (hardcoded-path content check) and rule 014
+// (inventory-touch consistency runner gate).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,10 +14,6 @@ import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve as resolvePath } from 'node:path';
 
-// Resolve the runner via import.meta.dirname so this test works on any
-// machine (operator's Windows tree, Linux CI, anyone else's clone) without
-// the hardcoded user-home path that previously lived here. Caught by the
-// OBS-59 follow-up investigation of the REPO_ROOT incident.
 const RUNNER = resolvePath(import.meta.dirname, 'runner.mjs');
 
 function runFixture(message, files) {
@@ -33,17 +35,15 @@ function runFixture(message, files) {
   }
 }
 
-test('runner: --list prints both rules', () => {
+test('runner: --list prints the remaining rules', () => {
   const out = execFileSync('node', [RUNNER, '--list'], { encoding: 'utf-8' });
-  assert.ok(out.includes('[008]'));
-  assert.ok(out.includes('[011]'));
-  assert.ok(out.includes('Dispatch-artifact commit-summary'));
-  assert.ok(out.includes('Inventory-artifact emission'));
+  assert.ok(out.includes('[012]'));
+  assert.ok(out.includes('[014]'));
+  assert.ok(out.includes('Hardcoded user-home path'));
+  assert.ok(out.includes('Inventory consistency'));
 });
 
 test('runner: fixture for trivial commit exits 0', () => {
-  // 'chore:' subject avoids rule 003's remediation-discipline-load-trigger (matches fix:/hotfix:/etc).
-  // 1-file commit avoids rule 010's verification trigger (trivial).
   const result = runFixture(
     'chore: typo',
     [{ path: 'README.md', additions: 1, deletions: 1 }]
@@ -51,52 +51,19 @@ test('runner: fixture for trivial commit exits 0', () => {
   assert.equal(result.exitCode, 0, `expected exit 0, got ${result.exitCode}. Output:\n${result.output}`);
 });
 
-test('runner: fixture for substantial commit missing both lines exits 1', () => {
+test('runner: fixture for substantial commit with no trailers exits 0 (post-slim: no attestation required)', () => {
   const result = runFixture(
-    'feat: ship the thing\n\nbody paragraph without closure or inventory line.',
-    Array.from({ length: 10 }, (_, i) => ({ path: `fsi-app/src/f${i}.ts`, additions: 5, deletions: 5 }))
-  );
-  // Fixture mode: context.branch defaults to 'master' in buildContextFromFixture
-  assert.equal(result.exitCode, 1);
-  assert.ok(result.output.includes('[008]'));
-  assert.ok(result.output.includes('[011]'));
-});
-
-test('runner: fixture for substantial commit with required attestation lines exits 0', () => {
-  // Substantial (10 files) feat commit must satisfy 008 (Loop-closure), 010 (Verification), 011 (Inventory-emission).
-  // Other rules skip: no sources, no scripts, no plan files, no sweep subject.
-  const result = runFixture(
-    [
-      'feat: ship the thing',
-      '',
-      'body paragraph.',
-      '',
-      'Loop-closure: OBS-1 COVER; DP-1 PASS',
-      'Inventory-emission: no inventory surfaces touched',
-      'Verification: ran node --test fsi-app/.discipline; observed 211 pass, 0 fail',
-    ].join('\n'),
+    'feat: ship the thing\n\nplain body, no trailers, no attestation. Engine post-slim does not require any.',
     Array.from({ length: 10 }, (_, i) => ({ path: `fsi-app/src/f${i}.ts`, additions: 5, deletions: 5 }))
   );
   assert.equal(result.exitCode, 0, `expected exit 0, got ${result.exitCode}. Output:\n${result.output}`);
 });
 
-test('runner: fixture for substantial commit with Loop-closure but missing Inventory-emission exits 1', () => {
+test('runner: fixture for migration commit needs no inventory attestation (rule 011 deleted)', () => {
   const result = runFixture(
-    'feat: ship\n\nLoop-closure: OBS-1 COVER',
-    Array.from({ length: 10 }, (_, i) => ({ path: `fsi-app/src/f${i}.ts`, additions: 5, deletions: 5 }))
+    'migration: add col\n\nplain body, no Inventory-emission trailer required post-slim',
+    [{ path: 'fsi-app/supabase/migrations/099_test.sql', additions: 10, deletions: 0 }]
   );
-  assert.equal(result.exitCode, 1);
-  assert.ok(result.output.includes('[011]'));
-  assert.ok(!result.output.includes('FAIL  [008]'));
-});
-
-test('runner: fixture for migration commit needs migrations.md coverage', () => {
-  // Has both closure lines but inventory line points to wrong surface
-  const result = runFixture(
-    'migration: add col\n\nLoop-closure: OBS-1 COVER\nInventory-emission: docs/inventories/routes.md no changes',
-    [{ path: 'fsi-app/supabase/migrations/099.sql', additions: 10, deletions: 0 }]
-  );
-  assert.equal(result.exitCode, 1);
-  assert.ok(result.output.includes('[011]'));
-  assert.ok(result.output.includes('migrations'));
+  // Rule 014 only fires when docs/inventories/* is touched. This commit doesn't touch any.
+  assert.equal(result.exitCode, 0, `expected exit 0, got ${result.exitCode}. Output:\n${result.output}`);
 });

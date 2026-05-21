@@ -3,13 +3,9 @@
 /**
  * Post — single post card in a community group feed.
  *
- * Phase C scope:
+ * Scope:
  *   - Plain-text body rendering (preserve linebreaks, no markdown).
  *   - Author headshot + name + relative timestamp header.
- *   - Reaction control rendered DISABLED with explanatory tooltip
- *     because community_post_reactions does not exist in any applied
- *     migration. The /api/community/posts/[id]/reactions endpoint
- *     returns 501. Reactions activate in Phase D.
  *   - Reply count + "View replies" expand-toggle. Lazy-loads replies
  *     on first expand from /api/community/posts/[id]/replies.
  *   - "Reply" button (group members) reveals an inline ReplyComposer.
@@ -20,7 +16,7 @@
  */
 
 import { useState } from "react";
-import { MessageSquare, Trash2, SmilePlus } from "lucide-react";
+import { MessageSquare, Trash2 } from "lucide-react";
 import type { CommunityPost } from "./PostComposer";
 import { ReplyComposer } from "./ReplyComposer";
 import { PromotePostButton } from "./PromotePostButton";
@@ -289,28 +285,6 @@ export function Post({
           borderTop: "1px solid var(--color-border)",
         }}
       >
-        <button
-          type="button"
-          disabled
-          aria-label="Reactions (coming soon)"
-          title="Reactions coming soon"
-          style={{
-            background: "transparent",
-            border: "1px solid var(--color-border)",
-            borderRadius: 4,
-            padding: "5px 9px",
-            color: "var(--color-text-muted, var(--color-text-secondary))",
-            cursor: "not-allowed",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 11,
-            opacity: 0.6,
-          }}
-        >
-          <SmilePlus size={12} />
-          React
-        </button>
 
         <button
           type="button"

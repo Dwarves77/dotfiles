@@ -69,33 +69,24 @@ export function AdminDashboard({
     if (initialOpenConflicts.length > 0) setOpenConflicts(initialOpenConflicts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Tab IDs match the design_handoff_2026-04/preview/admin.html structure.
-  // "orgs" + "integrations" are placeholders pending Phase D multi-tenant
-  // architecture; the four operational tabs (sources, staged, scan, audit)
-  // map to existing functional code that ships now.
-  //
   // "integrity-flags" and "coverage-matrix" are reserved for W2.C and W2.D
   // respectively. They appear as targets in the IssuesQueue tap-throughs;
   // when the IssuesQueue navigates to one before its tab body ships we
   // gracefully fall back to a sibling tab (see resolveAdminTab below).
   type AdminTab =
     | "orgs"
-    | "integrations"
     | "sources"
     | "staged"
     | "scan"
-    | "audit"
     | "integrity-flags"
     | "platform-integrity-flags"
     | "coverage-matrix"
     | "bulk-import";
   const KNOWN_RENDERED_TABS: ReadonlyArray<AdminTab> = [
     "orgs",
-    "integrations",
     "sources",
     "staged",
     "scan",
-    "audit",
     "integrity-flags",
     "platform-integrity-flags",
     "coverage-matrix",
@@ -253,16 +244,11 @@ export function AdminDashboard({
     setScanning(false);
   };
 
-  // Audit log tab hidden from the strip until the audit_log read endpoint
-  // ships (OBS-23, Sprint 2 Build 6). The tab body remains rendered when
-  // activeTab === "audit" so deep-links and IssuesQueue tap-throughs that
-  // route to "audit" still resolve to a ComingSoonBanner rather than a
-  // blank panel; KNOWN_RENDERED_TABS keeps "audit" listed for the same
-  // reason. To re-enable: re-add { id: "audit", label: "Audit log", count: 0 }
-  // below and remove this comment.
+  // "integrations" and "audit" tabs stripped per the 2026-05-21 dead-code
+  // disposition (no backing service; not in Sprint 2 scope). Add them back
+  // when API integrations + audit-log read endpoints actually ship.
   const tabs: { id: AdminTab; label: string; count: number }[] = [
     { id: "orgs", label: "Organizations", count: orgs.length },
-    { id: "integrations", label: "API & integrations", count: 0 },
     { id: "sources", label: "Source registry", count: 0 },
     { id: "staged", label: "Staged updates", count: stagedUpdates.length },
     { id: "integrity-flags", label: "Integrity flags", count: integrityFlagCount },
@@ -277,7 +263,7 @@ export function AdminDashboard({
       <EditorialMasthead
         eyebrow="Caro's Ledge · Platform Operations"
         title="Admin"
-        meta="Organizations · integrations · sources · staged updates · regulatory scan"
+        meta="Organizations · sources · staged updates · regulatory scan"
       />
 
       <div style={{ padding: "28px 36px 60px" }}>
@@ -530,30 +516,6 @@ export function AdminDashboard({
                 view pending/recent invitations, and revoke. Lives below
                 the members list so the workflow is contiguous. */}
             {orgIdFromAuth && <InvitationsPanel orgId={orgIdFromAuth} />}
-          </div>
-        )}
-
-        {/* API & integrations Tab — Coming soon */}
-        {activeTab === "integrations" && (
-          <div className="space-y-4">
-            <ComingSoonBanner
-              note="Integration catalog lands in Phase D. Master catalog (SAP, CBAM Reporting API, Slack, MS Teams, outbound webhooks, Oracle TMS, Salesforce Net Zero) will be published platform-wide and per-org enablement controlled here."
-            />
-            <div
-              className="p-4 rounded-lg border"
-              style={{
-                borderColor: "var(--color-border)",
-                backgroundColor: "var(--color-surface)",
-              }}
-            >
-              <h2 className="text-sm font-semibold mb-2" style={{ color: "var(--color-text-primary)" }}>
-                Planned catalog
-              </h2>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                SAP S/4HANA · CBAM Reporting API (sandbox + production) · Slack alerting ·
-                Microsoft Teams · Outbound webhooks · Oracle TMS · Salesforce Net Zero Cloud
-              </p>
-            </div>
           </div>
         )}
 
@@ -839,29 +801,6 @@ export function AdminDashboard({
           </div>
         )}
 
-        {/* Audit log Tab — placeholder (audit log surface lands in Phase D) */}
-        {activeTab === "audit" && (
-          <div className="space-y-4">
-            <ComingSoonBanner
-              note="Workspace-wide audit log lands in Phase D. Action history (member changes, source approvals, staged-update decisions) is already captured at the database level and will surface here once the audit_log read endpoint ships."
-            />
-            <div
-              className="p-4 rounded-lg border"
-              style={{
-                borderColor: "var(--color-border)",
-                backgroundColor: "var(--color-surface)",
-              }}
-            >
-              <h2 className="text-sm font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>
-                Last 30 days · workspace-wide
-              </h2>
-              <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                No entries to display.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Toast */}
         {toast && (
           <div
@@ -882,48 +821,3 @@ export function AdminDashboard({
   );
 }
 
-// ── Helpers ──
-
-/**
- * ComingSoonBanner — placeholder banner for tabs whose backing service
- * isn't online yet. Used on Organizations / API & integrations / Audit.
- * Mirrors the navy admin-view banner above the tab strip but is amber-
- * tinted so it reads as informational rather than navigational.
- */
-function ComingSoonBanner({ note }: { note: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        alignItems: "flex-start",
-        background: "var(--high-bg)",
-        border: "1px solid var(--high-bd)",
-        borderRadius: "var(--r-md)",
-        padding: "12px 16px",
-        fontSize: 12,
-        color: "var(--text)",
-        lineHeight: 1.55,
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          display: "inline-block",
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: "var(--high)",
-          flexShrink: 0,
-          marginTop: 5,
-        }}
-      />
-      <span>
-        <b style={{ color: "var(--high)", letterSpacing: "0.04em" }}>
-          Coming soon — Phase D
-        </b>{" "}
-        — {note}
-      </span>
-    </div>
-  );
-}

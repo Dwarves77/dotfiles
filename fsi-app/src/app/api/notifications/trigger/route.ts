@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
  * POST /api/notifications/trigger
  *
  * Notification dispatcher. Called when intelligence items change,
- * new threads are posted, vendors are endorsed, or case studies are validated.
+ * new threads are posted, or case studies are validated.
  *
  * This replaces the Edge Function approach — runs as a standard API route
  * that can be called by database webhooks or the monitoring worker.
@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
         .select("user_id, channels")
         .eq("subscription_type", "thread");
       subscribers = data || [];
-    } else if (event_type === "vendor_endorsed" || event_type === "case_study_validated") {
-      // Notify the vendor/case study owner
+    } else if (event_type === "case_study_validated") {
+      // Notify the case study owner
       const { data } = await supabase
         .from("notification_subscriptions")
         .select("user_id, channels")

@@ -124,3 +124,20 @@ test('installHooks: creates target directory if missing', () => {
     cleanup(parent);
   }
 });
+
+test('installHooks: installs pre-push hook alongside commit-msg', () => {
+  const dir = makeTempHooksDir();
+  try {
+    const report = installHooks({ hooksDir: dir, log: () => {} });
+    const prePush = report.find((r) => r.name === 'pre-push');
+    assert.ok(prePush, 'pre-push hook should appear in install report');
+    assert.equal(prePush.action, 'created');
+    const targetPath = join(dir, 'pre-push');
+    assert.ok(existsSync(targetPath), 'pre-push hook should be on disk after install');
+    const content = readFileSync(targetPath, 'utf-8');
+    assert.match(content, /CI-parity gate/, 'pre-push hook content must be the discipline-engine version');
+    assert.match(content, /tsc --noEmit/, 'pre-push hook must include the tsc step');
+  } finally {
+    cleanup(dir);
+  }
+});

@@ -11,9 +11,11 @@ const RUNNER = resolve(import.meta.dirname, 'runner.mjs');
 test('runner: --list prints registered functions', () => {
   const out = execFileSync('node', [RUNNER, '--list'], { encoding: 'utf-8' });
   assert.match(out, /\[F2\]/);
-  assert.match(out, /\[F3\]/);
+  assert.match(out, /\[F6\]/);
+  assert.match(out, /\[F8\]/);
+  assert.match(out, /\[F9\]/);
   assert.match(out, /admin-routes-isPlatformAdmin/);
-  assert.match(out, /src-no-discipline-imports/);
+  assert.match(out, /client-server-tier-boundary/);
 });
 
 test('runner: scans real codebase and reports', () => {

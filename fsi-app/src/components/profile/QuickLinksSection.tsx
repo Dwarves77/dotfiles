@@ -50,7 +50,7 @@ const LINKS: LinkRow[] = [
   {
     label: "Community",
     href: "/community",
-    description: "Discussions, vendor directory, events",
+    description: "Discussions and peer information sharing",
     icon: <Users size={14} />,
   },
   {

@@ -38,7 +38,7 @@ Deprecated: standalone `tier` column. Renamed to `base_tier` in migration 090.
 ## Consequences
 
 - Phase 1.5 migrated ~32 consumer sites across the codebase, applying the default rule per file.
-- F1 fitness function (Sprint Architecture) mechanically enforces the migration: `tier` in a sources select context is a hard fail.
+- F1 fitness function (Sprint Architecture) mechanically enforced the migration through the consumer-migration window; retired on 2026-05-21 after Phase 1.5 completion (no standalone `tier` selects remained; future regression risk judged low given the column rename to `base_tier`).
 - Trust.ts promotion/demotion criteria deliberately use `base_tier` (not `effective_tier`) per operator-confirmed feedback-loop reasoning.
 - The audit log payload preserves `tier: body.tier` (or `body.assignedTier ?? body.tier`) as a payload field, not a column reference; the distinction is documented in the routes.
 
@@ -54,4 +54,4 @@ Deprecated: standalone `tier` column. Renamed to `base_tier` in migration 090.
 - migration 090 (Q2 tier schema split)
 - Phase 1.5 consumer migration list: `docs/sprint-2/Phase-1.5-consumer-migration-list.md`
 - Phase 1.5 closure commit: 9a95afb
-- F1 fitness function: `fsi-app/.discipline/fitness/functions/F1-sources-tier-columns.mjs`
+- F1 fitness function (retired 2026-05-21 per discipline-engine slim refactor; existed at `fsi-app/.discipline/fitness/functions/F1-sources-tier-columns.mjs` from Sprint Architecture through 2026-05-21)

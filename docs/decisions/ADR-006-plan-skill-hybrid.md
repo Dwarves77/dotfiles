@@ -1,15 +1,17 @@
 ---
 id: ADR-006
 title: Plan-skill hybrid discipline (multi-dispatch coordination)
-status: accepted
+status: deprecated
 date: 2026-05-20
 scope:
   - "fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md"
-# future_scope (will be added when first 3+ dispatch coordination authors a plan):
-#   - docs/plans/
 supersedes: null
 related: []
 ---
+
+## Postscript (2026-05-21): deprecated
+
+The two rules this ADR documented (Rule 009 Plan-skill hybrid; Rule 010 Verification-before-completion) were both deleted in the 2026-05-21 engine slim refactor (per ADR-005 postscript B). The decisions themselves survive as soft convention: 3+ dispatch coordinations still benefit from authoring a plan doc at `docs/plans/`; substantial dispatches still benefit from documenting verification in the report. Neither is mechanically enforced anymore. ADR retained for historical context; status changed from `accepted` to `deprecated`.
 
 ## Context
 

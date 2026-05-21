@@ -17,25 +17,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: APP_ROOT,
   },
-  // PR-D IA refactor (2026-05-06): /events and /vendors moved under
-  // /community/* per design intent (visual-reconciliation §3.8). 308
-  // permanent redirects preserve any external bookmarks while the
-  // route files at /events and /vendors are also kept as
-  // server-component redirects for defense-in-depth.
-  async redirects() {
-    return [
-      {
-        source: "/events",
-        destination: "/community/events",
-        permanent: true,
-      },
-      {
-        source: "/vendors",
-        destination: "/community/vendors",
-        permanent: true,
-      },
-    ];
-  },
   // Cache-Control: see docs/sprint-1/perf-1-design.md for the full design.
   //
   // PERF-1 (2026-05-18) supersedes the prior perf/cache-headers-swr-expansion

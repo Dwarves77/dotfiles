@@ -6,7 +6,7 @@
 
 export type VerificationTier = "unverified" | "email_verified" | "linkedin_verified" | "staff_verified";
 export type MembershipTier = "free" | "member" | "contributor" | "verified" | "premium";
-export type AffiliationType = "independent" | "vendor" | "academic" | "ngo" | "government";
+export type AffiliationType = "independent" | "academic" | "ngo" | "government";
 
 // ── Profile ──
 
@@ -61,7 +61,6 @@ export interface ForumThread {
   transport_mode_tags: string[];
   vertical_tags: string[];
   linked_intelligence_item_ids: string[];
-  linked_vendor_ids: string[];
   linked_case_study_ids: string[];
   linked_regulation_ids: string[];
   is_pinned: boolean;
@@ -88,46 +87,6 @@ export interface ForumReply {
   updated_at: string;
   // Joined
   author?: CommunityProfile;
-}
-
-// ── Vendors ──
-
-export type VendorVerificationStatus = "unverified" | "peer_validated" | "staff_reviewed";
-export type VendorListingTier = "basic" | "featured" | "premium";
-
-export interface Vendor {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  company_website: string | null;
-  company_size: string | null;
-  hq_region: string | null;
-  service_regions: string[];
-  founded_year: number | null;
-  logo_url: string | null;
-  contact_name: string | null;
-  contact_email: string | null; // Gated by membership tier
-  contact_phone: string | null; // Gated by membership tier
-  verification_status: VendorVerificationStatus;
-  peer_endorsement_count: number;
-  listing_tier: VendorListingTier;
-  topic_tags: string[];
-  region_tags: string[];
-  transport_mode_tags: string[];
-  vertical_tags: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-export interface VendorEndorsement {
-  id: string;
-  vendor_id: string;
-  endorser_id: string;
-  endorsement_text: string | null;
-  experience_context: string | null;
-  created_at: string;
-  endorser?: CommunityProfile;
 }
 
 // ── Case Studies ──

@@ -3,58 +3,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  commitMessageHasLine,
   commitMessageLines,
-  commitMessageMatches,
-  commitSubjectMatches,
   filesMatching,
   hasFileMatching,
-  isSubstantialDispatch,
   isApplicableDispatchType,
   isInvestigationOnly,
   isHotfix,
   isResearchOnly,
   isConversationOnly,
-  touchedInventorySurfaces,
   _matchesPattern,
 } from './predicates.mjs';
 import { buildContextFromFixture, getRepoRoot, _clearRepoRootCache } from './context.mjs';
-
-// ---------------------------------------------------------------------------
-// commitMessageHasLine
-// ---------------------------------------------------------------------------
-
-test('commitMessageHasLine: finds line by prefix', () => {
-  const ctx = buildContextFromFixture({
-    message: 'subject\n\nbody line 1\nLoop-closure: OBS-1 COVER; DP-1 PASS\nbody line 3',
-    files: [],
-  });
-  assert.equal(commitMessageHasLine(ctx, 'Loop-closure:'), true);
-});
-
-test('commitMessageHasLine: returns false when prefix absent', () => {
-  const ctx = buildContextFromFixture({
-    message: 'subject\n\nbody only',
-    files: [],
-  });
-  assert.equal(commitMessageHasLine(ctx, 'Loop-closure:'), false);
-});
-
-test('commitMessageHasLine: ignores leading whitespace', () => {
-  const ctx = buildContextFromFixture({
-    message: 'subject\n\n  Loop-closure: OBS-1 COVER',
-    files: [],
-  });
-  assert.equal(commitMessageHasLine(ctx, 'Loop-closure:'), true);
-});
-
-test('commitMessageHasLine: does NOT match substring in middle of line', () => {
-  const ctx = buildContextFromFixture({
-    message: 'subject\n\nsee Loop-closure: details below',
-    files: [],
-  });
-  assert.equal(commitMessageHasLine(ctx, 'Loop-closure:'), false);
-});
 
 // ---------------------------------------------------------------------------
 // commitMessageLines
@@ -108,98 +67,6 @@ test('_matchesPattern: dir/**/filename', () => {
 
 test('_matchesPattern: normalizes backslashes', () => {
   assert.equal(_matchesPattern('fsi-app\\supabase\\migrations\\097.sql', 'fsi-app/supabase/migrations/'), true);
-});
-
-// ---------------------------------------------------------------------------
-// isSubstantialDispatch
-// ---------------------------------------------------------------------------
-
-test('isSubstantialDispatch: small commit returns false', () => {
-  const ctx = buildContextFromFixture({
-    message: 'fix: typo in README',
-    files: [{ path: 'README.md', additions: 1, deletions: 1 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), false);
-});
-
-test('isSubstantialDispatch: >5 files returns true', () => {
-  const ctx = buildContextFromFixture({
-    message: 'refactor: rename things',
-    files: Array.from({ length: 7 }, (_, i) => ({ path: `src/file${i}.ts`, additions: 5, deletions: 5 })),
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
-});
-
-test('isSubstantialDispatch: SKILL.md change returns true regardless of size', () => {
-  const ctx = buildContextFromFixture({
-    message: 'skill: tweak wording',
-    files: [{ path: 'fsi-app/.claude/skills/foo/SKILL.md', additions: 2, deletions: 1 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
-});
-
-test('isSubstantialDispatch: migration returns true', () => {
-  const ctx = buildContextFromFixture({
-    message: 'migration: add column',
-    files: [{ path: 'fsi-app/supabase/migrations/098_add_col.sql', additions: 10, deletions: 0 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
-});
-
-test('isSubstantialDispatch: route change returns true', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: new admin route',
-    files: [{ path: 'fsi-app/src/app/api/admin/foo/route.ts', additions: 30, deletions: 0 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
-});
-
-test('isSubstantialDispatch: discipline file change returns true', () => {
-  const ctx = buildContextFromFixture({
-    message: 'discipline: tweak rule',
-    files: [{ path: 'fsi-app/.discipline/rules/001-foo.mjs', additions: 5, deletions: 5 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
-});
-
-test('isSubstantialDispatch: vercel.json change returns true', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: add cron',
-    files: [{ path: 'fsi-app/vercel.json', additions: 5, deletions: 0 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
-});
-
-test('isSubstantialDispatch: large followups doc add returns true', () => {
-  const ctx = buildContextFromFixture({
-    message: 'obs: add entry',
-    files: [{ path: 'docs/sprint-1/followups.md', additions: 25, deletions: 0 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
-});
-
-test('isSubstantialDispatch: small followups touch returns false', () => {
-  const ctx = buildContextFromFixture({
-    message: 'fix: typo',
-    files: [{ path: 'docs/sprint-1/followups.md', additions: 2, deletions: 1 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), false);
-});
-
-test('isSubstantialDispatch: respects "Substantial: no" override', () => {
-  const ctx = buildContextFromFixture({
-    message: 'huge refactor\n\nSubstantial: no',
-    files: Array.from({ length: 50 }, (_, i) => ({ path: `src/file${i}.ts`, additions: 1, deletions: 1 })),
-  });
-  assert.equal(isSubstantialDispatch(ctx), false);
-});
-
-test('isSubstantialDispatch: respects "Substantial: yes" override', () => {
-  const ctx = buildContextFromFixture({
-    message: 'tiny but substantial\n\nSubstantial: yes',
-    files: [{ path: 'README.md', additions: 1, deletions: 0 }],
-  });
-  assert.equal(isSubstantialDispatch(ctx), true);
 });
 
 // ---------------------------------------------------------------------------
@@ -277,72 +144,6 @@ test('isApplicableDispatchType: revert commit returns false', () => {
     files: [{ path: 'src/foo.ts', additions: 0, deletions: 10 }],
   });
   assert.equal(isApplicableDispatchType(ctx), false);
-});
-
-// ---------------------------------------------------------------------------
-// touchedInventorySurfaces
-// ---------------------------------------------------------------------------
-
-test('touchedInventorySurfaces: empty for unrelated changes', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: tweak',
-    files: [{ path: 'src/lib/util.ts', additions: 5, deletions: 5 }],
-  });
-  assert.deepEqual(touchedInventorySurfaces(ctx), []);
-});
-
-test('touchedInventorySurfaces: detects skills', () => {
-  const ctx = buildContextFromFixture({
-    message: 'skill: tweak',
-    files: [{ path: 'fsi-app/.claude/skills/foo/SKILL.md', additions: 5, deletions: 0 }],
-  });
-  assert.deepEqual(touchedInventorySurfaces(ctx), ['skills']);
-});
-
-test('touchedInventorySurfaces: detects routes', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: route',
-    files: [{ path: 'fsi-app/src/app/api/admin/foo/route.ts', additions: 30, deletions: 0 }],
-  });
-  assert.deepEqual(touchedInventorySurfaces(ctx), ['routes']);
-});
-
-test('touchedInventorySurfaces: detects migrations', () => {
-  const ctx = buildContextFromFixture({
-    message: 'migration: add col',
-    files: [{ path: 'fsi-app/supabase/migrations/099.sql', additions: 10, deletions: 0 }],
-  });
-  assert.deepEqual(touchedInventorySurfaces(ctx), ['migrations']);
-});
-
-test('touchedInventorySurfaces: detects multiple', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: route + migration',
-    files: [
-      { path: 'fsi-app/src/app/api/admin/foo/route.ts', additions: 30, deletions: 0 },
-      { path: 'fsi-app/supabase/migrations/099.sql', additions: 10, deletions: 0 },
-    ],
-  });
-  const surfaces = touchedInventorySurfaces(ctx);
-  assert.ok(surfaces.includes('routes'));
-  assert.ok(surfaces.includes('migrations'));
-  assert.equal(surfaces.length, 2);
-});
-
-test('touchedInventorySurfaces: detects discipline', () => {
-  const ctx = buildContextFromFixture({
-    message: 'discipline: tweak rule',
-    files: [{ path: 'fsi-app/.discipline/rules/001-foo.mjs', additions: 5, deletions: 5 }],
-  });
-  assert.ok(touchedInventorySurfaces(ctx).includes('discipline'));
-});
-
-test('touchedInventorySurfaces: detects obs-status from followups', () => {
-  const ctx = buildContextFromFixture({
-    message: 'obs: add entry',
-    files: [{ path: 'docs/sprint-1/followups.md', additions: 25, deletions: 0 }],
-  });
-  assert.ok(touchedInventorySurfaces(ctx).includes('obs-status'));
 });
 
 // ---------------------------------------------------------------------------

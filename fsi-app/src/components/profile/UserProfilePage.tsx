@@ -52,7 +52,6 @@ type TabKey =
   | "personal"
   | "organization"
   | "members"
-  | "billing"
   | "sectors"
   | "jurisdictions"
   | "verifier"
@@ -62,7 +61,6 @@ const TABS: Array<{ key: TabKey; label: string; phaseC: boolean }> = [
   { key: "personal", label: "Personal", phaseC: true },
   { key: "organization", label: "Organization", phaseC: false },
   { key: "members", label: "Members & roles", phaseC: false },
-  { key: "billing", label: "Billing & plan", phaseC: false },
   { key: "sectors", label: "Sector profile", phaseC: true },
   { key: "jurisdictions", label: "Jurisdictions", phaseC: true },
   { key: "verifier", label: "Verifier badge", phaseC: true },
@@ -443,12 +441,6 @@ export function UserProfilePage({ userId, userEmail }: Props) {
               <PanelComingSoon
                 title="Members & roles"
                 description="Inviting teammates and assigning roles coming soon alongside multi-tenant workspaces."
-              />
-            )}
-            {tab === "billing" && (
-              <PanelComingSoon
-                title="Billing & plan"
-                description="Plans, seats, and invoicing coming soon. Current accounts have full read-only access."
               />
             )}
           </div>

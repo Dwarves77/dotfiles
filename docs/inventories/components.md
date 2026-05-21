@@ -1,6 +1,6 @@
 # Shared Components Inventory
 
-Catalog of shared/reusable components in `fsi-app/src/components/`. Maintained per the Inventory-artifact emission rule.
+Catalog of shared/reusable components in `fsi-app/src/components/`. Manual maintenance: no C-check covers this surface; operator discipline only.
 
 ## Status
 
@@ -42,4 +42,4 @@ Currently catalogued via the credibility-component contract doc at `docs/sprint-
 
 ## Maintenance trigger
 
-Any dispatch that adds a new shared component OR meaningfully changes a component's props contract MUST update this inventory + emit `Inventory-emission:` line.
+Any dispatch that adds a new shared component or meaningfully changes a component's props contract should update this inventory. Manual maintenance only; no mechanical enforcement.

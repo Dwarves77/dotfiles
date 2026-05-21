@@ -8,7 +8,7 @@ import { JURISDICTIONS } from "@/lib/constants";
 import { Toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { Save, Mail, Bell } from "lucide-react";
+import { Save, Bell } from "lucide-react";
 
 // ───────────────────────────────────────────────────────────────────────────
 // BriefingScheduleSection (PR-L Settings restoration — Decision #14, F9)
@@ -23,13 +23,12 @@ import { Save, Mail, Bell } from "lucide-react";
 // document with the additional schedule fields, keeping in-app state in
 // the store and persisting to Supabase via direct workspace_settings update.
 //
-// Delivery method shows in-app today; email/push are surfaced as
-// "available in Phase D" per the existing Phase C scope marker on
-// NotificationPreferences.
+// Delivery is in-app today; email and push channels ship when their
+// delivery pipelines exist.
 // ───────────────────────────────────────────────────────────────────────────
 
 type Cadence = "daily" | "weekly" | "biweekly";
-type Delivery = "in_app" | "email";
+type Delivery = "in_app";
 
 interface ScheduleState {
   cadence: Cadence;
@@ -264,25 +263,17 @@ export function BriefingScheduleSection() {
         </ChipRow>
       </Field>
 
-      {/* Delivery */}
+      {/* Delivery — only in-app supported today; email and push ship
+          when their delivery pipelines exist. */}
       <Field label="Delivery">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <DeliveryCard
             icon={<Bell size={14} />}
             label="In-app"
-            description="Lands in your dashboard. Available now."
+            description="Lands in your dashboard."
             selected={schedule.delivery === "in_app"}
             onClick={() => updateField("delivery", "in_app")}
             disabled={!canEdit}
-          />
-          <DeliveryCard
-            icon={<Mail size={14} />}
-            label="Email"
-            description="Coming soon — currently captured but not yet sent."
-            selected={schedule.delivery === "email"}
-            onClick={() => updateField("delivery", "email")}
-            disabled={!canEdit}
-            phaseD
           />
         </div>
       </Field>
@@ -405,7 +396,6 @@ function DeliveryCard({
   selected,
   onClick,
   disabled,
-  phaseD,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -413,7 +403,6 @@ function DeliveryCard({
   selected: boolean;
   onClick: () => void;
   disabled?: boolean;
-  phaseD?: boolean;
 }) {
   return (
     <button
@@ -440,18 +429,6 @@ function DeliveryCard({
         >
           {label}
         </span>
-        {phaseD && (
-          <span
-            className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded"
-            style={{
-              letterSpacing: "0.1em",
-              color: "var(--color-text-muted)",
-              backgroundColor: "var(--color-surface-overlay)",
-            }}
-          >
-            Coming soon
-          </span>
-        )}
       </div>
       <p
         className="text-xs mt-1"

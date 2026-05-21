@@ -62,7 +62,23 @@ Five-layer enforcement architecture, built in sequence:
 
 Customer-facing work (Build 8 Research and onward) resumes after Layer 4 (cross-skill consistency) lands. Layer 5 is deferred indefinitely and does not block customer builds.
 
-**Note (2026-05-21 postscript)**: a 15th binding rule (post-push verification) + ADR-010 were briefly added 2026-05-21 to formalize a verification-trailer requirement on every substantial commit. The rule attested to the parent commit's CI/Vercel state via trailers. After one dispatch using it, the operator + Claude review concluded the rule was ceremony rather than enforcement: it codified a habit (querying gh api after push) without changing behavior, since the gh api query was already happening and the trailer was a transcription of the query result. The rule + ADR-010 + this Layer 5 split were reverted; replaced with a behavioral commitment (proactive operator-facing CI-failure reporting). The original Layer 5 framing stands.
+**Note (2026-05-21 postscript A)**: a 15th binding rule (post-push verification) + ADR-010 were briefly added 2026-05-21 to formalize a verification-trailer requirement on every substantial commit. The rule attested to the parent commit's CI/Vercel state via trailers. After one dispatch using it, the operator + Claude review concluded the rule was ceremony rather than enforcement: it codified a habit (querying gh api after push) without changing behavior, since the gh api query was already happening and the trailer was a transcription of the query result. The rule + ADR-010 + this Layer 5 split were reverted; replaced with a behavioral commitment (proactive operator-facing CI-failure reporting). The original Layer 5 framing stands.
+
+**Note (2026-05-21 postscript B — engine slim refactor)**: an evidence-based audit of the engine (per-mechanism git-log search for catches + self-inflicted failures) found that 25 of 33 mechanisms had zero documented catches in their lifetimes and several were structurally unable to catch what they claimed. The operator authorized a slim refactor that cut the engine to the 8 mechanisms with documented real catches or non-negotiable invariants:
+
+| Layer | What remains |
+|---|---|
+| Layer 1 (attestation rules) | Rule 012 hardcoded-user-home path + Rule 014 inventory consistency. Rules 001-011 + 013 deleted (zero catches in 23-24h lifetime; structurally same shape as the reverted rule 015). |
+| Layer 2 (fitness functions) | F2 admin-routes-isPlatformAdmin + F6 migrations numeric ordering + F8 client-server tier boundary + F9 build compiles. F1/F3/F4/F5/F7 deleted (F1 migration complete + low regression risk; F4 mission accomplished via ADR-008; F5 bypassed spread/variable-only inserts; F7 generated 11 false-positives via fuzzy prose match; F3 invariant never threatened). |
+| Layer 3 (decision protection) | ADRs remain at docs/decisions/. Rule 013 (ADR cross-reference trailer) deleted; ADR loader retained as a parsing helper. Cross-reference trailers no longer required. |
+| Layer 4 (cross-skill consistency) | C3 migrations.md reality + C4 worktrees.md reality (both caught real drift in their 24h lifetime). C1/C2/C5/C6/C7/C8/C9/C10 deleted + their 6 derived inventory files removed (C5/C6 wrong source-of-truth; C10 self-documented as no-op; others zero catches). |
+| Layer 5 (observability) | Unchanged; still deferred. |
+
+Added in the same dispatch: a **pre-push hook** at `fsi-app/.discipline/hooks/pre-push` that runs 4 CI-parity checks locally before push (untracked critical-surface gate, consistency runner, discipline + fitness tests, tsc --noEmit). Closes the local-green/CI-red class that motivated rule 15 without requiring trailer ceremony.
+
+Commit messages return to normal: subject + body, no required trailers. The audit script at `dispatch/audit.mjs` still parses historical trailer commits for retrospective queries; it gracefully degrades on commits without trailers (no longer expected on new commits).
+
+Full audit rationale + per-item disposition at `docs/plans/dead-code-disposition-2026-05-21.md`.
 
 ## Consequences
 

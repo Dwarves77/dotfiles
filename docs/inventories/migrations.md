@@ -103,7 +103,7 @@
 
 ## Maintenance trigger
 
-Per the 11th binding rule (Inventory-artifact emission): any commit that adds a migration MUST update this inventory + emit `Inventory-emission:` line.
+Any commit that adds or removes a migration MUST update this inventory. C3 consistency check (rule 014) enforces drift on push.
 
 ## Source files
 

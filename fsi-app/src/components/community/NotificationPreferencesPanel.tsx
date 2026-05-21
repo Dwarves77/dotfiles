@@ -5,9 +5,9 @@
  *
  * Surfaces:
  *   1. Master "Notifications enabled" toggle.
- *   2. Per-kind grid (mention / reply / invite / promote / moderation)
- *      × per-channel columns (in_app / email / push). Email and push are
- *      flagged "coming soon" per Phase C scope (in-app only ships now).
+ *   2. Per-kind toggles (mention / reply / invite / promote / moderation).
+ *      In-app is the only delivery channel currently shipping; email and
+ *      push channels are added back when their delivery pipelines exist.
  *
  * Soft-enforced rules surfaced inline:
  *   - on_invite cannot be truly disabled — the worker delivers invite
@@ -16,8 +16,6 @@
  * Wires to:
  *   GET  /api/community/notifications/preferences
  *   PUT  /api/community/notifications/preferences
- *
- * Light-first, no emojis.
  */
 
 import { useEffect, useState, useCallback } from "react";
@@ -32,7 +30,7 @@ type NotificationKind =
   | "promote"
   | "moderation";
 
-type Channel = "in_app" | "email" | "push";
+type Channel = "in_app";
 
 interface PreferencesShape {
   enabled: boolean;
@@ -75,15 +73,13 @@ const KINDS: Array<{ key: NotificationKind; label: string; desc: string }> = [
 
 const CHANNELS: Array<{ key: Channel; label: string }> = [
   { key: "in_app", label: "In app" },
-  { key: "email", label: "Email" },
-  { key: "push", label: "Push" },
 ];
 
 export function NotificationPreferencesPanel() {
   const [prefs, setPrefs] = useState<PreferencesShape | null>(null);
   const [channelStatus, setChannelStatus] = useState<
     Record<Channel, "live" | "coming_soon">
-  >({ in_app: "live", email: "coming_soon", push: "coming_soon" });
+  >({ in_app: "live" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,7 +170,6 @@ export function NotificationPreferencesPanel() {
 
   function setChannel(channel: Channel, v: boolean) {
     if (!prefs) return;
-    if (channelStatus[channel] !== "live") return; // coming-soon: no-op
     const next: PreferencesShape = {
       ...prefs,
       channels: { ...prefs.channels, [channel]: v },
@@ -327,7 +322,6 @@ export function NotificationPreferencesPanel() {
           }}
         >
           {CHANNELS.map((ch) => {
-            const live = channelStatus[ch.key] === "live";
             const checked = !!prefs.channels[ch.key];
             return (
               <div
@@ -337,7 +331,6 @@ export function NotificationPreferencesPanel() {
                   background: "var(--color-bg-base)",
                   border: "1px solid var(--color-border)",
                   borderRadius: 8,
-                  opacity: live ? 1 : 0.7,
                 }}
               >
                 <div
@@ -361,23 +354,8 @@ export function NotificationPreferencesPanel() {
                     checked={checked}
                     onChange={(v) => setChannel(ch.key, v)}
                     label={`${ch.label} channel`}
-                    disabled={!live}
                   />
                 </div>
-                {!live && (
-                  <div
-                    style={{
-                      marginTop: 4,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      color: "var(--color-text-muted)",
-                    }}
-                  >
-                    Coming soon
-                  </div>
-                )}
               </div>
             );
           })}

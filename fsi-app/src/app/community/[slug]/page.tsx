@@ -4,7 +4,6 @@ import { CommunityShell } from "@/components/community/CommunityShell";
 import { GroupHeader } from "@/components/community/GroupHeader";
 import { PostList } from "@/components/community/PostList";
 import { HowPublishingWorks } from "@/components/community/HowPublishingWorks";
-import { VendorMentionsRail } from "@/components/community/VendorMentionsRail";
 import { CouncilMembersRail } from "@/components/community/CouncilMembersRail";
 import type {
   CommunityGroupSummary,
@@ -336,7 +335,6 @@ export default async function GroupDetailPage({
             groupId={group.id}
             totalMembers={group.member_count}
           />
-          <VendorMentionsRail />
         </div>
       </div>
     </CommunityShell>

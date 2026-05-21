@@ -185,451 +185,49 @@ Carry an OBS coverage table and a DP compliance section with the same structure,
 
 Carry the coverage table for OBS entries the planning decision affects. Use the Decision column to surface scope assignments rather than per-OBS implementation moves.
 
-## Inference correction rule: when reconstruction surfaces evidence contradicting discovery
-
-This rule was added 2026-05-19 after a discovery-doc inference (Stage 1 schema reconciliation Finding 5: "070 created 5 RPCs") was contradicted by evidence surfaced during reconstruction (git history showed 070 created 3 RPCs; the other 2 originated in 064 and 066). The reconstruction dispatch surfaced and corrected the inference rather than silently aligning the reconstruction to the discovery doc's expectation.
-
-**Binding rule.** When a downstream dispatch (reconstruction, implementation, audit, or any synthesis that touches a previously-investigated surface) surfaces EVIDENCE that contradicts a PRIOR DISPATCH's INFERENCE, the downstream dispatch MUST:
-
-1. Surface the contradiction explicitly in its report. Name the prior dispatch + inference + the contradicting evidence.
-2. Correct the prior dispatch's doc with a clearly-marked postscript (e.g. "Correction YYYY-MM-DD") that preserves the original wrong claim for audit trail but states the corrected fact and cites the evidence source.
-3. Cross-reference the correction from the downstream dispatch's own deliverable so future readers see the lineage.
-4. DO NOT silently align the downstream work to the wrong inference. If the inference was "X is 5 things" and evidence proves "X is 3 things," ship the 3-thing version with the correction, not the 5-thing version.
-
-This is the `environmental-policy-and-innovation` integrity rule applied to investigation work: no extrapolation, no preservation of an inference when contradicting evidence is in hand.
-
-**Why this rule exists.** Without it, downstream dispatches reading a discovery doc treat its inferences as facts, propagating the wrong claim forward. A reconstruction that "matches what the discovery doc said" looks correct on paper but silently overrides the actual evidence with the prior dispatch's guess. The integrity rule requires evidence-grounded output; this rule extends that requirement to inter-dispatch synthesis.
-
-**Worked example (the case that triggered this rule).**
-
-Stage 1 schema reconciliation discovery (docs/sprint-1/schema-reconciliation-discovery-2026-05-18.md Finding 5) inferred that migration 070 created 5 RPCs, based on migration 071's header phrasing "5 row-set RPCs". The inference conflated 071's modification-scope (which COVERED 5 RPCs created across several migrations) with 070's creation-scope. The discovery doc explicitly labeled this as a "strong inference" but did not test it against git history.
-
-D15 reconstruction dispatch (commit c85982d) recovered the original 070 file from git history (blob d51bccf at commit 651ae78, 308 lines). Original 070 created 3 RPCs: get_market_intel_items, get_research_items, get_operations_items. The other 2 RPCs (get_workspace_intelligence_dashboard, get_workspace_intelligence_listings) originated in migrations 064 and 066 respectively.
-
-The reconstruction dispatch could have silently aligned: write a 070 file that creates all 5 RPCs to match the discovery doc's inference, treating the doc as authoritative. Instead, it surfaced the contradiction in its report, noted the lineage correctly in the reconstruction file's header, shipped the verbatim 3-RPC original from git history, and triggered this skill amendment to encode the precedent.
-
-**How to apply.** When you read a discovery or audit doc as input to your dispatch, treat its inferences with the same skepticism you would treat any unverified claim. If your dispatch surfaces evidence (live DB state, git history, file content, runtime behavior) that contradicts a prior inference, apply this rule: surface, correct, cite, never silently align.
-
-## Planning-doc rule: skill-closed scope is NOT an operator decision point
-
-This rule was added 2026-05-18 after a Sprint 2 planning doc presented two decision points (D7 Research repositioning, D14 Map Facility toggle) where the relevant skill (`caros-ledge-platform-intent`) had already defined the page intent. The planning doc framed them as "operator chooses Option A vs Option B" when the skill's Section 3 and Section 4 had already closed the scope. Operator caught the contradiction; the discipline did not.
-
-**Binding rule.** Operator decision points in planning docs MUST respect skill-defined scope. Skill-closed scope CANNOT be re-opened as a planning-layer decision. Concretely:
-
-- If the platform-intent skill (Section 3) defines a customer-facing surface's intent (e.g., "Research is horizon-scan content with analytical or quantitative depth"), the build dispatch for that surface implements that intent. The planning doc does NOT present "should we build Research as horizon-scan or as something else?" as an operator decision.
-- If a cross-cutting capability's scope is defined in the skill (e.g., "Map is a geographic visual layer over Regulations content"), the planning doc does NOT present "should we rescope Map to include Facility content?" as an operator decision.
-- The operator's decision authority IS preserved over: build sequencing, build prerequisites, schema strategy options, build scope within a skill-defined intent (e.g., which Market Intel sources to add first), tactical-vs-strategic implementation paths.
-- The operator's decision authority is NOT extended over: scope redefinition for surfaces or capabilities the skill has already defined.
-
-**If the planning author believes the skill's scope definition needs revision**, that goes through a skill-amendment dispatch with explicit operator authorization for skill modification (per `caros-ledge-platform-intent` SKILL.md Section "Authority Grant" / "You are NOT authorized to: Modify this skill's platform model framing without explicit operator authorization with strong-emphasis correction"). Skill revision is NOT a planning-layer decision option.
-
-**How to apply when authoring a planning doc:**
-
-1. For each candidate operator decision point you draft, identify the skill section(s) that touch the same scope.
-2. If the skill closes the scope (states a binding answer), strike the decision point. Document the skill citation; surface the build dispatch as "implement per skill Section X" rather than "operator chooses".
-3. If the skill leaves the scope open (silent, or explicitly defers to operator), the decision point is valid. Cite which skill section confirms operator discretion.
-4. If the planning author believes the skill needs revision to enable a different scope, dispatch a skill amendment FIRST (with operator authorization) and ONLY THEN add the corresponding decision point to the plan. Do not present the rescope as a plan option.
-
-**What this rule prevents.** Without this rule, planning docs accumulate "Option A vs Option B" decision points where Option B silently negates the skill's already-stated scope. The operator either (a) selects Option B and the build ships against an intent that contradicts the skill, or (b) catches the contradiction during review and the planning cycle restarts. Either path wastes the planning work.
-
-**Worked example (the case that triggered this rule).**
-
-Sprint 2 planning doc Build 8 (Research) presented:
-- Option A: Research stays as editorial draft-staging queue
-- Option B: Research becomes customer-facing horizon-scan destination
-
-Per `caros-ledge-platform-intent` Section 3, Research is "horizon-scan content with analytical or quantitative depth." The skill closes the scope. There is no Option A to consider. The build dispatch is "implement Research per skill Section 3 horizon-scan destination framing." If the planning author believed editorial draft-staging should be a Research surface, that would require a skill amendment (operator-authorized) BEFORE the plan presents it as an option.
-
-The corrective: revise the plan to retire Option A; surface Build 8 as a single-path implementation; if editorial draft-staging belongs somewhere, identify a different surface (admin chrome) and dispatch it separately.
-
-## Sources-schema-touch precondition: verify existing consumer wiring before adding new consumers
-
-This rule was added 2026-05-19 after the D16 column-shadowing closure verification (commit 51321b4 family) surfaced a structural pattern: when migration 063 partially applied (2 columns shadowed and silently no-op'd, 12 columns applied cleanly), the audit confirming zero existing-consumer breakage on the shadowed columns explicitly excluded the 12 successfully-applied columns. Future builds (Build 7 Market Intel, Build 8 Research, Build 9 Operations, Build 11 Dashboard) all touch `sources` and will add new consumers of those columns. Verifying existing consumer wiring at the moment of new-consumer addition is the correct discipline, but scoping the verification inside any one build packet leaves the other builds exposed and lets the per-build verification scope keep drifting.
-
-**Binding rule.** Any dispatch that touches the `sources` table OR adds a consumer of `sources` columns (read, write, filter, join, type definition) MUST, before adding the new consumer:
-
-1. Identify the origin migration SQL for each `sources` column the dispatch touches (the migration that created the column AND any subsequent migration that altered its shape, constraints, or default).
-2. Audit all current `src/` consumers of those columns and verify they assume the actual deployed shape, not the intended-at-some-point shape from a no-op'd migration, and not the proposed-but-unapplied shape from a draft migration.
-3. Surface any consumer that assumes a different shape than the origin migration's deployed reality. Surface to the operator; do not silently refactor.
-4. Only after the precondition audit reports clean (or after the operator decides on remediation scope for any non-clean findings) may the dispatch add its new consumer.
-
-**What this precondition is NOT.**
-
-- NOT a license to refactor existing consumers. The precondition gates ADDITIONS only. A consumer that exists and works against the actual schema, even if its assumption pattern is defensive or redundant, is out of scope.
-- NOT a retroactive audit obligation. The precondition fires when a new consumer is being added; it does not require periodic re-audits of unchanging consumers.
-- NOT a substitute for the integrity rule. Consumer wiring assumptions are documentary evidence; the actual deployed schema (live DB) is authoritative. If consumer code and origin migration agree but the live DB differs (migration applied incorrectly, manual schema drift), the live DB wins and a new migration captures the reconciliation.
-
-**Worked example (the 12 columns from migration 063).**
-
-The 12 columns from migration 063 that applied cleanly: `source_role`, `secondary_roles`, `scope_topics`, `scope_modes`, `scope_verticals`, `expected_output`, `classification_assigned_at`, `classification_observed_distribution`, `observed_correctness_count`, `last_observed_at`, `classification_confidence`, `classification_rationale`. These collectively introduce a 5-axis classification framework whose consumer wiring has not been audited as comprehensively as the shadowed `tier` and `jurisdictions` columns now have.
-
-When Build 7 (Market Intel signal aggregation) dispatches and adds a consumer of, say, `source_role`, the precondition fires: read migration 063 to see the column's intended shape; grep `src/` for current `source_role` consumers; verify each one assumes the migration-063 shape rather than some other inferred shape. If any consumer assumes a different shape, surface to operator. Then add the Build 7 consumer.
-
-When Build 8 (Research horizon-scan) dispatches and adds a consumer of `classification_confidence`, the precondition fires again with `classification_confidence` as the focus column. The audit pattern is the same: origin migration + current consumers + assumption-vs-reality check.
-
-**Audit-pattern precedent.** The D16 closure verification (2026-05-19) demonstrated the audit pattern: parallel Explore-agent dispatches across four code-path families (classifier/scoring lib, API routes + server handlers, UI components + view pages, types/stores/scripts/workers/tests) with a tight per-agent contract (file:line + assumption + actual-vs-intended + works-or-breaks classification). Three sections per agent report: Correct / Suspect / Indeterminate. Synthesis in the parent dispatch as a coverage table. Future precondition audits should adopt the same pattern: parallel agents, narrow per-agent scope contract, three-section report shape, parent dispatch synthesis.
-
-**How to apply.**
-
-1. Before drafting the new consumer code, list every `sources` column the dispatch will touch (read, write, filter, join, or reference in a type definition).
-2. For each column, identify its origin migration and read that migration in full.
-3. Dispatch parallel read-only audit agents per the D16 precedent. Each agent gets a narrow code-path-family scope and the three-section report contract.
-4. Synthesize the coverage table in your dispatch's pre-flight section, before the design content.
-5. If the synthesis is clean, proceed with the new consumer addition. If the synthesis surfaces suspect or indeterminate findings, halt the new-consumer work, surface findings + suggested remediation scope, and wait for operator decision.
-
-## Sweep-discipline rule: enumerate the full surface before claiming completeness
-
-This rule was added 2026-05-19 after two recurring methodology failures in this session and a third confirmed by operator reference. The Build 6 admin-gating sweep (commit 6d18773) missed 13 admin routes that any authenticated user could hit, because the sweep enumerated only routes the dispatcher recalled rather than globbing the route surface. The subsequent 2026-05-19 code-level positive-test audit (dispatched after seeding jasonlosh@hotmail.com with `is_platform_admin=true`) found the 13 Build-6-missed routes but ALSO had two methodology errors of its own: it missed 4 additional ungated routes under the `src/app/api/admin/sources/[id]/*` pattern, AND it miscalled `recompute-trust` and `spot-check/recurring` as `requireAuth`-only based on directory location rather than file content (those routes intentionally gate via `x-worker-secret` for cron access). The Tier 2 hygiene sweep earlier in the same session exhibited the same pattern in the opposite direction: it went beyond the original scope brief and caught Phase-D leaks in surfaces not in the original brief; enumerate-first would have correctly included those leaks in the original brief instead of discovering them by accident. All three failures share one root cause: the sweep relied on recalled or pattern-matched scope rather than fully enumerating the surface family.
-
-**Binding rule.** When running a sweep dispatch (security sweep, consistency sweep, audit, or any dispatch whose deliverable is "verify every item in a surface-family meets a criterion"), the dispatch MUST:
-
-1. Identify the surface family being swept (route family, column family, constraint family, file pattern, schema element family). Name it precisely.
-2. Enumerate the COMPLETE surface via Glob, schema query, or equivalent fully-enumerative method. Document the enumeration count and the criterion being checked in the dispatch's pre-flight report.
-3. Verify each enumerated item against the audit criterion. Do not skip items because they "seem obviously fine" or "are unlikely to be wrong" — those exact intuitions are how Build 6 missed 13 routes and how the 2026-05-19 audit missed 4 more.
-4. Surface ANY discrepancies between the enumeration and the original scope brief. Sweeps frequently expand scope (more items meet the audit criterion than the brief anticipated), correct scope (some items in the brief don't actually belong to the surface family), or relocate scope (items that look like they belong to one family actually belong to another, like the worker-secret cron routes that look like admin routes but gate differently). The dispatch report calls out the discrepancy explicitly.
-
-**What this rule is NOT.**
-
-- NOT a license to expand the FIX scope indefinitely. The enumeration bounds the verification work; the fix work remains bounded by what the dispatch is authorized to change. If enumeration surfaces ungated routes beyond what the operator authorized fixing, surface them and ask, do not auto-fix.
-- NOT a requirement to fix everything found. The rule requires complete enumeration and complete verification. What to fix is a separate authorization decision.
-- NOT applicable to design or implementation dispatches scoped to a specific change. A dispatch like "add a new column to sources" doesn't owe a sweep — only sweep-type dispatches owe enumerate-first discipline.
-- NOT a substitute for the sources-schema-touch precondition or the inference-correction rule. Sweep-discipline complements them: enumerate-first prevents the same class of methodology failure from recurring across sweep-shaped dispatches.
-
-**Worked example (the Build 6 → 2026-05-19 audit → Track B-code re-enumeration sequence).**
-
-Build 6 admin-gating sweep (commit 6d18773) enumerated remembered admin routes and verified each calls `isPlatformAdmin`. The sweep was incomplete: 13 routes were missed because the dispatcher relied on recall rather than `Glob` of `src/app/api/admin/**/*.ts`. OBS-17 closed prematurely.
-
-2026-05-19 code-level positive-test audit re-audited admin gating. It found the 13 routes Build 6 missed but had two methodology errors: (a) missed 4 additional ungated routes under `src/app/api/admin/sources/[id]/*` because its enumeration was incomplete in that subdirectory, (b) miscalled `recompute-trust` and `spot-check/recurring` as `requireAuth`-only based on directory location, not file content (they gate via `x-worker-secret` header, intentional for cron access).
-
-Track B-code dispatch (commit 4c7b546) applied enumerate-first discipline: pre-flight Globbed `src/app/api/admin/**/*.ts` to produce a 28-route table, grepped each for `requireAuth` and `isPlatformAdmin`, and built a complete pass/fail matrix. The matrix correctly identified 15 PASS + 13 prior-audit-FAIL + 4 newly-discovered FAIL + 2 worker-secret OTHER. Net fix scope correctly bounded at 15 routes. The same enumerate-first move on Build 6 would have prevented the 13-route gap; the same move on the 2026-05-19 audit would have prevented the 4-route gap and the 2 miscalls.
-
-**How to apply.**
-
-Before any sweep dispatch starts, the dispatch brief lists:
-1. The surface family being swept (e.g., "all routes under `src/app/api/admin/**`").
-2. The enumeration method that will produce a complete list (e.g., "Glob `src/app/api/admin/**/*.ts`").
-3. The criterion being checked (e.g., "does the route call `isPlatformAdmin` after `requireAuth`?").
-4. The expected scope of fixes if applicable (e.g., "fix any route that calls `requireAuth` without `isPlatformAdmin`").
-
-The pre-flight report documents the enumeration count and the criterion. The execution report documents the full pass/fail matrix and explicitly calls out any discrepancy between the enumeration and the original scope brief.
-
-## Source-credibility-model load-trigger rule
-
-This rule was added 2026-05-19 alongside the encoding of the source-credibility-model skill. Per the architectural conversation that produced the skill (decisions captured at `docs/sprint-2/source-credibility-model-decisions-2026-05-19.md`), the credibility model is binding on a wide range of dispatches but lives in its own skill rather than this discipline. This rule names which dispatches must load source-credibility-model so the credibility-model concerns are not skipped because the dispatcher forgot to add the skill to the load list.
-
-**Binding rule.** Load `source-credibility-model` skill on any dispatch that:
-
-1. Touches the `sources` table (read or write)
-2. Touches `source_citations` or `intelligence_item_citations` edge tables
-3. Modifies `tier`, `base_tier`, `effective_tier`, `tier_override`, `override_reason`, `override_date`, or `bias_tag*` columns on sources
-4. Touches the candidate review surface (`canonical_source_candidates` table, admin canonical-sources review components, `/api/admin/canonical-sources/*` routes)
-5. Modifies the Haiku recommend-classification endpoints (`canonical-sources/recommend-classification`, `sources/recommend-classification`)
-6. Modifies the verification pipeline (`src/lib/sources/verification.ts`)
-7. Adds or modifies customer-facing credibility signal rendering on any of the seven surfaces (Regulations, Research, Market Intel, Operations, Community, Map, Intelligence Assistant)
-8. Changes the discovery loop (citation extraction in `src/app/api/agent/run/route.ts`, source resolution in any consumer, candidate promotion criteria)
-9. Adds or modifies citation network scoring (`src/lib/trust.ts`), recency decay, or override semantics
-
-**Enumerated route paths in scope (added 2026-05-20 alongside Sprint Architecture F7 fitness function).** Per F7's cross-reference check, the route paths below are part of the credibility-affected surface and any commit touching them must attest `Skill-loaded: source-credibility-model`. New routes that touch the sources table must be added here:
-
-- `/api/admin/canonical-sources/decide` (candidate review write path)
-- `/api/admin/canonical-sources/bulk-approve` (bulk candidate review)
-- `/api/admin/canonical-sources/bulk-classify` (LLM bulk classification)
-- `/api/admin/canonical-sources/recommend-classification` (Haiku recommendation)
-- `/api/admin/sources/promote` (provisional → source promotion)
-- `/api/admin/sources/all` (admin source registry listing)
-- `/api/admin/sources/recommend-classification` (Haiku recommendation, sources)
-- `/api/admin/sources/bulk-import` (admin bulk import)
-- `/api/admin/sources/[id]/fetch-now` (admin operational)
-- `/api/admin/sources/[id]/regenerate-brief` (admin operational, customer-output)
-- `/api/admin/sources/[id]/visibility` (admin operational)
-- `/api/admin/sources/[id]/pause` (admin operational)
-- `/api/admin/sources/[id]/tier-override` (Q5 override write path)
-- `/api/admin/integrity-flags` (admin/audit; reads sources via join)
-- `/api/admin/recompute-trust` (Q6/Q7 daily trust recompute; worker-secret-gated)
-- `/api/admin/q7-daily-recompute` (Q7 cron entry; worker-secret-gated)
-- `/api/admin/spot-check/recurring` (scheduled spot-check; worker-secret-gated)
-- `/api/admin/scan` (admin scan)
-- `/api/sources` (public-facing sources listing)
-- `/api/ask` (Intelligence Assistant; reads sources for credibility-context display)
-- `/api/agent/run` (brief generation; citation propagation reads sources)
-- `/api/data/fetch-source` (admin/internal source fetch)
-- `/api/data/scan-all` (admin/internal scan)
-- `/api/staged-updates` (admin staging surface)
-- `/api/worker/check-sources` (scheduler)
-- `/api/worker/drain-first-fetch` (first-fetch drain)
-
-Load is mandatory, not advisory. Without the skill loaded, the dispatch cannot ground its credibility decisions in the canonical model and risks drift from the operator-approved framework.
-
-**What this rule is NOT.**
-
-- NOT a substitute for `sprint-followups-discipline` itself (this discipline still owes loop closure, DP compliance, and the sources-schema-touch precondition where applicable). The source-credibility-model load is ADDITIVE.
-- NOT a requirement to apply every credibility-model element to every dispatch. The skill specifies which elements apply where. A small bugfix that touches a credibility-affected surface still loads the skill but applies only the relevant section.
-- NOT a self-scanning mechanism. Option B (skills self-describe triggers; discipline scans frontmatter at dispatch start) was considered and rejected for one-skill-deployment cost. If the project adds 5+ domain skills with overlapping triggers, revisit.
-
-**How to apply.** At dispatch brief authoring time, check the trigger list above against the dispatch's scope. If any trigger fires, add `source-credibility-model` to the skill load list in the brief. The dispatch's pre-work report names the skill as loaded.
-
-**Worked example.** A Build 8 (Research horizon-scan) dispatch touches `sources` (reads for filtering), `intelligence_item_citations` (reads for citation count display), and customer-facing credibility signal rendering (Research surface per Q9: tier + bias tag + citation count + recency). Triggers 1, 2, and 7 fire. The dispatch brief loads source-credibility-model alongside sprint-followups-discipline, caros-ledge-platform-intent, and environmental-policy-and-innovation. The dispatch's design implements the Q9 Research signal set per source-credibility-model Section 8.
-
-## Remediation-discipline load-trigger rule
-
-This rule was added 2026-05-20 alongside the encoding of the remediation-discipline skill (`fsi-app/.claude/skills/remediation-discipline/SKILL.md`). The skill codifies the class-over-instance principle for remediation work and lives in its own skill rather than this discipline. This rule names which dispatches must load remediation-discipline so the class-over-instance lens is applied consistently at remediation scoping time, not after the fact.
-
-**Binding rule.** Load `remediation-discipline` skill on any dispatch that:
-
-1. Is framed as remediation, post-mortem, hotfix, or failure response
-2. Is investigating a recurring pattern across multiple instances
-3. Is extracting a primitive, library, or shared utility
-4. Is adding a new binding rule to any discipline skill
-5. Is scoping the response to a surfaced bug, regression, or production incident
-
-Load is mandatory, not advisory. Without the skill loaded, the dispatch may default to instance-only patches without checking whether the failure is class-shaped. Section 3 of the skill provides the recognition criteria (4 signals + threshold rule) that determines class vs instance.
-
-**What this rule is NOT.**
-
-- NOT a requirement to apply the class-over-instance principle to every dispatch. Design and implementation dispatches that aren't responding to a failure don't owe class-vs-instance analysis. The skill is REMEDIATION-shaped.
-- NOT a substitute for `sprint-followups-discipline` itself. Loop closure + DP compliance + sweep discipline + sources-schema-touch precondition all still apply.
-
-**How to apply.** At dispatch brief authoring time, check the trigger list above against the dispatch's framing. If any trigger fires, add `remediation-discipline` to the skill load list. The dispatch's pre-work report names the skill as loaded and applies the recognition criteria (Section 3) to the failure being remediated.
-
-**Worked example.** The Q4 batch failure (sources 21/22, Anthropic timeout + pg disconnect) triggered remediation. Operator framed Path (a) as instance-only patch initially. Loading remediation-discipline at scoping time would have surfaced the class-shape (recognition signals 2 + 4 fire) before the patch dispatch fired, leading directly to the bundled library-extraction dispatch instead of the patch-then-library sequence actually executed. Future remediation dispatches load this skill at scoping to make the class call upfront.
-
-## Batch-script resilience rule
-
-This rule was added 2026-05-20 as the codified instance of remediation-discipline's class fix for batch-script resilience (see remediation-discipline Section 7 worked example 1).
-
-**Binding rule.** Any dispatch that creates or modifies a long-running batch script (>50 iterations, especially external API calls or persistent DB connections) MUST use the batch-primitives library at `fsi-app/scripts/lib/batch-primitives.mjs` OR document why it cannot.
-
-Sample-only validation does NOT satisfy batch-robustness gates. The dispatch brief explicitly names the failure modes the sample WON'T reveal and confirms library primitives handle them:
-- Retry-with-backoff on external API errors (timeouts, network, 429, 5xx) via `withRetry(fn, { isRetryable })`
-- Reconnect-on-disconnect for persistent DB connections via `createPgPool` (Pool handles natively; no separate retry wrapper needed for the connection layer)
-- Rate limit enforcement on external API calls via `withRateLimit`
-- Per-iteration error isolation: one item's failure does NOT crash the whole batch (achieved via try/catch around the wrapped fn within the loop)
-- Idempotency via `withIdempotency` so re-runs skip completed work
-- Hook-based progress reporting via `createProgressReporter`
-
-Triggered by OBS-51 (Q4 sources 21/22 failure: sample-scale validation passed; full-batch hit Anthropic timeout + pg disconnect immediately at source 21+22).
-
-**What this rule is NOT.**
-
-- NOT a requirement to use every primitive in every batch. A pure-SQL batch (e.g., Q7 daily recompute) doesn't need `withRetry` or `withRateLimit`. Use the primitives that match the batch's failure surface.
-- NOT applicable to scripts that use Supabase client (`createClient` from `@supabase/supabase-js`) instead of `pg.Pool`. Supabase client manages its own connection lifecycle; library `createPgPool` doesn't apply. Surface that mismatch in the dispatch brief; future expansion of the library can address Supabase-client resilience separately.
-- NOT a license to skip integration verification. Library primitives are unit-tested; consumer batches still owe smoke-test verification (--dry-run --limit N) before production runs.
-
-**How to apply.** When a dispatch creates or modifies a batch script, the brief explicitly lists which library primitives are consumed and why each was chosen. The script imports from the library; inline retry/Pool/rate-limit/progress logic is anti-pattern (remediation-discipline Section 8 anti-pattern 5: reinventing primitives).
-
-**Worked example.** Q4 batch script (`fsi-app/scripts/q4-bias-batch-assign.mjs`) consumes `isAnthropicRetryable` + `isPgRetryable` predicates from the library (full primitive migration deferred; v1 validates library consumption). Q7 daily batch script (`fsi-app/scripts/cron/q7-daily-recompute.mjs`) refactor deferred because it uses Supabase client not pg.Pool; the library doesn't fit cleanly. Both deferrals are documented in the script headers and tracked for follow-up.
-
-## Dispatch-artifact commit-summary rule
-
-This rule was added 2026-05-20 after the 3-axis skill audit found that OBS coverage tables and DP compliance sections are emitted in dispatch reports but do not surface in git commit artifacts. The skill's Output Format Requirement section prescribes the table format for dispatch reports; this rule adds a complementary requirement at the commit-artifact layer so loop-closure evidence is git-log auditable.
-
-**Binding rule.** Every merge commit for a design or implementation dispatch on a Caro's Ledge sprint phase MUST include a one-line summary in the commit message body that states OBS coverage outcomes and DP compliance results. Format:
-
-```
-Loop-closure: OBS-N COVER; OBS-M DEFER; OBS-K NO ACTION; DP-1 PASS; DP-2 N/A
-```
-
-The full tables remain in the dispatch report (this is belt-and-suspenders, not a replacement). The dispatch report is authoritative for reasoning; the commit summary is the audit trail.
-
-**What this rule is NOT.**
-
-- NOT a requirement on intermediate commits in a feature branch. Only the merge commit (or final squashed commit) owes the summary.
-- NOT a substitute for the OBS coverage table in the dispatch report. The table provides reasoning per OBS; the commit summary provides the outcome list.
-- NOT applicable to dispatches that this skill does NOT apply to (investigation-only, hotfix, research-only, conversation-only). Those dispatches do not owe OBS coverage at all.
-
-**How to apply.** When authoring a merge commit message for a dispatch this skill applies to, after the commit subject and body paragraphs, include a line beginning with `Loop-closure:` followed by the OBS outcome list and DP compliance list. `git log --grep="Loop-closure"` enumerates every dispatch that closed the loop.
-
-**Worked example.** A Phase 7 triage UI design merge commit would include:
-
-```
-Phase 7 triage UI design
-
-Adds third triage tab for all-rejected jurisdictions; inline source
-metadata strip on every queue surface; canonical-replacement pickers.
-
-Loop-closure: OBS-13 COVER; OBS-14 COVER; OBS-15 DEFER (Phase 6 dep);
-  OBS-4/6/8/9/10/11/12 NO ACTION; OBS-7 DEFER (counsel); DP-1 PASS
-```
-
-Anchors the dispatch report to a single auditable commit-log line.
-
-## Plan-skill hybrid rule
-
-This rule was added 2026-05-20 after the 3-axis skill audit found `superpowers:writing-plans` and `superpowers:executing-plans` aspirational (no plan files exist in `fsi-app/docs/plans/`; major coordinations ran memory-driven via worktree naming and transcript). Calibrating skill load discipline to actual practice: plans required for multi-dispatch coordinations, memory-driven coordination acceptable for single or 2-dispatch work.
-
-**Binding rule.** Load `superpowers:writing-plans` and `superpowers:executing-plans` on any coordination that spans 3+ dispatches (typical case: a multi-track work plan like Track A + Track B + Track C, or a multi-phase build like Q1 through Q10 of a credibility model rollout). For single-dispatch work or 2-dispatch sequences (e.g., one design dispatch + its implementation), memory-driven coordination via conversation transcript and worktree naming is acceptable.
-
-**What "3+ dispatches" means:**
-
-- Three or more separately-dispatched agent runs that share a common goal and need coordination between them
-- Multi-track parallel work where the tracks compose into a single deliverable
-- Multi-phase implementation where each phase has its own dispatch but the phases must sequence correctly
-
-When a 3+ dispatch coordination is being scoped, the scoping conversation produces a plan file at `fsi-app/docs/plans/<date>-<coordination-name>.md` BEFORE the first dispatch fires. The plan file enumerates the dispatches, names dependencies, and surfaces decision points.
-
-**What this rule is NOT.**
-
-- NOT a requirement for single-dispatch design or implementation work. A single design dispatch + its single implementation dispatch is 2 dispatches; memory-driven is fine.
-- NOT a requirement for hotfix sequences (typically 1 dispatch or 2 if a follow-up surfaces).
-- NOT a requirement for investigation or audit dispatches (typically 1 dispatch; if the audit findings warrant a multi-dispatch remediation, the remediation phase triggers this rule for the remediation plan).
-- NOT a substitute for `verification-before-completion` discipline (see next rule; verification applies regardless of dispatch count).
-
-**How to apply.** At coordination-scoping time, count the dispatches the coordination will require. If 3+, draft a plan file in `fsi-app/docs/plans/` and use `superpowers:writing-plans` to structure it. The first dispatch's brief references the plan file. Subsequent dispatches load `superpowers:executing-plans` and check off completed steps. If a single-dispatch sequence later grows past 2 dispatches, retroactively author a plan file at that point.
-
-**Worked example.** Track A + Track B + Track C parallel sweeps for an OBS-51 follow-up: 3+ dispatches with hard inter-dependencies (Track C waits on Tracks A+B findings). Plan file drafted before Track A fires. By contrast, a single Phase 7 triage UI dispatch + its implementation merge is 2 dispatches; memory-driven scoping is acceptable.
-
-## Verification-before-completion required rule
-
-This rule was added 2026-05-20 alongside the Plan-skill hybrid rule. Per operator nuance: verification-before-completion is universally valuable, not just for multi-dispatch work, so it does NOT bundle with the plan-skill hybrid framing.
-
-**Binding rule.** Load `superpowers:verification-before-completion` on every dispatch regardless of size or count. Every claim of "complete" must cite the verification command(s) and the observed output before the dispatch report ends with that claim. Schema migrations applied, tests passed, branch merged, primitive extracted, UI rendered: each requires evidence.
-
-**What this rule is NOT.**
-
-- NOT a requirement to surface verification evidence in every commit message (that is covered by the Dispatch-artifact commit-summary rule for OBS/DP outcomes only).
-- NOT a requirement to write tests where none exist (the skill is verification-before-completion, not test-driven-development; verification can be running existing tests, schema queries, smoke tests, observation of UI behavior).
-- NOT a substitute for code review or operator approval (verification is the agent's owed evidence, not the final go/no-go).
-
-**How to apply.** Before any dispatch report ends with a completion claim, the agent runs at least one verification command relevant to the change and surfaces the command + output in the report. Examples:
-
-- Schema migration: `psql -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'sources';"` showing the new column landed
-- Code change: `npx tsc --noEmit` showing zero errors, plus a smoke test if the change has runtime behavior
-- Component edit: descriptive observation of the change in the running app, or screenshot
-- Library extraction: `node -e "require('./lib/X').foo()"` showing the primitive works
-- Branch merge: `git log -1 --format=%H` showing the merge commit lands
-
-**Worked example.** A schema-migration dispatch that adds `sources.effective_tier` ends with: "Verification: ran `psql -c \"SELECT column_name, data_type FROM information_schema.columns WHERE table_name='sources' AND column_name='effective_tier';\"` returned `effective_tier | integer`, confirming column added. Triggered consumer code update at `src/lib/trust.ts:42`; ran `npx tsc --noEmit` returned zero errors, confirming no type-system breaks."
-
-If a verification cannot be performed (e.g., production DB inaccessible from dispatch context), the dispatch surfaces the unverified claim explicitly and routes the verification to an operator-owned step. "Cannot verify in dispatch; operator to confirm via X" is acceptable; silent completion claim without verification is not.
-
-## Inventory-artifact emission rule
-
-This rule was added 2026-05-20 alongside the establishment of `docs/inventories/` as the canonical state-artifact directory. Sister to the Dispatch-artifact commit-summary rule (8th binding rule): that rule captures per-dispatch OBS/DP outcomes in commit messages; this rule captures cross-dispatch state inventories in operator-readable files so future dispatches don't re-spelunk the file tree to know what exists.
-
-Triggered by the 3-axis skill audit (commit `383974e`) which produced a one-off `docs/skill-inventory.md` to fix immediate visibility but did NOT codify the discipline for the general pattern. Subsequent operator framing: "substantial dispatches should produce operator-readable artifacts" extends from skills to routes, migrations, worktrees, env vars, cron jobs, OBS status, components, and any future state-carrying surface where re-spelunking has compounding cost.
-
-**Binding rule.** Every SUBSTANTIAL dispatch MUST update the relevant entry in `docs/inventories/<type>.md` AND include an `Inventory-emission:` line in the merge commit body. Format:
-
-```
-Inventory-emission: docs/inventories/<type>.md N entries added/changed/removed
-```
-
-When the dispatch touches multiple inventories, emit one line per inventory.
-
-**What "substantial" means.** A dispatch is substantial if ANY of:
-
-- Takes >30 min agent time
-- Touches >5 files
-- Ships a binding rule, primitive, or shared utility
-- Ships a schema migration
-- Adds/removes/significantly modifies a route, scheduled job, component, env var, worktree, or OBS entry
-- Is itself a sprint-planning, audit, or remediation dispatch
-
-Investigation-only and hotfix dispatches (the same ones this skill's "When to Apply" skips) do not owe inventory emission unless the investigation surfaces a new inventory-relevant entity.
-
-**Inventory types (non-exhaustive; extensible).** The table below lists the inventory types identified through 2026-05-20. Stub files exist for the first 8 (load-bearing in the next 2-4 weeks); the remaining types are conceptually defined here as the complete-picture reference, with stub files landing when the first substantial dispatch touches the surface.
-
-| Type | Canonical path | Updated when | Stub status |
-|---|---|---|---|
-| skills | `docs/inventories/skills.md` | A custom skill is added, modified, or archived | Populated (2026-05-20) |
-| routes | `docs/inventories/routes.md` | An API route is added, removed, or its auth/method/purpose changes | Stub (2026-05-20) |
-| migrations | `docs/inventories/migrations.md` | A migration file is added or applied; ledger backfilled | Stub (2026-05-20) |
-| worktrees | `docs/inventories/worktrees.md` | A worktree is created or removed | Stub (2026-05-20) |
-| env-vars | `docs/inventories/env-vars.md` | A new env var dependency is introduced | Stub (2026-05-20) |
-| cron-jobs | `docs/inventories/cron-jobs.md` | A scheduled job is added, removed, or its schedule changes | Stub (2026-05-20) |
-| obs-status | `docs/inventories/obs-status.md` | An OBS entry is added, reopened, or closed (aggregates the 8th rule's per-commit closures) | Stub (2026-05-20) |
-| components | `docs/inventories/components.md` | A shared component is added or its props contract changes | Stub (2026-05-20) |
-| schema | `docs/inventories/schema.md` | A table or view's columns/constraints change (distinct from migrations history; this captures CURRENT state) | Not yet created; stub lands on first schema-touching substantial dispatch |
-| source-registry | `docs/inventories/source-registry.md` | Source population changes meaningfully (tier distribution, bias tag distribution, queue size shifts) | Not yet created; stub lands on first source-registry dispatch (e.g., next bias-batch re-tune or candidate-promotion run) |
-| review-queues | `docs/inventories/review-queues.md` | Classifier output changes substantially or a queue retune lands | Not yet created; stub lands on next classifier or queue-management dispatch |
-| plans | `docs/inventories/plans.md` | A multi-dispatch plan is authored, executed, or archived (per the 9th binding rule, Plan-skill hybrid) | Not yet created; stub lands on the next 3+ dispatch coordination |
-
-New inventory types are added when a new state-carrying surface emerges. Adding a type is itself a substantial dispatch that updates this rule's table; creating a stub on first touch satisfies the discipline. The table is non-exhaustive by construction; the conceptual list keeps the rule honest about not-yet-complete coverage rather than pretending stub-presence equals comprehensive cataloging.
-
-**Closure-line format.**
-
-```
-Inventory-emission: docs/inventories/skills.md +1 entry (new-skill-name)
-Inventory-emission: docs/inventories/routes.md +3 entries, -1 entry (new admin routes; deprecated old endpoint)
-Inventory-emission: docs/inventories/migrations.md +1 entry (098)
-Inventory-emission: docs/inventories/<type>.md no changes  (when the dispatch touches the surface but no inventory entry changes)
-```
-
-`git log --grep="Inventory-emission"` enumerates every commit that touched inventory state.
-
-**What this rule is NOT.**
-
-- NOT a requirement to maintain inventories that don't yet exist. Stub files at `docs/inventories/<type>.md` mark intent; populated form happens when a substantial dispatch first touches the surface.
-- NOT a substitute for the source-of-truth files themselves. Inventories are operator-readable mirrors; the actual route files / migration files / etc. remain canonical.
-- NOT applicable to dispatches the parent skill skips (investigation-only, hotfix, research-only, conversation-only).
-- NOT a requirement to update every inventory on every dispatch. Only inventories whose surface the dispatch actually touches.
-
-**How to apply.** At dispatch-scoping time, the brief identifies which inventories the dispatch will touch. At dispatch-close, the agent updates the relevant inventory file(s) and emits one `Inventory-emission:` line per inventory in the merge commit body.
-
-**Worked example.** This very commit. It codifies the Inventory-artifact emission rule and relocates `docs/skill-inventory.md` to `docs/inventories/skills.md` (establishing the directory) and creates 7 stub entries (routes, migrations, worktrees, env-vars, cron-jobs, obs-status, components). The commit body carries both a `Loop-closure:` line (per the 8th binding rule) AND `Inventory-emission:` lines (per this 11th binding rule), practicing both disciplines in the same commit that codifies the second.
-
-## ADR cross-reference rule
-
-This rule was added 2026-05-20 alongside the ADR system construction (per ADR-009). Sister to the attestation rules (1-11) and content-check rule (12); the 13th binding rule is the decision-protection layer per ADR-005's five-layer enforcement architecture.
-
-**Binding rule.** Any commit that stages files matching one or more accepted ADRs' scope globs MUST include a `ADR-Reference: ADR-NNN` trailer line in the body for each intersecting ADR. Acceptable alternative for explicit contradiction: `ADR-Override: ADR-NNN (rationale: <non-empty explanation>)` — surfaces in audit as an explicit override of a prior decision, requiring future operator review.
-
-Format:
-
-```
-<commit subject>
-
-<commit body>
-
-ADR-Reference: ADR-002
-ADR-Reference: ADR-003
-Loop-closure: ...
-Inventory-emission: ...
-```
-
-**What this rule is NOT.**
-
-- NOT a requirement to reference ADRs whose scope does not match any staged file. The 13th rule only fires when intersection exists.
-- NOT a requirement to reference proposed-status ADRs. Only accepted ADRs trigger the cross-reference requirement.
-- NOT a substitute for the attestation rules (1-11) or content-check rule (12); the 13th rule is the third layer of enforcement (decision protection) per ADR-005.
-
-**Override semantics.** `ADR-Override: ADR-NNN (rationale: ...)` lets a commit explicitly contradict a prior decision when context warrants. The override passes the gate but is logged in audit. Use sparingly:
-
-- Urgent fix that must temporarily violate a prior decision (with planned follow-up)
-- New information surfaced that invalidates a prior decision's premise (followed by an ADR amendment or supersede in a separate dispatch)
-- Experimental rollback for a specific subset (with OBS tracking)
-
-If override usage accumulates, audit surfaces the pattern; operator reviews whether the prior decision needs supersession or refinement.
-
-**How to apply.** At commit-time, the engine loads all accepted ADRs from `docs/decisions/`, computes scope intersection against staged files, and requires a trailer for each intersecting ADR. Rule implementation: `fsi-app/.discipline/rules/013-adr-cross-reference.mjs`. ADR loader: `fsi-app/.discipline/lib/adr-loader.mjs`.
-
-**Worked example.** A commit modifying `fsi-app/src/lib/trust.ts` intersects ADR-002 (Tier model). The commit body must include `ADR-Reference: ADR-002`. If the change also touches `fsi-app/src/app/api/admin/canonical-sources/decide/route.ts`, ADR-003 (Server-centric dual-write) also intersects, requiring a second trailer line. Audit script (`fsi-app/.discipline/dispatch/audit.mjs`) surfaces ADR references per dispatch UUID.
+## Post-slim engine state (2026-05-21)
+
+The discipline engine was slim-refactored on 2026-05-21 (commit landing this dispatch). The named-binding-rules block that lived in earlier versions of this skill (Inference correction, Planning-doc, Sources-schema-touch precondition, Sweep-discipline, Source-credibility-model load-trigger, Remediation-discipline load-trigger, Batch-script resilience, Dispatch-artifact commit-summary, Plan-skill hybrid, Verification-before-completion, Inventory-artifact emission, ADR cross-reference) was retired. Those rules prescribed commit-message trailers (`Loop-closure:`, `Skill-loaded:`, `Verification:`, `Plan-file:`, `ADR-Reference:`, `Inventory-emission:`, `Sweep-enumeration:`, `Inference-correction:`, `Planning-doc:`, `Schema-touch-precondition:`, `Batch-resilience:`, `Class-vs-instance:`) which the engine cannot mechanically verify against code. Per the operator's published 5e3ae41 revert rationale: ceremony rather than enforcement.
+
+**What remains active:** the core loop-closure protocol (OBS coverage table + DP compliance section in the dispatch report) and the Inventory consistency rule.
+
+**The remaining discipline-engine surface (post-slim):**
+
+| Rule / function / check | What it enforces |
+|---|---|
+| Rule 012 (hardcoded user-home path) | Content scan; rejects `C:\Users\` / `/home/jason/` etc in code files |
+| Rule 014 (inventory consistency) | Gates commits touching `docs/inventories/*.md` on the C-check runner passing |
+| F2 (admin-routes-isPlatformAdmin) | Every admin API route must call isPlatformAdmin |
+| F6 (migrations numeric ordering) | Migration filename pattern + no duplicate numbers |
+| F8 (client-server tier boundary) | No `body.tier` / `body.base_tier` / `body.effective_tier` assignment in client code near a fetch/POST |
+| F9 (build compiles) | `tsc --noEmit` must pass |
+| C3 (migrations.md reality) | Disk migrations == inventory entries |
+| C4 (worktrees.md reality) | Live worktrees == inventory entries |
+| Pre-push hook | Runs the four CI-parity checks locally before push (untracked critical-surface gate, consistency runner, tests, tsc) |
+
+**Behaviors no longer enforced mechanically** but preserved as recommended methodology in this skill body (Anti-Patterns section + worked examples):
+- Sweep-first discipline (glob/schema query before verification) — methodology only
+- Skill-load attestation for source-credibility / remediation-discipline — load the skills when the conditions apply; attestation trailer is no longer required
+- Plan-skill hybrid (3+ dispatch coordination plan file) — author the plan when the coordination warrants it; no Plan-file trailer required
+- Loop-closure / Inventory-emission / Verification trailers — write them when they add audit trail value; no longer engine-enforced
 
 ## Inventory consistency rule
 
-This rule was added 2026-05-21 as Layer 4 of the enforcement architecture (per ADR-005). Sister to the ADR cross-reference rule (13th binding rule, Layer 3); the 14th binding rule is the inventory-reality-check layer.
+This is the only named binding rule that survived the 2026-05-21 slim refactor (rule 014). The 2 surviving consistency checks (C3 migrations + C4 worktrees) both have documented real catches.
 
-**Binding rule.** Any commit on master modifying `docs/inventories/*.md` files MUST satisfy the consistency runner (10 C-checks). The runner verifies that inventories match codebase reality: every claimed entity exists, every existing entity is claimed, no orphans, no drift.
+**Binding rule.** Any commit on master modifying `docs/inventories/*.md` files MUST satisfy the consistency runner (2 C-checks). The runner verifies that inventories match codebase reality: every claimed entity exists, every existing entity is claimed, no orphans, no drift.
 
 **Override.** `Consistency-Override: C-N (rationale: <non-empty text>; remediation-deadline: YYYY-MM-DD)` trailer per failing check. The remediation-deadline must be a future date. Override surfaces in audit; recurring overrides on the same check indicate deeper issue.
 
 **Implementation.** Rule code at `fsi-app/.discipline/rules/014-inventory-consistency.mjs`. The rule invokes the consistency runner (`fsi-app/.discipline/consistency/runner.mjs`) and asserts exit 0 OR documented overrides for each failing check.
 
-**The 10 initial C-checks (Layer 4 dispatch)**:
-- C1 skills.md reality
-- C2 routes.md reality
-- C3 migrations.md reality
-- C4 worktrees.md reality
-- C5 env-vars.md reality
-- C6 cron-jobs.md reality
-- C7 decisions.md (ADR) reality
-- C8 obs-status.md reality
-- C9 discipline manifest consistency
-- C10 cross-skill reference integrity
+**The 2 remaining C-checks**:
+- C3 migrations.md reality (caught migration 067 untracked on 2026-05-21)
+- C4 worktrees.md reality (caught remediation-discipline worktree orphan on 2026-05-21)
 
-New C-checks land at `fsi-app/.discipline/consistency/checks/CN-name.mjs` + tests; manifest registration in `fsi-app/.discipline/consistency/manifest.mjs`.
+New C-checks land at `fsi-app/.discipline/consistency/checks/CN-name.mjs`; manifest registration in `fsi-app/.discipline/consistency/manifest.mjs`. Add only when a real bug class justifies the addition; the 8 removed C-checks (C1, C2, C5, C6, C7, C8, C9, C10) had zero catches in their 24-hour lifetime.
 
-**Worked example.** A commit adding a new admin API route at `fsi-app/src/app/api/admin/foo/route.ts` triggers C2 if `docs/inventories/routes.md` is not updated to include the new route. Rule 014 invokes the runner; runner reports C2 drift; rule 014 fails with the C2 missing-claim message. Operator either updates `docs/inventories/routes.md` (fixes the drift; runner passes) OR adds `Consistency-Override: C2 (rationale: route is experimental; deferred to product decision; remediation-deadline: 2026-06-01)` (rare; surfaces in audit).
+**Worked example.** A commit adding a new migration at `fsi-app/supabase/migrations/099_*.sql` triggers C3 if the file exists on disk but is not listed in `docs/inventories/migrations.md`, OR if the inventory lists a migration filename that does not exist on disk (the migration 067 case). Rule 014 invokes the runner; runner reports C3 drift; rule 014 fails with the C3 missing-claim or orphan-claim message. Operator either updates the inventory (fixes the drift; runner passes) OR adds `Consistency-Override: C3 (rationale: <text>; remediation-deadline: <date>)`.
 
 ## Anti-Patterns
 

@@ -41,12 +41,17 @@ Five candidate dispatches enumerated. Recommendation: execute 1–4 as Build 8; 
 
 ### Dispatch 8.1 — Citation count visibility (PREREQUISITE)
 
-**Why first**: migration 089 explicitly defers the consumer RPC body to "Build 8 (Research)". Until the RPC returns citation counts, every other dispatch has to either re-add the field later or fetch citations separately.
+**Why first** (CORRECTED 2026-05-21 plan amendment): migration **088** (not 089 as originally listed) created `get_source_citation_stats(source_ids UUID[]) → (source_id UUID, citation_count INT, recency TIMESTAMPTZ)` reading the legacy `sources_used` UUID[] union. Migration 089 introduced the `intelligence_item_citations` first-class edge table; per migration 089 header, the 088 RPC body migration to read from this edge table is "a separate consumer migration scheduled with the Build 8 (Research) and Tier 4 Build dispatches" — i.e., this dispatch. The data-integrity swap is the PRIMARY deliverable of 8.1; the citation-count display is a downstream consumer of the corrected data.
 
-**Scope**:
-- Implement body of `get_source_citation_stats(source_id uuid) → table(citation_count int, last_detected_at timestamptz, top_citing_items uuid[])` (RPC declared in migration 089; body deferred).
-- Extend `fetchResearchPipelineRows` to project per-source citation count via the new RPC (or a side query if RPC-per-row pattern is rejected — DECISION 8.1.D1).
-- Extend `ResearchPipelineRow` type with `citationCount: number | null`.
+**Primary scope (data integrity)**:
+- **Migration 095 (or next available)**: rewrite `get_source_citation_stats` body to read from `intelligence_item_citations` edge table instead of the legacy `intelligence_items.source_id OR sources_used @>` union. Citation_count becomes a COUNT over the edge table per source_id; recency becomes MAX(detected_at) per source_id.
+- Verify backfill at `intelligence_item_citations` covers all historical citations (mig 089 backfill ran 2026-05-19 with origin='sources_used_backfill').
+- Update `/api/agent/run/route.ts` to insert new agent-extraction rows into `intelligence_item_citations` (origin='agent_extraction') alongside the existing `source_citations` + `provisional_sources` writes — this closes the write path so the edge table receives new citations going forward.
+
+**Secondary scope (display consumer; the credibility components already exist)**:
+- The credibility component family (`CitationCountChip`, `RecencyChip`, `ProvenancePanel`, `BiasBadge`, `CredibilityBadge`, `JurisdictionChip`, `SignalStrength`) was built 2026-05-19 in commit `e0efe8a` as "Phase 1 shared component contract for Tier 4 surfaces" but is currently unmounted on any customer surface. Build 8 mounts `CitationCountChip` + `RecencyChip` on `PipelineRow`; full `ProvenancePanel` mount in 8.2/8.3.
+- Extend `fetchResearchPipelineRows` to project per-source citation count via the corrected RPC.
+- Extend `ResearchPipelineRow` type with `citationCount: number | null` + `lastCitedAt: string | null`.
 - Render in `PipelineRow` card (treatment TBD per DECISION 8.1.D2: badge vs icon vs inline metric).
 
 **Decisions for operator before execution**:

@@ -8,7 +8,7 @@
  *   - Private groups  (memberships where group.privacy='private')
  *   - Public forums   (memberships where group.privacy='public')
  *   - My topics       (user-defined community_topics with group counts)
- *   - Browse          (static links: All groups, Events, Vendor directory)
+ *   - Browse          (static link: All groups)
  *
  * Phase C scope:
  *   - NO Direct messages section (out of scope for Phase C and D).
@@ -27,8 +27,6 @@ import {
   Globe,
   Hash,
   ListFilter,
-  Calendar,
-  Store,
   Settings as SettingsIcon,
 } from "lucide-react";
 import type {
@@ -241,16 +239,6 @@ export function CommunitySidebar({
             href="/community/browse"
             icon={<ListFilter size={14} />}
             label="All groups"
-          />
-          <SidebarRow
-            href="/community/events"
-            icon={<Calendar size={14} />}
-            label="Events"
-          />
-          <SidebarRow
-            href="/community/vendors"
-            icon={<Store size={14} />}
-            label="Vendor directory"
           />
         </SidebarSection>
       </div>

@@ -314,7 +314,8 @@ async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
     .order("base_tier", { ascending: true });
   if (!includeAdminOnly) {
     // Workspace-facing default — hide admin_only sources from regular users.
-    // The admin dashboard fetches the unfiltered list via /api/admin/sources/all.
+    // The admin dashboard hydrates the unfiltered list server-side via
+    // getSourceData() at /app/admin/page.tsx (passing includeAdminOnly=true).
     query = query.eq("admin_only", false);
   }
   const { data: rows } = await query;

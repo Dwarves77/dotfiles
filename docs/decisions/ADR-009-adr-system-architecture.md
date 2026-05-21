@@ -1,17 +1,20 @@
 ---
 id: ADR-009
 title: ADR system architecture (meta)
-status: accepted
+status: deprecated
 date: 2026-05-20
 scope:
   - "docs/decisions/"
   - "fsi-app/.discipline/lib/adr-loader.mjs"
-  - "fsi-app/.discipline/rules/013-adr-cross-reference.mjs"
   - "fsi-app/.discipline/dispatch/audit.mjs"
 supersedes: null
 related:
   - ADR-005
 ---
+
+## Postscript (2026-05-21): deprecated
+
+The 13th binding rule this ADR documented (`fsi-app/.discipline/rules/013-adr-cross-reference.mjs`) was deleted in the 2026-05-21 engine slim refactor (per ADR-005 postscript B). The mechanical ADR-Reference / ADR-Override trailer requirement is no longer enforced. The ADR storage convention itself (YAML frontmatter at `docs/decisions/ADR-NNN-*.md` with id, title, status, date, scope, supersedes, related) survives as documentation discipline; the ADR loader at `fsi-app/.discipline/lib/adr-loader.mjs` is retained as a parsing helper. The audit script at `fsi-app/.discipline/dispatch/audit.mjs` retains its trailer-parsing logic for historical commits but new commits no longer carry ADR-Reference trailers. ADR retained for historical context; status changed from `accepted` to `deprecated`.
 
 ## Context
 

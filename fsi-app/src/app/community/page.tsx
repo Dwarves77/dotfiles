@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { CommunityShell } from "@/components/community/CommunityShell";
 import { HowPublishingWorks } from "@/components/community/HowPublishingWorks";
-import { VendorMentionsRail } from "@/components/community/VendorMentionsRail";
 import type {
   CommunityInvitation,
   CommunityMembership,
@@ -241,14 +240,13 @@ export default async function CommunityPage({
       regionCounts={regionCounts}
       initialRegion={initialRegion}
     >
-      {/* Default-body — Phase D additive. CommunityShell renders its
-          own default body when children is undefined; we override that
-          here so we can drop in the HowPublishingWorks + VendorMentions
-          rails alongside the existing invitations / empty-state /
-          memberships preview. The left column duplicates the JSX of
-          CommunityShell.CommunityDefaultBody so the body still works
-          when the user has no groups OR has invitations OR has groups —
-          all three states are preserved. */}
+      {/* Default-body — CommunityShell renders its own default body when
+          children is undefined; we override that here so we can drop in
+          the HowPublishingWorks rail alongside the existing invitations /
+          empty-state / memberships preview. The left column duplicates
+          the JSX of CommunityShell.CommunityDefaultBody so the body still
+          works when the user has no groups OR has invitations OR has
+          groups — all three states are preserved. */}
       <div
         style={{
           display: "grid",
@@ -273,7 +271,6 @@ export default async function CommunityPage({
           }}
         >
           <HowPublishingWorks />
-          <VendorMentionsRail />
         </div>
       </div>
     </CommunityShell>

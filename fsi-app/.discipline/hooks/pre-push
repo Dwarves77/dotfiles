@@ -1,0 +1,119 @@
+#!/bin/sh
+# Installed from fsi-app/.discipline/hooks/pre-push
+# CI-parity gate: runs the same checks CI runs, BEFORE the push leaves your machine.
+#
+# Added 2026-05-21 after the morning's email-noise pattern: 4 separate
+# failure emails in ~90 minutes, 3 of 4 caused by bugs in discipline-engine
+# code that were never run locally in CI-parity mode before push. This hook
+# closes that gap.
+#
+# Four steps mirror the CI workflow's gating jobs:
+#   1. Untracked-file gate for critical surfaces (catches the migration-067
+#      class: file exists locally but isn't in git, so local consistency
+#      runner passes while CI checkout fails).
+#   2. Layer 4 consistency runner (catches C1-C10 drift).
+#   3. Discipline + fitness tests (catches rule + fitness function regressions).
+#   4. TypeScript compile (catches the F9 / Vercel build-break class).
+#
+# Emergency bypass: git push --no-verify
+# (Use sparingly; the whole point of the hook is to prevent the bypass-then-fix loop.)
+#
+# Exit codes:
+#   0  all checks pass; push proceeds
+#   1  at least one check failed; push blocked
+#   2  hook itself errored (missing node, etc.); push BLOCKED for safety
+#      (a previous version of this hook skipped on missing node, matching the
+#      commit-msg hook's posture; for the push gate we prefer fail-closed
+#      since a missing-node skip would have allowed every failure this morning)
+
+set -u
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+  echo "[discipline pre-push] cannot resolve repo root; blocking push for safety." >&2
+  exit 2
+fi
+cd "$REPO_ROOT" || exit 2
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "[discipline pre-push] 'node' not found in PATH; blocking push for safety." >&2
+  echo "[discipline pre-push] install Node.js to re-enable the push gate, or bypass with 'git push --no-verify'." >&2
+  exit 2
+fi
+
+echo "[discipline pre-push] running 4-step CI-parity check..."
+
+# ---------------------------------------------------------------------------
+# Step 1: untracked-file gate for critical surfaces
+# ---------------------------------------------------------------------------
+# `git ls-files --others --exclude-standard -- <patterns>` returns paths
+# the operator has on disk but never `git add`-ed. The critical-surface
+# patterns are surfaces where CI consistency checks compare disk to inventory;
+# an untracked file in any of these makes the local runner see something CI
+# cannot.
+UNTRACKED_CRITICAL=$(git ls-files --others --exclude-standard \
+  -- 'fsi-app/supabase/migrations/*.sql' \
+     'fsi-app/src/app/api/' \
+     'docs/decisions/' \
+     'docs/inventories/' \
+     'fsi-app/.discipline/rules/' \
+     'fsi-app/.discipline/fitness/functions/' \
+     'fsi-app/.discipline/consistency/checks/' \
+     2>/dev/null)
+if [ -n "$UNTRACKED_CRITICAL" ]; then
+  echo "[discipline pre-push] STEP 1 FAIL: untracked file(s) in critical surfaces:" >&2
+  echo "$UNTRACKED_CRITICAL" | sed 's/^/    /' >&2
+  echo "[discipline pre-push] CI's checkout will not see these files. Either 'git add' them or remove them, then re-push." >&2
+  exit 1
+fi
+echo "[discipline pre-push] step 1 (untracked critical files): OK"
+
+# ---------------------------------------------------------------------------
+# Step 2: Layer 4 consistency runner
+# ---------------------------------------------------------------------------
+if ! node fsi-app/.discipline/consistency/runner.mjs --quiet >/tmp/discipline-prepush-c.log 2>&1; then
+  echo "[discipline pre-push] STEP 2 FAIL: consistency runner reported drift:" >&2
+  cat /tmp/discipline-prepush-c.log >&2
+  echo "[discipline pre-push] fix the drift listed above (or add a Consistency-Override on a future commit), then re-push." >&2
+  rm -f /tmp/discipline-prepush-c.log
+  exit 1
+fi
+rm -f /tmp/discipline-prepush-c.log
+echo "[discipline pre-push] step 2 (consistency runner): OK"
+
+# ---------------------------------------------------------------------------
+# Step 3: discipline + fitness tests
+# ---------------------------------------------------------------------------
+if ! node --test \
+    fsi-app/.discipline/lib/*.test.mjs \
+    fsi-app/.discipline/rules/*.test.mjs \
+    fsi-app/.discipline/runner.test.mjs \
+    fsi-app/.discipline/install-hooks.test.mjs \
+    fsi-app/.discipline/dispatch/*.test.mjs \
+    fsi-app/.discipline/fitness/functions/*.test.mjs \
+    fsi-app/.discipline/fitness/runner.test.mjs \
+    >/tmp/discipline-prepush-t.log 2>&1; then
+  echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
+  tail -40 /tmp/discipline-prepush-t.log >&2
+  rm -f /tmp/discipline-prepush-t.log
+  exit 1
+fi
+rm -f /tmp/discipline-prepush-t.log
+echo "[discipline pre-push] step 3 (discipline + fitness tests): OK"
+
+# ---------------------------------------------------------------------------
+# Step 4: TypeScript compile parity (matches F9 / Vercel build path)
+# ---------------------------------------------------------------------------
+# tsc-noEmit is slow (~10-30s); run last so quick failures abort first.
+if ! (cd fsi-app && npx --no-install tsc --noEmit) >/tmp/discipline-prepush-tsc.log 2>&1; then
+  echo "[discipline pre-push] STEP 4 FAIL: TypeScript compile errors:" >&2
+  tail -40 /tmp/discipline-prepush-tsc.log >&2
+  echo "[discipline pre-push] Vercel build will fail on these. Fix the type errors, then re-push." >&2
+  rm -f /tmp/discipline-prepush-tsc.log
+  exit 1
+fi
+rm -f /tmp/discipline-prepush-tsc.log
+echo "[discipline pre-push] step 4 (tsc --noEmit): OK"
+
+echo "[discipline pre-push] all 4 checks pass; push proceeding."
+exit 0

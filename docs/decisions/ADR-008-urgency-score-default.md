@@ -46,7 +46,7 @@ The operator selected Option (c) with the refinement that both callers have data
   - elevated → 6
   - watch → 8
 
-- **F4 fitness function**: stays strict. The two prior `// fitness-allow: F4` overrides are removed in this commit. Future callers must include `urgency_score` explicitly; F4 enforces.
+- **F4 fitness function**: enforced strict mode through ADR-008's adoption window. The two prior `// fitness-allow: F4` overrides were removed in this commit. F4 was retired on 2026-05-21 (engine slim refactor per ADR-005 postscript B). Future callers should still include `urgency_score` explicitly per this ADR; the discipline is now code-review convention rather than mechanical gate.
 
 - **Shared mapping library**: defined in parallel TS + MJS files (`fsi-app/src/lib/urgency.ts` and `fsi-app/scripts/lib/urgency.mjs`) because the two callers live in different module systems. Both files document each other; keep in sync when extending.
 
@@ -77,7 +77,7 @@ The three options above ARE the alternatives. Operator selects.
 
 ## References
 
-- F4 fitness function: `fsi-app/.discipline/fitness/functions/F4-intelligence-items-urgency-score.mjs`
+- F4 fitness function (retired 2026-05-21 per discipline-engine slim refactor; existed at `fsi-app/.discipline/fitness/functions/F4-intelligence-items-urgency-score.mjs` from Sprint Architecture through 2026-05-21)
 - Shared urgency mapping (TS): `fsi-app/src/lib/urgency.ts`
 - Shared urgency mapping (MJS): `fsi-app/scripts/lib/urgency.mjs`
 - OBS-63 (urgency_score deferred product decision; closed 2026-05-21 via this ADR's acceptance)

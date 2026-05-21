@@ -1,6 +1,6 @@
 # Git Worktrees Inventory
 
-Catalog of current git worktrees with branch + merged-status + lifecycle state. Maintained per the Inventory-artifact emission rule + the worktree-cleanup class fix (OBS-53 + remediation-discipline Section 4 category 7).
+Catalog of current git worktrees with branch + merged-status + lifecycle state. Maintained per the worktree-cleanup class fix (OBS-53 + remediation-discipline Section 4 category 7); C4 consistency check (rule 014) enforces drift.
 
 ## Status
 
@@ -59,7 +59,7 @@ All operator-pending decisions on archived branches have been resolved:
 
 ## Maintenance trigger
 
-Per Inventory-artifact emission rule: any dispatch that creates OR removes a worktree MUST update this inventory + emit `Inventory-emission:` line. The cleanup script (`scripts/cleanup-merged-worktrees.mjs`) can emit on `--execute` runs.
+Any dispatch that creates or removes a worktree MUST update this inventory. C4 consistency check (rule 014) enforces drift on push.
 
 ## Cleanup history
 

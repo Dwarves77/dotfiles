@@ -5,9 +5,7 @@
  * rendered inside ModerationQueue.
  *
  * Each button posts to /api/community/moderation/reports/[id]. The
- * three destructive actions (remove_post, mute_user, ban_user) prompt
- * for confirmation. mute_user and ban_user surface a Phase D notice in
- * the confirm dialog where the schema does not yet support the action.
+ * destructive actions (remove_post, ban_user) prompt for confirmation.
  *
  * Light-first design — neutral row, action-coloured borders.
  */
@@ -17,7 +15,6 @@ import {
   Check,
   Trash2,
   AlertTriangle,
-  VolumeX,
   UserMinus,
   X,
 } from "lucide-react";
@@ -26,7 +23,6 @@ export type ModerationAction =
   | "dismiss"
   | "remove_post"
   | "warn_user"
-  | "mute_user"
   | "ban_user";
 
 interface ModerationActionsProps {
@@ -46,10 +42,6 @@ interface ConfirmState {
   phaseD: boolean;
   copy: string;
 }
-
-const PHASE_D_NOTE_MUTE =
-  "Mute is not yet available; the action will fall back to a warning " +
-  "notification. Full mute support coming soon.";
 
 export function ModerationActions({
   reportId,
@@ -119,8 +111,6 @@ export function ModerationActions({
         copy:
           "Remove the reported post? This cannot be undone — the post will be deleted from the group.",
       });
-    } else if (action === "mute_user") {
-      setConfirm({ action, phaseD: true, copy: PHASE_D_NOTE_MUTE });
     } else if (action === "ban_user") {
       setConfirm({
         action,
@@ -170,14 +160,6 @@ export function ModerationActions({
           disabled={busy !== null}
           loading={busy === "remove_post"}
           tone="destructive"
-        />
-        <ActionButton
-          label="Mute author"
-          icon={<VolumeX size={12} />}
-          onClick={() => promptConfirm("mute_user")}
-          disabled={busy !== null}
-          loading={busy === "mute_user"}
-          tone="warn"
         />
         {canBan && (
           <ActionButton
@@ -352,8 +334,6 @@ function labelFor(action: ModerationAction): string {
       return "Remove post";
     case "warn_user":
       return "Warn author";
-    case "mute_user":
-      return "Mute author";
     case "ban_user":
       return "Ban from group";
   }
