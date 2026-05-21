@@ -19,6 +19,10 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 | Path | Branch | Status | Suggested disposition |
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
+| `wt-build-7` | `feat/build-7-*` | Active dispatch | Remove on merge (FaDB Step 6) |
+| `wt-build-9` | `feat/build-9-*` | Active dispatch | Remove on merge (FaDB Step 6) |
+| `wt-build-10` | `feat/build-10-community` | Active dispatch | Remove on merge (FaDB Step 6) |
+| `wt-linkedin` | `feat/linkedin-*` | Active dispatch | Remove on merge (FaDB Step 6) |
 
 ## Preserved branches (worktree dirs removed; branches alive)
 
