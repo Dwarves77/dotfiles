@@ -1,5 +1,6 @@
 import { getOperationsItems, getResourcesOnly, getScopedWorkspaceAggregates } from "@/lib/data";
 import { OperationsPage } from "@/components/pages/OperationsPage";
+import type { Resource } from "@/types/resource";
 
 // Scope filter for the aggregates RPC must mirror the page-scope intent:
 //   regionalItems: r.type === "regional_data" || r.domain === 3
@@ -12,6 +13,25 @@ const OPERATIONS_SCOPE = {
   domains: [3, 6],
 };
 
+// Build 9: regulation item_types per the canonical taxonomy in
+// environmental-policy-and-innovation SKILL Section 3. Used to extract
+// regulatory feasibility cross-references from the full workspace slim
+// payload. caros-ledge-platform-intent SKILL Section 3 names regulatory
+// feasibility by region as the first Operations capability; the content
+// itself lives on /regulations, /operations links into it.
+const REGULATION_ITEM_TYPES = new Set([
+  "regulation",
+  "directive",
+  "standard",
+  "guidance",
+  "framework",
+  "law",
+]);
+
+function isRegulationItem(r: Resource): boolean {
+  return r.domain === 1 || (typeof r.type === "string" && REGULATION_ITEM_TYPES.has(r.type));
+}
+
 export default async function Operations() {
   const t0 = Date.now();
   // Sprint 2 Build 4: category routing wiring (OBS-26 / REC-OBS-G).
@@ -22,7 +42,8 @@ export default async function Operations() {
   // exception filtering (Carbon Trust + Project Drawdown excluded; those
   // route to Research). getResourcesOnly still runs in parallel as a
   // fallback so the surface is never blank when the category RPC is
-  // empty (anon / misconfigured).
+  // empty (anon / misconfigured); it ALSO supplies the regulation cross-
+  // references for Build 9's regulatory feasibility section.
   const [opsItems, fallback, aggregates] = await Promise.all([
     getOperationsItems(),
     getResourcesOnly(),
@@ -34,5 +55,20 @@ export default async function Operations() {
   const initialResources = opsItems.resources.length
     ? opsItems.resources
     : fallback.resources;
-  return <OperationsPage initialResources={initialResources} aggregates={aggregates} />;
+
+  // Build 9 Priority 1: regulatory feasibility by region. Cross-references
+  // regulation items from the full workspace payload, grouped per-region
+  // by the OperationsPage. Source-of-truth content lives on /regulations;
+  // /operations links into it. Per caros-ledge-platform-intent SKILL
+  // Section 3 binding framing, this is structured content, NOT a separate
+  // decision-engine UI (OBS-29).
+  const regulationsByRegion = fallback.resources.filter(isRegulationItem);
+
+  return (
+    <OperationsPage
+      initialResources={initialResources}
+      aggregates={aggregates}
+      regulationsByRegion={regulationsByRegion}
+    />
+  );
 }
