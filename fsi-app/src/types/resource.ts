@@ -190,6 +190,15 @@ export interface Resource {
   agentIntegrityFlag?: boolean;
   agentIntegrityPhrase?: string | null;
   agentIntegrityFlaggedAt?: string | null;
+
+  // Q9 per-surface credibility signals (per source-credibility-model SKILL
+  // Section 8). Populated by the category-routed fetchers when the source
+  // has a row in intelligence_item_citations (via get_source_citation_stats,
+  // migration 098). Build 8.1 wired these on /research; Build 9 wires them
+  // on /operations. Null on rows whose source has no citations or whose
+  // sourceId is absent, in which case the chips suppress themselves.
+  citationCount?: number | null;
+  lastCitedAt?: string | null;
 }
 
 // ── Verification ──

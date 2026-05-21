@@ -920,7 +920,8 @@ async function runCategoryRpc(
   rpcName:
     | "get_market_intel_items"
     | "get_research_items"
-    | "get_operations_items"
+    | "get_operations_items",
+  opts: { enrichCitations?: boolean } = {}
 ): Promise<CategoryRoutedResult> {
   if (!isSupabaseConfigured() || !orgId) {
     return { resources: [], total: 0 };
@@ -935,6 +936,49 @@ async function runCategoryRpc(
       return { resources: [], total: 0 };
     }
     const resources = (rows as any[]).map(rpcRowToResource);
+
+    // Build 9: per-source citation stats for Operations cards. Mirrors the
+    // Build 8.1 ResearchView enrichment in fetchResearchPipelineRows above.
+    // One RPC call for the page's distinct source_ids, then a join back by
+    // sourceId. Failure is non-fatal: rows render with citationCount=null
+    // and the chips suppress themselves.
+    if (opts.enrichCitations) {
+      const distinctSourceIds = Array.from(
+        new Set(
+          resources
+            .map((r) => r.sourceId)
+            .filter((id): id is string => !!id)
+        )
+      );
+      if (distinctSourceIds.length > 0) {
+        const { data: statsRows, error: statsErr } = await serviceClient.rpc(
+          "get_source_citation_stats",
+          { source_ids: distinctSourceIds }
+        );
+        if (statsErr) {
+          console.error(
+            `[category-routing] get_source_citation_stats for ${rpcName} error:`,
+            statsErr.message
+          );
+        } else if (Array.isArray(statsRows)) {
+          const statsBySourceId = new Map<string, { count: number; recency: string | null }>();
+          for (const s of statsRows as any[]) {
+            if (s && typeof s.source_id === "string") {
+              statsBySourceId.set(s.source_id, {
+                count: typeof s.citation_count === "number" ? s.citation_count : 0,
+                recency: s.recency ?? null,
+              });
+            }
+          }
+          for (const r of resources) {
+            const s = r.sourceId ? statsBySourceId.get(r.sourceId) : undefined;
+            r.citationCount = s ? s.count : null;
+            r.lastCitedAt = s ? s.recency : null;
+          }
+        }
+      }
+    }
+
     return { resources, total: resources.length };
   } catch (e) {
     console.error(`[category-routing] ${rpcName} failed:`, e);
@@ -959,10 +1003,14 @@ export async function fetchResearchItems(
 }
 
 // /operations fetcher. RPC filters on sources.category = 'operational_data'.
+// Build 9: enriches Operations rows with per-source citation stats so the
+// Q9 Operations signal set (tier + jurisdiction + applicability, with
+// citation count + recency as secondary signals per source-credibility-model
+// SKILL Section 8) renders on cards.
 export async function fetchOperationsItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_operations_items");
+  return runCategoryRpc(orgId, "get_operations_items", { enrichCitations: true });
 }
 
 // ── Master Fetch ─────────────────────────────────────────────

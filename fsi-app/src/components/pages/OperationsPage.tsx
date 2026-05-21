@@ -21,10 +21,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Globe, Sun, Zap, Users, Building, Battery } from "lucide-react";
+import { ChevronDown, Globe, Sun, Zap, Users, Building, Battery, FileText, Layers } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 
@@ -37,6 +39,16 @@ interface OperationsPageProps {
    * paths (seed mode) still render with row-derived counts.
    */
   aggregates?: WorkspaceAggregates;
+  /**
+   * Build 9 Priority 1: regulation items (domain 1 or item_type ∈
+   * {regulation, directive, standard, guidance, framework, law}) from the
+   * full workspace payload, used to cross-reference regulatory feasibility
+   * by region. Per caros-ledge-platform-intent SKILL Section 3 the canonical
+   * content lives on /regulations; /operations links into it. Optional so
+   * the page degrades gracefully when the workspace has no regulation data
+   * (e.g. anon caller). Defaults to [].
+   */
+  regulationsByRegion?: Resource[];
 }
 
 const LEGEND: Array<{ tone: StatTone; label: string; helper: string }> = [
@@ -58,15 +70,25 @@ const TONE_COLOR: Record<StatTone, string> = {
 
 // Map the categorical chips inside a region card. Labels mirror the
 // preview "Solar / Electricity / Labor / EV Charging / Green Building"
-// taxonomy. A single regional_data item rarely fills every chip — we
-// use tag/text inference to slot whatever the worker has ingested into
-// the right chip and leave the rest empty.
-const CHIP_DEFS: Array<{ key: string; label: string; icon: typeof Sun; matcher: RegExp }> = [
-  { key: "solar",        label: "Solar",          icon: Sun,      matcher: /\b(solar|pv|photovoltaic|rooftop|shams)\b/i },
-  { key: "electricity",  label: "Electricity",    icon: Zap,      matcher: /\b(electricity|tariff|kwh|kilowatt|grid|utility)\b/i },
-  { key: "labor",        label: "Labor",          icon: Users,    matcher: /\b(labor|labour|wage|salary|workforce|wages)\b/i },
-  { key: "ev_charging",  label: "EV Charging",    icon: Battery,  matcher: /\b(ev|electric vehicle|charging|charger)\b/i },
+// taxonomy plus capability extensions (Materials Sourcing, Infrastructure)
+// per caros-ledge-platform-intent SKILL Section 3. A single regional_data
+// item rarely fills every chip — we use tag/text inference to slot
+// whatever the worker has ingested into the right chip. Build 9 added the
+// `other` catch-all chip so ingested rows that don't match any regex
+// matcher SURFACE rather than dropping out of the UI (OBS-19: the regex
+// matchers mis-attributed wiring gaps as coverage gaps).
+const CHIP_DEFS: Array<{ key: string; label: string; icon: typeof Sun; matcher: RegExp | null }> = [
+  { key: "solar",        label: "Solar",            icon: Sun,      matcher: /\b(solar|pv|photovoltaic|rooftop|shams)\b/i },
+  { key: "electricity",  label: "Electricity",      icon: Zap,      matcher: /\b(electricity|tariff|kwh|kilowatt|grid|utility)\b/i },
+  { key: "labor",        label: "Labor",            icon: Users,    matcher: /\b(labor|labour|wage|salary|workforce|wages)\b/i },
+  { key: "ev_charging",  label: "EV Charging",      icon: Battery,  matcher: /\b(ev|electric vehicle|charging|charger)\b/i },
   { key: "green_building", label: "Green Building", icon: Building, matcher: /\b(green building|leed|breeam|estidama|green mark|dgnb|certif)\b/i },
+  { key: "materials",    label: "Materials Sourcing", icon: Layers, matcher: /\b(material|mill|supplier|recycl|aluminium|aluminum|steel|fiber|fibre|composite)\b/i },
+  { key: "infrastructure", label: "Infrastructure",  icon: Building, matcher: /\b(port|rail|terminal|airport|drayage|handling)\b/i },
+  // Catch-all: items that don't match any specific matcher above land here
+  // so they remain visible. Honest "Other regional data" framing per the
+  // OBS-19 finding that real ingested items were dropping out of the UI.
+  { key: "other",        label: "Other regional data", icon: FileText, matcher: null },
 ];
 
 interface RegionGroup {
@@ -87,17 +109,20 @@ function groupByRegion(items: Resource[]): RegionGroup[] {
     .sort((a, b) => a.region.localeCompare(b.region));
 }
 
-function inferChipKey(item: Resource): string | null {
+// Slot an item into the most specific chip whose matcher catches it.
+// Falls back to the `other` chip (matcher === null) so unmatched items
+// remain visible instead of dropping out of the UI (OBS-19 close).
+function inferChipKey(item: Resource): string {
   const text = `${item.title} ${item.note || ""} ${(item.tags || []).join(" ")}`;
   for (const def of CHIP_DEFS) {
-    if (def.matcher.test(text)) return def.key;
+    if (def.matcher && def.matcher.test(text)) return def.key;
   }
-  return null;
+  return "other";
 }
 
 type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
 
-export function OperationsPage({ initialResources, aggregates }: OperationsPageProps) {
+export function OperationsPage({ initialResources, aggregates, regulationsByRegion = [] }: OperationsPageProps) {
   const [tab, setTab] = useState<"juris" | "facility">("juris");
   const [priorityFilter, setPriorityFilter] = useState<PriorityKey | null>(null);
 
@@ -149,6 +174,23 @@ export function OperationsPage({ initialResources, aggregates }: OperationsPageP
     [facilityItems, priorityFilter]
   );
   const regions = useMemo(() => groupByRegion(filteredRegional), [filteredRegional]);
+
+  // Build 9 Priority 1: regulatory feasibility cross-references. Group
+  // regulation items (passed from /operations/page.tsx) by jurisdiction so
+  // each RegionCard can list the binding rules that apply in that region.
+  // Match uses normalized jurisdiction strings; "Unspecified" buckets
+  // regulations with no jurisdiction so they still surface for any region
+  // missing a more specific match.
+  const regulationsByJurisdiction = useMemo(() => {
+    const map = new Map<string, Resource[]>();
+    for (const r of regulationsByRegion) {
+      const region = (r.jurisdiction || "Unspecified").trim();
+      const arr = map.get(region) || [];
+      arr.push(r);
+      map.set(region, arr);
+    }
+    return map;
+  }, [regulationsByRegion]);
 
   // Masthead meta: parity with `/` (date · N items · M jurisdictions).
   // Falls back to row-derived counts when aggregates are missing / zero
@@ -204,6 +246,7 @@ export function OperationsPage({ initialResources, aggregates }: OperationsPageP
             regions={regions}
             totalItems={filteredRegional.length}
             priorityFilter={priorityFilter}
+            regulationsByJurisdiction={regulationsByJurisdiction}
           />
         )}
         {tab === "facility" && (
@@ -268,10 +311,12 @@ function JurisdictionPanel({
   regions,
   totalItems,
   priorityFilter,
+  regulationsByJurisdiction,
 }: {
   regions: RegionGroup[];
   totalItems: number;
   priorityFilter: PriorityKey | null;
+  regulationsByJurisdiction: Map<string, Resource[]>;
 }) {
   // When the priority tile is active, the side-rail "X jurisdictions"
   // count drops because regions with no items at that priority drop out
@@ -300,7 +345,7 @@ function JurisdictionPanel({
             Regional Operations Intelligence
           </h3>
           <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text-2)", margin: "0 0 18px", maxWidth: "88ch" }}>
-            Energy tariffs, labor costs, solar permitting, EV infrastructure, and green building requirements by jurisdiction.
+            Regulatory feasibility, regional resources, energy tariffs, labor markets, materials sourcing, infrastructure capacity, and operational cost data by jurisdiction.
           </p>
         </div>
 
@@ -315,7 +360,12 @@ function JurisdictionPanel({
                 region by default; this dispatch reverses that decision
                 so Operations matches the rest of the surface. */}
             {regions.map((rg) => (
-              <RegionCard key={rg.region} group={rg} defaultOpen={false} />
+              <RegionCard
+                key={rg.region}
+                group={rg}
+                defaultOpen={false}
+                regulations={regulationsByJurisdiction.get(rg.region) || []}
+              />
             ))}
           </div>
         )}
@@ -328,12 +378,16 @@ function JurisdictionPanel({
             <b>{regions.length} jurisdictions</b>
             {priorityLabel ? ` at ${priorityLabel} priority` : " with data"}.
             {" "}
-            {totalItems === 0 ? "Regional intelligence coming soon." : priorityLabel ? "Clear the priority tile to see all coverage." : "Coverage expands as regional intelligence is added."}
+            {totalItems === 0
+              ? "No regional data is available for this workspace yet."
+              : priorityLabel
+                ? "Clear the priority tile to see all coverage."
+                : "Coverage expands as regional intelligence is added."}
           </p>
         </SideCard>
         <SideCard label="Methodology">
           <p style={{ fontSize: 12.5, lineHeight: 1.55, margin: 0, color: "var(--text)" }}>
-            Data points sourced from published regulator and utility schedules. Where ranges shown, reflects regional / tariff-tier variance.
+            Regional data points sourced from published regulator and utility schedules. Regulatory feasibility entries cross-reference items from Regulations; click any rule to read the full brief on /regulations.
           </p>
         </SideCard>
       </aside>
@@ -341,12 +395,26 @@ function JurisdictionPanel({
   );
 }
 
-function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: boolean }) {
+function RegionCard({
+  group,
+  defaultOpen,
+  regulations,
+}: {
+  group: RegionGroup;
+  defaultOpen?: boolean;
+  /** Build 9 Priority 1: regulation items applicable to this region. */
+  regulations: Resource[];
+}) {
   const [open, setOpen] = useState(!!defaultOpen);
 
-  // Decide priority badge color from the worst priority of contained items.
+  // Decide priority badge color from the worst priority of contained items
+  // (regional data + regulations both contribute to the region's overall
+  // priority signal).
   const priorityRank = { CRITICAL: 0, HIGH: 1, MODERATE: 2, LOW: 3 } as const;
-  const sortedByP = [...group.items].sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
+  const allForPriority = [...group.items, ...regulations];
+  const sortedByP = [...allForPriority].sort(
+    (a, b) => priorityRank[a.priority] - priorityRank[b.priority]
+  );
   const top = sortedByP[0];
   const topTone: StatTone = top
     ? top.priority === "CRITICAL" ? "critical"
@@ -355,12 +423,13 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
     : "low"
     : "low";
 
-  // Bucket items by chip key for the chip grid.
+  // Bucket items by chip key for the chip grid. inferChipKey now falls
+  // back to `other` so every ingested item lands in a visible bucket
+  // (OBS-19 close).
   const chips = useMemo(() => {
     const byKey = new Map<string, Resource[]>();
     for (const it of group.items) {
       const k = inferChipKey(it);
-      if (!k) continue;
       const arr = byKey.get(k) || [];
       arr.push(it);
       byKey.set(k, arr);
@@ -368,18 +437,31 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
     return CHIP_DEFS.map((d) => ({ ...d, items: byKey.get(d.key) || [] }));
   }, [group.items]);
 
-  // Active regulations: surface unique titles from contained items.
-  const activeRegs = useMemo(() => {
-    const seen = new Set<string>();
-    const out: { id: string; title: string }[] = [];
-    for (const it of group.items) {
-      if (!seen.has(it.title)) {
-        seen.add(it.title);
-        out.push({ id: it.id, title: it.title });
+  // Build 9 Priority 1: regulatory feasibility cross-references. Surface
+  // up to 8 regulations applicable to this region. The CONTENT lives on
+  // /regulations; this section is a structured pointer per caros-ledge-
+  // platform-intent SKILL Section 3.
+  const visibleRegulations = regulations.slice(0, 8);
+
+  // Q9 Operations credibility signals (per source-credibility-model SKILL
+  // Section 8): tier + jurisdiction + applicability as primary, with the
+  // citation count + recency rolled up from the underlying source. The
+  // rollup uses the freshest lastCitedAt across the region's items and the
+  // sum of citationCounts so the chips reflect the region card's full
+  // body, not a single row.
+  const credRollup = useMemo(() => {
+    let count = 0;
+    let latest: string | null = null;
+    for (const it of [...group.items, ...visibleRegulations]) {
+      if (typeof it.citationCount === "number") count += it.citationCount;
+      if (it.lastCitedAt) {
+        if (!latest || new Date(it.lastCitedAt).getTime() > new Date(latest).getTime()) {
+          latest = it.lastCitedAt;
+        }
       }
     }
-    return out.slice(0, 6);
-  }, [group.items]);
+    return { count, latest };
+  }, [group.items, visibleRegulations]);
 
   return (
     <div
@@ -408,7 +490,7 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
       >
         <Globe size={16} style={{ color: "var(--accent)" }} />
         <div style={{ flex: 1 }}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{group.region}</span>
             <span
               style={{
@@ -425,9 +507,18 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
             >
               {top?.priority || "—"}
             </span>
+            {/* Build 9: Q9 Operations credibility chips on the region
+                header. CitationCountChip suppresses when count < 1; this
+                mirrors the Build 8.1 PipelineRow pattern in
+                fsi-app/src/components/research/ResearchView.tsx. */}
+            {credRollup.count >= 1 && <CitationCountChip count={credRollup.count} />}
+            {credRollup.latest && <RecencyChip timestamp={credRollup.latest} />}
           </div>
           <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
             {group.items.length} data point{group.items.length === 1 ? "" : "s"}
+            {visibleRegulations.length > 0 && (
+              <> · {regulations.length} regulation{regulations.length === 1 ? "" : "s"}</>
+            )}
           </div>
         </div>
         <ChevronDown
@@ -442,61 +533,42 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
 
       {open && (
         <div style={{ padding: "4px 20px 20px", borderTop: "1px solid var(--border-sub)" }}>
+          {/* Build 9 Priority 1: Regulatory Feasibility section.
+              Cross-references regulation items applicable to this region
+              per caros-ledge-platform-intent SKILL Section 3. Content
+              lives on /regulations; this is a structured pointer, NOT a
+              separate decision-engine UI (OBS-29 framing). */}
+          {visibleRegulations.length > 0 && (
+            <RegulatoryFeasibilitySection
+              regulations={visibleRegulations}
+              totalCount={regulations.length}
+            />
+          )}
+
+          {/* Resource availability chip grid. Honest empty state when the
+              region has no regional_data items yet (OBS-19: replace
+              phase-language "Coming soon" with workspace-anchored copy). */}
           {chips.every((c) => c.items.length === 0) ? (
             <div style={{ margin: "14px 0" }}>
-              <ComingSoonBanner
-                note="Operations data points (solar, electricity, labor, EV charging, green building) for this jurisdiction will appear here as coverage expands."
+              <NoDataBanner
+                note="No regional resource data has been ingested for this jurisdiction yet. Coverage expands across solar, electricity, labor, EV charging, green building, materials sourcing, and infrastructure as workspace data lands."
               />
             </div>
           ) : (
-            /* Chip grid — only renders when at least one chip has real data. */
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 12,
-                margin: "14px 0",
-              }}
-            >
-              {chips.map((c) => (
-                <ChipCell key={c.key} def={c} />
-              ))}
-            </div>
-          )}
-
-          {/* Active regulations */}
-          {activeRegs.length > 0 && (
             <>
+              <SectionHeading>Regional resources</SectionHeading>
               <div
                 style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--muted)",
-                  margin: "16px 0 8px",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: 12,
+                  margin: "8px 0 14px",
                 }}
               >
-                Active items
-              </div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7, color: "var(--text-2)" }}>
-                {activeRegs.map((r) => (
-                  <li key={r.id}>
-                    {/* Card-level Link → /regulations/[slug] detail */}
-                    <Link
-                      href={`/regulations/${encodeURIComponent(r.id)}`}
-                      prefetch={false}
-                      style={{
-                        color: "var(--text-2)",
-                        textDecoration: "none",
-                      }}
-                      className="hover:text-[var(--text)] hover:underline"
-                    >
-                      {r.title}
-                    </Link>
-                  </li>
+                {chips.filter((c) => c.items.length > 0).map((c) => (
+                  <ChipCell key={c.key} def={c} />
                 ))}
-              </ul>
+              </div>
             </>
           )}
         </div>
@@ -505,11 +577,127 @@ function RegionCard({ group, defaultOpen }: { group: RegionGroup; defaultOpen?: 
   );
 }
 
+// Build 9 Priority 1: regulatory feasibility cross-reference section per
+// caros-ledge-platform-intent SKILL Section 3. Lists regulations applicable
+// to the parent region; each item links to /regulations/[slug] where the
+// canonical content lives.
+function RegulatoryFeasibilitySection({
+  regulations,
+  totalCount,
+}: {
+  regulations: Resource[];
+  totalCount: number;
+}) {
+  return (
+    <div style={{ margin: "14px 0" }}>
+      <SectionHeading>Regulatory feasibility</SectionHeading>
+      <p
+        style={{
+          fontSize: 11.5,
+          color: "var(--text-2)",
+          margin: "0 0 8px",
+          lineHeight: 1.5,
+        }}
+      >
+        Binding rules that apply in this region. Full briefs live on Regulations.
+      </p>
+      <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+        {regulations.map((r) => (
+          <li key={r.id} style={{ marginBottom: 6 }}>
+            <Link
+              href={`/regulations/${encodeURIComponent(r.id)}`}
+              prefetch={false}
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                flexWrap: "wrap",
+                background: "var(--bg)",
+                border: "1px solid var(--border-sub)",
+                borderRadius: "var(--r-sm)",
+                padding: "8px 10px",
+                textDecoration: "none",
+                color: "inherit",
+                fontSize: 12.5,
+                lineHeight: 1.4,
+              }}
+              className="hover:bg-[var(--raised)]"
+            >
+              <FileText size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
+              <span style={{ flex: 1, color: "var(--text)", fontWeight: 600 }}>{r.title}</span>
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 800,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  padding: "2px 6px",
+                  borderRadius: 3,
+                  color:
+                    r.priority === "CRITICAL" ? "var(--critical)"
+                    : r.priority === "HIGH"   ? "var(--high)"
+                    : r.priority === "MODERATE" ? "var(--moderate)"
+                    : "var(--low)",
+                  background:
+                    r.priority === "CRITICAL" ? "var(--critical-bg)"
+                    : r.priority === "HIGH"   ? "var(--high-bg)"
+                    : r.priority === "MODERATE" ? "var(--moderate-bg)"
+                    : "var(--low-bg)",
+                  border: `1px solid ${
+                    r.priority === "CRITICAL" ? "var(--critical-bd)"
+                    : r.priority === "HIGH"   ? "var(--high-bd)"
+                    : r.priority === "MODERATE" ? "var(--moderate-bd)"
+                    : "var(--low-bd)"
+                  }`,
+                }}
+              >
+                {r.priority}
+              </span>
+              {/* Per-source credibility chips per Q9 Operations signal set. */}
+              {typeof r.citationCount === "number" && r.citationCount >= 1 && (
+                <CitationCountChip count={r.citationCount} />
+              )}
+              {r.lastCitedAt && <RecencyChip timestamp={r.lastCitedAt} />}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {totalCount > regulations.length && (
+        <p style={{ fontSize: 11, color: "var(--muted)", margin: "6px 0 0" }}>
+          Showing {regulations.length} of {totalCount} regulations. Open Regulations for full coverage.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        color: "var(--muted)",
+        margin: "12px 0 6px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function ChipCell({ def }: { def: { key: string; label: string; icon: typeof Sun; items: Resource[] } }) {
   const Icon = def.icon;
   const [drillOpen, setDrillOpen] = useState(false);
   const head = def.items[0];
-  const empty = !head;
+
+  // Build 9: chip cells now ONLY render when they have items (filtering
+  // happens upstream in RegionCard), so the prior empty-cell dimming
+  // branch is gone. Per Q9 Operations credibility signal set, citation
+  // chips render alongside the title when source data is available.
+  if (!head) return null;
 
   return (
     <div
@@ -518,7 +706,6 @@ function ChipCell({ def }: { def: { key: string; label: string; icon: typeof Sun
         border: "1px solid var(--border-sub)",
         borderRadius: "var(--r-sm)",
         padding: "12px 14px",
-        opacity: empty ? 0.55 : 1,
       }}
     >
       <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
@@ -527,47 +714,47 @@ function ChipCell({ def }: { def: { key: string; label: string; icon: typeof Sun
           {def.label}
         </div>
       </div>
-      {empty ? (
-        // Empty chip in a partially-populated region: render dimmed header
-        // only (no per-cell placeholder text). The region-level
-        // ComingSoonBanner handles the fully-empty case.
-        null
-      ) : (
-        <>
-          <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.4, marginBottom: 4, color: "var(--text)" }}>
-            {head.title}
-          </div>
-          {head.note && (
-            <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, fontStyle: "italic" }}>
-              {head.note}
-            </div>
+      <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.4, marginBottom: 4, color: "var(--text)" }}>
+        {head.title}
+      </div>
+      {head.note && (
+        <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, fontStyle: "italic" }}>
+          {head.note}
+        </div>
+      )}
+      {/* Q9 Operations credibility chips on the chip head. */}
+      {(typeof head.citationCount === "number" && head.citationCount >= 1) || head.lastCitedAt ? (
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 6, flexWrap: "wrap" }}>
+          {typeof head.citationCount === "number" && head.citationCount >= 1 && (
+            <CitationCountChip count={head.citationCount} />
           )}
-          {def.items.length > 1 && (
-            <button
-              type="button"
-              onClick={() => setDrillOpen((v) => !v)}
-              style={{
-                marginTop: 6,
-                fontSize: 11,
-                color: "var(--accent)",
-                fontWeight: 700,
-                background: "transparent",
-                border: 0,
-                padding: 0,
-                cursor: "pointer",
-              }}
-            >
-              {drillOpen ? "Hide" : `+${def.items.length - 1} more`}
-            </button>
-          )}
-          {drillOpen && (
-            <ul style={{ marginTop: 6, paddingLeft: 16, fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
-              {def.items.slice(1).map((it) => (
-                <li key={it.id}>{it.title}</li>
-              ))}
-            </ul>
-          )}
-        </>
+          {head.lastCitedAt && <RecencyChip timestamp={head.lastCitedAt} />}
+        </div>
+      ) : null}
+      {def.items.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setDrillOpen((v) => !v)}
+          style={{
+            marginTop: 6,
+            fontSize: 11,
+            color: "var(--accent)",
+            fontWeight: 700,
+            background: "transparent",
+            border: 0,
+            padding: 0,
+            cursor: "pointer",
+          }}
+        >
+          {drillOpen ? "Hide" : `+${def.items.length - 1} more`}
+        </button>
+      )}
+      {drillOpen && (
+        <ul style={{ marginTop: 6, paddingLeft: 16, fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
+          {def.items.slice(1).map((it) => (
+            <li key={it.id}>{it.title}</li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -601,6 +788,11 @@ function SideCard({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
+// Build 9 (OBS-19 close): honest empty state for the regional view. Prior
+// copy ("Regional intelligence coming soon") leaked phase-language to the
+// customer per caros-ledge-platform-intent SKILL Section 11 anti-pattern.
+// Replaced with workspace-anchored copy that names what is and is not
+// available without promising a delivery date.
 function EmptyJurisdiction() {
   return (
     <div
@@ -614,10 +806,10 @@ function EmptyJurisdiction() {
       }}
     >
       <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>
-        Regional intelligence coming soon
+        No regional data for this workspace yet
       </p>
       <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.5 }}>
-        Operations data points (energy tariffs, labor rates, solar permitting, EV charging, green building) will appear here as regional coverage expands.
+        Operations surfaces regulatory feasibility by region, regional resource availability (solar, electricity, labor, EV charging, green building, materials sourcing, infrastructure), and operational cost data. Regional coverage appears here as workspace data lands.
       </p>
     </div>
   );
@@ -660,6 +852,9 @@ function FacilityPanel({ items }: { items: Resource[] }) {
       </div>
 
       {groups.length === 0 ? (
+        // Build 9 (OBS-19 close): honest empty state per caros-ledge-
+        // platform-intent SKILL Section 11 anti-pattern guidance. Prior
+        // copy ("Facility data coming soon") leaked promise-language.
         <div
           style={{
             background: "var(--surface)",
@@ -671,10 +866,10 @@ function FacilityPanel({ items }: { items: Resource[] }) {
           }}
         >
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>
-            Facility data coming soon
+            No facility data for this workspace yet
           </p>
           <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.5 }}>
-            Electricity tariffs, solar ROI tables, labor benchmarks, and green building certifications will appear here as facility coverage expands.
+            Facility intelligence surfaces electricity tariffs, solar ROI, battery storage, labor benchmarks, and green building certifications by location. Coverage appears here as facility data lands.
           </p>
         </div>
       ) : (
@@ -759,11 +954,20 @@ function FacilityCategoryCard({ group, defaultOpen }: { group: { cat: string; it
                       {it.note}
                     </div>
                   )}
-                  {it.jurisdiction && (
-                    <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 4 }}>
-                      {it.jurisdiction}
-                    </div>
-                  )}
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
+                    {it.jurisdiction && (
+                      <span style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                        {it.jurisdiction}
+                      </span>
+                    )}
+                    {/* Q9 Operations credibility chips per source-credibility-
+                        model SKILL Section 8 (Build 9 mount, mirrors Build
+                        8.1 ResearchView PipelineRow). */}
+                    {typeof it.citationCount === "number" && it.citationCount >= 1 && (
+                      <CitationCountChip count={it.citationCount} />
+                    )}
+                    {it.lastCitedAt && <RecencyChip timestamp={it.lastCitedAt} />}
+                  </div>
                 </Link>
               </li>
             ))}
@@ -774,13 +978,15 @@ function FacilityCategoryCard({ group, defaultOpen }: { group: { cat: string; it
   );
 }
 
-// ── ComingSoonBanner ──
+// ── NoDataBanner ──
 //
-// Inlined "Coming soon" banner used on tabs whose surface content has
-// not yet expanded for this jurisdiction. Same visual treatment
-// (high-tone amber strip + dot + bold label + note), no shared-component
-// extraction.
-function ComingSoonBanner({ note }: { note: string }) {
+// Build 9 (OBS-19 close): inline banner for region accordions that have
+// no regional_data items ingested yet. Replaces the prior ComingSoonBanner
+// whose label leaked phase/promise language to the customer per the
+// caros-ledge-platform-intent SKILL Section 11 anti-pattern. Visual
+// treatment kept (muted strip + dot + label + note) but the wording is
+// honest about the present state without promising a delivery date.
+function NoDataBanner({ note }: { note: string }) {
   return (
     <div
       style={{
@@ -810,9 +1016,9 @@ function ComingSoonBanner({ note }: { note: string }) {
       />
       <span>
         <b style={{ color: "var(--high)", letterSpacing: "0.04em" }}>
-          Coming soon
-        </b>{" "}
-        — {note}
+          No data yet
+        </b>
+        , {note}
       </span>
     </div>
   );
