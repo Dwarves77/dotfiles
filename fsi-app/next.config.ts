@@ -2,9 +2,17 @@ import type { NextConfig } from "next";
 import path from "path";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
+// Both outputFileTracingRoot and turbopack.root must resolve to the same path
+// (Next.js 16 enforcement; warning surfaced on Vercel deploy 2026-05-21 when
+// only turbopack.root was set explicitly and Vercel auto-detected
+// outputFileTracingRoot to a different path). Anchor both to the fsi-app
+// directory (where this file lives).
+const APP_ROOT = path.resolve(__dirname);
+
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: APP_ROOT,
   turbopack: {
-    root: path.resolve(__dirname),
+    root: APP_ROOT,
   },
   // PR-D IA refactor (2026-05-06): /events and /vendors moved under
   // /community/* per design intent (visual-reconciliation §3.8). 308
