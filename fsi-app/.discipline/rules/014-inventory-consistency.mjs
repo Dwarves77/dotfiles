@@ -48,11 +48,14 @@ export const rule = {
       if (m) overriddenChecks.add(m[1].replace('-', ''));
     }
 
-    // Parse runner output for failing check IDs
+    // Parse failing check IDs from STDERR only. The runner writes drift records
+    // to stderr (via console.error) and pass/fail-per-check status to stdout
+    // (via console.log). Parsing stdout+stderr would pick up "Running [Cn]" lines
+    // and falsely claim ALL checks failed. Stderr only contains drift output.
     const failingChecks = new Set();
-    const driftPattern = /\[C(\d+)\]/g;
+    const driftIdPattern = /^\s*\[C(\d+)\]/gm;
     let m;
-    while ((m = driftPattern.exec(result.stdout + result.stderr)) !== null) {
+    while ((m = driftIdPattern.exec(result.stderr)) !== null) {
       failingChecks.add('C' + m[1]);
     }
 
@@ -60,24 +63,23 @@ export const rule = {
     const uncoveredFails = [...failingChecks].filter((c) => !overriddenChecks.has(c));
     if (uncoveredFails.length === 0 && failingChecks.size > 0) return pass();
 
-    // Extract drift detail lines from runner output so CI logs are actionable
-    // (previously only summary made it through with --quiet; CI couldn't see
-    // which specific records failed).
-    const driftDetail = result.stderr
+    // Capture full stderr drift detail (bounded; no aggressive filtering that
+    // dropped the actual "claims X but file does not exist" detail line).
+    const driftLines = result.stderr
       .split(/\r?\n/)
-      .filter((l) => /\[C\d+\]|kind|detail|Location/.test(l))
-      .slice(0, 40);
+      .map((l) => l.trimEnd())
+      .filter((l) => l.length > 0)
+      .slice(0, 80);
 
     return fail({
       message: `Consistency runner failed (exit ${result.status}); ${uncoveredFails.length} check(s) have no override: ${uncoveredFails.join(', ')}.`,
       remediation: [
         'Either fix the drift (recommended) or add a Consistency-Override trailer per failing check.',
-        'Drift detail captured from runner output:',
-        ...driftDetail.map((l) => '    ' + l.trim()),
+        'Drift detail captured from runner stderr:',
+        ...driftLines.map((l) => '    ' + l),
         'To reproduce locally: run `node fsi-app/.discipline/consistency/runner.mjs`',
         'Override format: `Consistency-Override: C-N (rationale: <non-empty text>; remediation-deadline: YYYY-MM-DD)`',
         'The remediation-deadline must be a future date by which the drift will be fixed.',
-        'Override usage surfaces in audit; recurring overrides on the same check indicate a deeper issue.',
       ].join('\n  '),
     });
   },
