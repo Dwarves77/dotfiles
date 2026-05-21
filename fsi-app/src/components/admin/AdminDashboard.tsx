@@ -22,8 +22,10 @@ import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
 import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
 import { MtdSpendTile } from "@/components/admin/MtdSpendTile";
 import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
-// Phase 7 admin chrome — tier-opinion disagreement review.
+// Phase 7 admin chrome — tier-opinion disagreement review + triage queues.
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
+import { IngestRejectionsView } from "@/components/admin/IngestRejectionsView";
+import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdictionReviewView";
 
 interface AdminDashboardProps {
   userId: string;
@@ -84,7 +86,9 @@ export function AdminDashboard({
     | "platform-integrity-flags"
     | "coverage-matrix"
     | "bulk-import"
-    | "tier-opinions";
+    | "tier-opinions"
+    | "ingest-rejections"
+    | "jurisdiction-review";
   const KNOWN_RENDERED_TABS: ReadonlyArray<AdminTab> = [
     "orgs",
     "sources",
@@ -95,6 +99,8 @@ export function AdminDashboard({
     "coverage-matrix",
     "bulk-import",
     "tier-opinions",
+    "ingest-rejections",
+    "jurisdiction-review",
   ];
   const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
   const [issueFilter, setIssueFilter] = useState<string | null>(null);
@@ -258,6 +264,8 @@ export function AdminDashboard({
     { id: "integrity-flags", label: "Integrity flags", count: integrityFlagCount },
     { id: "platform-integrity-flags", label: "Platform flags", count: platformIntegrityFlagCount },
     { id: "tier-opinions", label: "Tier disagreements", count: 0 },
+    { id: "ingest-rejections", label: "Ingest rejections", count: 0 },
+    { id: "jurisdiction-review", label: "Jurisdiction review", count: 0 },
     { id: "coverage-matrix", label: "Coverage matrix", count: 0 },
     { id: "bulk-import", label: "Bulk add sources", count: 0 },
     { id: "scan", label: "Regulatory scan", count: 0 },
@@ -732,6 +740,20 @@ export function AdminDashboard({
         {activeTab === "tier-opinions" && (
           <div className="space-y-4">
             <TierOpinionDisagreementsView />
+          </div>
+        )}
+
+        {/* Phase 7 admin chrome — ingest rejections triage queue. */}
+        {activeTab === "ingest-rejections" && (
+          <div className="space-y-4">
+            <IngestRejectionsView />
+          </div>
+        )}
+
+        {/* Phase 7 admin chrome — pending jurisdiction-review triage queue. */}
+        {activeTab === "jurisdiction-review" && (
+          <div className="space-y-4">
+            <PendingJurisdictionReviewView />
           </div>
         )}
 
