@@ -22,6 +22,9 @@ import {
   getAwaitingReview,
   getWorkspaceAggregates,
 } from "@/lib/data";
+import { getCriticalItemsSnapshot } from "@/lib/dashboard/critical-items";
+import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
+import { getDashboardCredibility } from "@/lib/dashboard/credibility";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
@@ -39,11 +42,23 @@ export default async function Home() {
   // tiles, and the WeeklyBriefing summary need true workspace totals.
   // Aggregates ride the same APP_DATA_TAG cache so override mutations
   // invalidate both in lockstep.
-  const [data, aggregates] = await Promise.all([
+  const [data, aggregates, criticalSnapshot, surfaceCoverage] = await Promise.all([
     getAppData(),
     getWorkspaceAggregates(),
+    getCriticalItemsSnapshot(),
+    getSurfaceCoverageSnapshot(),
   ]);
   console.log(`[perf] / data ${Date.now() - t0}ms`);
+
+  // Build 11: Q9 credibility chip data for the dashboard's intelligence-item
+  // cards. Fetched server-side for the distinct source_ids in the bounded
+  // dashboard payload (LIMIT 50 from migration 064); WeeklyBriefing renders
+  // the top-5 of those so the credibility map size is naturally tiny.
+  // Mirrors Build 7/8/9 pattern: per-source tier + citation count + recency
+  // + bias tags, with chip suppression when the value is null/zero.
+  const credibilityBySourceId = await getDashboardCredibility(
+    data.resources.map((r) => r.sourceId)
+  );
 
   // Phase 3 widget data — kicked off as unawaited promises so the
   // editorial body and hero paint at the original time-to-first-paint
@@ -68,7 +83,15 @@ export default async function Home() {
       : new Set(data.resources.map((r) => r.jurisdiction || "global")).size;
   const itemsCount =
     aggregates.totalItems > 0 ? aggregates.totalItems : data.resources.length;
-  const meta = `${dateStr} · ${itemsCount} regulations tracked · ${jurisdictionsCount} jurisdictions`;
+  // Build 11 count coherence: the masthead headline now describes the
+  // workspace's full intelligence corpus across the four routed surfaces
+  // (Regulations, Market Intel, Research, Operations) plus a tag for the
+  // Community surface co-equality. The DashboardHero tile sum
+  // (CRITICAL + HIGH + MODERATE + LOW) may differ from itemsCount when
+  // items carry NULL priority; that delta is now disclosed alongside the
+  // five-surface widget's "X active across 5 surfaces" count rather than
+  // mis-labelled as "regulations tracked".
+  const meta = `${dateStr} · ${itemsCount} intelligence items across 5 surfaces · ${jurisdictionsCount} jurisdictions`;
 
   return (
     <>
@@ -79,6 +102,7 @@ export default async function Home() {
           <DashboardHero
             resources={data.resources}
             aggregates={aggregates}
+            criticalSnapshot={criticalSnapshot}
           />
         }
       />
@@ -94,6 +118,8 @@ export default async function Home() {
         watchlistPromise={watchlistPromise}
         coverageGapsPromise={coverageGapsPromise}
         awaitingReviewPromise={awaitingReviewPromise}
+        surfaceCoverage={surfaceCoverage}
+        credibilityBySourceId={credibilityBySourceId}
       />
     </>
   );

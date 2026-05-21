@@ -9,6 +9,11 @@ import { urgencyScore, buildSectorContext } from "@/lib/scoring";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { Resource, ChangeLogEntry, Dispute } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
+import type { SourceCredibilityMap } from "@/lib/dashboard/credibility";
+import { CredibilityBadge } from "@/components/credibility/CredibilityBadge";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
+import { BiasBadge } from "@/components/credibility/BiasBadge";
 import { FileText, Hash } from "lucide-react";
 
 interface WeeklyBriefingProps {
@@ -19,6 +24,10 @@ interface WeeklyBriefingProps {
   // Scalar totals over the workspace's full active row set (migration 068).
   // Drives the summary line so it no longer reports the LIMIT-50 row count.
   aggregates: WorkspaceAggregates;
+  // Build 11: Q9 credibility data, source_id keyed. Drives the per-item
+  // chip row (tier + citation count + recency + bias). Map may be empty
+  // or partial; chips suppress themselves per the chip contracts.
+  credibilityBySourceId?: SourceCredibilityMap;
   onToast: (msg: string) => void;
 }
 
@@ -69,6 +78,7 @@ export function WeeklyBriefing({
   disputes,
   auditDate,
   aggregates,
+  credibilityBySourceId,
   onToast,
 }: WeeklyBriefingProps) {
   const { sectorProfile, sectorWeights } = useWorkspaceStore();
@@ -115,7 +125,14 @@ export function WeeklyBriefing({
     aggregates.totalJurisdictions > 0
       ? aggregates.totalJurisdictions
       : new Set(resources.map((r) => r.jurisdiction || "global")).size;
-  const summary = `Tracking ${totalItems} regulatory resources across ${totalJurisdictions} jurisdictions.${
+  // Build 11 count coherence: the briefing is the top-priority slice of
+  // the workspace's intelligence corpus across all five surfaces. Prior
+  // copy said "regulatory resources" which read narrower than the
+  // underlying total (intelligence_items, which includes Market Intel,
+  // Research, and Operations items as well). The five-surface widget on
+  // the rail renders the per-surface breakdown so this summary stays
+  // faithful to the headline meta.
+  const summary = `Tracking ${totalItems} intelligence items across ${totalJurisdictions} jurisdictions.${
     briefing.newR.length > 0 ? ` ${briefing.newR.length} new this week.` : ""
   }`;
 
@@ -159,6 +176,20 @@ export function WeeklyBriefing({
               : kind === "mod"
               ? "var(--color-moderate)"
               : "var(--color-text-muted)";
+          // Build 11: Q9 credibility chips. Look up by sourceId; suppress
+          // each chip independently when its underlying value is missing
+          // (per source-credibility-model SKILL Section 8 + each chip's
+          // contract). Tier prefers effective_tier (dynamic) over base_tier.
+          const cred = r.sourceId ? credibilityBySourceId?.[r.sourceId] : undefined;
+          const tier = cred ? cred.effectiveTier ?? cred.baseTier : null;
+          const citationCount = cred?.citationCount ?? null;
+          const lastCitedAt = cred?.lastCitedAt ?? null;
+          const biasTags = cred?.biasTags ?? [];
+          const hasAnyChip =
+            tier !== null ||
+            (typeof citationCount === "number" && citationCount > 0) ||
+            !!lastCitedAt ||
+            biasTags.length > 0;
           return (
             <li
               key={r.id}
@@ -179,36 +210,65 @@ export function WeeklyBriefing({
                   background: PRIORITY_COLOR[r.priority] || "var(--color-text-muted)",
                 }}
               />
-              <Link
-                href={`/regulations/${r.id}`}
-                prefetch={false}
-                style={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  display: "block",
-                  minWidth: 0,
-                }}
-              >
-                <div
+              <div style={{ minWidth: 0 }}>
+                <Link
+                  href={`/regulations/${r.id}`}
+                  prefetch={false}
                   style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "var(--color-text-primary)",
-                    lineHeight: 1.3,
+                    textDecoration: "none",
+                    color: "inherit",
+                    display: "block",
+                    minWidth: 0,
                   }}
                 >
-                  {r.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--color-text-muted)",
-                    marginTop: 2,
-                  }}
-                >
-                  {r.note}
-                </div>
-              </Link>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: "var(--color-text-primary)",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {r.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--color-text-muted)",
+                      marginTop: 2,
+                    }}
+                  >
+                    {r.note}
+                  </div>
+                </Link>
+                {hasAnyChip && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 6,
+                      alignItems: "center",
+                      marginTop: 6,
+                    }}
+                  >
+                    {tier !== null && <CredibilityBadge tier={tier} size="sm" />}
+                    {typeof citationCount === "number" && citationCount > 0 && (
+                      <CitationCountChip count={citationCount} />
+                    )}
+                    {lastCitedAt && <RecencyChip timestamp={lastCitedAt} />}
+                    {biasTags.length > 0 && (
+                      <BiasBadge
+                        tags={biasTags.map((t) => ({
+                          dimension: t.dimension,
+                          tag: t.tag,
+                          confidence: t.confidence ?? undefined,
+                        }))}
+                        layout="inline"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
               <span
                 style={{
                   fontSize: 12,

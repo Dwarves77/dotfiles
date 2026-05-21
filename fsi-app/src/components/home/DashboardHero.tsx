@@ -28,11 +28,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
-
-// TODO: replace with computed timeline once milestones data is reliable.
-// Per design brief: preview specificity is what makes the helper feel
-// useful — a bare count is dead copy. Tracked as follow-up to this PR.
-const CRITICAL_HELPER_COPY = "3 inside 14 days: LL97 filing, FuelEU Q1, CBAM defaults";
+import type { CriticalItemsSnapshot } from "@/lib/dashboard/critical-items";
 
 interface DashboardHeroProps {
   // Row payload — used directly when no aggregates are supplied (e.g.
@@ -46,6 +42,12 @@ interface DashboardHeroProps {
   // via getListingsOnly) can omit it and the component falls back to
   // resources.filter().length unchanged.
   aggregates?: WorkspaceAggregates;
+  // Build 11: workspace-scoped critical-items snapshot. When supplied,
+  // the CRITICAL tile's helper line shows the real "N inside W days" count
+  // plus a short preview of the closest deadlines (title, jurisdiction,
+  // day count). Omit on surfaces other than the home dashboard (e.g.
+  // /regulations) to suppress the helper line without changing the tile.
+  criticalSnapshot?: CriticalItemsSnapshot;
 }
 
 interface HeroTile {
@@ -57,8 +59,38 @@ interface HeroTile {
   helper?: string;
 }
 
-export function DashboardHero({ resources, aggregates }: DashboardHeroProps) {
+export function DashboardHero({
+  resources,
+  aggregates,
+  criticalSnapshot,
+}: DashboardHeroProps) {
   const router = useRouter();
+
+  // Build 11: workspace-anchored critical-items snapshot. Replaces the
+  // prior hardcoded "3 inside 14 days, LL97 / FuelEU / CBAM" helper string
+  // with a real count + top-3 preview drawn from the workspace's actual
+  // compliance_deadline + timeline data. When the snapshot is absent
+  // (other surfaces, anon caller, RPC failure) the helper line collapses
+  // rather than rendering a frozen demo string.
+  const criticalHelper = useMemo<string | undefined>(() => {
+    if (!criticalSnapshot || criticalSnapshot.totalWithinWindow === 0) {
+      return undefined;
+    }
+    const { totalWithinWindow, windowDays, preview } = criticalSnapshot;
+    const previewBits = preview.map((p) => {
+      const titleClip = p.title.length > 40 ? p.title.slice(0, 38) + "…" : p.title;
+      const juris = p.jurisdiction ? ` (${p.jurisdiction})` : "";
+      const days =
+        p.daysUntil <= 0
+          ? "today"
+          : p.daysUntil === 1
+            ? "1 day"
+            : `${p.daysUntil} days`;
+      return `${titleClip}${juris} ${days}`;
+    });
+    const intro = `${totalWithinWindow} inside ${windowDays} days`;
+    return previewBits.length > 0 ? `${intro}: ${previewBits.join(", ")}` : intro;
+  }, [criticalSnapshot]);
 
   const tiles = useMemo<HeroTile[]>(() => {
     // Counts come from the aggregates RPC (migration 068) when supplied,
@@ -73,12 +105,12 @@ export function DashboardHero({ resources, aggregates }: DashboardHeroProps) {
     const count = (pri: "CRITICAL" | "HIGH" | "MODERATE" | "LOW") =>
       useAggregates ? aggregates!.byPriority[pri] : fromRows(pri);
     return [
-      { tone: "critical", priority: "CRITICAL", eyebrow: "Immediate action", numeral: count("CRITICAL"), label: "Critical — within 90 days", helper: CRITICAL_HELPER_COPY },
-      { tone: "high",     priority: "HIGH",     eyebrow: "High",             numeral: count("HIGH"),     label: "Action — 6 mo" },
-      { tone: "moderate", priority: "MODERATE", eyebrow: "Moderate",         numeral: count("MODERATE"), label: "Monitor — 6–12 mo" },
+      { tone: "critical", priority: "CRITICAL", eyebrow: "Immediate action", numeral: count("CRITICAL"), label: "Critical, within 90 days", helper: criticalHelper },
+      { tone: "high",     priority: "HIGH",     eyebrow: "High",             numeral: count("HIGH"),     label: "Action, 6 mo" },
+      { tone: "moderate", priority: "MODERATE", eyebrow: "Moderate",         numeral: count("MODERATE"), label: "Monitor, 6 to 12 mo" },
       { tone: "low",      priority: "LOW",      eyebrow: "Low",              numeral: count("LOW"),      label: "Awareness only" },
     ];
-  }, [resources, aggregates]);
+  }, [resources, aggregates, criticalHelper]);
 
   const TONE_VAR: Record<HeroTile["tone"], string> = {
     critical: "var(--critical)",
