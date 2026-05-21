@@ -40,11 +40,11 @@
 // Rate limit: 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   requireCommunityAuth,
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
+import { dispatchNotification } from "@/lib/notifications/dispatch";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
 const UUID_RE =
@@ -104,13 +104,6 @@ function decodeReasonAndAction(stored: string | null): {
     }
   }
   return { reason, body, action, notes };
-}
-
-function getServiceClient(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -422,26 +415,15 @@ async function emitModerationNotification(args: {
   reportId: string;
   notes: string | null;
 }): Promise<string | null> {
-  // notifications.INSERT is service-role-only by RLS (migration 032).
-  // This is the same trade-off documented in
-  // /api/community/invitations/[id]/accept — the only legitimate insert
-  // path the schema allows is service-role. Keep the surface narrow:
-  // one insert, here, with a structured payload.
-  try {
-    const service = getServiceClient();
-    const { error } = await service.from("notifications").insert({
-      user_id: args.userId,
-      kind: "moderation",
-      payload: {
-        moderation_kind: args.kind,
-        group_id: args.groupId,
-        post_id: args.postId,
-        report_id: args.reportId,
-        notes: args.notes,
-      },
-    });
-    return error ? error.message : null;
-  } catch (e) {
-    return e instanceof Error ? e.message : "unknown error";
-  }
+  return dispatchNotification({
+    userId: args.userId,
+    kind: "moderation",
+    payload: {
+      moderation_kind: args.kind,
+      group_id: args.groupId,
+      post_id: args.postId,
+      report_id: args.reportId,
+      notes: args.notes,
+    },
+  });
 }

@@ -18,6 +18,7 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { dispatchNotification } from "@/lib/notifications/dispatch";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -193,7 +194,7 @@ export async function POST(
 
   const { data: parent, error: parentErr } = await auth.supabase
     .from("community_posts")
-    .select("id, group_id, parent_post_id")
+    .select("id, group_id, parent_post_id, author_user_id")
     .eq("id", parentId)
     .maybeSingle();
 
@@ -251,6 +252,28 @@ export async function POST(
       .eq("id", row.author_user_id)
       .maybeSingle();
     if (profile) profilesById.set((profile as AuthorProfile).user_id, profile as AuthorProfile);
+  }
+
+  // Notification fan-out: notify the parent post author about the reply.
+  // Skip self-replies (no point notifying yourself about your own reply).
+  // Failure logged but does NOT abort the reply — the user-facing reply
+  // already succeeded above.
+  if (parent.author_user_id && parent.author_user_id !== auth.userId) {
+    const dispatchErr = await dispatchNotification({
+      userId: parent.author_user_id,
+      kind: "reply",
+      payload: {
+        group_id: parent.group_id,
+        parent_post_id: parent.id,
+        reply_post_id: row.id,
+        reply_author_user_id: auth.userId,
+      },
+    });
+    if (dispatchErr) {
+      console.error(
+        `[notifications/reply-fanout] failed for post ${parent.id}: ${dispatchErr}`
+      );
+    }
   }
 
   return NextResponse.json(

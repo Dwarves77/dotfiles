@@ -17,6 +17,7 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { dispatchNotification } from "@/lib/notifications/dispatch";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -114,6 +115,29 @@ export async function POST(
       );
     }
     return NextResponse.json({ error: insErr.message }, { status: 500 });
+  }
+
+  // Notification fan-out: notify the invitee. Invite notifications cannot
+  // be disabled by user preferences (notification_preferences enforces
+  // on_invite=true per migration 032). Failure logged but does NOT abort
+  // the invitation — the invitation row is already persisted and surfaces
+  // in the invitee's pending-invitations list regardless of whether the
+  // bell notification writes.
+  if (inserted?.id) {
+    const dispatchErr = await dispatchNotification({
+      userId: inviteeId,
+      kind: "invite",
+      payload: {
+        group_id: groupId,
+        invitation_id: inserted.id,
+        inviter_user_id: auth.userId,
+      },
+    });
+    if (dispatchErr) {
+      console.error(
+        `[notifications/invite-fanout] failed for invitation ${inserted.id}: ${dispatchErr}`
+      );
+    }
   }
 
   return NextResponse.json(
