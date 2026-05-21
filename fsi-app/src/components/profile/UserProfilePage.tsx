@@ -7,6 +7,8 @@ import { JURISDICTIONS, MODES } from "@/lib/constants";
 import { SectorSelector } from "@/components/profile/SectorSelector";
 import { AtAGlanceBlock } from "@/components/profile/AtAGlanceBlock";
 import { QuickLinksSection } from "@/components/profile/QuickLinksSection";
+// Phase 7 admin chrome — Organization tab.
+import { OrganizationPanel } from "@/components/profile/OrganizationPanel";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import {
@@ -57,10 +59,15 @@ type TabKey =
   | "verifier"
   | "activity";
 
+// Phase 7 admin chrome wired Organization + Members tabs against
+// /api/orgs/[org_id] (GET + PATCH) and /api/orgs/[org_id]/members
+// (GET + PATCH + DELETE). The "phaseC: false" tabs are no longer
+// gated placeholders; they render functional surfaces backed by the
+// three-layer tenant model (ADR-001) when the caller has an org.
 const TABS: Array<{ key: TabKey; label: string; phaseC: boolean }> = [
   { key: "personal", label: "Personal", phaseC: true },
-  { key: "organization", label: "Organization", phaseC: false },
-  { key: "members", label: "Members & roles", phaseC: false },
+  { key: "organization", label: "Organization", phaseC: true },
+  { key: "members", label: "Members & roles", phaseC: true },
   { key: "sectors", label: "Sector profile", phaseC: true },
   { key: "jurisdictions", label: "Jurisdictions", phaseC: true },
   { key: "verifier", label: "Verifier badge", phaseC: true },
@@ -98,6 +105,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
   const { setSectorProfile } = useWorkspaceStore();
   const userRole = useWorkspaceStore((s) => s.userRole);
   const orgName = useWorkspaceStore((s) => s.orgName);
+  const orgId = useWorkspaceStore((s) => s.orgId);
   const isOwner = userRole === "owner";
 
   const [tab, setTab] = useState<TabKey>("personal");
@@ -432,10 +440,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
             )}
             {tab === "activity" && <PanelActivity />}
             {tab === "organization" && (
-              <PanelComingSoon
-                title="Workspace organization"
-                description="Multi-tenant workspaces coming soon. Until then, your account is its own workspace."
-              />
+              <OrganizationPanel orgId={orgId} />
             )}
             {tab === "members" && (
               <PanelComingSoon
