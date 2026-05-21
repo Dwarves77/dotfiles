@@ -725,6 +725,7 @@ export interface ResearchPipelineRow {
   lastCitedAt: string | null;     // Build 8.1: from get_source_citation_stats RPC
   baseTier: number | null;        // Build 8.2: source.base_tier (provenance)
   effectiveTier: number | null;   // Build 8.2: source.effective_tier (dynamic; falls back to base_tier in render)
+  biasTags: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;  // Build 8.3: from source_bias_tags table (mig 092)
 }
 
 export async function fetchResearchPipelineRows(
@@ -783,6 +784,7 @@ export async function fetchResearchPipelineRows(
         lastCitedAt: null,
         baseTier: typeof src?.base_tier === "number" ? src.base_tier : null,
         effectiveTier: typeof src?.effective_tier === "number" ? src.effective_tier : null,
+        biasTags: [],
       };
     });
 
@@ -810,12 +812,43 @@ export async function fetchResearchPipelineRows(
         }
       }
     }
+    // Build 8.3: per-source bias tags from source_bias_tags (mig 092). One
+    // query for all distinct source_ids in the page; group client-side by
+    // source_id. Empty array if a source has no bias tags (ADR-007 +
+    // BiasBadge contract: render nothing for empty tags). Failure is
+    // non-fatal: rows render with biasTags=[] and the UI degrades.
+    const biasBySourceId = new Map<string, ResearchPipelineRow["biasTags"]>();
+    if (distinctSourceIds.length > 0) {
+      const { data: biasRows, error: biasErr } = await supabase
+        .from("source_bias_tags")
+        .select("source_id, dimension, tag, confidence")
+        .in("source_id", distinctSourceIds);
+      if (biasErr) {
+        console.error("[research] source_bias_tags fetch error:", biasErr.message);
+      } else if (Array.isArray(biasRows)) {
+        for (const b of biasRows) {
+          if (!b || typeof b.source_id !== "string") continue;
+          const dim = b.dimension as "funding" | "methodology" | "stakeholder";
+          if (dim !== "funding" && dim !== "methodology" && dim !== "stakeholder") continue;
+          const existing = biasBySourceId.get(b.source_id) ?? [];
+          existing.push({
+            dimension: dim,
+            tag: String(b.tag),
+            confidence: typeof b.confidence === "number" ? b.confidence : null,
+          });
+          biasBySourceId.set(b.source_id, existing);
+        }
+      }
+    }
+
     const rows: ResearchPipelineRow[] = baseRows.map((r) => {
       const s = r.sourceId ? statsBySourceId.get(r.sourceId) : undefined;
+      const bias = r.sourceId ? biasBySourceId.get(r.sourceId) ?? [] : [];
       return {
         ...r,
         citationCount: s ? s.count : null,
         lastCitedAt: s ? s.recency : null,
+        biasTags: bias,
       };
     });
 

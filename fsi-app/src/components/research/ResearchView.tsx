@@ -32,6 +32,7 @@ import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
 import { CitationCountChip } from "@/components/credibility/CitationCountChip";
 import { RecencyChip } from "@/components/credibility/RecencyChip";
 import { CredibilityBadge } from "@/components/credibility/CredibilityBadge";
+import { BiasBadge } from "@/components/credibility/BiasBadge";
 import type { WorkspaceAggregates } from "@/lib/data";
 
 // ── Types ──
@@ -57,6 +58,8 @@ export interface ResearchPipelineItem {
   baseTier: number | null;
   /** Build 8.2: source.effective_tier (dynamic; 1-7 or null; falls back to baseTier in render). */
   effectiveTier: number | null;
+  /** Build 8.3: per-source bias tags from source_bias_tags table (mig 092). Empty array if none. */
+  biasTags: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;
   /** Owner / researcher (placeholder until owner field lands). */
   owner: string | null;
   partnerFlagged: boolean;
@@ -1013,6 +1016,19 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
             <CitationCountChip count={item.citationCount} />
           )}
           {item.lastCitedAt && <RecencyChip timestamp={item.lastCitedAt} />}
+          {/* Build 8.3: bias tags (per source_bias_tags from mig 092).
+              BiasBadge renders nothing for empty array per ADR-007 + own contract.
+              Map confidence: null -> undefined to match BiasBadge's optional contract. */}
+          {item.biasTags.length > 0 && (
+            <BiasBadge
+              tags={item.biasTags.map((t) => ({
+                dimension: t.dimension,
+                tag: t.tag,
+                confidence: t.confidence ?? undefined,
+              }))}
+              layout="inline"
+            />
+          )}
           {item.partnerFlagged && (
             <span
               style={{

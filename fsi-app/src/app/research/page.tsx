@@ -80,6 +80,7 @@ export default async function Research() {
     lastCitedAt: r.lastCitedAt,
     baseTier: r.baseTier,
     effectiveTier: r.effectiveTier,
+    biasTags: r.biasTags,
     owner: null,
     partnerFlagged: false,
   }));
