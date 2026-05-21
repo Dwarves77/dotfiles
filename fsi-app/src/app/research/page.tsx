@@ -64,6 +64,8 @@ export default async function Research() {
   // Adapter: ResearchPipelineRow → ResearchPipelineItem (the existing UI
   // shape). owner / partnerFlagged are placeholders preserved from the
   // previous fetcher pending the owner-attribution work.
+  // Build 8.1: pass through citationCount + lastCitedAt so the PipelineRow
+  // card can render the CitationCountChip + RecencyChip credibility chips.
   const items: ResearchPipelineItem[] = filteredRows.map((r) => ({
     id: r.id,
     title: r.title,
@@ -74,6 +76,8 @@ export default async function Research() {
     sourceName: r.sourceName,
     sourceUrl: r.sourceUrl,
     addedDate: r.addedDate,
+    citationCount: r.citationCount,
+    lastCitedAt: r.lastCitedAt,
     owner: null,
     partnerFlagged: false,
   }));

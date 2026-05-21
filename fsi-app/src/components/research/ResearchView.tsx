@@ -29,6 +29,8 @@ import { ChevronDown } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
 import type { WorkspaceAggregates } from "@/lib/data";
 
 // ── Types ──
@@ -46,6 +48,10 @@ export interface ResearchPipelineItem {
   sourceUrl: string | null;
   /** Display date for "First seen" column. */
   addedDate: string | null;
+  /** Build 8.1: per-source citation count from intelligence_item_citations edge table. */
+  citationCount: number | null;
+  /** Build 8.1: most recent citation detected_at for this source. */
+  lastCitedAt: string | null;
   /** Owner / researcher (placeholder until owner field lands). */
   owner: string | null;
   partnerFlagged: boolean;
@@ -981,6 +987,13 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
           >
             {mode} · {region}
           </span>
+          {/* Build 8.1: per-source credibility chips (citation count + recency).
+              CitationCountChip suppresses itself when count < 1 (per Build 8 plan
+              decision 8.1.D2 default). RecencyChip omits if lastCitedAt absent. */}
+          {item.citationCount !== null && item.citationCount >= 1 && (
+            <CitationCountChip count={item.citationCount} />
+          )}
+          {item.lastCitedAt && <RecencyChip timestamp={item.lastCitedAt} />}
           {item.partnerFlagged && (
             <span
               style={{

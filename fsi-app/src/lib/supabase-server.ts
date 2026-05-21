@@ -719,7 +719,10 @@ export interface ResearchPipelineRow {
   jurisdictions: string[];
   sourceName: string | null;
   sourceUrl: string | null;
+  sourceId: string | null;        // Build 8.1: for per-source citation lookups
   addedDate: string | null;
+  citationCount: number | null;   // Build 8.1: from get_source_citation_stats RPC
+  lastCitedAt: string | null;     // Build 8.1: from get_source_citation_stats RPC
 }
 
 export async function fetchResearchPipelineRows(
@@ -748,7 +751,7 @@ export async function fetchResearchPipelineRows(
     const { data, error } = await supabase
       .from("intelligence_items")
       .select(
-        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(name, url)"
+        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(id, name, url)"
       )
       .eq("is_archived", false)
       .order("added_date", { ascending: false })
@@ -759,7 +762,9 @@ export async function fetchResearchPipelineRows(
       return { rows: [], total, cap };
     }
 
-    const rows: ResearchPipelineRow[] = data.map((row: any) => {
+    // Shape rows first (without citation stats); next step fans out a
+    // single RPC call for all unique source_ids in this page.
+    const baseRows: ResearchPipelineRow[] = data.map((row: any) => {
       const src = Array.isArray(row.source) ? row.source[0] : row.source;
       return {
         id: row.legacy_id || row.id,
@@ -770,7 +775,43 @@ export async function fetchResearchPipelineRows(
         jurisdictions: row.jurisdictions || [],
         sourceName: src?.name ?? null,
         sourceUrl: src?.url ?? null,
+        sourceId: src?.id ?? null,
         addedDate: row.added_date ?? null,
+        citationCount: null,
+        lastCitedAt: null,
+      };
+    });
+
+    // Build 8.1: per-source citation stats via the migration 098 edge-table
+    // RPC. One RPC call for the page's distinct source_ids, then a join
+    // back to baseRows by sourceId. Failure is non-fatal: rows still
+    // render with citationCount=null and the UI degrades gracefully.
+    const distinctSourceIds = Array.from(
+      new Set(baseRows.map((r) => r.sourceId).filter((id): id is string => !!id))
+    );
+    const statsBySourceId = new Map<string, { count: number; recency: string | null }>();
+    if (distinctSourceIds.length > 0) {
+      const { data: statsRows, error: statsErr } = await supabase
+        .rpc("get_source_citation_stats", { source_ids: distinctSourceIds });
+      if (statsErr) {
+        console.error("[research] get_source_citation_stats error:", statsErr.message);
+      } else if (Array.isArray(statsRows)) {
+        for (const s of statsRows) {
+          if (s && typeof s.source_id === "string") {
+            statsBySourceId.set(s.source_id, {
+              count: typeof s.citation_count === "number" ? s.citation_count : 0,
+              recency: s.recency ?? null,
+            });
+          }
+        }
+      }
+    }
+    const rows: ResearchPipelineRow[] = baseRows.map((r) => {
+      const s = r.sourceId ? statsBySourceId.get(r.sourceId) : undefined;
+      return {
+        ...r,
+        citationCount: s ? s.count : null,
+        lastCitedAt: s ? s.recency : null,
       };
     });
 

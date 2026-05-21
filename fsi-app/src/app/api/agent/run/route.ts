@@ -708,6 +708,38 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
     // succeeds and the route returns success without a version row,
     // matching pre-Wave-1a behavior.
 
+    // ── Build 8.1: fan brief-to-source citations into intelligence_item_citations ──
+    // The legacy sources_used array (set above) is preserved for backward
+    // compatibility; the edge table is the authoritative source for the
+    // get_source_citation_stats RPC (migration 098 swapped it to read here).
+    // Each source in sources_used becomes an edge row with origin='agent_extraction'.
+    // ON CONFLICT DO NOTHING because the UNIQUE constraint on
+    // (intelligence_item_id, source_id, origin) means we silently no-op if
+    // this brief already had an agent_extraction edge for the same source
+    // (e.g. on regeneration). A prior sources_used_backfill row coexists
+    // (different origin = different unique key).
+    const distinctSourceIds = Array.from(
+      new Set((metadata.sources_used || []).filter((id): id is string => typeof id === "string" && id.length > 0))
+    );
+    if (distinctSourceIds.length > 0) {
+      const edgeRows = distinctSourceIds.map((sid) => ({
+        intelligence_item_id: targetItem.id,
+        source_id: sid,
+        origin: "agent_extraction" as const,
+      }));
+      const { error: edgeErr } = await supabase
+        .from("intelligence_item_citations")
+        .upsert(edgeRows, {
+          onConflict: "intelligence_item_id,source_id,origin",
+          ignoreDuplicates: true,
+        });
+      if (edgeErr) {
+        console.error(
+          `[citations/edge-fanout] failed for item ${targetItem.id}: ${edgeErr.message}`
+        );
+      }
+    }
+
     // ── Step 11: Update source scan timestamp + last_intelligence_item_at ──
     if (sourceRecord?.id) {
       try {

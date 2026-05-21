@@ -100,6 +100,7 @@
 | 093 | 093_sources_tier_override.sql | Migration 093: tier_override mechanism on sources (Q5 decision) |
 | 094 | 094_tier_compat_shim.sql | Migration 094: Compatibility shim for Q2 (migration 090) tier -> base_tier renam |
 | 097 | 097_q4_bias_retune_option_b.sql | Migration 097: D1 Option B retroactive retune. |
+| 098 | 098_get_source_citation_stats_edge_table.sql | Migration 098: get_source_citation_stats body swap. |
 
 ## Maintenance trigger
 
