@@ -58,8 +58,10 @@ import { CostTrajectoryChart } from "@/components/market/CostTrajectoryChart";
 import { PolicySignals } from "@/components/market/PolicySignals";
 import { FreightRelevanceCallout } from "@/components/market/FreightRelevanceCallout";
 import { OwnersContent } from "@/components/market/OwnersContent";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
 import type { Resource } from "@/types/resource";
-import type { WorkspaceAggregates } from "@/lib/data";
+import type { WorkspaceAggregates, SourceCitationStatsMap } from "@/lib/data";
 
 interface MarketPageProps {
   initialResources: Resource[];
@@ -70,6 +72,12 @@ interface MarketPageProps {
    * so existing callers / fallback paths still render with row-derived counts.
    */
   aggregates?: WorkspaceAggregates;
+  /**
+   * Build 7: per-source citation stats keyed by source_id. Mirrors Build 8.1
+   * /research pattern. Optional so the page renders without chips on fallback
+   * paths or when the RPC fails.
+   */
+  citationStats?: SourceCitationStatsMap;
 }
 
 type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
@@ -106,7 +114,7 @@ function isTabKey(s: string | null): s is TabKey {
   return s === "tech" || s === "prices";
 }
 
-export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
+export function MarketPage({ initialResources, aggregates, citationStats = {} }: MarketPageProps) {
   const searchParams = useSearchParams();
 
   const initialPriority = isPriorityKey(searchParams.get("priority"))
@@ -229,7 +237,8 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
             sectorProfile={sectorProfile}
             watchCount={counts.CRITICAL}
             elevatedCount={counts.HIGH}
-            renderCategoryBody={(items) => <TechBody items={items} />}
+            citationStats={citationStats}
+            renderCategoryBody={(items) => <TechBody items={items} citationStats={citationStats} />}
           />
         )}
         {tab === "prices" && (
@@ -241,7 +250,8 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
             sectorProfile={sectorProfile}
             watchCount={counts.CRITICAL}
             elevatedCount={counts.HIGH}
-            renderCategoryBody={(items) => <PriceBody items={items} />}
+            citationStats={citationStats}
+            renderCategoryBody={(items) => <PriceBody items={items} citationStats={citationStats} />}
             categoryHeaderHasWatch
           />
         )}
@@ -263,6 +273,7 @@ function SectionTemplate({
   sectorProfile,
   watchCount,
   elevatedCount,
+  citationStats,
   renderCategoryBody,
   categoryHeaderHasWatch = false,
 }: {
@@ -273,6 +284,7 @@ function SectionTemplate({
   sectorProfile?: string[];
   watchCount: number;
   elevatedCount: number;
+  citationStats: SourceCitationStatsMap;
   renderCategoryBody: (items: Resource[]) => React.ReactNode;
   categoryHeaderHasWatch?: boolean;
 }) {
@@ -312,8 +324,8 @@ function SectionTemplate({
           />
         </div>
 
-        {/* KEY METRICS rows with delta indicators + period selector */}
-        <KeyMetricsRow items={items} />
+        {/* KEY METRICS rows with delta indicators */}
+        <KeyMetricsRow items={items} citationStats={citationStats} />
 
         {/* COST TRAJECTORY chart (multi-vertical) */}
         <CostTrajectoryChart verticals={sectorProfile} />
@@ -362,7 +374,7 @@ function SectionTemplate({
       </div>
 
       <aside className="space-y-3 hidden lg:block">
-        <WatchlistSidebar items={items} />
+        <WatchlistSidebar items={items} citationStats={citationStats} />
         <OwnersContent items={items} section={section} />
 
         {watchCount + elevatedCount > 0 ? (
@@ -396,56 +408,68 @@ function SectionTemplate({
 
 // ── Per-tab content body renderers ────────────────────────────────────
 
-function TechBody({ items }: { items: Resource[] }) {
+function TechBody({ items, citationStats }: { items: Resource[]; citationStats: SourceCitationStatsMap }) {
   return (
     <>
       <Label>Key items</Label>
       <div className="space-y-2">
-        {items.map((it) => (
-          // Card-level Link → /regulations/[slug] detail. No interactive
-          // children inside; clean wrap.
-          <Link
-            key={it.id}
-            href={`/regulations/${encodeURIComponent(it.id)}`}
-            prefetch={false}
-            style={{
-              display: "block",
-              background: "var(--bg)",
-              border: "1px solid var(--border-sub)",
-              borderRadius: "var(--r-sm)",
-              padding: "12px 14px",
-              textDecoration: "none",
-              color: "inherit",
-              cursor: "pointer",
-              transition: "background-color 120ms ease",
-            }}
-            className="hover:bg-[var(--raised)]"
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{it.title}</div>
-              <LifecyclePill priority={it.priority} />
-            </div>
-            {it.note && (
-              <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginTop: 4 }}>{it.note}</div>
-            )}
-          </Link>
-        ))}
+        {items.map((it) => {
+          // Build 7: Q9 chip mounts. Mirror Build 8.1 ResearchView pattern.
+          // CitationCountChip suppresses itself when count < 1. RecencyChip
+          // omits if recency is absent. Both fall back gracefully when the
+          // RPC was unavailable (citationStats is the empty map).
+          const stat = it.sourceId ? citationStats[it.sourceId] : undefined;
+          return (
+            <Link
+              key={it.id}
+              href={`/regulations/${encodeURIComponent(it.id)}`}
+              prefetch={false}
+              style={{
+                display: "block",
+                background: "var(--bg)",
+                border: "1px solid var(--border-sub)",
+                borderRadius: "var(--r-sm)",
+                padding: "12px 14px",
+                textDecoration: "none",
+                color: "inherit",
+                cursor: "pointer",
+                transition: "background-color 120ms ease",
+              }}
+              className="hover:bg-[var(--raised)]"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{it.title}</div>
+                <LifecyclePill priority={it.priority} />
+              </div>
+              {it.note && (
+                <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginTop: 4 }}>{it.note}</div>
+              )}
+              {(stat && stat.count >= 1) || stat?.recency ? (
+                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {stat && stat.count >= 1 && <CitationCountChip count={stat.count} />}
+                  {stat?.recency && <RecencyChip timestamp={stat.recency} />}
+                </div>
+              ) : null}
+            </Link>
+          );
+        })}
       </div>
     </>
   );
 }
 
-function PriceBody({ items }: { items: Resource[] }) {
+function PriceBody({ items, citationStats }: { items: Resource[]; citationStats: SourceCitationStatsMap }) {
   return (
     <div style={{ padding: "0 0 4px" }}>
       {items.map((it) => (
-        <PriceRow key={it.id} item={it} />
+        <PriceRow key={it.id} item={it} citationStats={citationStats} />
       ))}
     </div>
   );
 }
 
-function PriceRow({ item }: { item: Resource }) {
+function PriceRow({ item, citationStats }: { item: Resource; citationStats: SourceCitationStatsMap }) {
+  const stat = item.sourceId ? citationStats[item.sourceId] : undefined;
   return (
     // Card-level Link → /regulations/[slug] detail. No interactive
     // children inside; clean wrap.
@@ -503,6 +527,12 @@ function PriceRow({ item }: { item: Resource }) {
           <span style={{ color: "var(--text)" }}>{item.whyMatters || item.note}</span>
         </div>
       )}
+      {(stat && stat.count >= 1) || stat?.recency ? (
+        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {stat && stat.count >= 1 && <CitationCountChip count={stat.count} />}
+          {stat?.recency && <RecencyChip timestamp={stat.recency} />}
+        </div>
+      ) : null}
     </Link>
   );
 }

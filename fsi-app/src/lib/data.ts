@@ -15,8 +15,10 @@ import {
   fetchMarketIntelItems,
   fetchResearchItems,
   fetchOperationsItems,
+  fetchSourceCitationStatsByIds,
   type ScopeFilter,
   type CategoryRoutedResult,
+  type SourceCitationStat,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -648,5 +650,46 @@ export async function getOperationsItems(): Promise<CategoryRoutedResult> {
   } catch (e) {
     console.error("getOperationsItems failed, returning empty:", e);
     return { resources: [], total: 0 };
+  }
+}
+
+// ── Sprint 2 Build 7: per-source citation stats for Q9 chips ──
+//
+// Returns a plain-object map (not Map) so the result is RSC-serializable
+// across the server-to-client boundary. The wire shape on /market is
+// { [sourceId: string]: { count, recency } }.
+//
+// The list of sourceIds is the dedup'd set of Market Intel Resources'
+// sourceId values at request time. We do not cache by orgId since
+// citation stats are workspace-agnostic at the data layer (citation
+// counts are per-source platform-wide). Cache key is the sorted+joined
+// sourceIds string.
+
+export type SourceCitationStatsMap = Record<string, SourceCitationStat>;
+
+const cachedCitationStats = unstable_cache(
+  async (sortedKey: string): Promise<SourceCitationStatsMap> => {
+    if (!sortedKey) return {};
+    const ids = sortedKey.split(",").filter(Boolean);
+    const map = await fetchSourceCitationStatsByIds(ids);
+    const obj: SourceCitationStatsMap = {};
+    for (const [k, v] of map.entries()) obj[k] = v;
+    return obj;
+  },
+  ["market-citation-stats-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+export async function getSourceCitationStats(
+  sourceIds: string[]
+): Promise<SourceCitationStatsMap> {
+  try {
+    const cleaned = Array.from(
+      new Set(sourceIds.filter((s): s is string => typeof s === "string" && s.length > 0))
+    ).sort();
+    return await cachedCitationStats(cleaned.join(","));
+  } catch (e) {
+    console.error("getSourceCitationStats failed, returning empty:", e);
+    return {};
   }
 }

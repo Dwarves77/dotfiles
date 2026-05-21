@@ -26,19 +26,20 @@
 
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
+import type { SourceCitationStatsMap } from "@/lib/data";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
 
 interface KeyMetricsRowProps {
   items: Resource[];
-  /** Optional time period selector value (display-only stub for now). */
-  period?: "30d" | "90d" | "1y";
-  onPeriodChange?: (period: "30d" | "90d" | "1y") => void;
+  /**
+   * Build 7: per-source citation stats keyed by source_id. Renders the
+   * CitationCountChip + RecencyChip pair beside each metric row when stats
+   * are available; suppresses per chip contract otherwise. Mirrors Build 8.1
+   * /research pattern.
+   */
+  citationStats?: SourceCitationStatsMap;
 }
-
-const PERIODS: Array<{ id: "30d" | "90d" | "1y"; label: string }> = [
-  { id: "30d", label: "30D" },
-  { id: "90d", label: "90D" },
-  { id: "1y", label: "1Y" },
-];
 
 function deltaArrow(current: string, previous: string): {
   arrow: "↗" | "↘" | "→";
@@ -60,7 +61,13 @@ function deltaArrow(current: string, previous: string): {
     : { arrow: "↘", tone: "down" };
 }
 
-export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetricsRowProps) {
+export function KeyMetricsRow({ items, citationStats = {} }: KeyMetricsRowProps) {
+  // Build 7: the 30D/90D/1Y period selector was removed in this dispatch.
+  // The buttons did not filter anything (no time-series schema exists for
+  // KEY METRICS items; marketData snapshots are single-point timestamps),
+  // so they were a customer-visible non-functional control. When cost
+  // time-series schema lands in a future dispatch, the period buttons
+  // return alongside the data layer they depend on.
   const withMetrics = items.filter(
     (it) => !!it.marketData?.currentPrice
   );
@@ -69,55 +76,15 @@ export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetr
     <div>
       <div
         style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--muted)",
           marginBottom: 10,
         }}
       >
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--muted)",
-          }}
-        >
-          Key metrics
-        </div>
-        <div
-          role="tablist"
-          aria-label="Key metrics time period"
-          style={{ display: "inline-flex", gap: 2 }}
-        >
-          {PERIODS.map((p) => {
-            const active = p.id === period;
-            return (
-              <button
-                key={p.id}
-                role="tab"
-                aria-selected={active}
-                type="button"
-                onClick={() => onPeriodChange?.(p.id)}
-                disabled={!onPeriodChange}
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  padding: "3px 8px",
-                  border: `1px solid ${active ? "var(--accent)" : "var(--border-sub)"}`,
-                  background: active ? "var(--accent-strip)" : "transparent",
-                  color: active ? "var(--accent)" : "var(--text-2)",
-                  cursor: onPeriodChange ? "pointer" : "default",
-                  borderRadius: 3,
-                }}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
+        Key metrics
       </div>
 
       {withMetrics.length === 0 ? (
@@ -159,10 +126,9 @@ export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetr
                 : delta?.tone === "down"
                   ? "var(--moderate)"
                   : "var(--text-2)";
+            const stat = it.sourceId ? citationStats[it.sourceId] : undefined;
+            const showChips = (stat && stat.count >= 1) || stat?.recency;
             return (
-              // Card-level Link → /regulations/[slug] detail. The header
-              // period-tab buttons sit OUTSIDE this map — no nested
-              // interactive children here.
               <Link
                 key={it.id}
                 href={`/regulations/${encodeURIComponent(it.id)}`}
@@ -218,6 +184,12 @@ export function KeyMetricsRow({ items, period = "90d", onPeriodChange }: KeyMetr
                   )}
                   {md.previousPrice ? `was ${md.previousPrice}` : md.priceDate}
                 </span>
+                {showChips && (
+                  <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
+                    {stat && stat.count >= 1 && <CitationCountChip count={stat.count} />}
+                    {stat?.recency && <RecencyChip timestamp={stat.recency} />}
+                  </div>
+                )}
               </Link>
             );
           })}

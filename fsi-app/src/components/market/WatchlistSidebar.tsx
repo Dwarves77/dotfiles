@@ -23,11 +23,21 @@
 
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
+import type { SourceCitationStatsMap } from "@/lib/data";
+import { CitationCountChip } from "@/components/credibility/CitationCountChip";
+import { RecencyChip } from "@/components/credibility/RecencyChip";
 
 interface WatchlistSidebarProps {
   items: Resource[];
   /** Maximum rows to show in the rail. Design uses ~6. */
   limit?: number;
+  /**
+   * Build 7: per-source citation stats keyed by source_id. When provided,
+   * each row renders a CitationCountChip + RecencyChip pair (suppress at
+   * count zero / null recency per chip contract). Mirrors Build 8.1 chip
+   * pattern from ResearchView.
+   */
+  citationStats?: SourceCitationStatsMap;
 }
 
 const TONE_COLOR = {
@@ -51,7 +61,7 @@ const PRIORITY_RANK: Record<Resource["priority"], number> = {
   LOW: 3,
 };
 
-export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
+export function WatchlistSidebar({ items, limit = 6, citationStats = {} }: WatchlistSidebarProps) {
   // Surface the most urgent items currently being tracked, prioritized
   // by lifecycle severity then by recency.
   const watchlist = [...items]
@@ -125,6 +135,8 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
         >
           {watchlist.map((it) => {
             const lc = LIFECYCLE[it.priority];
+            const stat = it.sourceId ? citationStats[it.sourceId] : undefined;
+            const showChips = (stat && stat.count >= 1) || stat?.recency;
             return (
               <li
                 key={it.id}
@@ -133,7 +145,7 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
                   borderBottom: "1px solid var(--border-sub)",
                 }}
               >
-                {/* Card-level Link → /regulations/[slug] detail. */}
+                {/* Card-level Link to /regulations/[slug] detail. */}
                 <Link
                   href={`/regulations/${encodeURIComponent(it.id)}`}
                   prefetch={false}
@@ -178,6 +190,12 @@ export function WatchlistSidebar({ items, limit = 6 }: WatchlistSidebarProps) {
                   >
                     {lc.label}
                   </span>
+                  {showChips && (
+                    <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
+                      {stat && stat.count >= 1 && <CitationCountChip count={stat.count} />}
+                      {stat?.recency && <RecencyChip timestamp={stat.recency} />}
+                    </div>
+                  )}
                 </Link>
               </li>
             );
