@@ -568,6 +568,43 @@ Inventory-emission: docs/inventories/<type>.md no changes  (when the dispatch to
 
 **Worked example.** This very commit. It codifies the Inventory-artifact emission rule and relocates `docs/skill-inventory.md` to `docs/inventories/skills.md` (establishing the directory) and creates 7 stub entries (routes, migrations, worktrees, env-vars, cron-jobs, obs-status, components). The commit body carries both a `Loop-closure:` line (per the 8th binding rule) AND `Inventory-emission:` lines (per this 11th binding rule), practicing both disciplines in the same commit that codifies the second.
 
+## ADR cross-reference rule
+
+This rule was added 2026-05-20 alongside the ADR system construction (per ADR-009). Sister to the attestation rules (1-11) and content-check rule (12); the 13th binding rule is the decision-protection layer per ADR-005's five-layer enforcement architecture.
+
+**Binding rule.** Any commit that stages files matching one or more accepted ADRs' scope globs MUST include a `ADR-Reference: ADR-NNN` trailer line in the body for each intersecting ADR. Acceptable alternative for explicit contradiction: `ADR-Override: ADR-NNN (rationale: <non-empty explanation>)` — surfaces in audit as an explicit override of a prior decision, requiring future operator review.
+
+Format:
+
+```
+<commit subject>
+
+<commit body>
+
+ADR-Reference: ADR-002
+ADR-Reference: ADR-003
+Loop-closure: ...
+Inventory-emission: ...
+```
+
+**What this rule is NOT.**
+
+- NOT a requirement to reference ADRs whose scope does not match any staged file. The 13th rule only fires when intersection exists.
+- NOT a requirement to reference proposed-status ADRs. Only accepted ADRs trigger the cross-reference requirement.
+- NOT a substitute for the attestation rules (1-11) or content-check rule (12); the 13th rule is the third layer of enforcement (decision protection) per ADR-005.
+
+**Override semantics.** `ADR-Override: ADR-NNN (rationale: ...)` lets a commit explicitly contradict a prior decision when context warrants. The override passes the gate but is logged in audit. Use sparingly:
+
+- Urgent fix that must temporarily violate a prior decision (with planned follow-up)
+- New information surfaced that invalidates a prior decision's premise (followed by an ADR amendment or supersede in a separate dispatch)
+- Experimental rollback for a specific subset (with OBS tracking)
+
+If override usage accumulates, audit surfaces the pattern; operator reviews whether the prior decision needs supersession or refinement.
+
+**How to apply.** At commit-time, the engine loads all accepted ADRs from `docs/decisions/`, computes scope intersection against staged files, and requires a trailer for each intersecting ADR. Rule implementation: `fsi-app/.discipline/rules/013-adr-cross-reference.mjs`. ADR loader: `fsi-app/.discipline/lib/adr-loader.mjs`.
+
+**Worked example.** A commit modifying `fsi-app/src/lib/trust.ts` intersects ADR-002 (Tier model). The commit body must include `ADR-Reference: ADR-002`. If the change also touches `fsi-app/src/app/api/admin/canonical-sources/decide/route.ts`, ADR-003 (Server-centric dual-write) also intersects, requiring a second trailer line. Audit script (`fsi-app/.discipline/dispatch/audit.mjs`) surfaces ADR references per dispatch UUID.
+
 ## Anti-Patterns
 
 These behaviors mean the skill was loaded but not followed:

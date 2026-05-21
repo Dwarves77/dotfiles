@@ -143,6 +143,30 @@ function reportSingleDispatch(uuid) {
     console.log('');
   }
 
+  // Aggregate ADR references and overrides
+  const adrRefs = [];
+  for (const c of commits) {
+    for (const v of extractAllTrailerValues(c.body, 'ADR-Reference')) {
+      adrRefs.push({ sha: c.sha.slice(0, 10), value: v });
+    }
+  }
+  if (adrRefs.length > 0) {
+    console.log('  ADR references:');
+    for (const l of adrRefs) console.log(`    [${l.sha}] ${l.value}`);
+    console.log('');
+  }
+  const adrOverrides = [];
+  for (const c of commits) {
+    for (const v of extractAllTrailerValues(c.body, 'ADR-Override')) {
+      adrOverrides.push({ sha: c.sha.slice(0, 10), value: v });
+    }
+  }
+  if (adrOverrides.length > 0) {
+    console.log('  ADR OVERRIDES (explicit contradictions of accepted decisions):');
+    for (const l of adrOverrides) console.log(`    [${l.sha}] ${l.value}`);
+    console.log('');
+  }
+
   // Files touched across all commits
   const allFiles = new Set();
   for (const c of commits) {

@@ -176,6 +176,7 @@ export function touchedInventorySurfaces(ctx) {
   if (hasFileMatching(ctx, '**/vercel.json')) surfaces.add('cron-jobs');
   if (hasFileMatching(ctx, 'fsi-app/src/components/')) surfaces.add('components');
   if (hasFileMatching(ctx, 'fsi-app/.discipline/')) surfaces.add('discipline');
+  if (hasFileMatching(ctx, 'docs/decisions/')) surfaces.add('decisions');
 
   // OBS-status: significant changes to followups docs imply OBS state change
   const followupsTouched = ['docs/sprint-1/followups.md', 'docs/sprint-2/followups.md', 'docs/sprint-3/followups.md']

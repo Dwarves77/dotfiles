@@ -31,6 +31,7 @@ import { rule as rule009 } from './rules/009-plan-skill-hybrid.mjs';
 import { rule as rule010 } from './rules/010-verification-before-completion.mjs';
 import { rule as rule011 } from './rules/011-inventory-artifact-emission.mjs';
 import { rule as rule012 } from './rules/012-hardcoded-user-path.mjs';
+import { rule as rule013 } from './rules/013-adr-cross-reference.mjs';
 
 export const rules = [
   rule001,
@@ -45,6 +46,7 @@ export const rules = [
   rule010,
   rule011,
   rule012,
+  rule013,
 ];
 
 export function getRuleById(id) {
