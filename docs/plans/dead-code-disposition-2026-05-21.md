@@ -49,7 +49,7 @@
 - ~~`GroupHeader` Members + Settings "ships in C6"~~ → CLOSED Build 10: MembersModal + SettingsModal + InviteModal wired via new `/api/community/groups/[id]/members`, `/settings`, `/invite-candidates`, `/invitations` routes.
 - ~~`CommunityShell` masthead search "Search coming soon"~~ → CLOSED Build 10: masthead search dropdown via new `/api/community/search?q=&scope=` (ILIKE; FTS deferred to OBS follow-up).
 - ~~`CommunitySidebar` hardcoded unread/mentions~~ → CLOSED Build 10: unread + mention counts now wired via `/api/community/notifications/counts`.
-- `ResearchView` source coverage matrix → Build 8 explicit scope
+- ~~`ResearchView` source coverage matrix~~ → CLOSED Build 8.5 (2026-05-22): migration 100 introduces get_research_source_coverage() RPC pivoting active Research-bound sources (sources.category='research', status='active') by (transport_mode x jurisdiction_iso); ResearchView coverage tab re-enabled with live source-count derived 3-state cells (none / partial / full). Stub COVERAGE_MATRIX literal removed.
 - `OnboardingWizard` LinkedIn import → LinkedIn OAuth + profile-mapping (operator confirmed: KEEP)
 - `GeopoliticalSignals` function → Build 7 Market Intel signal engine (geopolitical disruption is first-class freight market signal; Strait of Hormuz / supply chain disruption type). Phase-1 `GeopoliticalSignals.tsx` flagged for Build 7 to evaluate (reuse vs build new).
 - `SearchBar` / search function → Build 10 Community search + cross-surface search consideration in Build 11. Phase-1 `SearchBar` code flagged for reuse-or-rebuild evaluation.

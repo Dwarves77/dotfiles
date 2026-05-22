@@ -16,9 +16,11 @@ import {
   fetchResearchItems,
   fetchOperationsItems,
   fetchSourceCitationStatsByIds,
+  fetchResearchSourceCoverage,
   type ScopeFilter,
   type CategoryRoutedResult,
   type SourceCitationStat,
+  type ResearchSourceCoverageCell,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -519,6 +521,31 @@ export async function getResearchPipeline(): Promise<ResearchPipelineResult> {
   } catch (e) {
     console.error("getResearchPipeline failed, returning empty:", e);
     return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
+  }
+}
+
+// Build 8.5: source coverage matrix for /research source coverage tab.
+// Reads the migration 100 RPC get_research_source_coverage() (Research-bound
+// sources only). Cached on the global APP_DATA_TAG so source-registry
+// updates revalidate it alongside the rest of the workspace data layer.
+// Re-exports the cell type so the route + view can stay schema-free of
+// supabase-server.
+export type { ResearchSourceCoverageCell };
+
+const cachedResearchSourceCoverage = unstable_cache(
+  async (): Promise<ResearchSourceCoverageCell[]> => {
+    return fetchResearchSourceCoverage();
+  },
+  ["research-source-coverage-v1"],
+  { revalidate: 300, tags: [APP_DATA_TAG] }
+);
+
+export async function getResearchSourceCoverage(): Promise<ResearchSourceCoverageCell[]> {
+  try {
+    return await cachedResearchSourceCoverage();
+  } catch (e) {
+    console.error("getResearchSourceCoverage failed, returning empty:", e);
+    return [];
   }
 }
 
