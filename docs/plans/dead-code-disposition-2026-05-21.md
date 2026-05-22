@@ -34,7 +34,7 @@
 - `/api/admin/sources/recently-auto-approved` → SourceHealthDashboard sub-tab
 - `/api/admin/sources/verify` → operator-investigate-then-decide (possibly superseded internally)
 - ~~`/api/community/groups/[id]/invite`~~ → CLOSED Build 10 InviteModal wires this route.
-- `/api/community/invitations/[id]/revoke` → Build 10 InviteModal lists outstanding invites; revoke action pending follow-up dispatch.
+- ~~`/api/community/invitations/[id]/revoke`~~ → CLOSED Build 10 InviteModal: per-row Revoke button (gated by server-side `can_revoke` flag) calls POST, confirms via inline prompt, optimistic-removes the row on success, surfaces errors via toast. Route returns 404 not-found, 409 if status != pending, 403 unauthorized, 200 ok; service-role write after inviter-or-admin auth check. Soft-delete via status='revoked' (schema uses status enum, not revoked_at timestamp). Verified 2026-05-22.
 - ~~`/api/notifications/trigger`~~ → CLOSED via notifications fanout dispatch (reply + invite + moderation + promote + mention via shared `dispatchNotification`).
 
 ### A.4 Broken-but-needed (currently visible to customers; wire to real data)
