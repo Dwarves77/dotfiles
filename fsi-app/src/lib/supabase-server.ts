@@ -864,6 +864,51 @@ export async function fetchResearchPipelineRows(
   }
 }
 
+// ── Research source coverage matrix (Build 8.5) ──────────────────────
+//
+// Pivots Research-bound sources (sources.category='research',
+// status='active') across (transport_mode x jurisdiction_iso). Calls the
+// migration 100 RPC get_research_source_coverage() and returns a plain
+// nested record shape RSC-serializable to the ResearchView coverage tab.
+//
+// Why a server-side fetcher (vs direct RPC from the client): keeps the
+// anon-key + service-role pattern aligned with the rest of /research's
+// data layer, lets the coverage data be passed as a plain RSC prop
+// (Map / Set are not RSC-serializable), and matches the page.tsx
+// Promise.all pattern.
+
+export interface ResearchSourceCoverageCell {
+  transportMode: string;       // lowercase, as stored in sources.transport_modes
+  jurisdictionIso: string;     // ISO 3166-1, ISO 3166-2, or free-text (EU, GLOBAL)
+  sourceCount: number;
+}
+
+export async function fetchResearchSourceCoverage(): Promise<ResearchSourceCoverageCell[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.rpc("get_research_source_coverage");
+    if (error) {
+      console.error("[research] get_research_source_coverage error:", error.message);
+      return [];
+    }
+    if (!Array.isArray(data)) return [];
+    const out: ResearchSourceCoverageCell[] = [];
+    for (const row of data) {
+      if (!row || typeof row.transport_mode !== "string" || typeof row.jurisdiction_iso !== "string") continue;
+      out.push({
+        transportMode: row.transport_mode,
+        jurisdictionIso: row.jurisdiction_iso,
+        sourceCount: typeof row.source_count === "number" ? row.source_count : 0,
+      });
+    }
+    return out;
+  } catch (e) {
+    console.error("fetchResearchSourceCoverage failed, returning empty:", e);
+    return [];
+  }
+}
+
 // ── Category-Aware Routing Fetchers (Sprint 2 Build 4) ───────
 //
 // Wires the orphan RPCs get_market_intel_items / get_research_items /

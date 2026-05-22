@@ -2,6 +2,7 @@ import { ResearchView, type ResearchPipelineItem } from "@/components/research/R
 import {
   getResearchItems,
   getResearchPipeline,
+  getResearchSourceCoverage,
   getScopedWorkspaceAggregates,
 } from "@/lib/data";
 
@@ -41,13 +42,18 @@ export default async function Research() {
   //
   // The pipeline_stage UI control still functions; it filters within the
   // category-routed slice.
-  const [pipeline, research, aggregates] = await Promise.all([
+  const [pipeline, research, aggregates, sourceCoverage] = await Promise.all([
     getResearchPipeline(),
     getResearchItems(),
     getScopedWorkspaceAggregates(RESEARCH_SCOPE),
+    // Build 8.5: source coverage matrix from get_research_source_coverage()
+    // (migration 100). Pivots active Research-bound sources by
+    // (transport_mode x jurisdiction_iso) so the coverage tab renders a
+    // real registry breadth signal, not the prior hardcoded stub.
+    getResearchSourceCoverage(),
   ]);
   console.log(
-    `[perf] /research data ${Date.now() - t0}ms (pipeline=${pipeline.total}, category-routed=${research.total})`
+    `[perf] /research data ${Date.now() - t0}ms (pipeline=${pipeline.total}, category-routed=${research.total}, coverage_cells=${sourceCoverage.length})`
   );
 
   // Build the allow-list of IDs from the category-routed payload.
@@ -92,6 +98,7 @@ export default async function Research() {
       total={allow.size ? filteredRows.length : pipeline.total}
       shown={items.length}
       cap={pipeline.cap}
+      sourceCoverage={sourceCoverage}
     />
   );
 }

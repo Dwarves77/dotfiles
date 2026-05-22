@@ -9,7 +9,8 @@
  *   - AiPromptBar with research-specific chips
  *   - Tabs: Pipeline (default) | Source coverage
  *   - Pipeline tab: filter bar (stage + region) + collapsible row cards
- *   - Source coverage tab: modes × regions matrix with colored-dot encoding
+ *   - Source coverage tab: modes × regions matrix backed by the
+ *     get_research_source_coverage() RPC (migration 100, Build 8.5).
  *
  * Counts come from the intelligence_items.pipeline_stage column (added in
  * migration 026 and backfilled to 'published' for existing rows). The
@@ -17,10 +18,13 @@
  * pipeline_stage, transport_modes, jurisdictions, source name + URL,
  * added_date) and passes the array in here.
  *
- * Coverage matrix is a stub for now (data: real for the count column,
- * stubbed for the per-cell coverage state). See REPORT BACK note in the
- * Phase C handoff — wiring this fully requires per-(mode, region)
- * rollups that the source registry doesn't yet expose.
+ * Source coverage tab (Build 8.5): consumes real per-cell source counts
+ * from the migration 100 RPC, restricted to Research-bound sources
+ * (sources.category='research', status='active') per the
+ * environmental-policy-and-innovation source taxonomy + the
+ * caros-ledge-platform-intent Research surface definition. Per-cell state
+ * derives from source_count via simple thresholds (0 -> none, 1-2 ->
+ * partial, 3+ -> full).
  */
 
 import { useMemo, useState } from "react";
@@ -65,6 +69,16 @@ export interface ResearchPipelineItem {
   partnerFlagged: boolean;
 }
 
+/**
+ * Per-cell row from the migration 100 RPC, RSC-serializable shape
+ * (plain object array, not Map). Used by the source coverage tab.
+ */
+export interface ResearchSourceCoverageCellProp {
+  transportMode: string;
+  jurisdictionIso: string;
+  sourceCount: number;
+}
+
 interface ResearchViewProps {
   items: ResearchPipelineItem[];
   /**
@@ -80,6 +94,13 @@ interface ResearchViewProps {
   shown?: number;
   /** Server-side initial paint cap (currently 100). */
   cap?: number;
+  /**
+   * Build 8.5: per-(transport_mode x jurisdiction_iso) source coverage
+   * for Research-bound sources. Empty array when the RPC returns nothing
+   * (no Research sources registered, anon caller without RPC grant, or
+   * RPC failure). The UI degrades gracefully to all-none cells.
+   */
+  sourceCoverage?: ResearchSourceCoverageCellProp[];
 }
 
 // ── Date helpers ──
@@ -168,17 +189,96 @@ const COVERAGE_LABEL: Record<CoverageState, string> = {
   none: "Not yet",
 };
 
-/**
- * Stub coverage matrix. The real wiring requires per-(mode × region)
- * source rollups. Until then, hard-coded placeholder values mirror
- * the editorial coverage story.
- */
-const COVERAGE_MATRIX: Record<string, Record<string, CoverageState>> = {
-  Ocean:    { EU: "full",    UK: "full",    "US Federal": "partial", California: "partial", Singapore: "full",    China: "partial", UAE: "partial" },
-  Air:      { EU: "full",    UK: "full",    "US Federal": "full",    California: "full",    Singapore: "partial", China: "partial", UAE: "partial" },
-  Road:     { EU: "partial", UK: "full",    "US Federal": "partial", California: "full",    Singapore: "none",    China: "partial", UAE: "none" },
-  Facility: { EU: "partial", UK: "partial", "US Federal": "none",    California: "partial", Singapore: "none",    China: "none",    UAE: "partial" },
+// Build 8.5: row label -> set of lowercase transport_modes the cell sums.
+// Most rows are 1:1 with the sources.transport_modes vocabulary; the
+// "Facility" row sums fixed/terminal/handling-asset modes that the
+// sources registry uses today (warehouse, terminal, port, facility,
+// handling). Lowercase to match how seed and migration scripts write
+// transport_modes (see seed/W4_4_insert_california_critical_items.mjs,
+// seed/add-source-registry.mjs).
+const MODE_TO_RAW_MATCH: Record<(typeof COVERAGE_MODES)[number], string[]> = {
+  Ocean: ["ocean", "sea", "maritime"],
+  Air: ["air", "aviation"],
+  Road: ["road", "trucking", "rail"], // surface modes; rail folds into road row
+  Facility: ["facility", "warehouse", "terminal", "port", "handling"],
 };
+
+// Build 8.5: region label -> set of jurisdiction_iso codes the cell sums.
+// Mapping mirrors fsi-app/src/lib/jurisdictions/iso.ts conventions:
+//   - free-text supranationals (EU)
+//   - ISO 3166-1 alpha-2 (GB, US, SG, CN, AE)
+//   - ISO 3166-2 sub-national (US-CA)
+// "US Federal" intentionally excludes US-* subdivisions so the
+// California column reads as the federation/state split it claims.
+const REGION_TO_ISO_MATCH: Record<(typeof COVERAGE_REGIONS)[number], string[]> = {
+  EU: ["EU"],
+  UK: ["GB"],
+  "US Federal": ["US"],
+  California: ["US-CA"],
+  Singapore: ["SG"],
+  China: ["CN"],
+  UAE: ["AE"],
+};
+
+/**
+ * Build 8.5: derive a 3-state coverage label from the raw source_count
+ * for one (mode label x region label) cell. Thresholds mirror the admin
+ * coverage 'sparse' (1-2) / 'covered' (>=3) split per
+ * fsi-app/src/app/api/admin/coverage/route.ts deriveCellState(), trimmed
+ * to 3 states because the Research coverage tab is a registry-breadth
+ * signal (not a freshness signal).
+ */
+function coverageStateForCount(count: number): CoverageState {
+  if (count <= 0) return "none";
+  if (count < 3) return "partial";
+  return "full";
+}
+
+/**
+ * Build 8.5: collapse the flat RPC payload into a (mode x region) cell
+ * count map. A single source contributing to (mode, region) counts once
+ * for that cell (the RPC's GROUP BY already dedupes per (transport_mode,
+ * jurisdiction_iso)). When two raw modes both map to one Research label
+ * (e.g. "road" + "rail" both feed the "Road" row), we sum the cell
+ * counts; a source registered for both modes in the same region will
+ * count twice as a deliberate breadth signal (it covers both surface
+ * sub-modes for that jurisdiction).
+ */
+function buildCoverageMatrix(
+  cells: ResearchSourceCoverageCellProp[] | undefined
+): Record<string, Record<string, number>> {
+  const matrix: Record<string, Record<string, number>> = {};
+  for (const mode of COVERAGE_MODES) {
+    matrix[mode] = {};
+    for (const region of COVERAGE_REGIONS) {
+      matrix[mode][region] = 0;
+    }
+  }
+  if (!cells || cells.length === 0) return matrix;
+
+  // Pre-build reverse lookup: raw transport_mode (lowercased) -> Research
+  // label, and raw jurisdiction_iso (uppercased) -> Research region label.
+  const rawModeToLabel = new Map<string, (typeof COVERAGE_MODES)[number]>();
+  for (const label of COVERAGE_MODES) {
+    for (const raw of MODE_TO_RAW_MATCH[label]) {
+      rawModeToLabel.set(raw.toLowerCase(), label);
+    }
+  }
+  const rawIsoToLabel = new Map<string, (typeof COVERAGE_REGIONS)[number]>();
+  for (const label of COVERAGE_REGIONS) {
+    for (const iso of REGION_TO_ISO_MATCH[label]) {
+      rawIsoToLabel.set(iso.toUpperCase(), label);
+    }
+  }
+
+  for (const cell of cells) {
+    const modeLabel = rawModeToLabel.get(cell.transportMode.toLowerCase());
+    const regionLabel = rawIsoToLabel.get(cell.jurisdictionIso.toUpperCase());
+    if (!modeLabel || !regionLabel) continue;
+    matrix[modeLabel][regionLabel] += cell.sourceCount;
+  }
+  return matrix;
+}
 
 // ── Helpers ──
 
@@ -222,8 +322,27 @@ export function ResearchView({
   total,
   shown,
   cap,
+  sourceCoverage,
 }: ResearchViewProps) {
   const [tab, setTab] = useState<"pipeline" | "sources">("pipeline");
+  // Build 8.5: derive (mode x region) source-count matrix from the RPC
+  // payload once per render. Memoize because the prop is array-stable
+  // across renders within a page session (RSC payload is materialized
+  // server-side, not regenerated by client interaction).
+  const coverageMatrix = useMemo(
+    () => buildCoverageMatrix(sourceCoverage),
+    [sourceCoverage]
+  );
+  // Aggregate counts for the empty-state vs has-data branch in the tab.
+  const totalCoverageSources = useMemo(() => {
+    let n = 0;
+    for (const mode of COVERAGE_MODES) {
+      for (const region of COVERAGE_REGIONS) {
+        n += coverageMatrix[mode][region];
+      }
+    }
+    return n;
+  }, [coverageMatrix]);
   const [stageFilter, setStageFilter] = useState<"all" | Stage>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -411,11 +530,11 @@ export function ResearchView({
         >
           {([
             { id: "pipeline" as const, label: "Pipeline" },
-            // Source coverage tab is hidden until the source registry rollup
-            // endpoint exists. The COVERAGE_MATRIX values below are stub
-            // placeholders that would mislead workspace users. Re-enable by
-            // restoring this entry once the rollup endpoint lands.
-            // { id: "sources" as const, label: "Source coverage" },
+            // Build 8.5: Source coverage tab activated. Backed by
+            // get_research_source_coverage() (migration 100). Cell state
+            // derives from real source counts per (transport_mode x
+            // jurisdiction_iso); zero-data cells render as 'none'.
+            { id: "sources" as const, label: "Source coverage" },
           ]).map((t) => (
             <button
               key={t.id}
@@ -437,22 +556,6 @@ export function ResearchView({
               {t.label}
             </button>
           ))}
-          {/* Single-line user-visible note for the deferred Source coverage tab.
-              Per Decision 2, the tab itself stays hidden until the source
-              registry rollup endpoint lands; this signpost tells users it's
-              coming so they don't assume the surface is missing. */}
-          <span
-            style={{
-              marginLeft: "auto",
-              alignSelf: "center",
-              padding: "0 4px",
-              fontSize: 11,
-              color: "var(--text-2)",
-              fontStyle: "italic",
-            }}
-          >
-            Source coverage matrix coming soon
-          </span>
         </div>
 
         {tab === "pipeline" && (
@@ -811,7 +914,9 @@ export function ResearchView({
                         {mode}
                       </td>
                       {COVERAGE_REGIONS.map((region) => {
-                        const state = COVERAGE_MATRIX[mode][region] || "none";
+                        const count = coverageMatrix[mode][region];
+                        const state = coverageStateForCount(count);
+                        const sourceWord = count === 1 ? "source" : "sources";
                         return (
                           <td
                             key={region}
@@ -821,6 +926,7 @@ export function ResearchView({
                               color: "var(--text-2)",
                               borderTop: "1px solid var(--border-sub)",
                             }}
+                            title={`${count} active Research ${sourceWord} registered for ${mode} in ${region}`}
                           >
                             <span
                               style={{
@@ -839,7 +945,12 @@ export function ResearchView({
                                   backgroundColor: COVERAGE_DOT[state],
                                 }}
                               />
-                              {COVERAGE_LABEL[state]}
+                              <span>{COVERAGE_LABEL[state]}</span>
+                              {count > 0 && (
+                                <span style={{ color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
+                                  · {count}
+                                </span>
+                              )}
                             </span>
                           </td>
                         );
@@ -858,7 +969,9 @@ export function ResearchView({
                 fontStyle: "italic",
               }}
             >
-              Coverage values are placeholders pending the source registry rollup endpoint. Item counts and pipeline stages above are live.
+              {totalCoverageSources > 0
+                ? "Cell state derives from the live count of active Research-bound sources per (mode, region). Coverage thresholds: none (0), partial (1-2), full (3+)."
+                : "No active Research-bound sources are registered yet for these regions. Sources surface here once they are classified into the Research category."}
             </p>
           </div>
         )}
