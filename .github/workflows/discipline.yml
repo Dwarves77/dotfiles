@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # fetch-depth: 0 gives full history so:
           #   - push to master: --commit=$GITHUB_SHA can read the commit + its parents
@@ -41,9 +41,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Run discipline engine (push to master)
         if: github.event_name == 'push'
@@ -82,14 +82,14 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         # The unit tests use fixtures (buildContextFromFixture) and do not
         # shell out to git, so a shallow checkout is sufficient.
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Run discipline test suite
         # node --test runs each file in its own process and reports TAP.
@@ -111,14 +111,14 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         # Fitness functions scan the working tree at the checked-out SHA;
         # a shallow checkout is sufficient since they do not consult git history.
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: fsi-app/package-lock.json
 
