@@ -1071,6 +1071,7 @@ function PipelineRow({ item }: { item: ResearchPipelineItem }) {
                 confidence: t.confidence ?? undefined,
               }))}
               layout="inline"
+              maxChips={3}
             />
           )}
           {item.partnerFlagged && (

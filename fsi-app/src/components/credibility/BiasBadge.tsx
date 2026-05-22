@@ -25,6 +25,10 @@
  */
 
 import type { CSSProperties } from "react";
+// Hotfix 2026-05-22: bounded display + "+N more" overflow indicator.
+// Logic lives in a sibling .mjs so it can be unit-tested with node:test
+// (see chip-selection.test.mjs) per the operator's regression-test rule.
+import { selectBiasChipsForDisplay } from "@/lib/credibility/chip-selection.mjs";
 
 export type BiasDimension = "funding" | "methodology" | "stakeholder";
 
@@ -45,6 +49,14 @@ export interface BiasBadgeProps {
    * Default 'inline'.
    */
   layout?: "inline" | "grouped";
+  /**
+   * Cap the number of chips shown in dense list contexts (Dashboard
+   * WeeklyBriefing item card, Research PipelineRow). When set, renders the
+   * top-N chips by confidence and appends a "+M more" pill for the
+   * remainder. Undefined preserves the original "render all" contract for
+   * detail surfaces like ProvenancePanel.
+   */
+  maxChips?: number;
 }
 
 // Per-dimension visual differentiation. Tints are intentionally subtle so the
@@ -112,17 +124,50 @@ function Chip({ tag, dimension }: { tag: string; dimension: BiasDimension }) {
   );
 }
 
-export function BiasBadge({ tags, layout = "inline" }: BiasBadgeProps) {
+function OverflowPill({ remaining }: { remaining: number }) {
+  return (
+    <span
+      title={`${remaining} more bias tag${remaining === 1 ? "" : "s"} (expand source for full provenance)`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.02em",
+        color: "var(--color-text-muted)",
+        backgroundColor: "rgba(0,0,0,0.04)",
+        border: "1px solid var(--color-border)",
+        padding: "2px 6px",
+        borderRadius: 3,
+        lineHeight: 1.2,
+        whiteSpace: "nowrap",
+      }}
+    >
+      +{remaining} more
+    </span>
+  );
+}
+
+export function BiasBadge({ tags, layout = "inline", maxChips }: BiasBadgeProps) {
   if (!tags || tags.length === 0) {
     return null;
   }
 
+  // Apply the bounded-display contract for dense list contexts. When
+  // maxChips is undefined the slice is a no-op (preserves the original
+  // contract for ProvenancePanel and any future detail surface).
+  const { displayed, remaining } = selectBiasChipsForDisplay(tags, maxChips) as {
+    displayed: BiasTag[];
+    remaining: number;
+  };
+
   if (layout === "inline") {
     return (
       <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 4 }}>
-        {tags.map((t, i) => (
+        {displayed.map((t, i) => (
           <Chip key={`${t.dimension}-${t.tag}-${i}`} tag={t.tag} dimension={t.dimension} />
         ))}
+        {remaining > 0 && <OverflowPill remaining={remaining} />}
       </span>
     );
   }
@@ -130,7 +175,7 @@ export function BiasBadge({ tags, layout = "inline" }: BiasBadgeProps) {
   // grouped layout
   const grouped = DIMENSION_ORDER.map((dim) => ({
     dim,
-    items: tags.filter((t) => t.dimension === dim),
+    items: displayed.filter((t) => t.dimension === dim),
   })).filter((g) => g.items.length > 0);
 
   return (
@@ -169,6 +214,7 @@ export function BiasBadge({ tags, layout = "inline" }: BiasBadgeProps) {
           </span>
         </span>
       ))}
+      {remaining > 0 && <OverflowPill remaining={remaining} />}
     </span>
   );
 }

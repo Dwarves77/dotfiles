@@ -92,6 +92,7 @@ if ! node --test \
     fsi-app/.discipline/dispatch/*.test.mjs \
     fsi-app/.discipline/fitness/functions/*.test.mjs \
     fsi-app/.discipline/fitness/runner.test.mjs \
+    fsi-app/src/lib/credibility/*.test.mjs \
     >/tmp/discipline-prepush-t.log 2>&1; then
   echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
   tail -40 /tmp/discipline-prepush-t.log >&2

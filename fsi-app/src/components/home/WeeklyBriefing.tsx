@@ -264,6 +264,7 @@ export function WeeklyBriefing({
                           confidence: t.confidence ?? undefined,
                         }))}
                         layout="inline"
+                        maxChips={3}
                       />
                     )}
                   </div>
