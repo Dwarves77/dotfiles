@@ -13,3 +13,49 @@
 Thumbs.db
 *.swp
 *.swo
+
+# Worktrees (FaDB convention path). Each worktree is its own checkout of the
+# main repo and must not be tracked from the host repo's perspective.
+.worktrees/
+
+# Investigation / migration scratch directory. Convention: everything under
+# this path is one-shot dispatch-execution scratch (apply scripts, preflight
+# snapshots, dryrun outputs, .err / .log captures). Historical entries that
+# predate this rule remain tracked; new files do not appear in git status.
+fsi-app/scripts/tmp/
+
+# One-shot ad-hoc audit / investigation scripts at scripts/ root.
+# Lowercase-snake variants (audit_*.mjs) historically embedded hardcoded
+# Supabase secrets. Kebab-date-stamped audit scripts (audit-*-2026-MM-DD.mjs)
+# and wave1-* discovery scripts are dispatch-bound and not maintained code.
+# Permanent / library scripts use other names (q4-*, phase-*, pr-*, lib/*,
+# cleanup-*) and remain tracked.
+fsi-app/scripts/audit_*.mjs
+fsi-app/scripts/audit-data-*.mjs
+fsi-app/scripts/audit-leadtime-*.mjs
+fsi-app/scripts/audit-relationships.mjs
+fsi-app/scripts/audit-schema.mjs
+fsi-app/scripts/jurisdiction-audit-*.mjs
+fsi-app/scripts/us-state-code-audit-*.mjs
+fsi-app/scripts/wave1-api-discovery*.mjs
+fsi-app/scripts/backfill-classify-metadata-batch-*.mjs
+
+# One-shot pending-migration apply scripts under supabase/seed/. The supabase
+# CLI is the canonical apply mechanism; apply-* are stopgaps for the 006/007
+# history-dispute window. Once the dispute resolves these get removed; in the
+# meantime they regenerate from the migration files themselves.
+fsi-app/supabase/seed/apply-051.mjs
+fsi-app/supabase/seed/apply-pending.mjs
+
+# Raw machine-generated audit outputs under docs/. Authored audit reports
+# (e.g. `docs/cleanup-audit-2026-05-11.md`, `docs/dashboard-payload-audit-*.md`)
+# remain tracked; only the regenerable raw JSON / JSONL captures are ignored.
+# Convention: underscore-prefixed `_audit-*-raw-*` files are the raw drops,
+# and `wave1-*-log.json[l]` / `wave1-track*-routing-applied.json` are the
+# Wave 1a probe captures kept on disk for reference but not source-of-truth.
+docs/_audit-*-raw-*.json
+docs/wave1-api-discovery-*.jsonl
+docs/wave1-api-discovery-*.jsonl.backup
+docs/wave1-cold-start-log.jsonl
+docs/wave1-last-scanned-backfill-log.json
+docs/wave1-track*-routing-applied.json
