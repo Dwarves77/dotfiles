@@ -378,8 +378,15 @@ export function RegulationsSurface({
   );
 
   // Domain 1 = regulatory only on this page.
+  //
+  // Hotfix 2026-05-22 (Issue 3 in /regulations report): the prior
+  // `(r.domain || 1) === 1` silently coerced NULL-domain items into the
+  // regulations bucket, surfacing market_signal / market_news / NJEDA
+  // program items in the kanban. Strict comparison drops anything that
+  // isn't unambiguously domain=1 (regulations). NULL-domain items belong
+  // to ingest's classification gap, not /regulations.
   const regulatory = useMemo(
-    () => resources.filter((r) => (r.domain || 1) === 1),
+    () => resources.filter((r) => r.domain === 1),
     [resources]
   );
 

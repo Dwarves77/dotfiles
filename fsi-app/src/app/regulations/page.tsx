@@ -87,26 +87,34 @@ export default async function RegulationsPage({
 
   console.log(`[perf] /regulations data ${Date.now() - t0}ms`);
 
+  // Hotfix 2026-05-22 (Issues 1 + 2 in /regulations report): the listings
+  // RPC returns all resources across all domains. The /regulations
+  // surface, masthead meta, and DashboardHero tiles must all bucket the
+  // same regulation-only subset, not the raw 645 that mixed in 57
+  // non-regulation items. Strict r.domain === 1 mirrors the post-hotfix
+  // RegulationsSurface filter; both reject NULL-domain items.
+  const regulationResources = data.resources.filter((r) => r.domain === 1);
+
   const jurisdictionsCount = new Set(
-    data.resources.map((r) => r.jurisdiction || "global")
+    regulationResources.map((r) => r.jurisdiction || "global")
   ).size;
   // "Last sync" = most recent resource added to the platform. Resource.added
   // is the ingestion timestamp (Supabase added_date column). If no resources
   // or all timestamps are unparseable, omit the segment rather than show a
   // hardcoded value.
-  const mostRecentAdded = data.resources
+  const mostRecentAdded = regulationResources
     .map((r) => toDate(r.added))
     .filter((d): d is Date => d !== null)
     .reduce<Date | null>((acc, d) => (acc === null || d > acc ? d : acc), null);
   const syncSegment = mostRecentAdded ? ` · last sync ${formatRelative(mostRecentAdded)}` : "";
-  const meta = `${data.resources.length} regulations tracked · ${jurisdictionsCount} jurisdictions${syncSegment}`;
+  const meta = `${regulationResources.length} regulations tracked · ${jurisdictionsCount} jurisdictions${syncSegment}`;
 
   return (
     <>
       <EditorialMasthead
         title="Regulations"
         meta={meta}
-        belowSlot={<DashboardHero resources={data.resources} />}
+        belowSlot={<DashboardHero resources={regulationResources} />}
       />
       <RegulationsSurface
         initialResources={data.resources}
