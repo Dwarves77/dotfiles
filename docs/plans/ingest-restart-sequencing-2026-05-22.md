@@ -75,6 +75,76 @@ This is admin-triggered (community admin promoting a community post). Not auto-i
 
 `/api/community/posts/[id]/promote` is independent of restart but must ship in the same leakage fix for consistency.
 
+## Additional verification: full insert-site sweep (2026-05-22)
+
+After E's report identified 3 insert sites, a follow-up sweep of all `.from("intelligence_items")` usage in `fsi-app/src/app/api/**` found a FOURTH insert path E did not enumerate explicitly:
+
+### Site 4 (transitive): `fsi-app/src/app/api/staged-updates/route.ts:305`
+
+```
+const { data: inserted, error } = await supabase
+  .from("intelligence_items")
+  .insert(insertData)             // <-- insertData = staged_updates.proposed_changes minus 2 stripped fields
+  .select("id")
+  .single();
+```
+
+This is the `applyUpdate` helper's `new_item` branch. It inserts the staged_update's `proposed_changes` blob directly into `intelligence_items`. The `domain` value comes from whatever upstream code populated `proposed_changes` — TODAY, that is `/api/admin/scan/route.ts:252` which hardcodes `domain: 1` AND `item_type: "regulation"`.
+
+**Transitivity**: if Site 2 (admin/scan) is fixed by B4 to stop hardcoding, the values that flow into staged_updates.proposed_changes become correct, and Site 4 inherits the fix automatically. No direct edit needed at Site 4. However, ANY future route that writes to staged_updates with hardcoded `domain` re-introduces the leakage because Site 4 is non-validating.
+
+### Other intelligence_items mutation sites (not insert; non-risk)
+
+- `agent/run/route.ts:680` — UPDATE on existing items; preserves existing domain unless the update payload includes one. Reviewed: the update payload does not set `domain`. Safe.
+- `staged-updates/route.ts:316, 329, 347` — UPDATE / status_change / archive_item branches of `applyUpdate`. None set `domain`. Safe.
+- `admin/canonical-sources/decide/route.ts:280`, `bulk-approve/route.ts:202`, `bulk-classify/route.ts:189`, `recommend-classification/route.ts:202` — sources-table operations that read intelligence_items for joins; do not insert. Safe.
+- `admin/integrity-flags/*` — flag CRUD; reads + UPDATEs only. Safe.
+- `admin/sources/[id]/regenerate-brief/route.ts:97` — UPDATE only. Safe.
+- `intelligence-items/[id]/metadata/route.ts` — UPDATE only. Safe.
+- `workspace/overrides/route.ts:26` — workspace_item_overrides; does not touch intelligence_items.domain. Safe.
+
+### Worker entry point auth + cadence triggerability
+
+| Route | Auth | Programmatic-cron-triggerable | Notes |
+|---|---|---|---|
+| `/api/worker/drain-first-fetch` | `x-worker-secret` header (per route comment line 26-30) | YES (cron sends header) | Consumes `pending_first_fetch` queue |
+| `/api/worker/check-sources` | `x-worker-secret` header (line 24-28) | YES (cron sends header) | Source-health monitor only; no intelligence_items insert |
+| `/api/admin/scan` | `requireAuth` + `isPlatformAdmin` user-session | NOT cron-triggerable today (would need WORKER_SECRET path added OR cron-as-admin-user) | If restart wraps scan, this gate must be relaxed or a parallel cron-friendly variant must be built |
+
+So the most natural cron integration point is **drain-first-fetch** — already cron-secret-gated, already drains a queue, just needs the cron to fill `pending_first_fetch` on per-source-type cadence (probably via a thin enqueue-by-source-type cron route).
+
+If a restart path uses `/api/admin/scan` instead, that route's auth model needs adjustment first (its current `requireAuth + isPlatformAdmin` blocks cron).
+
+### Is `community/posts/promote` on ANY scheduled path?
+
+Reviewed. The route requires:
+- An authenticated session
+- A community admin role check
+- A POST body referencing a specific `posts.id` and a `kind` field
+
+There is no time-based trigger anywhere in the codebase that would synthesize the required body + auth context. **NOT on any scheduled-ingest path** today. If a future "auto-promote highest-engagement community post weekly" feature ships, this route would become time-triggered. Worth flagging as a future consideration but not blocking.
+
+### Verdict: B4 sufficiency
+
+**B4 as scoped (classifier emits domain + all 3 hardcoded sites stop hardcoding) PROTECTS every plausible scheduled-ingest path TODAY**, because:
+
+1. **drain-first-fetch:276** is the primary cron path. Direct fix.
+2. **admin/scan:252** is the secondary cron candidate (if restart wraps scan). Direct fix. Also covers Site 4 transitively.
+3. **community/posts/promote:370** is not scheduled but fixed anyway for consistency.
+4. **staged-updates:305** is fixed transitively via admin/scan.
+
+**Defense-in-depth recommendation (additive to B4, optional)**: add a validation guard in `applyUpdate.new_item` that warns/rejects when `proposed_changes.domain === 1` but `proposed_changes.item_type` clearly implies a non-regulation surface (e.g., `market_signal`, `research_finding`, `technology`). This catches future routes that write to staged_updates with hardcoded values, before they reach intelligence_items. Cost: ~10 lines + a 1-time vocabulary maintenance burden as item_types evolve. Operator can choose to add this in the same B4 dispatch or defer.
+
+**New architecture risk**: if a future ingest dispatch builds a NEW worker route (not drain-first-fetch / admin/scan), it inherits classifier output if it uses the same classifier, but a developer could still hardcode `domain: 1` in a new insert. The validation guard above is the best defense. Otherwise the leakage class is "re-introducible by future code change". Worth a fitness function (F-class check) that grep-blocks new `domain: 1` literals in `intelligence_items.insert` payloads, but that's separate engine work.
+
+### One follow-up surface limitation (not B4 scope; surfaced by backfill plan)
+
+The backfill plan dispatch (`4c934e1`) surfaced that `surface-coverage.ts` and other surface filters route /research by `item_type === 'research_finding'`, not by `domain === 7`. After backfill executes, the 14 framework + 7 initiative rows moved to d=7 become semantically correct in domain but do NOT surface on /research until either:
+- Application code adds d=7 to the /research filter, OR
+- REC-OBS-G remediation wires the category-aware RPCs end-to-end on /research
+
+This is a Fix D (architectural cleanup) concern, NOT a leakage-fix concern. Domain backfill alone fully fixes /regulations (193+ leaks resolved); partial impact on /market and /operations; minimal impact on /research until D lands.
+
 ## Sequence going forward
 
 | Step | Owner | Gating |
