@@ -379,12 +379,16 @@ export function RegulationsSurface({
 
   // Domain 1 = regulatory only on this page.
   //
-  // Hotfix 2026-05-22 (Issue 3 in /regulations report): the prior
-  // `(r.domain || 1) === 1` silently coerced NULL-domain items into the
-  // regulations bucket, surfacing market_signal / market_news / NJEDA
-  // program items in the kanban. Strict comparison drops anything that
-  // isn't unambiguously domain=1 (regulations). NULL-domain items belong
-  // to ingest's classification gap, not /regulations.
+  // Hotfix 2026-05-22: strict equality on r.domain. Originally framed as
+  // closing the EIA / NJEDA classification leakage, but the post-hotfix DB
+  // query showed zero NULL-domain items, so this change is DEFENSIVE
+  // PROPHYLAXIS only and does NOT close that leakage. The leakage items
+  // (item_type=market_signal but domain=1) bypass this filter because
+  // their domain is genuinely 1; the bug is upstream in the ingest
+  // classifier. See dispatch E (ingest pipeline investigation) for the
+  // real fix. The strict comparison is still worth keeping: when the
+  // classifier is fixed and starts emitting NULL for unrecognized
+  // item_types, this filter will reject them instead of coercing.
   const regulatory = useMemo(
     () => resources.filter((r) => r.domain === 1),
     [resources]

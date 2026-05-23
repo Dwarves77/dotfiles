@@ -91,8 +91,13 @@ export default async function RegulationsPage({
   // RPC returns all resources across all domains. The /regulations
   // surface, masthead meta, and DashboardHero tiles must all bucket the
   // same regulation-only subset, not the raw 645 that mixed in 57
-  // non-regulation items. Strict r.domain === 1 mirrors the post-hotfix
-  // RegulationsSurface filter; both reject NULL-domain items.
+  // non-regulation items.
+  //
+  // The strict comparison (vs `r.domain || 1 === 1`) is defensive
+  // prophylaxis only at this point: the post-hotfix DB query showed
+  // zero NULL-domain items, so coercion was not the live cause of the
+  // leakage. The live cause is items with item_type=market_signal AND
+  // domain=1 (ingest classifier bug); see dispatch E.
   const regulationResources = data.resources.filter((r) => r.domain === 1);
 
   const jurisdictionsCount = new Set(
