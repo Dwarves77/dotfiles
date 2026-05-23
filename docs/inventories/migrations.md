@@ -103,6 +103,7 @@
 | 098 | 098_get_source_citation_stats_edge_table.sql | Migration 098: get_source_citation_stats body swap. |
 | 099 | 099_tier_opinion_review_state.sql | Migration 099: tier-opinion review state (dismissed_at/by/reason) + RLS for Phase 7 disagreement review surface. |
 | 100 | 100_research_source_coverage_rpc.sql | Migration 100: get_research_source_coverage RPC. |
+| 101 | 101_intelligence_items_domain_backfill.sql | Migration 101 (PROPOSED, NOT APPLIED): intelligence_items.domain backfill per docs/plans/classification-backfill-plan-2026-05-22.md. |
 
 ## Maintenance trigger
 
