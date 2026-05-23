@@ -73,6 +73,27 @@
 BEGIN;
 
 -- ─────────────────────────────────────────────────────────────────────
+-- 0. OPERATOR OVERRIDES (per-item dispositions from the 7-row ambiguous
+--    review on 2026-05-22). Runs BEFORE the snapshot so the audit table
+--    captures the post-override routing for affected rows; the rule's
+--    CASE expression naturally picks up these changes (initiative +
+--    source.category='research' -> d=7 per the branch already in step 1).
+--    Keeping these in the same BEGIN/COMMIT preserves atomicity.
+-- ─────────────────────────────────────────────────────────────────────
+
+-- Override 1: Centre for Sustainable Road Freight is an academic research
+-- centre, not a market_news source. Setting source.category='research'
+-- routes its 1 attached item (Project JOLT, item_type='initiative') to
+-- d=7 (Research) via the existing rule branch on line 132, instead of
+-- the default d=4 (Market Intel) the `initiative + null_source` fallback
+-- would otherwise apply. Also unblocks /research surface visibility post-
+-- backfill (/research filters by source.category='research' via
+-- get_research_items RPC + surface-coverage.ts).
+UPDATE public.sources
+SET category = 'research'
+WHERE id = 'b8ff2ebb-ab9a-456c-b3c9-8f869fb64f88';
+
+-- ─────────────────────────────────────────────────────────────────────
 -- 1. PRE-STATE CAPTURE (audit table). Mirrors all rows that will be
 --    inspected; idempotent via IF NOT EXISTS but DROP first if you want
 --    to re-snapshot pre-state on rerun.
@@ -230,11 +251,31 @@ BEGIN
   END IF;
 END $$;
 
+-- ─────────────────────────────────────────────────────────────────────
+-- 4. OPERATOR OVERRIDES, defensive post-integrity confirmations.
+--    These are no-ops if step 0's source UPDATE made the rule route
+--    these items correctly. Included per operator's explicit request
+--    so the per-item disposition is visible in the migration file at
+--    the row-id level (audit trail by direct reference, not via the
+--    source.category transitive routing).
+-- ─────────────────────────────────────────────────────────────────────
+
+-- Override 2: Project JOLT must land in domain=7 (Research). Defensive
+-- no-op: step 0 set source.category='research' on its source, so the
+-- snapshot rule already routes this row to proposed_domain=7 and step
+-- 2 already applied it. This explicit UPDATE makes the per-item
+-- decision visible at the SQL level without depending on transitive
+-- source-side state.
+UPDATE public.intelligence_items
+SET domain = 7
+WHERE id = 'b813d0a5-211b-4b56-9cee-503087c11486';
+
 COMMIT;
 
 
 -- ═══════════════════════════════════════════════════════════════════════
--- REVERSE: re-apply old_domain values from the audit table.
+-- REVERSE: re-apply old_domain values from the audit table + restore
+-- pre-override source.category for JOLT's source.
 -- ═══════════════════════════════════════════════════════════════════════
 --
 -- Run this block to roll back the migration. The audit table is the
@@ -242,6 +283,15 @@ COMMIT;
 --
 -- BEGIN;
 --
+-- -- Revert override 1: restore source.category=NULL on JOLT's source
+-- -- (pre-migration state captured 2026-05-22). If the operator has
+-- -- separately classified this source since the migration ran, DO NOT
+-- -- run this line; it overwrites that work.
+-- UPDATE public.sources
+-- SET category = NULL
+-- WHERE id = 'b8ff2ebb-ab9a-456c-b3c9-8f869fb64f88';
+--
+-- -- Revert backfill UPDATE: restore old_domain on every audited row
 -- UPDATE public.intelligence_items ii
 -- SET domain = a.old_domain
 -- FROM public.intelligence_items_domain_backfill_audit a
@@ -266,7 +316,10 @@ COMMIT;
 -- Note: the audit table itself is intentionally NOT dropped on reverse.
 -- It preserves the change history. Operator may DROP TABLE
 -- intelligence_items_domain_backfill_audit; manually after confirming
--- the reverse landed cleanly.
+-- the reverse landed cleanly. The reverse does NOT capture pre-override
+-- source.category history beyond JOLT's source; if other source UPDATEs
+-- accumulate post-migration, capture them separately before running
+-- this reverse.
 
 
 -- ═══════════════════════════════════════════════════════════════════════
@@ -278,16 +331,19 @@ COMMIT;
 -- rows. The expected counts come from the live data snapshot the
 -- backfill plan dispatch captured at 2026-05-22.
 --
--- (V1) Per-domain count check. Expected after backfill (snapshot 2026-05-22):
+-- (V1) Per-domain count check. Expected after backfill (snapshot 2026-05-22,
+-- updated 2026-05-22 for operator overrides):
 --   d=1: 395 items
 --   d=2: 24
 --   d=3: 78
---   d=4: 84
---   d=7: 65
---   (d=5 and d=6 should be 0; no items route there under the rule.)
+--   d=4: 83   (was 84 pre-override; JOLT moved to d=7 by override 2)
+--   d=7: 66   (was 65 pre-override; JOLT moved in by override 2)
+--   (d=5 and d=6 should remain at their pre-backfill counts (~8 and ~4)
+--    since the rule does not route to those domains; the existing rows
+--    there are legacy data this backfill does not touch.)
 -- The actual counts may drift by a small amount if new items have been
 -- inserted since snapshot. The shape and sign of the change is what
--- matters: d=1 drops from 588 to ~395; d=4 grows from 16 to ~84.
+-- matters: d=1 drops from 588 to ~395; d=4 grows from 16 to ~83.
 --
 -- SELECT domain, COUNT(*) AS items
 -- FROM public.intelligence_items
@@ -307,7 +363,11 @@ COMMIT;
 --
 -- (V3) Audit-table sanity. The audit table should have exactly the
 -- moved-row count (snapshot expected 212 rows on 2026-05-22). Each
--- row's certainty is one of {high, medium, ambiguous}. Roll-up:
+-- row's certainty is one of {high, medium, ambiguous}. After the
+-- 2026-05-22 operator override (source.category='research' on JOLT's
+-- source applied before snapshot), JOLT moves from certainty='ambiguous'
+-- to certainty='high'; expected ambiguous-row count drops from 7 to 6.
+-- Roll-up:
 --
 -- SELECT certainty, rule_branch, COUNT(*) AS moves
 -- FROM public.intelligence_items_domain_backfill_audit
@@ -332,11 +392,14 @@ COMMIT;
 -- FROM ranked WHERE rn <= 5
 -- ORDER BY dest_domain, rn;
 --
--- (V5) Ambiguous rows list (certainty='ambiguous'). Expected 7 rows on
--- 2026-05-22 snapshot; each is an `initiative` with a source that has
--- no source_role or category set in the sources registry. Operator
--- decision needed per row; see
--- docs/plans/classification-backfill-ambiguous-2026-05-22.md.
+-- (V5) Ambiguous rows list (certainty='ambiguous'). Expected 6 rows
+-- after the 2026-05-22 operator overrides (down from 7; JOLT resolved
+-- by override 1 + 2). Each remaining row is an `initiative` with a
+-- source that has no category set in the sources registry. Per-row
+-- operator dispositions (all 6 to default d=4 Market Intel) recorded in
+-- docs/plans/classification-backfill-ambiguous-2026-05-22.md. The 6
+-- sources need source_role + category cleanup as a separate followup
+-- dispatch so future backfills do not re-encounter the same gap.
 --
 -- SELECT a.id, ii.title, a.source_name, a.old_domain,
 --        a.proposed_domain, a.rule_branch
