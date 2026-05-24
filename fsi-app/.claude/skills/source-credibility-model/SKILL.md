@@ -302,6 +302,8 @@ Per Q9. Per-surface signal sets with consistent vocabulary across surfaces. Asym
 | Map | tier (overlay over Regulations) |
 | Assistant | inline citations with full provenance |
 
+**Canonical domain INT-to-surface mapping** (1-7): see `fsi-app/src/lib/domains.ts` for the single source of truth consumed by both the Haiku classifier (via `domainForItemType`) and the surface filters on /regulations, /market, /operations, /research, and the Dashboard surface-coverage widget. Domain integers MUST NOT be hardcoded outside that file; use the named exports (`REGULATIONS_DOMAIN`, `RESEARCH_DOMAIN`, etc.) instead. The migration 101 routing rule is the authoritative branch logic and is mirrored verbatim in `domainForItemType`.
+
 ### Per-surface implementation is build-dispatch scope
 
 This section specifies WHAT signals each surface foregrounds. Build dispatches specify HOW (visual treatment, badge style, expand-on-click panel structure, color coding). Per-surface implementation lands per Tier 4 build:

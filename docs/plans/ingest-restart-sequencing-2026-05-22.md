@@ -147,15 +147,29 @@ This is a Fix D (architectural cleanup) concern, NOT a leakage-fix concern. Doma
 
 ## Sequence going forward
 
-| Step | Owner | Gating |
-|---|---|---|
-| **a.** Wait for backfill plan agent to land | Background agent | None |
-| **b.** Operator approves backfill migration; backfill executes; existing 193+ items reclassified | Operator + manual migration run | Operator signoff on migration SQL |
-| **c.** Leakage fix dispatch lands: B4 path + insert sites stop hardcoding domain=1 + classifier emits domain + INT-to-label mapping documented | Dispatch (TBD) | Operator approval on dispatch scope |
-| **d.** Verify backfill + leakage fix together produce correct domain assignment on a test item before any ingest restart | Manual smoke test | None gating, but blocking for step e |
-| **e.** Ingest restart planning resumes: A-path choice + cost gating + per-source cadence + cron scheduling | Separate dispatch | Separate operator authorization |
+| Step | Owner | Gating | Status |
+|---|---|---|---|
+| **a.** Wait for backfill plan agent to land | Background agent | None | DONE (`4c934e1`) |
+| **b.** Operator approves backfill migration; backfill executes; existing items reclassified | Operator + manual migration run | Operator signoff on migration SQL | DONE 2026-05-23 (migration 101 applied; 212 moves; V1/V3/V5 all OK) |
+| **c.** Leakage fix dispatch lands: B4 path + insert sites stop hardcoding + classifier emits domain + INT-to-label mapping documented | Dispatch | Operator approval on dispatch scope | DONE 2026-05-23 (merged at `4ca7fbd`) |
+| **d.** Verify backfill + leakage fix together produce correct domain assignment on a test item before any ingest restart | Manual smoke test | None gating, but blocking for step e | PENDING |
+| **e.** Ingest restart planning resumes: A-path choice + cost gating + per-source cadence + cron scheduling + verification gates listed below | Separate dispatch | Separate operator authorization | PENDING |
 
 Each step gates the next. Skipping ahead reintroduces the leakage class.
+
+## Pre-ingest-restart verification gates (operator binding)
+
+Before ANY ingest reactivation, the following MUST pass. Added 2026-05-23 from the leakage-fix dispatch caveats. Lives here so the ingest-restart dispatch picks them up explicitly.
+
+1. **Haiku synthetic eval** on 5-10 mixed sources (regulatory + market_signal + research_finding + regional_data + technology + initiative+research). Validates that the classifier's new domain-emission prompt produces correct domain assignments. Failure mode if Haiku gets domain wrong: items land at the `domainForItemType` fallback (rule-correct, so no leakage), but eval matters for minimizing the fallback rate. Output: per-source actual-vs-expected domain accuracy report; flag any < 80% per-class accuracy for prompt refinement.
+
+2. **`admin/scan` live verification** — the route's Sonnet prompt was extended to request `item_type` per finding (was hardcoded to "regulation"). Tested only structurally in the leakage-fix dispatch (closed-enum validator + fallback). Run one admin-initiated scan against a representative source URL and verify the resulting staged_updates row carries the correct item_type + derived domain, not the legacy hardcoded values.
+
+3. **A1 / A2 / A3 cost gating decision** (per dispatch E) — separate operator decision on the cost-discipline gate (Anthropic API spend on per-source-type cron cadence). The cost-discipline rule (manual controls + kill switch + visible spend cap) MUST be wired BEFORE any cron fires.
+
+4. **Smoke-test single test item** — drain a single source via `pending_first_fetch` (or invoke drain-first-fetch directly with a test source URL via the WORKER_SECRET header), confirm the resulting intelligence_item carries (a) a non-null domain emitted by the classifier OR a NULL domain caught by the strict downstream filter, (b) correct item_type, (c) routes correctly on its destination surface. NOT a regulation-as-default.
+
+Gates 1, 2, 4 are technical verifications; 3 is an operator decision. All four are independent and can run in parallel once the operator authorizes a verification window.
 
 ## What the leakage fix dispatch must cover (when authorized)
 
