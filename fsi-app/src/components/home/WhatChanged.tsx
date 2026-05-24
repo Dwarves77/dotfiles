@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
+import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface WhatChangedProps {
   resources: Resource[];
@@ -67,9 +68,17 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   const newResources = resources.filter((r) => r.added && r.added >= cutoff);
   const changedIds = Object.keys(changelog);
   const changed = resources.filter((r) => changedIds.includes(r.id));
-  void auditDate; // kept on prop signature for parent backward-compat
 
-  if (newResources.length === 0 && changed.length === 0) return null;
+  // Hotfix 2026-05-23: previously this component returned null when both
+  // newResources and changed were empty, which silently removed the entire
+  // section from the home page. During the build-time ingest pause that
+  // hides the fact that no items have been added recently. Render the
+  // header + "last updated" line unconditionally; show an empty-state
+  // body only when there is genuinely nothing new or updated.
+  const auditDateObj = toDate(auditDate);
+  const lastUpdatedLabel = auditDateObj
+    ? `Last updated ${formatRelative(auditDateObj)}`
+    : "Last updated unavailable";
 
   const newRows: ItemRow[] = newResources.map((r) => ({
     id: `new-${r.id}`,
@@ -106,7 +115,9 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   const newCriticalCount = newRows.filter((r) => r.priorityForLabel === "CRITICAL").length;
 
   const summary =
-    newCriticalCount > 0
+    total === 0
+      ? "No new or updated items in the last 7 days."
+      : newCriticalCount > 0
       ? `${newCriticalCount} new critical item${newCriticalCount === 1 ? "" : "s"} entered scope this audit.`
       : `${total} change${total === 1 ? "" : "s"} since last audit — review and update workflows accordingly.`;
 
@@ -117,16 +128,34 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
     >
       <div
         style={{
-          fontSize: 18,
-          fontWeight: 800,
-          letterSpacing: "-0.01em",
-          color: "var(--color-text-primary)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 12,
           marginBottom: 12,
           paddingBottom: 12,
           borderBottom: "1px solid var(--color-border)",
         }}
       >
-        What changed — {total} since last audit
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 800,
+            letterSpacing: "-0.01em",
+            color: "var(--color-text-primary)",
+          }}
+        >
+          What changed — {total} since last audit
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--color-text-muted)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {lastUpdatedLabel}
+        </div>
       </div>
       <p
         style={{
