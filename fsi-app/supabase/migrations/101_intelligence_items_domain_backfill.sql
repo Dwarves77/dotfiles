@@ -332,18 +332,27 @@ COMMIT;
 -- backfill plan dispatch captured at 2026-05-22.
 --
 -- (V1) Per-domain count check. Expected after backfill (snapshot 2026-05-22,
--- updated 2026-05-22 for operator overrides):
+-- updated 2026-05-23 from a literal rule simulation against current data
+-- to reconcile with the 646 corpus size; prior values had d=6=4 which
+-- conflicted with the actual rule behaviour):
 --   d=1: 395 items
 --   d=2: 24
 --   d=3: 78
 --   d=4: 83   (was 84 pre-override; JOLT moved to d=7 by override 2)
+--   d=5: 0    (rule re-routes ALL 8 pre-existing d=5 items elsewhere via
+--              their item_type branches; rule does not produce d=5 as a
+--              target value, but its WHERE-clause-driven snapshot picks
+--              up the d=5 rows because the rule's CASE evaluates to a
+--              non-d=5 value for each of them)
+--   d=6: 0    (same dynamic as d=5; all 4 pre-existing d=6 items have
+--              item_types the rule re-routes to {1,2,3,4,7})
 --   d=7: 66   (was 65 pre-override; JOLT moved in by override 2)
---   (d=5 and d=6 should remain at their pre-backfill counts (~8 and ~4)
---    since the rule does not route to those domains; the existing rows
---    there are legacy data this backfill does not touch.)
+-- Totals: 395 + 24 + 78 + 83 + 0 + 0 + 66 = 646 (matches pre-migration
+-- non-archived corpus; reconciles cleanly).
 -- The actual counts may drift by a small amount if new items have been
 -- inserted since snapshot. The shape and sign of the change is what
--- matters: d=1 drops from 588 to ~395; d=4 grows from 16 to ~83.
+-- matters: d=1 drops from 588 to ~395; d=4 grows from 16 to ~83;
+-- d=5 and d=6 empty out completely.
 --
 -- SELECT domain, COUNT(*) AS items
 -- FROM public.intelligence_items
