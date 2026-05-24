@@ -44,6 +44,7 @@ import {
   type PriorityKey,
 } from "@/lib/constants";
 import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import type { Resource } from "@/types/resource";
 import {
   REGULATIONS_SECTOR_CHIPS,
@@ -390,7 +391,7 @@ export function RegulationsSurface({
   // classifier is fixed and starts emitting NULL for unrecognized
   // item_types, this filter will reject them instead of coercing.
   const regulatory = useMemo(
-    () => resources.filter((r) => r.domain === 1),
+    () => resources.filter((r) => r.domain === REGULATIONS_DOMAIN),
     [resources]
   );
 

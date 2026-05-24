@@ -66,6 +66,7 @@ import { CitationCountChip } from "@/components/credibility/CitationCountChip";
 import { RecencyChip } from "@/components/credibility/RecencyChip";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates, SourceCitationStatsMap } from "@/lib/data";
+import { MARKET_TECH_DOMAIN, MARKET_SIGNALS_DOMAIN } from "@/lib/domains";
 
 interface MarketPageProps {
   initialResources: Resource[];
@@ -146,13 +147,13 @@ export function MarketPage({ initialResources, aggregates, citationStats = {} }:
   const techItems = useMemo(
     () =>
       initialResources.filter(
-        (r) => r.type === "technology" || r.type === "innovation" || r.domain === 2
+        (r) => r.type === "technology" || r.type === "innovation" || r.domain === MARKET_TECH_DOMAIN
       ),
     [initialResources]
   );
 
   const priceItems = useMemo(
-    () => initialResources.filter((r) => r.type === "market_signal" || r.domain === 4),
+    () => initialResources.filter((r) => r.type === "market_signal" || r.domain === MARKET_SIGNALS_DOMAIN),
     [initialResources]
   );
 

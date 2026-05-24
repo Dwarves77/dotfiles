@@ -287,6 +287,32 @@ async function applyUpdate(
           ...insertData
         } = proposed;
 
+        // Leakage fix defense-in-depth 2026-05-23 (B4 per
+        // caros-ledge-platform-intent REC-OBS-G): warn (do not reject)
+        // when the proposed item_type / domain pair matches the old
+        // hardcoded-domain bug pattern (item_type is unambiguously
+        // non-regulation but domain=1). Catches future routes that bypass
+        // the classifier and re-introduce the leakage class. Warn-only
+        // because some legitimate edge cases may exist; do not throw.
+        const _itemType = (insertData as { item_type?: unknown }).item_type;
+        const _domain = (insertData as { domain?: unknown }).domain;
+        const NON_REG_TYPES = new Set([
+          "market_signal",
+          "research_finding",
+          "regional_data",
+          "technology",
+          "innovation",
+        ]);
+        if (
+          _domain === 1 &&
+          typeof _itemType === "string" &&
+          NON_REG_TYPES.has(_itemType)
+        ) {
+          console.warn(
+            `[staged-updates] suspicious insert: item_type=${_itemType} but domain=1; possible bypass of classifier (staged_update_id=${update.id})`
+          );
+        }
+
         // Idempotency: if a prior approval attempt for THIS staged_update
         // already produced an intel item (legacy_id matches), return it
         // instead of inserting a duplicate.

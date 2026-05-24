@@ -19,6 +19,32 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { asDomain, domainForItemType, type Domain } from "@/lib/domains";
+
+// Closed enum from intelligence_items.item_type CHECK constraint
+// (migration 004). Used to validate the per-regulation item_type the
+// Sonnet scan emits so the staged_updates payload no longer hardcodes
+// item_type="regulation" for every finding.
+const ITEM_TYPES = new Set([
+  "regulation",
+  "directive",
+  "standard",
+  "guidance",
+  "framework",
+  "technology",
+  "innovation",
+  "tool",
+  "regional_data",
+  "market_signal",
+  "initiative",
+  "research_finding",
+]);
+
+function normalizeItemType(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.toLowerCase().trim();
+  return ITEM_TYPES.has(v) ? v : null;
+}
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -139,6 +165,7 @@ If a regulation has both a state-level instrument and a federal preemption / wai
 
 For each regulation you find, provide ALL of these fields:
 - title: Official name of the regulation
+- item_type: One of regulation | directive | standard | guidance | framework. Pick the most specific value for the legal instrument. "regulation" for binding rules with regulatory force; "directive" for EU-style directives requiring national transposition; "standard" for technical/industry standards; "guidance" for regulator interpretive guidance (non-binding); "framework" for higher-level policy frameworks. NEVER default to "regulation" when one of the more specific values applies.
 - what_is_it: Plain language explanation citing the specific legal instrument (directive/regulation number, Official Journal reference, state register citation, port authority tariff number), jurisdiction, and enforcement body. 2-3 sentences minimum.
 - why_matters: How this regulation affects freight forwarding operations — pricing, procurement, carrier contracts, customer reporting, customs processes, or route planning. Include specific cost mechanisms (surcharges, penalties, allowance costs) with real figures or ranges. No generic "this is important" language. 3-4 sentences minimum.
 - key_data: Array of hard data points — effective dates, penalty amounts, phase-in percentages, tonnage thresholds, compliance deadlines. Every bullet must be specific and sourced.
@@ -238,9 +265,27 @@ Return ONLY the JSON object, no other text.`,
       }
     }
 
-    // Stage regulations as proposed updates for admin review
+    // Stage regulations as proposed updates for admin review.
+    //
+    // Leakage fix 2026-05-23 (B4 per caros-ledge-platform-intent
+    // REC-OBS-G): item_type comes from the Sonnet scan output (validated
+    // against the closed enum) instead of the historical hardcoded
+    // "regulation" default that buried directives, standards, guidance,
+    // and frameworks under a single label. domain is derived from
+    // item_type via the canonical routing helper; NULL passes through
+    // when the scan emitted an unrecognized item_type (downstream
+    // staged-updates guard catches the residual cases).
+    //
+    // source.category is not joined here (the scan invents URLs that may
+    // not yet match any sources row), so framework / tool / initiative
+    // disambiguation falls through to the default branch in
+    // domainForItemType. Scan is regulations-focused per prompt so the
+    // default branches (framework -> 1, tool -> 2, initiative -> 4) are
+    // the same calls the admin would make on triage.
     const stagedItems = [];
     for (const item of newItems.slice(0, 10)) {
+      const itemType = normalizeItemType((item as { item_type?: unknown }).item_type) ?? "regulation";
+      const domain: Domain | null = domainForItemType(itemType, null);
       const { error } = await supabase.from("staged_updates").insert({
         update_type: "new_item",
         proposed_changes: {
@@ -249,8 +294,8 @@ Return ONLY the JSON object, no other text.`,
           what_is_it: item.what_is_it || "",
           why_matters: item.why_matters || "",
           key_data: item.key_data || [],
-          domain: 1,
-          item_type: "regulation",
+          domain: asDomain(domain),
+          item_type: itemType,
           jurisdictions: item.jurisdiction ? [item.jurisdiction.toLowerCase()] : ["global"],
           transport_modes: item.transport_modes || [],
           priority: item.priority || "MODERATE",

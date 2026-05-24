@@ -4,6 +4,7 @@ import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
 import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
 import { firstFetchClassify } from "@/lib/llm/first-fetch-classify";
+import type { Domain, SourceCategory } from "@/lib/domains";
 
 /**
  * POST /api/worker/drain-first-fetch
@@ -86,6 +87,10 @@ interface SourceRow {
   api_auth_method: string | null;
   api_response_format: string | null;
   rss_feed_url: string | null;
+  // Leakage fix 2026-05-23: category passed to the Haiku classifier so it
+  // can disambiguate framework / tool / initiative correctly per migration
+  // 101's CASE rule.
+  category: string | null;
 }
 
 interface DrainResultRow {
@@ -202,6 +207,10 @@ async function preFetchAndClassify(
         // Phase 1.5: effective_tier per skill Section 4 (classifier input
         // wants the dynamic credibility signal; fall back to base_tier).
         source_tier: source.effective_tier ?? source.base_tier,
+        // Leakage fix 2026-05-23: pass source.category so the Haiku
+        // classifier can disambiguate framework / tool / initiative per
+        // the routing rule embedded in its prompt.
+        source_category: (source.category ?? null) as SourceCategory,
         text,
       },
       ANTHROPIC_API_KEY
@@ -217,6 +226,7 @@ async function preFetchAndClassify(
       priority: cls.result.priority,
       urgency_tier: cls.result.urgency_tier,
       item_type: cls.result.item_type,
+      domain: cls.result.domain,
       topic_tags: cls.result.topic_tags,
       jurisdictions: cls.result.jurisdictions,
       cost_usd_estimated: cls.result.cost_usd_estimated,
@@ -239,6 +249,11 @@ interface HaikuEnrichment {
   priority: string;
   urgency_tier: string;
   item_type: string;
+  /** Domain 1-7 emitted by Haiku per the routing rule, or NULL when the
+   *  classifier could not route. Leakage fix 2026-05-23: the seed row MUST
+   *  pass NULL through to the column instead of the historical hardcoded
+   *  1 default. */
+  domain: Domain | null;
   topic_tags: string[];
   jurisdictions: string[];
   cost_usd_estimated: number;
@@ -270,10 +285,17 @@ async function seedStubIntelligenceItem(
     return { ok: true, itemId: existing.id };
   }
 
+  // Leakage fix 2026-05-23 (B4 per caros-ledge-platform-intent REC-OBS-G):
+  // domain is sourced from the classifier output (enrichment.domain) which
+  // is itself validated to 1-7 by asDomain() and falls back to
+  // domainForItemType() when Haiku omitted the field. NULL passes through
+  // to the column instead of the historical hardcoded 1 default; the
+  // /regulations strict filter (added in the 2026-05-22 hotfix) keeps
+  // NULL-domain rows off the surface so they appear in the triage queue.
   const seedRow: Record<string, unknown> = {
     source_id: source.id,
     source_url: source.url,
-    domain: 1,
+    domain: enrichment?.domain ?? null,
     status: "monitoring",
     pipeline_stage: "draft",
   };
@@ -416,7 +438,7 @@ export async function POST(request: NextRequest) {
     const { data: source, error: srcErr } = (await supabase
       .from("sources")
       .select(
-        "id, url, name, status, processing_paused, auto_run_enabled, base_tier, effective_tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url"
+        "id, url, name, status, processing_paused, auto_run_enabled, base_tier, effective_tier, access_method, api_endpoint_url, api_auth_method, api_response_format, rss_feed_url, category"
       )
       .eq("id", row.source_id)
       .maybeSingle()) as { data: SourceRow | null; error: { message: string } | null };

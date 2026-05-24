@@ -22,6 +22,7 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
 import { formatRelative, toDate } from "@/lib/relative-time";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
 
 /**
  * Hotfix-3 Fix #3 (2026-05-07): platform-total count is workspace-agnostic
@@ -98,7 +99,7 @@ export default async function RegulationsPage({
   // zero NULL-domain items, so coercion was not the live cause of the
   // leakage. The live cause is items with item_type=market_signal AND
   // domain=1 (ingest classifier bug); see dispatch E.
-  const regulationResources = data.resources.filter((r) => r.domain === 1);
+  const regulationResources = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
 
   const jurisdictionsCount = new Set(
     regulationResources.map((r) => r.jurisdiction || "global")
