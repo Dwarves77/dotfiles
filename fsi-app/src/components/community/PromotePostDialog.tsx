@@ -26,6 +26,7 @@ import type {
   PromotePostButtonPost,
   PromotePostButtonUser,
 } from "./PromotePostButton";
+import { DOMAIN_LABELS, type Domain } from "@/lib/domains";
 
 const ITEM_TYPES = [
   { value: "regulation", label: "Regulation" },
@@ -48,6 +49,23 @@ const PRIORITIES = [
   { value: "MODERATE", label: "Moderate" },
   { value: "LOW", label: "Low" },
 ] as const;
+
+// Admin-selectable destination surface for kind='direct' promotions.
+// Leakage fix 2026-05-23: the promote route no longer hardcodes
+// `domain: 1`; admins pick the destination explicitly. The "Auto from
+// item type" option leaves the field unset so the server-side
+// domainForItemType() helper derives the value from item_type. Legacy
+// domain 5 is excluded (the backfill empties it out and new code should
+// never write it).
+const DOMAIN_OPTIONS: Array<{ value: Domain | null; label: string }> = [
+  { value: null, label: "Auto from item type (recommended)" },
+  { value: 1, label: `1 - ${DOMAIN_LABELS[1]}` },
+  { value: 2, label: `2 - ${DOMAIN_LABELS[2]}` },
+  { value: 3, label: `3 - ${DOMAIN_LABELS[3]}` },
+  { value: 4, label: `4 - ${DOMAIN_LABELS[4]}` },
+  { value: 6, label: `6 - ${DOMAIN_LABELS[6]}` },
+  { value: 7, label: `7 - ${DOMAIN_LABELS[7]}` },
+];
 
 interface PromotePostDialogProps {
   post: PromotePostButtonPost;
@@ -79,6 +97,11 @@ export function PromotePostDialog({
   const [summary, setSummary] = useState(post.body ?? "");
   const [kind, setKind] = useState<"staged" | "direct">("staged");
   const [notes, setNotes] = useState("");
+  // Admin-only destination-surface selector. Default null = "auto from
+  // item_type" so the existing single-click flow still works for the
+  // non-admin staged path. Only included in the POST payload when the
+  // admin explicitly picked a value.
+  const [domain, setDomain] = useState<Domain | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +158,12 @@ export function PromotePostDialog({
             jurisdiction_iso: jurisdictions.length > 0 ? jurisdictions : undefined,
             priority,
             summary: summary.trim() || undefined,
+            // Admin domain selector. Only set when both (a) the admin is
+            // a platform admin AND (b) they picked a specific value.
+            // Server validates the value and enforces admin gating on
+            // kind='direct'. Non-admin staged path always sends null
+            // (server derives from item_type).
+            domain: currentUser.isPlatformAdmin && domain !== null ? domain : undefined,
           },
           notes: notes.trim() || undefined,
         }),
@@ -293,6 +322,46 @@ export function PromotePostDialog({
               </select>
             </div>
           </div>
+
+          {/* Destination surface (admin-only). Leakage fix 2026-05-23:
+              the promote route no longer hardcodes domain=1; platform
+              admins pick the destination surface here. Non-admins see
+              nothing and the request falls through to the auto-derive
+              path on the server. */}
+          {currentUser.isPlatformAdmin && (
+            <div>
+              <label
+                htmlFor="pp-domain"
+                className="block text-xs font-medium text-[var(--color-text-secondary)]"
+              >
+                Destination surface
+                <span className="ml-1 text-[11px] font-normal text-[var(--color-text-secondary)]">
+                  (admin override)
+                </span>
+              </label>
+              <select
+                id="pp-domain"
+                value={domain === null ? "" : String(domain)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") setDomain(null);
+                  else setDomain(Number(v) as Domain);
+                }}
+                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+              >
+                {DOMAIN_OPTIONS.map((opt) => (
+                  <option key={opt.label} value={opt.value === null ? "" : String(opt.value)}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
+                Leave on Auto to route from item type. Pick explicitly to
+                send to a different surface (admin-gated; only honoured
+                for direct promotions).
+              </p>
+            </div>
+          )}
 
           {/* Jurisdiction */}
           <div>

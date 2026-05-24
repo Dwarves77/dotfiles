@@ -36,6 +36,13 @@ import { unstable_cache } from "next/cache";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server";
 import { APP_DATA_TAG } from "@/lib/data";
+import {
+  REGULATIONS_DOMAIN,
+  MARKET_TECH_DOMAIN,
+  MARKET_SIGNALS_DOMAIN,
+  OPERATIONS_REGIONAL_DOMAIN,
+  OPERATIONS_FACILITY_DOMAIN,
+} from "@/lib/domains";
 
 const REGULATION_ITEM_TYPES = new Set([
   "regulation",
@@ -106,12 +113,12 @@ interface ScopeItem {
 function classifyItem(row: ScopeItem): keyof Omit<IntelligenceSurfaceCounts, "totalIntelligence"> {
   const t = row.item_type;
   const d = row.domain;
-  // Regulations wins first; per skill, regulatory item_types or domain=1
-  // always sit on /regulations.
-  if (d === 1 || (t && REGULATION_ITEM_TYPES.has(t))) return "regulations";
-  if (t === "regional_data" || d === 3 || d === 6) return "operations";
+  // Regulations wins first; per skill, regulatory item_types or
+  // REGULATIONS_DOMAIN always sit on /regulations.
+  if (d === REGULATIONS_DOMAIN || (t && REGULATION_ITEM_TYPES.has(t))) return "regulations";
+  if (t === "regional_data" || d === OPERATIONS_REGIONAL_DOMAIN || d === OPERATIONS_FACILITY_DOMAIN) return "operations";
   if (t && RESEARCH_ITEM_TYPES.has(t)) return "research";
-  if ((t && MARKET_ITEM_TYPES.has(t)) || d === 2 || d === 4) return "marketIntel";
+  if ((t && MARKET_ITEM_TYPES.has(t)) || d === MARKET_TECH_DOMAIN || d === MARKET_SIGNALS_DOMAIN) return "marketIntel";
   return "uncategorized";
 }
 

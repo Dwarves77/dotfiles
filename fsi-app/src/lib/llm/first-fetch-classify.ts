@@ -12,21 +12,52 @@
 //   - title_candidate -> intelligence_items.title
 //   - summary         -> intelligence_items.summary
 //   - severity, priority, urgency_tier, item_type, topic_tags, jurisdictions
+//   - domain          -> intelligence_items.domain (INT 1-7; NULL when the
+//                        classifier cannot route the item, per the leakage
+//                        fix dispatch 2026-05-23: NULL-domain items become
+//                        triage queue input, never silently coerced to 1)
 //
 // Cost: ~$0.001 per call at 6KB excerpts (Haiku 4.5 pricing). Acceptable
 // per the wave1b stub-quality investigation, 2026-05-11.
+
+import { asDomain, domainForItemType, type Domain, type SourceCategory } from "@/lib/domains";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const HAIKU_INPUT_PER_MTOK_USD = 1.0;
 const HAIKU_OUTPUT_PER_MTOK_USD = 5.0;
 const CONTENT_MAX_CHARS = 6_000;
 
-const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"item_type":"...","severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
+// The routing rule below is the canonical mapping from item_type +
+// source.category to the integer domain column. It MUST stay in sync with:
+//   - migration 101 CASE expression (lines 130-161)
+//   - fsi-app/src/lib/domains.ts domainForItemType()
+// Any change to the rule lands in all three places simultaneously.
+const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"item_type":"...","domain":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
 
 item_type: regulation|directive|standard|guidance|technology|market_signal|regional_data|research_finding|innovation|framework|tool|initiative
 severity: ACTION REQUIRED|COST ALERT|WINDOW CLOSING|COMPETITIVE EDGE|MONITORING
 priority: CRITICAL|HIGH|MODERATE|LOW
 urgency_tier: watch|elevated|stable|informational
+
+domain: integer 1-7 selecting the customer-facing surface for this item. Use this routing rule (use the parent source's category, supplied as Source category, to disambiguate framework / tool / initiative):
+  1 (Regulations) when item_type IN (regulation, directive, standard, guidance, law)
+  1 (Regulations) when item_type = framework AND Source category is regulatory or unknown
+  7 (Research)    when item_type = framework AND Source category = research
+  4 (Market)      when item_type = framework AND Source category = market_news
+  3 (Operations)  when item_type = framework AND Source category = operational_data
+  7 (Research)    when item_type = research_finding
+  3 (Operations)  when item_type = regional_data
+  4 (Market)      when item_type = market_signal
+  2 (Market-Tech) when item_type IN (technology, innovation)
+  2 (Market-Tech) when item_type = tool AND Source category is market_news or unknown
+  7 (Research)    when item_type = tool AND Source category = research
+  3 (Operations)  when item_type = tool AND Source category = operational_data
+  1 (Regulations) when item_type = initiative AND Source category = regulatory
+  7 (Research)    when item_type = initiative AND Source category = research
+  3 (Operations)  when item_type = initiative AND Source category = operational_data
+  4 (Market)      when item_type = initiative AND Source category in (market_news, unknown)
+
+If you cannot confidently assign a domain in 1-7 per this rule, return null. Never default to 1.
 
 Output JSON only.`;
 
@@ -35,12 +66,20 @@ export interface FirstFetchClassifyInput {
   source_url: string;
   source_name?: string | null;
   source_tier?: number | null;
+  /** Parent source's category (public.sources.category). Lets the
+   *  classifier disambiguate framework / tool / initiative per the
+   *  routing rule above. Pass null when the source has no category set. */
+  source_category?: SourceCategory;
   /** Excerpt text from the fetch (already stripped of HTML). */
   text: string;
 }
 
 export interface FirstFetchClassifyOutput {
   item_type: string;
+  /** Domain 1-7 emitted by Haiku per the routing rule, or NULL when the
+   *  classifier could not route. Insert sites MUST pass NULL through to
+   *  the column (no silent coercion to 1). */
+  domain: Domain | null;
   severity: string;
   priority: string;
   urgency_tier: string;
@@ -82,9 +121,14 @@ export async function firstFetchClassify(
   apiKey: string
 ): Promise<FirstFetchClassifyResult> {
   const text = input.text.slice(0, CONTENT_MAX_CHARS);
+  const sourceCategoryLabel =
+    input.source_category && typeof input.source_category === "string"
+      ? input.source_category
+      : "unknown";
   const userMessage = `Source URL: ${input.source_url}
 Source id: ${input.source_id}
 Source tier: ${input.source_tier ?? "unknown"}
+Source category: ${sourceCategoryLabel}
 Content excerpt:
 ---
 ${text}
@@ -145,6 +189,17 @@ Output the JSON object only.`;
   }
 
   const item_type = typeof parsed.item_type === "string" ? parsed.item_type : "regulation";
+  // Domain handling per leakage fix dispatch 2026-05-23:
+  //   - Validate Haiku output to 1-7 via asDomain(); out-of-range or
+  //     missing values return null (NOT silently coerced to 1).
+  //   - When Haiku omitted domain entirely OR returned an invalid value,
+  //     fall back to the deterministic routing function as a secondary
+  //     safety net. That function also returns null on unrecognized
+  //     item_type, preserving the no-silent-coerce contract.
+  let domain: Domain | null = asDomain(parsed.domain);
+  if (domain === null) {
+    domain = domainForItemType(item_type, input.source_category ?? null);
+  }
   const severity = typeof parsed.severity === "string" ? parsed.severity : "MONITORING";
   const priority = typeof parsed.priority === "string" ? parsed.priority : "MODERATE";
   const urgency_tier = typeof parsed.urgency_tier === "string" ? parsed.urgency_tier : "stable";
@@ -164,6 +219,7 @@ Output the JSON object only.`;
     ok: true,
     result: {
       item_type,
+      domain,
       severity,
       priority,
       urgency_tier,

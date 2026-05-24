@@ -29,6 +29,7 @@ import { CitationCountChip } from "@/components/credibility/CitationCountChip";
 import { RecencyChip } from "@/components/credibility/RecencyChip";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
+import { OPERATIONS_REGIONAL_DOMAIN, OPERATIONS_FACILITY_DOMAIN } from "@/lib/domains";
 
 interface OperationsPageProps {
   initialResources: Resource[];
@@ -128,14 +129,15 @@ export function OperationsPage({ initialResources, aggregates, regulationsByRegi
 
   // Resources flowing from intelligence_items. type is r.type, domain is r.domain.
   // Operations card surface uses item_type === "regional_data" for the jurisdiction
-  // tab and domain === 6 (facility) for the facility tab. We also fall back to
-  // domain === 3 for jurisdiction items the worker may have tagged that way.
+  // tab and OPERATIONS_FACILITY_DOMAIN (facility) for the facility tab. We also
+  // fall back to OPERATIONS_REGIONAL_DOMAIN for jurisdiction items the worker
+  // may have tagged that way.
   const regionalItems = useMemo(
-    () => initialResources.filter((r) => r.type === "regional_data" || r.domain === 3),
+    () => initialResources.filter((r) => r.type === "regional_data" || r.domain === OPERATIONS_REGIONAL_DOMAIN),
     [initialResources]
   );
   const facilityItems = useMemo(
-    () => initialResources.filter((r) => r.domain === 6),
+    () => initialResources.filter((r) => r.domain === OPERATIONS_FACILITY_DOMAIN),
     [initialResources]
   );
 

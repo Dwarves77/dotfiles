@@ -49,6 +49,7 @@ import {
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { urgencyScoreFromPriority } from "@/lib/urgency";
+import { asDomain, domainForItemType, ALL_DOMAINS, type Domain } from "@/lib/domains";
 
 // ──────────────────────────────────────────────────────────────
 // Constants and validators
@@ -86,6 +87,12 @@ interface IntelligenceItemPayload {
   jurisdiction_iso?: string[];
   priority?: Priority;
   summary?: string;
+  /** Leakage fix 2026-05-23: explicit destination surface picked by the
+   *  promoter at promotion time. Honoured ONLY for kind='direct' (admin-
+   *  gated below); kind='staged' ignores and derives from item_type so
+   *  the admin queue review remains the authority. NULL or omitted falls
+   *  back to domainForItemType(item_type). */
+  domain?: Domain | null;
 }
 
 interface PromoteBody {
@@ -152,6 +159,18 @@ function validateBody(raw: unknown): PromoteBody | string {
   if (ii.summary !== undefined && typeof ii.summary !== "string") {
     return "intelligence_item.summary must be a string";
   }
+  // Optional admin-selected domain. Validated against the 1-7 range; the
+  // admin-only enforcement happens at the handler (kind='direct' is
+  // already platform-admin gated).
+  if (ii.domain !== undefined && ii.domain !== null) {
+    if (
+      typeof ii.domain !== "number" ||
+      !Number.isInteger(ii.domain) ||
+      !ALL_DOMAINS.has(ii.domain as Domain)
+    ) {
+      return "intelligence_item.domain must be an integer 1-7 (or omitted)";
+    }
+  }
   if (b.notes !== undefined && typeof b.notes !== "string") {
     return "notes must be a string";
   }
@@ -165,6 +184,7 @@ function validateBody(raw: unknown): PromoteBody | string {
       jurisdiction_iso: ii.jurisdiction_iso as string[] | undefined,
       priority: ii.priority as Priority | undefined,
       summary: typeof ii.summary === "string" ? ii.summary : undefined,
+      domain: asDomain(ii.domain),
     },
     notes: typeof b.notes === "string" ? b.notes : undefined,
   };
@@ -287,12 +307,26 @@ export async function POST(
       ? ii.summary.trim()
       : (post.body ?? "").toString().trim();
 
+  // Leakage fix 2026-05-23 (B4 per caros-ledge-platform-intent REC-OBS-G):
+  // domain is resolved from the admin-selected value first (kind='direct'
+  // only, since admin-gated below), then derived from item_type via the
+  // canonical routing helper. NULL when item_type is unrecognized so
+  // promotion does not silently land on /regulations. source.category is
+  // not available on community promotions (no parent source row), so the
+  // helper falls through to the default branches.
+  const derivedDomain = domainForItemType(ii.item_type, null);
+  const adminDomain = ii.domain ?? null;
   const itemPayload: Record<string, unknown> = {
     title: ii.title,
     summary,
     item_type: ii.item_type,
     source_url: ii.source_url,
     priority: ii.priority ?? "MODERATE",
+    // For staged: admin reviewer overrides at approval time; payload here
+    // is the proposed value (admin pick takes precedence over the
+    // derivation when both present).
+    // For direct: admin pick takes precedence; falls back to derivation.
+    domain: adminDomain ?? derivedDomain,
   };
   if (ii.jurisdiction_iso && ii.jurisdiction_iso.length > 0) {
     // Dual-write during the legacy/ISO transition. Migration 033 added
@@ -350,10 +384,15 @@ export async function POST(
     }
     stagedUpdateId = staged.id;
   } else {
-    // body.kind === 'direct' — insert into intelligence_items. domain=1
-    // (Regulatory & Legislative) is the safe default for community-sourced
-    // promotions; the admin can re-classify after the fact via the admin
-    // surface. Other required NOT NULL columns get their schema defaults.
+    // body.kind === 'direct' — insert into intelligence_items. domain is
+    // sourced from the admin's destination selector (admin-gated above)
+    // with a fallback derivation via domainForItemType when not supplied.
+    // Leakage fix 2026-05-23 (B4 per caros-ledge-platform-intent
+    // REC-OBS-G): the historical hardcoded `domain: 1` "safe default" is
+    // replaced; admin selects the destination surface at promotion time.
+    // NULL passes through when neither the selector nor the derivation
+    // could produce a value; downstream /regulations strict filter keeps
+    // NULL-domain rows off the surface.
     // ADR-008 (urgency_score default behavior; accepted 2026-05-21 Option C-bias):
     // explicit urgency_score derived from priority via PRIORITY_TO_URGENCY_SCORE
     // mapping. No silent schema default; F4 enforces.
@@ -367,7 +406,7 @@ export async function POST(
         priority: itemPayload.priority,
         urgency_score: urgencyScoreFromPriority(itemPayload.priority as string | null),
         jurisdictions: itemPayload.jurisdictions ?? [],
-        domain: 1,
+        domain: itemPayload.domain ?? null,
       })
       .select("id")
       .single();
