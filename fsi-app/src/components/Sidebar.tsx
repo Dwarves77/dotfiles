@@ -6,18 +6,23 @@ import { cn } from "@/lib/cn";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import {
   LayoutDashboard, Scale, TrendingUp, Globe,
-  GraduationCap, MessageSquare, MapPin,
+  GraduationCap, MessageSquare, MapPin, Shield,
   Menu, X,
 } from "lucide-react";
 import { useState } from "react";
 import { UserMenu } from "@/components/auth/UserMenu";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 
-// PR-D IA refactor (2026-05-06): Profile / Admin / Settings moved out
-// of the main rail into the user-footer dropdown (UserMenu) anchored
-// at the bottom of the rail. UserMenu already exposes Workspace
-// Profile, Admin Panel (admin-only), and Settings — so removing the
-// rail entries collapses the navigation grammar to product-vs-account
-// per design intent (visual-reconciliation §4 IA grammar).
+// Design rebuild 2026-05-24 (per design_handoff_2026-05/HANDOFF.md Fix 5):
+// Sidebar grammar restructured into three groups separated by dividers.
+// Intelligence pages (Dashboard + four intelligence surfaces + Map) sit
+// above the first divider. Community sits between dividers, signalling
+// its distinct role as peer information sharing rather than intelligence
+// content. Admin sits below the second divider, gated on workspace role
+// 'owner' or 'admin'. This supersedes the PR-D IA refactor (2026-05-06)
+// which routed Admin through the UserMenu dropdown; the operator handoff
+// explicitly restores Admin to the rail because it was unreachable from
+// any other page.
 
 interface NavItem {
   href: string;
@@ -25,21 +30,21 @@ interface NavItem {
   icon: typeof LayoutDashboard;
 }
 
-// Build 10 (2026-05-21): Community moved into the intelligence-pages
-// block (between Operations and Map) to reflect its co-equal status
-// with the four intelligence pages per caros-ledge-platform-intent
-// SKILL.md Section "The Five Customer-Facing Surfaces". Previously
-// Community sat in a spacer'd middle section that visually grouped it
-// with the user footer (account-chrome zone); that ranking
-// misrepresented its product role.
-const NAV_ITEMS: NavItem[] = [
+const PRIMARY_NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/regulations", label: "Regulations", icon: Scale },
   { href: "/market", label: "Market Intel", icon: TrendingUp },
   { href: "/research", label: "Research", icon: GraduationCap },
   { href: "/operations", label: "Operations", icon: Globe },
-  { href: "/community", label: "Community", icon: MessageSquare },
   { href: "/map", label: "Map", icon: MapPin },
+];
+
+const COMMUNITY_NAV: NavItem[] = [
+  { href: "/community", label: "Community", icon: MessageSquare },
+];
+
+const ADMIN_NAV: NavItem[] = [
+  { href: "/admin", label: "Admin", icon: Shield },
 ];
 
 // Routes whose server components run Supabase queries on render. Auto-
@@ -56,16 +61,50 @@ const NO_PREFETCH_HREFS = new Set<string>([
   "/operations",
   "/map",
   "/community",
+  "/admin",
 ]);
 
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const userRole = useWorkspaceStore((s) => s.userRole);
+  const isAdmin = userRole === "owner" || userRole === "admin";
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
+
+  const renderNavItem = ({ href, label, icon: Icon }: NavItem) => (
+    <Link
+      key={href}
+      href={href}
+      prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
+      onClick={() => setMobileOpen(false)}
+      className={cn(
+        "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
+        isActive(href)
+          ? "font-semibold"
+          : "hover:bg-[var(--color-bg-raised)]"
+      )}
+      style={{
+        color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+        backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
+        fontWeight: isActive(href) ? 600 : 400,
+      }}
+    >
+      <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
+      {label}
+    </Link>
+  );
+
+  const navDivider = (
+    <div
+      className="my-2.5 mx-3 h-px"
+      style={{ backgroundColor: "var(--color-border-subtle)" }}
+      aria-hidden="true"
+    />
+  );
 
   const navContent = (
     <>
@@ -99,36 +138,23 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Main nav */}
+      {/* Main nav, three groups separated by dividers per design rebuild */}
       <nav className="py-2 px-2 space-y-0.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
-              isActive(href)
-                ? "font-semibold"
-                : "hover:bg-[var(--color-bg-raised)]"
-            )}
-            style={{
-              color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-              backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
-              fontWeight: isActive(href) ? 600 : 400,
-            }}
-          >
-            <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
-            {label}
-          </Link>
-        ))}
+        {PRIMARY_NAV.map(renderNavItem)}
+        {navDivider}
+        {COMMUNITY_NAV.map(renderNavItem)}
+        {isAdmin && (
+          <>
+            {navDivider}
+            {ADMIN_NAV.map(renderNavItem)}
+          </>
+        )}
       </nav>
 
-      {/* Spacer — pushes user footer to the bottom of the rail */}
+      {/* Spacer, pushes user footer to the bottom of the rail */}
       <div className="flex-1" />
 
-      {/* Bottom — user menu only (Settings is inside the dropdown) */}
+      {/* Bottom, user menu only (Settings is inside the dropdown) */}
       <div className="px-3 py-3">
         <UserMenu />
       </div>

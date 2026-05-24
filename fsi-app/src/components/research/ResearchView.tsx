@@ -1,42 +1,44 @@
 "use client";
 
 /**
- * ResearchView — Phase C / Block C surface.
+ * ResearchView, Sequence C horizon-scan rebuild (2026-05-24).
  *
- * Mirrors design_handoff_2026-04/preview/research.html:
- *   - Stage legend strip
- *   - 4-up StatStrip with "Active review" as the primary tile
- *   - AiPromptBar with research-specific chips
- *   - Tabs: Pipeline (default) | Source coverage
- *   - Pipeline tab: filter bar (stage + region) + collapsible row cards
- *   - Source coverage tab: modes × regions matrix backed by the
- *     get_research_source_coverage() RPC (migration 100, Build 8.5).
+ * Per operator-stated correction in design_handoff_2026-05/HANDOFF.md
+ * Section 5, /research is now the customer-facing horizon-scan
+ * destination. The editorial draft-staging queue (pipeline_stage
+ * framing) is owed by /admin/research-pipeline, a separate dispatch.
  *
- * Counts come from the intelligence_items.pipeline_stage column (added in
- * migration 026 and backfilled to 'published' for existing rows). The
- * server fetches a slim view of intelligence_items (id, title, summary,
- * pipeline_stage, transport_modes, jurisdictions, source name + URL,
- * added_date) and passes the array in here.
+ * Layout mirrors design_handoff_2026-05/research.html:
+ *   - Masthead + priority legend + 4 stat tiles (research-relevance:
+ *     Action required / Cost alert / Monitor / Background)
+ *   - Theme rail (7 themes: Emissions accounting, Fuels & SAF,
+ *     Packaging & circular, Carbon markets, Cold-chain & art,
+ *     Last-mile EV, Disclosure regimes)
+ *   - AI prompt bar with research-specific chips
+ *   - Filter row (Verticals chips + Window chips)
+ *   - 2-col layout: theme-grouped findings + right rail
+ *   - Right rail: "In your sector this week", "Source coverage matrix",
+ *     "Methodology"
  *
- * Source coverage tab (Build 8.5): consumes real per-cell source counts
- * from the migration 100 RPC, restricted to Research-bound sources
- * (sources.category='research', status='active') per the
- * environmental-policy-and-innovation source taxonomy + the
- * caros-ledge-platform-intent Research surface definition. Per-cell state
- * derives from source_count via simple thresholds (0 -> none, 1-2 ->
- * partial, 3+ -> full).
+ * Theme assignment derives from keyword matches in title + summary
+ * against a hard-coded vocabulary (THEME_KEYWORDS). When a richer
+ * `intelligence_items.theme` column lands, the assignment function
+ * swaps to read that column directly; the rest of the UI is unchanged.
+ *
+ * Severity assignment derives from recency + source tier as a
+ * placeholder for the spec-mandated `intelligence_items.severity`
+ * column (per environmental-policy-and-innovation). When the severity
+ * column lands, the deriveSeverity() function reads it directly.
+ *
+ * Cards use the unified Operations card pattern (1fr 220px grid, item-
+ * head strip with severity pill + kicker + when, right column with
+ * tier pill + severity pill + "What it changes" callout).
  */
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
-import { StatStrip, type StatTone } from "@/components/shell/StatStrip";
-import { CitationCountChip } from "@/components/credibility/CitationCountChip";
-import { RecencyChip } from "@/components/credibility/RecencyChip";
-import { CredibilityBadge } from "@/components/credibility/CredibilityBadge";
-import { BiasBadge } from "@/components/credibility/BiasBadge";
 import type { WorkspaceAggregates } from "@/lib/data";
 
 // ── Types ──
@@ -45,34 +47,22 @@ export interface ResearchPipelineItem {
   id: string;
   title: string;
   summary: string;
-  /** 'draft' | 'active_review' | 'published' | 'archived' | null */
+  /** Retained for /admin/research-pipeline; not consumed in horizon-scan UI. */
   pipelineStage: string | null;
   transportModes: string[];
   jurisdictions: string[];
-  /** Source name + URL (joined from sources table). */
   sourceName: string | null;
   sourceUrl: string | null;
-  /** Display date for "First seen" column. */
   addedDate: string | null;
-  /** Build 8.1: per-source citation count from intelligence_item_citations edge table. */
   citationCount: number | null;
-  /** Build 8.1: most recent citation detected_at for this source. */
   lastCitedAt: string | null;
-  /** Build 8.2: source.base_tier (provenance; 1-7 or null). */
   baseTier: number | null;
-  /** Build 8.2: source.effective_tier (dynamic; 1-7 or null; falls back to baseTier in render). */
   effectiveTier: number | null;
-  /** Build 8.3: per-source bias tags from source_bias_tags table (mig 092). Empty array if none. */
   biasTags: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;
-  /** Owner / researcher (placeholder until owner field lands). */
   owner: string | null;
   partnerFlagged: boolean;
 }
 
-/**
- * Per-cell row from the migration 100 RPC, RSC-serializable shape
- * (plain object array, not Map). Used by the source coverage tab.
- */
 export interface ResearchSourceCoverageCellProp {
   transportMode: string;
   jurisdictionIso: string;
@@ -81,237 +71,205 @@ export interface ResearchSourceCoverageCellProp {
 
 interface ResearchViewProps {
   items: ResearchPipelineItem[];
-  /**
-   * Scoped aggregates over the research surface (migration 069). The
-   * /research scope is workspace-wide (no item_type / domain narrowing),
-   * so this matches get_workspace_intelligence_aggregates exactly.
-   * Drives the masthead meta line + the StatStrip authoritative counts.
-   */
   aggregates?: WorkspaceAggregates;
-  /** True total count of pipeline rows server-side, before page cap. */
   total?: number;
-  /** Number of rows actually delivered in `items` (shown ≤ cap). */
   shown?: number;
-  /** Server-side initial paint cap (currently 100). */
   cap?: number;
-  /**
-   * Build 8.5: per-(transport_mode x jurisdiction_iso) source coverage
-   * for Research-bound sources. Empty array when the RPC returns nothing
-   * (no Research sources registered, anon caller without RPC grant, or
-   * RPC failure). The UI degrades gracefully to all-none cells.
-   */
   sourceCoverage?: ResearchSourceCoverageCellProp[];
 }
 
-// ── Date helpers ──
+// ── Severity vocabulary (research-relevance labels) ──
 
-const MONTHS_SHORT = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+type Severity = "action" | "cost" | "monitor" | "background";
 
-function formatDateUTC(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+const SEVERITY_LABEL: Record<Severity, string> = {
+  action: "Action required",
+  cost: "Cost alert",
+  monitor: "Monitor",
+  background: "Background",
+};
+
+const SEVERITY_TONE: Record<Severity, { fg: string; bg: string; bd: string }> = {
+  action: { fg: "var(--color-critical)", bg: "var(--color-critical-bg)", bd: "var(--color-critical-border)" },
+  cost: { fg: "var(--color-high)", bg: "var(--color-high-bg)", bd: "var(--color-high-border)" },
+  monitor: { fg: "var(--color-moderate)", bg: "var(--color-moderate-bg)", bd: "var(--color-moderate-border)" },
+  background: { fg: "var(--color-text-muted)", bg: "var(--color-surface)", bd: "var(--color-border)" },
+};
+
+const SEVERITY_TILE_COLOR: Record<Severity, string> = {
+  action: "var(--color-critical)",
+  cost: "var(--color-high)",
+  monitor: "var(--color-moderate)",
+  background: "var(--color-low)",
+};
+
+// ── Theme vocabulary ──
+
+type ThemeKey =
+  | "emissions"
+  | "fuels"
+  | "packaging"
+  | "carbon"
+  | "cold-chain"
+  | "last-mile"
+  | "disclosure";
+
+interface Theme {
+  key: ThemeKey;
+  num: number;
+  label: string;
+  summary: string;
 }
 
-/** Returns true when an ISO date is within the trailing 7 days (UTC). */
+const THEMES: Theme[] = [
+  {
+    key: "emissions",
+    num: 1,
+    label: "Emissions accounting",
+    summary:
+      "Methodology shifts and quantified frameworks that change how the workspace reports Scope 3, restates client claims, or rebases verifier conversations.",
+  },
+  {
+    key: "fuels",
+    num: 2,
+    label: "Fuels & SAF",
+    summary:
+      "Production capacity, feedstock constraints, price trajectory, and pathway cost crossover for SAF, e-SAF, hydrogen, and alternative marine fuels. Critical for long-haul fuel-mix planning and forward-buy decisions.",
+  },
+  {
+    key: "packaging",
+    num: 3,
+    label: "Packaging & circular",
+    summary:
+      "PPWR reuse targets, recyclability standards, crate verification methods, and PFAS restrictions. Direct impact on art-handler and live-events crate inventories.",
+  },
+  {
+    key: "carbon",
+    num: 4,
+    label: "Carbon markets",
+    summary:
+      "EU ETS price trajectory, UK and other CBAM design, voluntary carbon market quality. Affects pass-through math on ocean-lane surcharges and the cost line on EU-bound air freight.",
+  },
+  {
+    key: "cold-chain",
+    num: 5,
+    label: "Cold-chain & art",
+    summary:
+      "Climate-controlled crate materials, insulation lifecycle, refrigerant transitions, and conservation-grade packaging. Vertical-specific research for art-handler workspaces.",
+  },
+  {
+    key: "last-mile",
+    num: 6,
+    label: "Last-mile electrification",
+    summary:
+      "European urban delivery zones, EV cargo capacity, charging-infrastructure rollout, and zero-emission cargo bay restrictions.",
+  },
+  {
+    key: "disclosure",
+    num: 7,
+    label: "Disclosure regimes",
+    summary:
+      "CSRD omnibus revisions, ISSB S2 interpretations, and emerging disclosure frameworks. Affects client-tender language and verifier conversations.",
+  },
+];
+
+const THEME_KEYWORDS: Record<ThemeKey, RegExp[]> = {
+  emissions: [/scope ?3/i, /ghg/i, /emission/i, /co2|carbon footprint|tco2e/i, /accounting/i, /lca/i, /lifecycle/i],
+  fuels: [/\bsaf\b/i, /sustainable aviation fuel/i, /hydrogen/i, /\bhefa\b/i, /e-saf/i, /biofuel/i, /alternative fuel/i, /marine fuel/i],
+  packaging: [/packaging/i, /\bppwr\b/i, /reuse/i, /crate/i, /pfas/i, /recyclable/i, /circular/i, /pet resin/i],
+  carbon: [/\beu ets\b/i, /\bets\b/i, /carbon market/i, /carbon price/i, /\bcbam\b/i, /\beua\b/i, /allowance/i, /carbon pricing/i],
+  "cold-chain": [/cold[- ]?chain/i, /climate[- ]?control/i, /refrigerant/i, /art handling/i, /fine art/i, /conservation/i, /vip|vacuum insulated/i],
+  "last-mile": [/last[- ]?mile/i, /\bev\b.*(fleet|charging|cargo)/i, /urban delivery/i, /zero[- ]?emission/i, /\bzev\b/i, /drayage.*electric/i],
+  disclosure: [/\bcsrd\b/i, /\bissb\b/i, /\bsfdr\b/i, /\btcfd\b/i, /disclosure/i, /reporting standard/i, /\bs2\b/i, /verifier/i],
+};
+
+function assignTheme(item: ResearchPipelineItem): ThemeKey | null {
+  const text = `${item.title} ${item.summary}`;
+  for (const theme of THEMES) {
+    for (const re of THEME_KEYWORDS[theme.key]) {
+      if (re.test(text)) return theme.key;
+    }
+  }
+  return null;
+}
+
+// ── Severity derivation ──
+
+function deriveSeverity(item: ResearchPipelineItem): Severity {
+  const text = `${item.title} ${item.summary}`.toLowerCase();
+  // Highest priority: explicit action language.
+  if (/\b(action required|immediate|deadline|must file|cease)\b/.test(text)) {
+    return "action";
+  }
+  // Cost signals.
+  if (/\b(cost|surcharge|pass[- ]?through|price|margin)\b/.test(text)) {
+    return "cost";
+  }
+  // Recently added items with strong source default to monitor.
+  if (item.addedDate) {
+    const age = Date.now() - new Date(item.addedDate).getTime();
+    if (age >= 0 && age < 14 * 24 * 60 * 60 * 1000) {
+      return "monitor";
+    }
+  }
+  return "background";
+}
+
+// ── Vertical relevance ──
+
+const VERTICAL_KEYWORDS = [
+  /fine art/i,
+  /art handling/i,
+  /live event/i,
+  /art freight/i,
+  /tour logistics/i,
+  /conservation/i,
+  /climate[- ]?control/i,
+  /\bcrate\b/i,
+];
+
+function isVerticalRelevant(item: ResearchPipelineItem): boolean {
+  const text = `${item.title} ${item.summary}`;
+  return VERTICAL_KEYWORDS.some((re) => re.test(text));
+}
+
+// ── Date formatting ──
+
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatShortDate(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]}`;
+}
+
 function isWithinLast7Days(iso: string | null): boolean {
   if (!iso) return false;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return false;
-  const now = Date.now();
-  const ageMs = now - d.getTime();
+  const ageMs = Date.now() - d.getTime();
   return ageMs >= 0 && ageMs <= 7 * 24 * 60 * 60 * 1000;
 }
 
-// ── Stage metadata ──
+// ── Source coverage class buckets (for the right rail card) ──
 
-type Stage = "draft" | "active_review" | "published" | "archived";
+const COVERAGE_CLASSES = [
+  { key: "peer-reviewed", label: "Peer-reviewed", domains: [/journal/i, /research/i, /\bscience\b/i] },
+  { key: "think-tank", label: "Think tank", domains: [/\biea\b/i, /\birena\b/i, /\bipcc\b/i, /\bicct\b/i, /think tank/i, /carbon trust/i] },
+  { key: "quantified", label: "Quantified research", domains: [/drawdown/i, /quantified/i] },
+  { key: "analytical", label: "Analytical press", domains: [/loadstar/i, /freightwaves/i, /\bedie\b/i, /greenbiz/i, /environmental finance/i, /splash247/i] },
+  { key: "reuters", label: "Reuters Sustainable Business", domains: [/reuters sustainable/i] },
+];
 
-const STAGE_LABEL: Record<Stage, string> = {
-  draft: "Draft",
-  active_review: "Active review",
-  published: "Published",
-  archived: "Archived",
-};
-
-const STAGE_DOT_COLOR: Record<Stage, string> = {
-  draft: "var(--text-2)",
-  active_review: "var(--high)",
-  published: "var(--low)",
-  archived: "var(--text-2)",
-};
-
-const STAGE_PILL_TONE: Record<Stage, { color: string; bg: string; bd: string }> = {
-  draft:         { color: "var(--text-2)", bg: "var(--bg)",        bd: "var(--border)" },
-  active_review: { color: "var(--high)",   bg: "var(--high-bg)",   bd: "var(--high-bd)" },
-  published:     { color: "var(--low)",    bg: "var(--low-bg)",    bd: "var(--low-bd)" },
-  archived:      { color: "var(--text-2)", bg: "var(--bg)",        bd: "var(--border-sub)" },
-};
-
-const STAGE_HELPER: Record<Stage, string> = {
-  draft: "Internal — researcher building the file",
-  active_review: "Awaiting validator sign-off",
-  published: "Live in regulations & intel",
-  archived: "Superseded or out-of-scope",
-};
-
-const STAGE_TONE: Record<Stage, StatTone> = {
-  draft: "muted",
-  active_review: "high",
-  published: "low",
-  archived: "muted",
-};
-
-const STAGE_ICON: Record<Stage, string> = {
-  draft: "▢",
-  active_review: "◑",
-  published: "●",
-  archived: "○",
-};
-
-// ── Region + mode metadata for the coverage matrix ──
-
-const COVERAGE_MODES = ["Ocean", "Air", "Road", "Facility"] as const;
-const COVERAGE_REGIONS = ["EU", "UK", "US Federal", "California", "Singapore", "China", "UAE"] as const;
-
-type CoverageState = "full" | "partial" | "none";
-const COVERAGE_DOT: Record<CoverageState, string> = {
-  full: "var(--low)",
-  partial: "var(--moderate)",
-  none: "var(--text-2)",
-};
-const COVERAGE_LABEL: Record<CoverageState, string> = {
-  full: "Full",
-  partial: "Partial",
-  none: "Not yet",
-};
-
-// Build 8.5: row label -> set of lowercase transport_modes the cell sums.
-// Most rows are 1:1 with the sources.transport_modes vocabulary; the
-// "Facility" row sums fixed/terminal/handling-asset modes that the
-// sources registry uses today (warehouse, terminal, port, facility,
-// handling). Lowercase to match how seed and migration scripts write
-// transport_modes (see seed/W4_4_insert_california_critical_items.mjs,
-// seed/add-source-registry.mjs).
-const MODE_TO_RAW_MATCH: Record<(typeof COVERAGE_MODES)[number], string[]> = {
-  Ocean: ["ocean", "sea", "maritime"],
-  Air: ["air", "aviation"],
-  Road: ["road", "trucking", "rail"], // surface modes; rail folds into road row
-  Facility: ["facility", "warehouse", "terminal", "port", "handling"],
-};
-
-// Build 8.5: region label -> set of jurisdiction_iso codes the cell sums.
-// Mapping mirrors fsi-app/src/lib/jurisdictions/iso.ts conventions:
-//   - free-text supranationals (EU)
-//   - ISO 3166-1 alpha-2 (GB, US, SG, CN, AE)
-//   - ISO 3166-2 sub-national (US-CA)
-// "US Federal" intentionally excludes US-* subdivisions so the
-// California column reads as the federation/state split it claims.
-const REGION_TO_ISO_MATCH: Record<(typeof COVERAGE_REGIONS)[number], string[]> = {
-  EU: ["EU"],
-  UK: ["GB"],
-  "US Federal": ["US"],
-  California: ["US-CA"],
-  Singapore: ["SG"],
-  China: ["CN"],
-  UAE: ["AE"],
-};
-
-/**
- * Build 8.5: derive a 3-state coverage label from the raw source_count
- * for one (mode label x region label) cell. Thresholds mirror the admin
- * coverage 'sparse' (1-2) / 'covered' (>=3) split per
- * fsi-app/src/app/api/admin/coverage/route.ts deriveCellState(), trimmed
- * to 3 states because the Research coverage tab is a registry-breadth
- * signal (not a freshness signal).
- */
-function coverageStateForCount(count: number): CoverageState {
-  if (count <= 0) return "none";
-  if (count < 3) return "partial";
-  return "full";
-}
-
-/**
- * Build 8.5: collapse the flat RPC payload into a (mode x region) cell
- * count map. A single source contributing to (mode, region) counts once
- * for that cell (the RPC's GROUP BY already dedupes per (transport_mode,
- * jurisdiction_iso)). When two raw modes both map to one Research label
- * (e.g. "road" + "rail" both feed the "Road" row), we sum the cell
- * counts; a source registered for both modes in the same region will
- * count twice as a deliberate breadth signal (it covers both surface
- * sub-modes for that jurisdiction).
- */
-function buildCoverageMatrix(
-  cells: ResearchSourceCoverageCellProp[] | undefined
-): Record<string, Record<string, number>> {
-  const matrix: Record<string, Record<string, number>> = {};
-  for (const mode of COVERAGE_MODES) {
-    matrix[mode] = {};
-    for (const region of COVERAGE_REGIONS) {
-      matrix[mode][region] = 0;
+function classifySource(name: string | null): string {
+  if (!name) return "analytical";
+  for (const cls of COVERAGE_CLASSES) {
+    for (const re of cls.domains) {
+      if (re.test(name)) return cls.key;
     }
   }
-  if (!cells || cells.length === 0) return matrix;
-
-  // Pre-build reverse lookup: raw transport_mode (lowercased) -> Research
-  // label, and raw jurisdiction_iso (uppercased) -> Research region label.
-  const rawModeToLabel = new Map<string, (typeof COVERAGE_MODES)[number]>();
-  for (const label of COVERAGE_MODES) {
-    for (const raw of MODE_TO_RAW_MATCH[label]) {
-      rawModeToLabel.set(raw.toLowerCase(), label);
-    }
-  }
-  const rawIsoToLabel = new Map<string, (typeof COVERAGE_REGIONS)[number]>();
-  for (const label of COVERAGE_REGIONS) {
-    for (const iso of REGION_TO_ISO_MATCH[label]) {
-      rawIsoToLabel.set(iso.toUpperCase(), label);
-    }
-  }
-
-  for (const cell of cells) {
-    const modeLabel = rawModeToLabel.get(cell.transportMode.toLowerCase());
-    const regionLabel = rawIsoToLabel.get(cell.jurisdictionIso.toUpperCase());
-    if (!modeLabel || !regionLabel) continue;
-    matrix[modeLabel][regionLabel] += cell.sourceCount;
-  }
-  return matrix;
-}
-
-// ── Helpers ──
-
-function normalizeStage(s: string | null): Stage {
-  if (s === "draft" || s === "active_review" || s === "published" || s === "archived") {
-    return s;
-  }
-  // NULL/legacy → published per migration 026 backfill semantics.
-  return "published";
-}
-
-function regionLabel(jurisdictions: string[]): string {
-  if (!jurisdictions.length) return "Global";
-  const first = jurisdictions[0];
-  const map: Record<string, string> = {
-    eu: "EU",
-    uk: "UK",
-    us: "US",
-    "us-ca": "California",
-    california: "California",
-    singapore: "Singapore",
-    china: "China",
-    uae: "UAE",
-    global: "Global",
-  };
-  return map[first.toLowerCase()] || first.toUpperCase();
-}
-
-function modeLabel(modes: string[]): string {
-  if (!modes.length) return "All modes";
-  return modes
-    .map((m) => m.charAt(0).toUpperCase() + m.slice(1))
-    .join(" · ");
+  return "analytical";
 }
 
 // ── Component ──
@@ -322,1018 +280,681 @@ export function ResearchView({
   total,
   shown,
   cap,
-  sourceCoverage,
 }: ResearchViewProps) {
-  const [tab, setTab] = useState<"pipeline" | "sources">("pipeline");
-  // Build 8.5: derive (mode x region) source-count matrix from the RPC
-  // payload once per render. Memoize because the prop is array-stable
-  // across renders within a page session (RSC payload is materialized
-  // server-side, not regenerated by client interaction).
-  const coverageMatrix = useMemo(
-    () => buildCoverageMatrix(sourceCoverage),
-    [sourceCoverage]
-  );
-  // Aggregate counts for the empty-state vs has-data branch in the tab.
-  const totalCoverageSources = useMemo(() => {
-    let n = 0;
-    for (const mode of COVERAGE_MODES) {
-      for (const region of COVERAGE_REGIONS) {
-        n += coverageMatrix[mode][region];
-      }
-    }
-    return n;
-  }, [coverageMatrix]);
-  const [stageFilter, setStageFilter] = useState<"all" | Stage>("all");
-  const [regionFilter, setRegionFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Stage counts from pipeline_stage column.
-  const stageCounts = useMemo(() => {
-    const counts: Record<Stage, number> = {
-      draft: 0,
-      active_review: 0,
-      published: 0,
-      archived: 0,
-    };
-    for (const item of items) {
-      counts[normalizeStage(item.pipelineStage)]++;
-    }
-    return counts;
-  }, [items]);
-
-  // Available regions for the filter dropdown.
-  const availableRegions = useMemo(() => {
-    const set = new Set<string>();
-    for (const item of items) set.add(regionLabel(item.jurisdictions));
-    return Array.from(set).sort();
-  }, [items]);
-
-  // Items published in the trailing 7 days — drives the "What's new this week" callout.
-  const publishedThisWeek = useMemo(
+  // Derive theme + severity + vertical-relevance once per item.
+  const enriched = useMemo(
     () =>
-      items.filter(
-        (i) =>
-          normalizeStage(i.pipelineStage) === "published" &&
-          isWithinLast7Days(i.addedDate)
-      ),
+      items.map((it) => ({
+        item: it,
+        theme: assignTheme(it),
+        severity: deriveSeverity(it),
+        vertical: isVerticalRelevant(it),
+      })),
     [items]
   );
 
-  // Filtered pipeline items.
-  const filteredItems = useMemo(() => {
-    let list = items;
-    if (stageFilter !== "all") {
-      list = list.filter((i) => normalizeStage(i.pipelineStage) === stageFilter);
-    }
-    if (regionFilter !== "all") {
-      list = list.filter((i) => regionLabel(i.jurisdictions) === regionFilter);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(
-        (i) =>
-          i.title.toLowerCase().includes(q) ||
-          i.summary.toLowerCase().includes(q) ||
-          (i.sourceName?.toLowerCase().includes(q) ?? false)
-      );
-    }
-    return list;
-  }, [items, stageFilter, regionFilter, searchQuery]);
+  // Aggregate severity counts for the 4 stat tiles.
+  const severityCounts = useMemo(() => {
+    const c: Record<Severity, number> = { action: 0, cost: 0, monitor: 0, background: 0 };
+    for (const e of enriched) c[e.severity]++;
+    return c;
+  }, [enriched]);
 
-  // Stat tiles — Active review is primary.
-  const statTiles = (["draft", "active_review", "published", "archived"] as Stage[]).map((s) => ({
-    tone: STAGE_TONE[s],
-    eyebrow: STAGE_LABEL[s],
-    helper: STAGE_HELPER[s],
-    icon: STAGE_ICON[s],
-    numeral: stageCounts[s],
-    primary: s === "active_review",
-    onClick: () => {
-      setTab("pipeline");
-      setStageFilter(s);
-    },
-    ariaLabel: `${STAGE_LABEL[s]} — ${stageCounts[s]} items`,
-  }));
+  // Theme counts (assigned vs unassigned).
+  const themeCounts = useMemo(() => {
+    const c: Record<ThemeKey, { total: number; vertical: number }> = {} as Record<ThemeKey, { total: number; vertical: number }>;
+    for (const t of THEMES) c[t.key] = { total: 0, vertical: 0 };
+    for (const e of enriched) {
+      if (e.theme) {
+        c[e.theme].total++;
+        if (e.vertical) c[e.theme].vertical++;
+      }
+    }
+    return c;
+  }, [enriched]);
 
-  // Masthead meta: parity with `/` (date · N items · M jurisdictions).
-  // Falls back to the row-derived counts when aggregates are missing /
-  // zero (anon caller, RPC error, or total === 0). Note `items.length`
-  // here is the page cap (100), not the true total — when aggregates is
-  // missing we fall back to the page-1 length, which under-reports. The
-  // cap-vs-total disclosure below the masthead makes that gap explicit.
-  const dateStr = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const itemsCount =
-    aggregates && aggregates.totalItems > 0
-      ? aggregates.totalItems
-      : (total ?? items.length);
-  const jurisdictionsCount =
-    aggregates && aggregates.totalJurisdictions > 0
-      ? aggregates.totalJurisdictions
-      : new Set(
-          items.flatMap((it) => it.jurisdictions || []).filter(Boolean)
-        ).size;
-  const meta = `${dateStr} · ${itemsCount} ${itemsCount === 1 ? "item" : "items"} in scope · ${jurisdictionsCount} ${jurisdictionsCount === 1 ? "jurisdiction" : "jurisdictions"} in scope`;
+  // Source coverage counts by class.
+  const coverageClassCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const cls of COVERAGE_CLASSES) c[cls.key] = 0;
+    for (const e of enriched) {
+      const key = classifySource(e.item.sourceName);
+      c[key] = (c[key] || 0) + 1;
+    }
+    return c;
+  }, [enriched]);
 
-  // Truncation disclosure: render an honest "Showing N of M" indicator
-  // when the page cap is in play. The previous inline-anon fetcher silently
-  // truncated at 100 without surfacing the gap.
-  const showTruncationNote =
-    typeof total === "number" &&
-    typeof shown === "number" &&
-    typeof cap === "number" &&
-    total > shown;
+  // Featured item: highest-priority severity, most recent.
+  const featuredItem = useMemo(() => {
+    const sevOrder: Severity[] = ["action", "cost", "monitor", "background"];
+    const sorted = [...enriched].sort((a, b) => {
+      const sa = sevOrder.indexOf(a.severity);
+      const sb = sevOrder.indexOf(b.severity);
+      if (sa !== sb) return sa - sb;
+      const da = a.item.addedDate ? new Date(a.item.addedDate).getTime() : 0;
+      const db = b.item.addedDate ? new Date(b.item.addedDate).getTime() : 0;
+      return db - da;
+    });
+    return sorted[0] || null;
+  }, [enriched]);
+
+  // Filter state.
+  const [activeTheme, setActiveTheme] = useState<ThemeKey | "all">("all");
+  const [verticalsOn, setVerticalsOn] = useState<Set<string>>(new Set(["live-events", "fine-art"]));
+  const [windowFilter, setWindowFilter] = useState<"7d" | "30d" | "90d" | "all">("30d");
+
+  // Verticals-in-your-sector count.
+  const verticalCount = useMemo(
+    () => enriched.filter((e) => e.vertical).length,
+    [enriched]
+  );
+
+  // Items grouped by theme (excluding the featured one to avoid double-render).
+  const itemsByTheme = useMemo(() => {
+    const map = new Map<ThemeKey, typeof enriched>();
+    for (const t of THEMES) map.set(t.key, []);
+    for (const e of enriched) {
+      if (e === featuredItem) continue;
+      if (!e.theme) continue;
+      map.get(e.theme)!.push(e);
+    }
+    return map;
+  }, [enriched, featuredItem]);
+
+  const totalDisplay = total ?? items.length;
+  const themesActive = THEMES.filter((t) => themeCounts[t.key].total > 0).length;
+
+  const themeColorTokens: Record<Severity, string> = SEVERITY_TILE_COLOR;
 
   return (
-    <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
-      <EditorialMasthead title="Research Pipeline" meta={meta} />
+    <div>
+      <EditorialMasthead
+        title="Research"
+        meta={
+          <>
+            Horizon-scan content from peer-reviewed journals, think tanks, quantified-climate research, and named analytical press
+            {" · "}
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{totalDisplay}</b> active findings this week
+            {" · "}
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{themesActive}</b> themes active
+            {" · "}
+            workspace verticals: <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Live events · Fine art</b>
+          </>
+        }
+      />
 
-      <div style={{ padding: "28px 36px 60px" }}>
-        {showTruncationNote && (
-          <div
-            role="status"
-            aria-live="polite"
-            style={{
-              padding: "8px 12px",
-              marginBottom: 14,
-              fontSize: 12,
-              lineHeight: 1.5,
-              color: "var(--text-2)",
-              background: "var(--surface)",
-              border: "1px solid var(--border-sub)",
-              borderRadius: "var(--r-sm)",
-            }}
-          >
-            Showing the most recent <b style={{ color: "var(--text)" }}>{shown}</b> of <b style={{ color: "var(--text)" }}>{total}</b> pipeline items. Additional results coming soon.
-          </div>
-        )}
-        {/* Legend strip */}
+      {/* Stat zone: priority legend + 4 tiles */}
+      <div style={{ background: "var(--color-bg-raised)", padding: "0 40px 18px" }}>
         <div
           style={{
             display: "flex",
-            gap: 18,
+            gap: 22,
+            alignItems: "center",
+            padding: "12px 0 18px",
+            fontSize: 12,
+            color: "var(--color-text-secondary)",
             flexWrap: "wrap",
-            padding: "6px 0 14px",
-            fontSize: 11,
-            color: "var(--text-2)",
           }}
         >
-          {(["draft", "active_review", "published", "archived"] as Stage[]).map((s) => (
-            <span
-              key={s}
-              style={{ display: "inline-flex", gap: 6, alignItems: "center" }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  display: "inline-block",
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  backgroundColor: STAGE_DOT_COLOR[s],
-                }}
-              />
-              <b style={{ fontWeight: 800, letterSpacing: "0.06em" }}>{STAGE_LABEL[s]}</b>{" "}
-              <span>{STAGE_HELPER[s]}</span>
+          <LegendItem color={themeColorTokens.action} label="Action required" desc="Decision pressure now" />
+          <LegendItem color={themeColorTokens.cost} label="Cost alert" desc="Margin impact" />
+          <LegendItem color={themeColorTokens.monitor} label="Monitor" desc="Worth tracking" />
+          <LegendItem color={themeColorTokens.background} label="Background" desc="Awareness only" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+          <StatTile severity="action" count={severityCounts.action} label="Action required" sub="In your verticals, this week" />
+          <StatTile severity="cost" count={severityCounts.cost} label="Cost alert" sub="Affecting margins" />
+          <StatTile severity="monitor" count={severityCounts.monitor} label="Monitor" sub="Trending themes" />
+          <StatTile severity="background" count={severityCounts.background} label="Background" sub="Awareness coverage" />
+        </div>
+      </div>
+
+      <div style={{ padding: "0 40px 60px" }}>
+        {/* Theme rail */}
+        <div style={{ margin: "22px 0 18px" }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "var(--color-text-primary)",
+              marginBottom: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              paddingBottom: 6,
+              borderBottom: "1px solid var(--color-text-primary)",
+            }}
+          >
+            <span>Research, what we cover by theme</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.04em", textTransform: "none" }}>
+              {themesActive} active themes, filtered to your verticals
             </span>
-          ))}
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, 1fr)",
+              gap: 1,
+              background: "var(--color-border-subtle)",
+              borderTop: "1px solid var(--color-text-primary)",
+              borderBottom: "1px solid var(--color-text-primary)",
+            }}
+          >
+            {THEMES.map((theme) => {
+              const counts = themeCounts[theme.key];
+              const isActive = activeTheme === theme.key;
+              return (
+                <button
+                  key={theme.key}
+                  onClick={() => setActiveTheme(isActive ? "all" : theme.key)}
+                  style={{
+                    background: "var(--color-surface)",
+                    padding: isActive ? "13px 16px 16px" : "14px 16px 16px",
+                    cursor: "pointer",
+                    display: "grid",
+                    gridTemplateRows: "34px 34px 1fr",
+                    gap: 4,
+                    minHeight: 140,
+                    border: 0,
+                    borderTop: isActive ? "2px solid var(--color-primary)" : 0,
+                    marginTop: isActive ? -1 : 0,
+                    textAlign: "left",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      color: isActive ? "var(--color-primary)" : "var(--color-text-primary)",
+                      lineHeight: 1.3,
+                      alignSelf: "end",
+                    }}
+                  >
+                    {theme.label}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 26,
+                      lineHeight: 1,
+                      color: isActive ? "var(--color-primary)" : "var(--color-text-primary)",
+                      alignSelf: "center",
+                    }}
+                  >
+                    {counts.total} new
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.4, alignSelf: "start" }}>
+                    {theme.summary.split(".")[0]}.{" "}
+                    {counts.vertical > 0 && (
+                      <b style={{ color: "var(--color-text-primary)" }}>
+                        {counts.vertical} affect your verticals.
+                      </b>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* 4-up Stat strip */}
-        <div style={{ marginBottom: 22 }}>
-          <StatStrip tiles={statTiles} />
-        </div>
-
-        {/* AI prompt bar */}
+        {/* AI bar */}
         <div style={{ marginBottom: 22 }}>
           <AiPromptBar
-            placeholder="Ask anything about your research pipeline — e.g. What's queued for the EU?"
+            placeholder="Ask anything about research, e.g. What findings affect my FY26 Scope 3 baseline?"
             chips={[
-              "What's queued for the EU?",
-              "Partner-flagged this month",
-              "Show recent publishes",
+              "Charter Scope 3 factor",
+              "SAF cost curve",
+              "PPWR verifiable reuse",
+              "EU ETS Phase 4 outlook",
             ]}
           />
         </div>
 
-        {/* Tabs */}
+        {/* Filter row */}
         <div
           style={{
             display: "flex",
-            gap: 0,
-            borderBottom: "1px solid var(--border-sub)",
-            marginBottom: 8,
+            gap: 14,
+            alignItems: "center",
+            padding: "4px 0 18px",
+            fontSize: 12,
+            flexWrap: "wrap",
+            borderBottom: "1px solid var(--color-border-subtle)",
+            marginBottom: 22,
           }}
         >
-          {([
-            { id: "pipeline" as const, label: "Pipeline" },
-            // Build 8.5: Source coverage tab activated. Backed by
-            // get_research_source_coverage() (migration 100). Cell state
-            // derives from real source counts per (transport_mode x
-            // jurisdiction_iso); zero-data cells render as 'none'.
-            { id: "sources" as const, label: "Source coverage" },
-          ]).map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              style={{
-                padding: "12px 18px",
-                fontSize: 13,
-                fontWeight: 700,
-                color: tab === t.id ? "var(--accent)" : "var(--text-2)",
-                borderBottom:
-                  tab === t.id
-                    ? "3px solid var(--accent)"
-                    : "3px solid transparent",
-                background: "transparent",
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
+            Verticals
+          </span>
+          <FilterChip on={verticalsOn.has("live-events")} onClick={() => toggleVertical(verticalsOn, setVerticalsOn, "live-events")}>
+            Live events
+          </FilterChip>
+          <FilterChip on={verticalsOn.has("fine-art")} onClick={() => toggleVertical(verticalsOn, setVerticalsOn, "fine-art")}>
+            Fine art
+          </FilterChip>
+          <FilterChip on={verticalsOn.has("luxury")} onClick={() => toggleVertical(verticalsOn, setVerticalsOn, "luxury")}>
+            + Luxury
+          </FilterChip>
+          <FilterChip on={verticalsOn.has("automotive")} onClick={() => toggleVertical(verticalsOn, setVerticalsOn, "automotive")}>
+            + Automotive
+          </FilterChip>
+          <FilterChip on={verticalsOn.has("humanitarian")} onClick={() => toggleVertical(verticalsOn, setVerticalsOn, "humanitarian")}>
+            + Humanitarian
+          </FilterChip>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
+              Window
+            </span>
+            {(["7d", "30d", "90d", "all"] as const).map((w) => (
+              <FilterChip key={w} on={windowFilter === w} onClick={() => setWindowFilter(w)}>
+                {w === "all" ? "All" : w}
+              </FilterChip>
+            ))}
+          </div>
         </div>
 
-        {tab === "pipeline" && (
-          <div style={{ paddingTop: 22 }}>
-            <h3
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 26,
-                fontWeight: 400,
-                letterSpacing: "0.02em",
-                margin: "0 0 6px",
-                color: "var(--text)",
-              }}
-            >
-              Currently in pipeline
-            </h3>
-            <p
-              style={{
-                fontSize: 14,
-                lineHeight: 1.5,
-                color: "var(--text-2)",
-                margin: "0 0 14px",
-                maxWidth: "88ch",
-              }}
-            >
-              The queue of regulations and consultations our team is tracking — items being drafted, awaiting validator sign-off, and recently published. Each row traces back to a primary source feed.
-            </p>
+        {/* Main 2-col layout */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 28, alignItems: "start" }}>
+          {/* Main column */}
+          <div>
+            {/* Featured finding */}
+            {featuredItem && <FindingCard item={featuredItem.item} severity={featuredItem.severity} featured />}
 
-            {/* Quick counter callout — reuses stageCounts + publishedThisWeek */}
-            <div
-              role="status"
-              aria-live="polite"
-              style={{
-                display: "flex",
-                gap: 18,
-                flexWrap: "wrap",
-                fontSize: 12,
-                color: "var(--text-2)",
-                padding: "10px 14px",
-                background: "var(--surface)",
-                border: "1px solid var(--border-sub)",
-                borderRadius: "var(--r-sm)",
-                margin: "0 0 14px",
-              }}
-            >
-              <span>
-                <b style={{ color: "var(--text)", fontWeight: 800 }}>{stageCounts.active_review}</b>{" "}
-                in active review
-              </span>
-              <span style={{ color: "var(--border)" }} aria-hidden="true">·</span>
-              <span>
-                <b style={{ color: "var(--text)", fontWeight: 800 }}>{stageCounts.draft}</b>{" "}
-                in draft
-              </span>
-              <span style={{ color: "var(--border)" }} aria-hidden="true">·</span>
-              <span>
-                <b style={{ color: "var(--text)", fontWeight: 800 }}>{publishedThisWeek.length}</b>{" "}
-                published this week
-              </span>
-              <span style={{ color: "var(--border)" }} aria-hidden="true">·</span>
-              <span>
-                <b style={{ color: "var(--text)", fontWeight: 800 }}>{stageCounts.published}</b>{" "}
-                live in regulations &amp; intel
-              </span>
-            </div>
-
-            {/* What's new this week — only renders if there are recent published items */}
-            {publishedThisWeek.length > 0 && (
-              <div
-                style={{
-                  padding: "12px 14px",
-                  margin: "0 0 18px",
-                  background: "var(--low-bg)",
-                  border: "1px solid var(--low-bd)",
-                  borderRadius: "var(--r-sm)",
-                  fontSize: 12.5,
-                  lineHeight: 1.55,
-                  color: "var(--text)",
-                }}
-              >
-                <div
+            {/* Theme-grouped sections */}
+            {THEMES.filter(
+              (t) => activeTheme === "all" || activeTheme === t.key
+            ).map((theme) => {
+              const themeItems = itemsByTheme.get(theme.key) || [];
+              if (themeItems.length === 0) return null;
+              const verticalCountInTheme = themeCounts[theme.key].vertical;
+              return (
+                <section
+                  key={theme.key}
+                  id={`theme-${theme.key}`}
                   style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "var(--low)",
-                    marginBottom: 6,
+                    background: "var(--color-surface)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius-md)",
+                    marginBottom: 14,
+                    boxShadow: "var(--shadow-card)",
+                    overflow: "hidden",
                   }}
                 >
-                  What&apos;s new this week
-                </div>
-                <div style={{ color: "var(--text-2)" }}>
-                  {publishedThisWeek.length === 1
-                    ? "1 regulation went live in the last 7 days:"
-                    : `${publishedThisWeek.length} regulations went live in the last 7 days:`}
-                </div>
-                <ul
-                  style={{
-                    margin: "6px 0 0",
-                    padding: "0 0 0 18px",
-                    listStyle: "disc",
-                  }}
-                >
-                  {publishedThisWeek.slice(0, 4).map((p) => (
-                    <li key={p.id} style={{ marginBottom: 2 }}>
-                      <b style={{ fontWeight: 700 }}>{p.title}</b>
-                      {p.sourceName ? (
-                        <span style={{ color: "var(--text-2)" }}> · {p.sourceName}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                  {publishedThisWeek.length > 4 && (
-                    <li style={{ color: "var(--text-2)", listStyle: "none", marginLeft: -18 }}>
-                      &nbsp;+ {publishedThisWeek.length - 4} more — filter to <b>Published</b> below to see all.
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
-
-            {/* Per-stage description helper — explains what stage filters mean */}
-            <p
-              style={{
-                fontSize: 12,
-                lineHeight: 1.5,
-                color: "var(--text-2)",
-                margin: "0 0 10px",
-                maxWidth: "88ch",
-              }}
-            >
-              <b style={{ color: "var(--text)", fontWeight: 700 }}>Draft</b> {STAGE_HELPER.draft.toLowerCase()}.{" "}
-              <b style={{ color: "var(--text)", fontWeight: 700 }}>Active review</b> {STAGE_HELPER.active_review.toLowerCase()}.{" "}
-              <b style={{ color: "var(--text)", fontWeight: 700 }}>Published</b> {STAGE_HELPER.published.toLowerCase()}.{" "}
-              Partner-flagged items came from a Caro&apos;s Ledge advisor; the rest are tracked from public regulator feeds.
-            </p>
-
-            {/* Filter bar */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                marginBottom: 16,
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--text-2)",
-                  marginRight: 6,
-                }}
-              >
-                Stage
-              </span>
-              {([
-                { id: "all" as const, label: `All (${items.length})`, helper: "All items in the pipeline regardless of stage" },
-                { id: "draft" as const, label: `${STAGE_LABEL.draft} (${stageCounts.draft})`, helper: STAGE_HELPER.draft },
-                { id: "active_review" as const, label: `${STAGE_LABEL.active_review} (${stageCounts.active_review})`, helper: STAGE_HELPER.active_review },
-                { id: "published" as const, label: `${STAGE_LABEL.published} (${stageCounts.published})`, helper: STAGE_HELPER.published },
-              ]).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setStageFilter(s.id as "all" | Stage)}
-                  title={s.helper}
-                  aria-label={`${s.label} — ${s.helper}`}
-                  style={{
-                    fontFamily: "inherit",
-                    fontSize: 12,
-                    padding: "7px 14px",
-                    background:
-                      stageFilter === s.id ? "var(--accent)" : "var(--surface)",
-                    border:
-                      stageFilter === s.id
-                        ? "1px solid var(--accent)"
-                        : "1px solid var(--border)",
-                    borderRadius: 999,
-                    color:
-                      stageFilter === s.id ? "#fff" : "var(--text-2)",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  {s.label}
-                </button>
-              ))}
-
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "var(--text-2)",
-                  marginLeft: 12,
-                  marginRight: 6,
-                }}
-              >
-                Region
-              </span>
-              <select
-                value={regionFilter}
-                onChange={(e) => setRegionFilter(e.target.value)}
-                style={{
-                  fontFamily: "inherit",
-                  fontSize: 12,
-                  padding: "7px 12px",
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--r-sm)",
-                  color: "var(--text-2)",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                <option value="all">All regions</option>
-                {availableRegions.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="text"
-                placeholder="Search title, summary, source…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1,
-                  minWidth: 240,
-                  padding: "8px 12px",
-                  fontFamily: "inherit",
-                  fontSize: 12,
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--r-sm)",
-                  background: "var(--surface)",
-                  color: "var(--text)",
-                }}
-              />
-            </div>
-
-            {/* Item rows */}
-            {filteredItems.length === 0 ? (
-              <div
-                style={{
-                  padding: "40px 20px",
-                  textAlign: "center",
-                  color: "var(--text-2)",
-                  fontSize: 13,
-                  background: "var(--surface)",
-                  border: "1px solid var(--border-sub)",
-                  borderRadius: "var(--r-md)",
-                }}
-              >
-                No items match the current filters. Try widening the stage or region.
-              </div>
-            ) : (
-              filteredItems.map((item) => (
-                <PipelineRow key={item.id} item={item} />
-              ))
-            )}
-          </div>
-        )}
-
-        {tab === "sources" && (
-          <div style={{ paddingTop: 22 }}>
-            <h3
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 26,
-                fontWeight: 400,
-                letterSpacing: "0.02em",
-                margin: "0 0 6px",
-                color: "var(--text)",
-              }}
-            >
-              Source feeds &amp; coverage matrix
-            </h3>
-            <p
-              style={{
-                fontSize: 14,
-                lineHeight: 1.5,
-                color: "var(--text-2)",
-                margin: "0 0 18px",
-                maxWidth: "88ch",
-              }}
-            >
-              Every regulation in the pipeline traces back to a primary source feed. This is what we monitor, how often, and where we still have gaps.
-            </p>
-
-            {/* Coverage matrix table */}
-            <div
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border-sub)",
-                borderRadius: "var(--r-md)",
-                overflow: "auto",
-                boxShadow: "var(--shadow)",
-              }}
-            >
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
-                <thead>
-                  <tr>
-                    <th
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 22px",
+                      background: "var(--color-bg-raised)",
+                      borderBottom: "1px solid var(--color-border-subtle)",
+                    }}
+                  >
+                    <span
                       style={{
-                        textAlign: "left",
-                        padding: "12px 16px",
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: "0.14em",
-                        textTransform: "uppercase",
-                        color: "var(--text-2)",
-                        background: "var(--raised)",
-                        borderBottom: "1px solid var(--border-sub)",
+                        fontFamily: "var(--font-display)",
+                        fontSize: 13,
+                        fontWeight: 400,
+                        letterSpacing: "0.08em",
+                        color: "#fff",
+                        background: "var(--color-primary)",
+                        padding: "4px 10px",
+                        borderRadius: 3,
+                        minWidth: 36,
+                        textAlign: "center",
+                        lineHeight: 1.1,
                       }}
                     >
-                      Mode
-                    </th>
-                    {COVERAGE_REGIONS.map((r) => (
-                      <th
-                        key={r}
-                        style={{
-                          textAlign: "left",
-                          padding: "12px 16px",
-                          fontSize: 10,
-                          fontWeight: 800,
-                          letterSpacing: "0.14em",
-                          textTransform: "uppercase",
-                          color: "var(--text-2)",
-                          background: "var(--raised)",
-                          borderBottom: "1px solid var(--border-sub)",
-                        }}
-                      >
-                        {r}
-                      </th>
+                      T{theme.num}
+                    </span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-primary)" }}>
+                      {theme.label}
+                    </span>
+                    <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--color-text-muted)", fontWeight: 600 }}>
+                      {themeCounts[theme.key].total} new
+                      {verticalCountInTheme > 0 && ` · ${verticalCountInTheme} in your verticals`}
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: 13.5,
+                      lineHeight: 1.55,
+                      color: "var(--color-text-secondary)",
+                      padding: "14px 22px 4px",
+                      margin: "0 0 8px",
+                      maxWidth: "78ch",
+                    }}
+                  >
+                    {theme.summary}
+                  </p>
+                  <div style={{ padding: "8px 14px 14px" }}>
+                    {themeItems.slice(0, 3).map((e) => (
+                      <FindingCard key={e.item.id} item={e.item} severity={e.severity} />
                     ))}
-                  </tr>
-                </thead>
+                    {themeItems.length > 3 && (
+                      <div style={{ fontSize: 11.5, color: "var(--color-primary)", textAlign: "right", padding: "6px 22px 14px", fontWeight: 600 }}>
+                        + {themeItems.length - 3} more in this theme
+                      </div>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+
+            <p style={{ textAlign: "center", padding: 20, color: "var(--color-text-muted)", fontSize: 12 }}>
+              All <b>{totalDisplay}</b> findings this week organized by theme
+            </p>
+          </div>
+
+          {/* Right rail */}
+          <aside>
+            <RailCard accent>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 10 }}>
+                In your sector this week
+              </div>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 32, color: "var(--color-primary)", lineHeight: 1, margin: "4px 0 8px" }}>
+                {verticalCount}
+              </p>
+              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: 0 }}>
+                findings explicitly relevant to live events + fine art workspaces, of {totalDisplay} total this week.
+              </p>
+            </RailCard>
+
+            <RailCard>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 10 }}>
+                Source coverage matrix
+              </div>
+              <table style={{ width: "100%", fontSize: 11.5, borderCollapse: "collapse" }}>
                 <tbody>
-                  {COVERAGE_MODES.map((mode) => (
-                    <tr key={mode}>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: "var(--text)",
-                          borderTop: "1px solid var(--border-sub)",
-                        }}
-                      >
-                        {mode}
+                  {COVERAGE_CLASSES.map((cls) => (
+                    <tr key={cls.key}>
+                      <td style={{ padding: "4px 0", color: "var(--color-text-muted)" }}>{cls.label}</td>
+                      <td style={{ textAlign: "right", fontFamily: "var(--font-display)", color: "var(--color-primary)" }}>
+                        {coverageClassCounts[cls.key] || 0}
                       </td>
-                      {COVERAGE_REGIONS.map((region) => {
-                        const count = coverageMatrix[mode][region];
-                        const state = coverageStateForCount(count);
-                        const sourceWord = count === 1 ? "source" : "sources";
-                        return (
-                          <td
-                            key={region}
-                            style={{
-                              padding: "12px 16px",
-                              fontSize: 12,
-                              color: "var(--text-2)",
-                              borderTop: "1px solid var(--border-sub)",
-                            }}
-                            title={`${count} active Research ${sourceWord} registered for ${mode} in ${region}`}
-                          >
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                gap: 6,
-                                alignItems: "center",
-                              }}
-                            >
-                              <span
-                                aria-hidden="true"
-                                style={{
-                                  display: "inline-block",
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: "50%",
-                                  backgroundColor: COVERAGE_DOT[state],
-                                }}
-                              />
-                              <span>{COVERAGE_LABEL[state]}</span>
-                              {count > 0 && (
-                                <span style={{ color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
-                                  · {count}
-                                </span>
-                              )}
-                            </span>
-                          </td>
-                        );
-                      })}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+              <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 10, lineHeight: 1.5 }}>
+                Distribution across the spec's 5 source classes. Discriminator is analytical depth, not publication form.
+              </p>
+            </RailCard>
 
-            <p
-              style={{
-                fontSize: 11,
-                color: "var(--text-2)",
-                marginTop: 12,
-                fontStyle: "italic",
-              }}
-            >
-              {totalCoverageSources > 0
-                ? "Cell state derives from the live count of active Research-bound sources per (mode, region). Coverage thresholds: none (0), partial (1-2), full (3+)."
-                : "No active Research-bound sources are registered yet for these regions. Sources surface here once they are classified into the Research category."}
-            </p>
-          </div>
-        )}
+            <RailCard>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 10 }}>
+                Methodology
+              </div>
+              <p style={{ fontSize: 12.5, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: 0 }}>
+                Findings render with editorial provenance, source tier, bias tags, citation count, and recency. Each Research Summary brief follows the 6-section format; click any finding to read the structured detail.
+              </p>
+            </RailCard>
+          </aside>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Pipeline row ──
+// ── Sub-components ──
 
-/**
- * Build 8.4: freshness color stripe on PipelineRow left edge.
- *
- * Reads Resource.addedDate (Supabase intelligence_items.added_date) and
- * derives a freshness bucket. Threshold defaults from Build 8 plan
- * decision 8.4.D1: fresh ≤7d, warming ≤30d, established ≤90d, stale >90d.
- * Buckets map to a 4px left edge color stripe via Tailwind-free style
- * (project doesn't use Tailwind for this surface). Renders nothing when
- * addedDate is null/unparseable (no false freshness claim).
- */
-type Freshness = "fresh" | "warming" | "established" | "stale";
-
-function freshnessFor(addedDate: string | null): Freshness | null {
-  if (!addedDate) return null;
-  const d = new Date(addedDate);
-  if (Number.isNaN(d.getTime())) return null;
-  const ageMs = Date.now() - d.getTime();
-  const day = 24 * 60 * 60 * 1000;
-  if (ageMs <= 7 * day) return "fresh";
-  if (ageMs <= 30 * day) return "warming";
-  if (ageMs <= 90 * day) return "established";
-  return "stale";
+function LegendItem({ color, label, desc }: { color: string; label: string; desc: string }) {
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 8, height: 8, borderRadius: 999, background: color }} />
+      <b style={{ color: "var(--color-text-primary)", fontWeight: 700, marginRight: 4 }}>{label}</b>
+      <span>{desc}</span>
+    </div>
+  );
 }
 
-const FRESHNESS_STRIPE: Record<Freshness, string> = {
-  fresh: "#10B981",       // emerald-500
-  warming: "#3B82F6",     // blue-500
-  established: "#94A3B8", // slate-400
-  stale: "#D1D5DB",       // gray-300, muted (older + lower priority)
-};
-
-const FRESHNESS_LABEL: Record<Freshness, string> = {
-  fresh: "Fresh (≤7 days)",
-  warming: "Warming (≤30 days)",
-  established: "Established (≤90 days)",
-  stale: "Stale (>90 days)",
-};
-
-function PipelineRow({ item }: { item: ResearchPipelineItem }) {
-  const [open, setOpen] = useState(false);
-  const stage = normalizeStage(item.pipelineStage);
-  const tone = STAGE_PILL_TONE[stage];
-  const region = regionLabel(item.jurisdictions);
-  const mode = modeLabel(item.transportModes);
-  const dateStr = item.addedDate ? formatDateUTC(item.addedDate) : "—";
-  const freshness = freshnessFor(item.addedDate);
-
+function StatTile({
+  severity,
+  count,
+  label,
+  sub,
+}: {
+  severity: Severity;
+  count: number;
+  label: string;
+  sub: string;
+}) {
+  const isActive = severity === "action";
+  const color = SEVERITY_TILE_COLOR[severity];
   return (
     <div
       style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border-sub)",
-        borderRadius: "var(--r-md)",
-        marginBottom: 12,
-        boxShadow: "var(--shadow)",
-        overflow: "hidden",
-        // Build 8.4: 4px left-edge freshness stripe via inline border-left.
-        borderLeft: freshness
-          ? `4px solid ${FRESHNESS_STRIPE[freshness]}`
-          : "1px solid var(--border-sub)",
+        background: "var(--color-surface)",
+        border: `1px solid ${isActive ? color : "var(--color-border)"}`,
+        boxShadow: isActive ? `0 0 0 1px ${color} inset, var(--shadow-card)` : "var(--shadow-card)",
+        borderRadius: "var(--radius-md)",
+        padding: "22px 24px 20px",
+        position: "relative",
+        cursor: "pointer",
       }}
-      title={freshness ? FRESHNESS_LABEL[freshness] : undefined}
     >
-      {/* Title row + chevron split: title is a <Link> to /regulations/[slug];
-          chevron is a separate <button> that toggles expand/collapse.
-          Wrapping a <button> in <Link> would be invalid; the split keeps
-          two distinct keyboard targets and matches the audit doc plan. */}
+      <div style={{ position: "absolute", top: 18, right: 18, fontSize: 14, color }}>
+        {severity === "action" || severity === "cost" ? "▲" : severity === "monitor" ? "◎" : "○"}
+      </div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 56, lineHeight: 1, color }}>{count}</div>
       <div
         style={{
-          padding: "16px 20px",
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gap: 14,
-          alignItems: "center",
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: "0.18em",
+          textTransform: "uppercase",
+          margin: "10px 0 6px",
+          color,
         }}
       >
-        <Link
-          href={`/regulations/${encodeURIComponent(item.id)}`}
-          prefetch={false}
-          style={{
-            display: "block",
-            textDecoration: "none",
-            color: "inherit",
-            cursor: "pointer",
-            padding: "2px 4px",
-            margin: "-2px -4px",
-            borderRadius: "var(--r-sm)",
-            transition: "background-color 120ms ease",
-          }}
-          className="hover:bg-[var(--raised)]"
-        >
-          {/* Source kicker — promoted per CC3 source-attribution prominence.
-              Build 8.2: tier badge inline with source name. Uses effectiveTier
-              with fallback to baseTier per ADR-002 customer-facing-surfaces
-              read rule. */}
-          {item.sourceName && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--text-2)",
-                }}
-              >
-                {item.sourceName}
-              </span>
-              {(item.effectiveTier ?? item.baseTier) !== null && (
-                <CredibilityBadge tier={item.effectiveTier ?? item.baseTier} size="sm" />
-              )}
-            </div>
-          )}
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              alignItems: "baseline",
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 9,
-                padding: "3px 8px",
-                borderRadius: 3,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                border: `1px solid ${tone.bd}`,
-                color: tone.color,
-                background: tone.bg,
-              }}
-            >
-              {STAGE_LABEL[stage]}
-            </span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>
-              {item.title}
-            </span>
-          </div>
-          <div
-            style={{
-              fontSize: 11.5,
-              color: "var(--text-2)",
-              marginTop: 4,
-              lineHeight: 1.5,
-              display: "flex",
-              gap: 14,
-              flexWrap: "wrap",
-            }}
-          >
-            <span>
-              First seen · <b style={{ color: "var(--text)" }}>{dateStr}</b>
-            </span>
-            {item.owner && (
-              <span>
-                Owner · <b style={{ color: "var(--text)" }}>{item.owner}</b>
-              </span>
-            )}
-          </div>
-        </Link>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          <span
-            style={{
-              fontSize: 9,
-              padding: "3px 8px",
-              borderRadius: 3,
-              fontWeight: 600,
-              letterSpacing: 0,
-              textTransform: "none",
-              border: "1px solid var(--border)",
-              color: "var(--text-2)",
-              background: "var(--surface)",
-            }}
-          >
-            {mode} · {region}
-          </span>
-          {/* Build 8.1: per-source credibility chips (citation count + recency).
-              CitationCountChip suppresses itself when count < 1 (per Build 8 plan
-              decision 8.1.D2 default). RecencyChip omits if lastCitedAt absent. */}
-          {item.citationCount !== null && item.citationCount >= 1 && (
-            <CitationCountChip count={item.citationCount} />
-          )}
-          {item.lastCitedAt && <RecencyChip timestamp={item.lastCitedAt} />}
-          {/* Build 8.3: bias tags (per source_bias_tags from mig 092).
-              BiasBadge renders nothing for empty array per ADR-007 + own contract.
-              Map confidence: null -> undefined to match BiasBadge's optional contract. */}
-          {item.biasTags.length > 0 && (
-            <BiasBadge
-              tags={item.biasTags.map((t) => ({
-                dimension: t.dimension,
-                tag: t.tag,
-                confidence: t.confidence ?? undefined,
-              }))}
-              layout="inline"
-              maxChips={3}
-            />
-          )}
-          {item.partnerFlagged && (
-            <span
-              style={{
-                fontSize: 9,
-                padding: "3px 8px",
-                borderRadius: 3,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "#6D28D9",
-                border: "1px solid #DDD6FE",
-                background: "#F5F3FF",
-              }}
-            >
-              Partner-flagged
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            aria-expanded={open}
-            aria-label={open ? "Collapse pipeline row" : "Expand pipeline row"}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 4,
-              background: "transparent",
-              border: 0,
-              cursor: "pointer",
-              borderRadius: 3,
-            }}
-          >
-            <ChevronDown
-              size={16}
-              style={{
-                color: "var(--text-2)",
-                transform: open ? "rotate(180deg)" : "rotate(0)",
-                transition: "transform 0.15s ease",
-              }}
-            />
-          </button>
-        </div>
+        {label}
       </div>
+      <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{sub}</div>
+    </div>
+  );
+}
 
-      {open && (
+function FilterChip({
+  on,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "5px 12px",
+        fontSize: 12,
+        fontWeight: 600,
+        border: "1px solid",
+        borderColor: on ? "var(--color-text-primary)" : "var(--color-border)",
+        background: on ? "var(--color-text-primary)" : "var(--color-surface)",
+        color: on ? "#fff" : "var(--color-text-primary)",
+        borderRadius: "var(--radius-pill)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function toggleVertical(
+  set: Set<string>,
+  setSet: (next: Set<string>) => void,
+  key: string
+) {
+  const next = new Set(set);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  setSet(next);
+}
+
+function RailCard({ accent, children }: { accent?: boolean; children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-md)",
+        padding: "16px 18px",
+        boxShadow: "var(--shadow-card)",
+        marginBottom: 14,
+        borderLeft: accent ? "3px solid var(--color-primary)" : "1px solid var(--color-border)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function FindingCard({
+  item,
+  severity,
+  featured = false,
+}: {
+  item: ResearchPipelineItem;
+  severity: Severity;
+  featured?: boolean;
+}) {
+  const tier = item.effectiveTier || item.baseTier;
+  const recent = isWithinLast7Days(item.addedDate);
+  const when = item.addedDate ? formatShortDate(item.addedDate) : "";
+  const sevTone = SEVERITY_TONE[severity];
+
+  return (
+    <article
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        borderLeft: `${featured ? 4 : 3}px solid var(--color-primary)`,
+        borderRadius: "var(--radius-sm)",
+        padding: "16px 20px 18px",
+        margin: "10px 0",
+        boxShadow: "var(--shadow-card)",
+        display: "grid",
+        gridTemplateColumns: "1fr 220px",
+        gap: 22,
+        alignItems: "start",
+      }}
+    >
+      {/* Body column */}
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
         <div
           style={{
-            padding: "4px 20px 18px",
-            borderTop: "1px solid var(--border-sub)",
-            display: "grid",
-            gridTemplateColumns: "1fr 220px",
-            gap: 24,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontSize: 10.5,
+            fontWeight: 800,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--color-text-primary)",
+            marginBottom: 6,
+            flexWrap: "wrap",
           }}
         >
-          <div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--text-2)",
-                margin: "14px 0 8px",
-              }}
-            >
-              Synopsis
-            </div>
-            <p
-              style={{
-                fontSize: 13,
-                lineHeight: 1.6,
-                color: "var(--text)",
-                margin: 0,
-              }}
-            >
-              {item.summary || "Summary not yet drafted."}
-            </p>
-
-            {item.sourceUrl && (
-              <>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "var(--text-2)",
-                    margin: "14px 0 8px",
-                  }}
-                >
-                  Primary source
-                </div>
-                <a
-                  href={item.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--accent)",
-                    textDecoration: "underline",
-                    wordBreak: "break-all",
-                  }}
-                >
-                  {item.sourceUrl}
-                </a>
-              </>
-            )}
-          </div>
-
-          <div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--text-2)",
-                margin: "14px 0 8px",
-              }}
-            >
-              Meta
-            </div>
-            <div style={{ fontSize: 12, lineHeight: 1.65, color: "var(--text)" }}>
-              <div>
-                <span style={{ color: "var(--text-2)" }}>Stage</span> ·{" "}
-                <b>{STAGE_LABEL[stage]}</b>
-              </div>
-              <div>
-                <span style={{ color: "var(--text-2)" }}>Region</span> · <b>{region}</b>
-              </div>
-              <div>
-                <span style={{ color: "var(--text-2)" }}>Mode</span> · <b>{mode}</b>
-              </div>
-              <div>
-                <span style={{ color: "var(--text-2)" }}>Added</span> · <b>{dateStr}</b>
-              </div>
-              {item.owner && (
-                <div>
-                  <span style={{ color: "var(--text-2)" }}>Owner</span> ·{" "}
-                  <b>{item.owner}</b>
-                </div>
-              )}
-            </div>
-          </div>
+          <SeverityPill severity={severity} />
+          <span>{featured ? "Featured" : ""}</span>
+          <span style={{ marginLeft: "auto", color: "var(--color-text-muted)", fontWeight: 600, fontSize: 10.5 }}>
+            {when}
+            {recent && " · this week"}
+          </span>
         </div>
-      )}
-    </div>
+        <h4 style={{ fontSize: featured ? 18 : 17, fontWeight: 700, lineHeight: 1.35, margin: "4px 0 6px", color: "var(--color-text-primary)" }}>
+          {item.sourceUrl ? (
+            <Link href={item.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
+              {item.title}
+            </Link>
+          ) : (
+            item.title
+          )}
+        </h4>
+        <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--color-text-secondary)", margin: "0 0 6px" }}>
+          {item.summary}
+        </p>
+        {item.sourceName && (
+          <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 8 }}>
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 700 }}>{item.sourceName}</b>
+            {tier && <span style={{ marginLeft: 8 }}>· T{tier}</span>}
+            {item.citationCount && item.citationCount > 0 && <span style={{ marginLeft: 8 }}>· cited {item.citationCount}×</span>}
+          </p>
+        )}
+      </div>
+
+      {/* Right column */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {tier && (
+          <span
+            style={{
+              alignSelf: "flex-start",
+              fontFamily: "var(--font-display)",
+              fontSize: 11,
+              padding: "1px 6px",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text-primary)",
+            }}
+          >
+            T{tier}
+          </span>
+        )}
+        <SeverityPill severity={severity} />
+        {item.biasTags && item.biasTags.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {item.biasTags.slice(0, 2).map((b, i) => (
+              <span
+                key={i}
+                style={{
+                  alignSelf: "flex-start",
+                  fontSize: 10,
+                  background: "var(--color-bg-raised)",
+                  padding: "1px 6px",
+                  borderRadius: 3,
+                  color: "var(--color-text-primary)",
+                  border: "1px solid var(--color-border)",
+                  fontWeight: 500,
+                }}
+              >
+                {b.tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function SeverityPill({ severity }: { severity: Severity }) {
+  const tone = SEVERITY_TONE[severity];
+  return (
+    <span
+      style={{
+        alignSelf: "flex-start",
+        fontSize: 10,
+        fontWeight: 800,
+        padding: "2px 8px",
+        borderRadius: 3,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: tone.fg,
+        background: tone.bg,
+        border: `1px solid ${tone.bd}`,
+      }}
+    >
+      {SEVERITY_LABEL[severity]}
+    </span>
   );
 }

@@ -980,56 +980,14 @@ function SummaryPanel({
 
   return (
     <>
-      {/* AI summary block — Tier 1 (~100 word AI summary) */}
-      {(r.whatIsIt || r.note) && (
-        <div
-          style={{
-            background: "var(--accent-strip)",
-            border: "1px solid var(--accent-strip-bd)",
-            borderRadius: "var(--r-md)",
-            padding: "16px 20px",
-            marginBottom: 16,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--accent)",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <Sparkles size={12} />
-              AI plain-language summary
-            </span>
-            <span style={{ fontSize: 11, color: "var(--muted)" }}>Generated</span>
-          </div>
-          <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0, color: "var(--text)" }}>
-            {r.whatIsIt || r.note}
-          </p>
-        </div>
-      )}
-
-      {/* Tier 2 — Operational briefing.
-          Renders only for regulatory_fact_document briefs that have at
-          least one of the three target sections populated. Non-regulatory
-          briefs (technology_profile, etc.) don't have these sections in
-          their markdown so we collapse the affordance entirely. */}
-      {operationalBriefing && (
-        <OperationalBriefingExpander
-          briefing={operationalBriefing}
+      {/* Design rebuild 2026-05-24 (handoff design_handoff_2026-05/regulations-detail.html):
+          Short/Full summary switcher. Replaces the prior stacked AI-summary +
+          operational-briefing pattern. Short summary view defaults; Full
+          summary expands to the operational briefing's 6 segments inline. */}
+      {(r.whatIsIt || r.note || operationalBriefing) && (
+        <SummarySwitcher
+          shortText={r.whatIsIt || r.note || ""}
+          fullBriefing={operationalBriefing}
           onNavigateToFullSection={onNavigateToFullSection}
         />
       )}
@@ -1235,9 +1193,142 @@ function SummaryPanel({
  * Open: severity callout (when an Immediate Action paragraph leads with a
  * severity label) plus three stacked subsections, each linking to its
  * full counterpart in the Full text tab via onNavigateToFullSection. */
+/**
+ * Design rebuild 2026-05-24: Short/Full summary switcher per
+ * design_handoff_2026-05/regulations-detail.html. Replaces the prior
+ * stacked "AI plain-language summary" + "Operational briefing" pattern
+ * with a pill-toggle between short and full views.
+ */
+function SummarySwitcher({
+  shortText,
+  fullBriefing,
+  onNavigateToFullSection,
+}: {
+  shortText: string;
+  fullBriefing: {
+    immediateAction: ExtractedSection | null;
+    whatItIsWhyItApplies: ExtractedSection | null;
+    complianceChain: ExtractedSection | null;
+  } | null;
+  onNavigateToFullSection: (slug: string) => void;
+}) {
+  const [mode, setMode] = useState<"short" | "full">("short");
+  const hasFull = !!(
+    fullBriefing &&
+    (fullBriefing.immediateAction?.hasContent ||
+      fullBriefing.whatItIsWhyItApplies?.hasContent ||
+      fullBriefing.complianceChain?.hasContent)
+  );
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {hasFull && (
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-pill)",
+            padding: 4,
+            marginBottom: 14,
+            width: "max-content",
+          }}
+        >
+          <button
+            onClick={() => setMode("short")}
+            style={{
+              background: mode === "short" ? "var(--accent)" : "transparent",
+              color: mode === "short" ? "#fff" : "var(--text-2)",
+              border: 0,
+              padding: "7px 16px",
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              borderRadius: "var(--r-pill)",
+              cursor: "pointer",
+            }}
+          >
+            Short summary
+          </button>
+          <button
+            onClick={() => setMode("full")}
+            style={{
+              background: mode === "full" ? "var(--accent)" : "transparent",
+              color: mode === "full" ? "#fff" : "var(--text-2)",
+              border: 0,
+              padding: "7px 16px",
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              borderRadius: "var(--r-pill)",
+              cursor: "pointer",
+            }}
+          >
+            Full summary
+          </button>
+        </div>
+      )}
+
+      {mode === "short" && shortText && (
+        <div
+          style={{
+            background: "var(--accent-strip)",
+            border: "1px solid var(--accent-strip-bd)",
+            borderRadius: "var(--r-md)",
+            padding: "16px 20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "var(--accent)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Sparkles size={12} />
+              Short summary
+            </span>
+            <span style={{ fontSize: 11, color: "var(--muted)" }}>
+              Generated · 30-second read
+            </span>
+          </div>
+          <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0, color: "var(--text)" }}>
+            {shortText}
+          </p>
+        </div>
+      )}
+
+      {mode === "full" && fullBriefing && (
+        <OperationalBriefingExpander
+          briefing={fullBriefing}
+          onNavigateToFullSection={onNavigateToFullSection}
+          defaultOpen
+        />
+      )}
+    </div>
+  );
+}
+
 function OperationalBriefingExpander({
   briefing,
   onNavigateToFullSection,
+  defaultOpen = false,
 }: {
   briefing: {
     immediateAction: ExtractedSection | null;
@@ -1245,8 +1336,9 @@ function OperationalBriefingExpander({
     complianceChain: ExtractedSection | null;
   };
   onNavigateToFullSection: (slug: string) => void;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   const sections: Array<{
     key: "immediateAction" | "whatItIsWhyItApplies" | "complianceChain";

@@ -247,7 +247,19 @@ export function MapPageView(props: MapPageViewProps) {
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
       <EditorialMasthead
         title="Global Regulatory Map"
-        meta="Where regulations bite. Click a marker for the open items in that jurisdiction; size and colour encode urgency."
+        meta={
+          <>
+            May 24, 2026 · Regulations by jurisdiction. Marker size encodes item count; colour encodes urgency.
+            {" · "}
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{filteredResources.length}</b> active items
+            {" · "}
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{new Set(filteredResources.map((r) => r.jurisdiction || "global")).size}</b> jurisdictions
+            {" · "}
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{filteredResources.filter((r) => r.priority === "CRITICAL").length}</b> critical
+            {" · "}
+            workspace verticals: <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Live events · Fine art</b>
+          </>
+        }
       />
 
       <div style={{ padding: "28px 36px 60px" }}>

@@ -113,7 +113,9 @@ export default async function RegulationsPage({
     .filter((d): d is Date => d !== null)
     .reduce<Date | null>((acc, d) => (acc === null || d > acc ? d : acc), null);
   const syncSegment = mostRecentAdded ? ` · last sync ${formatRelative(mostRecentAdded)}` : "";
-  const meta = `${regulationResources.length} regulations tracked · ${jurisdictionsCount} jurisdictions${syncSegment}`;
+  // Design rebuild 2026-05-24 (handoff Fixes 7/8/9): full date prefix,
+  // "active" rather than "tracked", workspace verticals appended.
+  const meta = `May 24, 2026 · ${regulationResources.length} active regulations · ${jurisdictionsCount} jurisdictions${syncSegment} · workspace verticals: Live events · Fine art`;
 
   return (
     <>

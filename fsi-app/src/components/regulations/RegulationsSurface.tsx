@@ -1089,6 +1089,11 @@ function KanbanView({
   selected: Set<string>;
   onToggleSelected: (id: string) => void;
 }) {
+  // Design rebuild 2026-05-24: per-column expansion state. Each priority
+  // column defaults to top 8 rows visible; the user toggles to see all
+  // via the "Open all N" sticky button.
+  const [expandedColumns, setExpandedColumns] = useState<Set<string>>(new Set());
+
   return (
     <section
       className="cl-reg-kanban"
@@ -1176,16 +1181,63 @@ function KanbanView({
                   No regulations in this column.
                 </p>
               ) : (
-                items.map((r) => (
-                  <KanbanCard
-                    key={r.id}
-                    r={r}
-                    tone={col.tone}
-                    bulkMode={bulkMode}
-                    isSelected={selected.has(r.id)}
-                    onToggleSelected={() => onToggleSelected(r.id)}
-                  />
-                ))
+                <>
+                  {/* Design rebuild 2026-05-24 (handoff Fix per
+                      design_handoff_2026-05/regulations.html):
+                      cap each priority column at 8 visible cards.
+                      A sticky "Open all N" button at the bottom of each
+                      column expands the column inline to show every row
+                      when items.length > 8. The cap restores customer
+                      first-screen scan; previously all 51/80/84/179
+                      cards rendered stacked, requiring 6+ screens of
+                      vertical scroll. */}
+                  {(expandedColumns.has(col.key) ? items : items.slice(0, 8)).map((r) => (
+                    <KanbanCard
+                      key={r.id}
+                      r={r}
+                      tone={col.tone}
+                      bulkMode={bulkMode}
+                      isSelected={selected.has(r.id)}
+                      onToggleSelected={() => onToggleSelected(r.id)}
+                    />
+                  ))}
+                  {items.length > 8 && (
+                    <button
+                      onClick={() => {
+                        const next = new Set(expandedColumns);
+                        if (next.has(col.key)) next.delete(col.key);
+                        else next.add(col.key);
+                        setExpandedColumns(next);
+                      }}
+                      style={{
+                        width: "100%",
+                        background: "var(--text-1)",
+                        color: "#fff",
+                        border: 0,
+                        padding: 11,
+                        fontFamily: "inherit",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        cursor: "pointer",
+                        marginTop: 6,
+                        borderRadius: "var(--r-sm)",
+                        transition: "background var(--transition-fast)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--color-primary)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "var(--text-1)";
+                      }}
+                    >
+                      {expandedColumns.has(col.key)
+                        ? `Show top 8 ↑`
+                        : `Open all ${items.length} →`}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

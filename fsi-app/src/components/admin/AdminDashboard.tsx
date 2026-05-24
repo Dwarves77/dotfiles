@@ -274,9 +274,9 @@ export function AdminDashboard({
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <EditorialMasthead
-        eyebrow="Caro's Ledge · Platform Operations"
-        title="Admin"
-        meta="Organizations · sources · staged updates · regulatory scan"
+        eyebrow="Platform Admin · May 24, 2026"
+        title="Platform Admin"
+        meta="Workspaces, sources, ingest, coverage. Aggregated needs-attention queue refreshes every 60 seconds."
       />
 
       <div style={{ padding: "28px 36px 60px" }}>
@@ -341,6 +341,150 @@ export function AdminDashboard({
           runs={initialMtdRuns}
           errors={initialMtdErrors}
         />
+
+        {/* Design rebuild 2026-05-24 (handoff design_handoff_2026-05/admin.html):
+            6 section cards group the 11 underlying tabs into operator-meaningful
+            categories. Clicking a card jumps the active tab to the first sub-view
+            in that section. The full 11-tab strip below remains for direct access. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 14,
+            marginBottom: 24,
+          }}
+        >
+          {(
+            [
+              {
+                key: "workspaces",
+                kicker: "Section 1",
+                title: "Workspaces",
+                desc: "Organizations, members, invitations. Per-tenant overrides and plan visibility.",
+                target: "orgs" as AdminTab,
+                count: orgs.length,
+                unit: "orgs",
+                urgent: false,
+              },
+              {
+                key: "sources",
+                kicker: "Section 2",
+                title: "Sources",
+                desc: "Source registry, bulk add, provisional candidate review and tier classification.",
+                target: "sources" as AdminTab,
+                count: 0,
+                unit: "provisional pending",
+                urgent: false,
+              },
+              {
+                key: "ingest",
+                kicker: "Section 3",
+                title: "Ingest",
+                desc: "Staged updates, integrity flags, rejections, regulatory scan scheduling.",
+                target: "staged" as AdminTab,
+                count: stagedUpdates.length + integrityFlagCount + platformIntegrityFlagCount,
+                unit: "open",
+                urgent: integrityFlagCount > 0 || platformIntegrityFlagCount > 0,
+              },
+              {
+                key: "coverage",
+                kicker: "Section 4",
+                title: "Coverage",
+                desc: "Jurisdiction review, coverage matrix, gap analysis.",
+                target: "jurisdiction-review" as AdminTab,
+                count: 0,
+                unit: "critical gaps",
+                urgent: false,
+              },
+              {
+                key: "research-pipeline",
+                kicker: "Section 5",
+                title: "Research pipeline",
+                desc: "Editorial draft-staging (moved from customer-facing /research per design rebuild).",
+                target: "tier-opinions" as AdminTab,
+                count: 0,
+                unit: "drafts",
+                urgent: false,
+              },
+              {
+                key: "community-pickups",
+                kicker: "Section 6",
+                title: "Community pickups",
+                desc: "Editorial review queue for community to intelligence promotion.",
+                target: "tier-opinions" as AdminTab,
+                count: 0,
+                unit: "flagged",
+                urgent: false,
+              },
+            ] as const
+          ).map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setActiveTab(s.target)}
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderLeft: s.urgent ? "3px solid var(--critical)" : "1px solid var(--border)",
+                borderRadius: "var(--r-md)",
+                padding: "18px 22px",
+                textAlign: "left",
+                cursor: "pointer",
+                color: "inherit",
+                fontFamily: "inherit",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: s.urgent ? "var(--critical)" : "var(--text-2)",
+                  marginBottom: 8,
+                }}
+              >
+                {s.kicker}
+                {s.urgent && s.count > 0 ? ` · ${s.count} attention` : ""}
+              </div>
+              <h3
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: 22,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  margin: "0 0 6px",
+                  fontWeight: 400,
+                  lineHeight: 1.1,
+                }}
+              >
+                {s.title}
+              </h3>
+              <p
+                style={{
+                  fontSize: 12.5,
+                  color: "var(--text-2)",
+                  margin: "0 0 12px",
+                  lineHeight: 1.55,
+                }}
+              >
+                {s.desc}
+              </p>
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: "var(--text-2)",
+                  borderTop: "1px solid var(--border-sub)",
+                  paddingTop: 10,
+                }}
+              >
+                <b style={{ color: s.urgent ? "var(--critical)" : "var(--text)", fontWeight: 700 }}>
+                  {s.count}
+                </b>{" "}
+                {s.unit}
+              </div>
+            </button>
+          ))}
+        </div>
 
         {/* Tabs */}
         <div

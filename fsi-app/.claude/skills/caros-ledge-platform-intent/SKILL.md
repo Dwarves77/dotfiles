@@ -18,13 +18,27 @@ This skill is the canonical platform model that downstream dispatches load to gr
 
 The two binding corrections:
 
-1. **Community is a CORE customer-facing surface, co-equal with the four intelligence pages.** Not Category 5. Not an onboarding mechanism. Not a sub-feature. The freight industry has a structural information-isolation problem: industry professionals and clients across geographies duplicate efforts because they do not know what others are doing. Caro's Ledge exists in significant part to fix this. The vendor directory sub-feature of Community can be deprecated or later-phased without affecting the core. The peer information-sharing function (working groups, forums, peer connection) is non-negotiable.
+1. **Community is a CORE customer-facing surface, co-equal with the four intelligence pages.** Not Category 5. Not an onboarding mechanism. Not a sub-feature. The freight industry has a structural information-isolation problem: industry professionals and clients across geographies duplicate efforts because they do not know what others are doing. Caro's Ledge exists in significant part to fix this. The peer information-sharing function (working groups, forums, peer connection) is non-negotiable. (Per operator-stated correction 2026-05-24, the vendor directory sub-feature has been removed from scope entirely; this prior framing about deprecation no longer applies.)
 
 2. **The Intelligence Assistant is a RESEARCH HELPER, not a synthesis or decision engine.** It leverages Caro's Ledge's accumulated expertise (the platform skills, primarily environmental-policy-and-innovation, plus platform content) to answer cross-cutting questions during user research on the site. Synthesis happens through structured content plus the Assistant plus customer judgment. There is no separate "Operations decision engine" or equivalent to build. Operations surfaces structured content; the Assistant answers questions about it; the customer makes the decision.
 
 These corrections affect downstream work directly: the alignment audit at `docs/sprint-1/alignment-audit-2026-05-18.md` was authored against the prior four-page-plus-onboarding model and missed Community. OBS-18 and OBS-19 routed customer-facing concerns to infrastructure phases. The Chrome audit observed phase-language ("Coming soon, Phase D") shipped to customers on `/operations` and `/research`. The Operations build was scoped as "very large" because it was framed as a separate decision-engine UI rather than structured content plus AI helper.
 
 Future dispatches that treat Community as optional or treat the Intelligence Assistant as a synthesis layer are in violation of this skill and must be surfaced for operator correction.
+
+## Operator-Stated Corrections, 2026-05-24
+
+Four corrections landed in the design rebuild handoff session and are now codified here. Each is operator-stated with strong emphasis per Section 10 Authority Grant.
+
+1. **Dashboard is a canonical cross-cutting capability.** Dashboard was absent from the surface enumeration in earlier revisions of this skill. The operator confirmed it stays as-is and is part of the canonical model. Dashboard is the digest/triage view that surfaces what is new, important, and flagged across the five intelligence surfaces. It is NOT a sixth intelligence surface; it is cross-cutting alongside Map, Intelligence Assistant, and Onboarding. See the Cross-Cutting Capabilities section below.
+
+2. **Vendor directory is removed from Community.** The vendor directory sub-feature is no longer part of the platform. References to it have been removed from Section 3.5 COMMUNITY and from the Three-Layer Tenant Model. Any prior dispatch report or follow-up that scoped vendor directory expansion is superseded.
+
+3. **Editorial pickup pipeline status is corrected to in-flight.** Section 3.5 previously listed editorial pickup pipeline as shipped per Workstream B. The 2026-05-23 cross-surface audit confirmed the pipeline is absent or stubbed. Section 3.5 now reflects the actual in-flight state. The customer-facing `/research` surface does NOT consume Community pickups today; that wiring is part of the Community rebuild dispatch.
+
+4. **LinkedIn import is in-flight, not a stub.** Section 3 ONBOARDING FLOW previously labeled LinkedIn import as "currently stub". The operator confirmed it is an in-flight feature build. Section 3 ONBOARDING FLOW and Section "Customer-Facing Value Gap" item 5 are updated accordingly.
+
+These corrections must inform all Sequence C surface rebuild dispatches (Research, Operations, Market Intel, Community, Regulations Detail) starting with the Community rebuild which depends directly on corrections 2 and 3.
 
 ## Platform Value Proposition
 
@@ -115,19 +129,35 @@ Examples of decisions Operations supports:
 
 - Private working groups (org-scoped or cross-org peer collaboration spaces)
 - Public forums (open discussion threads)
-- Vendor directory (a sub-feature; see deprecation note below)
 - Promote-to-public workflow (private content can be promoted to public discussion)
-- Editorial pickup pipeline (Caro's Ledge editors can surface a public Community thread inside platform intelligence)
 
-**Vendor directory sub-feature.** Can be deprecated or later-phased without affecting Community's core function. The core information-sharing function (working groups, forums, peer connection) is non-negotiable.
+**In-flight, not yet shipped:**
+
+- Editorial pickup pipeline (Caro's Ledge editors surface a public Community thread inside platform intelligence). The 2026-05-23 cross-surface audit confirmed this is absent or stubbed. Wiring is part of the Community rebuild dispatch.
+
+**Removed from scope** (operator-stated correction 2026-05-24):
+
+- Vendor directory. No longer part of the platform. Any prior dispatch report or follow-up that scoped vendor directory expansion is superseded.
 
 **Source category mapping.** Community does NOT map to the four-category source taxonomy. Community content is user-generated peer discussion plus editorial pickups; it is not classifier output from external sources. The two halves of the platform (intelligence and community) are structurally distinct in this respect.
 
-**Current state.** Partially functional. Working groups, forums, vendor directory, promote-to-public, and editorial pickup all shipped per Workstream B. Gaps: expansion-cohort vendor and group coverage beyond current art-logistics-specific entries; onboarding flow completion; sector-taxonomy-driven group seeding for new workspaces.
+**Current state.** Partially functional. Working groups, forums, and promote-to-public shipped per Workstream B. Editorial pickup pipeline is in-flight (absent/stubbed per the 2026-05-23 audit). Gaps: author-identity rendering (org + role + sector + region), region/group structure on the index page, AI prompt bar wiring, topic-by-region matrix, sector-taxonomy-driven group seeding for new workspaces.
 
 ## Cross-Cutting Capabilities
 
 These span the five surfaces; they are not surfaces themselves.
+
+### DASHBOARD
+
+**Surface.** Home route at `/`.
+
+**Function.** Digest and triage view surfacing what is new, important, and flagged across the five intelligence surfaces. The customer's first stop on each session, organizing recent updates, urgent items, and saved attention items into a scannable single page. NOT a sixth intelligence surface; Dashboard does not introduce its own content category. Every item rendered on Dashboard cross-references back to its canonical surface (Regulations, Market Intel, Research, Operations, Community).
+
+**Operator-stated framing (2026-05-24).** Dashboard stays as-is. The current "what's new + what's important + flagged items" framing is correct. Not in design rebuild scope; Sequence C rebuilds do not touch Dashboard. Future refinement, if any, runs as a separate parallel dispatch.
+
+**Source category mapping.** Dashboard is a view across all four source categories; it does not surface its own content category.
+
+**Current state.** Functional.
 
 ### INTELLIGENCE ASSISTANT
 
@@ -157,7 +187,7 @@ These span the five surfaces; they are not surfaces themselves.
 
 **Function.** Mechanism for expansion-time users to join the Workspace layer with appropriate sector_profile customization and Community participation. Required for the architectural intent to materialize.
 
-**Current state.** Partially shipped per Multi-Tenant Foundation Workstream B (4-step wizard, signup, invitation accept/decline plumbing, minimal NoWorkspaceLanding). Gaps: sector taxonomy expansion in the wizard (currently highlights 6 current niches), email-delivered invitations (currently copy-URL only), LinkedIn import (currently stub), chrome polish on `NoWorkspaceLanding`, sector_profile-driven Community group seeding for new workspaces.
+**Current state.** Partially shipped per Multi-Tenant Foundation Workstream B (4-step wizard, signup, invitation accept/decline plumbing, minimal NoWorkspaceLanding). Gaps: sector taxonomy expansion in the wizard (currently highlights 6 current niches), email-delivered invitations (currently copy-URL only), chrome polish on `NoWorkspaceLanding`, sector_profile-driven Community group seeding for new workspaces. LinkedIn import is in-flight (operator-stated 2026-05-24, not a stub).
 
 Onboarding is a customer-facing capability, but it is cross-cutting rather than a content surface; it provisions access to the surfaces rather than displaying content itself.
 
@@ -165,7 +195,7 @@ Onboarding is a customer-facing capability, but it is cross-cutting rather than 
 
 - **Platform layer.** Shared intelligence, source registry, classifier, internal staff (`profiles.is_platform_admin = true` gates platform-level surfaces).
 - **Workspace layer.** Org-scoped intelligence delivery. `workspace_settings`, `org_memberships`, `sector_profile` drive what each workspace sees and how briefs are anchored.
-- **Community layer.** Cross-org peer information-sharing. Working groups, forums, vendor directory, promote-to-public, editorial pickup. Spans organizations.
+- **Community layer.** Cross-org peer information-sharing. Working groups, forums, promote-to-public, editorial pickup (in-flight). Spans organizations. (Vendor directory removed from scope per operator-stated correction 2026-05-24.)
 
 Onboarding is the mechanism by which an expansion-time user joins the Workspace layer and gains Community participation.
 
@@ -206,7 +236,7 @@ Sprint 2+ work, not scoped in Sprint 1:
 2. **Market Intel feature build.** Signal aggregation, predictive timing, source-registry expansion, alerts wiring (close OBS-18), EmptyState workspace-anchored rewrite (close OBS-20), taxonomy bleed cleanup.
 3. **Research repositioning and build.** Decide whether Research stays as the editorial draft-staging queue or becomes the customer-facing horizon-scan destination. Then build accordingly: source-registry expansion for analytical-press sources, scanning logic, 6-section Research Summary brief generation, source coverage matrix implementation.
 4. **Operations content build.** Surface jurisdictional decision intelligence per Section 3 as structured content. NOT a separate decision-engine UI. Build the content (regulatory feasibility by region, regional resource availability, labor markets, materials sourcing, infrastructure capacity, operational cost data) and let the Intelligence Assistant handle cross-cutting questions. Replace stub chips with real content; remove phase-language banner; redesign for current cohort and expansion cohort coverage.
-5. **Community expansion and onboarding completion.** Extend vendor directory and working-group taxonomy beyond current art-logistics cohort; complete onboarding flow (sector taxonomy expansion in wizard, email-delivered invitations, LinkedIn import, chrome polish on NoWorkspaceLanding); wire sector_profile-driven Community group seeding for new workspaces.
+5. **Community expansion and onboarding completion.** Extend working-group taxonomy beyond current art-logistics cohort; complete onboarding flow (sector taxonomy expansion in wizard, email-delivered invitations, chrome polish on NoWorkspaceLanding, LinkedIn import completion); wire sector_profile-driven Community group seeding for new workspaces. (Vendor directory removed from scope per operator-stated correction 2026-05-24; LinkedIn import is in-flight rather than a stub per the same correction.)
 6. **Intelligence Assistant quality.** Verify the Assistant loads and uses platform skills (especially `environmental-policy-and-innovation`) to ground responses. Verify it does not behave as a synthesis or decision engine. Bound its scope to research-helper function.
 
 Items 2 through 5 each plausibly their own sprint. Sprint 2 through Sprint 5 territory. Item 1 (routing wiring) is the foundation that gates items 2 through 4 and should run first.
