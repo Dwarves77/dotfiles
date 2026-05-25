@@ -824,7 +824,7 @@ function RegionAccordion({ region, regulations }: { region: Region; regulations:
                     Coverage pending for {dim.name.toLowerCase()} in this region. Facts populate via the regional_data_facts table (migration 106) as the operator team backfills regions.
                   </p>
                 ) : (
-                  <FactTable facts={facts || []} />
+                  <FactGrid facts={facts || []} />
                 )}
               </div>
             </div>
@@ -893,7 +893,13 @@ function RegulationLinkCard({ regulation }: { regulation: Resource }) {
   );
 }
 
-function FactTable({ facts }: { facts: Fact[] }) {
+// Phase 4 H2 (2026-05-25): D2-D6 dimension rendering switched from
+// FactTable (compact 2-column rows) to FactGrid (card pattern matching
+// D1's visual rhythm). Each fact is now its own card with label, value,
+// source, and optional trend indicator, laid out in a responsive
+// 2-column grid (1-column on narrow viewports). This makes D2-D6 read
+// like D1's RegulationLinkCard pattern rather than a spreadsheet.
+function FactGrid({ facts }: { facts: Fact[] }) {
   if (!facts.length) {
     return (
       <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", fontStyle: "italic" }}>
@@ -902,39 +908,96 @@ function FactTable({ facts }: { facts: Fact[] }) {
     );
   }
   return (
-    <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-      <tbody>
-        {facts.map((f, i) => (
-          <tr key={i} style={{ borderBottom: i === facts.length - 1 ? 0 : "1px solid var(--color-border-subtle)" }}>
-            <td style={{ padding: "8px 12px 8px 0", color: "var(--color-text-secondary)", width: "38%", verticalAlign: "top" }}>
-              {f.label}
-            </td>
-            <td style={{ padding: "8px 12px 8px 0", verticalAlign: "top" }}>
-              <span style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{f.value}</span>
-              {f.trend && (
-                <span
-                  style={{
-                    marginLeft: 4,
-                    fontSize: 11,
-                    color:
-                      f.trend === "up"
-                        ? "var(--color-error)"
-                        : f.trend === "down"
-                        ? "var(--color-success)"
-                        : "var(--color-text-muted)",
-                  }}
-                >
-                  {f.trend === "up" ? "▲" : f.trend === "down" ? "▼" : "→"}
-                </span>
-              )}
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)", display: "block", marginTop: 2, fontWeight: 400 }}>
-                {f.source}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: 10,
+        marginBottom: 4,
+      }}
+    >
+      {facts.map((f, i) => (
+        <FactCard key={i} fact={f} />
+      ))}
+    </div>
+  );
+}
+
+function FactCard({ fact }: { fact: Fact }) {
+  const trendColor =
+    fact.trend === "up"
+      ? "var(--color-error)"
+      : fact.trend === "down"
+      ? "var(--color-success)"
+      : "var(--color-text-muted)";
+  const trendGlyph = fact.trend === "up" ? "▲" : fact.trend === "down" ? "▼" : fact.trend === "flat" ? "→" : null;
+  return (
+    <div
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        borderLeft: "3px solid var(--color-primary)",
+        borderRadius: "var(--radius-sm)",
+        boxShadow: "var(--shadow-card)",
+        padding: "12px 14px 14px",
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        gap: 10,
+        alignItems: "start",
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--color-text-muted)",
+            marginBottom: 4,
+          }}
+        >
+          {fact.label}
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--color-text-muted)",
+            marginTop: 6,
+            fontWeight: 400,
+          }}
+        >
+          {fact.source}
+        </div>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 2,
+          minWidth: 60,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: "var(--color-text-primary)",
+            lineHeight: 1.2,
+            textAlign: "right",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {fact.value}
+        </span>
+        {trendGlyph && (
+          <span style={{ fontSize: 12, color: trendColor, fontWeight: 700 }}>
+            {trendGlyph}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
