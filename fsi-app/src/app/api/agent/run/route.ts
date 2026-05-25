@@ -8,7 +8,7 @@ import { buildSourcePool } from "@/lib/agent/source-pool";
 import { browserlessRender, BrowserlessError, type BrowserlessResult } from "@/lib/sources/browserless";
 import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
 import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
-import { checkFetchQuality } from "@/lib/sources/fetch-quality";
+import { checkFetchQuality, checkBriefContent } from "@/lib/sources/fetch-quality";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -672,6 +672,21 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
         error: "Agent output failed contract validation. No row updated.",
         detail: msg,
         raw_tail: rawText.slice(-500),
+      });
+    }
+
+    // ── Phase 2B (2026-05-24): brief-content quality gate ──
+    // Reject briefs that read as fetch-failure explanations rather
+    // than substantive content (e.g. "Content unavailable, Source
+    // returned 403 Forbidden"). When rejected, the prior brief stays
+    // in place and the item is queued for re-fetch; nothing customer-
+    // facing changes. See lib/sources/fetch-quality.ts for patterns.
+    const briefContentCheck = checkBriefContent(parsedBody);
+    if (!briefContentCheck.ok) {
+      throw new HttpResponseError(422, {
+        error: "Agent brief rejected: content reads as fetch-failure explanation.",
+        reason: briefContentCheck.reason,
+        preview: parsedBody.slice(0, 500),
       });
     }
 
