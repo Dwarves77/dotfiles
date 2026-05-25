@@ -12,7 +12,7 @@
  * column is `category`. This script audits `category` since that is what
  * the UI reads via the Resource mapper.
  *
- * Output: docs/topic-backfill-investigation-2026-05-07.json
+ * Output: docs/topic-backfill-investigation-2026-05-25.json
  *   - pre_state.total_rows
  *   - pre_state.null_or_empty_count
  *   - pre_state.non_canonical_count (category set but not in TOPICS list)
@@ -385,7 +385,7 @@ out.derivation_summary = {
 };
 
 writeFileSync(
-  resolve("..", "docs", "topic-backfill-investigation-2026-05-07.json"),
+  resolve("..", "docs", "topic-backfill-investigation-2026-05-25.json"),
   JSON.stringify(out, null, 2),
   "utf8"
 );
@@ -396,7 +396,7 @@ console.log(`NULL/empty category: ${out.pre_state.null_or_empty_count}`);
 console.log(`Non-canonical category (not in TOPICS): ${out.pre_state.non_canonical_count}`);
 console.log(`Derivable backfills: ${out.candidates.length}`);
 console.log(`Ambiguous (will skip): ${out.ambiguous_skipped.length}`);
-console.log(`\nWrote docs/topic-backfill-investigation-2026-05-07.json`);
+console.log(`\nWrote docs/topic-backfill-investigation-2026-05-25.json`);
 if (out.candidates.length > 50) {
   console.log(
     `\n[HALT] >50 derivable candidates (${out.candidates.length}). ` +

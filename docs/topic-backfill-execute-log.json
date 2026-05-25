@@ -1,148 +1,550 @@
 {
   "completed": true,
-  "pre_state_null_count": 41,
-  "post_state_null_count": 25,
-  "updated_count": 16,
+  "pre_state_null_count": 487,
+  "post_state_null_count": 409,
+  "updated_count": 78,
   "already_correct_count": 0,
-  "skipped_ambiguous_count": 25,
-  "total_targets_in_report": 16,
+  "skipped_ambiguous_count": 409,
+  "total_targets_in_report": 78,
   "derivation_breakdown": {
-    "no-derivation:item_type=regulation": 19,
-    "keyword-tie-ambiguous:fuels,corridors": 2,
-    "keyword:csrd -> reporting": 4,
-    "keyword:hydrogen strategy -> fuels": 2,
-    "keyword:carb -> emissions": 1,
-    "keyword:carbon pricing -> emissions": 1,
-    "keyword:scope 3 -> reporting": 1,
-    "keyword:ppwr -> packaging": 1,
-    "keyword:emissions trading -> emissions": 3,
-    "keyword-tie-ambiguous:corridors,infrastructure": 1,
-    "keyword:co2 emission -> emissions": 1,
-    "keyword:endangerment finding -> emissions": 2,
+    "no-derivation:item_type=initiative": 30,
+    "keyword:circular economy -> packaging": 6,
+    "no-derivation:item_type=market_signal": 35,
+    "keyword-tie-ambiguous:fuels,corridors": 3,
+    "no-derivation:item_type=regulation": 56,
+    "no-derivation:item_type=regional_data": 53,
+    "no-derivation:item_type=framework": 108,
+    "item_type-fallback:research_finding -> research": 22,
+    "no-derivation:item_type=technology": 5,
+    "no-derivation:item_type=tool": 14,
+    "no-derivation:item_type=guidance": 80,
+    "keyword:dangerous goods -> dangerous-goods": 1,
+    "keyword:data privacy -> digital": 1,
+    "keyword:glec -> transport": 1,
+    "keyword:tariff -> trade": 2,
+    "keyword:food safety -> food-safety": 2,
+    "keyword:saf -> fuels": 6,
+    "keyword-tie-ambiguous:emissions,standards": 1,
+    "keyword:greenhouse gas emissions -> emissions": 9,
+    "keyword:cargo insurance -> insurance": 1,
+    "keyword:recyclable -> packaging": 2,
     "keyword-multi-ambiguous:emissions,transport,reporting": 1,
     "keyword-tie-ambiguous:fuels,reporting": 1,
-    "keyword-tie-ambiguous:emissions,reporting": 1
+    "keyword-tie-ambiguous:emissions,reporting": 1,
+    "keyword:carbon pricing -> emissions": 1,
+    "keyword-tie-ambiguous:corridors,infrastructure": 1,
+    "keyword:emissions trading -> emissions": 1,
+    "keyword:ghg emissions -> emissions": 5,
+    "no-derivation:item_type=directive": 15,
+    "keyword-tie-ambiguous:emissions,fuels": 1,
+    "keyword:csrd -> reporting": 3,
+    "keyword-tie-ambiguous:emissions,packaging": 1,
+    "keyword:shore power -> corridors": 1,
+    "keyword:white paper -> research": 1,
+    "keyword:endangerment finding -> emissions": 1,
+    "keyword:co2 emission -> emissions": 1,
+    "keyword:port authority -> infrastructure": 3,
+    "keyword:international transport forum -> research": 3,
+    "no-derivation:item_type=standard": 2,
+    "keyword:vehicle emission -> transport": 1,
+    "keyword:carbon price -> emissions": 1,
+    "keyword:biofuel -> fuels": 1,
+    "keyword:carbon market -> emissions": 1,
+    "keyword:sustainable aviation fuel -> fuels": 1,
+    "keyword-tie-ambiguous:customs,trade": 1
   },
   "log": [
     {
       "name": "load_investigation_report",
       "ok": true,
-      "detail": "16 derivable, 25 ambiguous",
-      "at": "2026-05-08T03:06:54.633Z"
+      "detail": "78 derivable, 409 ambiguous",
+      "at": "2026-05-25T09:02:30.551Z"
     },
     {
       "name": "candidates_canonical_check",
       "ok": true,
       "detail": "all candidates use canonical TOPICS values",
-      "at": "2026-05-08T03:06:54.635Z"
+      "at": "2026-05-25T09:02:30.553Z"
     },
     {
       "name": "pre_state_null_count",
       "ok": true,
-      "detail": "41 rows with NULL/empty category",
-      "at": "2026-05-08T03:06:54.973Z"
+      "detail": "487 rows with NULL/empty category",
+      "at": "2026-05-25T09:02:30.939Z"
     },
     {
-      "name": "verify_eu-corporate-sustainability-reporting-directive-csrd-transport-sector-implementa",
-      "ok": true,
-      "detail": "category=reporting (expected reporting)",
-      "at": "2026-05-08T03:06:55.784Z"
-    },
-    {
-      "name": "verify_uae-national-hydrogen-strategy-transport-sector-requirements",
-      "ok": true,
-      "detail": "category=fuels (expected fuels)",
-      "at": "2026-05-08T03:06:56.130Z"
-    },
-    {
-      "name": "verify_w4_ca_acf",
-      "ok": true,
-      "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:06:56.788Z"
-    },
-    {
-      "name": "verify_imo-2023-revised-ghg-strategy",
-      "ok": true,
-      "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:06:57.480Z"
-    },
-    {
-      "name": "verify_uk-streamlined-energy-and-carbon-reporting-secr-amendment",
-      "ok": true,
-      "detail": "category=reporting (expected reporting)",
-      "at": "2026-05-08T03:06:57.838Z"
-    },
-    {
-      "name": "verify_arc1",
+      "name": "verify_92f4d247-d709-4347-8b4f-ed3e0b6927cc",
       "ok": true,
       "detail": "category=packaging (expected packaging)",
-      "at": "2026-05-08T03:06:58.245Z"
+      "at": "2026-05-25T09:02:31.787Z"
     },
     {
-      "name": "verify_uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+      "name": "verify_97d22488-5ee8-4795-8df6-6c47eb01a869",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:32.238Z"
+    },
+    {
+      "name": "verify_50f1d64b-b73b-4d20-b203-bafc8a3d07a1",
+      "ok": true,
+      "detail": "category=dangerous-goods (expected dangerous-goods)",
+      "at": "2026-05-25T09:02:32.556Z"
+    },
+    {
+      "name": "verify_b4710002-d626-429b-9796-e7c9ea43c43e",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:32.861Z"
+    },
+    {
+      "name": "verify_7e4f2b36-81a0-4769-85ae-e70e475076cd",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:33.182Z"
+    },
+    {
+      "name": "verify_3373d06e-22a6-4287-8aac-173169159177",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:33.575Z"
+    },
+    {
+      "name": "verify_af277afd-b925-4583-852a-eaa6db310888",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:33.935Z"
+    },
+    {
+      "name": "verify_a1fd9574-3be2-48f2-ab3a-4c8b92ca6cc0",
+      "ok": true,
+      "detail": "category=digital (expected digital)",
+      "at": "2026-05-25T09:02:34.259Z"
+    },
+    {
+      "name": "verify_50ccd5cc-d278-43ad-98c1-596153c1d714",
+      "ok": true,
+      "detail": "category=transport (expected transport)",
+      "at": "2026-05-25T09:02:34.563Z"
+    },
+    {
+      "name": "verify_b6fd00bf-2573-4103-8f67-216c8bec66c7",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:34.865Z"
+    },
+    {
+      "name": "verify_a7fd2700-de27-4cc1-b5e6-442fdf8a66ad",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:35.203Z"
+    },
+    {
+      "name": "verify_3ed4f908-cc26-4bdd-ad6f-64cfb6b49cbe",
+      "ok": true,
+      "detail": "category=trade (expected trade)",
+      "at": "2026-05-25T09:02:35.508Z"
+    },
+    {
+      "name": "verify_5fc45237-2db2-40b8-a052-88e4c77add73",
+      "ok": true,
+      "detail": "category=food-safety (expected food-safety)",
+      "at": "2026-05-25T09:02:35.824Z"
+    },
+    {
+      "name": "verify_5fec12c6-23be-4a7f-b2d3-4b8e9faadc22",
       "ok": true,
       "detail": "category=fuels (expected fuels)",
-      "at": "2026-05-08T03:06:58.609Z"
+      "at": "2026-05-25T09:02:36.141Z"
     },
     {
-      "name": "verify_eu-emissions-trading-system-ets-extension-to-maritime-transport",
+      "name": "verify_620f2692-2825-4aa8-a5e1-1361e70848fa",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:36.460Z"
+    },
+    {
+      "name": "verify_88c3a053-e5c4-44f2-b1cb-ecb1a313090a",
       "ok": true,
       "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:06:58.970Z"
+      "at": "2026-05-25T09:02:36.809Z"
     },
     {
-      "name": "verify_eu-corporate-sustainability-reporting-directive-csrd-transport-provisions",
+      "name": "verify_8c0e4e5f-69ee-4ac2-939d-34a95cdc0eae",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-25T09:02:37.118Z"
+    },
+    {
+      "name": "verify_8d256568-54c3-46e9-b1c0-ad7c17c35819",
+      "ok": true,
+      "detail": "category=insurance (expected insurance)",
+      "at": "2026-05-25T09:02:37.433Z"
+    },
+    {
+      "name": "verify_9d18608f-269e-405a-9ad8-afa638dda928",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-25T09:02:37.740Z"
+    },
+    {
+      "name": "verify_d131224a-e42b-475b-aa38-c9b35d26a2f5",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:38.048Z"
+    },
+    {
+      "name": "verify_b11cccc4-fdb6-4008-b76c-1ff6632c2657",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:38.362Z"
+    },
+    {
+      "name": "verify_c0eab829-5402-4c8a-8c0c-60954e88cc52",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:38.697Z"
+    },
+    {
+      "name": "verify_eb6641da-ce23-49aa-add6-a5a876d422b0",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:39.064Z"
+    },
+    {
+      "name": "verify_42399c2f-0ef8-4dd0-84b5-6134b55e64ad",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-25T09:02:39.374Z"
+    },
+    {
+      "name": "verify_c18a8545-8a73-42ea-8daf-8b90faddbaff",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:39.693Z"
+    },
+    {
+      "name": "verify_ec086e7d-be11-4b9c-a305-1adc8a6a8b0d",
+      "ok": true,
+      "detail": "category=food-safety (expected food-safety)",
+      "at": "2026-05-25T09:02:40.031Z"
+    },
+    {
+      "name": "verify_9ebe8337-0cf5-4a98-ad89-d841b9dc087f",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-25T09:02:40.345Z"
+    },
+    {
+      "name": "verify_f57d0f58-65be-47ef-8ee7-82aab1c8c732",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:40.667Z"
+    },
+    {
+      "name": "verify_3cac277d-92a3-4dc5-bcca-fb93eee3faa7",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:41.037Z"
+    },
+    {
+      "name": "verify_bd7c3f5a-a877-4800-b973-e208ddfd82df",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:41.362Z"
+    },
+    {
+      "name": "verify_68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:41.696Z"
+    },
+    {
+      "name": "verify_947e08f3-0136-423d-8f62-03bb071bad49",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:42.013Z"
+    },
+    {
+      "name": "verify_d3e36935-75db-4652-90d4-2cab9d9a6cd3",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:42.330Z"
+    },
+    {
+      "name": "verify_05b786f8-8753-4e81-923e-ee9d76c56609",
       "ok": true,
       "detail": "category=reporting (expected reporting)",
-      "at": "2026-05-08T03:06:59.521Z"
+      "at": "2026-05-25T09:02:42.653Z"
     },
     {
-      "name": "verify_china-s-national-carbon-market-extension-to-transportation-sector",
+      "name": "verify_5f1095c9-4098-4b62-99b3-cf54a6b1e3aa",
       "ok": true,
       "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:06:59.906Z"
+      "at": "2026-05-25T09:02:42.989Z"
     },
     {
-      "name": "verify_eu-hdv-co2-standards-2019-1242",
+      "name": "verify_ece93c54-871b-4cf3-9f39-a4a2e9691574",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:43.295Z"
+    },
+    {
+      "name": "verify_d690c4ca-ab2c-4057-97e4-51d8f8eb4399",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-25T09:02:43.601Z"
+    },
+    {
+      "name": "verify_03b5f234-3624-4fef-acec-922bd75bb46e",
+      "ok": true,
+      "detail": "category=corridors (expected corridors)",
+      "at": "2026-05-25T09:02:43.945Z"
+    },
+    {
+      "name": "verify_22d0883e-3101-4d48-a277-e2e2ff920452",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:44.277Z"
+    },
+    {
+      "name": "verify_b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:44.585Z"
+    },
+    {
+      "name": "verify_09bdd3a0-4cd2-4ce5-8f7a-79454ae4f381",
       "ok": true,
       "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:07:00.299Z"
+      "at": "2026-05-25T09:02:44.911Z"
     },
     {
-      "name": "verify_arc3",
+      "name": "verify_1c954622-4a98-41fc-a906-3c1b8d2155d0",
       "ok": true,
       "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:07:00.667Z"
+      "at": "2026-05-25T09:02:45.270Z"
     },
     {
-      "name": "verify_eu_ets_directive_2023_959",
+      "name": "verify_d5ee6ab8-ebf0-4903-89b5-3e1d4d3d47de",
       "ok": true,
       "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:07:01.081Z"
+      "at": "2026-05-25T09:02:45.595Z"
     },
     {
-      "name": "verify_ss2",
+      "name": "verify_3ae89ce6-2f4f-43ed-a7ab-ee930e6dd1a8",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:45.932Z"
+    },
+    {
+      "name": "verify_b8b6fde3-2087-47c0-89c7-1b3bb944138c",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:46.249Z"
+    },
+    {
+      "name": "verify_7ae2adb0-352c-494d-acf1-45fc6540f735",
+      "ok": true,
+      "detail": "category=infrastructure (expected infrastructure)",
+      "at": "2026-05-25T09:02:46.575Z"
+    },
+    {
+      "name": "verify_120529b8-bcfb-4430-ae9e-537538c0fcdb",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:46.886Z"
+    },
+    {
+      "name": "verify_02ad37c7-8a11-434b-8626-55e92087fbc9",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:47.219Z"
+    },
+    {
+      "name": "verify_d012bc20-9e9c-4669-942a-f50c3d4d2fe2",
+      "ok": true,
+      "detail": "category=transport (expected transport)",
+      "at": "2026-05-25T09:02:47.556Z"
+    },
+    {
+      "name": "verify_ccba4af8-806e-4b89-8554-096c83f25760",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-25T09:02:47.872Z"
+    },
+    {
+      "name": "verify_237b3cc1-9971-46d6-a4ef-07fd65b05eed",
+      "ok": true,
+      "detail": "category=infrastructure (expected infrastructure)",
+      "at": "2026-05-25T09:02:48.183Z"
+    },
+    {
+      "name": "verify_bec305e1-1ce7-4dbe-a599-32dd63927c36",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:48.513Z"
+    },
+    {
+      "name": "verify_54d2b440-7823-4e14-834e-dd0adf6d4b96",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-25T09:02:48.839Z"
+    },
+    {
+      "name": "verify_605a2d06-80e5-4645-82d1-58ec57fc81d0",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:49.156Z"
+    },
+    {
+      "name": "verify_abd29144-9afa-47af-80a3-97c1e5d34c5e",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:49.488Z"
+    },
+    {
+      "name": "verify_388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:49.849Z"
+    },
+    {
+      "name": "verify_f99dd005-5bc8-4bed-a8c7-7fb718600bf2",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:50.167Z"
+    },
+    {
+      "name": "verify_21c12ad4-145a-4dce-912c-662fd6a23604",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-25T09:02:50.489Z"
+    },
+    {
+      "name": "verify_93c344a1-f947-4e48-bb84-85d3f7223037",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:50.797Z"
+    },
+    {
+      "name": "verify_45006684-2f39-4107-934a-e8420c7fbbbb",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:51.111Z"
+    },
+    {
+      "name": "verify_6b0939a5-30fe-4afe-88d5-26d6b96bb752",
       "ok": true,
       "detail": "category=reporting (expected reporting)",
-      "at": "2026-05-08T03:07:01.517Z"
+      "at": "2026-05-25T09:02:51.434Z"
     },
     {
-      "name": "verify_arc2",
+      "name": "verify_8767e010-dc79-41e2-9fb8-53d7a0bf7b8a",
       "ok": true,
-      "detail": "category=reporting (expected reporting)",
-      "at": "2026-05-08T03:07:01.955Z"
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-25T09:02:51.757Z"
     },
     {
-      "name": "verify_ss3",
+      "name": "verify_efcc9f45-c7c7-4e06-8cb6-fc85348b8f2f",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:52.083Z"
+    },
+    {
+      "name": "verify_2617c566-eca5-4b62-8601-332a76b9995e",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-25T09:02:52.462Z"
+    },
+    {
+      "name": "verify_27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
       "ok": true,
       "detail": "category=emissions (expected emissions)",
-      "at": "2026-05-08T03:07:02.353Z"
+      "at": "2026-05-25T09:02:52.782Z"
+    },
+    {
+      "name": "verify_4d240f75-1d06-4d94-912c-4c7449e95deb",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:53.086Z"
+    },
+    {
+      "name": "verify_4a108d70-0062-4c46-a090-151683f202a6",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-25T09:02:53.400Z"
+    },
+    {
+      "name": "verify_ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:53.705Z"
+    },
+    {
+      "name": "verify_8107ba33-30e8-4e73-bee2-dd967f995114",
+      "ok": true,
+      "detail": "category=reporting (expected reporting)",
+      "at": "2026-05-25T09:02:54.025Z"
+    },
+    {
+      "name": "verify_782878c0-757f-4a73-998f-48f52bbfa585",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-25T09:02:54.352Z"
+    },
+    {
+      "name": "verify_2d1aeda1-3f51-4bff-970a-4a425122f3d4",
+      "ok": true,
+      "detail": "category=packaging (expected packaging)",
+      "at": "2026-05-25T09:02:54.654Z"
+    },
+    {
+      "name": "verify_33ca228c-e966-4b35-9ec2-01cf0da9c80a",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:54.972Z"
+    },
+    {
+      "name": "verify_478ee79c-e2f6-4794-af47-32b8f9e4cc9f",
+      "ok": true,
+      "detail": "category=fuels (expected fuels)",
+      "at": "2026-05-25T09:02:55.287Z"
+    },
+    {
+      "name": "verify_4c4f71c3-f372-434d-9d1a-615fc64b1869",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:55.596Z"
+    },
+    {
+      "name": "verify_70c108a2-9833-4b5d-bfd1-c94652bbd1c7",
+      "ok": true,
+      "detail": "category=infrastructure (expected infrastructure)",
+      "at": "2026-05-25T09:02:55.902Z"
+    },
+    {
+      "name": "verify_ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+      "ok": true,
+      "detail": "category=trade (expected trade)",
+      "at": "2026-05-25T09:02:56.221Z"
+    },
+    {
+      "name": "verify_b2ca8ce7-6810-40da-ae87-0a74d6d3cc79",
+      "ok": true,
+      "detail": "category=emissions (expected emissions)",
+      "at": "2026-05-25T09:02:56.544Z"
+    },
+    {
+      "name": "verify_ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+      "ok": true,
+      "detail": "category=research (expected research)",
+      "at": "2026-05-25T09:02:56.880Z"
     },
     {
       "name": "post_state_null_count",
       "ok": true,
-      "detail": "pre=41, updated=16, expected_post=25, actual_post=25",
-      "at": "2026-05-08T03:07:02.490Z"
+      "detail": "pre=487, updated=78, expected_post=409, actual_post=409",
+      "at": "2026-05-25T09:02:56.991Z"
     }
   ]
 }

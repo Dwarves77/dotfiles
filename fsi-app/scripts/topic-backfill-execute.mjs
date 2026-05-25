@@ -9,7 +9,7 @@
  * groupByCategory(), per Wave 2 PR-G investigation.
  *
  * Authorized scope (per dispatch on 2026-05-07):
- *   - Read docs/topic-backfill-investigation-2026-05-07.json
+ *   - Read docs/topic-backfill-investigation-2026-05-25.json
  *   - For each derivable candidate (ambiguous=false, derived_topic in
  *     canonical TOPICS), update intelligence_items.category to the
  *     derived topic value, by row id.
@@ -78,7 +78,7 @@ function step(name, ok, detail) {
 const reportPath = resolve(
   "..",
   "docs",
-  "topic-backfill-investigation-2026-05-07.json"
+  "topic-backfill-investigation-2026-05-25.json"
 );
 let report;
 try {
