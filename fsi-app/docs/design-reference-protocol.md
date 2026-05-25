@@ -13,7 +13,6 @@ The canonical design source for Caro's Ledge surfaces is the design handoff bund
 design_handoff_2026-05/
 ├── README.md                    ← Design system contract (binding)
 ├── shared/tokens.css            ← Production tokens mirror
-├── HANDOFF.md
 ├── operations.html              ← /operations surface mockup
 ├── regulations.html             ← /regulations index mockup
 ├── regulations-detail.html      ← /regulations/[slug] mockup
