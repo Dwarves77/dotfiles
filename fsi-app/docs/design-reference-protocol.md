@@ -7,10 +7,10 @@
 
 ## 1. Canonical design source
 
-The canonical design source for Caro's Ledge surfaces is the design handoff bundle:
+The canonical design source for Caro's Ledge surfaces is the design handoff bundle. **Path lives at the dotfiles repo root (one level above `fsi-app/`)**, not inside `fsi-app/`:
 
 ```
-fsi-app/design_handoff_2026-05/
+design_handoff_2026-05/
 ├── README.md                    ← Design system contract (binding)
 ├── shared/tokens.css            ← Production tokens mirror
 ├── HANDOFF.md
@@ -30,7 +30,7 @@ If any of these files are missing from the repo, retrieve from `/mnt/user-data/u
 
 For every surface rebuild, BEFORE writing code:
 
-1. Read `fsi-app/design_handoff_2026-05/README.md` Section [matching surface number] for the binding design contract
+1. Read `design_handoff_2026-05/README.md` Section [matching surface number] for the binding design contract
 2. Read the surface-specific HTML mockup for visual + structural reference
 3. Check this document (design-reference-protocol.md) for operator refinements that override the mockup
 4. Check `docs/audits/functional-purpose-audit-2026-05-24.md` for required user flows
@@ -102,7 +102,7 @@ Plus the prominent "+ New post" composer at top after the tab row, plus the Acti
 - WIRE-BACK the existing PostComposer / ReplyComposer / PostList / group-thread route / group-browse route components per Phase 1.5 audit (those exist; the May 24 rebuild lost the chrome that exposed them).
 - BUILD work (create-group modal, share-link copy button, editorial pickup notification) sits alongside the tab structure, not instead of it.
 
-Before starting H6, read `fsi-app/design_handoff_2026-05/community.html` end-to-end. Then read this section. Then build.
+Before starting H6, read `design_handoff_2026-05/community.html` end-to-end. Then read this section. Then build.
 
 ### Correction B: /operations D2-D6 are fact tables, NOT cards
 
@@ -201,8 +201,8 @@ Surface tier badges on every source pill across the site. Tier semantics per `so
 Before writing any code for a Phase 4 / Phase 5 / Phase 6 surface, run this checklist:
 
 ```
-[ ] Read fsi-app/design_handoff_2026-05/README.md Section [matching surface]
-[ ] Read fsi-app/design_handoff_2026-05/[surface].html end-to-end
+[ ] Read design_handoff_2026-05/README.md Section [matching surface]
+[ ] Read design_handoff_2026-05/[surface].html end-to-end
 [ ] Check this document Section 3 (Operator refinements) for that surface
 [ ] Check this document Section 4 (Mid-flight corrections) for that surface
 [ ] Check docs/audits/functional-purpose-audit-2026-05-24.md for required flows
