@@ -574,7 +574,11 @@ export function RegulationDetailSurface({
                     <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>
                       {r.sourceName || r.url}
                     </a>
-                    {r.sourceTier && ` · Tier ${r.sourceTier}`}
+                    {r.sourceTier && (
+                      <span style={{ marginLeft: 8 }}>
+                        <SourceTierBadge tier={r.sourceTier} />
+                      </span>
+                    )}
                   </li>
                 </ul>
               ) : (
@@ -582,6 +586,12 @@ export function RegulationDetailSurface({
                   Primary source not yet linked.
                 </p>
               )}
+              {/* Phase 1 Fix 14 reconciliation (2026-05-24): tier legend
+                  per source-credibility-model SKILL. T1-T5 are the customer-
+                  facing tiers; T6 + T7 are reserved for aggregators and
+                  unverified sources and rarely surface on customer-facing
+                  pages, but are documented for transparency. */}
+              <SourceTierLegend />
             </BriefSection>
           )}
         </div>
@@ -2116,4 +2126,77 @@ function nextDeadline(r: Resource): { value: string; sub?: string } {
   });
   if (days < 0) return { value: dateLabel, sub: "Already in effect" };
   return { value: `${days}d`, sub: dateLabel };
+}
+
+// Phase 1 Fix 14 reconciliation (2026-05-24): T1-T7 tier vocabulary per
+// source-credibility-model SKILL. Customer-facing tiers are T1 through
+// T5; T6 (aggregator) and T7 (unverified) are admin-reviewed and rarely
+// surface on customer-facing pages.
+
+const TIER_DEFINITIONS: Array<{ tier: number; label: string; color: string }> = [
+  { tier: 1, label: "Primary law", color: "var(--critical)" },
+  { tier: 2, label: "Regulator guidance", color: "var(--high)" },
+  { tier: 3, label: "Intergovernmental", color: "var(--accent)" },
+  { tier: 4, label: "Industry body", color: "var(--text)" },
+  { tier: 5, label: "Trade press", color: "var(--text-2)" },
+];
+
+function SourceTierBadge({ tier }: { tier: number }) {
+  const def = TIER_DEFINITIONS.find((t) => t.tier === tier);
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        fontSize: 10,
+        fontWeight: 800,
+        padding: "2px 7px",
+        borderRadius: 3,
+        letterSpacing: "0.08em",
+        color: def?.color || "var(--text-2)",
+        border: `1px solid ${def?.color || "var(--border)"}`,
+      }}
+      title={def ? `Tier ${tier}, ${def.label}` : `Tier ${tier}`}
+    >
+      T{tier}
+    </span>
+  );
+}
+
+function SourceTierLegend() {
+  return (
+    <div
+      style={{
+        marginTop: 18,
+        padding: "12px 14px",
+        background: "var(--raised, var(--bg))",
+        border: "1px solid var(--border-sub, var(--border))",
+        borderRadius: "var(--r-md, 6px)",
+        fontSize: 11.5,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--text-2, var(--muted))",
+          marginBottom: 8,
+        }}
+      >
+        Source tier
+      </div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+        {TIER_DEFINITIONS.map((t) => (
+          <li key={t.tier} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <SourceTierBadge tier={t.tier} />
+            <span style={{ color: "var(--text)" }}>{t.label}</span>
+          </li>
+        ))}
+        <li style={{ color: "var(--text-2, var(--muted))", fontStyle: "italic", marginTop: 4 }}>
+          T6 (aggregator) and T7 (unverified) are admin-reviewed and rarely surface here.
+        </li>
+      </ul>
+    </div>
+  );
 }

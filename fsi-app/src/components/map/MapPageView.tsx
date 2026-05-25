@@ -24,6 +24,7 @@ import { getJurisdiction } from "@/lib/scoring";
 import { JURISDICTIONS } from "@/lib/constants";
 import type { RegionCoverage } from "@/lib/coverage-gaps";
 import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
 
 const MapView = dynamic(
   () => import("@/components/map/MapView").then((m) => m.MapView),
@@ -236,6 +237,24 @@ export function MapPageView(props: MapPageViewProps) {
   const totalActiveCount = filteredResources.length;
   const liveJurisdictions = jurisdictionRows.length;
 
+  // Phase 1 Fix 3 reconciliation (2026-05-24): Map is the geographic
+  // visual layer over Regulations content per platform-intent SKILL
+  // Section 3 (Cross-Cutting Capabilities, Map). The masthead count was
+  // rendering the full mixed-domain `filteredResources.length` (645);
+  // spec calls for regulations-only count to align with the
+  // /regulations index masthead (~394).
+  const regulationResources = useMemo(
+    () => filteredResources.filter((r) => r.domain === REGULATIONS_DOMAIN),
+    [filteredResources]
+  );
+  const regulationsActiveCount = regulationResources.length;
+  const regulationsJurisdictionCount = new Set(
+    regulationResources.map((r) => r.jurisdiction || "global")
+  ).size;
+  const regulationsCriticalCount = regulationResources.filter(
+    (r) => r.priority === "CRITICAL"
+  ).length;
+
   // Resource map for MapView.
   const resourceMap = useMemo(() => {
     const map = new Map<string, Resource>();
@@ -251,11 +270,11 @@ export function MapPageView(props: MapPageViewProps) {
           <>
             May 24, 2026 · Regulations by jurisdiction. Marker size encodes item count; colour encodes urgency.
             {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{filteredResources.length}</b> active items
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsActiveCount}</b> active items
             {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{new Set(filteredResources.map((r) => r.jurisdiction || "global")).size}</b> jurisdictions
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsJurisdictionCount}</b> jurisdictions
             {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{filteredResources.filter((r) => r.priority === "CRITICAL").length}</b> critical
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsCriticalCount}</b> critical
             {" · "}
             workspace verticals: <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Live events · Fine art</b>
           </>

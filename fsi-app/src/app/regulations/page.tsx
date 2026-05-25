@@ -21,7 +21,7 @@ import { APP_DATA_TAG } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
-import { formatRelative, toDate } from "@/lib/relative-time";
+import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 
 /**
@@ -112,10 +112,15 @@ export default async function RegulationsPage({
     .map((r) => toDate(r.added))
     .filter((d): d is Date => d !== null)
     .reduce<Date | null>((acc, d) => (acc === null || d > acc ? d : acc), null);
-  const syncSegment = mostRecentAdded ? ` · last sync ${formatRelative(mostRecentAdded)}` : "";
-  // Design rebuild 2026-05-24 (handoff Fixes 7/8/9): full date prefix,
-  // "active" rather than "tracked", workspace verticals appended.
-  const meta = `May 24, 2026 · ${regulationResources.length} active regulations · ${jurisdictionsCount} jurisdictions${syncSegment} · workspace verticals: Live events · Fine art`;
+  // Phase 1 Fix 7 reconciliation (2026-05-24): absolute date format
+  // for "last sync". Prior commit used formatRelative which produced
+  // "last sync 2 weeks ago", a relative string that doesn't move with
+  // time. Spec calls for an actual date the operator can act on.
+  const syncSegment = mostRecentAdded
+    ? ` · last sync ${mostRecentAdded.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}`
+    : "";
+  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const meta = `${today} · ${regulationResources.length} active regulations · ${jurisdictionsCount} jurisdictions${syncSegment} · workspace verticals: Live events · Fine art`;
 
   return (
     <>
