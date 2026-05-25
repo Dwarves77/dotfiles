@@ -79,7 +79,7 @@ type TabKey =
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "summary", label: "Summary" },
   { key: "exposure", label: "Exposure" },
-  { key: "calculator", label: "Penalty calculator" },
+  { key: "calculator", label: "Penalty schedule" },
   { key: "timeline", label: "Timeline" },
   { key: "sources", label: "Sources" },
 ];
@@ -216,8 +216,10 @@ export function RegulationDetailSurface({
 
   // 4-stat strip values
   const effective = nextDeadline(r);
-  const lanesAffected = "—"; // No lane-level data on the schema yet.
-  const yourExposure = "—"; // Requires workspace shipment volumes.
+  // Phase 4 (2026-05-25): "Your exposure" + "Lanes affected" tiles
+  // stripped — both variables were hardcoded "—" so the conditional
+  // render never fired. Re-add when workspace shipment-volume schema
+  // and per-lane regulation data land (Sprint 3 scope).
 
   return (
     <div className="px-9 pt-8 pb-16 max-w-[1280px] mx-auto">
@@ -417,14 +419,9 @@ export function RegulationDetailSurface({
         )}
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {/* Add to watchlist — HIDDEN.
-              PR-E3 (watchlist persistence) is deferred. There's no
-              backend table or API for per-user / per-workspace watchlist
-              membership yet, so the button has no destination. Restoring
-              it requires PR-E3 to land first; at that point change the
-              ternary below to render <ActionButton primary onClick={...}>
-              that calls the watchlist add/remove endpoint. */}
-          {false && <ActionButton primary>+ Add to watchlist</ActionButton>}
+          {/* Watchlist action deferred to Sprint 3 (PR-E3 cross-cutting
+              capability). Restore as a real <ActionButton primary> once
+              the watchlist table + per-workspace membership API exists. */}
           {(r.fullBrief || r.url) && (
             <ActionButton onClick={() => exportBriefAsMarkdown(r)}>
               Export brief
@@ -436,18 +433,19 @@ export function RegulationDetailSurface({
         </div>
       </div>
 
-      {/* 4-stat strip */}
+      {/* Stat strip — 2 conditional tiles (Effective, Penalty rate) after
+          the Phase 4 strip of "Your exposure" + "Lanes affected" dead tiles. */}
       <div
         className="cl-detail-stat-strip"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: "repeat(2, 1fr)",
           gap: 10,
           marginBottom: 18,
         }}
       >
         <style>{`
-          @media (max-width: 1100px) { .cl-detail-stat-strip { grid-template-columns: 1fr 1fr !important; } }
+          @media (max-width: 720px) { .cl-detail-stat-strip { grid-template-columns: 1fr !important; } }
         `}</style>
         {/* The effective stat tile is hidden when there's no real
             value — an empty card with a red border looks broken per
@@ -463,12 +461,6 @@ export function RegulationDetailSurface({
             critical
             sub={r.enforcementBody}
           />
-        )}
-        {yourExposure && yourExposure !== "—" && (
-          <Stat label="Your exposure" value={yourExposure} sub="Workspace data pending" />
-        )}
-        {lanesAffected && lanesAffected !== "—" && (
-          <Stat label="Lanes affected" value={lanesAffected} sub="Of active lanes" />
         )}
       </div>
 
