@@ -289,7 +289,15 @@ export function OperationsPage({
   aggregates,
   regulationsByRegion = [],
 }: OperationsPageProps) {
-  const [tab, setTab] = useState<"jurisdiction" | "facility">("jurisdiction");
+  // Phase 4 (2026-05-24): Facility Data tab stripped per operator
+  // standing rule (no non-functional elements). The tab rendered a
+  // one-line "Domain 6 facility intelligence renders here when
+  // ingested" placeholder; until the facility data path lands, the
+  // chrome is removed entirely rather than shown empty. Returns
+  // when regional_data_facts is populated for D6 cost data per the
+  // 106 migration. The setTab state is retained to make future
+  // multi-tab restoration trivial.
+  const [tab] = useState<"jurisdiction">("jurisdiction");
 
   // Group regulations by region for D1 cross-reference rendering.
   const regulationsByRegionMap = useMemo(() => {
@@ -338,6 +346,20 @@ export function OperationsPage({
   const regionsWithData = Object.keys(FACTS).filter(
     (region) => Object.values(FACTS[region] || {}).some((arr) => arr && arr.length > 0)
   ).length;
+
+  // Phase 4 (2026-05-24): cell-level fill rate (region x dimension
+  // pairs that have at least one fact). D1 is regulation cross-refs,
+  // not a facts cell; the denominator is REGIONS x (DIMENSIONS - 1).
+  const totalCells = REGIONS.length * (DIMENSIONS.length - 1);
+  const filledCells = REGIONS.reduce((sum, region) => {
+    const factsForRegion = FACTS[region.key] || {};
+    const filled = DIMENSIONS.filter((d) => {
+      if (d.key === "regulatory") return false;
+      return Array.isArray(factsForRegion[d.key]) && (factsForRegion[d.key] as Fact[]).length > 0;
+    }).length;
+    return sum + filled;
+  }, 0);
+  const cellFillRate = totalCells > 0 ? Math.round((filledCells / totalCells) * 100) : 0;
 
   return (
     <div>
@@ -479,34 +501,30 @@ export function OperationsPage({
           />
         </div>
 
-        {/* Tabs */}
+        {/* Phase 4 (2026-05-24): single "By Jurisdiction" view.
+            Facility Data tab stripped until D6 facility-cost facts
+            populate via the regional_data_facts table (migration
+            106). Single-view headings render as a section title
+            rather than a tab button. */}
         <div
           style={{
-            display: "flex",
-            gap: 0,
-            borderBottom: "1px solid var(--color-border)",
+            paddingBottom: 12,
             marginBottom: 22,
+            borderBottom: "1px solid var(--color-border)",
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            color: "var(--color-secondary)",
           }}
         >
-          <button
-            onClick={() => setTab("jurisdiction")}
-            style={tabStyle(tab === "jurisdiction")}
-          >
-            By Jurisdiction
-          </button>
-          <button
-            onClick={() => setTab("facility")}
-            style={tabStyle(tab === "facility")}
-          >
-            Facility Data
-          </button>
+          By Jurisdiction
         </div>
 
         {/* Layout */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 28, alignItems: "start" }}>
           {/* Main column */}
           <div>
-            {tab === "jurisdiction" ? (
+            {(
               <>
                 <div style={{ marginBottom: 16 }}>
                   <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: "0.025em", margin: "0 0 6px", fontWeight: 400 }}>
@@ -524,8 +542,6 @@ export function OperationsPage({
                   />
                 ))}
               </>
-            ) : (
-              <FacilityDataPlaceholder />
             )}
           </div>
 
@@ -543,10 +559,14 @@ export function OperationsPage({
                 of <b style={{ color: "var(--color-text-primary)", fontWeight: 700 }}>{REGIONS.length}</b> in scope
               </span>
               <div style={{ height: 6, background: "var(--color-bg-raised)", borderRadius: 999, overflow: "hidden", margin: "12px 0" }}>
-                <div style={{ height: "100%", background: "var(--color-primary)", width: `${(regionsWithData / REGIONS.length) * 100}%` }} />
+                <div style={{ height: "100%", background: "var(--color-primary)", width: `${cellFillRate}%` }} />
               </div>
+              {/* Phase 4 (2026-05-24): prose was "100% of jurisdictions
+                  have regional data populated" while D2-D6 breakdown
+                  showed 2/5 etc. Now reports cell-level fill rate
+                  (filled cells across all region x dimension pairs). */}
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.5, margin: 0 }}>
-                {Math.round((regionsWithData / REGIONS.length) * 100)}% of jurisdictions in scope have regional data populated. Coverage expands weekly for cost data, quarterly for regulatory.
+                {cellFillRate}% of (region x dimension) cells populated ({filledCells} of {totalCells}). D1 regulatory feasibility renders through Regulations cross-refs; D2-D6 coverage detail below. Coverage expands weekly for cost data, quarterly for regulatory.
               </p>
             </SideCard>
 
@@ -619,23 +639,9 @@ const cardLblStyle: React.CSSProperties = {
   marginBottom: 10,
 };
 
-function tabStyle(on: boolean): React.CSSProperties {
-  return {
-    padding: "12px 4px",
-    marginRight: 32,
-    fontSize: 13,
-    fontWeight: 700,
-    color: on ? "var(--color-secondary)" : "var(--color-text-secondary)",
-    borderBottom: on ? "2px solid var(--color-secondary)" : "2px solid transparent",
-    background: "transparent",
-    border: 0,
-    borderBottomStyle: "solid",
-    borderBottomWidth: 2,
-    borderBottomColor: on ? "var(--color-secondary)" : "transparent",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  };
-}
+// tabStyle removed Phase 4 (2026-05-24): Operations is now a
+// single-view surface (Facility Data tab stripped). Restore this
+// helper when the facility-cost facts path lands.
 
 function LegendItem({ color, label, desc }: { color: string; label: string; desc: string }) {
   return (
@@ -749,8 +755,12 @@ function RegionAccordion({ region, regulations }: { region: Region; regulations:
         {DIMENSIONS.map((dim) => {
           const facts = FACTS[region.key]?.[dim.key];
           const isD1 = dim.key === "regulatory";
+          // Phase 4 (2026-05-24): empty dimensions previously
+          // returned null and the accordion jumped D1 -> D3 -> D5
+          // silently. Now render a labeled "Coverage pending" empty
+          // state so the reader sees what's missing vs what's
+          // intentionally not in scope.
           const showEmpty = !isD1 && (!facts || facts.length === 0);
-          if (showEmpty) return null;
           return (
             <div
               key={dim.key}
@@ -809,6 +819,10 @@ function RegionAccordion({ region, regulations }: { region: Region; regulations:
                       No regulations indexed for this region yet.
                     </p>
                   )
+                ) : showEmpty ? (
+                  <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", fontStyle: "italic" }}>
+                    Coverage pending for {dim.name.toLowerCase()} in this region. Facts populate via the regional_data_facts table (migration 106) as the operator team backfills regions.
+                  </p>
                 ) : (
                   <FactTable facts={facts || []} />
                 )}
@@ -946,24 +960,6 @@ function SeverityPill({ severity }: { severity: Severity }) {
   );
 }
 
-function FacilityDataPlaceholder() {
-  return (
-    <div
-      style={{
-        padding: "60px 40px",
-        textAlign: "center",
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-md)",
-        boxShadow: "var(--shadow-card)",
-      }}
-    >
-      <p style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--color-text-muted)", margin: "0 0 8px" }}>
-        Facility Data
-      </p>
-      <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0, maxWidth: "60ch", marginInline: "auto" }}>
-        Domain 6 facility intelligence renders here when ingested. Use the By Jurisdiction tab for current coverage across the 6 dimensions.
-      </p>
-    </div>
-  );
-}
+// FacilityDataPlaceholder removed Phase 4 (2026-05-24) with the
+// Facility Data tab strip. Returns when the facility-cost facts
+// path lands via regional_data_facts (migration 106).
