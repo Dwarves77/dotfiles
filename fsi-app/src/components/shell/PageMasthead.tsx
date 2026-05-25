@@ -64,7 +64,14 @@ export function PageMasthead({ eyebrow, title, meta, rightSlot, belowSlot }: Pag
         }
         @media (max-width: 640px) {
           .cl-page-masthead {
-            padding: 18px 18px 16px !important;
+            /* H3.1 (2026-05-25): left padding bumped from 18px to 64px
+               on mobile to clear the fixed hamburger button (40px wide
+               at viewport-left:12px). Without this, eyebrow + title
+               leading characters render under the hamburger button at
+               <=375px. Hamburger lives in Sidebar.tsx with z-50; the
+               masthead background extends full-width, only the inner
+               content needs the offset. */
+            padding: 18px 18px 16px 64px !important;
           }
           .cl-page-masthead .cl-page-eyebrow {
             font-size: 9px;
