@@ -279,3 +279,71 @@ body {
 @media (max-width: 900px) { .cl-hk-two { grid-template-columns: 1fr; } }
 .cl-stale-pill { font-size: 9px; font-weight: 800; letter-spacing: 0.1em; padding: 1px 6px; border-radius: 3px; background: var(--high-bg); color: var(--high); border: 1px solid var(--high-bd); text-transform: uppercase; margin-left: 6px; }
 
+/* ── Phase 4 mobile responsive (2026-05-24) ─────────────────────
+   Sequence C surface rebuilds (Research / Operations / Market /
+   Community) shipped with fixed gridTemplateColumns that overflow
+   on mobile. These utility classes provide responsive collapse at
+   the breakpoints from the design responsive contract:
+     1. Stat strips collapse to 2x2 at ≤960px, 1-col at ≤480px
+     2. Coverage rails collapse to 3 at ≤1100px, 2 at ≤640px
+     3. Two-col layout (main + right rail) stacks at ≤960px
+     4. Page padding tightens from 40px to 16px at ≤767px
+*/
+.cl-stat-grid { display: grid; gap: 16px; grid-template-columns: repeat(4, 1fr); }
+.cl-stat-grid--5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 960px) {
+  .cl-stat-grid, .cl-stat-grid--5 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .cl-stat-grid, .cl-stat-grid--5 { grid-template-columns: 1fr; gap: 12px; }
+}
+
+.cl-coverage-rail { display: grid; gap: 1px; }
+.cl-coverage-rail--3 { grid-template-columns: repeat(3, 1fr); }
+.cl-coverage-rail--4 { grid-template-columns: repeat(4, 1fr); }
+.cl-coverage-rail--6 { grid-template-columns: repeat(6, 1fr); }
+.cl-coverage-rail--7 { grid-template-columns: repeat(7, 1fr); }
+@media (max-width: 1100px) {
+  .cl-coverage-rail--6, .cl-coverage-rail--7 { grid-template-columns: repeat(3, 1fr); }
+  .cl-coverage-rail--4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .cl-coverage-rail--3, .cl-coverage-rail--4, .cl-coverage-rail--6, .cl-coverage-rail--7 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 420px) {
+  .cl-coverage-rail--3, .cl-coverage-rail--4, .cl-coverage-rail--6, .cl-coverage-rail--7 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cl-two-col { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
+.cl-two-col--narrow { grid-template-columns: 1fr 280px; }
+.cl-two-col--wide { grid-template-columns: 1fr 320px; }
+@media (max-width: 960px) {
+  .cl-two-col, .cl-two-col--narrow, .cl-two-col--wide { grid-template-columns: 1fr; gap: 24px; }
+}
+
+.cl-page-pad { padding: 26px 40px 60px; }
+.cl-page-pad-tight { padding: 0 40px 60px; }
+.cl-stat-zone-pad { padding: 0 40px 18px; }
+@media (max-width: 767px) {
+  .cl-page-pad, .cl-page-pad-tight, .cl-stat-zone-pad {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .cl-page-pad { padding-top: 18px; padding-bottom: 40px; }
+}
+
+/* Map frame responsive: on mobile the map column stacks above the
+   right rail (per cl-two-col) and needs to keep its 500px height so
+   tiles are visible. */
+.cl-map-frame { min-height: 700px; }
+@media (max-width: 960px) {
+  .cl-map-frame { min-height: 480px; }
+}
+@media (max-width: 480px) {
+  .cl-map-frame { min-height: 360px; }
+}
+

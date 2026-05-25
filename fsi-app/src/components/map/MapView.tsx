@@ -152,10 +152,16 @@ export function MapView({
 }: MapViewProps) {
   useNavigationStore();
   const { expandedId, setExpanded } = useResourceStore();
-  // Default to list on mobile, split on desktop
-  const [viewMode, setViewMode] = useState<ViewMode>(
-    typeof window !== "undefined" && window.innerWidth < 768 ? "list" : "split"
-  );
+  // Phase 4 (2026-05-24): default to "split" on every viewport.
+  // Previously defaulted to "list" on mobile (window.innerWidth <
+  // 768), which produced the "map has no map" complaint from the
+  // 2026-05-24 mobile audit: users opening /map on mobile saw only
+  // the jurisdiction list and no Leaflet tile layer. The view-mode
+  // toggle (Split / Map only / List only) is still available so
+  // users can collapse to list when they want. The flex container
+  // below uses flex-col on mobile, so split stacks the map above
+  // the list rather than placing them side-by-side.
+  const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const [regionFilter, setRegionFilter] = useState<string[]>([]);

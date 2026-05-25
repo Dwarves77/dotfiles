@@ -152,7 +152,7 @@ export function CommunityView({
         }
       />
 
-      <div style={{ padding: "22px 40px 60px" }}>
+      <div className="cl-page-pad">
         {/* Tabs + compose CTA. Phase 4 (2026-05-24): "+ New Post"
             exposed at the top of the surface per functional purpose
             audit. PostComposer lives per-group; this CTA routes to
@@ -250,7 +250,7 @@ function RegionAndGroupTab({
     <>
       {/* Activity by region */}
       <SectionH title="Activity by region" hint="Click a region to drill in" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div className="cl-coverage-rail cl-coverage-rail--4" style={{ gap: 14, marginBottom: 24 }}>
         {regionAggregate.map((reg, i) => (
           <button
             key={reg.key}
@@ -341,7 +341,7 @@ function RegionAndGroupTab({
       </div>
 
       {/* Your groups + right rail */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 28, alignItems: "start" }}>
+      <div className="cl-two-col cl-two-col--wide">
         <div>
           <SectionH
             title="Recent activity in your groups"
