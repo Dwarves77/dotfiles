@@ -256,11 +256,17 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
           <LegendItem color={SEVERITY_PILL_TONE.window.fg} label="Window closing" desc="Deadline approaches" />
           <LegendItem color={SEVERITY_PILL_TONE.monitor.fg} label="Monitor" desc="Track trend" />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        {/* Phase 4 (2026-05-24): legend declared 5 labels but only 4
+            tiles rendered, with "Monitor" silently summing monitor +
+            edge counts (audit COUNT-MISMATCH). Now renders all 5
+            tiles in a 5-column grid so Competitive edge surfaces
+            distinctly. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14 }}>
           <StatTile severity="action" count={counts.action} label="Action required" sub="Threshold breached this week" />
           <StatTile severity="cost" count={counts.cost} label="Cost alert" sub="Pass-through expected" />
           <StatTile severity="window" count={counts.window} label="Window closing" sub="Deadline within 90 days" />
-          <StatTile severity="monitor" count={counts.monitor + counts.edge} label="Monitor" sub="Trends to watch" />
+          <StatTile severity="edge" count={counts.edge} label="Competitive edge" sub="Lock-in or advantage" />
+          <StatTile severity="monitor" count={counts.monitor} label="Monitoring" sub="Trends to watch" />
         </div>
       </div>
 
