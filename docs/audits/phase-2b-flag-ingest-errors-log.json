@@ -1,0 +1,68 @@
+{
+  "completed": true,
+  "flagged": 7,
+  "already_flagged_skipped": 0,
+  "total_matching": 7,
+  "log": [
+    {
+      "name": "scan_candidates",
+      "ok": true,
+      "detail": "7 rows match fetch-error regex out of 172 non-null briefs",
+      "at": "2026-05-25T08:56:31.580Z"
+    },
+    {
+      "name": "filter_unflagged",
+      "ok": true,
+      "detail": "7 to flag, 0 already flagged (idempotent skip)",
+      "at": "2026-05-25T08:56:31.582Z"
+    },
+    {
+      "name": "flag.262ac5f2-4fbe-4968-bde7-f5f68821cc59",
+      "ok": true,
+      "detail": "\"Critical Minerals & EV Supply Chain\" flagged",
+      "at": "2026-05-25T08:56:32.192Z"
+    },
+    {
+      "name": "flag.4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+      "ok": true,
+      "detail": "\"GLEC Framework (Air Freight)\" flagged",
+      "at": "2026-05-25T08:56:32.667Z"
+    },
+    {
+      "name": "flag.19f08fcc-5f81-44cc-b3db-fe25f1717845",
+      "ok": true,
+      "detail": "\"EcoVadis\" flagged",
+      "at": "2026-05-25T08:56:33.201Z"
+    },
+    {
+      "name": "flag.c3fa4cc2-f168-4784-bf78-dda5c022843e",
+      "ok": true,
+      "detail": "\"Alternative Fuels Insight (IRENA/IMO)\" flagged",
+      "at": "2026-05-25T08:56:33.423Z"
+    },
+    {
+      "name": "flag.8ff93a7e-5256-4d31-959b-2172de16ae8f",
+      "ok": true,
+      "detail": "\"IRENA Abu Dhabi\" flagged",
+      "at": "2026-05-25T08:56:33.638Z"
+    },
+    {
+      "name": "flag.6d2ec398-6dea-4fd8-ad65-53c7cda2520d",
+      "ok": true,
+      "detail": "\"IEA Policies & Measures\" flagged",
+      "at": "2026-05-25T08:56:33.838Z"
+    },
+    {
+      "name": "flag.2fc50445-67ac-411d-b454-ced5d0851d1d",
+      "ok": true,
+      "detail": "\"Environmental Finance\" flagged",
+      "at": "2026-05-25T08:56:34.038Z"
+    },
+    {
+      "name": "post_state_matching_unflagged",
+      "ok": true,
+      "detail": "0 unflagged rows with fetch-error briefs remain",
+      "at": "2026-05-25T08:56:35.122Z"
+    }
+  ]
+}
