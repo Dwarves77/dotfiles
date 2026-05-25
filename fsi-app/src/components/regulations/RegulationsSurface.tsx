@@ -43,7 +43,11 @@ import {
   AUTHORITY_LEVELS,
   type PriorityKey,
 } from "@/lib/constants";
-import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
+import {
+  TIER1_PRIORITY_ISOS,
+  TIER1_PRIORITY_REGIONS,
+  regionForIso,
+} from "@/lib/tier1-priority-jurisdictions";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import type { Resource } from "@/types/resource";
 import {
@@ -403,8 +407,18 @@ export function RegulationsSurface({
         return false;
       if (activeTopics.size > 0 && !activeTopics.has(r.topic || r.sub))
         return false;
-      if (activeRegions.size > 0 && !activeRegions.has(r.jurisdiction || ""))
-        return false;
+      // Phase 4 M1 (2026-05-25): activeRegions now stores TIER1_PRIORITY_REGIONS
+      // region.id values (e.g. "eu-members"), not JURISDICTIONS.id values.
+      // Each item passes if any of its jurisdiction_iso codes maps to an
+      // active region group. Items without ISO arrays (rare; ~3% per audit)
+      // fail the filter when activeRegions is non-empty.
+      if (activeRegions.size > 0) {
+        const isos = r.jurisdictionIso ?? [];
+        const itemRegionIds = isos
+          .map((iso) => regionForIso(iso)?.id)
+          .filter((id): id is string => !!id);
+        if (!itemRegionIds.some((id) => activeRegions.has(id))) return false;
+      }
       // PR-N (Wave 5): ISO sub-national filter (?region=us-ca etc.).
       // Compares against jurisdictionIso[] case-insensitively. Items
       // without jurisdictionIso (legacy rows) are excluded when this
@@ -502,7 +516,17 @@ export function RegulationsSurface({
       priC[r.priority] = (priC[r.priority] || 0) + 1;
       const topic = r.topic || r.sub;
       if (topic) topC[topic] = (topC[topic] || 0) + 1;
-      if (r.jurisdiction) regC[r.jurisdiction] = (regC[r.jurisdiction] || 0) + 1;
+      // Phase 4 M1: bucket by TIER1_PRIORITY_REGIONS region.id so chips
+      // render and reflect actual workspace coverage. Each item with any
+      // ISO that maps to a region contributes one count to that region.
+      const seenRegions = new Set<string>();
+      for (const iso of r.jurisdictionIso ?? []) {
+        const reg = regionForIso(iso);
+        if (reg && !seenRegions.has(reg.id)) {
+          seenRegions.add(reg.id);
+          regC[reg.id] = (regC[reg.id] || 0) + 1;
+        }
+      }
       const modes = r.modes || [r.cat];
       modes.forEach((m) => {
         modC[m] = (modC[m] || 0) + 1;
@@ -900,14 +924,14 @@ export function RegulationsSurface({
               ))}
             </FilterRow>
             <FilterRow label="Region">
-              {JURISDICTIONS.filter((j) => counts.region[j.id]).map((j) => (
+              {TIER1_PRIORITY_REGIONS.filter((r) => counts.region[r.id]).map((r) => (
                 <Chip
-                  key={j.id}
-                  label={j.label}
-                  active={activeRegions.has(j.id)}
-                  count={counts.region[j.id]}
+                  key={r.id}
+                  label={r.name}
+                  active={activeRegions.has(r.id)}
+                  count={counts.region[r.id]}
                   onClick={() =>
-                    isolate(activeRegions, j.id, setActiveRegions)
+                    isolate(activeRegions, r.id, setActiveRegions)
                   }
                 />
               ))}
