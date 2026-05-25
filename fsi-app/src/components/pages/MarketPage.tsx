@@ -254,6 +254,7 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
           <LegendItem color={SEVERITY_PILL_TONE.action.fg} label="Action required" desc="Decision pressure now" />
           <LegendItem color={SEVERITY_PILL_TONE.cost.fg} label="Cost alert" desc="Margin or surcharge moving" />
           <LegendItem color={SEVERITY_PILL_TONE.window.fg} label="Window closing" desc="Deadline approaches" />
+          <LegendItem color={SEVERITY_PILL_TONE.edge.fg} label="Competitive edge" desc="Lock-in or advantage" />
           <LegendItem color={SEVERITY_PILL_TONE.monitor.fg} label="Monitor" desc="Track trend" />
         </div>
         {/* Phase 4 (2026-05-24): legend declared 5 labels but only 4
