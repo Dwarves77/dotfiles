@@ -94,8 +94,6 @@ type TabKey =
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "general", label: "General" },
-  { key: "dashboard", label: "Dashboard" },
-  { key: "exports", label: "Exports" },
   { key: "saved", label: "Saved searches" },
   { key: "data", label: "Data & supersessions" },
   { key: "archive", label: "Archive" },
@@ -104,11 +102,16 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 // Legacy hash aliases: post-PR-D, #notifications resolves to General
 // (where the NotificationPreferences section now lives) rather than
-// 404'ing the user. PR-L adds: #briefing → General (where the briefing
-// schedule restoration now lives).
+// 404'ing the user. PR-L adds: #briefing → General. Phase 4 strip
+// (2026-05-25): #dashboard and #exports now also resolve to General
+// since those duplicate tabs were removed — every preference they
+// surfaced still lives inside the DashboardSettings component rendered
+// on the General tab, so deep links continue to land somewhere useful.
 const LEGACY_HASH_ALIASES: Record<string, TabKey> = {
   notifications: "general",
   briefing: "general",
+  dashboard: "general",
+  exports: "general",
 };
 
 export function SettingsPage({
@@ -164,7 +167,7 @@ export function SettingsPage({
           className="text-sm mt-1"
           style={{ color: "var(--color-text-secondary)" }}
         >
-          General · dashboard · exports · data · archive
+          General · saved searches · data · archive · help
         </p>
 
         {/* Tabs */}
@@ -229,33 +232,12 @@ export function SettingsPage({
           </div>
         )}
 
-        {tab === "dashboard" && (
-          <Card
-            title="Dashboard cards"
-            meta="Toggle which cards appear on home"
-          >
-            {/* DashboardSettings drives every dashboard-side preference today.
-                Until we split it out per tab, we render it here so users can
-                find their toggles regardless of which tab they pick. */}
-            <DashboardSettings />
-          </Card>
-        )}
-
-        {tab === "exports" && (
-          <Card
-            title="Default export format"
-            meta="Used by share menus and the Export Builder"
-          >
-            <p
-              className="text-sm mb-3"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Pick your default export format. Individual exports can override
-              this per file.
-            </p>
-            <DashboardSettings />
-          </Card>
-        )}
+        {/* Phase 4 (2026-05-25): "Dashboard" and "Exports" tabs stripped —
+            both rendered the same DashboardSettings component the General tab
+            already shows. Deep links to #dashboard and #exports redirect to
+            #general via LEGACY_HASH_ALIASES. Restore as distinct tabs only
+            when card-visibility toggles and export format pickers split into
+            their own components with non-overlapping content. */}
 
         {tab === "data" && (
           <div className="space-y-5">
