@@ -297,6 +297,34 @@ function classifySource(name: string | null): string {
 
 // ── Component ──
 
+// Filter source-fetch-error items so 403 / blocked / unavailable strings
+// don't surface in customer-facing content. Audit 2026-05-24 found
+// "Content unavailable, Source returned 403 Forbidden" leaking into a
+// finding body and "Access Blocked" leaking into a title. Reject these
+// from the displayed set rather than render the raw fetch error.
+const FETCH_ERROR_PATTERNS = [
+  /content unavailable/i,
+  /\b403 forbidden\b/i,
+  /access blocked/i,
+  /could not be accessed/i,
+  /source returned (\d{3}|error)/i,
+];
+
+function isFetchErrorItem(item: ResearchPipelineItem): boolean {
+  const text = `${item.title} ${item.summary}`;
+  return FETCH_ERROR_PATTERNS.some((re) => re.test(text));
+}
+
+function withinWindow(addedDate: string | null, windowKey: "7d" | "30d" | "90d" | "all"): boolean {
+  if (windowKey === "all") return true;
+  if (!addedDate) return false;
+  const d = new Date(addedDate);
+  if (isNaN(d.getTime())) return false;
+  const ageMs = Date.now() - d.getTime();
+  const limits = { "7d": 7, "30d": 30, "90d": 90 };
+  return ageMs >= 0 && ageMs <= limits[windowKey] * 24 * 60 * 60 * 1000;
+}
+
 export function ResearchView({
   items,
   aggregates,
@@ -305,52 +333,89 @@ export function ResearchView({
   cap,
 }: ResearchViewProps) {
   // Derive theme + severity + vertical-relevance once per item.
+  // Fetch-error items rejected at the enriched stage so they never
+  // surface, regardless of filter state (audit fix).
   const enriched = useMemo(
     () =>
-      items.map((it) => ({
-        item: it,
-        theme: assignTheme(it),
-        severity: deriveSeverity(it),
-        vertical: isVerticalRelevant(it),
-      })),
+      items
+        .filter((it) => !isFetchErrorItem(it))
+        .map((it) => ({
+          item: it,
+          theme: assignTheme(it),
+          severity: deriveSeverity(it),
+          vertical: isVerticalRelevant(it),
+        })),
     [items]
   );
 
-  // Aggregate severity counts for the 4 stat tiles.
+  // Filter state. Stat tiles, window pills, vertical chips all drive
+  // `displayed` (audit 2026-05-24: previously these toggled visual
+  // state only and never filtered content).
+  const [activeTheme, setActiveTheme] = useState<ThemeKey | "all">("all");
+  const [activeSeverity, setActiveSeverity] = useState<Severity | "all">("all");
+  const [verticalsOn, setVerticalsOn] = useState<Set<string>>(new Set(["live-events", "fine-art"]));
+  const [windowFilter, setWindowFilter] = useState<"7d" | "30d" | "90d" | "all">("all");
+
+  // Apply the filter set to derive what the page actually renders.
+  // Verticals filter behaviour: when "live-events" or "fine-art" are
+  // on, vertical-relevant items pass; when both are off, everything
+  // passes (the chips behave additively, not subtractively).
+  const displayed = useMemo(() => {
+    const verticalsActive = verticalsOn.has("live-events") || verticalsOn.has("fine-art");
+    return enriched.filter((e) => {
+      if (!withinWindow(e.item.addedDate, windowFilter)) return false;
+      if (activeSeverity !== "all" && e.severity !== activeSeverity) return false;
+      // Vertical filter is a recommendation surface, not a hard gate:
+      // items flagged as vertical-relevant always pass; non-vertical
+      // items pass only when the user has additional verticals on
+      // (signalling "show me everything"). When verticals are off
+      // entirely, everything passes.
+      if (verticalsActive) {
+        // Pass vertical items; non-vertical items only render when
+        // any "broad" vertical chip is on.
+        if (e.vertical) return true;
+        const broadOn = ["luxury", "automotive", "humanitarian"].some((v) => verticalsOn.has(v));
+        return broadOn;
+      }
+      return true;
+    });
+  }, [enriched, windowFilter, activeSeverity, verticalsOn]);
+
+  // Aggregate severity counts for the 4 stat tiles (over displayed).
   const severityCounts = useMemo(() => {
     const c: Record<Severity, number> = { action: 0, cost: 0, monitor: 0, background: 0 };
-    for (const e of enriched) c[e.severity]++;
+    for (const e of displayed) c[e.severity]++;
     return c;
-  }, [enriched]);
+  }, [displayed]);
 
-  // Theme counts (assigned vs unassigned).
+  // Theme counts.
   const themeCounts = useMemo(() => {
     const c: Record<ThemeKey, { total: number; vertical: number }> = {} as Record<ThemeKey, { total: number; vertical: number }>;
     for (const t of THEMES) c[t.key] = { total: 0, vertical: 0 };
-    for (const e of enriched) {
+    for (const e of displayed) {
       if (e.theme) {
         c[e.theme].total++;
         if (e.vertical) c[e.theme].vertical++;
       }
     }
     return c;
-  }, [enriched]);
+  }, [displayed]);
 
-  // Source coverage counts by class.
+  // Source coverage counts by class (over displayed).
   const coverageClassCounts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const cls of COVERAGE_CLASSES) c[cls.key] = 0;
-    for (const e of enriched) {
+    for (const e of displayed) {
       const key = classifySource(e.item.sourceName);
       c[key] = (c[key] || 0) + 1;
     }
     return c;
-  }, [enriched]);
+  }, [displayed]);
 
-  // Featured item: highest-priority severity, most recent.
+  // Featured item: highest-priority severity, most recent (over displayed).
   const featuredItem = useMemo(() => {
     const sevOrder: Severity[] = ["action", "cost", "monitor", "background"];
-    const sorted = [...enriched].sort((a, b) => {
+    const sorted = [...displayed].sort((a, b) => {
       const sa = sevOrder.indexOf(a.severity);
       const sb = sevOrder.indexOf(b.severity);
       if (sa !== sb) return sa - sb;
@@ -359,38 +424,30 @@ export function ResearchView({
       return db - da;
     });
     return sorted[0] || null;
-  }, [enriched]);
-
-  // Filter state.
-  const [activeTheme, setActiveTheme] = useState<ThemeKey | "all">("all");
-  const [verticalsOn, setVerticalsOn] = useState<Set<string>>(new Set(["live-events", "fine-art"]));
-  const [windowFilter, setWindowFilter] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  }, [displayed]);
 
   // Verticals-in-your-sector count.
   const verticalCount = useMemo(
-    () => enriched.filter((e) => e.vertical).length,
-    [enriched]
+    () => displayed.filter((e) => e.vertical).length,
+    [displayed]
   );
 
   // Items grouped by theme (excluding the featured one to avoid double-render).
   const itemsByTheme = useMemo(() => {
-    const map = new Map<ThemeKey, typeof enriched>();
+    const map = new Map<ThemeKey, typeof displayed>();
     for (const t of THEMES) map.set(t.key, []);
-    for (const e of enriched) {
+    for (const e of displayed) {
       if (e === featuredItem) continue;
       if (!e.theme) continue;
       map.get(e.theme)!.push(e);
     }
     return map;
-  }, [enriched, featuredItem]);
+  }, [displayed, featuredItem]);
 
   // Phase 2A (2026-05-24): masthead total reads from the
   // get_workspace_intelligence_aggregates RPC via aggregates.totalItems
-  // rather than the local items.length (which was the LIMIT-50 page
-  // payload). Tile severity counts still derive locally because the
-  // 4-label research-relevance vocabulary maps to no column today;
-  // when the severity column lands per Q1, tile counts swap to
-  // aggregates.bySeverity.
+  // (workspace-wide authoritative count, the LIMIT-50 page payload is
+  // only the rendered slice).
   const totalDisplay = aggregates?.totalItems ?? total ?? items.length;
   const themesActive = THEMES.filter((t) => themeCounts[t.key].total > 0).length;
 
@@ -432,10 +489,38 @@ export function ResearchView({
           <LegendItem color={themeColorTokens.background} label="Background" desc="Awareness only" />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-          <StatTile severity="action" count={severityCounts.action} label="Action required" sub="In your verticals, this week" />
-          <StatTile severity="cost" count={severityCounts.cost} label="Cost alert" sub="Affecting margins" />
-          <StatTile severity="monitor" count={severityCounts.monitor} label="Monitor" sub="Trending themes" />
-          <StatTile severity="background" count={severityCounts.background} label="Background" sub="Awareness coverage" />
+          <StatTile
+            severity="action"
+            count={severityCounts.action}
+            label="Action required"
+            sub="In your verticals, this week"
+            active={activeSeverity === "action"}
+            onClick={() => setActiveSeverity(activeSeverity === "action" ? "all" : "action")}
+          />
+          <StatTile
+            severity="cost"
+            count={severityCounts.cost}
+            label="Cost alert"
+            sub="Affecting margins"
+            active={activeSeverity === "cost"}
+            onClick={() => setActiveSeverity(activeSeverity === "cost" ? "all" : "cost")}
+          />
+          <StatTile
+            severity="monitor"
+            count={severityCounts.monitor}
+            label="Monitor"
+            sub="Trending themes"
+            active={activeSeverity === "monitor"}
+            onClick={() => setActiveSeverity(activeSeverity === "monitor" ? "all" : "monitor")}
+          />
+          <StatTile
+            severity="background"
+            count={severityCounts.background}
+            label="Background"
+            sub="Awareness coverage"
+            active={activeSeverity === "background"}
+            onClick={() => setActiveSeverity(activeSeverity === "background" ? "all" : "background")}
+          />
         </div>
       </div>
 
@@ -472,7 +557,7 @@ export function ResearchView({
               borderBottom: "1px solid var(--color-text-primary)",
             }}
           >
-            {THEMES.map((theme) => {
+            {THEMES.filter((t) => themeCounts[t.key].total > 0).map((theme) => {
               const counts = themeCounts[theme.key];
               const isActive = activeTheme === theme.key;
               return (
@@ -748,24 +833,32 @@ function StatTile({
   count,
   label,
   sub,
+  active,
+  onClick,
 }: {
   severity: Severity;
   count: number;
   label: string;
   sub: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
-  const isActive = severity === "action";
   const color = SEVERITY_TILE_COLOR[severity];
   return (
-    <div
+    <button
+      onClick={onClick}
       style={{
         background: "var(--color-surface)",
-        border: `1px solid ${isActive ? color : "var(--color-border)"}`,
-        boxShadow: isActive ? `0 0 0 1px ${color} inset, var(--shadow-card)` : "var(--shadow-card)",
+        border: `1px solid ${active ? color : "var(--color-border)"}`,
+        boxShadow: active ? `0 0 0 1px ${color} inset, var(--shadow-card)` : "var(--shadow-card)",
         borderRadius: "var(--radius-md)",
         padding: "22px 24px 20px",
         position: "relative",
         cursor: "pointer",
+        textAlign: "left",
+        fontFamily: "inherit",
+        color: "inherit",
+        width: "100%",
       }}
     >
       <div style={{ position: "absolute", top: 18, right: 18, fontSize: 14, color }}>
@@ -785,7 +878,7 @@ function StatTile({
         {label}
       </div>
       <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{sub}</div>
-    </div>
+    </button>
   );
 }
 
