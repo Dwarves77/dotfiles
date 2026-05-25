@@ -25,6 +25,7 @@ import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
 // Phase 7 admin chrome — tier-opinion disagreement review + triage queues.
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
 import { IngestRejectionsView } from "@/components/admin/IngestRejectionsView";
+import { ResearchPipelineQueueView } from "@/components/admin/ResearchPipelineQueueView";
 import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdictionReviewView";
 
 interface AdminDashboardProps {
@@ -88,7 +89,14 @@ export function AdminDashboard({
     | "bulk-import"
     | "tier-opinions"
     | "ingest-rejections"
-    | "jurisdiction-review";
+    | "jurisdiction-review"
+    // H4 (2026-05-25): destination view for Section card 5 "Research
+    // pipeline". Reached via section card click, NOT via the legacy
+    // 11-tab strip. Per operator direction: the section card → destination
+    // view pattern is the canonical /admin navigation; the visible
+    // 11-tab strip is legacy chrome slated for retirement in a separate
+    // Admin restructure dispatch.
+    | "research-pipeline";
   const KNOWN_RENDERED_TABS: ReadonlyArray<AdminTab> = [
     "orgs",
     "sources",
@@ -101,6 +109,7 @@ export function AdminDashboard({
     "tier-opinions",
     "ingest-rejections",
     "jurisdiction-review",
+    "research-pipeline",
   ];
   const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
   const [issueFilter, setIssueFilter] = useState<string | null>(null);
@@ -401,7 +410,12 @@ export function AdminDashboard({
                 kicker: "Section 5",
                 title: "Research pipeline",
                 desc: "Editorial draft-staging (moved from customer-facing /research per design rebuild).",
-                target: "tier-opinions" as AdminTab,
+                // H4 (2026-05-25): retargeted from "tier-opinions"
+                // placeholder to the new "research-pipeline" destination
+                // view (ResearchPipelineQueueView). Section card click
+                // → destination view is the canonical /admin navigation
+                // pattern per operator direction.
+                target: "research-pipeline" as AdminTab,
                 count: 0,
                 unit: "drafts",
                 urgent: false,
@@ -884,6 +898,17 @@ export function AdminDashboard({
         {activeTab === "tier-opinions" && (
           <div className="space-y-4">
             <TierOpinionDisagreementsView />
+          </div>
+        )}
+
+        {/* H4 (2026-05-25): Section card 5 destination view. The Research
+            editorial draft-staging surface moved from customer-facing
+            /research to /admin per platform-intent SKILL Section 5
+            correction; this is the canonical workflow surface. Reached
+            via Section card click, not via the legacy 11-tab strip. */}
+        {activeTab === "research-pipeline" && (
+          <div className="space-y-4">
+            <ResearchPipelineQueueView />
           </div>
         )}
 
