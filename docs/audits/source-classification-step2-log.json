@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "totalCostUsd": 0.00262,
+    "totalInputTokens": 1505,
+    "totalOutputTokens": 223,
+    "avgCostPerCall": 0.00262,
+    "completedAt": "2026-05-25T08:31:26.262Z"
+  },
+  "log": [
+    {
+      "id": "8c914364-6a7e-46eb-85f1-f33112716eab",
+      "name": "Northwest Seaport Alliance (NWSA)",
+      "tier": 4,
+      "costUsd": 0.00262,
+      "ok": true
+    }
+  ]
+}
