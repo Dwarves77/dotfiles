@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Operations Intelligence — Caro's Ledge</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-bg-base); color: var(--color-text-primary); font-family: var(--font-sans); }
+
+/* App shell */
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--color-surface); border-right: 1px solid var(--color-border-subtle); position: sticky; top: 0; height: 100vh; padding: 18px 0; display: flex; flex-direction: column; }
+.brand { padding: 0 22px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.03em; line-height: 1; }
+.brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; }
+.side nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; font-size: 13.5px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-sm); text-decoration: none; }
+.side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
+.side nav a .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+.side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
+
+.top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
+
+.main { min-width: 0; }
+.masthead { background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); padding: 28px 40px 26px; }
+.mh-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px; display: flex; gap: 12px; }
+.mh-eyebrow .sep { color: var(--color-text-muted); font-weight: 400; }
+.mh-title { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.025em; text-transform: uppercase; margin: 0 0 6px; line-height: 1; color: var(--color-text-primary); font-weight: 400; }
+.mh-meta { font-size: 13px; color: var(--color-text-secondary); }
+.mh-meta b { color: var(--color-text-primary); font-weight: 600; }
+
+.body { padding: 26px 40px 60px; }
+
+/* Priority legend */
+.legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
+.legend .it { display: inline-flex; align-items: center; gap: 8px; }
+.legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
+.legend .it.crit .dot { background: var(--color-critical); }
+.legend .it.high .dot { background: var(--color-high); }
+.legend .it.mod  .dot { background: var(--color-moderate); }
+.legend .it.low  .dot { background: var(--color-low); }
+.legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
+
+/* Stat tiles */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
+.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
+.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
+.stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
+.stat-tile.active .icon, .stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
+.stat-tile.high .icon, .stat-tile.high .v, .stat-tile.high .lbl { color: var(--color-high); }
+.stat-tile.mod .icon, .stat-tile.mod .v, .stat-tile.mod .lbl { color: var(--color-moderate); }
+.stat-tile.low .icon, .stat-tile.low .v, .stat-tile.low .lbl { color: var(--color-low); }
+.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
+.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
+.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
+
+/* Category breakdown rail */
+.cat-rail-wrap { margin: 0 0 22px; }
+.cat-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
+.cat-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
+.cat-rail { display: grid; grid-template-columns: repeat(var(--cat-cols, 6), 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
+.cat-cell { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 32px 32px 1fr; gap: 4px; min-height: 130px; }
+.cat-cell:hover { background: var(--color-surface-raised); }
+.cat-cell.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
+.cat-cell .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1.3; align-self: end; }
+.cat-cell.active .lbl { color: var(--color-primary); }
+.cat-cell .num { font-family: var(--font-display); font-size: 24px; line-height: 1; color: var(--color-text-primary); align-self: center; }
+.cat-cell.active .num { color: var(--color-primary); }
+.cat-cell .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; align-self: start; }
+.cat-cell .sub b { color: var(--color-text-primary); }
+
+/* AI bar */
+.ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px; }
+.ai-bar .row { display: flex; align-items: center; gap: 12px; }
+.ai-bar .icon { color: var(--color-primary); font-size: 16px; }
+.ai-bar input { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 14px; color: var(--color-text-primary); outline: none; }
+.ai-bar input::placeholder { color: var(--color-text-muted); }
+.ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ai-bar button:hover { background: var(--color-primary-hover); }
+.ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--color-border); margin-bottom: 22px; }
+.tabs a { padding: 12px 4px; margin-right: 32px; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); border-bottom: 2px solid transparent; cursor: pointer; text-decoration: none; transition: color var(--transition-fast); }
+.tabs a:hover { color: var(--color-text-primary); }
+.tabs a.on { color: var(--color-secondary); border-bottom-color: var(--color-secondary); }
+
+/* Layout */
+.layout { display: grid; grid-template-columns: 1fr 280px; gap: 28px; align-items: start; }
+@media (max-width: 1200px) { .layout { grid-template-columns: 1fr; } }
+
+.section-h { margin-bottom: 16px; }
+.section-h h2 { font-family: var(--font-display); font-size: 28px; letter-spacing: 0.025em; margin: 0 0 6px; font-weight: 400; }
+.section-h p { font-size: 14px; line-height: 1.55; color: var(--color-text-secondary); margin: 0; max-width: 90ch; }
+
+/* Region accordion */
+.region { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 14px; box-shadow: var(--shadow-card); overflow: hidden; transition: box-shadow var(--transition-base); }
+.region:hover { box-shadow: var(--shadow-card-hover); }
+.region summary { padding: 18px 24px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 14px; }
+.region summary::-webkit-details-marker { display: none; }
+.region summary::after { content: '▾'; margin-left: auto; color: var(--color-text-muted); font-size: 16px; transition: transform var(--transition-fast); }
+.region[open] summary::after { transform: rotate(180deg); }
+.region .globe { color: var(--color-primary); font-size: 18px; width: 22px; }
+.region .name { font-size: 16px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.region .pri { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 9px; border-radius: var(--radius-pill); border: 1px solid; }
+.region .pri.crit { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.region .pri.high { background: var(--color-high-bg); color: var(--color-high); border-color: var(--color-high-border); }
+.region .pri.mod  { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
+.region .meta-row { font-size: 11.5px; color: var(--color-text-muted); display: flex; gap: 14px; margin-left: 4px; }
+.region .meta-row b { color: var(--color-text-primary); font-weight: 700; }
+.region .body { border-top: 1px solid var(--color-border-subtle); padding: 0; }
+
+/* Six-dimension panel */
+.dim { padding: 0 0 22px; border-bottom: 1px solid var(--color-border); }
+.dim:last-child { border-bottom: 0; padding-bottom: 4px; }
+.dim-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); }
+.dim-num { font-family: var(--font-display); font-size: 13px; font-weight: 400; letter-spacing: 0.08em; color: #fff; background: var(--color-primary); padding: 4px 10px; border-radius: 3px; min-width: 36px; text-align: center; line-height: 1.1; }
+.dim-name { font-size: 13.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); }
+.dim-count { font-size: 11.5px; color: var(--color-text-muted); margin-left: auto; font-weight: 600; }
+.dim-summary { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); padding: 14px 22px 4px; margin: 0 0 8px; max-width: 78ch; }
+.dim-summary strong { color: var(--color-text-primary); font-weight: 600; }
+.dim-body { padding: 8px 22px 4px; }
+
+/* FACT TABLES — D2-D6 use fact tables, NOT cards. README Section 5 item 7 binding. */
+.fact-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+.fact-table tr { border-bottom: 1px solid var(--color-border-subtle); }
+.fact-table tr:last-child { border-bottom: 0; }
+.fact-table td { padding: 8px 12px 8px 0; vertical-align: top; }
+.fact-table .lbl { color: var(--color-text-secondary); width: 38%; }
+.fact-table .val { font-weight: 600; color: var(--color-text-primary); }
+.fact-table .val .num { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+.fact-table .src { font-size: 11px; color: var(--color-text-muted); display: block; margin-top: 2px; font-weight: 400; }
+.fact-table .trend-up { color: var(--color-error); font-size: 11px; margin-left: 4px; }
+.fact-table .trend-dn { color: var(--color-success); font-size: 11px; margin-left: 4px; }
+.fact-table .trend-flat { color: var(--color-text-muted); font-size: 11px; margin-left: 4px; }
+
+.fly { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; margin-left: 6px; }
+.fly.ok { background: var(--color-low-bg); color: var(--color-low); border: 1px solid var(--color-low-border); }
+.fly.restrict { background: var(--color-high-bg); color: var(--color-high); border: 1px solid var(--color-high-border); }
+.fly.prohibit { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
+
+/* Operations card pattern — D1 only (regulation cross-references, clickable). 1fr / 220px / 22px gap. */
+.reg-link {
+  display: grid !important;
+  grid-template-columns: 1fr 220px !important;
+  gap: 22px !important;
+  align-items: start !important;
+  padding: 16px 20px 18px !important;
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-left: 3px solid var(--color-primary) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-card) !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  margin-bottom: 10px !important;
+}
+.reg-link:hover { box-shadow: var(--shadow-card-hover) !important; }
+.reg-link .body { display: flex; flex-direction: column; }
+.reg-link .item-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); }
+.reg-link .item-head .sev { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; }
+.reg-link .item-head .sev.action { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
+.reg-link .item-head .sev.window { background: var(--color-moderate-bg); color: var(--color-moderate); border: 1px solid var(--color-moderate-border); }
+.reg-link .item-head .when { color: var(--color-text-muted); font-weight: 600; margin-left: auto; }
+.reg-link h4 { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 4px 0 6px; color: var(--color-text-primary); }
+.reg-link .summary { font-size: 13px; line-height: 1.5; color: var(--color-text-secondary); margin: 0; }
+.reg-link .byline { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; }
+.reg-link .byline b { color: var(--color-text-primary); font-weight: 700; }
+.reg-link .right { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.reg-link .right .s-pill { align-self: flex-start; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid; }
+.reg-link .right .s-pill.action { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.reg-link .right .s-pill.window { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
+.reg-link .right .t-pill { align-self: flex-start; font-family: var(--font-display); font-size: 11px; padding: 1px 6px; border: 1px solid var(--color-border); color: var(--color-text-primary); }
+.reg-link .right .changes-callout { background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--color-text-primary); margin-top: 4px; }
+.reg-link .right .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+.reg-link-list { display: flex; flex-direction: column; gap: 0; margin-top: 6px; }
+
+.empty-dim { font-size: 12.5px; color: var(--color-text-muted); font-style: italic; padding: 4px 0; }
+.empty-dim a { color: var(--color-primary); text-decoration: underline; font-style: normal; }
+
+/* Cross-surface band */
+.xrefs { background: var(--color-surface-raised); padding: 14px 18px; border-radius: var(--radius-sm); margin-top: 14px; }
+.xrefs-lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px; }
+.xrefs ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.xrefs li { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: baseline; }
+.xrefs .src-chip { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.xrefs .src-chip.reg { color: var(--color-primary); }
+.xrefs .src-chip.mkt { color: var(--color-secondary); }
+
+/* Side rail */
+.side-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; position: relative; overflow: hidden; }
+.side-card.coverage { padding-top: 18px; }
+.side-card.coverage::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--color-primary); }
+.cov-stats { display: block; margin: 6px 0 12px; }
+.cov-stats .num-have { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-primary); display: block; margin-bottom: 6px; }
+.cov-stats .unit { display: block; font-size: 11px; color: var(--color-text-primary); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.cov-stats .of { display: block; font-size: 12px; color: var(--color-text-muted); margin-top: 4px; font-weight: 500; }
+.cov-stats .of b { color: var(--color-text-primary); font-weight: 700; }
+.cov-bar { height: 6px; background: var(--color-surface-raised); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.cov-bar .fill { height: 100%; background: var(--color-primary); border-radius: 999px; }
+.cov-card-note { font-size: 12px; color: var(--color-text-muted); line-height: 1.5; margin: 0; }
+.side-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
+.side-card p { font-size: 13px; color: var(--color-text-primary); margin: 0 0 6px; line-height: 1.55; }
+.dim-list { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.dim-list .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--color-border-subtle); }
+.dim-list .row:last-child { border-bottom: 0; }
+.dim-list .row b { font-weight: 600; }
+.dim-list .row .cnt { font-weight: 700; color: var(--color-text-muted); font-family: var(--font-display); font-size: 15px; }
+.dim-list .row .cnt.bad { color: var(--color-critical); }
+.dim-list .row .cnt.warn { color: var(--color-high); }
+.dim-list .row .cnt.ok { color: var(--color-low); }
+
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="n">CARO'S LEDGE</div>
+      <div class="t">Freight Sustainability Intelligence</div>
+    </div>
+        <nav>
+      <a href="#"><span class="ico">⊡</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◉</span>Research</a>
+      <a href="operations.html" class="active"><span class="ico">◐</span>Operations</a>
+      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <div class="nav-divider"></div>
+      <a href="community.html"><span class="ico">♥</span>Community</a>
+    </nav>
+    <div class="side-foot">
+      <div class="av">JL</div>
+      <span>jasonlosh</span>
+      <span class="dot"></span>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="masthead">
+      <div class="mh-eyebrow">
+        <span>Vol IV</span><span class="sep">·</span>
+        <span>No. 21</span><span class="sep">·</span>
+        <span>Sunday</span>
+      </div>
+      <h1 class="mh-title">Operations Intelligence</h1>
+      <div class="mh-meta">May 24, 2026 · <b>78</b> items in scope · <b>54</b> jurisdictions in scope · workspace verticals: <b>Live events · Fine art</b></div>
+    </div>
+
+    <div class="body">
+
+      <!-- Priority legend -->
+      <div class="legend">
+        <div class="it crit"><span class="dot"></span><b>Critical</b> Block / immediate cost impact</div>
+        <div class="it high"><span class="dot"></span><b>High</b> Plan ahead</div>
+        <div class="it mod"><span class="dot"></span><b>Moderate</b> Monitor</div>
+        <div class="it low"><span class="dot"></span><b>Low</b> Background awareness</div>
+      </div>
+
+      <!-- 4-tile stat strip -->
+      <div class="stat-row">
+        <div class="stat-tile active">
+          <div class="icon">▲</div>
+          <div class="v">3</div>
+          <div class="lbl">Critical</div>
+          <div class="sub">Threshold breached · immediate cost impact</div>
+        </div>
+        <div class="stat-tile high">
+          <div class="icon">▲</div>
+          <div class="v">9</div>
+          <div class="lbl">High</div>
+          <div class="sub">Plan ahead · material impact</div>
+        </div>
+        <div class="stat-tile mod">
+          <div class="icon">→</div>
+          <div class="v">22</div>
+          <div class="lbl">Moderate</div>
+          <div class="sub">Monitor · within range</div>
+        </div>
+        <div class="stat-tile low">
+          <div class="icon">→</div>
+          <div class="v">44</div>
+          <div class="lbl">Low</div>
+          <div class="sub">Background awareness</div>
+        </div>
+      </div>
+
+      <!-- Category breakdown rail -->
+      <div class="cat-rail-wrap">
+        <div class="cat-rail-label"><span>Operations · what we cover by dimension</span><span class="sub">6 dimensions across your jurisdictions</span></div>
+        <div class="cat-rail" style="--cat-cols: 6;">
+          <div class="cat-cell active"><div class="lbl">D1 Regulatory<br>feasibility</div><div class="num">5 / 5</div><div class="sub">jurisdictions covered</div></div>
+          <div class="cat-cell"><div class="lbl">D2 Regional<br>resources</div><div class="num">2 / 5</div><div class="sub">gaps in <b>UAE · UK · HK</b></div></div>
+          <div class="cat-cell"><div class="lbl">D3 Labor<br>markets</div><div class="num">4 / 5</div><div class="sub">pending <b>HK</b></div></div>
+          <div class="cat-cell"><div class="lbl">D4 Materials<br>sourcing</div><div class="num">2 / 5</div><div class="sub">gaps in <b>UK · UAE · HK</b></div></div>
+          <div class="cat-cell"><div class="lbl">D5 Infrastructure</div><div class="num">3 / 5</div><div class="sub">gaps in <b>UK · UAE</b></div></div>
+          <div class="cat-cell"><div class="lbl">D6 Operational<br>cost data</div><div class="num">5 / 5</div><div class="sub"><b>weekly</b> refresh on all</div></div>
+        </div>
+      </div>
+
+      <!-- AI bar -->
+      <div class="ai-bar">
+        <div class="row">
+          <span class="icon">✦</span>
+          <input placeholder="Ask anything about your operations — e.g. What are warehouse labor rates in Singapore vs LA?">
+          <button>Ask</button>
+        </div>
+        <div class="ai-chips">
+          <span class="ai-chip">Warehouse labor — EU vs US</span>
+          <span class="ai-chip">SAF availability at EU airports</span>
+          <span class="ai-chip">Solar permitting timelines</span>
+          <span class="ai-chip">Drayage rates — LA / NY / Rotterdam</span>
+          <span class="ai-chip">Recyclable PET supply — APAC</span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <a class="on">By Jurisdiction</a>
+        <a>Facility Data</a>
+      </div>
+
+      <!-- Layout -->
+      <div class="layout">
+
+        <!-- Main column -->
+        <div>
+
+          <div class="section-h">
+            <h2>Regional Operations Intelligence</h2>
+            <p>Regulatory feasibility, regional resources, energy tariffs, labor markets, materials sourcing, infrastructure capacity, and operational cost data by jurisdiction. Six dimensions per region; click a region to expand. Each fact is sourced and dated. Use the Intelligence Assistant above for cross-cutting questions.</p>
+          </div>
+
+          <!-- EU (default open) — full 6-dimension example -->
+          <details class="region" open>
+            <summary>
+              <span class="globe">●</span>
+              <span class="name">European Union</span>
+              <span class="pri crit">Critical</span>
+              <span class="meta-row"><b>2</b> data points · <b>58</b> regulations · <b>4</b> citations · updated 2 days ago</span>
+            </summary>
+            <div class="body">
+
+              <!-- D1 Regulatory feasibility (CARDS) -->
+              <div class="dim">
+                <div class="dim-head">
+                  <span class="dim-num">D1</span>
+                  <span class="dim-name">Regulatory feasibility</span>
+                  <span class="dim-count">12 regulations apply to your workspace · 3 with deadlines &lt; 90d</span>
+                </div>
+                <p class="dim-summary">Which rules apply in this region and what they bind. Items cross-reference Regulations; click a rule to read the full brief.</p>
+                <div class="dim-body"><div class="reg-link-list">
+                  <a class="reg-link" href="regulations-detail.html">
+                    <div class="body">
+                      <div class="item-head">
+                        <span class="sev action">Action</span>
+                        <span>CBAM</span>
+                        <span class="when">Q2 2027 onward</span>
+                      </div>
+                      <h4>CBAM Article 30 delegated act — quarterly returns from Q2 2027</h4>
+                      <p class="summary">EU-bound charter air freight &gt;2,500 kg now triggers full CBAM filing: declarant registration, quarterly emissions returns, third-party verification, and certificate purchase.</p>
+                      <p class="byline"><b>EU Commission</b> · DG TAXUD · Delegated act OJ L 287/14</p>
+                    </div>
+                    <div class="right">
+                      <span class="s-pill action">Action required</span>
+                      <span class="t-pill">T1</span>
+                      <span class="due crit" style="font-size: 11px; color: var(--color-critical); font-weight: 800; letter-spacing: 0.04em;">Due 30 Apr 2027</span>
+                      <div class="changes-callout"><span class="lbl">What it changes</span>File charter manifest data quarterly · verify declarant registration · spec booking-system capture by Q1 2027</div>
+                    </div>
+                  </a>
+                  <a class="reg-link" href="regulations-detail.html">
+                    <div class="body">
+                      <div class="item-head">
+                        <span class="sev window">Window</span>
+                        <span>EPBD</span>
+                        <span class="when">1 Jan 2027</span>
+                      </div>
+                      <h4>EU EPBD recast — rooftop solar mandatory on new commercial &gt;500 m²</h4>
+                      <p class="summary">New commercial buildings &gt;500 m² in EU must have rooftop solar from Jan 2027. Existing buildings phase-in 2029. Eliminates DE/NL/BE solar-as-investment framing.</p>
+                      <p class="byline"><b>EU Commission</b> · DG ENER · EPBD recast</p>
+                    </div>
+                    <div class="right">
+                      <span class="s-pill window">Window closing</span>
+                      <span class="t-pill">T1</span>
+                      <span class="due crit" style="font-size: 11px; color: var(--color-critical); font-weight: 800; letter-spacing: 0.04em;">1 Jan 2027</span>
+                      <div class="changes-callout"><span class="lbl">What it changes</span>Solar shifts from investment to compliance for DE/NL/BE warehouses · update facility-design specs</div>
+                    </div>
+                  </a>
+                </div></div>
+              </div>
+
+              <!-- D2 Regional resource availability (FACT TABLE) -->
+              <div class="dim">
+                <div class="dim-head">
+                  <span class="dim-num">D2</span>
+                  <span class="dim-name">Regional resource availability</span>
+                  <span class="dim-count">Materials · recyclables · qualified suppliers</span>
+                </div>
+                <p class="dim-summary">Whether the materials, recyclables, and qualified suppliers your live-events and fine-art operations depend on are present, constrained, or absent here.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Recycled PET supply (DE)</td><td class="val">Constrained <span class="trend-flat">flat 12-wk</span><span class="src">Plastics Recyclers Europe Q1 2026 outlook · 9 May</span></td></tr>
+                  <tr><td class="lbl">Reusable transport packaging — qualified suppliers</td><td class="val">14 registered <span class="trend-up">▲ 3 this Q</span><span class="src">German VerpackG registry · 12 May</span></td></tr>
+                  <tr><td class="lbl">Aluminum (rolled, low-CO₂ certified)</td><td class="val">Available <span class="src">Hydro / Speira / Norsk Hydro · current supply tight on coil widths &gt;1500mm</span></td></tr>
+                  <tr><td class="lbl">FSC-certified hardwood crating</td><td class="val">Available — DE / FI / SE <span class="src">EUDR-ready supplier list maintained by FIATA EU chapter</span></td></tr>
+                </table></div>
+              </div>
+
+              <!-- D3 Labor (FACT TABLE) -->
+              <div class="dim">
+                <div class="dim-head">
+                  <span class="dim-num">D3</span>
+                  <span class="dim-name">Labor markets</span>
+                  <span class="dim-count">Warehouse + driver wages · workforce availability</span>
+                </div>
+                <p class="dim-summary">Loaded-cost wages and workforce availability for warehouse, driver, and art-handler roles. Inputs to automation-vs-hire and capacity decisions.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Warehouse operative — DE avg fully-loaded</td><td class="val"><span class="num">€34.20</span> / hr <span class="trend-up">▲ 4% YoY</span><span class="src">Destatis Q1 2026 · industry codes 52.10 / 52.21</span></td></tr>
+                  <tr><td class="lbl">LGV / Class 1 driver — DE avg</td><td class="val"><span class="num">€41.60</span> / hr <span class="trend-up">▲ 6%</span><span class="src">BAG Bundesamt Güterverkehr · Apr 2026</span></td></tr>
+                  <tr><td class="lbl">Workforce availability — warehouse roles, Frankfurt area</td><td class="val">Constrained. <span class="src">2.1% unemployment in transport &amp; logistics · Bundesagentur für Arbeit</span></td></tr>
+                  <tr><td class="lbl">Art-handling specialist labor</td><td class="val">Tight pool — Berlin / Munich <span class="src">Industry interpretation; no public benchmark</span></td></tr>
+                </table></div>
+              </div>
+
+              <!-- D4 Materials sourcing (FACT TABLE) -->
+              <div class="dim">
+                <div class="dim-head">
+                  <span class="dim-num">D4</span>
+                  <span class="dim-name">Materials sourcing</span>
+                  <span class="dim-count">Mills · certified suppliers · in-region vs import</span>
+                </div>
+                <p class="dim-summary">Where to qualify supply for crating, packaging, and structural materials. In-region versus import economics, and certification status.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Cold-rolled steel mills serving DE/NL/BE</td><td class="val">8 active <span class="src">EUROFER member directory · ThyssenKrupp / ArcelorMittal Gent / Tata IJmuiden</span></td></tr>
+                  <tr><td class="lbl">Climate-controlled crate fabricators (art)</td><td class="val">4 in DE · 2 in FR <span class="src">ROKBOX / TURTLE / regional independents</span></td></tr>
+                  <tr><td class="lbl">In-region vs import (recycled PET resin)</td><td class="val">In-region ~€140/t premium <span class="src">vs. SE Asia FOB landed cost; trend stable</span></td></tr>
+                </table></div>
+              </div>
+
+              <!-- D5 Infrastructure (FACT TABLE) -->
+              <div class="dim">
+                <div class="dim-head">
+                  <span class="dim-num">D5</span>
+                  <span class="dim-name">Infrastructure capacity</span>
+                  <span class="dim-count">Ports · rail · terminals · charging</span>
+                </div>
+                <p class="dim-summary">Port dwell, air-cargo capacity, shore power, and electric-truck charging. Where lanes flow and where they bottleneck.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Rotterdam — container dwell time</td><td class="val"><span class="num">3.4</span> days <span class="trend-up">▲ 0.5 d</span><span class="src">Port of Rotterdam KPI dashboard · w/c 19 May</span></td></tr>
+                  <tr><td class="lbl">Frankfurt FRA — air cargo capacity utilization</td><td class="val"><span class="num">87%</span> <span class="src">Fraport monthly stats Apr 2026</span></td></tr>
+                  <tr><td class="lbl">Public HGV charging — DE motorway corridors</td><td class="val">Limited <span class="fly restrict">Restricted</span><span class="src">AFIR rollout target 2027; 11 sites operational vs 86 mandated · ACEA tracker</span></td></tr>
+                  <tr><td class="lbl">Rotterdam — shore power for vessels</td><td class="val">Operational at 3 of 12 terminals <span class="src">Port shore-power plan · 23 Apr</span></td></tr>
+                </table></div>
+              </div>
+
+              <!-- D6 Operational cost data (FACT TABLE) -->
+              <div class="dim">
+                <div class="dim-head">
+                  <span class="dim-num">D6</span>
+                  <span class="dim-name">Operational cost data</span>
+                  <span class="dim-count">Electricity · diesel · SAF · port handling · drayage</span>
+                </div>
+                <p class="dim-summary">Per-unit grid, fuel, handling, and drayage rates. The cost-baseline inputs for tender pricing and pass-through math.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Industrial electricity — DE</td><td class="val"><span class="num">€0.184</span> / kWh <span class="trend-up">▲ 3%</span><span class="src">Destatis Q1 2026 industrial band IC</span></td></tr>
+                  <tr><td class="lbl">Diesel — DE retail avg</td><td class="val"><span class="num">€1.62</span> / L <span class="trend-dn">▼ €0.04</span><span class="src">BAFA week 21 · 23 May</span></td></tr>
+                  <tr><td class="lbl">SAF — EU spot</td><td class="val"><span class="num">€1,840</span> / t <span class="trend-up">▲ €120 vs 4-wk</span><span class="src">IEA SAF Outlook Q2 2026 + Argus Bioenergy index</span></td></tr>
+                  <tr><td class="lbl">Rotterdam — container handling THC</td><td class="val"><span class="num">€185</span> / TEU <span class="trend-flat">flat</span><span class="src">Lloyd's List shipper tariff snapshot · May</span></td></tr>
+                  <tr><td class="lbl">Drayage — Rotterdam to Eindhoven 110km</td><td class="val"><span class="num">€340</span> / load <span class="trend-up">▲ 5% YoY</span><span class="src">Industry tracking; EVO/Fenedex member survey Q2</span></td></tr>
+                </table>
+
+                <div class="xrefs">
+                  <div class="xrefs-lbl">Pending changes that shift this region's calculus</div>
+                  <ul>
+                    <li><span class="src-chip reg">REG →</span><span><strong>EU EPBD recast</strong> — rooftop solar shifts from investment to compliance. Affects DE/NL/BE warehouses &gt;500 m² from 1 Jan 2027.</span></li>
+                    <li><span class="src-chip mkt">MKT →</span><span><strong>SAF index breach €1,800/t</strong> — Q3 surcharge pass-through expected on EU-origin air freight. 4 sources converge (IEA, Argus, Platts, FlightGlobal).</span></li>
+                    <li><span class="src-chip reg">REG →</span><span><strong>ReFuelEU enforcement year close</strong> — 1 Oct 2026 penalty exposure for carriers missing 2% blend; downstream surcharge.</span></li>
+                  </ul>
+                </div>
+                </div>
+              </div>
+
+            </div>
+          </details>
+
+          <!-- US, Asia, UK, UAE accordions (collapsed by default) follow the same D1-D6 structure -->
+          <!-- See operator's full mockup for the per-region body content; pattern is identical -->
+
+        </div>
+
+        <!-- Side rail -->
+        <aside>
+          <div class="side-card coverage">
+            <div class="lbl">Coverage</div>
+            <div class="cov-stats">
+              <span class="num-have">5</span>
+              <span class="unit">Jurisdictions with data</span>
+              <span class="of">of <b>54</b> in scope</span>
+            </div>
+            <div class="cov-bar"><div class="fill" style="width: 9.3%"></div></div>
+            <p class="cov-card-note">9% of jurisdictions in scope have regional data populated. Coverage expands weekly for cost data, quarterly for regulatory.</p>
+          </div>
+
+          <div class="side-card">
+            <div class="lbl">By dimension</div>
+            <div class="dim-list">
+              <div class="row"><b>D1 Regulatory feasibility</b><span class="cnt ok">5 / 5</span></div>
+              <div class="row"><b>D2 Regional resources</b><span class="cnt warn">2 / 5</span></div>
+              <div class="row"><b>D3 Labor markets</b><span class="cnt warn">4 / 5</span></div>
+              <div class="row"><b>D4 Materials sourcing</b><span class="cnt bad">2 / 5</span></div>
+              <div class="row"><b>D5 Infrastructure</b><span class="cnt warn">3 / 5</span></div>
+              <div class="row"><b>D6 Operational cost</b><span class="cnt ok">5 / 5</span></div>
+            </div>
+            <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 10px;">Cells are populated when at least one sourced, dated fact exists. Cost data refreshes weekly.</p>
+          </div>
+
+          <div class="side-card">
+            <div class="lbl">Methodology</div>
+            <p style="font-size: 12.5px;">Regional data points sourced from published regulator and utility schedules, industry surveys, and trade-press reporting. Every fact carries a source and date. Regulatory feasibility entries cross-reference items from Regulations; click any rule to read the full brief.</p>
+            <p style="font-size: 12.5px;">Use the Intelligence Assistant for cross-cutting questions — comparisons across regions, parameterized cost models, or asking "what if rates rise X%". The page surfaces structured content; the Assistant grounds against it.</p>
+          </div>
+        </aside>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>

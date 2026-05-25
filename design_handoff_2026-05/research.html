@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Research — Caro's Ledge</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-bg-base); color: var(--color-text-primary); font-family: var(--font-sans); }
+.top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--color-surface); border-right: 1px solid var(--color-border-subtle); position: sticky; top: 0; height: 100vh; padding: 18px 0; display: flex; flex-direction: column; }
+.brand { padding: 0 22px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.03em; line-height: 1; }
+.brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; }
+.side nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; font-size: 13.5px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-sm); text-decoration: none; }
+.side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
+.side nav .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+.side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+.side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
+
+.main { min-width: 0; }
+.masthead { background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); padding: 28px 40px 26px; }
+.mh-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px; display: flex; gap: 12px; }
+.mh-eyebrow .sep { color: var(--color-text-muted); font-weight: 400; }
+.mh-title { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.025em; text-transform: uppercase; margin: 0 0 6px; line-height: 1; font-weight: 400; }
+.mh-meta { font-size: 13px; color: var(--color-text-secondary); }
+.mh-meta b { color: var(--color-text-primary); font-weight: 600; }
+.body { padding: 0 40px 60px; }
+
+/* Stat tiles */
+.stat-zone { background: var(--color-surface-raised); padding: 0 40px 18px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
+.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
+.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
+.stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
+.stat-tile.active .icon, .stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
+.stat-tile.high .icon, .stat-tile.high .v, .stat-tile.high .lbl { color: var(--color-high); }
+.stat-tile.mod .icon, .stat-tile.mod .v, .stat-tile.mod .lbl { color: var(--color-moderate); }
+.stat-tile.low .icon, .stat-tile.low .v, .stat-tile.low .lbl { color: var(--color-low); }
+.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
+.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
+.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
+.pri-legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
+.pri-legend .it { display: inline-flex; align-items: center; gap: 8px; }
+.pri-legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
+.pri-legend .it.crit .dot { background: var(--color-critical); }
+.pri-legend .it.high .dot { background: var(--color-high); }
+.pri-legend .it.mod  .dot { background: var(--color-moderate); }
+.pri-legend .it.low  .dot { background: var(--color-low); }
+.pri-legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
+
+/* Theme rail */
+.theme-rail-wrap { margin: 0 0 18px; }
+.theme-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
+.theme-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
+.theme-rail { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
+.theme { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 34px 34px 1fr; gap: 4px; min-height: 140px; }
+.theme:hover { background: var(--color-surface-raised); }
+.theme.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
+.theme .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1.3; margin: 0; align-self: end; }
+.theme.active .lbl { color: var(--color-primary); }
+.theme .num { font-family: var(--font-display); font-size: 26px; line-height: 1; color: var(--color-text-primary); margin: 0; align-self: center; }
+.theme.active .num { color: var(--color-primary); }
+.theme .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; margin: 0; align-self: start; }
+.theme .sub b { color: var(--color-text-primary); }
+
+/* AI bar */
+.ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 22px; }
+.ai-bar .row { display: flex; align-items: center; gap: 12px; }
+.ai-bar .icon { color: var(--color-primary); font-size: 16px; }
+.ai-bar input { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 14px; outline: none; }
+.ai-bar input::placeholder { color: var(--color-text-muted); }
+.ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
+
+/* Filter row */
+.filt-row { display: flex; gap: 14px; align-items: center; padding: 4px 0 18px; font-size: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 22px; }
+.filt-row .ttl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); }
+.chip { display: inline-flex; align-items: center; padding: 5px 12px; font-size: 12px; font-weight: 600; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-pill); cursor: pointer; }
+.chip.on { background: var(--color-text-primary); color: #fff; border-color: var(--color-text-primary); }
+
+.layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
+
+/* Findings — same Operations card pattern (1fr / 220px, 22px gap) */
+.finding {
+  display: grid !important;
+  grid-template-columns: 1fr 220px !important;
+  gap: 22px !important;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px 18px;
+  margin: 10px 0;
+  box-shadow: var(--shadow-card);
+  align-items: start !important;
+}
+.finding:hover { box-shadow: var(--shadow-card-hover); }
+.finding .body { display: flex; flex-direction: column; min-width: 0; }
+.finding .body .item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 6px; }
+.finding .body .item-head .when { color: var(--color-text-muted); font-weight: 600; margin-left: auto; }
+.finding .body h4 { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 4px 0 6px; color: var(--color-text-primary); }
+.finding .body h4 a { color: inherit; text-decoration: none; }
+.finding .body p { font-size: 13px; line-height: 1.5; color: var(--color-text-secondary); margin: 0 0 6px; }
+.finding .body .byline { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; }
+.finding .body .byline b { color: var(--color-text-primary); font-weight: 700; }
+.finding .right { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 200px; max-width: 220px; }
+.finding .right .s-pill { align-self: flex-start; }
+.finding .right .t-pill { align-self: flex-start; }
+.finding .right .b-tag { align-self: flex-start; }
+.finding .changes-callout { margin-top: 4px; background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--color-text-primary); }
+.finding .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+.s-pill { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; text-transform: uppercase; }
+.s-pill.action { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
+.s-pill.cost { background: var(--color-high-bg); color: var(--color-high); border: 1px solid var(--color-high-border); }
+.s-pill.monitor { background: var(--color-surface); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.t-pill { font-family: var(--font-display); font-size: 11px; padding: 1px 6px; border: 1px solid var(--color-border); }
+.t-pill.t3 { color: var(--color-secondary); border-color: var(--color-secondary); }
+.t-pill.t4 { color: var(--color-text-primary); }
+.t-pill.t5 { color: var(--color-text-muted); }
+.b-tag { font-size: 10px; background: var(--color-surface-raised); padding: 1px 6px; border-radius: 3px; color: var(--color-text-primary); border: 1px solid var(--color-border); font-weight: 500; }
+
+/* Theme-grouped finding sections */
+.theme-sec { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 14px; box-shadow: var(--shadow-card); overflow: hidden; scroll-margin-top: 16px; }
+.theme-sec-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); }
+.theme-sec-num { font-family: var(--font-display); font-size: 13px; font-weight: 400; letter-spacing: 0.08em; color: #fff; background: var(--color-primary); padding: 4px 10px; border-radius: 3px; min-width: 36px; text-align: center; line-height: 1.1; }
+.theme-sec-name { font-size: 13.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); }
+.theme-sec-count { margin-left: auto; font-size: 11.5px; color: var(--color-text-muted); font-weight: 600; }
+.theme-sec-summary { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); padding: 14px 22px 4px; margin: 0; max-width: 78ch; }
+.theme-sec-summary b { color: var(--color-text-primary); font-weight: 600; }
+.theme-sec-body { padding: 8px 14px 14px; }
+.theme-sec-body .finding { margin-bottom: 8px; }
+.theme-sec-body .finding:last-child { margin-bottom: 0; }
+.theme-sec-more { font-size: 11.5px; color: var(--color-primary); text-align: right; padding: 6px 22px 14px; font-weight: 600; cursor: pointer; }
+
+/* Side rail */
+.rail-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; }
+.rail-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
+.rail-card.accent { border-left: 3px solid var(--color-primary); }
+.rail-card ul { list-style: none; padding: 0; margin: 0; }
+.rail-card li { padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: 12.5px; line-height: 1.5; }
+.rail-card li:last-child { border-bottom: 0; }
+.rail-card li b { color: var(--color-text-primary); font-weight: 700; display: block; }
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
+        <nav>
+      <a href="#"><span class="ico">⊡</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
+      <a href="research.html" class="active"><span class="ico">◉</span>Research</a>
+      <a href="operations.html"><span class="ico">◐</span>Operations</a>
+      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <div class="nav-divider"></div>
+      <a href="community.html"><span class="ico">♥</span>Community</a>
+    </nav>
+    <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="masthead">
+      <div class="mh-eyebrow"><span>Vol IV</span><span class="sep">·</span><span>No. 21</span><span class="sep">·</span><span>Sunday</span></div>
+      <h1 class="mh-title">Research</h1>
+      <div class="mh-meta">Horizon-scan content from peer-reviewed journals, think tanks, quantified-climate research, and named analytical press · <b>34</b> findings this week · <b>7</b> themes active · workspace verticals: <b>Live events · Fine art</b></div>
+    </div>
+
+    <div class="stat-zone">
+      <div class="pri-legend">
+        <div class="it crit"><span class="dot"></span><b>Action required</b> Decision pressure now</div>
+        <div class="it high"><span class="dot"></span><b>Cost alert</b> Margin impact</div>
+        <div class="it mod"><span class="dot"></span><b>Monitor</b> Worth tracking</div>
+        <div class="it low"><span class="dot"></span><b>Background</b> Awareness only</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-tile active"><div class="icon">▲</div><div class="v">2</div><div class="lbl">Action required</div><div class="sub">In your verticals · this week</div></div>
+        <div class="stat-tile high"><div class="icon">▲</div><div class="v">5</div><div class="lbl">Cost alert</div><div class="sub">Affecting margins</div></div>
+        <div class="stat-tile mod"><div class="icon">→</div><div class="v">14</div><div class="lbl">Monitor</div><div class="sub">Trending themes</div></div>
+        <div class="stat-tile low"><div class="icon">→</div><div class="v">13</div><div class="lbl">Background</div><div class="sub">Awareness coverage</div></div>
+      </div>
+    </div>
+
+    <div class="body">
+
+      <!-- Theme rail with label -->
+      <div class="theme-rail-wrap">
+        <div class="theme-rail-label"><span>Research · What we cover by theme</span><span class="sub">7 active themes · filtered to your verticals</span></div>
+        <div class="theme-rail">
+          <div class="theme active"><div class="lbl">Emissions accounting</div><div class="num">8 new</div><div class="sub">Scope 3 methodology shifts on charter air. <b>3 affect your verticals.</b></div></div>
+          <div class="theme"><div class="lbl">Fuels &amp; SAF</div><div class="num">6 new</div><div class="sub">HEFA vs e-SAF cost crossover modelling.</div></div>
+          <div class="theme"><div class="lbl">Packaging &amp; circular</div><div class="num">5 new</div><div class="sub">PPWR reuse-target verification methods.</div></div>
+          <div class="theme"><div class="lbl">Carbon markets</div><div class="num">5 new</div><div class="sub">EU ETS allowance trajectory + UK CBAM design.</div></div>
+          <div class="theme"><div class="lbl">Cold-chain &amp; art</div><div class="num">4 new</div><div class="sub">Crate insulation lifecycle. <b>2 in your verticals.</b></div></div>
+          <div class="theme"><div class="lbl">Last-mile EV</div><div class="num">4 new</div><div class="sub">European urban delivery zones.</div></div>
+          <div class="theme"><div class="lbl">Disclosure</div><div class="num">2 new</div><div class="sub">CSRD omnibus revisions.</div></div>
+        </div>
+      </div>
+
+      <!-- AI bar -->
+      <div class="ai-bar">
+        <div class="row">
+          <span class="icon">✦</span>
+          <input placeholder="Ask anything about research — e.g. What findings affect my FY26 Scope 3 baseline?">
+          <button>Ask</button>
+        </div>
+        <div class="ai-chips">
+          <span class="ai-chip">Charter Scope 3 factor</span>
+          <span class="ai-chip">SAF cost curve</span>
+          <span class="ai-chip">PPWR verifiable reuse</span>
+          <span class="ai-chip">EU ETS Phase 4 outlook</span>
+        </div>
+      </div>
+
+      <!-- Filter row -->
+      <div class="filt-row">
+        <span class="ttl">Verticals</span>
+        <span class="chip on">Live events</span><span class="chip on">Fine art</span>
+        <span class="chip">+ Luxury</span><span class="chip">+ Automotive</span><span class="chip">+ Humanitarian</span>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+          <span class="ttl" style="margin-right: 8px; align-self: center;">Window</span>
+          <span class="chip">7d</span><span class="chip on">30d</span><span class="chip">90d</span><span class="chip">All</span>
+        </div>
+      </div>
+
+      <div class="layout">
+
+        <!-- Main content -->
+        <div>
+
+          <!-- Featured finding -->
+          <article class="finding" style="border-left-width: 4px;">
+            <div class="body">
+              <div class="item-head">
+                <span class="s-pill action">Action required</span>
+                <span>emissions accounting · featured</span>
+                <span class="when">5 days ago · in your verticals</span>
+              </div>
+              <h4>Charter-specific Scope 3 emissions factor could raise reported tonnage 18–32% on art-tour movements</h4>
+              <p>ICCT's 19 May working paper recommends replacing the IATA fleet-average emissions factor with a charter-specific factor that accounts for load factor below 60%. Most art and live-events charter movements load at 35–55%. CSRD-reporting workspaces would see Scope 3 figures rise materially next reporting cycle.</p>
+              <p class="byline"><b>ICCT</b> · Working paper · <span class="t-pill t3">T3 · Intergovernmental</span> <span class="b-tag">foundation-funded</span> <span class="b-tag">methodologically-transparent</span> <span class="b-tag">cited 12×</span></p>
+            </div>
+            <div class="right">
+              <span class="t-pill t3">T3</span>
+              <span class="s-pill action">Action required</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Re-baseline FY26 Scope 3 ahead of CSRD filing · client tender language on emissions baselines · verifier conversation: which factor library</div>
+              <div class="changes-callout" style="border-left-color: var(--color-text-muted); background: var(--color-surface-raised); margin-top: 8px;"><span class="lbl" style="color: var(--color-text-muted);">Does NOT resolve</span>Charter operator data quality · verifier-body adoption timeline</div>
+            </div>
+          </article>
+
+          <!-- 7 theme sections follow same pattern. See operator full mockup; truncated here for length. -->
+          <!-- Each section uses .theme-sec wrapper with .theme-sec-head/-summary/-body containing .finding cards. -->
+
+          <p style="text-align: center; padding: 20px; color: var(--color-text-muted); font-size: 12px;">All <b>34</b> findings this week organized by theme · <a href="#" style="color: var(--color-primary);">view as flat chronological feed</a></p>
+
+        </div>
+
+        <!-- Right rail -->
+        <aside>
+
+          <div class="rail-card accent">
+            <div class="lbl">In your sector this week</div>
+            <p style="font-family: var(--font-display); font-size: 32px; color: var(--color-primary); line-height: 1; margin: 4px 0 8px;">9</p>
+            <p style="font-size: 13px; color: var(--color-text-secondary); line-height: 1.55; margin: 0;">findings explicitly relevant to live events + fine art workspaces, of 34 total this week.</p>
+          </div>
+
+          <div class="rail-card">
+            <div class="lbl">Source coverage matrix</div>
+            <table style="width: 100%; font-size: 11.5px; border-collapse: collapse;">
+              <tr><td style="padding: 4px 0; color: var(--color-text-muted);">Peer-reviewed</td><td style="text-align: right; font-family: var(--font-display); color: var(--color-primary);">4</td></tr>
+              <tr><td style="padding: 4px 0; color: var(--color-text-muted);">Think tank</td><td style="text-align: right; font-family: var(--font-display); color: var(--color-primary);">11</td></tr>
+              <tr><td style="padding: 4px 0; color: var(--color-text-muted);">Quantified research</td><td style="text-align: right; font-family: var(--font-display); color: var(--color-primary);">3</td></tr>
+              <tr><td style="padding: 4px 0; color: var(--color-text-muted);">Analytical press</td><td style="text-align: right; font-family: var(--font-display); color: var(--color-primary);">12</td></tr>
+              <tr><td style="padding: 4px 0; color: var(--color-text-muted);">Reuters Sustainable Business</td><td style="text-align: right; font-family: var(--font-display); color: var(--color-primary);">4</td></tr>
+            </table>
+            <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 10px; line-height: 1.5;">Distribution across the spec's 5 source classes. Discriminator is analytical depth, not publication form.</p>
+          </div>
+
+          <div class="rail-card">
+            <div class="lbl">Methodology</div>
+            <p style="font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.55; margin: 0 0 8px;">Findings render with editorial provenance, source tier, bias tags, citation count, and recency. Each Research Summary brief follows the 6-section format; click any finding to read the structured detail.</p>
+          </div>
+
+        </aside>
+
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

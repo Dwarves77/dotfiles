@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Global Regulatory Map — Caro's Ledge</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-bg-base); color: var(--color-text-primary); font-family: var(--font-sans); }
+.top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--color-surface); border-right: 1px solid var(--color-border-subtle); position: sticky; top: 0; height: 100vh; padding: 18px 0; display: flex; flex-direction: column; }
+.brand { padding: 0 22px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.03em; line-height: 1; }
+.brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; }
+.side nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; font-size: 13.5px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-sm); text-decoration: none; }
+.side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
+.side nav .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+.side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
+
+.main { min-width: 0; }
+.masthead { background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); padding: 28px 40px 22px; }
+.mh-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px; }
+.mh-title { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.025em; text-transform: uppercase; margin: 0 0 6px; line-height: 1; font-weight: 400; }
+.mh-meta { font-size: 13px; color: var(--color-text-secondary); }
+.mh-meta b { color: var(--color-text-primary); font-weight: 600; }
+.body { padding: 22px 40px 60px; }
+
+/* Unified filter row */
+.filt-row { display: flex; gap: 18px; align-items: center; padding: 12px 0 16px; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 18px; flex-wrap: wrap; font-size: 12px; }
+.filt-row .ttl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); }
+.chip { display: inline-flex; align-items: center; padding: 5px 12px; font-size: 12px; font-weight: 600; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-pill); cursor: pointer; }
+.chip.on { background: var(--color-text-primary); color: #fff; border-color: var(--color-text-primary); }
+
+/* Map layout */
+.map-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: stretch; }
+.map-frame { background: #EAE6DA; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; position: relative; min-height: 900px; box-shadow: var(--shadow-card); }
+.map-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: saturate(0) brightness(1.02) contrast(0.92); opacity: 0.72; display: block; background: #EAE6DA; }
+.map-marker { position: absolute; transform: translate(-50%, -50%); border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 400; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.25); border: 1.5px solid #fff; transition: transform 0.15s ease; z-index: 2; }
+.map-marker:hover { transform: translate(-50%, -50%) scale(1.12); z-index: 5; }
+.map-marker.crit { background: var(--color-critical); }
+.map-marker.high { background: var(--color-high); }
+.map-marker.mod  { background: var(--color-moderate); }
+.map-community-dot { position: absolute; width: 7px; height: 7px; border-radius: 999px; background: #1A1A1A; border: 1.5px solid #fff; transform: translate(-50%, -50%); z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+/* Map legend */
+.map-legend { position: absolute; bottom: 16px; left: 16px; background: var(--color-surface); padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 11px; box-shadow: var(--shadow-card); }
+.map-legend .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
+.map-legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.map-legend .dot { display: inline-block; border-radius: 999px; }
+
+/* Right rail */
+.rail-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; }
+.rail-card.accent { border-left: 3px solid var(--color-critical); }
+.rail-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
+.rail-card ul { list-style: none; padding: 0; margin: 0; }
+.rail-card li { padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: 12.5px; line-height: 1.5; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; cursor: pointer; }
+.rail-card li:last-child { border-bottom: 0; }
+.rail-card li:hover { background: var(--color-surface-raised); }
+.rail-card li b { color: var(--color-text-primary); font-weight: 700; display: block; }
+.rail-card li .meta { color: var(--color-text-muted); font-size: 11px; font-style: italic; }
+.rail-card li .num { font-family: var(--font-display); font-size: 17px; padding: 2px 8px; border-radius: 3px; min-width: 36px; text-align: center; }
+.rail-card li .num.crit { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
+.rail-card li .num.high { background: var(--color-high-bg); color: var(--color-high); border: 1px solid var(--color-high-border); }
+.rail-card li .num.mod { background: var(--color-moderate-bg); color: var(--color-moderate); border: 1px solid var(--color-moderate-border); }
+.rail-card .big-num { font-family: var(--font-display); font-size: 36px; line-height: 1; color: var(--color-critical); margin: 4px 0 8px; }
+.rail-card p { font-size: 13px; color: var(--color-text-secondary); margin: 0; line-height: 1.55; }
+.rail-card p b { color: var(--color-text-primary); }
+
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
+        <nav>
+      <a href="#"><span class="ico">⊡</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◉</span>Research</a>
+      <a href="operations.html"><span class="ico">◐</span>Operations</a>
+      <a href="map.html" class="active"><span class="ico">◎</span>Map</a>
+      <div class="nav-divider"></div>
+      <a href="community.html"><span class="ico">♥</span>Community</a>
+    </nav>
+    <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="masthead">
+      <div class="mh-eyebrow">Vol IV · No. 21 · Sunday</div>
+      <h1 class="mh-title">Global Regulatory Map</h1>
+      <div class="mh-meta">Regulations by jurisdiction. Marker size encodes item count; colour encodes urgency. · <b>100</b> jurisdictions live · <b>645</b> active items · <b>13</b> jurisdictions with critical items</div>
+    </div>
+
+    <div class="body">
+
+      <div class="filt-row">
+        <span class="ttl">Modes</span>
+        <span class="chip on">All</span><span class="chip">Ocean</span><span class="chip">Air</span><span class="chip">Road</span>
+        <span class="ttl" style="margin-left: 18px;">Priority</span>
+        <span class="chip on">Critical</span><span class="chip on">High</span><span class="chip">Moderate</span>
+        <span class="ttl" style="margin-left: 18px;">Regions</span>
+        <span class="chip">EU</span><span class="chip">US</span><span class="chip">UK</span><span class="chip">LATAM</span><span class="chip">APAC</span><span class="chip">MEAF</span>
+      </div>
+
+      <div class="map-layout">
+
+        <!-- Map frame: real map (left, large) -->
+        <div class="map-frame">
+          <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 40px; pointer-events: none;">
+            <div style="font-family: var(--font-display); font-size: 32px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted);">Map renders here</div>
+            <p style="max-width: 50ch; font-size: 13px; line-height: 1.55; color: var(--color-text-muted); margin: 0;">Production uses an interactive map library (Mapbox GL · Leaflet · Google Maps) with a real tile layer. Urgency markers + community-activity dots overlay the tiles by lat / lng. Click a marker to fly; click the right-rail jurisdiction list to fly.</p>
+          </div>
+          <!-- Map legend (key) anchored bottom-left of the map area -->
+          <div class="map-legend">
+            <div class="lbl">Key</div>
+            <div class="row"><span class="dot" style="width: 14px; height: 14px; background: var(--color-critical);"></span>Critical · 1+ items</div>
+            <div class="row"><span class="dot" style="width: 12px; height: 12px; background: var(--color-high);"></span>High</div>
+            <div class="row"><span class="dot" style="width: 10px; height: 10px; background: var(--color-moderate);"></span>Moderate</div>
+            <div class="row"><span class="dot" style="width: 7px; height: 7px; background: #1A1A1A;"></span>Community activity</div>
+          </div>
+        </div>
+
+        <!-- Right rail -->
+        <aside>
+
+          <div class="rail-card accent">
+            <div class="lbl">Active heat</div>
+            <div class="big-num">13</div>
+            <p><b>52 critical items total.</b> US, EU, China, and others have critical items in flight. Click a marker to fly.</p>
+          </div>
+
+          <div class="rail-card">
+            <div class="lbl">By jurisdiction · click to fly</div>
+            <ul>
+              <li>
+                <div><b>Global</b><span class="meta">Research · Reporting · Emissions</span></div>
+                <span class="num crit">138</span>
+              </li>
+              <li>
+                <div><b>United States</b><span class="meta">Research · Facility · Transport</span></div>
+                <span class="num crit">86</span>
+              </li>
+              <li>
+                <div><b>EU</b><span class="meta">Emissions · Research · Reporting</span></div>
+                <span class="num crit">83</span>
+              </li>
+              <li>
+                <div><b>United Kingdom</b><span class="meta">Research · Regional · Fuels</span></div>
+                <span class="num high">31</span>
+              </li>
+              <li>
+                <div><b>Canada</b><span class="meta">Regional · Reporting</span></div>
+                <span class="num high">25</span>
+              </li>
+              <li>
+                <div><b>Australia</b><span class="meta">Federal &amp; states</span></div>
+                <span class="num high">21</span>
+              </li>
+              <li>
+                <div><b>Singapore + HK</b><span class="meta">Maritime · Transport</span></div>
+                <span class="num high">14</span>
+              </li>
+              <li>
+                <div><b>China</b><span class="meta">Emissions · Climate</span></div>
+                <span class="num crit">12</span>
+              </li>
+              <li>
+                <div><b>Brazil</b><span class="meta">EUDR · Compliance</span></div>
+                <span class="num mod">10</span>
+              </li>
+              <li>
+                <div><b>UAE</b><span class="meta">Fuels</span></div>
+                <span class="num mod">8</span>
+              </li>
+            </ul>
+            <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 10px;">+ 90 more jurisdictions</p>
+          </div>
+
+          <div class="rail-card">
+            <div class="lbl">Coverage gaps</div>
+            <ul>
+              <li>
+                <div><b>US sub-national</b><span class="meta">0 of 56 priority covered · 56 gaps</span></div>
+              </li>
+              <li>
+                <div><b>EU member states</b><span class="meta">0 of 27 covered · 27 gaps</span></div>
+              </li>
+              <li>
+                <div><b>Canada provinces</b><span class="meta">0 of 13 covered · 13 gaps</span></div>
+              </li>
+              <li>
+                <div><b>Australia states</b><span class="meta">0 of 9 covered · 9 gaps</span></div>
+              </li>
+            </ul>
+          </div>
+
+        </aside>
+
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regulations — Caro's Ledge</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-bg-base); color: var(--color-text-primary); font-family: var(--font-sans); }
+.top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--color-surface); border-right: 1px solid var(--color-border-subtle); position: sticky; top: 0; height: 100vh; padding: 18px 0; display: flex; flex-direction: column; }
+.brand { padding: 0 22px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.03em; line-height: 1; }
+.brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; }
+.side nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; font-size: 13.5px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-sm); text-decoration: none; }
+.side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
+.side nav .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+.side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+.side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
+
+.main { min-width: 0; }
+.masthead { background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); padding: 28px 40px 26px; }
+.mh-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px; display: flex; gap: 12px; }
+.mh-eyebrow .sep { color: var(--color-text-muted); font-weight: 400; }
+.mh-title { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.025em; text-transform: uppercase; margin: 0 0 6px; line-height: 1; font-weight: 400; }
+.mh-meta { font-size: 13px; color: var(--color-text-secondary); }
+.mh-meta b { color: var(--color-text-primary); font-weight: 600; }
+
+/* Stat tiles area */
+.stat-zone { background: var(--color-surface-raised); padding: 0 40px 28px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); }
+.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
+.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
+.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 0 0 8px; color: var(--color-text-primary); }
+.stat-tile.active .lbl, .stat-tile.active .v { color: var(--color-critical); }
+.stat-tile.high .lbl, .stat-tile.high .v { color: var(--color-high); }
+.stat-tile.mod .lbl, .stat-tile.mod .v { color: var(--color-moderate); }
+.stat-tile.low .lbl, .stat-tile.low .v { color: var(--color-low); }
+.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; }
+.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); margin-top: 8px; }
+
+.body { padding: 26px 40px 60px; }
+
+/* AI bar */
+.ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 22px; }
+.ai-bar .row { display: flex; align-items: center; gap: 12px; }
+.ai-bar .icon { color: var(--color-primary); font-size: 16px; }
+.ai-bar input { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 14px; outline: none; }
+.ai-bar input::placeholder { color: var(--color-text-muted); }
+.ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
+
+/* Toolbar */
+.toolbar { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 14px; display: flex; align-items: center; gap: 18px; margin-bottom: 28px; font-size: 13px; box-shadow: var(--shadow-card); }
+.toolbar .search { flex: 1; max-width: 380px; position: relative; }
+.toolbar .search input { width: 100%; padding: 7px 12px 7px 32px; border: 0; background: var(--color-surface-raised); border-radius: var(--radius-pill); font-family: inherit; font-size: 13px; outline: none; }
+.toolbar .search::before { content: '⌕'; position: absolute; left: 14px; top: 7px; color: var(--color-text-muted); font-size: 13px; }
+.toolbar .sort { display: flex; gap: 18px; font-size: 13px; }
+.toolbar .sort a { color: var(--color-text-secondary); text-decoration: none; font-weight: 500; padding: 4px 10px; border-radius: var(--radius-pill); cursor: pointer; }
+.toolbar .sort a.on { background: rgba(37,99,235,0.08); color: var(--color-secondary); font-weight: 600; }
+.toolbar .views { display: flex; gap: 4px; }
+.toolbar .view-ico { padding: 6px 8px; cursor: pointer; color: var(--color-text-muted); font-size: 14px; border-radius: var(--radius-sm); }
+.toolbar .view-ico.on { color: var(--color-text-primary); background: var(--color-surface-raised); }
+.toolbar .bulk { font-size: 13px; color: var(--color-text-secondary); cursor: pointer; }
+.toolbar .filters { font-size: 13px; color: var(--color-text-secondary); padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; background: var(--color-surface); }
+
+/* Heading */
+.section-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
+.section-h h2 { font-family: var(--font-display); font-size: 30px; letter-spacing: 0.03em; text-transform: uppercase; margin: 0; color: var(--color-secondary); font-weight: 400; }
+.section-h .sub { font-size: 12px; color: var(--color-text-muted); }
+
+/* Kanban — capped per spec */
+.kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.column { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 12px 14px; box-shadow: var(--shadow-card); }
+.column.crit { background: #FEF5F4; }
+.column.high { background: #FFFBF0; }
+.column.mod  { background: #FFFDF0; }
+.column.low  { background: #F2FCF5; }
+.column .col-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 10px; margin-bottom: 8px; border-bottom: 1px solid var(--color-border-subtle); }
+.column .col-head .ttl-wrap { display: flex; align-items: center; gap: 8px; }
+.column .col-head .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+.column .col-head .ttl { font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.column .col-head .n { font-family: var(--font-display); font-size: 26px; line-height: 1; }
+.column.crit .col-head .dot { background: var(--color-critical); } .column.crit .col-head .ttl, .column.crit .col-head .n { color: var(--color-critical); }
+.column.high .col-head .dot { background: var(--color-high); } .column.high .col-head .ttl, .column.high .col-head .n { color: var(--color-high); }
+.column.mod  .col-head .dot { background: var(--color-moderate); } .column.mod .col-head .ttl, .column.mod .col-head .n { color: var(--color-moderate); }
+.column.low  .col-head .dot { background: var(--color-low); } .column.low .col-head .ttl, .column.low .col-head .n { color: var(--color-low); }
+.reg-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 16px; display: block; text-decoration: none; color: inherit; margin-bottom: 10px; transition: box-shadow var(--transition-fast), transform var(--transition-fast); box-shadow: var(--shadow-card); }
+.reg-card:hover { box-shadow: var(--shadow-card-hover); }
+.reg-card .kicker { font-size: 9.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px; }
+.reg-card .kicker .sep { margin: 0 4px; }
+.reg-card .title { font-size: 13.5px; font-weight: 700; line-height: 1.4; margin: 0; color: var(--color-text-primary); }
+.col-foot { width: 100%; background: var(--color-text-primary); color: #fff; border: 0; padding: 11px; font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; margin-top: 6px; border-radius: var(--radius-sm); transition: background var(--transition-fast); }
+.col-foot:hover { background: var(--color-primary); }
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
+    <nav>
+      <a href="#"><span class="ico">⊡</span>Dashboard</a>
+      <a href="regulations.html" class="active"><span class="ico">▤</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◉</span>Research</a>
+      <a href="operations.html"><span class="ico">◐</span>Operations</a>
+      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <div class="nav-divider"></div>
+      <a href="community.html"><span class="ico">♥</span>Community</a>
+    </nav>
+    <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="masthead">
+      <div class="mh-eyebrow"><span>Vol IV</span><span class="sep">·</span><span>No. 21</span><span class="sep">·</span><span>Sunday</span></div>
+      <h1 class="mh-title">Regulations</h1>
+      <div class="mh-meta"><b>394</b> regulations tracked · <b>82</b> jurisdictions · last sync 2 weeks ago</div>
+    </div>
+
+    <div class="stat-zone">
+      <div class="stat-row">
+        <div class="stat-tile active"><div class="lbl">Immediate action</div><div class="v">51</div><div class="sub">Critical, within 90 days</div></div>
+        <div class="stat-tile high"><div class="lbl">High</div><div class="v">80</div><div class="sub">Action, 6 mo</div></div>
+        <div class="stat-tile mod"><div class="lbl">Moderate</div><div class="v">84</div><div class="sub">Monitor, 6 to 12 mo</div></div>
+        <div class="stat-tile low"><div class="lbl">Low</div><div class="v">179</div><div class="sub">Awareness only</div></div>
+      </div>
+    </div>
+
+    <div class="body">
+
+      <div class="ai-bar">
+        <div class="row"><span class="icon">✦</span><input placeholder="Ask anything about your regulations — e.g. What's due in the next 30 days?"><button>Ask</button></div>
+        <div class="ai-chips">
+          <span class="ai-chip">What's due in 30 days?</span>
+          <span class="ai-chip">What changed this week?</span>
+          <span class="ai-chip">CBAM obligations Q2</span>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search"><input placeholder="Search title, tags, jurisdiction…"></div>
+        <div class="sort">
+          <a>Newest</a>
+          <a class="on">Priority</a>
+          <a>Confidence</a>
+          <a>A→Z</a>
+        </div>
+        <div class="views">
+          <span class="view-ico on" title="Cards">⊞</span>
+          <span class="view-ico" title="List">≣</span>
+          <span class="view-ico" title="Table">▦</span>
+        </div>
+        <div class="bulk">Bulk select</div>
+        <button class="filters">Filters ▾</button>
+      </div>
+
+      <div class="section-h"><h2>394 Regulations</h2><span class="sub">of 395 platform total</span></div>
+
+      <div class="kanban">
+
+        <!-- IMMEDIATE ACTION — capped at 8 visible, "Open all 51 →" at bottom -->
+        <div class="column crit">
+          <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Immediate action</span></div><span class="n">51</span></div>
+
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">NO<span class="sep">·</span>NO</div><div class="title">Norway Enacts Zero-Emission Requirements for Passenger Ships in World Heritage Fjords (Effective January 1, 2025 for Ships &lt;10,000 GT)</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GLOBAL<span class="sep">·</span>GLOBAL</div><div class="title">2023 IMO Strategy on Reduction of GHG Emissions from Ships — Framework for International Maritime Decarbonization</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">Luxembourg Environmental Portal: Multi-Sector Climate Adaptation and Nature Restoration Strategy (2025–2035)</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">CN<span class="sep">·</span>CN</div><div class="title">China's Environmental Code: First Climate Legislation Supporting 2060 Carbon Neutrality Goal</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">EU Official Journal Legal Instrument L-2024–01610</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">EPA Final Rule: Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles — Phase 3 (MY 2027+)</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">EU Heavy-Duty Vehicle CO₂ Emissions Standards: 2025 Automotive Package Amendment and Revised Compliance Targets</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">Trump Administration Repeals EPA Endangerment Finding; California Announces Legal Challenge</div></a>
+
+          <button class="col-foot">Open all 51 →</button>
+        </div>
+
+        <!-- ACTION 6 MO -->
+        <div class="column high">
+          <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Action · 6 mo</span></div><span class="n">80</span></div>
+
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">ES<span class="sep">·</span>ES</div><div class="title">MITECO Spain: Climate Action, Energy Transition and Demographic Initiatives 2026</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-NY<span class="sep">·</span>US-NY</div><div class="title">New York State Truck &amp; Motor Carrier Rules &amp; Regulations — Safety and Compliance Framework</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">NJEDA Opens Multiple Business Support Programs: NJ BASE Immersion (May 4–June 15, 2026) and NOL Tax Certificate Transfer</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">CA<span class="sep">·</span>CA</div><div class="title">BREEAM V7: Leading Holistic Sustainability Framework for Built Environment Certification</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">RO<span class="sep">·</span>RO</div><div class="title">Romania Ministry of Environment Opens Public Consultation on Electronic Waste Traceability System and Announces Water Infrastructure Completion</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">SG<span class="sep">·</span>SG</div><div class="title">Maritime Singapore Decarbonisation Blueprint: Working Towards 2050</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">AE<span class="sep">·</span>AE</div><div class="title">Mohammed bin Rashid Al Maktoum Solar Park — DEWA Strategic Initiative</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GLOBAL<span class="sep">·</span>GLOBAL</div><div class="title">IMO Future Fuels and Technology Outlook</div></a>
+
+          <button class="col-foot">Open all 80 →</button>
+        </div>
+
+        <!-- MONITOR 6-12 MO -->
+        <div class="column mod">
+          <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Monitor 6–12 mo</span></div><span class="n">84</span></div>
+
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-TX<span class="sep">·</span>US-TX</div><div class="title">TxDOT Freight Planning: Statewide Framework and Resources</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">Slovenia Ministry of Environment, Climate and Energy — National Energy and Climate Plan 2030–2040 Preparation Initiated</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">Maine DEP Mobile Sources Program — Vehicle Emissions Regulations and Guidance</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-RI<span class="sep">·</span>US-RI</div><div class="title">Rhode Island Fish Passage Initiative and River Herring Migration Restoration</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">AAPA Seaport Infrastructure Advocacy and Industry Leadership Platform</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">CA<span class="sep">·</span>CA</div><div class="title">New Brunswick Environment and Local Government Department — Climate Action and Water Strategy Resources</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">AE<span class="sep">·</span>AE</div><div class="title">Mohammed bin Rashid Al Maktoum Solar Park — DEWA Strategic Initiative</div></a>
+
+          <button class="col-foot">Open all 84 →</button>
+        </div>
+
+        <!-- AWARENESS ONLY -->
+        <div class="column low">
+          <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Awareness only</span></div><span class="n">179</span></div>
+
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GB<span class="sep">·</span>GB</div><div class="title">International Institute for Conservation — Professional Guidance and Standards for Historic and Artistic Works Conservation</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GB<span class="sep">·</span>GB</div><div class="title">Financial Conduct Authority — Main Portal and Regulatory Resources</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">European Banking Authority — Key Regulatory Updates and Supervisory Framework</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">ESMA MiCA Transitional Period Expiration and Crypto-Asset Service Provider Compliance Deadline — July 1, 2026</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-AR<span class="sep">·</span>US-AR</div><div class="title">Arkansas State Legislature 95th General Assembly — Fiscal Session 2026</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">LV<span class="sep">·</span>LV</div><div class="title">Latvian Saeima Official Homepage — Parliamentary Information and Legislative Portal</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GB<span class="sep">·</span>GB</div><div class="title">UK DEFRA — Food &amp; Rural Affairs Department Overview</div></a>
+          <a class="reg-card" href="regulations-detail.html"><div class="kicker">NZ<span class="sep">·</span>NZ</div><div class="title">NZ Department of Conservation — Overview</div></a>
+
+          <button class="col-foot">Open all 179 →</button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

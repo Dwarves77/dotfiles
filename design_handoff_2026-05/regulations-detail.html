@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CBAM Article 30 — Caro's Ledge</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-bg-base); color: var(--color-text-primary); font-family: var(--font-sans); }
+.top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--color-surface); border-right: 1px solid var(--color-border-subtle); position: sticky; top: 0; height: 100vh; padding: 18px 0; display: flex; flex-direction: column; }
+.brand { padding: 0 22px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.03em; line-height: 1; }
+.brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; }
+.side nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; font-size: 13.5px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-sm); text-decoration: none; }
+.side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
+.side nav .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+.side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+.side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
+
+.main { min-width: 0; }
+.crumb { padding: 14px 40px 0; font-size: 12px; }
+.crumb a { color: var(--color-primary); text-decoration: none; font-weight: 600; }
+.crumb .sep { margin: 0 6px; color: var(--color-text-muted); }
+.crumb .here { color: var(--color-text-muted); }
+
+/* Hero */
+.hero { background: var(--color-surface); border: 1px solid var(--color-border); border-left: 3px solid var(--color-critical); border-radius: var(--radius-md); padding: 22px 26px; margin: 18px 40px 22px; box-shadow: var(--shadow-card); }
+.hero-top { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; }
+.hero-modes { display: flex; gap: 6px; }
+.hero-mode { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; padding: 3px 9px; border: 1px solid var(--color-border); color: var(--color-text-secondary); border-radius: 3px; text-transform: uppercase; }
+.hero-mode.on { background: var(--color-text-primary); color: #fff; border-color: var(--color-text-primary); }
+.hero-spacer { flex: 1; }
+.hero-pill { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; padding: 4px 10px; border-radius: var(--radius-sm); text-transform: uppercase; border: 1px solid; }
+.hero-pill.type { color: var(--color-text-primary); border-color: var(--color-border); background: var(--color-surface); }
+.hero-pill.action { color: var(--color-critical); background: var(--color-critical-bg); border-color: var(--color-critical-border); }
+.hero-title { font-family: var(--font-display); font-size: 36px; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.05; margin: 0 0 12px; font-weight: 400; }
+.hero-deck { font-size: 15.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 14px; max-width: 80ch; }
+.hero-deck strong { color: var(--color-text-primary); font-weight: 600; }
+.hero-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.hero-tag { font-size: 11px; padding: 4px 11px; background: var(--color-surface-raised); color: var(--color-text-primary); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+.hero-actions { display: flex; gap: 10px; align-items: center; padding-top: 12px; border-top: 1px solid var(--color-border-subtle); }
+.hero-actions a { font-size: 12px; color: var(--color-primary); text-decoration: none; font-weight: 700; padding: 6px 14px; border: 1px solid var(--color-border-ai); border-radius: var(--radius-pill); }
+.hero-actions a:hover { background: var(--color-primary); color: #fff; }
+.hero-meta { font-size: 11px; color: var(--color-text-muted); margin-left: auto; }
+
+/* AI bar */
+.ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin: 0 40px 22px; }
+.ai-bar .row { display: flex; align-items: center; gap: 12px; }
+.ai-bar .icon { color: var(--color-primary); font-size: 16px; }
+.ai-bar input { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 14px; outline: none; }
+.ai-bar input::placeholder { color: var(--color-text-muted); }
+.ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--color-border); margin: 0 40px 22px; }
+.tabs a { padding: 12px 0; margin-right: 32px; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); border-bottom: 2px solid transparent; cursor: pointer; text-decoration: none; }
+.tabs a.on { color: var(--color-secondary); border-bottom-color: var(--color-secondary); }
+
+/* Main content (wide) */
+.content { padding: 0 40px 60px; max-width: 1100px; }
+
+/* Summary switcher (Short / Full toggle) */
+.summary-switch { display: flex; gap: 6px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: 4px; margin-bottom: 14px; width: max-content; }
+.summary-switch button { background: transparent; border: 0; padding: 7px 16px; font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--color-text-secondary); border-radius: var(--radius-pill); cursor: pointer; transition: background var(--transition-fast); }
+.summary-switch button.on { background: var(--color-secondary); color: #fff; }
+.summary-switch button:not(.on):hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+
+/* AI plain-language summary (short) */
+.ai-summary { background: rgba(37,99,235,0.04); border: 1px solid rgba(37,99,235,0.2); border-radius: var(--radius-md); padding: 16px 18px; margin-bottom: 14px; }
+.ai-summary .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-secondary); display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.ai-summary .lbl-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.ai-summary h2 { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-secondary); margin: 0; font-weight: 400; }
+.ai-summary p { font-size: 13.5px; line-height: 1.6; color: var(--color-text-primary); margin: 0; }
+
+/* Full Summary block (multi-segment) */
+.full-summary { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0; margin-bottom: 14px; overflow: hidden; box-shadow: var(--shadow-card); display: none; }
+.full-summary.on { display: block; }
+.full-summary > .head { padding: 14px 20px; background: rgba(37,99,235,0.04); border-bottom: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 10px; }
+.full-summary > .head .lbl { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-secondary); }
+.full-summary > .head h2 { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-primary); margin: 0; font-weight: 400; }
+.full-summary > .head .meta { margin-left: auto; font-size: 11px; color: var(--color-text-muted); font-weight: 600; }
+.full-summary .seg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--color-border-subtle); }
+.full-summary .seg { background: var(--color-surface); padding: 16px 20px 18px; }
+.full-summary .seg .seg-lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.full-summary .seg .seg-lbl .seg-num { font-family: var(--font-display); color: #fff; background: var(--color-primary); padding: 2px 8px; border-radius: 3px; font-size: 11px; min-width: 24px; text-align: center; line-height: 1.1; }
+.full-summary .seg h3 { font-size: 14px; font-weight: 700; line-height: 1.4; margin: 0 0 6px; color: var(--color-text-primary); }
+.full-summary .seg p { font-size: 13px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 6px; }
+.full-summary .seg ul { padding-left: 18px; margin: 4px 0; font-size: 13px; line-height: 1.55; color: var(--color-text-secondary); }
+.full-summary .seg.full-width { grid-column: 1 / -1; background: var(--color-surface-raised); }
+.full-summary .seg.full-width .seg-lbl { color: var(--color-text-primary); }
+.full-summary .seg.full-width .seg-lbl .seg-num { background: var(--color-text-primary); }
+
+/* Impact assessment gradient bars */
+.impact-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 18px 22px; margin-bottom: 22px; box-shadow: var(--shadow-card); }
+.impact-card h3 { font-size: 12px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin: 0 0 14px; }
+.impact-row { display: grid; grid-template-columns: 200px 1fr 80px; gap: 14px; align-items: center; margin-bottom: 10px; font-size: 13px; }
+.impact-row:last-child { margin-bottom: 0; }
+.impact-row .lbl { font-weight: 600; color: var(--color-text-primary); }
+.impact-row .bar { height: 10px; background: var(--color-surface-raised); border-radius: 999px; overflow: hidden; position: relative; }
+.impact-row .bar .fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+.impact-row .bar .fill.low      { background: var(--color-low); width: 33%; }
+.impact-row .bar .fill.moderate { background: linear-gradient(90deg, var(--color-low), var(--color-moderate)); width: 50%; }
+.impact-row .bar .fill.high     { background: linear-gradient(90deg, var(--color-low), var(--color-moderate) 40%, var(--color-high) 75%, var(--color-critical)); width: 100%; }
+.impact-row .score { text-align: right; font-size: 12px; color: var(--color-text-secondary); font-weight: 600; }
+.impact-row .score b { color: var(--color-text-primary); font-weight: 700; }
+
+/* Section blocks */
+.sec { background: var(--color-surface); border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); border-radius: var(--radius-md); margin-bottom: 18px; box-shadow: var(--shadow-card); overflow: hidden; }
+.sec.cond { border-left-color: var(--color-moderate); }
+.sec-head { display: flex; align-items: center; gap: 14px; padding: 16px 22px; background: var(--color-surface-raised); border-bottom: 2px solid var(--color-text-primary); }
+.sec-num { font-family: var(--font-display); font-size: 16px; font-weight: 400; letter-spacing: 0.06em; color: #fff; background: var(--color-primary); padding: 6px 12px; border-radius: var(--radius-sm); min-width: 48px; text-align: center; line-height: 1; }
+.sec.cond .sec-num { background: var(--color-moderate); }
+.sec-name { font-family: var(--font-display); font-size: 22px; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1; }
+.sec-tag { margin-left: auto; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; padding: 3px 9px; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-muted); }
+.sec-tag.cond { color: var(--color-moderate); border-color: var(--color-moderate-border); background: var(--color-moderate-bg); }
+.sec-summary { font-size: 13.5px; line-height: 1.6; color: var(--color-text-secondary); padding: 16px 22px 0; margin: 0; max-width: 80ch; }
+.sec-summary::before { content: "—"; color: var(--color-primary); margin-right: 6px; font-weight: 700; }
+.sec-body { padding: 16px 22px 22px; }
+
+/* Why it matters */
+.why { background: var(--color-surface); border-radius: var(--radius-md); padding: 16px 22px; margin-bottom: 16px; border-left: 3px solid var(--color-secondary); }
+.why .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-secondary); margin-bottom: 8px; }
+.why p { font-size: 14.5px; line-height: 1.6; margin: 0 0 10px; }
+.why p:last-child { margin-bottom: 0; }
+
+.prose { font-size: 14.5px; line-height: 1.65; color: var(--color-text-primary); max-width: 80ch; }
+.prose p { margin: 0 0 12px; }
+.prose strong { font-weight: 700; }
+.prose .src { font-size: 11.5px; color: var(--color-text-muted); font-style: italic; display: block; margin-top: 6px; }
+
+.action-list { display: flex; flex-direction: column; gap: 10px; }
+.action-item { display: grid; grid-template-columns: 28px 1fr 130px; gap: 14px; padding: 14px 16px; background: var(--color-surface-raised); border-radius: var(--radius-sm); align-items: start; }
+.action-item .num { font-family: var(--font-display); font-size: 20px; color: var(--color-primary); }
+.action-item .body p { margin: 0 0 6px; font-size: 14px; line-height: 1.5; }
+.action-item .body p strong { font-weight: 700; }
+.action-item .body .when { font-size: 12px; color: var(--color-text-muted); }
+.chip { display: inline-flex; padding: 3px 10px; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; border-radius: var(--radius-pill); border: 1px solid; }
+.chip.action { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.chip.window { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
+
+.ob-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ob-table th { text-align: left; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); padding: 8px 10px 8px 0; border-bottom: 2px solid var(--color-text-primary); }
+.ob-table td { padding: 12px 10px 12px 0; vertical-align: top; border-bottom: 1px solid var(--color-border-subtle); }
+.ob-table tbody tr:last-child td { border-bottom: 0; }
+.ob-table .ob-name { font-weight: 600; }
+.ob-table .ob-name small { display: block; font-weight: 400; color: var(--color-text-muted); font-size: 11.5px; margin-top: 3px; line-height: 1.45; }
+.status { font-size: 11px; font-weight: 700; }
+.status.not-started { color: var(--color-critical); }
+.status.partial { color: var(--color-high); }
+
+.timeline { display: flex; flex-direction: column; }
+.tl-item { display: grid; grid-template-columns: 120px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--color-border-subtle); }
+.tl-item:last-child { border-bottom: 0; }
+.tl-item.future { background: linear-gradient(to right, var(--color-surface-raised) 0, transparent 120px); }
+.tl-item .when { font-size: 12px; font-weight: 700; color: var(--color-text-primary); }
+.tl-item .when .label { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 2px; }
+.tl-item .when.crit { color: var(--color-critical); }
+.tl-item .when.crit .label { color: var(--color-critical); }
+.tl-item .body p { margin: 0 0 4px; font-size: 13.5px; line-height: 1.5; }
+.tl-item .body cite { font-style: italic; font-size: 11.5px; color: var(--color-text-muted); }
+
+.sources-list { display: grid; gap: 12px; }
+.source-item { padding: 12px 16px; background: var(--color-surface-raised); border-radius: var(--radius-sm); border-left: 3px solid; display: grid; grid-template-columns: 50px 1fr auto; gap: 12px; align-items: center; }
+.source-item.t1 { border-left-color: var(--color-critical); }
+.source-item.t2 { border-left-color: var(--color-high); }
+.source-item.t3 { border-left-color: var(--color-secondary); }
+.source-item.t4 { border-left-color: var(--color-text-primary); }
+.source-item.t5 { border-left-color: var(--color-text-muted); }
+.source-item .tier { font-family: var(--font-display); font-size: 14px; padding: 4px 8px; border: 1px solid; border-radius: var(--radius-sm); text-align: center; }
+.source-item.t1 .tier { color: var(--color-critical); border-color: var(--color-critical-border); }
+.source-item.t2 .tier { color: var(--color-high); border-color: var(--color-high-border); }
+.source-item.t3 .tier { color: var(--color-secondary); border-color: var(--color-secondary); }
+.source-item.t4 .tier { color: var(--color-text-primary); border-color: var(--color-border); }
+.source-item.t5 .tier { color: var(--color-text-muted); border-color: var(--color-border); }
+.source-item .info { font-size: 13px; }
+.source-item .info b { font-weight: 700; display: block; }
+.source-item .info .meta { font-size: 11.5px; color: var(--color-text-muted); }
+.source-item .link { font-size: 11px; color: var(--color-primary); text-decoration: none; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
+    <nav>
+      <a href="#"><span class="ico">⊡</span>Dashboard</a>
+      <a href="regulations.html" class="active"><span class="ico">▤</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◉</span>Research</a>
+      <a href="operations.html"><span class="ico">◐</span>Operations</a>
+      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <div class="nav-divider"></div>
+      <a href="community.html"><span class="ico">♥</span>Community</a>
+    </nav>
+    <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="crumb"><a href="regulations.html">Regulations</a><span class="sep">›</span><a href="#">EU</a><span class="sep">›</span><span class="here">CBAM Article 30 delegated act</span></div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-modes">
+          <span class="hero-mode on">Air</span>
+          <span class="hero-mode">Ocean</span>
+          <span class="hero-mode">Road</span>
+        </div>
+        <div class="hero-spacer"></div>
+        <span class="hero-pill type">Regulation</span>
+        <span class="hero-pill action">Immediate</span>
+      </div>
+      <h1 class="hero-title">CBAM Article 30 delegated act narrows Article 7(1) exemption to cargo under 2,500 kg</h1>
+      <p class="hero-deck">The Commission's 14 October 2026 delegated act removes the small-shipment carve-out for chartered air freight above the new threshold. <strong>Workspaces moving high-value cargo via charter file quarterly returns from 1 April 2027.</strong></p>
+      <div class="hero-tags">
+        <span class="hero-tag">EUR-Lex</span>
+        <span class="hero-tag">EU law</span>
+        <span class="hero-tag">Delegated act</span>
+        <span class="hero-tag">Primary</span>
+        <span class="hero-tag">T1 · Primary law</span>
+      </div>
+      <div class="hero-actions">
+        <a href="#">Export brief</a>
+        <a href="#">Share</a>
+        <a href="#">Add to watchlist</a>
+        <span class="hero-meta">EU · DG TAXUD · CBAM-2026-DA-14 · Published 14 Oct 2026 · Reviewed 21 May 2026</span>
+      </div>
+    </div>
+
+    <!-- AI prompt bar -->
+    <div class="ai-bar">
+      <div class="row">
+        <span class="icon">✦</span>
+        <input placeholder="Ask anything about this regulation — e.g. How does CBAM affect art-tour charter movements?">
+        <button>Ask</button>
+      </div>
+      <div class="ai-chips">
+        <span class="ai-chip">What does this mean for me?</span>
+        <span class="ai-chip">When does this hit force?</span>
+        <span class="ai-chip">Who's affected in my supply chain?</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <a class="on">Summary</a>
+      <a>Exposure</a>
+      <a>Penalty schedule</a>
+      <a>Timeline</a>
+      <a>Sources</a>
+    </div>
+
+    <!-- Main content (wide, no right rail) -->
+    <div class="content">
+
+      <!-- Summary switcher: Short / Full -->
+      <div class="summary-switch">
+        <button class="on">Short summary</button>
+        <button>Full summary</button>
+      </div>
+
+      <!-- AI Short Summary -->
+      <div class="ai-summary" id="short-summary">
+        <div class="lbl-row" style="margin-bottom: 8px;">
+          <h2>✦ Short summary</h2>
+          <span style="font-size: 10px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.06em;">Generated · 30-second read</span>
+        </div>
+        <p>CBAM Article 30 (the delegated act of 14 Oct 2026) narrows the Article 7(1) exemption so charter air freight over 2,500 kg gross (including packaging) now triggers full CBAM obligations: declarant registration, quarterly emissions returns, third-party verification, and certificate purchase. For workspaces commissioning art-tour and live-events charters from EU origins above this threshold, the obligation lands 1 April 2027 with first return due 30 April 2027.</p>
+      </div>
+
+      <!-- Full multi-segment summary -->
+      <div class="full-summary" id="full-summary">
+        <div class="head">
+          <span class="lbl">✦ Full summary</span>
+          <h2>Operational briefing</h2>
+          <span class="meta">6 segments · ~3-minute read</span>
+        </div>
+        <div class="seg-grid">
+
+          <div class="seg">
+            <div class="seg-lbl"><span class="seg-num">1</span>What it is</div>
+            <h3>EU Commission delegated act narrowing CBAM Article 7(1)</h3>
+            <p>A delegated act of 14 October 2026 amending CBAM Regulation 2023/956. Removes the small-shipment carve-out for chartered air freight by lowering the gross-weight threshold to 2,500 kg (including packaging weight).</p>
+            <p style="font-size: 11.5px; color: var(--color-text-muted); margin-top: 6px;">Source: OJ L 287/14 · EUR-Lex</p>
+          </div>
+
+          <div class="seg">
+            <div class="seg-lbl"><span class="seg-num">2</span>What it requires</div>
+            <h3>Five obligations on EU-bound charter movements &gt;2,500 kg</h3>
+            <ul>
+              <li>Declarant registration on EU CBAM Registry</li>
+              <li>Quarterly emissions return per consignment</li>
+              <li>Embedded-emissions data retention (5 years)</li>
+              <li>Certificate purchase for actual emissions</li>
+              <li>Annual third-party verification (Annex II accredited)</li>
+            </ul>
+          </div>
+
+          <div class="seg">
+            <div class="seg-lbl"><span class="seg-num">3</span>Who it affects</div>
+            <h3>Workspaces commissioning charter air freight</h3>
+            <p>Two roles per transaction: <strong>Importer of record</strong> on own-account charter (~60% of EU-bound volume) and <strong>Indirect importer</strong> when commissioning on behalf of a named client (~40%). The Article 30(2)(b) language on indirect-importer obligation transfer is ambiguous — legal confirmation required.</p>
+          </div>
+
+          <div class="seg">
+            <div class="seg-lbl"><span class="seg-num">4</span>What it costs</div>
+            <h3>€20 / tCO₂e + 100% surcharge for missing returns</h3>
+            <p>Late or default-value returns trigger the penalty rate. Material on every quarter for art-tour and live-events movements that routinely cross the threshold. Certificate purchase priced annually based on actual emissions; budget Q3 2027 forward.</p>
+          </div>
+
+          <div class="seg">
+            <div class="seg-lbl"><span class="seg-num">5</span>What to do</div>
+            <h3>Three immediate-action items, dated</h3>
+            <ul>
+              <li><strong>30 days</strong> · spec booking-system capture (HS code, gross mass, declared CO₂e per consignment)</li>
+              <li><strong>60 days</strong> · reconfirm role placement with legal counsel</li>
+              <li><strong>By 31 Mar 2027</strong> · open CBAM declarant registration on EU Registry</li>
+            </ul>
+          </div>
+
+          <div class="seg">
+            <div class="seg-lbl"><span class="seg-num">6</span>Open questions</div>
+            <h3>What the workspace does not yet know</h3>
+            <ul>
+              <li>Indirect-importer filing obligation transfer (CCC resolution deferred to Q1 2027)</li>
+              <li>Verifier selection (RFP not yet opened)</li>
+              <li>Certificate pricing posture (DG TAXUD pricing schedule pending)</li>
+              <li>Booking-system capture implementation timeline</li>
+            </ul>
+          </div>
+
+          <div class="seg full-width">
+            <div class="seg-lbl"><span class="seg-num">+</span>Read the source</div>
+            <h3>Continue to the structured sections below</h3>
+            <p>The 14 spec-mandated sections (§1 Purpose, §2 What &amp; why, §3 Issues requiring immediate action, §4 Compliance chain, §5 Authoritative guidance, §6 Anticipated guidance, §8 Substantive requirements, §10 Registration &amp; reporting, §11 Operational systems, §14 Timeline) sit below this summary. Each draws directly from the EUR-Lex text, DG TAXUD guidance, and Customs Code Committee minutes.</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Impact Assessment (gradient bars) -->
+      <div class="impact-card">
+        <h3>Impact Assessment</h3>
+        <div class="impact-row">
+          <span class="lbl">Cost Impact</span>
+          <div class="bar"><div class="fill high"></div></div>
+          <span class="score"><b>3/3</b> · High</span>
+        </div>
+        <div class="impact-row">
+          <span class="lbl">Compliance Obligation</span>
+          <div class="bar"><div class="fill high"></div></div>
+          <span class="score"><b>3/3</b> · High</span>
+        </div>
+        <div class="impact-row">
+          <span class="lbl">Client-Facing</span>
+          <div class="bar"><div class="fill moderate"></div></div>
+          <span class="score"><b>2/3</b> · Moderate</span>
+        </div>
+        <div class="impact-row">
+          <span class="lbl">Operational</span>
+          <div class="bar"><div class="fill high"></div></div>
+          <span class="score"><b>3/3</b> · High</span>
+        </div>
+      </div>
+
+      <!-- Why it matters -->
+      <div class="why">
+        <div class="lbl">✦ Why it matters</div>
+        <p>Charter air freight has historically been exempt from CBAM under the small-shipment carve-out. This act eliminates the carve-out for cargo above 2,500 kg gross. The art and live-events verticals routinely operate at this scale — a single art tour or stage-rigging movement crosses the threshold. The €20/tCO₂e penalty plus 100% surcharge for missing returns is material on every quarter.</p>
+        <p>The Customs Code Committee's deferral of the indirect-importer question creates a 6-month window where the workspace's role placement is uncertain. Counsel must confirm whether filings transfer to clients or remain with the commissioning party before Q2 2027 close.</p>
+      </div>
+
+      <!-- §3 Immediate Action -->
+      <div class="sec">
+        <div class="sec-head"><span class="sec-num">§3</span><span class="sec-name">Issues requiring immediate action</span><span class="sec-tag">Always · 3</span></div>
+        <p class="sec-summary">What the workspace must decide or do within the next 30–60 days, action verb first, then cost or consequence, then deadline.</p>
+        <div class="sec-body">
+          <div class="action-list">
+            <div class="action-item">
+              <span class="num">1</span>
+              <div class="body">
+                <p><strong>File charter manifest data quarterly from Q2 2027.</strong></p>
+                <p style="font-size: 13px; color: var(--color-text-secondary);">Booking system must capture HS code, gross mass, declared CO₂e per consignment for every EU-bound chartered air movement. Capture not currently wired; spec the change with ops + IT this quarter.</p>
+                <p class="when">Within 30 days · ops + IT spec · capture live by Q1 2027 end</p>
+              </div>
+              <span class="chip action">Action</span>
+            </div>
+            <div class="action-item">
+              <span class="num">2</span>
+              <div class="body">
+                <p><strong>Reconfirm role placement with legal counsel.</strong></p>
+                <p style="font-size: 13px; color: var(--color-text-secondary);">Where the workspace charters on behalf of a named client, Article 30(2)(b) may shift the filing obligation. CCC resolution deferred to Q1 2027.</p>
+                <p class="when">Within 60 days · legal review · before 1 Apr 2027 effective</p>
+              </div>
+              <span class="chip window">Window</span>
+            </div>
+            <div class="action-item">
+              <span class="num">3</span>
+              <div class="body">
+                <p><strong>Open a CBAM declarant registration on the EU CBAM Registry.</strong></p>
+                <p style="font-size: 13px; color: var(--color-text-secondary);">Registration window opened 1 Mar 2026; closes 31 Mar 2027. Late registration triggers default-value penalty rate from 1 Apr.</p>
+                <p class="when">By 31 Mar 2027 · finance / compliance · 312 days</p>
+              </div>
+              <span class="chip window">Window</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §4 Compliance Chain -->
+      <div class="sec">
+        <div class="sec-head"><span class="sec-num">§4</span><span class="sec-name">How the workspace sits in the compliance chain</span><span class="sec-tag">Always</span></div>
+        <p class="sec-summary">The roles the regulation defines, which ones the workspace occupies per transaction type, and where legal confirmation is required.</p>
+        <div class="sec-body">
+          <div class="prose">
+            <p>The act defines four roles in the import chain. The workspace occupies <strong>two</strong> of them, distinct per transaction type.</p>
+            <p><strong>Importer of record</strong> — when chartering air freight on the workspace's own account. Filing obligation falls on the workspace directly. ~60% of EU-bound charter volume per booking history.</p>
+            <p><strong>Indirect importer</strong> — when commissioning charter on behalf of a named client. Article 30(2)(b) is ambiguous on whether the filing obligation transfers automatically or requires explicit contractual assignment. <strong>Legal Confirmation Required.</strong></p>
+            <p>The Manufacturer-Producer and Distributor roles defined by the act do not apply to the workspace's transaction set.</p>
+            <span class="src">Source: Delegated act Articles 30, 26(3), 7(1).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- §8 Substantive Requirements -->
+      <div class="sec">
+        <div class="sec-head"><span class="sec-num">§8</span><span class="sec-name">Substantive requirements</span><span class="sec-tag">Always · 5</span></div>
+        <p class="sec-summary">The obligations the act imposes on the workspace, with deadline, current compliance status, and next action for each.</p>
+        <div class="sec-body">
+          <table class="ob-table">
+            <thead><tr><th>Obligation</th><th>Deadline</th><th>Status</th><th>Next action</th></tr></thead>
+            <tbody>
+              <tr><td class="ob-name">Declarant registration on EU CBAM Registry<small>Required before first quarterly return</small></td><td>31 Mar 2027</td><td class="status not-started">Not started</td><td>File Q1 2027</td></tr>
+              <tr><td class="ob-name">Quarterly emissions return — Q2 2027 onward<small>HS code · gross mass · embedded CO₂e</small></td><td>30 Apr 2027</td><td class="status not-started">Capture not wired</td><td>Spec booking system</td></tr>
+              <tr><td class="ob-name">Embedded-emissions data retention — 5 years<small>Auditable record per consignment</small></td><td>Continuous from 1 Apr 2027</td><td class="status partial">Partial</td><td>Update retention policy</td></tr>
+              <tr><td class="ob-name">Certificate purchase for actual emissions<small>Settles annually</small></td><td>Annual · 31 May</td><td class="status partial">Pricing pending</td><td>Q3 2027 budget line</td></tr>
+              <tr><td class="ob-name">Verified-emissions audit (third-party)<small>Annex II accredited verifier</small></td><td>Before Q1 close</td><td class="status not-started">Vendor not selected</td><td>RFP Q4 2026</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- §14 Timeline -->
+      <div class="sec">
+        <div class="sec-head"><span class="sec-num">§14</span><span class="sec-name">Confirmed regulatory timeline</span><span class="sec-tag">Always</span></div>
+        <p class="sec-summary">Dated milestones with sourced triggers. Past events in neutral; future events highlight the next action.</p>
+        <div class="sec-body">
+          <div class="timeline">
+            <div class="tl-item"><div class="when"><span class="label">In force</span>14 Oct 2026</div><div class="body"><p>Delegated act published in Official Journal L 287/14.</p><cite>EUR-Lex L 287/14</cite></div></div>
+            <div class="tl-item"><div class="when"><span class="label">Past</span>14 Nov 2026</div><div class="body"><p>DG TAXUD FAQ v3.2 published. Confirms packaging-weight inclusion.</p><cite>ec.europa.eu/taxation_customs</cite></div></div>
+            <div class="tl-item"><div class="when"><span class="label">Past</span>28 Nov 2026</div><div class="body"><p>CCC Item 8 — indirect-importer question raised; resolution deferred.</p></div></div>
+            <div class="tl-item future"><div class="when crit"><span class="label">Window</span>31 Mar 2027</div><div class="body"><p>Declarant registration window closes. Late registration triggers default-value penalty rate.</p></div></div>
+            <div class="tl-item future"><div class="when crit"><span class="label">Effective</span>1 Apr 2027</div><div class="body"><p>Act takes effect; small-shipment carve-out narrows to under 2,500 kg gross.</p></div></div>
+            <div class="tl-item future"><div class="when crit"><span class="label">First return</span>30 Apr 2027</div><div class="body"><p>First quarterly emissions return due for Q2 2027 movements.</p></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- §15 Sources -->
+      <div class="sec">
+        <div class="sec-head"><span class="sec-num">§15</span><span class="sec-name">Sources</span><span class="sec-tag">Always · 6</span></div>
+        <p class="sec-summary">Tiered by the canonical source hierarchy. T1 primary law, T2 regulator guidance, T3 intergovernmental, T4 industry body, T5 trade press.</p>
+        <div class="sec-body">
+          <div class="sources-list">
+            <div class="source-item t1"><div class="tier">T1</div><div class="info"><b>OJ L 287/14 — Delegated act</b><span class="meta">Primary law · EU Official Journal · 14 Oct 2026</span></div><a class="link" href="#">Open →</a></div>
+            <div class="source-item t2"><div class="tier">T2</div><div class="info"><b>DG TAXUD FAQ v3.2</b><span class="meta">Regulator guidance · 14 Nov 2026</span></div><a class="link" href="#">Open →</a></div>
+            <div class="source-item t3"><div class="tier">T3</div><div class="info"><b>Customs Code Committee minutes</b><span class="meta">Intergovernmental · Nov 2026</span></div><a class="link" href="#">Open →</a></div>
+            <div class="source-item t4"><div class="tier">T4</div><div class="info"><b>FIATA Position Paper</b><span class="meta">Industry body · Mar 2026</span></div><a class="link" href="#">Open →</a></div>
+            <div class="source-item t5"><div class="tier">T5</div><div class="info"><b>Loadstar coverage</b><span class="meta">Trade press · 15 Oct 2026</span></div><a class="link" href="#">Open →</a></div>
+            <div class="source-item t3"><div class="tier">T3</div><div class="info"><b>ICCT analytical note</b><span class="meta">Independent research · Nov 2026</span></div><a class="link" href="#">Open →</a></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

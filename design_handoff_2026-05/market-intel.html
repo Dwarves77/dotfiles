@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Market Intelligence — Caro's Ledge</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-bg-base); color: var(--color-text-primary); font-family: var(--font-sans); }
+.top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
+.app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.side { background: var(--color-surface); border-right: 1px solid var(--color-border-subtle); position: sticky; top: 0; height: 100vh; padding: 18px 0; display: flex; flex-direction: column; }
+.brand { padding: 0 22px 18px; border-bottom: 1px solid var(--color-border-subtle); }
+.brand .n { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.03em; line-height: 1; }
+.brand .t { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-top: 6px; }
+.side nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; font-size: 13.5px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-sm); text-decoration: none; }
+.side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+.side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
+.side nav .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+.side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+.side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
+
+.main { min-width: 0; }
+.masthead { background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); padding: 28px 40px 26px; }
+.mh-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px; display: flex; gap: 12px; }
+.mh-eyebrow .sep { color: var(--color-text-muted); font-weight: 400; }
+.mh-title { font-family: var(--font-display); font-size: 44px; letter-spacing: 0.025em; text-transform: uppercase; margin: 0 0 6px; line-height: 1; font-weight: 400; }
+.mh-meta { font-size: 13px; color: var(--color-text-secondary); }
+.mh-meta b { color: var(--color-text-primary); font-weight: 600; }
+.body { padding: 0 40px 60px; }
+
+/* Stat tiles + priority legend */
+.stat-zone { background: var(--color-surface-raised); padding: 0 40px 18px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
+.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
+.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
+.stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
+.stat-tile.active .icon { color: var(--color-critical); }
+.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
+.stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
+.stat-tile.high .v, .stat-tile.high .lbl, .stat-tile.high .icon { color: var(--color-high); }
+.stat-tile.mod .v, .stat-tile.mod .lbl, .stat-tile.mod .icon { color: var(--color-moderate); }
+.stat-tile.low .v, .stat-tile.low .lbl, .stat-tile.low .icon { color: var(--color-low); }
+.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
+.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
+.pri-legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
+.pri-legend .it { display: inline-flex; align-items: center; gap: 8px; }
+.pri-legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
+.pri-legend .it.crit .dot { background: var(--color-critical); }
+.pri-legend .it.high .dot { background: var(--color-high); }
+.pri-legend .it.mod  .dot { background: var(--color-moderate); }
+.pri-legend .it.low  .dot { background: var(--color-low); }
+.pri-legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
+
+/* AI bar */
+.ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 22px; }
+.ai-bar .row { display: flex; align-items: center; gap: 12px; }
+.ai-bar .icon { color: var(--color-primary); font-size: 16px; }
+.ai-bar input { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 14px; color: var(--color-text-primary); outline: none; }
+.ai-bar input::placeholder { color: var(--color-text-muted); }
+.ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
+
+/* Category breakdown rail */
+.cat-rail-wrap { margin: 0 0 22px; }
+.cat-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
+.cat-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
+.cat-rail { display: grid; grid-template-columns: repeat(var(--cat-cols, 6), 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
+.cat-cell { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 32px 32px 1fr; gap: 4px; min-height: 130px; }
+.cat-cell:hover { background: var(--color-surface-raised); }
+.cat-cell.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
+.cat-cell .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1.3; align-self: end; }
+.cat-cell.active .lbl { color: var(--color-primary); }
+.cat-cell .num { font-family: var(--font-display); font-size: 24px; line-height: 1; color: var(--color-text-primary); align-self: center; }
+.cat-cell.active .num { color: var(--color-primary); }
+.cat-cell .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; align-self: start; }
+.cat-cell .sub b { color: var(--color-text-primary); }
+
+/* Layout */
+.layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
+
+/* Band sections */
+.band { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 18px; box-shadow: var(--shadow-card); overflow: hidden; }
+.band-head { padding: 14px 22px; background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 12px; }
+.band-num { font-family: var(--font-display); font-size: 13px; font-weight: 400; letter-spacing: 0.08em; color: #fff; background: var(--color-primary); padding: 4px 10px; border-radius: 3px; min-width: 36px; text-align: center; line-height: 1.1; }
+.band-name { font-size: 13.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); }
+.band-count { margin-left: auto; font-size: 11.5px; color: var(--color-text-muted); font-weight: 600; }
+.band-summary { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); padding: 14px 22px 0; margin: 0; max-width: 78ch; }
+.band-body { padding: 14px 22px 18px; }
+
+/* Price snapshot row */
+.price-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); margin-bottom: 16px; }
+.price-cell { padding: 14px 18px; border-right: 1px solid var(--color-border-subtle); }
+.price-cell:last-child { border-right: 0; }
+.price-cell .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px; }
+.price-cell .val { font-family: var(--font-display); font-size: 30px; line-height: 1; }
+.price-cell .val .unit { font-family: var(--font-sans); font-size: 13px; color: var(--color-text-secondary); margin-left: 4px; font-weight: 500; }
+.price-cell .delta { font-size: 11.5px; color: var(--color-text-muted); margin-top: 6px; }
+.price-cell .delta.up { color: var(--color-error); font-weight: 600; }
+.price-cell .delta.down { color: var(--color-success); font-weight: 600; }
+
+/* Severity legend (5 spec labels) */
+.sev-legend { display: flex; gap: 18px; align-items: center; padding: 12px 0 16px; font-size: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 18px; }
+.sev-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 11px; border: 1px solid; border-radius: var(--radius-pill); letter-spacing: 0.02em; }
+.sev-chip .n { font-family: var(--font-display); font-weight: 400; }
+.sev-chip.action { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.sev-chip.cost { background: var(--color-high-bg); color: var(--color-high); border-color: var(--color-high-border); }
+.sev-chip.window { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
+.sev-chip.edge { background: rgba(37,99,235,0.08); color: var(--color-secondary); border-color: var(--color-secondary); }
+.sev-chip.monitor { background: var(--color-surface); color: var(--color-text-muted); border-color: var(--color-border); }
+
+/* Severity pill */
+.s-pill { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; text-transform: uppercase; }
+.s-pill.action { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
+.s-pill.cost { background: var(--color-high-bg); color: var(--color-high); border: 1px solid var(--color-high-border); }
+.s-pill.window { background: var(--color-moderate-bg); color: var(--color-moderate); border: 1px solid var(--color-moderate-border); }
+.s-pill.edge { background: rgba(37,99,235,0.08); color: var(--color-secondary); border: 1px solid var(--color-secondary); }
+.s-pill.monitor { background: var(--color-surface); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+
+.t-pill { font-family: var(--font-display); font-size: 11px; padding: 1px 6px; border: 1px solid var(--color-border); }
+.t-pill.t3 { color: var(--color-secondary); border-color: var(--color-secondary); }
+.t-pill.t4 { color: var(--color-text-primary); }
+.t-pill.t5 { color: var(--color-text-muted); }
+
+/* Card pattern — Operations master. 1fr / 220px with 22px gap. */
+.signal {
+  display: grid !important;
+  grid-template-columns: 1fr 220px !important;
+  gap: 22px !important;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px 18px;
+  margin: 10px 0;
+  box-shadow: var(--shadow-card);
+  align-items: start !important;
+}
+.signal:hover { box-shadow: var(--shadow-card-hover); }
+.signal .body { display: flex; flex-direction: column; min-width: 0; }
+.signal .body .item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 6px; }
+.signal .body .item-head .s-pill { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; border: 1px solid; }
+.signal .body .item-head .when { color: var(--color-text-muted); font-weight: 600; margin-left: auto; font-size: 10.5px; }
+.signal .body h4 { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 4px 0 6px; color: var(--color-text-primary); }
+.signal .body h4 a { color: inherit; text-decoration: none; }
+.signal .body p { font-size: 13px; line-height: 1.5; color: var(--color-text-secondary); margin: 0 0 6px; }
+.signal .body .byline { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; }
+.signal .body .byline b { color: var(--color-text-primary); font-weight: 700; }
+.signal .right { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 200px; max-width: 220px; }
+.signal .right .s-pill { align-self: flex-start; }
+.signal .right .t-pill { align-self: flex-start; }
+.signal .changes-callout { margin-top: 4px; background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--color-text-primary); }
+.signal .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+/* Side rail */
+.rail-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; }
+.rail-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
+.rail-card.accent { border-left: 3px solid var(--color-primary); }
+.rail-card ul { list-style: none; padding: 0; margin: 0; }
+.rail-card li { padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: 12.5px; line-height: 1.5; }
+.rail-card li:last-child { border-bottom: 0; }
+.rail-card li b { color: var(--color-text-primary); font-weight: 700; display: block; }
+.rail-card li .meta { color: var(--color-text-muted); font-size: 11px; }
+.rail-card li .num { font-family: var(--font-display); font-size: 16px; float: right; color: var(--color-primary); }
+
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+</style>
+</head>
+<body>
+
+<div class="top-line"></div>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
+        <nav>
+      <a href="#"><span class="ico">⊡</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
+      <a href="market-intel.html" class="active"><span class="ico">▦</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◉</span>Research</a>
+      <a href="operations.html"><span class="ico">◐</span>Operations</a>
+      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <div class="nav-divider"></div>
+      <a href="community.html"><span class="ico">♥</span>Community</a>
+    </nav>
+    <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
+  </aside>
+
+  <main class="main">
+
+    <div class="masthead">
+      <div class="mh-eyebrow"><span>Vol IV</span><span class="sep">·</span><span>No. 21</span><span class="sep">·</span><span>Sunday</span></div>
+      <h1 class="mh-title">Market Intelligence</h1>
+      <div class="mh-meta">May 24, 2026 · <b>107</b> active signals · <b>45</b> jurisdictions in scope · workspace verticals: <b>Live events · Fine art</b> · lanes: <b>EU→US, EU→Asia (air primary)</b></div>
+    </div>
+    <div class="stat-zone">
+      <div class="pri-legend">
+        <div class="it crit"><span class="dot"></span><b>Action required</b> Decision pressure now</div>
+        <div class="it high"><span class="dot"></span><b>Cost alert</b> Margin or surcharge moving</div>
+        <div class="it mod"><span class="dot"></span><b>Window closing</b> Deadline approaches</div>
+        <div class="it low"><span class="dot"></span><b>Monitor</b> Track trend</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-tile active"><div class="icon">▲</div><div class="v">3</div><div class="lbl">Action required</div><div class="sub">Threshold breached this week</div></div>
+        <div class="stat-tile high"><div class="icon">▲</div><div class="v">7</div><div class="lbl">Cost alert</div><div class="sub">Pass-through expected</div></div>
+        <div class="stat-tile mod"><div class="icon">→</div><div class="v">4</div><div class="lbl">Window closing</div><div class="sub">Deadline within 90 days</div></div>
+        <div class="stat-tile low"><div class="icon">→</div><div class="v">18</div><div class="lbl">Monitor</div><div class="sub">Trends to watch</div></div>
+      </div>
+    </div>
+    <div class="body">
+      <!-- Category breakdown rail -->
+      <div class="cat-rail-wrap">
+        <div class="cat-rail-label"><span>Market Intel · what we track by signal type</span><span class="sub">3 bands · filtered to your lanes</span></div>
+        <div class="cat-rail" style="--cat-cols: 3;">
+          <div class="cat-cell active">
+            <div class="lbl">B1 Price<br>signals</div>
+            <div class="num">11 active</div>
+            <div class="sub">Fuel · carbon · energy · freight · <b>1 cost alert</b></div>
+          </div>
+          <div class="cat-cell">
+            <div class="lbl">B2 Corporate<br>&amp; capital</div>
+            <div class="num">12 active</div>
+            <div class="sub">Vendor · supplier · capacity · <b>1 edge</b></div>
+          </div>
+          <div class="cat-cell">
+            <div class="lbl">B3 Corridors<br>&amp; routes</div>
+            <div class="num">5 active</div>
+            <div class="sub">Chokepoints · modal · <b>2 window closing</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI bar -->
+      <div class="ai-bar">
+        <div class="row">
+          <span class="icon">✦</span>
+          <input placeholder="Ask anything about market intel — e.g. How will SAF prices affect Q3 surcharges on my EU→US lanes?">
+          <button>Ask</button>
+        </div>
+        <div class="ai-chips">
+          <span class="ai-chip">SAF cost outlook</span>
+          <span class="ai-chip">EU ETS shipping pass-through</span>
+          <span class="ai-chip">Carrier capacity Q3</span>
+          <span class="ai-chip">Diesel forward curve</span>
+        </div>
+      </div>
+
+      <!-- Layout -->
+      <div class="layout">
+
+        <!-- Bands -->
+        <div>
+
+          <!-- BAND 1: Price signals -->
+          <section class="band">
+            <div class="band-head">
+              <span class="band-num">B1</span>
+              <span class="band-name">Price signals</span>
+              <span class="band-count">Fuel · carbon · energy · freight · 11 active</span>
+            </div>
+            <p class="band-summary">Current commodity prices that flow through to freight surcharges, lane costs, and quote pricing. Each cell sourced and dated; 4-week deltas indicate trajectory. The featured signal below names what's about to convert from observation to commercial pressure.</p>
+            <div class="band-body">
+              <!-- Price snapshot row -->
+              <div class="price-row">
+                <div class="price-cell"><div class="lbl">SAF — EU spot</div><div class="val">€1,840<span class="unit">/ t</span></div><div class="delta up">▲ €120 vs 4-wk · IEA · 23 May</div></div>
+                <div class="price-cell"><div class="lbl">EUA — EU ETS</div><div class="val">€78.40</div><div class="delta down">▼ €2.10 vs 4-wk · ICE · 23 May</div></div>
+                <div class="price-cell"><div class="lbl">Jet A-1 — Rotterdam</div><div class="val">€620<span class="unit">/ t</span></div><div class="delta up">▲ €18 · Platts · 23 May</div></div>
+                <div class="price-cell"><div class="lbl">Diesel — DE retail</div><div class="val">€1.62<span class="unit">/ L</span></div><div class="delta down">▼ €0.04 · BAFA · 22 May</div></div>
+              </div>
+
+              <!-- Featured signal -->
+              <article class="signal" style="border-left-width: 4px;">
+                <div class="body">
+                  <div class="item-head">
+                    <span class="s-pill cost">Cost alert</span>
+                    <span>price · featured · affects EU → US air</span>
+                    <span class="when">5 days ago · 4 sources converge</span>
+                  </div>
+                  <h4>SAF spot prices break €1,800/t threshold; ReFuelEU pass-through expected on long-haul tickets by Q3.</h4>
+                  <p>IEA and Argus indices converge: HEFA feedstock constraint pushed prices through €1,800 for the first time. KLM, Lufthansa Cargo, Cathay all signal Q3 surcharge revision. Live-events tour movements and time-critical art shipments on EU-origin lanes carry the pass-through; estimated +€84–€110 per chargeable kg on Q3 movements booked in June.</p>
+                  <p class="byline"><b>IEA</b> SAF Outlook Q2 2026 + <b>Argus</b> Bioenergy Weekly + <b>S&amp;P Platts</b> Jet Fuel · <span class="t-pill t3">T3</span> <span class="t-pill t4">T4</span></p>
+                </div>
+                <div class="right">
+                  <span class="s-pill cost">Cost alert</span>
+                  <span class="t-pill t3">T3 + T4</span>
+                  <div style="background: var(--color-surface-raised); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 2px;">
+                    <div style="font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px;">Trajectory · 12 wk</div>
+                    <div style="display: flex; align-items: flex-end; gap: 3px; height: 42px;">
+                      <span style="width: 8px; background: #FCD0BD; height: 35%;"></span>
+                      <span style="width: 8px; background: #FCD0BD; height: 40%;"></span>
+                      <span style="width: 8px; background: #FCD0BD; height: 42%;"></span>
+                      <span style="width: 8px; background: #FCD0BD; height: 48%;"></span>
+                      <span style="width: 8px; background: #FBA66C; height: 55%;"></span>
+                      <span style="width: 8px; background: #FBA66C; height: 58%;"></span>
+                      <span style="width: 8px; background: #FBA66C; height: 64%;"></span>
+                      <span style="width: 8px; background: #F88527; height: 72%;"></span>
+                      <span style="width: 8px; background: #F88527; height: 80%;"></span>
+                      <span style="width: 8px; background: #E8610A; height: 88%;"></span>
+                      <span style="width: 8px; background: #E8610A; height: 94%;"></span>
+                      <span style="width: 8px; background: var(--color-critical); height: 100%;"></span>
+                    </div>
+                    <div style="font-size: 10.5px; color: var(--color-text-muted); margin-top: 6px;">Base 100 = Feb 2026 spot</div>
+                  </div>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Q3 pass-through expected · +€84–€110 / chargeable kg on EU-origin lanes · review forward-buy posture</div>
+                  <div class="changes-callout" style="background: var(--color-surface-raised); border-left-color: var(--color-text-muted);"><span class="lbl" style="color: var(--color-text-muted);">Conversion trigger</span>CORSIA Phase 2 review · Q4 2026</div>
+                </div>
+              </article>
+
+              <!-- More price signals -->
+              <article class="signal">
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>carbon · pricing</span><span class="when">21 May</span></div>
+                  <h4><a href="#">EUA dips on Carbon Pulse report of larger free-allocation cushion for shipping; analyst consensus revises 2026 high to €82.</a></h4>
+                  <p>Sub-€80 levels persist if free-allocation interpretation holds. Workspaces with ocean-lane exposure may revise pass-through assumptions downward; air-lane impact muted.</p>
+                  <p class="byline"><b>Carbon Pulse</b> · Analyst note</p>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Revises 2026 high to €82; ocean-lane pass-through math eases temporarily.</div>
+                </div>
+                <div class="right">
+                  <span class="s-pill monitor">Monitor</span>
+                  <span class="t-pill t5">T5</span>
+                </div>
+              </article>
+
+              <article class="signal">
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>fuel · pricing</span><span class="when">18 May</span></div>
+                  <h4><a href="#">e-SAF pilot plants in Norway, Sweden push 2027 commercial start — but at €3,200/t pre-subsidy.</a></h4>
+                  <p>The cost gap with HEFA SAF widens. For workspaces evaluating long-term fuel-mix commitments: HEFA stays the realistic blend through 2028; e-SAF remains showcase volumes.</p>
+                  <p class="byline"><b>Reuters Sustainable Switch</b> · Weekly</p>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>e-SAF stays showcase-only through 2028; HEFA remains realistic blend.</div>
+                </div>
+                <div class="right">
+                  <span class="s-pill monitor">Monitor</span>
+                  <span class="t-pill t5">T5</span>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+          <!-- BAND 2: Corporate & capital -->
+          <section class="band">
+            <div class="band-head">
+              <span class="band-num">B2</span>
+              <span class="band-name">Corporate &amp; capital</span>
+              <span class="band-count">Vendor · supplier · capacity · 12 active</span>
+            </div>
+            <p class="band-summary">Named company actions that change the competitive landscape — capital raises, capacity decisions, M&amp;A, technology deployments, supplier shifts. The actor, the action, and the implication for your lanes.</p>
+            <div class="band-body">
+
+              <!-- Featured Corporate & capital signal -->
+              <article class="signal" style="border-left-width: 4px;">
+                <div class="body">
+                  <div class="item-head">
+                    <span class="s-pill edge">Competitive edge</span>
+                    <span>corporate · featured · affects road last-mile + drayage</span>
+                    <span class="when">5 days ago · cited 14×</span>
+                  </div>
+                  <h4>BYD raises $4B from sovereign-fund consortium to scale solid-state battery production; charging-corridor commitments to follow.</h4>
+                  <p>Commercial-trucking deployments earliest 2028. Direct effect on last-mile and short-haul road forwarders; indirect effect on the broader EV-fleet ROI calculation for cargo operators. Drayage operators serving LA, Long Beach, Rotterdam corridors should reset 5-year fleet plans.</p>
+                  <p class="byline"><b>Bloomberg Green</b> reporting + <b>BloombergNEF</b> deployment outlook · <span class="t-pill t5">T5</span> <span class="t-pill t4">T4</span></p>
+                </div>
+                <div class="right">
+                  <span class="s-pill edge">Competitive edge</span>
+                  <span class="t-pill t4">T4 + T5</span>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>5-year fleet planning math for short-haul road operators; charging-corridor agreement signing reshapes routing economics</div>
+                  <div class="changes-callout" style="background: var(--color-surface-raised); border-left-color: var(--color-text-muted);"><span class="lbl" style="color: var(--color-text-muted);">Conversion trigger</span>First commercial pilot 2028 · charging-corridor agreement signing</div>
+                </div>
+              </article>
+
+              <article class="signal">
+                <div class="body">
+                  <div class="item-head"><span class="s-pill cost">Cost alert</span><span>capacity · capacity decision</span><span class="when">17 May</span></div>
+                  <h4><a href="#">Lufthansa Cargo trims dedicated freighter capacity Q3; belly-cargo share rises across EU → US lanes.</a></h4>
+                  <p>Affects time-sensitive consignments — art-tour and live-events movements may see longer transit windows on belly-cargo routings. Premium air-charter capacity tightens.</p>
+                  <p class="byline"><b>Lloyd's List</b> · Trade press</p>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Premium air-charter tightens; longer transit on belly routings.</div>
+                </div>
+                <div class="right">
+                  <span class="s-pill cost">Cost alert</span>
+                  <span class="t-pill t5">T5</span>
+                </div>
+              </article>
+
+              <article class="signal">
+                <div class="body">
+                  <div class="item-head"><span class="s-pill edge">Competitive edge</span><span>supplier · offtake</span><span class="when">12 May</span></div>
+                  <h4><a href="#">Kuehne+Nagel locks 5-year SAF offtake with Neste — covers 18% of group long-haul lift.</a></h4>
+                  <p>Forwarder competitor positioning improves on EU-origin lanes. Workspaces without forward-buy arrangements absorb spot exposure on remaining Q3 movements.</p>
+                  <p class="byline"><b>ESG Today</b> · Reporting</p>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Competitor positioning improves on EU-origin lanes; spot exposure differential widens.</div>
+                </div>
+                <div class="right">
+                  <span class="s-pill edge">Competitive edge</span>
+                  <span class="t-pill t5">T5</span>
+                </div>
+              </article>
+
+              <article class="signal">
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>m&amp;a</span><span class="when">9 May</span></div>
+                  <h4><a href="#">Maersk completes Hamburg Süd integration; freezes new ocean-corridor investment through Q1 2027.</a></h4>
+                  <p class="byline"><b>FT Moral Money</b></p>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>No new ocean-corridor capacity through Q1 2027.</div>
+                </div>
+                <div class="right">
+                  <span class="s-pill monitor">Monitor</span>
+                  <span class="t-pill t4">T4</span>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+          <!-- BAND 3: Corridors -->
+          <section class="band">
+            <div class="band-head">
+              <span class="band-num">B3</span>
+              <span class="band-name">Corridors &amp; trade routes</span>
+              <span class="band-count">Chokepoints · modal shifts · regulatory windows · 5 active</span>
+            </div>
+            <p class="band-summary">Geographic and route-level signals. Chokepoint disruption, port restrictions, modal shifts, and regulatory enforcement windows that close on specific corridors. Rows tagged → link back to the canonical Regulations or Operations entry.</p>
+            <div class="band-body">
+
+              <!-- Featured Corridors signal -->
+              <article class="signal" style="border-left-width: 4px;">
+                <div class="body">
+                  <div class="item-head">
+                    <span class="s-pill window">Window closing</span>
+                    <span>corridor · featured · affects EU → Asia ocean</span>
+                    <span class="when">3 days ago</span>
+                  </div>
+                  <h4>Strait of Hormuz transit risk rises; ocean carriers add congestion surcharge on Persian Gulf calls.</h4>
+                  <p>Affects EU → Asia ocean lanes routed via Hormuz. Workspaces with art / luxury exposure to Gulf ports should check tender language for force-majeure carve-outs. Surcharges expected to materialize on Q3 bookings; alternative routing via Cape adds 7–10 days transit.</p>
+                  <p class="byline"><b>Lloyd's List</b> + <b>Bloomberg</b> reporting · <span class="t-pill t5">T5</span> <span class="t-pill t4">T4</span></p>
+                </div>
+                <div class="right">
+                  <span class="s-pill window">Window closing</span>
+                  <span class="t-pill t4">T4 + T5</span>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>EU → Asia ocean via Suez/Hormuz; Gulf port call surcharge on Q3 bookings; Cape route adds 7–10 days transit</div>
+                  <div class="changes-callout" style="background: var(--color-surface-raised); border-left-color: var(--color-text-muted);"><span class="lbl" style="color: var(--color-text-muted);">Cross-references</span>→ Operations · Gulf bunkering · Cape route economics</div>
+                </div>
+              </article>
+
+              <article class="signal">
+                <div class="body">
+                  <div class="item-head"><span class="s-pill window">Window closing</span><span>reg-driven · derived</span><span class="when">15 May</span></div>
+                  <h4><a href="regulations-detail.html">CBAM enforcement window closing on Q1 declarants; importers without verified embedded-emissions data face penalty rate from 1 Apr.</a></h4>
+                  <p>Derived signal: intersection of <b>Regulations · CBAM Article 30 delegated act</b> with current declarant registration count. Affects EU-bound air-charter lanes specifically; see Regulations brief for filing detail.</p>
+                  <p class="byline"><b>Caro's Ledge intersection</b> · CBAM Article 30 + EU CBAM Registry data</p>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Q1 declarants without verified embedded-emissions face penalty rate from 1 Apr.</div>
+                </div>
+                <div class="right">
+                  <span class="s-pill window">Window closing</span>
+                  <span style="font-size: 11px; color: var(--color-primary); font-weight: 700;">→ Regulations</span>
+                </div>
+              </article>
+
+              <article class="signal">
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>modal shift · corridor</span><span class="when">8 May</span></div>
+                  <h4><a href="#">Cross-Alpine rail capacity expansion shifts Italy → DE freight; truck demand softens on the corridor through Q3.</a></h4>
+                  <p class="byline"><b>Loadstar</b> · Editorial</p>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Italy → DE truck demand softens; lane mix opportunity through Q3.</div>
+                </div>
+                <div class="right">
+                  <span class="s-pill monitor">Monitor</span>
+                  <span class="t-pill t5">T5</span>
+                </div>
+              </article>
+
+            </div>
+          </section>
+
+        </div>
+
+        <!-- Right rail -->
+        <aside>
+
+          <div class="rail-card accent">
+            <div class="lbl">Watch this week · click to filter</div>
+            <p style="font-family: var(--font-display); font-size: 28px; color: var(--color-primary); line-height: 1; margin: 4px 0 8px;">10 alerts</p>
+            <p style="font-size: 13px; color: var(--color-text-secondary); line-height: 1.55; margin: 0;">3 action-required + 7 cost alerts across the bands above.</p>
+          </div>
+
+          <div class="rail-card">
+            <div class="lbl">Highest-priority indicators</div>
+            <ul>
+              <li><span class="num">€1,840</span><b>SAF — EU spot</b><span class="meta">▲ 4-wk · IEA · cost alert</span></li>
+              <li><span class="num">€78.40</span><b>EUA — EU ETS</b><span class="meta">▼ 4-wk · ICE · monitor</span></li>
+              <li><span class="num">▲</span><b>Lufthansa Cargo capacity</b><span class="meta">Q3 trim · cost alert</span></li>
+              <li><span class="num">▲</span><b>BYD solid-state $4B</b><span class="meta">5 days · competitive edge</span></li>
+              <li><span class="num">→</span><b>CBAM Q1 window</b><span class="meta">window closing · → Reg</span></li>
+              <li><span class="num">▲</span><b>Hormuz transit risk</b><span class="meta">3 days · window closing</span></li>
+            </ul>
+          </div>
+
+          <div class="rail-card">
+            <div class="lbl">Methodology</div>
+            <p style="font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.55; margin: 0 0 8px;">Signals are scored by source convergence (independent corroborating sources within 30 days) and recency. The 5-label severity vocabulary names the next-action shape: Action required · Cost alert · Window closing · Competitive edge · Monitoring.</p>
+            <p style="font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.55; margin: 0;">Use the Intelligence Assistant for cross-cutting questions — margin math, lane-specific impact, parameterized "what if" scenarios.</p>
+          </div>
+
+          <div class="rail-card">
+            <div class="lbl">Sources tracked · 14</div>
+            <p style="font-size: 12px; color: var(--color-text-muted); line-height: 1.55; margin: 0;">IEA · Argus · S&amp;P Platts · ICE · Bloomberg Green · Lloyd's List · Loadstar · Reuters Sustainable Switch · FT Moral Money · Carbon Pulse · ESG Today · BloombergNEF · Carbon Brief · GreenBiz</p>
+          </div>
+
+        </aside>
+
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
