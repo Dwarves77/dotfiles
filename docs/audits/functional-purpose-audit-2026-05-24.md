@@ -5,6 +5,8 @@
 **Scope:** Every customer-facing surface plus /admin
 **Method:** For each surface, enumerate purpose, user goals, required user flows. For each flow, mark PRESENT, PARTIAL, MISSING with code-level evidence. Disposition per gap: BUILD (new), WIRE (existing code needs connection), STRIP (existing code should be removed), DEFER (schema or external dependency), VERIFY (state unclear).
 
+**Companion document:** [comprehensive-site-audit-2026-05-25.md](./comprehensive-site-audit-2026-05-25.md). This doc is the **required-functionality-vs-present-functionality** lens (does the surface contain the flows its purpose demands?). The May 25 doc is the **present-functionality-vs-working-functionality** lens (do the elements that exist on the page actually do anything?). Both lenses, both needed.
+
 **Headline finding:** the May 24 Community rebuild this session **regressed pre-existing compose chrome.** PostComposer.tsx, ReplyComposer.tsx, PostList.tsx, the per-group thread route `/community/[slug]`, the group-discovery route `/community/browse`, and the complete posts/groups/invitations/moderation/notifications/search API surface all exist in code, but the new CommunityView omitted the CTAs that exposed them. Many Community "BUILD" items in the dispatch resolve to **WIRE-back-to-existing-component**, not new construction. The same audit lens should be applied before every Phase 4 commit.
 
 ---
@@ -586,6 +588,26 @@ The browser audit found `/regulations/g4` IDENTIFICATION rail displays `Topic: r
 2. **Several MISSING flows (watchlist, share, export-PDF, alerts, bookmark, follow-theme, region compare, action assignment, reminder, citation) recur across surfaces.** These are platform-level capabilities, not per-surface features. **Recommendation: a future cross-cutting capability dispatch addresses them once rather than 5 times.** No commitment in this dispatch.
 
 3. **VERIFY items in Section 7 (flows 10, 11, 12, 16, 17 on /community) need a follow-up sub-audit before Phase 4 Community commit.** Some may be PRESENT, just not exposed; treating them as BUILD would be wrong.
+
+---
+
+## Cross-cutting capability inventory
+
+The following capabilities recurred as MISSING/DEFER across multiple surfaces during this audit. They are platform-level, not per-surface, and form the scope envelope for **Decision 7** (cross-cutting capability dispatch):
+
+- **Watchlist** (Regulations index, Regulations detail, Market, Research, Operations) — depends on a `watchlists` table with user_id + intelligence_item_id; add-from-any-surface UX.
+- **Share** (Regulations detail, Market, Research, Community thread) — copy-link button + post-to-community option; share-URL pattern standardization.
+- **Export** (Regulations index bulk, Regulations detail brief, Operations facts) — PDF / Markdown / CSV; existing TSV bulk export is the only present surface.
+- **Alerts** (Regulations index, Market signals, Operations changes) — threshold or change-event alerts; depends on alert infrastructure (email/in_app channel + per-item subscription table).
+- **Bookmark** (Research findings) — lighter weight than watchlist; per-user save without monitoring.
+- **Follow-theme** (Research) — subscribe to a theme grouping for updates; depends on theme column (migration 102 lands this).
+- **Citation generator** (Research) — copy citation block in standard format.
+- **Action assignment** (Regulations detail) — assign workspace member to a regulation's required action; depends on `team_assignments` table.
+- **Reminders** (Regulations detail deadline, Operations alert) — personal deadline reminders; depends on reminder infrastructure.
+- **Compare** (Operations region-vs-region, Market signal-vs-signal) — side-by-side compare UX; product decision DEFER.
+- **Cross-surface linking** (Market → Regulations, Community → any intelligence item) — depends on intersection schema (Q5 deferred); referenced_intelligence_item_ids column lands in migration 104.
+
+This inventory is the scope envelope for a cross-cutting capability dispatch. Resolving each capability once at the platform level avoids implementing the same UX 5 times across surfaces.
 
 ---
 
