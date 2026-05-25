@@ -991,6 +991,11 @@ function rpcRowToResource(row: any): Resource {
     jurisdiction: row.jurisdictions?.[0] || undefined,
     sourceId: row.source_id || undefined,
     isArchived: row.effective_archived || false,
+    // Phase 3C: pass through new schema columns when RPC includes them.
+    // Undefined until RPC outputs are extended (separate migration).
+    severity: row.severity || undefined,
+    signalBand: row.signal_band || undefined,
+    theme: row.theme || undefined,
   };
 }
 

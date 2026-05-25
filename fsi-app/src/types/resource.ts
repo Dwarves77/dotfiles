@@ -127,6 +127,19 @@ export interface Resource {
   topic?: string;
   jurisdiction?: string;
 
+  // Phase 3 schema columns (migration 102, 2026-05-24). Optional
+  // because RPC outputs do not yet return them and rows are NULL
+  // until the agent classifier emits them on next regeneration.
+  // When populated, the per-surface classifiers (ResearchView
+  // assignTheme, MarketPage assignBand, deriveSeverity, etc.) read
+  // from these fields and skip the regex fallback.
+  /** Per-surface severity vocab. See migration 102 enum. */
+  severity?: string;
+  /** Market Intel band: price | corporate | corridor. */
+  signalBand?: "price" | "corporate" | "corridor";
+  /** Research theme, one of the 7 canonical themes. */
+  theme?: string;
+
   // ISO 3166-1/-2 + supranational jurisdiction codes from migration 033.
   // Preferred over the legacy `jurisdiction` (single string) when present.
   // Example: ["US-CA"] for SB 253, ["EU"] for FuelEU Maritime.

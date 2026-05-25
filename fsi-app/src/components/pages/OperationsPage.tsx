@@ -248,7 +248,31 @@ function regionForResource(r: Resource): string | null {
 
 // ── Severity derivation for regulations ──
 
+// Phase 3C (2026-05-24): map severity column to Operations' 4-label
+// Severity type (Critical / High / Moderate / Low).
+const SEVERITY_COLUMN_TO_OPS_KEY: Record<string, Severity> = {
+  critical: "critical",
+  high: "high",
+  moderate: "moderate",
+  low: "low",
+  // Broader enum values that map to Operations' tier vocabulary
+  action_required: "critical",
+  cost_alert: "high",
+  window_closing: "moderate",
+  competitive_edge: "moderate",
+  monitoring: "low",
+  immediate: "critical",
+  watch: "moderate",
+  reference: "low",
+  background: "low",
+};
+
 function deriveRegulationSeverity(r: Resource): Severity {
+  // Column-first. When migration 102 severity column populates,
+  // this skips regex and reads the authoritative value.
+  if (r.severity && SEVERITY_COLUMN_TO_OPS_KEY[r.severity]) {
+    return SEVERITY_COLUMN_TO_OPS_KEY[r.severity];
+  }
   const text = `${r.title} ${r.note || ""}`.toLowerCase();
   if (/\b(action required|immediate|deadline|effective \d|in force)\b/.test(text)) return "critical";
   if (/\b(window|q\d|by 20|consultation|phase-in)\b/.test(text)) return "moderate";

@@ -183,7 +183,30 @@ const THEME_KEYWORDS: Record<ThemeKey, RegExp[]> = {
   disclosure: [/\bcsrd\b/i, /\bissb\b/i, /\bsfdr\b/i, /\btcfd\b/i, /disclosure/i, /reporting standard/i, /\bs2\b/i, /verifier/i],
 };
 
+// Phase 3C (2026-05-24): column-first / regex-fallback. When the
+// migration 102 theme column lands on the RPC payload, this skips the
+// regex match and returns the authoritative value. Until then,
+// regex fallback preserves the prior behavior.
+const THEME_COLUMN_TO_KEY: Record<string, ThemeKey> = {
+  emissions_accounting: "emissions",
+  fuels_saf: "fuels",
+  packaging_circular: "packaging",
+  carbon_markets: "carbon",
+  cold_chain_art: "cold-chain",
+  last_mile_electrification: "last-mile",
+  disclosure_regimes: "disclosure",
+};
+
 function assignTheme(item: ResearchPipelineItem): ThemeKey | null {
+  // Column-first. ResearchPipelineItem is built from a separate
+  // fetcher (getResearchPipeline) that has its own row shape; the
+  // theme column is read through there when available. For Phase 3C
+  // this check is defensive in case the pipeline fetcher starts
+  // passing the theme column through.
+  const themeCol = (item as unknown as { theme?: string }).theme;
+  if (themeCol && THEME_COLUMN_TO_KEY[themeCol]) {
+    return THEME_COLUMN_TO_KEY[themeCol];
+  }
   const text = `${item.title} ${item.summary}`;
   for (const theme of THEMES) {
     for (const re of THEME_KEYWORDS[theme.key]) {

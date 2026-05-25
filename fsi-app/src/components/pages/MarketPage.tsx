@@ -107,6 +107,13 @@ const BAND_KEYWORDS: Record<BandKey, RegExp[]> = {
 };
 
 function assignBand(r: Resource): BandKey {
+  // Phase 3C (2026-05-24): column-first / regex-fallback. When
+  // migration 102 signal_band column populates via the agent
+  // classifier, this skips the regex match and returns the
+  // authoritative value.
+  if (r.signalBand === "price" || r.signalBand === "corporate" || r.signalBand === "corridor") {
+    return r.signalBand;
+  }
   const text = `${r.title} ${r.note || ""}`;
   for (const band of BANDS) {
     for (const re of BAND_KEYWORDS[band.key]) {
@@ -126,7 +133,23 @@ const SEVERITY_KEYWORDS: Record<Severity, RegExp[]> = {
   monitor: [/\b(monitor|tracking|watch|observe)\b/i],
 };
 
+// Phase 3C (2026-05-24): map severity column values (lowercase
+// underscore canonical) to Market Intel's 5-label Severity type.
+const SEVERITY_COLUMN_TO_KEY: Record<string, Severity> = {
+  action_required: "action",
+  cost_alert: "cost",
+  window_closing: "window",
+  competitive_edge: "edge",
+  monitoring: "monitor",
+};
+
 function deriveSeverity(r: Resource): Severity {
+  // Column-first. When migration 102 severity column populates via
+  // the agent classifier, this skips the regex match and returns the
+  // authoritative value.
+  if (r.severity && SEVERITY_COLUMN_TO_KEY[r.severity]) {
+    return SEVERITY_COLUMN_TO_KEY[r.severity];
+  }
   const text = `${r.title} ${r.note || ""}`;
   // Priority order: action > cost > window > edge > monitor
   const order: Severity[] = ["action", "cost", "window", "edge", "monitor"];
