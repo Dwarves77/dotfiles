@@ -26,6 +26,7 @@ import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
 import { IngestRejectionsView } from "@/components/admin/IngestRejectionsView";
 import { ResearchPipelineQueueView } from "@/components/admin/ResearchPipelineQueueView";
+import { CommunityPickupsQueueView } from "@/components/admin/CommunityPickupsQueueView";
 import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdictionReviewView";
 
 interface AdminDashboardProps {
@@ -96,7 +97,13 @@ export function AdminDashboard({
     // view pattern is the canonical /admin navigation; the visible
     // 11-tab strip is legacy chrome slated for retirement in a separate
     // Admin restructure dispatch.
-    | "research-pipeline";
+    | "research-pipeline"
+    // H5 (2026-05-25): destination view for Section card 6 "Community
+    // pickups". Engagement-heuristic suggestion queue surfacing top-level
+    // community posts with reply_count >= 3 and < 30 days old that
+    // haven't been promoted. Same section-card → destination-view pattern
+    // as H4; not added to the legacy 11-tab strip.
+    | "community-pickups";
   const KNOWN_RENDERED_TABS: ReadonlyArray<AdminTab> = [
     "orgs",
     "sources",
@@ -110,6 +117,7 @@ export function AdminDashboard({
     "ingest-rejections",
     "jurisdiction-review",
     "research-pipeline",
+    "community-pickups",
   ];
   const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
   const [issueFilter, setIssueFilter] = useState<string | null>(null);
@@ -424,10 +432,14 @@ export function AdminDashboard({
                 key: "community-pickups",
                 kicker: "Section 6",
                 title: "Community pickups",
-                desc: "Editorial review queue for community to intelligence promotion.",
-                target: "tier-opinions" as AdminTab,
+                desc: "High-engagement community posts pending promotion to platform intelligence.",
+                // H5 (2026-05-25): retargeted from "tier-opinions"
+                // placeholder to the new "community-pickups" destination
+                // view (CommunityPickupsQueueView). Section card click →
+                // destination view per the H4 pattern.
+                target: "community-pickups" as AdminTab,
                 count: 0,
-                unit: "flagged",
+                unit: "pending",
                 urgent: false,
               },
             ] as const
@@ -909,6 +921,16 @@ export function AdminDashboard({
         {activeTab === "research-pipeline" && (
           <div className="space-y-4">
             <ResearchPipelineQueueView />
+          </div>
+        )}
+
+        {/* H5 (2026-05-25): Section card 6 destination view. Engagement-
+            heuristic suggestion queue for community-to-intelligence
+            promotion. Same section-card → destination-view pattern as
+            H4; not in the legacy 11-tab strip. */}
+        {activeTab === "community-pickups" && (
+          <div className="space-y-4">
+            <CommunityPickupsQueueView />
           </div>
         )}
 
