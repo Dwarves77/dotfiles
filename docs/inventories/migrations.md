@@ -104,6 +104,11 @@
 | 099 | 099_tier_opinion_review_state.sql | Migration 099: tier-opinion review state (dismissed_at/by/reason) + RLS for Phase 7 disagreement review surface. |
 | 100 | 100_research_source_coverage_rpc.sql | Migration 100: get_research_source_coverage RPC. |
 | 101 | 101_intelligence_items_domain_backfill.sql | Migration 101 (PROPOSED, NOT APPLIED): intelligence_items.domain backfill per docs/plans/classification-backfill-plan-2026-05-22.md. |
+| 102 | 102_severity_band_theme_columns.sql | Migration 102: broaden severity enum (Q1), add signal_band (Q2), add theme (Q3) on intelligence_items per design rebuild dispatch v3. Applied 2026-05-24. |
+| 103 | 103_intelligence_item_sections.sql | Migration 103: intelligence_item_sections table (Q4) with source_ids UUID[] per section. Powers 14-section reader on /regulations/[slug]. Applied 2026-05-24. |
+| 104 | 104_community_post_intelligence_refs.sql | Migration 104: community_posts.referenced_intelligence_item_ids UUID[] (Q5) + GIN index for reverse-lookup powering Peer Discussion panels. Applied 2026-05-24. |
+| 105 | 105_profiles_projection.sql | Migration 105: profiles projection columns (Q6) - org_id FK, workspace_role, sector text[], region text[]. region converted in place from scalar text. Applied 2026-05-24. |
+| 106 | 106_regions_and_facts.sql | Migration 106: regions table with operations_decisions JSONB + regional_data_facts table (Q7). 5 current regions seeded (EU/US/ASIA/UK/UAE). Applied 2026-05-24. |
 
 ## Maintenance trigger
 
