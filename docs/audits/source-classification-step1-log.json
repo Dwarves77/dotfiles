@@ -1,0 +1,439 @@
+{
+  "completed": true,
+  "log": [
+    {
+      "name": "A.Italian Chamber of Deputies",
+      "ok": true,
+      "detail": "category=regulatory",
+      "extra": null,
+      "at": "2026-05-25T06:33:34.400Z"
+    },
+    {
+      "name": "A.Romanian Chamber of Deputies",
+      "ok": true,
+      "detail": "category=regulatory",
+      "extra": null,
+      "at": "2026-05-25T06:33:34.594Z"
+    },
+    {
+      "name": "A.Chalmers University Marine Env",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:34.793Z"
+    },
+    {
+      "name": "A.Building Performance Standards Coalition",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:34.990Z"
+    },
+    {
+      "name": "A.IRENA & Ammonia Energy Association",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:35.184Z"
+    },
+    {
+      "name": "A.World Bank IEG",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:35.404Z"
+    },
+    {
+      "name": "A.Commercial Carrier Journal",
+      "ok": true,
+      "detail": "category=market_news",
+      "extra": null,
+      "at": "2026-05-25T06:33:35.588Z"
+    },
+    {
+      "name": "A.AAPA",
+      "ok": true,
+      "detail": "category=market_news",
+      "extra": null,
+      "at": "2026-05-25T06:33:35.787Z"
+    },
+    {
+      "name": "A.TIACA",
+      "ok": true,
+      "detail": "category=market_news",
+      "extra": null,
+      "at": "2026-05-25T06:33:35.988Z"
+    },
+    {
+      "name": "A.ZEMBA",
+      "ok": true,
+      "detail": "category=market_news",
+      "extra": null,
+      "at": "2026-05-25T06:33:36.182Z"
+    },
+    {
+      "name": "A.BRE Group / BREEAM",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:36.371Z"
+    },
+    {
+      "name": "A.eFuel Alliance e.V. (canonical)",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:36.566Z"
+    },
+    {
+      "name": "A.Sustainable Packaging Coalition (canonical)",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:36.766Z"
+    },
+    {
+      "name": "A.Centre for Sustainable Road Freight (canonical)",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:36.958Z"
+    },
+    {
+      "name": "A.Cranfield SoM (canonical)",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:37.171Z"
+    },
+    {
+      "name": "A.Erasmus University Rotterdam ERIM",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:37.372Z"
+    },
+    {
+      "name": "A.Fraunhofer IML (canonical)",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:37.573Z"
+    },
+    {
+      "name": "A.Maritime Carbon Intelligence",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:37.777Z"
+    },
+    {
+      "name": "A.MIT Climate Machine",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:37.964Z"
+    },
+    {
+      "name": "A.MIT Sustainable Supply Chain Lab",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:38.159Z"
+    },
+    {
+      "name": "A.NLR (canonical, formerly NREL)",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:38.346Z"
+    },
+    {
+      "name": "A.Stockholm Environment Institute",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:38.538Z"
+    },
+    {
+      "name": "A.Taylor & Francis",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:38.732Z"
+    },
+    {
+      "name": "A.Tyndall Centre (canonical)",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:38.926Z"
+    },
+    {
+      "name": "A.World Resources Institute",
+      "ok": true,
+      "detail": "category=research",
+      "extra": null,
+      "at": "2026-05-25T06:33:39.124Z"
+    },
+    {
+      "name": "A.aggregate",
+      "ok": true,
+      "detail": "9 NULL-category remaining (the 9 dupes, to be deleted in Phase C)",
+      "extra": null,
+      "at": "2026-05-25T06:33:39.224Z"
+    },
+    {
+      "name": "B.NLR_name",
+      "ok": true,
+      "detail": "National Laboratory of the Rockies (NLR), formerly National Renewable Energy Laboratory (NREL)",
+      "extra": null,
+      "at": "2026-05-25T06:33:39.481Z"
+    },
+    {
+      "name": "C.eFuel Alliance.c2549c0a-e9ed-40f9-99b0-32efe9fdd2b8.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:39.771Z"
+    },
+    {
+      "name": "C.eFuel Alliance.c2549c0a-e9ed-40f9-99b0-32efe9fdd2b8.citations",
+      "ok": true,
+      "detail": "processed 0 (moved 0, dropped 0 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:39.970Z"
+    },
+    {
+      "name": "C.eFuel Alliance.c2549c0a-e9ed-40f9-99b0-32efe9fdd2b8.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:40.416Z"
+    },
+    {
+      "name": "C.Sustainable Packaging Coalition.5025e77d-75d7-4f9b-9dee-c54630f67b1f.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:40.709Z"
+    },
+    {
+      "name": "C.Sustainable Packaging Coalition.5025e77d-75d7-4f9b-9dee-c54630f67b1f.citations",
+      "ok": true,
+      "detail": "processed 0 (moved 0, dropped 0 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:40.908Z"
+    },
+    {
+      "name": "C.Sustainable Packaging Coalition.5025e77d-75d7-4f9b-9dee-c54630f67b1f.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:41.344Z"
+    },
+    {
+      "name": "C.Centre for Sustainable Road Freight.e2e75b20-0d6c-448a-950d-32ec401d6af4.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:41.649Z"
+    },
+    {
+      "name": "C.Centre for Sustainable Road Freight.e2e75b20-0d6c-448a-950d-32ec401d6af4.citations",
+      "ok": true,
+      "detail": "processed 1 (moved 0, dropped 1 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:42.039Z"
+    },
+    {
+      "name": "C.Centre for Sustainable Road Freight.e2e75b20-0d6c-448a-950d-32ec401d6af4.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:42.310Z"
+    },
+    {
+      "name": "C.Cranfield SoM.e28f5449-78c8-474c-9176-a190eec65f18.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:42.610Z"
+    },
+    {
+      "name": "C.Cranfield SoM.e28f5449-78c8-474c-9176-a190eec65f18.citations",
+      "ok": true,
+      "detail": "processed 1 (moved 0, dropped 1 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:42.997Z"
+    },
+    {
+      "name": "C.Cranfield SoM.e28f5449-78c8-474c-9176-a190eec65f18.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:43.451Z"
+    },
+    {
+      "name": "C.Fraunhofer IML.6b9e5e97-6b69-4790-a3c6-0bf821631170.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:43.883Z"
+    },
+    {
+      "name": "C.Fraunhofer IML.6b9e5e97-6b69-4790-a3c6-0bf821631170.citations",
+      "ok": true,
+      "detail": "processed 1 (moved 1, dropped 0 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:44.290Z"
+    },
+    {
+      "name": "C.Fraunhofer IML.6b9e5e97-6b69-4790-a3c6-0bf821631170.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:44.697Z"
+    },
+    {
+      "name": "C.Tyndall Centre.b04ddc7f-ed89-4c6d-a401-237b621ee62a.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:45.171Z"
+    },
+    {
+      "name": "C.Tyndall Centre.b04ddc7f-ed89-4c6d-a401-237b621ee62a.citations",
+      "ok": true,
+      "detail": "processed 1 (moved 1, dropped 0 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:45.587Z"
+    },
+    {
+      "name": "C.Tyndall Centre.b04ddc7f-ed89-4c6d-a401-237b621ee62a.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:46.019Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.56dff28e-afa1-4bfa-9b1d-e999e37802b6.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:46.468Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.56dff28e-afa1-4bfa-9b1d-e999e37802b6.citations",
+      "ok": true,
+      "detail": "processed 1 (moved 1, dropped 0 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:47.136Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.56dff28e-afa1-4bfa-9b1d-e999e37802b6.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:47.391Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.1a760dfb-1e89-4416-a594-8d92778fb2e4.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:47.691Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.1a760dfb-1e89-4416-a594-8d92778fb2e4.citations",
+      "ok": true,
+      "detail": "processed 1 (moved 1, dropped 0 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:48.095Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.1a760dfb-1e89-4416-a594-8d92778fb2e4.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:48.579Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.ce0f5d88-f986-43e6-8c23-6c13ee88ff3e.items_repoint",
+      "ok": true,
+      "detail": "1 items repointed to canonical",
+      "extra": null,
+      "at": "2026-05-25T06:33:49.046Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.ce0f5d88-f986-43e6-8c23-6c13ee88ff3e.citations",
+      "ok": true,
+      "detail": "processed 0 (moved 0, dropped 0 as already-canonical)",
+      "extra": null,
+      "at": "2026-05-25T06:33:49.274Z"
+    },
+    {
+      "name": "C.NLR (formerly NREL) cluster.ce0f5d88-f986-43e6-8c23-6c13ee88ff3e.delete",
+      "ok": true,
+      "detail": "dupe source deleted",
+      "extra": null,
+      "at": "2026-05-25T06:33:49.552Z"
+    },
+    {
+      "name": "FINAL.null_category",
+      "ok": true,
+      "detail": "0 active sources with NULL category",
+      "extra": null,
+      "at": "2026-05-25T06:33:49.798Z"
+    },
+    {
+      "name": "FINAL.canonical.3177adf4",
+      "ok": true,
+      "detail": "category=research name=\"eFuel Alliance e.V.\"",
+      "extra": null,
+      "at": "2026-05-25T06:33:49.901Z"
+    },
+    {
+      "name": "FINAL.canonical.4d2e0f8a",
+      "ok": true,
+      "detail": "category=research name=\"Sustainable Packaging Coalition (a project of GreenBlue)\"",
+      "extra": null,
+      "at": "2026-05-25T06:33:50.059Z"
+    },
+    {
+      "name": "FINAL.canonical.c096820c",
+      "ok": true,
+      "detail": "category=research name=\"Centre for Sustainable Road Freight (University of Cambridge\"",
+      "extra": null,
+      "at": "2026-05-25T06:33:50.171Z"
+    },
+    {
+      "name": "FINAL.canonical.4e29f93f",
+      "ok": true,
+      "detail": "category=research name=\"Cranfield University – School of Management\"",
+      "extra": null,
+      "at": "2026-05-25T06:33:50.273Z"
+    },
+    {
+      "name": "FINAL.canonical.c63911ec",
+      "ok": true,
+      "detail": "category=research name=\"Fraunhofer Institute for Material Flow and Logistics (IML)\"",
+      "extra": null,
+      "at": "2026-05-25T06:33:50.395Z"
+    },
+    {
+      "name": "FINAL.canonical.19f69037",
+      "ok": true,
+      "detail": "category=research name=\"Tyndall Centre for Climate Change Research (tyndall.ac.uk)\"",
+      "extra": null,
+      "at": "2026-05-25T06:33:50.496Z"
+    },
+    {
+      "name": "FINAL.canonical.a386a21f",
+      "ok": true,
+      "detail": "category=research name=\"National Laboratory of the Rockies (NLR), formerly National \"",
+      "extra": null,
+      "at": "2026-05-25T06:33:50.614Z"
+    }
+  ]
+}
