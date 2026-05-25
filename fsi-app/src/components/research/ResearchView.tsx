@@ -361,7 +361,14 @@ export function ResearchView({
     return map;
   }, [enriched, featuredItem]);
 
-  const totalDisplay = total ?? items.length;
+  // Phase 2A (2026-05-24): masthead total reads from the
+  // get_workspace_intelligence_aggregates RPC via aggregates.totalItems
+  // rather than the local items.length (which was the LIMIT-50 page
+  // payload). Tile severity counts still derive locally because the
+  // 4-label research-relevance vocabulary maps to no column today;
+  // when the severity column lands per Q1, tile counts swap to
+  // aggregates.bySeverity.
+  const totalDisplay = aggregates?.totalItems ?? total ?? items.length;
   const themesActive = THEMES.filter((t) => themeCounts[t.key].total > 0).length;
 
   const themeColorTokens: Record<Severity, string> = SEVERITY_TILE_COLOR;

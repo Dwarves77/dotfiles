@@ -277,21 +277,26 @@ export function OperationsPage({
     return map;
   }, [regulationsByRegion]);
 
-  // Stat tile counts: derive from initialResources + regulations.
-  const counts = useMemo(() => {
-    const c: Record<Severity, number> = { critical: 0, high: 0, moderate: 0, low: 0 };
-    for (const r of regulationsByRegion) {
-      c[deriveRegulationSeverity(r)]++;
-    }
-    return c;
-  }, [regulationsByRegion]);
+  // Phase 2A (2026-05-24): stat tile counts now consume the
+  // get_workspace_intelligence_aggregates RPC via the aggregates prop
+  // rather than deriving locally from regulationsByRegion. Prior code
+  // summed 416 across tiles (cross-referenced regulations) while the
+  // masthead read 78 from the same RPC, an internal mismatch.
+  // Operations uses the Critical / High / Moderate / Low vocabulary
+  // which maps 1:1 to byPriority. When the severity column lands per
+  // Q1, this swaps to aggregates.bySeverity for the 5-label vocab
+  // surfaces (Market, Research).
+  const counts: Record<Severity, number> = aggregates?.byPriority
+    ? {
+        critical: aggregates.byPriority.CRITICAL,
+        high: aggregates.byPriority.HIGH,
+        moderate: aggregates.byPriority.MODERATE,
+        low: aggregates.byPriority.LOW,
+      }
+    : { critical: 0, high: 0, moderate: 0, low: 0 };
 
-  const totalItems = aggregates?.totalItems ?? (initialResources.length + regulationsByRegion.length);
-  const totalJurisdictions = new Set(
-    [...initialResources, ...regulationsByRegion]
-      .map((r) => r.jurisdiction)
-      .filter(Boolean)
-  ).size;
+  const totalItems = aggregates?.totalItems ?? initialResources.length;
+  const totalJurisdictions = aggregates?.totalJurisdictions ?? 0;
 
   // Coverage stats (per dimension, count of regions with data).
   const dimensionCoverage = useMemo(() => {
