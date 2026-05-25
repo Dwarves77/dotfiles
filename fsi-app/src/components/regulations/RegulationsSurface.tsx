@@ -54,7 +54,7 @@ import {
   ConfidenceFacet,
   CONFIDENCE_UNCLASSIFIED_ID,
 } from "./ConfidenceFacet";
-import { SortRow, authorityRank, type SortKey } from "./SortRow";
+import { SortRow, type SortKey } from "./SortRow";
 import { ViewToggles, type ViewMode } from "./ViewToggles";
 import {
   BulkSelectBar,
@@ -467,11 +467,6 @@ export function RegulationsSurface({
         return arr.sort(
           (a, b) =>
             (PRI_ORDER[a.priority] ?? 9) - (PRI_ORDER[b.priority] ?? 9)
-        );
-      case "confidence":
-        return arr.sort(
-          (a, b) =>
-            authorityRank(a.authorityLevel) - authorityRank(b.authorityLevel)
         );
       case "alpha":
         return arr.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
@@ -1508,7 +1503,14 @@ function TableView({
                     color: "var(--muted)",
                   }}
                 >
-                  {r.id}
+                  {/* Phase 4 (2026-05-25): show short-form for UUID-only
+                      items so the ID column stays narrow. Mapper at
+                      supabase-server.ts already prefers legacy_id when
+                      present; this just trims the fallback UUID display
+                      from 36 chars to 8. */}
+                  {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r.id)
+                    ? `${r.id.slice(0, 8)}…`
+                    : r.id}
                 </td>
                 <td style={cellStyle(false)}>
                   {bulkMode ? (

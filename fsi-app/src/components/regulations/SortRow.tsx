@@ -3,19 +3,23 @@
 /**
  * SortRow — sort selector for /regulations.
  *
- * Four sort options per dispatch: newest, priority, confidence,
- * alphabetical. "Newest" sorts by `Resource.added` desc; "priority"
- * uses CRITICAL→LOW order; "confidence" uses authority-level rank
- * (primary_text highest, unconfirmed lowest); "alpha" by title.
+ * Three sort options after Phase 4 strip (2026-05-25): newest, priority,
+ * alphabetical. "Newest" sorts by `Resource.added` desc; "priority" uses
+ * CRITICAL→LOW order; "alpha" by title.
+ *
+ * The "Confidence" sort option was stripped because authority_level is
+ * unpopulated on ~95% of items, so the sort produced no differentiation
+ * from priority. Restore once authority_level coverage improves or once
+ * trust_score_overall becomes a meaningful per-item signal (Sprint 3
+ * source-credibility work).
  */
 
-export type SortKey = "newest" | "priority" | "confidence" | "alpha";
+export type SortKey = "newest" | "priority" | "alpha";
 
 const SORT_OPTIONS: Array<{ id: SortKey; label: string }> = [
-  { id: "newest",     label: "Newest" },
-  { id: "priority",   label: "Priority" },
-  { id: "confidence", label: "Confidence" },
-  { id: "alpha",      label: "A → Z" },
+  { id: "newest",   label: "Newest" },
+  { id: "priority", label: "Priority" },
+  { id: "alpha",    label: "A → Z" },
 ];
 
 export interface SortRowProps {
