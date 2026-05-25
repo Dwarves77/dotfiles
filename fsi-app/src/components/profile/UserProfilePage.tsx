@@ -285,8 +285,12 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           </div>
         )}
 
-        {/* Stat strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+        {/* Stat strip — Phase 4 strip (2026-05-25): "Watching" and
+            "Posts · Briefs" tiles removed; both were hardcoded value={0}
+            with no backing data source. Re-add when watchlist + community
+            activity counts wire through (Sprint 3 cross-cutting capability
+            dispatch). */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
           <StatTile
             label="Sectors followed"
             value={stats.sectors}
@@ -304,16 +308,6 @@ export function UserProfilePage({ userId, userEmail }: Props) {
                 ? jurisdictionLabels(profile.jurisdiction_overrides ?? []).slice(0, 3).join(" · ")
                 : "Not set"
             }
-          />
-          <StatTile
-            label="Watching"
-            value={0}
-            meta="regulations"
-          />
-          <StatTile
-            label="Posts · Briefs"
-            value={0}
-            meta="since signup"
           />
         </div>
 
