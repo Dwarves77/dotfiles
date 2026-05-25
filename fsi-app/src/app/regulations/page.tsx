@@ -14,51 +14,21 @@
  * Layout matches design_handoff_2026-04/preview/regulations.html.
  */
 
-import { createClient } from "@supabase/supabase-js";
-import { unstable_cache } from "next/cache";
-import { getListingsOnly } from "@/lib/data";
-import { APP_DATA_TAG } from "@/lib/data";
+import { getListingsOnly, getScopedWorkspaceAggregates } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 
-/**
- * Hotfix-3 Fix #3 (2026-05-07): platform-total count is workspace-agnostic
- * and identical for every viewer until items are archived. Cached for 60s
- * with the same APP_DATA_TAG used by getAppData — staged-update approval
- * and workspace-override mutation routes already call
- * revalidateTag(APP_DATA_TAG) so this stays consistent without a new tag.
- * Per audit doc § 4: this was the one server-side wart on /regulations.
- */
-const cachedPlatformTotal = unstable_cache(
-  async (): Promise<number | null> => {
-    if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    ) {
-      return null;
-    }
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      );
-      const { count } = await supabase
-        .from("intelligence_items")
-        .select("id", { count: "exact", head: true })
-        .eq("domain", 1)
-        .eq("is_archived", false);
-      return typeof count === "number" ? count : null;
-    } catch {
-      // soft-fail: heading just shows the matched-count without tooltip
-      return null;
-    }
-  },
-  ["regulations-platform-total-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
+// Phase 2A (2026-05-25): scope filter mirrors the page-scope intent
+// (workspace-wide active regulations). Matches the SCOPE constants used on
+// /market /research /operations. Replaces the ad-hoc cachedPlatformTotal
+// inline COUNT query so /regulations consumes the same RPC the other
+// surfaces use, keeping cross-surface count derivation in lockstep.
+const REGULATIONS_SCOPE = {
+  domains: [REGULATIONS_DOMAIN],
+};
 
 export default async function RegulationsPage({
   searchParams,
@@ -77,14 +47,13 @@ export default async function RegulationsPage({
   // hay-stack (no card body reference), and that contribution is removed in
   // this PR so search semantics stay consistent (titles, tags, whatIsIt,
   // whyMatters, jurisdiction continue to participate).
-  const data = await getListingsOnly();
-
-  // Resolve the platform-total regulation count for the count tooltip.
-  // The audit flagged the gap between "123 REGULATIONS" (sector-filtered)
-  // and "182 regulations tracked" (platform total) — we surface both
-  // numbers via a tooltip on the count heading. Cached via unstable_cache
-  // (60s TTL, APP_DATA_TAG revalidation) per Hotfix-3 Fix #3.
-  const platformTotal = await cachedPlatformTotal();
+  // Phase 2A wire: source-of-truth count via the scoped aggregates RPC
+  // (migration 069). Replaces the cachedPlatformTotal one-off COUNT.
+  const [data, aggregates] = await Promise.all([
+    getListingsOnly(),
+    getScopedWorkspaceAggregates(REGULATIONS_SCOPE),
+  ]);
+  const platformTotal = aggregates.totalItems || null;
 
   console.log(`[perf] /regulations data ${Date.now() - t0}ms`);
 
@@ -120,7 +89,12 @@ export default async function RegulationsPage({
     ? ` · last sync ${mostRecentAdded.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}`
     : "";
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-  const meta = `${today} · ${regulationResources.length} active regulations · ${jurisdictionsCount} jurisdictions${syncSegment} · workspace verticals: Live events · Fine art`;
+  // Phase 2A: masthead count from aggregates RPC (workspace-wide active
+  // regulations). regulationResources.length is the LIMIT-50-derived in-view
+  // count — kept available for the DashboardHero tile, masthead uses true
+  // total. Falls back to length if aggregates returned 0.
+  const activeRegulationsCount = aggregates.totalItems || regulationResources.length;
+  const meta = `${today} · ${activeRegulationsCount} active regulations · ${jurisdictionsCount} jurisdictions${syncSegment} · workspace verticals: Live events · Fine art`;
 
   return (
     <>
