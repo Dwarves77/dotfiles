@@ -667,7 +667,15 @@ function SignalCard({
   featured?: boolean;
   bandKey: BandKey;
 }) {
-  const showTrajectory = featured && bandKey === "price";
+  // Phase 4 H1 Path B (2026-05-25): trajectory slot renders on every
+  // B1 Price signal, not just the featured one. The actual TrajectoryBars
+  // shape was previously hardcoded to a single fabricated array; that
+  // was an integrity violation per the operator's standing rule that no
+  // fabricated data may render as fact. Stripped that array; surface now
+  // renders an honest "Trajectory data not yet available" empty state
+  // on every B1 signal. Substantive Path A fix (per-item trajectory
+  // schema + ingestion + UI swap) is on the Sprint 3 backlog.
+  const showTrajectory = bandKey === "price";
   return (
     <article
       style={{
@@ -720,27 +728,74 @@ function SignalCard({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <SeverityPill severity={severity} />
-        {showTrajectory && <TrajectoryBars />}
+        {showTrajectory && <TrajectoryEmptyState />}
       </div>
     </article>
   );
 }
 
-function TrajectoryBars() {
-  const bars = [35, 40, 42, 48, 55, 58, 64, 72, 80, 88, 94, 100];
-  const palette = ["#FCD0BD", "#FCD0BD", "#FCD0BD", "#FCD0BD", "#FBA66C", "#FBA66C", "#FBA66C", "#F88527", "#F88527", "#E8610A", "#E8610A", "var(--color-critical)"];
+// Phase 4 H1 Path B (2026-05-25): honest empty-state placeholder.
+// The prior TrajectoryBars rendered a hardcoded [35,40,42,...] array
+// with a fixed orange palette and "Base 100 = Feb 2026 spot" label —
+// fabricated data that the operator's integrity rule forbids. Now
+// stripped. Per-item trajectory data does not exist on the schema today
+// (no intelligence_items.trajectory_points column, no signal_trajectory
+// table). When the substantive Sprint 3 fix lands (schema + ingestion
+// + UI swap per docs/sprint3-trajectory-schema), restore a data-backed
+// TrajectoryBars wired to item.trajectoryPoints.
+function TrajectoryEmptyState() {
   return (
-    <div style={{ background: "var(--color-bg-raised)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "10px 12px", marginTop: 2 }}>
-      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 8 }}>
+    <div
+      style={{
+        background: "var(--color-bg-raised)",
+        border: "1px dashed var(--color-border)",
+        borderRadius: "var(--radius-sm)",
+        padding: "12px 12px",
+        marginTop: 2,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 9.5,
+          fontWeight: 800,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          color: "var(--color-text-muted)",
+          marginBottom: 8,
+        }}
+      >
         Trajectory · 12 wk
       </div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 42 }}>
-        {bars.map((h, i) => (
-          <span key={i} style={{ width: 8, background: palette[i], height: `${h}%` }} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: 3,
+          height: 42,
+          opacity: 0.35,
+        }}
+        aria-hidden="true"
+      >
+        {Array.from({ length: 12 }, (_, i) => (
+          <span
+            key={i}
+            style={{
+              width: 8,
+              background: "var(--color-text-muted)",
+              height: `${20 + (i % 3) * 6}%`,
+            }}
+          />
         ))}
       </div>
-      <div style={{ fontSize: 10.5, color: "var(--color-text-muted)", marginTop: 6 }}>
-        Base 100 = Feb 2026 spot
+      <div
+        style={{
+          fontSize: 10.5,
+          color: "var(--color-text-muted)",
+          marginTop: 8,
+          fontStyle: "italic",
+        }}
+      >
+        Trajectory data not yet available
       </div>
     </div>
   );
