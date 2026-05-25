@@ -277,12 +277,17 @@ function isWithinLast7Days(iso: string | null): boolean {
 
 // ── Source coverage class buckets (for the right rail card) ──
 
+// Phase 4 M2 (2026-05-25): Reuters bucket merged into "Analytical press".
+// Reuters Sustainable Business is one named analytical-press outlet among
+// several (Loadstar, FreightWaves, Edie, GreenBiz, Environmental Finance,
+// Splash247) — surfacing it as a distinct coverage class on the rail
+// implied a tier of its own. Per skill Section 3 + migration 086 trade-
+// press routing, it is tier 5 analytical press alongside the others.
 const COVERAGE_CLASSES = [
   { key: "peer-reviewed", label: "Peer-reviewed", domains: [/journal/i, /research/i, /\bscience\b/i] },
   { key: "think-tank", label: "Think tank", domains: [/\biea\b/i, /\birena\b/i, /\bipcc\b/i, /\bicct\b/i, /think tank/i, /carbon trust/i] },
   { key: "quantified", label: "Quantified research", domains: [/drawdown/i, /quantified/i] },
-  { key: "analytical", label: "Analytical press", domains: [/loadstar/i, /freightwaves/i, /\bedie\b/i, /greenbiz/i, /environmental finance/i, /splash247/i] },
-  { key: "reuters", label: "Reuters Sustainable Business", domains: [/reuters sustainable/i] },
+  { key: "analytical", label: "Analytical press", domains: [/loadstar/i, /freightwaves/i, /\bedie\b/i, /greenbiz/i, /environmental finance/i, /splash247/i, /reuters sustainable/i] },
 ];
 
 function classifySource(name: string | null): string {
