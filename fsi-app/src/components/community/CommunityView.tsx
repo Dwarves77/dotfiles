@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 /**
  * CommunityView, Sequence C rebuild (2026-05-24).
  *
@@ -61,14 +63,16 @@ interface CommunityViewProps {
   totalOrganizations?: number;
 }
 
-type Tab = "region" | "pulse" | "hot" | "people" | "editorial";
+// Phase 4 (2026-05-24): only render the tab(s) that have content.
+// The previous 5-tab layout had 4 placeholder tabs (Industry Pulse,
+// Hot Topics, People, Editorial Picks) rendering identical "Content
+// for this tab renders when the community feed projection is wired"
+// strings. Per operator standing rule (no dead chrome), those tabs
+// are stripped until backed by real projections.
+type Tab = "region";
 
 const TABS: { key: Tab; label: string; count?: number }[] = [
   { key: "region", label: "By Region & Group" },
-  { key: "pulse", label: "Industry Pulse" },
-  { key: "hot", label: "Hot Topics" },
-  { key: "people", label: "People" },
-  { key: "editorial", label: "Editorial Picks" },
 ];
 
 // 4-region overview vocabulary; matches mockup's region cards.
@@ -97,6 +101,7 @@ export function CommunityView({
   totalThreads = 147,
   totalOrganizations = 23,
 }: CommunityViewProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("region");
 
   const myGroupsCount = memberships.length;
@@ -104,6 +109,18 @@ export function CommunityView({
     () => memberships.filter((m) => m.group.privacy === "public").length,
     [memberships]
   );
+
+  // Phase 4 (2026-05-24): "+ New Post" CTA. Opens /community/browse
+  // for the user to pick a group to post in; the group thread view
+  // mounts PostComposer per-group. Avoids the group-picker modal
+  // BUILD scope by delegating to the existing group discovery route.
+  const onComposeClick = () => {
+    if (memberships.length === 1) {
+      router.push(`/community/${memberships[0].group.slug}?compose=1`);
+    } else {
+      router.push("/community/browse?compose=1");
+    }
+  };
 
   // Aggregate threads-per-region from regionCounts using the 4-region grouping.
   const regionAggregate = useMemo(() => {
@@ -136,8 +153,13 @@ export function CommunityView({
       />
 
       <div style={{ padding: "22px 40px 60px" }}>
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--color-border)", marginBottom: 22 }}>
+        {/* Tabs + compose CTA. Phase 4 (2026-05-24): "+ New Post"
+            exposed at the top of the surface per functional purpose
+            audit. PostComposer lives per-group; this CTA routes to
+            the user's only group when they have one, or to /community/
+            browse?compose=1 when multiple. */}
+        <div style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--color-border)", marginBottom: 22, gap: 12 }}>
+        <div style={{ display: "flex", gap: 0, flex: 1 }}>
           {TABS.map((tab) => (
             <button
               key={tab.key}
@@ -167,6 +189,25 @@ export function CommunityView({
             </button>
           ))}
         </div>
+        <button
+          onClick={onComposeClick}
+          style={{
+            background: "var(--color-primary)",
+            color: "#fff",
+            border: 0,
+            padding: "9px 18px",
+            borderRadius: "var(--radius-pill)",
+            fontFamily: "inherit",
+            fontWeight: 700,
+            fontSize: 12.5,
+            letterSpacing: "0.04em",
+            cursor: "pointer",
+            marginBottom: 6,
+          }}
+        >
+          + New Post
+        </button>
+        </div>
 
         {/* AI bar, Fix 4 (missing on production today) */}
         <div style={{ marginBottom: 22 }}>
@@ -181,15 +222,14 @@ export function CommunityView({
           />
         </div>
 
-        {activeTab === "region" ? (
-          <RegionAndGroupTab
-            memberships={memberships}
-            regionAggregate={regionAggregate}
-            currentUserName={currentUserName}
-          />
-        ) : (
-          <PlaceholderTab tab={activeTab} />
-        )}
+        <RegionAndGroupTab
+          memberships={memberships}
+          regionAggregate={regionAggregate}
+          currentUserName={currentUserName}
+          onRegionClick={(regionKey) =>
+            router.push(`/community/browse?region=${regionKey}`)
+          }
+        />
       </div>
     </div>
   );
@@ -199,10 +239,12 @@ function RegionAndGroupTab({
   memberships,
   regionAggregate,
   currentUserName,
+  onRegionClick,
 }: {
   memberships: CommunityViewMembership[];
   regionAggregate: Array<{ key: string; label: string; threads: number; regionsInCount: string[] }>;
   currentUserName: string;
+  onRegionClick: (regionKey: string) => void;
 }) {
   return (
     <>
@@ -210,8 +252,9 @@ function RegionAndGroupTab({
       <SectionH title="Activity by region" hint="Click a region to drill in" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
         {regionAggregate.map((reg, i) => (
-          <div
+          <button
             key={reg.key}
+            onClick={() => onRegionClick(reg.key)}
             style={{
               background: "var(--color-surface)",
               border: "1px solid var(--color-border)",
@@ -220,6 +263,9 @@ function RegionAndGroupTab({
               padding: "18px 20px",
               boxShadow: "var(--shadow-card)",
               cursor: "pointer",
+              textAlign: "left",
+              fontFamily: "inherit",
+              color: "inherit",
             }}
           >
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
@@ -233,7 +279,7 @@ function RegionAndGroupTab({
             <div style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>
               threads visible to your workspace
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -435,35 +481,6 @@ function GroupSection({
         </a>
       </div>
     </section>
-  );
-}
-
-function PlaceholderTab({ tab }: { tab: Tab }) {
-  const labels: Record<Tab, string> = {
-    region: "By Region & Group",
-    pulse: "Industry Pulse",
-    hot: "Hot Topics",
-    people: "People",
-    editorial: "Editorial Picks",
-  };
-  return (
-    <div
-      style={{
-        padding: "60px 40px",
-        textAlign: "center",
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-md)",
-        boxShadow: "var(--shadow-card)",
-      }}
-    >
-      <p style={{ fontFamily: "var(--font-display)", fontSize: 22, color: "var(--color-text-muted)", margin: "0 0 8px" }}>
-        {labels[tab]}
-      </p>
-      <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0, maxWidth: "60ch", marginInline: "auto" }}>
-        Content for this tab renders when the community feed projection is wired. Use By Region & Group for current activity.
-      </p>
-    </div>
   );
 }
 
