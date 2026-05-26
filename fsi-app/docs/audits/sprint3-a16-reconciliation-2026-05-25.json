@@ -1,0 +1,78 @@
+{
+  "run_date": "2026-05-26T19:25:31.222Z",
+  "summary": {
+    "total_items_in_db": 657,
+    "active_items": 641,
+    "archived_items": 16,
+    "manifest_distinct_touched_rows": 469
+  },
+  "per_domain_post_counts": {
+    "1 Regulations": 319,
+    "2 Energy & Tech": 38,
+    "3 Regional Ops": 111,
+    "4 Geopolitical": 70,
+    "5 Source Intel": 11,
+    "6 Facilities": 2,
+    "7 Research Pipeline": 90
+  },
+  "expected_domain_net_shifts_from_A16B": {
+    "1": -77,
+    "2": 17,
+    "3": 33,
+    "4": -11,
+    "5": 11,
+    "6": 2,
+    "7": 25
+  },
+  "per_item_type_post_counts": {
+    "regulation": 135,
+    "directive": 15,
+    "standard": 13,
+    "guidance": 118,
+    "framework": 112,
+    "technology": 11,
+    "innovation": 1,
+    "tool": 18,
+    "regional_data": 67,
+    "market_signal": 55,
+    "initiative": 51,
+    "research_finding": 45
+  },
+  "expected_item_type_net_shifts_from_A16C": {
+    "regulation": -16,
+    "directive": -4,
+    "standard": 2,
+    "guidance": 27,
+    "framework": -16,
+    "technology": 0,
+    "innovation": 0,
+    "tool": -4,
+    "regional_data": 1,
+    "market_signal": 1,
+    "initiative": -1,
+    "research_finding": 10
+  },
+  "category_histogram_post": {
+    "(null)": 181,
+    "emissions": 80,
+    "research": 75,
+    "reporting": 59,
+    "transport": 57,
+    "fuels": 47,
+    "corridors": 45,
+    "infrastructure": 33,
+    "packaging": 24,
+    "digital": 10,
+    "standards": 9,
+    "labor": 6,
+    "trade": 4,
+    "food-safety": 4,
+    "customs": 3,
+    "dangerous-goods": 2,
+    "insurance": 1,
+    "security": 1
+  },
+  "items_still_without_category": 181,
+  "a15_archived_items_expected": 5,
+  "a15_archived_items_actual": 16
+}
