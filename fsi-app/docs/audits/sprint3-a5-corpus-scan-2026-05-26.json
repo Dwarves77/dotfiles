@@ -1,0 +1,54 @@
+{
+  "run_date": "2026-05-26T20:52:28.355Z",
+  "total_active_items": 641,
+  "totals": {
+    "reasoning_non_empty": 124,
+    "why_matters_non_empty": 173,
+    "both_non_empty": 121
+  },
+  "per_domain": {
+    "1 Regulations": {
+      "total": 319,
+      "reasoning_non_empty": 60,
+      "why_matters_non_empty": 79,
+      "both_non_empty": 57
+    },
+    "2 Energy & Tech": {
+      "total": 38,
+      "reasoning_non_empty": 6,
+      "why_matters_non_empty": 12,
+      "both_non_empty": 6
+    },
+    "3 Regional Ops": {
+      "total": 111,
+      "reasoning_non_empty": 4,
+      "why_matters_non_empty": 18,
+      "both_non_empty": 4
+    },
+    "4 Geopolitical": {
+      "total": 70,
+      "reasoning_non_empty": 21,
+      "why_matters_non_empty": 26,
+      "both_non_empty": 21
+    },
+    "5 Source Intel": {
+      "total": 11,
+      "reasoning_non_empty": 0,
+      "why_matters_non_empty": 0,
+      "both_non_empty": 0
+    },
+    "6 Facilities": {
+      "total": 2,
+      "reasoning_non_empty": 0,
+      "why_matters_non_empty": 1,
+      "both_non_empty": 0
+    },
+    "7 Research Pipeline": {
+      "total": 90,
+      "reasoning_non_empty": 33,
+      "why_matters_non_empty": 37,
+      "both_non_empty": 33
+    }
+  },
+  "verdict": "PER_ROW_DISPOSITION: mixed population. Block must render conditionally per (reasoning OR why_matters non-empty)."
+}
