@@ -308,6 +308,14 @@ async function seedStubIntelligenceItem(
     seedRow.urgency_tier = enrichment.urgency_tier;
     seedRow.item_type = enrichment.item_type;
     seedRow.topic_tags = enrichment.topic_tags;
+    // Sprint 3 A2 (2026-05-25): signal_band + theme columns.
+    // Per operator-locked recommendation, Haiku first-fetch
+    // enrichment does NOT emit these — Sonnet regeneration is the
+    // canonical write path. We coalesce undefined to NULL here so
+    // the column exists; Sonnet regeneration populates it after
+    // first-fetch completes.
+    seedRow.signal_band = (enrichment as { signal_band?: string | null }).signal_band ?? null;
+    seedRow.theme = (enrichment as { theme?: string | null }).theme ?? null;
     seedRow.jurisdictions = enrichment.jurisdictions;
   } else {
     seedRow.title = source.name || source.url;

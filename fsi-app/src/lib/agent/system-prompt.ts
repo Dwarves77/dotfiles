@@ -231,7 +231,7 @@ Cite inline at the end of each subsection, not just in the sources list. Never p
 
 ## Database field emission
 
-Every regeneration writes 13 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 12 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+Every regeneration writes 15 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 14 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
 
 Fields:
 
@@ -241,13 +241,15 @@ Fields:
 - urgency_tier — the dashboard tier value, one of 4 values per the rubric below.
 - format_type — the format used for this brief, derived from item_type per the mapping below.
 - topic_tags — array of 0-3 tags from the topic_tags controlled vocabulary below. Tags outside the vocabulary fail the regeneration.
+- signal_band — one of \`price | corporate | corridor\` when format_type is \`market_signal_brief\`; null otherwise. Drives /market band routing column-first.
+- theme — one of the 7 topic_tags values (\`emissions | fuels | transport | reporting | packaging | corridors | research\`) when format_type is \`research_summary\`; null otherwise. Drives /research theme routing column-first. The single most central theme; distinct from topic_tags which is multi-value.
 - operational_scenario_tags — array of 0-5 tags describing operational scenarios this item touches. Open vocabulary; prefer the core glossary below; new values allowed when the core doesn't fit. Lower-case kebab-case. Drives intersection detection.
 - compliance_object_tags — array of 0-4 tags from the closed compliance-object vocabulary below. Tags outside the vocabulary fail the regeneration. Drives intersection detection.
 - related_items — UUID array of intelligence_items the agent recognised as related during composition. UUIDs MUST come from the source pool input. No invented UUIDs. Empty array when no relations identified.
 - intersection_summary — short markdown string (≤1500 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title. Emit empty string OR null when no intersections were identified.
 - sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs. Emit FULL 36-character UUIDs (e.g. a1b2c3d4-e5f6-4789-9abc-def012345678) — never the 8-character prefix shorthand. Truncated UUIDs fail the regeneration.
 - last_regenerated_at — ISO 8601 timestamp at the moment of generation. The agent emits the current UTC timestamp in ISO 8601 form (e.g., 2026-04-29T18:42:00Z). Do NOT emit literal "NOW()" or any other placeholder. Do NOT derive from source publication dates. Do NOT invent a value.
-- regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-04-29".
+- regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-05-25".
 
 Severity to priority mapping (locked):
 
@@ -276,6 +278,20 @@ topic_tags controlled vocabulary (locked, exactly 7 values):
 - research — academic, think-tank, industry news, innovation trackers
 
 Emit 0-3 tags reflecting what the brief actually covers (not what the item is named after). Multiple tags allowed when substance crosses categories: a SAF mandate touches both \`emissions\` and \`fuels\`; ISO 14083 touches both \`reporting\` and \`transport\`; PPWR is \`packaging\`. Empty array allowed when the item genuinely fits none of the seven (rare). Tags outside the vocabulary fail the regeneration. The vocabulary is closed — never emit \`carbon-pricing\`, \`aviation\`, \`maritime\`, etc.
+
+signal_band vocabulary (locked, closed, exactly 3 values for market_signal_brief; null for other formats):
+
+- price — fuel prices, carbon prices, freight rates, surcharge changes, allowance auctions
+- corporate — corporate ESG announcements, M&A, financing rounds, board moves, S&P/MSCI rating changes
+- corridor — green shipping corridors, port partnerships, route-level operational changes
+
+Emit null when format_type is anything other than market_signal_brief. Tags outside this list fail the regeneration when format_type IS market_signal_brief.
+
+theme vocabulary (locked, closed; same 7 values as topic_tags; for research_summary only, null otherwise):
+
+- Mirror values from topic_tags: emissions, fuels, transport, reporting, packaging, corridors, research
+- Emit null when format_type is anything other than research_summary.
+- When format_type IS research_summary, theme is the SINGLE most central theme for the finding (not a multi-value tag list). Distinct from topic_tags which is multi-value and applies to all formats.
 
 operational_scenario_tags vocabulary (open; prefer the core glossary):
 
@@ -344,13 +360,15 @@ priority: CRITICAL
 urgency_tier: watch
 format_type: regulatory_fact_document
 topic_tags: [emissions, reporting]
+signal_band: null
+theme: null
 operational_scenario_tags: [CBAM-declaration, customs-declaration-import, emissions-reporting-Scope3]
 compliance_object_tags: [importer, customs-broker, manufacturer-producer]
 related_items: [b3c4d5e6-f7a8-4901-2345-678901234567]
 intersection_summary: "Overlaps with EU ETS for Shipping on emissions-reporting-Scope3; CBAM declarants importing covered goods that arrived via EU-ETS-priced ocean freight face dual reporting obligations on the same emission units."
 sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
-last_regenerated_at: 2026-04-29T18:42:00Z
-regeneration_skill_version: "2026-04-29"
+last_regenerated_at: 2026-05-25T18:42:00Z
+regeneration_skill_version: "2026-05-25"
 ---
 
 The metadata block is mandatory on every regeneration. An absent or malformed block is a failed regeneration.

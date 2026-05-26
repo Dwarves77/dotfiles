@@ -40,6 +40,16 @@ const TOPIC_TAG_VALUES = [
   "research",
 ] as const;
 
+// Sprint 3 A2 (2026-05-25): signal_band and theme columns.
+// signal_band — closed 3-value vocab, only valid when format_type is
+//   market_signal_brief; null on all other formats.
+// theme — mirrors TOPIC_TAG_VALUES (7 values), only valid when
+//   format_type is research_summary; null on all other formats.
+//   Distinct from topic_tags (multi-value): theme is the single most
+//   central theme of the research finding.
+const SIGNAL_BAND_VALUES = ["price", "corporate", "corridor"] as const;
+const THEME_VALUES = TOPIC_TAG_VALUES;
+
 // Closed vocabulary for compliance_object_tags (SKILL.md 18 values). Tags
 // outside this list fail the regeneration. Drives intersection detection.
 const COMPLIANCE_OBJECT_VALUES = [
@@ -74,6 +84,8 @@ export interface AgentMetadata {
   urgency_tier: typeof URGENCY_TIER_VALUES[number];
   format_type: typeof FORMAT_TYPE_VALUES[number];
   topic_tags: typeof TOPIC_TAG_VALUES[number][];
+  signal_band: typeof SIGNAL_BAND_VALUES[number] | null;
+  theme: typeof THEME_VALUES[number] | null;
   operational_scenario_tags: string[];
   compliance_object_tags: typeof COMPLIANCE_OBJECT_VALUES[number][];
   related_items: string[];
@@ -226,6 +238,8 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     "urgency_tier",
     "format_type",
     "topic_tags",
+    "signal_band",
+    "theme",
     "operational_scenario_tags",
     "compliance_object_tags",
     "related_items",
@@ -278,6 +292,42 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     if (!TOPIC_TAG_VALUES.includes(tag as any)) {
       throw new AgentOutputParseError(
         `topic_tags contains an out-of-vocabulary value: "${tag}". Allowed: ${TOPIC_TAG_VALUES.join(", ")}`
+      );
+    }
+  }
+
+  // Sprint 3 A2: signal_band — null OR one of 3 values, AND only
+  // non-null when format_type is market_signal_brief.
+  const signalBandRawValue = fields.signal_band.trim().toLowerCase();
+  const signalBand: typeof SIGNAL_BAND_VALUES[number] | null =
+    signalBandRawValue === "null" || signalBandRawValue === "" ? null : (signalBandRawValue as any);
+  if (signalBand !== null) {
+    if (!SIGNAL_BAND_VALUES.includes(signalBand as any)) {
+      throw new AgentOutputParseError(
+        `Invalid signal_band: "${signalBand}". Allowed: ${SIGNAL_BAND_VALUES.join(", ")} or null`
+      );
+    }
+    if (fields.format_type !== "market_signal_brief") {
+      throw new AgentOutputParseError(
+        `signal_band may only be non-null when format_type is market_signal_brief (got format_type="${fields.format_type}")`
+      );
+    }
+  }
+
+  // Sprint 3 A2: theme — null OR one of 7 values, AND only non-null
+  // when format_type is research_summary.
+  const themeRawValue = fields.theme.trim().toLowerCase();
+  const theme: typeof THEME_VALUES[number] | null =
+    themeRawValue === "null" || themeRawValue === "" ? null : (themeRawValue as any);
+  if (theme !== null) {
+    if (!THEME_VALUES.includes(theme as any)) {
+      throw new AgentOutputParseError(
+        `Invalid theme: "${theme}". Allowed: ${THEME_VALUES.join(", ")} or null`
+      );
+    }
+    if (fields.format_type !== "research_summary") {
+      throw new AgentOutputParseError(
+        `theme may only be non-null when format_type is research_summary (got format_type="${fields.format_type}")`
       );
     }
   }
@@ -393,6 +443,8 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     urgency_tier: fields.urgency_tier as AgentMetadata["urgency_tier"],
     format_type: fields.format_type as AgentMetadata["format_type"],
     topic_tags: topicTags as AgentMetadata["topic_tags"],
+    signal_band: signalBand,
+    theme: theme,
     operational_scenario_tags: opScenTags,
     compliance_object_tags: compObjTags as AgentMetadata["compliance_object_tags"],
     related_items: relatedItems,
