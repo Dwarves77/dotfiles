@@ -962,7 +962,18 @@ function FindingCard({
   const when = item.addedDate ? formatShortDate(item.addedDate) : "";
   const sevTone = SEVERITY_TONE[severity];
 
+  // Phase 5 Step 10 (2026-05-25): wrap whole card in <Link> to
+  // /research/[slug] detail route. item.id already carries
+  // legacy_id || uuid via rpcRowToResource (see page.tsx), and the
+  // detail page handles UUID→legacy_id redirect, so either form
+  // resolves. The external source URL is accessible from the
+  // detail surface itself; removing the inner title <Link> avoids
+  // the invalid nested-anchor structure.
   return (
+    <Link
+      href={`/research/${encodeURIComponent(item.id)}`}
+      style={{ textDecoration: "none", color: "inherit", display: "block" }}
+    >
     <article
       style={{
         background: "var(--color-surface)",
@@ -976,6 +987,7 @@ function FindingCard({
         gridTemplateColumns: "1fr 220px",
         gap: 22,
         alignItems: "start",
+        cursor: "pointer",
       }}
     >
       {/* Body column */}
@@ -1002,13 +1014,7 @@ function FindingCard({
           </span>
         </div>
         <h4 style={{ fontSize: featured ? 18 : 17, fontWeight: 700, lineHeight: 1.35, margin: "4px 0 6px", color: "var(--color-text-primary)" }}>
-          {item.sourceUrl ? (
-            <Link href={item.sourceUrl} target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
-              {item.title}
-            </Link>
-          ) : (
-            item.title
-          )}
+          {item.title}
         </h4>
         <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--color-text-secondary)", margin: "0 0 6px" }}>
           {item.summary}
@@ -1062,6 +1068,7 @@ function FindingCard({
         )}
       </div>
     </article>
+    </Link>
   );
 }
 

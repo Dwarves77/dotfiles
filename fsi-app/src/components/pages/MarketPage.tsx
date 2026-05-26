@@ -30,6 +30,7 @@
  */
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import type { Resource } from "@/types/resource";
@@ -676,7 +677,15 @@ function SignalCard({
   // on every B1 signal. Substantive Path A fix (per-item trajectory
   // schema + ingestion + UI swap) is on the Sprint 3 backlog.
   const showTrajectory = bandKey === "price";
+  // Phase 5 Step 10 (2026-05-25): wrap whole card in <Link> to
+  // /market/[slug] detail route. item.id carries legacy_id || uuid
+  // via the page.tsx mapper; the detail page handles UUID→legacy_id
+  // redirect, so either form resolves.
   return (
+    <Link
+      href={`/market/${encodeURIComponent(item.id)}`}
+      style={{ textDecoration: "none", color: "inherit", display: "block" }}
+    >
     <article
       style={{
         background: "var(--color-surface)",
@@ -690,6 +699,7 @@ function SignalCard({
         gridTemplateColumns: "1fr 220px",
         gap: 22,
         alignItems: "start",
+        cursor: "pointer",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -731,6 +741,7 @@ function SignalCard({
         {showTrajectory && <TrajectoryEmptyState />}
       </div>
     </article>
+    </Link>
   );
 }
 
