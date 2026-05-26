@@ -187,7 +187,7 @@ Carry the coverage table for OBS entries the planning decision affects. Use the 
 
 ## Post-slim engine state (2026-05-21)
 
-The discipline engine was slim-refactored on 2026-05-21 (commit landing this dispatch). The named-binding-rules block that lived in earlier versions of this skill (Inference correction, Planning-doc, Sources-schema-touch precondition, Sweep-discipline, Source-credibility-model load-trigger, Remediation-discipline load-trigger, Batch-script resilience, Dispatch-artifact commit-summary, Plan-skill hybrid, Verification-before-completion, Inventory-artifact emission, ADR cross-reference) was retired. Those rules prescribed commit-message trailers (`Loop-closure:`, `Skill-loaded:`, `Verification:`, `Plan-file:`, `ADR-Reference:`, `Inventory-emission:`, `Sweep-enumeration:`, `Inference-correction:`, `Planning-doc:`, `Schema-touch-precondition:`, `Batch-resilience:`, `Class-vs-instance:`) which the engine cannot mechanically verify against code. Per the operator's published 5e3ae41 revert rationale: ceremony rather than enforcement.
+The discipline engine was slim-refactored on 2026-05-21 (commit landing this dispatch). The named-binding-rules block that lived in earlier versions of this skill (Inference correction, Planning-doc, Sources-schema-touch precondition, Sweep-discipline, Source-credibility-model load-trigger, Remediation-discipline load-trigger, Batch-script resilience, Plan-skill hybrid, Verification-before-completion) was retired. Those rules prescribed commit-message trailers (`Loop-closure:`, `Skill-loaded:`, `Verification:`, `Plan-file:`, `Sweep-enumeration:`, `Inference-correction:`, `Planning-doc:`, `Schema-touch-precondition:`, `Batch-resilience:`, `Class-vs-instance:`) which the engine cannot mechanically verify against code. Per the operator's published 5e3ae41 revert rationale: ceremony rather than enforcement.
 
 **What remains active:** the core loop-closure protocol (OBS coverage table + DP compliance section in the dispatch report) and the Inventory consistency rule.
 
@@ -209,7 +209,7 @@ The discipline engine was slim-refactored on 2026-05-21 (commit landing this dis
 - Sweep-first discipline (glob/schema query before verification) — methodology only
 - Skill-load attestation for source-credibility / remediation-discipline — load the skills when the conditions apply; attestation trailer is no longer required
 - Plan-skill hybrid (3+ dispatch coordination plan file) — author the plan when the coordination warrants it; no Plan-file trailer required
-- Loop-closure / Inventory-emission / Verification trailers — write them when they add audit trail value; no longer engine-enforced
+- Loop-closure / Verification trailers — write them when they add audit trail value; no longer engine-enforced
 
 ## Inventory consistency rule
 
