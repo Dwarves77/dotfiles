@@ -1,0 +1,67 @@
+{
+  "run_date": "2026-05-26T14:22:28.960Z",
+  "targets": [
+    {
+      "id": "05b786f8-8753-4e81-923e-ee9d76c56609",
+      "expected_title": "EcoVadis: Enterprise Sustainability Intelligence and Ratings Platform Overview"
+    },
+    {
+      "id": "6c59d250-5658-406b-b313-ca38b7b4915f",
+      "expected_title": "EcoVadis 2025 Purpose Report: $2.5T Global Spend Now Governed by Sustainability Risk Insights"
+    },
+    {
+      "id": "8107ba33-30e8-4e73-bee2-dd967f995114",
+      "expected_title": "EcoVadis Sustainability Platform: Comprehensive ESG & Supply Chain Compliance Solution"
+    }
+  ],
+  "steps": [
+    {
+      "id": "05b786f8-8753-4e81-923e-ee9d76c56609",
+      "action": "UPDATED",
+      "title": "EcoVadis: Enterprise Sustainability Intelligence and Ratings Platform Overview",
+      "pre": {
+        "is_archived": false,
+        "domain": 2,
+        "category": "reporting",
+        "pipeline_stage": null
+      },
+      "post": {
+        "is_archived": true,
+        "domain": 5,
+        "category": null
+      }
+    },
+    {
+      "id": "6c59d250-5658-406b-b313-ca38b7b4915f",
+      "action": "UPDATED",
+      "title": "EcoVadis 2025 Purpose Report: $2.5T Global Spend Now Governed by Sustainability Risk Insights",
+      "pre": {
+        "is_archived": false,
+        "domain": 4,
+        "category": null,
+        "pipeline_stage": null
+      },
+      "post": {
+        "is_archived": true,
+        "domain": 5,
+        "category": null
+      }
+    },
+    {
+      "id": "8107ba33-30e8-4e73-bee2-dd967f995114",
+      "action": "UPDATED",
+      "title": "EcoVadis Sustainability Platform: Comprehensive ESG & Supply Chain Compliance Solution",
+      "pre": {
+        "is_archived": false,
+        "domain": 2,
+        "category": "reporting",
+        "pipeline_stage": null
+      },
+      "post": {
+        "is_archived": true,
+        "domain": 5,
+        "category": null
+      }
+    }
+  ]
+}
