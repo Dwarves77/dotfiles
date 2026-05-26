@@ -1,0 +1,87 @@
+{
+  "run_date": "2026-05-26T14:24:56.432Z",
+  "targets": [
+    {
+      "id": "4fdb662c-3ab1-4987-b754-5530c9e511e1",
+      "expected_name": "EcoVadis"
+    },
+    {
+      "id": "a6b20a8a-e6a9-41aa-9c6c-0f38b71016ba",
+      "expected_name": "EcoVadis"
+    },
+    {
+      "id": "a2d25d50-0bb7-4b7c-8cda-e37d26803e8e",
+      "expected_name": "EcoVadis"
+    },
+    {
+      "id": "4a956756-9117-451e-b3f1-1e976dd79e39",
+      "expected_name": "EcoVadis"
+    },
+    {
+      "id": "6f698bf0-8e67-4432-83d1-83f9daff7283",
+      "expected_name": "EcoVadis"
+    }
+  ],
+  "steps": [
+    {
+      "id": "4fdb662c-3ab1-4987-b754-5530c9e511e1",
+      "action": "UPDATED",
+      "name": "EcoVadis",
+      "url": "https://ecovadis.com/about-us",
+      "pre": {
+        "processing_paused": false
+      },
+      "post": {
+        "processing_paused": true
+      }
+    },
+    {
+      "id": "a6b20a8a-e6a9-41aa-9c6c-0f38b71016ba",
+      "action": "UPDATED",
+      "name": "EcoVadis",
+      "url": "https://ecovadis.com/blog",
+      "pre": {
+        "processing_paused": false
+      },
+      "post": {
+        "processing_paused": true
+      }
+    },
+    {
+      "id": "a2d25d50-0bb7-4b7c-8cda-e37d26803e8e",
+      "action": "UPDATED",
+      "name": "EcoVadis",
+      "url": "https://resources.ecovadis.com/blog",
+      "pre": {
+        "processing_paused": false
+      },
+      "post": {
+        "processing_paused": true
+      }
+    },
+    {
+      "id": "4a956756-9117-451e-b3f1-1e976dd79e39",
+      "action": "UPDATED",
+      "name": "EcoVadis",
+      "url": "https://ecovadis.com/",
+      "pre": {
+        "processing_paused": false
+      },
+      "post": {
+        "processing_paused": true
+      }
+    },
+    {
+      "id": "6f698bf0-8e67-4432-83d1-83f9daff7283",
+      "action": "UPDATED",
+      "name": "EcoVadis",
+      "url": "https://resources.ecovadis.com/whitepapers/ecovadis-ratings-methodology-overview-and-principles-2022-neutral",
+      "pre": {
+        "processing_paused": false
+      },
+      "post": {
+        "processing_paused": true
+      }
+    }
+  ]
+}
