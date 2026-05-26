@@ -1,0 +1,178 @@
+{
+  "run_date": "2026-05-26T06:26:01.321Z",
+  "operator_query": {
+    "name_patterns": [
+      "%ecovadis%",
+      "%sustainalytics%",
+      "%msci esg%",
+      "%refinitiv esg%",
+      "%cdp%",
+      "%isos labs%"
+    ],
+    "description_patterns": [
+      "%ratings platform%",
+      "%esg saas%",
+      "%audit services%"
+    ]
+  },
+  "total_matches": 6,
+  "total_items_attributed": 6,
+  "sources": [
+    {
+      "id": "4fdb662c-3ab1-4987-b754-5530c9e511e1",
+      "name": "EcoVadis",
+      "url": "https://ecovadis.com/about-us",
+      "category": "market_news",
+      "base_tier": 5,
+      "status": "active",
+      "admin_only": false,
+      "matched_via": [
+        "name"
+      ],
+      "intelligence_item_count": 1,
+      "intelligence_items": [
+        {
+          "id": "05b786f8-8753-4e81-923e-ee9d76c56609",
+          "title": "EcoVadis: Enterprise Sustainability Intelligence and Ratings Platform Overview",
+          "category": "reporting",
+          "domain": 2,
+          "item_type": "tool",
+          "is_archived": false,
+          "pipeline_stage": null
+        }
+      ],
+      "description_snippet": "About Our Company | EcoVadis",
+      "notes_snippet": "Bulk-approved from canonical_source_candidates 2026-04-28 by reviewer 2b7d21eb. Issue: missing_link. Confidence: high. Bulk approval of high-confidence verified canonical candidates"
+    },
+    {
+      "id": "a6b20a8a-e6a9-41aa-9c6c-0f38b71016ba",
+      "name": "EcoVadis",
+      "url": "https://ecovadis.com/blog",
+      "category": "market_news",
+      "base_tier": 5,
+      "status": "active",
+      "admin_only": false,
+      "matched_via": [
+        "name"
+      ],
+      "intelligence_item_count": 1,
+      "intelligence_items": [
+        {
+          "id": "52eadc84-b3ea-4a80-8173-30b7d5435d4f",
+          "title": "EcoVadis Blog",
+          "category": "research",
+          "domain": 4,
+          "item_type": "market_signal",
+          "is_archived": false,
+          "pipeline_stage": "published"
+        }
+      ],
+      "description_snippet": "EcoVadis Blog",
+      "notes_snippet": "Bulk-approved from canonical_source_candidates 2026-04-28 by reviewer 2b7d21eb. Issue: missing_link. Confidence: high. Bulk approval of high-confidence verified canonical candidates"
+    },
+    {
+      "id": "bb8954b0-c4fa-4387-9cff-3e5c4c0f8768",
+      "name": "CDP Supply Chain",
+      "url": "https://cdp.net/en/supply-chain",
+      "category": "market_news",
+      "base_tier": 5,
+      "status": "active",
+      "admin_only": false,
+      "matched_via": [
+        "name"
+      ],
+      "intelligence_item_count": 1,
+      "intelligence_items": [
+        {
+          "id": "d30bc25d-11cf-48bb-b987-989e060f8c6b",
+          "title": "CDP Supply Chain",
+          "category": "reporting",
+          "domain": 2,
+          "item_type": "tool",
+          "is_archived": false,
+          "pipeline_stage": "published"
+        }
+      ],
+      "description_snippet": "Major channel through which customers request supplier emissions data. Supply-chain program scale makes it relevant to forwarder data strategy.",
+      "notes_snippet": "Annual disclosure cycle. Increasingly tied to procurement decisions.\n\nSwitched 2026-04-28 from scrape of cdp.net/en/supply-chain to Socrata Open Data API at data.cdp.net. No key required.\n\nSwitched 2026-04-28 from scrape of cdp.net/en/supply-chain to Socrata Open Data API at data"
+    },
+    {
+      "id": "a2d25d50-0bb7-4b7c-8cda-e37d26803e8e",
+      "name": "EcoVadis",
+      "url": "https://resources.ecovadis.com/blog",
+      "category": "market_news",
+      "base_tier": 5,
+      "status": "active",
+      "admin_only": false,
+      "matched_via": [
+        "name"
+      ],
+      "intelligence_item_count": 1,
+      "intelligence_items": [
+        {
+          "id": "6c59d250-5658-406b-b313-ca38b7b4915f",
+          "title": "EcoVadis 2025 Purpose Report: $2.5T Global Spend Now Governed by Sustainability Risk Insights",
+          "category": null,
+          "domain": 4,
+          "item_type": "market_signal",
+          "is_archived": false,
+          "pipeline_stage": null
+        }
+      ],
+      "description_snippet": "EcoVadis Blog – Resources Hub",
+      "notes_snippet": "Bulk-approved from canonical_source_candidates 2026-04-28 by reviewer 2b7d21eb. Issue: missing_link. Confidence: high. Bulk approval of high-confidence verified canonical candidates"
+    },
+    {
+      "id": "4a956756-9117-451e-b3f1-1e976dd79e39",
+      "name": "EcoVadis",
+      "url": "https://ecovadis.com/",
+      "category": "market_news",
+      "base_tier": 5,
+      "status": "active",
+      "admin_only": false,
+      "matched_via": [
+        "name"
+      ],
+      "intelligence_item_count": 1,
+      "intelligence_items": [
+        {
+          "id": "8107ba33-30e8-4e73-bee2-dd967f995114",
+          "title": "EcoVadis Sustainability Platform: Comprehensive ESG & Supply Chain Compliance Solution",
+          "category": "reporting",
+          "domain": 2,
+          "item_type": "tool",
+          "is_archived": false,
+          "pipeline_stage": null
+        }
+      ],
+      "description_snippet": "The Global Standard for Resilient, Sustainable Supply Chains | EcoVadis",
+      "notes_snippet": "Bulk-approved from canonical_source_candidates 2026-04-28 by reviewer 2b7d21eb. Issue: missing_link. Confidence: high. Bulk approval of high-confidence verified canonical candidates"
+    },
+    {
+      "id": "6f698bf0-8e67-4432-83d1-83f9daff7283",
+      "name": "EcoVadis",
+      "url": "https://resources.ecovadis.com/whitepapers/ecovadis-ratings-methodology-overview-and-principles-2022-neutral",
+      "category": "market_news",
+      "base_tier": 5,
+      "status": "active",
+      "admin_only": false,
+      "matched_via": [
+        "name"
+      ],
+      "intelligence_item_count": 1,
+      "intelligence_items": [
+        {
+          "id": "19f08fcc-5f81-44cc-b3db-fe25f1717845",
+          "title": "EcoVadis",
+          "category": "reporting",
+          "domain": 2,
+          "item_type": "tool",
+          "is_archived": false,
+          "pipeline_stage": "published"
+        }
+      ],
+      "description_snippet": "EcoVadis Ratings Methodology Overview and Principles | EcoVadis",
+      "notes_snippet": "Bulk-approved from canonical_source_candidates 2026-04-28 by reviewer 2b7d21eb. Issue: missing_link. Confidence: high. Bulk approval of high-confidence verified canonical candidates"
+    }
+  ]
+}
