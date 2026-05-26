@@ -1,0 +1,57 @@
+{
+  "run_date": "2026-05-26T20:27:12.839Z",
+  "org_id": "a0000000-0000-0000-0000-000000000001",
+  "research_page_cap": 100,
+  "surfaces": {
+    "regulations": {
+      "rpc": "get_workspace_intelligence_aggregates_scoped",
+      "scope": {
+        "domains": [
+          1
+        ]
+      },
+      "rpc_error": null,
+      "masthead_total": 318,
+      "by_priority": {
+        "LOW": 140,
+        "HIGH": 70,
+        "CRITICAL": 50,
+        "MODERATE": 58
+      },
+      "total_jurisdictions": 107
+    },
+    "market": {
+      "rpc": "get_market_intel_items",
+      "rpc_error": null,
+      "masthead_total": 46
+    },
+    "operations": {
+      "rpc": "get_operations_items",
+      "rpc_error": null,
+      "masthead_total": 30
+    },
+    "research": {
+      "rpcs": [
+        "get_research_items",
+        "intelligence_items (pipeline)"
+      ],
+      "rpc_error": null,
+      "pipeline_total": 641,
+      "pipeline_rows_capped_at": 100,
+      "pipeline_rows_returned": 100,
+      "category_routed_allow_size": 137,
+      "intersected_rows": 13,
+      "masthead_total": 13
+    }
+  },
+  "per_domain_active_xcheck": {
+    "1": 319,
+    "2": 38,
+    "3": 111,
+    "4": 70,
+    "5": 11,
+    "6": 2,
+    "7": 90
+  },
+  "total_active_items": 641
+}
