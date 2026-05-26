@@ -1,0 +1,10 @@
+{
+  "run_date": "2026-05-26T19:19:50.473Z",
+  "phase": "A",
+  "label": "category-only changes",
+  "column": "category",
+  "total_rows": 285,
+  "applied": 285,
+  "errors": [],
+  "verify_mismatches": []
+}
