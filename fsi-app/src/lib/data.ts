@@ -5,7 +5,6 @@ import {
   fetchListingsOnly,
   fetchMapData,
   fetchListingsMapData,
-  fetchSourceData,
   fetchSettingsData,
   fetchWatchlist,
   fetchCoverageGaps,
@@ -59,19 +58,28 @@ export const APP_DATA_TAG = "app-data";
  */
 const cachedAppData = unstable_cache(
   async (orgId: string | null) => {
-    const dataPromise = Promise.all([fetchDashboardData(orgId), fetchSourceData()]);
+    // Sprint 3 E1 (2026-05-25): dropped fetchSourceData from the
+    // getAppData merge. The Dashboard home tree + src/app/page.tsx do
+    // not consume data.sources / data.provisionalSources /
+    // data.openConflicts (grep-verified). Sources are loaded directly
+    // by /admin via app/admin/page.tsx → AdminDashboard.initialSources
+    // → useSourceStore.setSources. Keeping sources in getAppData was
+    // burning the 2 MB Next.js cache limit (sources alone = 1.8 MB
+    // from select("*") on 725 rows; provisional_sources another 313 KB).
+    // Removing them saves ~2.1 MB and gets the cache payload back under
+    // the 2 MB threshold.
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("getAppData timeout")), 10000)
     );
-    const [dashboardData, sourceData] = await Promise.race([
-      dataPromise,
+    const dashboardData = await Promise.race([
+      fetchDashboardData(orgId),
       timeout.then(() => {
         throw new Error("timeout");
       }),
     ]);
-    return { ...dashboardData, ...sourceData };
+    return dashboardData;
   },
-  ["app-data-v1"],
+  ["app-data-v2"],
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
@@ -85,9 +93,6 @@ async function appDataSeedFallback() {
     xrefPairs: seed.xrefPairs,
     supersessions: seed.supersessions,
     auditDate: seed.AUDIT_DATE,
-    sources: [],
-    provisionalSources: [],
-    openConflicts: [],
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],
