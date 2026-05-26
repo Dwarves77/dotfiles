@@ -18,13 +18,13 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
-import { AiPromptBar } from "@/components/ui/AiPromptBar";
-import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
+import type { Resource } from "@/types/resource";
 import { getJurisdiction } from "@/lib/scoring";
 import { JURISDICTIONS } from "@/lib/constants";
 import type { RegionCoverage } from "@/lib/coverage-gaps";
 import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import type { CommunityActivityRow, JurisdictionTone, MapJurisdiction } from "@/components/map/MapView";
 
 const MapView = dynamic(
   () => import("@/components/map/MapView").then((m) => m.MapView),
@@ -49,10 +49,6 @@ const MapView = dynamic(
 
 interface MapPageViewProps {
   resources: Resource[];
-  changelog: Record<string, ChangeLogEntry[]>;
-  disputes: Record<string, Dispute>;
-  xrefPairs: [string, string][];
-  supersessions: Supersession[];
   /**
    * Per-region coverage rollup, fetched server-side via getCoverageGaps()
    * (see lib/coverage-gaps.ts). Optional so the surface degrades to an
@@ -69,7 +65,34 @@ interface MapPageViewProps {
    * all align on the same filtered set.
    */
   initialRegionFilter?: string | null;
+  /**
+   * Phase 6 (2026-05-25): community activity by region for the dot
+   * overlay on the map. Optional so the surface renders cleanly when
+   * the aggregate query hasn't been fetched yet.
+   */
+  communityActivity?: CommunityActivityRow[];
 }
+
+// Region chip vocabulary per mockup: EU / US / UK / LATAM / APAC / MEAF.
+// Maps each chip to the set of jurisdiction IDs that count as "in"
+// that region. Click toggles the chip; multiple chips combine as OR.
+type RegionChipKey = "EU" | "US" | "UK" | "LATAM" | "APAC" | "MEAF";
+
+const REGION_CHIP_TO_JURS: Record<RegionChipKey, ReadonlyArray<string>> = {
+  EU: ["eu"],
+  US: ["us"],
+  UK: ["uk"],
+  LATAM: ["latam", "brazil", "caribbean"],
+  APAC: ["asia", "china", "japan", "korea", "india", "asean", "hk", "singapore", "australia", "pacific"],
+  MEAF: ["meaf", "gcc", "uae", "safrica", "wafrica", "eafrica", "nafrica"],
+};
+
+type PriorityChipKey = "CRITICAL" | "HIGH" | "MODERATE";
+
+// View mode toggle: single concession kept from the prior MapView per
+// operator instruction. Controls the layout grid; the H3 stacking
+// responsive (cl-two-col @ 960px) handles mobile separately.
+type ViewMode = "split" | "map" | "list";
 
 // D14 resolution (2026-05-19): per caros-ledge-platform-intent SKILL.md
 // Section 4, Map is a geographic visual layer over Regulations content, NOT
@@ -118,12 +141,9 @@ const TONE_BD: Record<Tone, string> = {
 export function MapPageView(props: MapPageViewProps) {
   const {
     resources,
-    changelog,
-    disputes,
-    xrefPairs,
-    supersessions,
     coverageGaps,
     initialRegionFilter = null,
+    communityActivity = [],
   } = props;
 
   // PR-N (Wave 5): hoist the URL-driven ISO filter into a normalised
@@ -153,6 +173,12 @@ export function MapPageView(props: MapPageViewProps) {
   }, [coverageGaps]);
 
   const [mode, setMode] = useState<Mode>("all");
+  // Phase 6 (2026-05-25): Priority + Regions chips per mockup. Both
+  // are sets so multi-select OR-combines (mockup: "Critical" + "High"
+  // both active). Empty set = no filter for that dimension.
+  const [priorityChips, setPriorityChips] = useState<Set<PriorityChipKey>>(new Set());
+  const [regionChips, setRegionChips] = useState<Set<RegionChipKey>>(new Set());
+  const [viewMode, setViewMode] = useState<ViewMode>("split");
   // Side-rail jurisdiction selection. We bump a counter alongside the id so
   // clicking the same row twice still triggers MapView's drill effect (the
   // id alone wouldn't change). Kept local; MapView owns the actual drill
@@ -162,10 +188,28 @@ export function MapPageView(props: MapPageViewProps) {
     nonce: number;
   }>({ id: null, nonce: 0 });
 
-  // Filter resources by mode + (PR-N) optional ISO region filter.
-  // The ISO filter narrows the resource set BEFORE downstream
-  // aggregation (markers, side rail, Active heat) so all map widgets
-  // stay coherent.
+  const togglePriority = (key: PriorityChipKey) => {
+    setPriorityChips((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleRegion = (key: RegionChipKey) => {
+    setRegionChips((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Filter resources by mode + ISO region (PR-N) + Priority chips +
+  // Regions chips. All four dimensions compose with AND-between,
+  // OR-within (multi-select within each chip group). Empty
+  // priority/region chip sets pass through (no filter).
   const filteredResources = useMemo(() => {
     const isoFiltered =
       activeRegionIso === null
@@ -175,13 +219,33 @@ export function MapPageView(props: MapPageViewProps) {
             return isos.includes(activeRegionIso);
           });
 
-    if (mode === "all") return isoFiltered;
-    return isoFiltered.filter(
-      (r) =>
-        (Array.isArray(r.modes) && r.modes.includes(mode)) ||
-        r.cat === mode
-    );
-  }, [resources, mode, activeRegionIso]);
+    const modeFiltered =
+      mode === "all"
+        ? isoFiltered
+        : isoFiltered.filter(
+            (r) =>
+              (Array.isArray(r.modes) && r.modes.includes(mode)) ||
+              r.cat === mode
+          );
+
+    const priorityFiltered =
+      priorityChips.size === 0
+        ? modeFiltered
+        : modeFiltered.filter((r) => priorityChips.has(r.priority as PriorityChipKey));
+
+    const regionFiltered =
+      regionChips.size === 0
+        ? priorityFiltered
+        : priorityFiltered.filter((r) => {
+            const jur = (r.jurisdiction || getJurisdiction(r) || "global").toLowerCase();
+            for (const chip of regionChips) {
+              if (REGION_CHIP_TO_JURS[chip].includes(jur)) return true;
+            }
+            return false;
+          });
+
+    return regionFiltered;
+  }, [resources, mode, activeRegionIso, priorityChips, regionChips]);
 
   // Aggregate by jurisdiction for the side rail list.
   const jurisdictionRows = useMemo(() => {
@@ -251,16 +315,30 @@ export function MapPageView(props: MapPageViewProps) {
   const regulationsJurisdictionCount = new Set(
     regulationResources.map((r) => r.jurisdiction || "global")
   ).size;
-  const regulationsCriticalCount = regulationResources.filter(
-    (r) => r.priority === "CRITICAL"
-  ).length;
+  // Phase 6 (2026-05-25): mockup masthead says "13 jurisdictions with
+  // critical items" — count UNIQUE jurisdictions containing a CRITICAL
+  // resource, not the total count of CRITICAL resources. Both metrics
+  // were live before; this aligns the masthead label to the actual value.
+  const regulationsCriticalCount = new Set(
+    regulationResources
+      .filter((r) => r.priority === "CRITICAL")
+      .map((r) => r.jurisdiction || "global")
+  ).size;
 
-  // Resource map for MapView.
-  const resourceMap = useMemo(() => {
-    const map = new Map<string, Resource>();
-    for (const r of filteredResources) map.set(r.id, r);
-    return map;
-  }, [filteredResources]);
+  // Phase 6 (2026-05-25): MapView now consumes pre-aggregated
+  // jurisdictions, not raw resources. Map the side-rail rows
+  // (jurisdictionRows) to the MapView prop shape — same id/label/
+  // count/tone projection, just renamed at the boundary.
+  const mapMarkers: MapJurisdiction[] = useMemo(
+    () =>
+      jurisdictionRows.map((r) => ({
+        id: r.id,
+        label: r.label,
+        count: r.count,
+        tone: r.tone as JurisdictionTone,
+      })),
+    [jurisdictionRows]
+  );
 
   return (
     <div style={{ background: "var(--bg)", minHeight: "100vh" }}>
@@ -268,111 +346,82 @@ export function MapPageView(props: MapPageViewProps) {
         title="Global Regulatory Map"
         meta={
           <>
-            May 24, 2026 · Regulations by jurisdiction. Marker size encodes item count; colour encodes urgency.
+            Regulations by jurisdiction. Marker size encodes item count; colour encodes urgency.
+            {" · "}
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsJurisdictionCount}</b> jurisdictions live
             {" · "}
             <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsActiveCount}</b> active items
             {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsJurisdictionCount}</b> jurisdictions
-            {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsCriticalCount}</b> critical
-            {" · "}
-            workspace verticals: <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Live events · Fine art</b>
+            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{regulationsCriticalCount}</b> jurisdictions with critical items
           </>
         }
       />
 
-      <div style={{ padding: "28px 36px 60px" }}>
-        {/* AI prompt bar */}
-        <div style={{ marginBottom: 22 }}>
-          <AiPromptBar
-            placeholder="Ask anything about coverage — e.g. Which jurisdictions have critical items?"
-            chips={[
-              "Critical jurisdictions",
-              "Corridors with active CBAM",
-              "Where coverage is thin",
-            ]}
-          />
-        </div>
-
-        {/* Header + mode filters */}
+      <div style={{ padding: "12px 36px 60px" }}>
+        {/* Phase 6 (2026-05-25): mockup filter row — Modes / Priority /
+            Regions chip groups. AiPromptBar stripped (not in mockup). */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "end",
-            marginBottom: 14,
             gap: 18,
+            alignItems: "center",
+            padding: "12px 0 16px",
+            borderBottom: "1px solid var(--border-sub)",
+            marginBottom: 18,
             flexWrap: "wrap",
+            fontSize: 12,
           }}
         >
-          <div>
-            <h3
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 26,
-                fontWeight: 400,
-                letterSpacing: "0.02em",
-                margin: "0 0 4px",
-                color: "var(--text)",
-              }}
-            >
-              Coverage &amp; urgency
-            </h3>
-            <p
-              style={{
-                fontSize: 13.5,
-                lineHeight: 1.5,
-                color: "var(--text-2)",
-                margin: 0,
-                maxWidth: "64ch",
-              }}
-            >
-              {liveJurisdictions} jurisdictions live · {totalActiveCount} active items.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {([
-              { id: "all" as const, label: "All modes" },
-              { id: "ocean" as const, label: "Ocean" },
-              { id: "air" as const, label: "Air" },
-              { id: "road" as const, label: "Road" },
-            ]).map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                style={{
-                  fontFamily: "inherit",
-                  fontSize: 11,
-                  padding: "6px 12px",
-                  background: mode === m.id ? "var(--accent)" : "var(--surface)",
-                  border:
-                    mode === m.id
-                      ? "1px solid var(--accent)"
-                      : "1px solid var(--border)",
-                  borderRadius: 999,
-                  color: mode === m.id ? "#fff" : "var(--text-2)",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {m.label}
-              </button>
-            ))}
+          <span style={chipGroupLabelStyle}>Modes</span>
+          <Chip on={mode === "all"} onClick={() => setMode("all")}>All</Chip>
+          <Chip on={mode === "ocean"} onClick={() => setMode("ocean")}>Ocean</Chip>
+          <Chip on={mode === "air"} onClick={() => setMode("air")}>Air</Chip>
+          <Chip on={mode === "road"} onClick={() => setMode("road")}>Road</Chip>
+
+          <span style={{ ...chipGroupLabelStyle, marginLeft: 18 }}>Priority</span>
+          <Chip on={priorityChips.has("CRITICAL")} onClick={() => togglePriority("CRITICAL")}>Critical</Chip>
+          <Chip on={priorityChips.has("HIGH")} onClick={() => togglePriority("HIGH")}>High</Chip>
+          <Chip on={priorityChips.has("MODERATE")} onClick={() => togglePriority("MODERATE")}>Moderate</Chip>
+
+          <span style={{ ...chipGroupLabelStyle, marginLeft: 18 }}>Regions</span>
+          <Chip on={regionChips.has("EU")} onClick={() => toggleRegion("EU")}>EU</Chip>
+          <Chip on={regionChips.has("US")} onClick={() => toggleRegion("US")}>US</Chip>
+          <Chip on={regionChips.has("UK")} onClick={() => toggleRegion("UK")}>UK</Chip>
+          <Chip on={regionChips.has("LATAM")} onClick={() => toggleRegion("LATAM")}>LATAM</Chip>
+          <Chip on={regionChips.has("APAC")} onClick={() => toggleRegion("APAC")}>APAC</Chip>
+          <Chip on={regionChips.has("MEAF")} onClick={() => toggleRegion("MEAF")}>MEAF</Chip>
+
+          {/* ViewMode toggle — single concession to mobile escape hatch
+              per operator instruction. Pushed to the right via margin
+              auto. Mobile responsive (cl-two-col) handles the
+              <=960px stacking separately. */}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+            <Chip on={viewMode === "split"} onClick={() => setViewMode("split")}>Split</Chip>
+            <Chip on={viewMode === "map"} onClick={() => setViewMode("map")}>Map</Chip>
+            <Chip on={viewMode === "list"} onClick={() => setViewMode("list")}>List</Chip>
           </div>
         </div>
 
-        {/* Layout: map + side rail */}
+        {/* Layout: map + side rail. viewMode = "split" gives the
+            mockup layout; "map" hides the rail; "list" hides the map. */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 320px",
+            gridTemplateColumns:
+              viewMode === "split"
+                ? "1fr 320px"
+                : viewMode === "map"
+                ? "1fr"
+                : "1fr",
             gap: 18,
             alignItems: "stretch",
           }}
           className="cl-map-layout"
         >
           {/* Map shell */}
+          {viewMode !== "list" && (
           <div
+            className="cl-map-frame"
             style={{
               background: "var(--surface)",
               border: "1px solid var(--border-sub)",
@@ -380,25 +429,25 @@ export function MapPageView(props: MapPageViewProps) {
               overflow: "hidden",
               boxShadow: "var(--shadow)",
               position: "relative",
-              height: 640,
+              height: 700,
             }}
           >
             <div style={{ position: "absolute", inset: 0 }}>
               <MapView
-                resources={filteredResources}
-                changelog={changelog}
-                disputes={disputes}
-                xrefPairs={xrefPairs}
-                supersessions={supersessions}
-                resourceMap={resourceMap}
-                onToast={() => {}}
+                jurisdictions={mapMarkers}
+                communityActivity={communityActivity}
                 externalSelectJurId={pendingSelectJur.id}
                 externalSelectNonce={pendingSelectJur.nonce}
+                onMarkerClick={(id) =>
+                  setPendingSelectJur((prev) => ({ id, nonce: prev.nonce + 1 }))
+                }
               />
             </div>
           </div>
+          )}
 
           {/* Side rail */}
+          {viewMode !== "map" && (
           <aside>
             {/* Active heat pulse card.
                 Two distinct metrics, both surfaced and labelled to reconcile
@@ -609,6 +658,7 @@ export function MapPageView(props: MapPageViewProps) {
               )}
             </SideCard>
           </aside>
+          )}
         </div>
       </div>
 
@@ -620,6 +670,48 @@ export function MapPageView(props: MapPageViewProps) {
         }
       `}</style>
     </div>
+  );
+}
+
+// ── Filter chip + label ──
+
+const chipGroupLabelStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "var(--text-2)",
+};
+
+function Chip({
+  on,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "5px 12px",
+        fontSize: 12,
+        fontWeight: 600,
+        border: on ? "1px solid var(--text)" : "1px solid var(--border)",
+        background: on ? "var(--text)" : "var(--surface)",
+        color: on ? "#fff" : "var(--text)",
+        borderRadius: 999,
+        cursor: "pointer",
+        fontFamily: "inherit",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
