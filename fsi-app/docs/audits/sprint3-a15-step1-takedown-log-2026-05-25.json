@@ -1,0 +1,47 @@
+{
+  "run_date": "2026-05-26T14:21:02.770Z",
+  "targets": [
+    {
+      "id": "52eadc84-b3ea-4a80-8173-30b7d5435d4f",
+      "expected_title": "EcoVadis Blog"
+    },
+    {
+      "id": "19f08fcc-5f81-44cc-b3db-fe25f1717845",
+      "expected_title": "EcoVadis"
+    }
+  ],
+  "steps": [
+    {
+      "id": "52eadc84-b3ea-4a80-8173-30b7d5435d4f",
+      "action": "UPDATED",
+      "title": "EcoVadis Blog",
+      "pre": {
+        "is_archived": false,
+        "domain": 4,
+        "category": "research",
+        "pipeline_stage": "published"
+      },
+      "post": {
+        "is_archived": true,
+        "domain": 5,
+        "category": null
+      }
+    },
+    {
+      "id": "19f08fcc-5f81-44cc-b3db-fe25f1717845",
+      "action": "UPDATED",
+      "title": "EcoVadis",
+      "pre": {
+        "is_archived": false,
+        "domain": 2,
+        "category": "reporting",
+        "pipeline_stage": "published"
+      },
+      "post": {
+        "is_archived": true,
+        "domain": 5,
+        "category": null
+      }
+    }
+  ]
+}
