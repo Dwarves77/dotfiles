@@ -1,0 +1,585 @@
+{
+  "measured_at": "2026-05-26T04:27:59.790Z",
+  "org_id": "a0000000-0000-0000-0000-000000000001",
+  "total_bytes": 2277671,
+  "total_formatted": "2.17 MB",
+  "next_js_cache_limit_bytes": 2097152,
+  "over_limit_by_bytes": 180519,
+  "over_limit_by_formatted": "176.3 KB",
+  "composition": {
+    "rpc_intelligence": {
+      "row_count": 50,
+      "bytes": 57019,
+      "formatted": "55.7 KB"
+    },
+    "item_timelines": {
+      "row_count": 107,
+      "bytes": 15123,
+      "formatted": "14.8 KB"
+    },
+    "intelligence_changes": {
+      "row_count": 0,
+      "bytes": 2,
+      "formatted": "2 B"
+    },
+    "sector_contexts": {
+      "row_count": 15,
+      "bytes": 1001,
+      "formatted": "1001 B"
+    },
+    "workspace_item_overrides": {
+      "row_count": 1,
+      "bytes": 152,
+      "formatted": "152 B"
+    },
+    "sources": {
+      "row_count": 725,
+      "bytes": 1883380,
+      "formatted": "1.80 MB"
+    },
+    "provisional_sources": {
+      "row_count": 200,
+      "bytes": 320830,
+      "formatted": "313.3 KB"
+    },
+    "open_conflicts": {
+      "row_count": 0,
+      "bytes": 2,
+      "formatted": "2 B"
+    }
+  },
+  "rpc_intelligence_field_breakdown": {
+    "summary": {
+      "bytes": 20498,
+      "formatted": "20.0 KB",
+      "avg_per_row": "409 B"
+    },
+    "title": {
+      "bytes": 4630,
+      "formatted": "4.5 KB",
+      "avg_per_row": "92 B"
+    },
+    "source_url": {
+      "bytes": 4545,
+      "formatted": "4.4 KB",
+      "avg_per_row": "90 B"
+    },
+    "source_id": {
+      "bytes": 2549,
+      "formatted": "2.5 KB",
+      "avg_per_row": "50 B"
+    },
+    "id": {
+      "bytes": 2301,
+      "formatted": "2.2 KB",
+      "avg_per_row": "46 B"
+    },
+    "effective_priority": {
+      "bytes": 1701,
+      "formatted": "1.7 KB",
+      "avg_per_row": "34 B"
+    },
+    "jurisdictions": {
+      "bytes": 1499,
+      "formatted": "1.5 KB",
+      "avg_per_row": "29 B"
+    },
+    "severity": {
+      "bytes": 1499,
+      "formatted": "1.5 KB",
+      "avg_per_row": "29 B"
+    },
+    "compliance_deadline": {
+      "bytes": 1451,
+      "formatted": "1.4 KB",
+      "avg_per_row": "29 B"
+    },
+    "effective_archived": {
+      "bytes": 1451,
+      "formatted": "1.4 KB",
+      "avg_per_row": "29 B"
+    },
+    "added_date": {
+      "bytes": 1401,
+      "formatted": "1.4 KB",
+      "avg_per_row": "28 B"
+    },
+    "confidence": {
+      "bytes": 1351,
+      "formatted": "1.3 KB",
+      "avg_per_row": "27 B"
+    },
+    "item_type": {
+      "bytes": 1337,
+      "formatted": "1.3 KB",
+      "avg_per_row": "26 B"
+    },
+    "transport_modes": {
+      "bytes": 1333,
+      "formatted": "1.3 KB",
+      "avg_per_row": "26 B"
+    },
+    "entry_into_force": {
+      "bytes": 1325,
+      "formatted": "1.3 KB",
+      "avg_per_row": "26 B"
+    },
+    "next_review_date": {
+      "bytes": 1301,
+      "formatted": "1.3 KB",
+      "avg_per_row": "26 B"
+    },
+    "priority": {
+      "bytes": 1201,
+      "formatted": "1.2 KB",
+      "avg_per_row": "24 B"
+    },
+    "status": {
+      "bytes": 1186,
+      "formatted": "1.2 KB",
+      "avg_per_row": "23 B"
+    },
+    "last_verified": {
+      "bytes": 1151,
+      "formatted": "1.1 KB",
+      "avg_per_row": "23 B"
+    },
+    "legacy_id": {
+      "bytes": 1146,
+      "formatted": "1.1 KB",
+      "avg_per_row": "22 B"
+    },
+    "is_archived": {
+      "bytes": 1101,
+      "formatted": "1.1 KB",
+      "avg_per_row": "22 B"
+    },
+    "category": {
+      "bytes": 1031,
+      "formatted": "1.0 KB",
+      "avg_per_row": "20 B"
+    },
+    "tags": {
+      "bytes": 953,
+      "formatted": "953 B",
+      "avg_per_row": "19 B"
+    },
+    "verticals": {
+      "bytes": 851,
+      "formatted": "851 B",
+      "avg_per_row": "17 B"
+    },
+    "domain": {
+      "bytes": 651,
+      "formatted": "651 B",
+      "avg_per_row": "13 B"
+    }
+  },
+  "sources_field_breakdown": {
+    "description": {
+      "bytes": 120892,
+      "formatted": "118.1 KB",
+      "avg_per_row": "166 B"
+    },
+    "notes": {
+      "bytes": 109245,
+      "formatted": "106.7 KB",
+      "avg_per_row": "150 B"
+    },
+    "expected_output": {
+      "bytes": 78846,
+      "formatted": "77.0 KB",
+      "avg_per_row": "108 B"
+    },
+    "last_intelligence_item_at": {
+      "bytes": 45076,
+      "formatted": "44.0 KB",
+      "avg_per_row": "62 B"
+    },
+    "classification_assigned_at": {
+      "bytes": 44874,
+      "formatted": "43.8 KB",
+      "avg_per_row": "61 B"
+    },
+    "trust_score_computed_at": {
+      "bytes": 44466,
+      "formatted": "43.4 KB",
+      "avg_per_row": "61 B"
+    },
+    "classification_rationale": {
+      "bytes": 41038,
+      "formatted": "40.1 KB",
+      "avg_per_row": "56 B"
+    },
+    "name": {
+      "bytes": 40881,
+      "formatted": "39.9 KB",
+      "avg_per_row": "56 B"
+    },
+    "url": {
+      "bytes": 40595,
+      "formatted": "39.6 KB",
+      "avg_per_row": "55 B"
+    },
+    "updated_at": {
+      "bytes": 36244,
+      "formatted": "35.4 KB",
+      "avg_per_row": "49 B"
+    },
+    "created_at": {
+      "bytes": 36167,
+      "formatted": "35.3 KB",
+      "avg_per_row": "49 B"
+    },
+    "id": {
+      "bytes": 33351,
+      "formatted": "32.6 KB",
+      "avg_per_row": "46 B"
+    },
+    "classification_observed_distribution": {
+      "bytes": 33351,
+      "formatted": "32.6 KB",
+      "avg_per_row": "46 B"
+    },
+    "source_role": {
+      "bytes": 28994,
+      "formatted": "28.3 KB",
+      "avg_per_row": "39 B"
+    },
+    "scope_topics": {
+      "bytes": 28585,
+      "formatted": "27.9 KB",
+      "avg_per_row": "39 B"
+    },
+    "scope_verticals": {
+      "bytes": 28363,
+      "formatted": "27.7 KB",
+      "avg_per_row": "39 B"
+    },
+    "next_scheduled_check": {
+      "bytes": 26913,
+      "formatted": "26.3 KB",
+      "avg_per_row": "37 B"
+    },
+    "classification_confidence": {
+      "bytes": 26739,
+      "formatted": "26.1 KB",
+      "avg_per_row": "36 B"
+    },
+    "intelligence_types": {
+      "bytes": 26111,
+      "formatted": "25.5 KB",
+      "avg_per_row": "36 B"
+    },
+    "last_content_fetched_at": {
+      "bytes": 24141,
+      "formatted": "23.6 KB",
+      "avg_per_row": "33 B"
+    },
+    "last_substantive_change": {
+      "bytes": 23926,
+      "formatted": "23.4 KB",
+      "avg_per_row": "33 B"
+    },
+    "observed_correctness_count": {
+      "bytes": 23926,
+      "formatted": "23.4 KB",
+      "avg_per_row": "33 B"
+    },
+    "trust_score_reliability": {
+      "bytes": 22476,
+      "formatted": "21.9 KB",
+      "avg_per_row": "31 B"
+    },
+    "rss_feed_url": {
+      "bytes": 22232,
+      "formatted": "21.7 KB",
+      "avg_per_row": "30 B"
+    },
+    "last_accessible": {
+      "bytes": 22022,
+      "formatted": "21.5 KB",
+      "avg_per_row": "30 B"
+    },
+    "update_frequency": {
+      "bytes": 21859,
+      "formatted": "21.3 KB",
+      "avg_per_row": "30 B"
+    },
+    "trust_score_timeliness": {
+      "bytes": 21751,
+      "formatted": "21.2 KB",
+      "avg_per_row": "30 B"
+    },
+    "jurisdiction_iso": {
+      "bytes": 21735,
+      "formatted": "21.2 KB",
+      "avg_per_row": "29 B"
+    },
+    "last_checked": {
+      "bytes": 21113,
+      "formatted": "20.6 KB",
+      "avg_per_row": "29 B"
+    },
+    "transport_modes": {
+      "bytes": 21108,
+      "formatted": "20.6 KB",
+      "avg_per_row": "29 B"
+    },
+    "last_scanned": {
+      "bytes": 21060,
+      "formatted": "20.6 KB",
+      "avg_per_row": "29 B"
+    },
+    "consecutive_accessible": {
+      "bytes": 21026,
+      "formatted": "20.5 KB",
+      "avg_per_row": "29 B"
+    },
+    "highest_citing_tier": {
+      "bytes": 21026,
+      "formatted": "20.5 KB",
+      "avg_per_row": "29 B"
+    },
+    "api_response_format": {
+      "bytes": 21026,
+      "formatted": "20.5 KB",
+      "avg_per_row": "29 B"
+    },
+    "last_inaccessible": {
+      "bytes": 20977,
+      "formatted": "20.5 KB",
+      "avg_per_row": "28 B"
+    },
+    "jurisdictions": {
+      "bytes": 20872,
+      "formatted": "20.4 KB",
+      "avg_per_row": "28 B"
+    },
+    "trust_score_accuracy": {
+      "bytes": 20301,
+      "formatted": "19.8 KB",
+      "avg_per_row": "28 B"
+    },
+    "processing_paused": {
+      "bytes": 20298,
+      "formatted": "19.8 KB",
+      "avg_per_row": "27 B"
+    },
+    "last_content_hash": {
+      "bytes": 20072,
+      "formatted": "19.6 KB",
+      "avg_per_row": "27 B"
+    },
+    "trust_score_citation": {
+      "bytes": 19914,
+      "formatted": "19.4 KB",
+      "avg_per_row": "27 B"
+    },
+    "trust_score_overall": {
+      "bytes": 19576,
+      "formatted": "19.1 KB",
+      "avg_per_row": "27 B"
+    },
+    "auto_run_enabled": {
+      "bytes": 19563,
+      "formatted": "19.1 KB",
+      "avg_per_row": "26 B"
+    },
+    "self_citation_count": {
+      "bytes": 18851,
+      "formatted": "18.4 KB",
+      "avg_per_row": "26 B"
+    },
+    "api_endpoint_url": {
+      "bytes": 18851,
+      "formatted": "18.4 KB",
+      "avg_per_row": "26 B"
+    },
+    "last_observed_at": {
+      "bytes": 18851,
+      "formatted": "18.4 KB",
+      "avg_per_row": "26 B"
+    },
+    "access_method": {
+      "bytes": 18844,
+      "formatted": "18.4 KB",
+      "avg_per_row": "25 B"
+    },
+    "category": {
+      "bytes": 18836,
+      "formatted": "18.4 KB",
+      "avg_per_row": "25 B"
+    },
+    "scope_modes": {
+      "bytes": 18214,
+      "formatted": "17.8 KB",
+      "avg_per_row": "25 B"
+    },
+    "confirmation_count": {
+      "bytes": 18126,
+      "formatted": "17.7 KB",
+      "avg_per_row": "25 B"
+    },
+    "avg_lead_time_days": {
+      "bytes": 18126,
+      "formatted": "17.7 KB",
+      "avg_per_row": "25 B"
+    },
+    "accessibility_rate": {
+      "bytes": 18126,
+      "formatted": "17.7 KB",
+      "avg_per_row": "25 B"
+    },
+    "independent_citers": {
+      "bytes": 18126,
+      "formatted": "17.7 KB",
+      "avg_per_row": "25 B"
+    },
+    "api_auth_method": {
+      "bytes": 18126,
+      "formatted": "17.7 KB",
+      "avg_per_row": "25 B"
+    },
+    "override_reason": {
+      "bytes": 18126,
+      "formatted": "17.7 KB",
+      "avg_per_row": "25 B"
+    },
+    "api_endpoint": {
+      "bytes": 17994,
+      "formatted": "17.6 KB",
+      "avg_per_row": "24 B"
+    },
+    "topic_tags": {
+      "bytes": 17898,
+      "formatted": "17.5 KB",
+      "avg_per_row": "24 B"
+    },
+    "lead_time_samples": {
+      "bytes": 17401,
+      "formatted": "17.0 KB",
+      "avg_per_row": "24 B"
+    },
+    "successful_checks": {
+      "bytes": 17401,
+      "formatted": "17.0 KB",
+      "avg_per_row": "24 B"
+    },
+    "reliability_score": {
+      "bytes": 17401,
+      "formatted": "17.0 KB",
+      "avg_per_row": "24 B"
+    },
+    "spotchecked_by": {
+      "bytes": 17401,
+      "formatted": "17.0 KB",
+      "avg_per_row": "24 B"
+    },
+    "spotchecked_at": {
+      "bytes": 17401,
+      "formatted": "17.0 KB",
+      "avg_per_row": "24 B"
+    },
+    "tier_at_creation": {
+      "bytes": 16676,
+      "formatted": "16.3 KB",
+      "avg_per_row": "23 B"
+    },
+    "secondary_roles": {
+      "bytes": 16676,
+      "formatted": "16.3 KB",
+      "avg_per_row": "23 B"
+    },
+    "tier_override": {
+      "bytes": 16676,
+      "formatted": "16.3 KB",
+      "avg_per_row": "23 B"
+    },
+    "override_date": {
+      "bytes": 16676,
+      "formatted": "16.3 KB",
+      "avg_per_row": "23 B"
+    },
+    "accuracy_rate": {
+      "bytes": 15951,
+      "formatted": "15.6 KB",
+      "avg_per_row": "22 B"
+    },
+    "total_citations": {
+      "bytes": 15951,
+      "formatted": "15.6 KB",
+      "avg_per_row": "22 B"
+    },
+    "spotchecked": {
+      "bytes": 15951,
+      "formatted": "15.6 KB",
+      "avg_per_row": "22 B"
+    },
+    "conflict_count": {
+      "bytes": 15226,
+      "formatted": "14.9 KB",
+      "avg_per_row": "21 B"
+    },
+    "conflict_total": {
+      "bytes": 15226,
+      "formatted": "14.9 KB",
+      "avg_per_row": "21 B"
+    },
+    "vertical_tags": {
+      "bytes": 15226,
+      "formatted": "14.9 KB",
+      "avg_per_row": "21 B"
+    },
+    "admin_only": {
+      "bytes": 15226,
+      "formatted": "14.9 KB",
+      "avg_per_row": "21 B"
+    },
+    "effective_tier": {
+      "bytes": 15226,
+      "formatted": "14.9 KB",
+      "avg_per_row": "21 B"
+    },
+    "status": {
+      "bytes": 14510,
+      "formatted": "14.2 KB",
+      "avg_per_row": "20 B"
+    },
+    "tier_history": {
+      "bytes": 14501,
+      "formatted": "14.2 KB",
+      "avg_per_row": "20 B"
+    },
+    "paywalled": {
+      "bytes": 14493,
+      "formatted": "14.2 KB",
+      "avg_per_row": "19 B"
+    },
+    "total_checks": {
+      "bytes": 13776,
+      "formatted": "13.5 KB",
+      "avg_per_row": "19 B"
+    },
+    "cited_by": {
+      "bytes": 13051,
+      "formatted": "12.7 KB",
+      "avg_per_row": "18 B"
+    },
+    "domains": {
+      "bytes": 12034,
+      "formatted": "11.8 KB",
+      "avg_per_row": "16 B"
+    },
+    "base_tier": {
+      "bytes": 11601,
+      "formatted": "11.3 KB",
+      "avg_per_row": "16 B"
+    },
+    "tier": {
+      "bytes": 7976,
+      "formatted": "7.8 KB",
+      "avg_per_row": "11 B"
+    }
+  }
+}
