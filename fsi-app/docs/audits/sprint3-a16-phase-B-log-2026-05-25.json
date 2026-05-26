@@ -1,0 +1,10 @@
+{
+  "run_date": "2026-05-26T19:21:24.708Z",
+  "phase": "B",
+  "label": "domain changes",
+  "column": "domain",
+  "total_rows": 132,
+  "applied": 132,
+  "errors": [],
+  "verify_mismatches": []
+}
