@@ -1,0 +1,104 @@
+{
+  "run_date": "2026-05-26T04:14:38.461Z",
+  "steps": [
+    {
+      "name": "step1_orgId",
+      "updated": 1,
+      "targets": [
+        {
+          "userId": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+          "action": "updated",
+          "org_id": "a0000000-0000-0000-0000-000000000001"
+        }
+      ]
+    },
+    {
+      "name": "step2_workspaceRole",
+      "updated": 1,
+      "targets": [
+        {
+          "userId": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+          "action": "updated",
+          "workspace_role": "owner"
+        }
+      ]
+    },
+    {
+      "name": "step3_sector",
+      "updated": 1,
+      "targets": [
+        {
+          "profileId": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+          "action": "updated",
+          "sector": [
+            "fine-art",
+            "live-events",
+            "luxury-goods",
+            "film-tv",
+            "automotive",
+            "humanitarian"
+          ]
+        }
+      ]
+    }
+  ],
+  "pre_state": {
+    "profiles": [
+      {
+        "id": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+        "full_name": null,
+        "email": "jasonlosh@hotmail.com",
+        "org_id": null,
+        "workspace_role": null,
+        "sector": [],
+        "region": []
+      }
+    ],
+    "memberships": [
+      {
+        "user_id": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+        "org_id": "a0000000-0000-0000-0000-000000000001",
+        "role": "owner",
+        "created_at": "2026-04-05T01:55:09.601342+00:00"
+      }
+    ],
+    "orgs": [
+      {
+        "id": "a0000000-0000-0000-0000-000000000001",
+        "name": "Dietl / Rockit",
+        "slug": "dietl-rockit"
+      }
+    ],
+    "settings": [
+      {
+        "org_id": "a0000000-0000-0000-0000-000000000001",
+        "sector_profile": [
+          "fine-art",
+          "live-events",
+          "luxury-goods",
+          "film-tv",
+          "automotive",
+          "humanitarian"
+        ]
+      }
+    ]
+  },
+  "post_state": [
+    {
+      "id": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "full_name": null,
+      "email": "jasonlosh@hotmail.com",
+      "org_id": "a0000000-0000-0000-0000-000000000001",
+      "workspace_role": "owner",
+      "sector": [
+        "fine-art",
+        "live-events",
+        "luxury-goods",
+        "film-tv",
+        "automotive",
+        "humanitarian"
+      ],
+      "region": []
+    }
+  ]
+}
