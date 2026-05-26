@@ -1,0 +1,37 @@
+{
+  "investigation_date": "2026-05-26T03:19:22.578Z",
+  "profiles_totals": {
+    "total_profiles": 1,
+    "org_id_null": 1,
+    "workspace_role_null": 1,
+    "sector_empty_array": 1,
+    "region_empty_array": 1
+  },
+  "org_memberships_totals": {
+    "total_membership_rows": 1,
+    "unique_users_with_memberships": 1,
+    "multi_org_users": 0,
+    "single_org_users": 1,
+    "no_org_users": 0
+  },
+  "multi_org_implication": {
+    "note": "If multi_org_users > 0, profiles.org_id needs a deterministic 'active org' selection rule. Per dispatch brief: org_memberships is source of truth, profiles.org_id is 'current active org' pointer. Backfill picks the oldest membership (joined_at ASC) as the default active org.",
+    "multi_org_count": 0
+  },
+  "sample_backfill_previews": [
+    {
+      "profile_id": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+      "full_name": null,
+      "email": "jasonlosh@hotmail.com",
+      "memberships_count": 1,
+      "memberships_sample": [
+        {
+          "user_id": "2b7d21eb-8ea0-4b8d-a313-744aa3789c75",
+          "org_id": "a0000000-0000-0000-0000-000000000001",
+          "role": "owner"
+        }
+      ]
+    }
+  ],
+  "next_step": "Operator review of NULL counts + multi-org count. Authorize backfill SQL when ready."
+}

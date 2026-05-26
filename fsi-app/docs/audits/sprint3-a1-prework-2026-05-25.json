@@ -1,0 +1,84 @@
+{
+  "investigation_date": "2026-05-26T03:19:21.091Z",
+  "totals": {
+    "total_intelligence_items": 657,
+    "category_is_null": 409,
+    "d1_category_research": 28,
+    "non_canonical_category": 32,
+    "specific_misclassifications_hit_count": 7
+  },
+  "expected_per_dispatch_brief": {
+    "409 ambiguous category rows": "category IS NULL bucket",
+    "24 d=1 'research' category rows": "domain=1 AND category='research'",
+    "32 non-canonical category rows": "category NOT NULL AND NOT IN TOPICS",
+    "3 specific surfaced misclassifications": "title ILIKE %Green Corridors% OR %UNDP% OR %EcoVadis%"
+  },
+  "deltas": {
+    "ambiguous_actual_vs_expected_409": 0,
+    "d1_research_actual_vs_expected_24": 4,
+    "non_canonical_actual_vs_expected_32": 0
+  },
+  "non_canonical_category_histogram": {
+    "critical-minerals": 1,
+    "regional": 10,
+    "facility": 9,
+    "technology": 6,
+    "carbon-markets": 1,
+    "petrochemicals": 1,
+    "energy-prices": 2,
+    "trade-policy": 1,
+    "shipping-chokepoints": 1
+  },
+  "specific_misclassifications": [
+    {
+      "id": "52eadc84-b3ea-4a80-8173-30b7d5435d4f",
+      "title": "EcoVadis Blog",
+      "current_category": "research",
+      "current_domain": 4
+    },
+    {
+      "id": "19f08fcc-5f81-44cc-b3db-fe25f1717845",
+      "title": "EcoVadis",
+      "current_category": "reporting",
+      "current_domain": 2
+    },
+    {
+      "id": "05b786f8-8753-4e81-923e-ee9d76c56609",
+      "title": "EcoVadis: Enterprise Sustainability Intelligence and Ratings Platform Overview",
+      "current_category": "reporting",
+      "current_domain": 2
+    },
+    {
+      "id": "831f9e63-42a9-4546-9bc6-281e04cea4f6",
+      "title": "Getting to Zero: Green Corridors",
+      "current_category": "corridors",
+      "current_domain": 1
+    },
+    {
+      "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+      "title": "Global Maritime Forum Green Corridors Initiative: 50+ Trade Routes Catalyzing Zero-Emission Shipping Transition",
+      "current_category": null,
+      "current_domain": 4
+    },
+    {
+      "id": "6c59d250-5658-406b-b313-ca38b7b4915f",
+      "title": "EcoVadis 2025 Purpose Report: $2.5T Global Spend Now Governed by Sustainability Risk Insights",
+      "current_category": null,
+      "current_domain": 4
+    },
+    {
+      "id": "8107ba33-30e8-4e73-bee2-dd967f995114",
+      "title": "EcoVadis Sustainability Platform: Comprehensive ESG & Supply Chain Compliance Solution",
+      "current_category": "reporting",
+      "current_domain": 2
+    }
+  ],
+  "cost_estimate": {
+    "per_call_usd": 0.0025,
+    "per_call_calibration_source": "Step 2 source-classification calibration (v3 dispatch)",
+    "total_rows_to_classify": 469,
+    "estimated_total_usd": 1.1725,
+    "ceiling_usd_per_dispatch_brief": 5
+  },
+  "next_step": "Operator review of cost estimate. If estimate ≤ $5, authorize Haiku batch invocation."
+}
