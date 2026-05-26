@@ -1,0 +1,10 @@
+{
+  "run_date": "2026-05-26T19:22:36.445Z",
+  "phase": "C",
+  "label": "item_type changes (canonical only)",
+  "column": "item_type",
+  "total_rows": 69,
+  "applied": 69,
+  "errors": [],
+  "verify_mismatches": []
+}
