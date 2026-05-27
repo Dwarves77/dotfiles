@@ -17,13 +17,26 @@
 -- when an item is rendered, so the trajectory_points payload alone is
 -- not enough — signal_band has to come through the same RPC.
 --
--- CREATE OR REPLACE FUNCTION is idempotent. No data migration needed.
+-- Note (2026-05-27 fix): CREATE OR REPLACE FUNCTION cannot change a
+-- function's RETURNS TABLE shape; PostgreSQL raises 42P13 ("cannot
+-- change return type of existing function"). Since this migration adds
+-- two new return columns (signal_band, trajectory_points) to the
+-- existing 27-column return shape, we must DROP the function first
+-- then CREATE it. Idempotent via DROP IF EXISTS.
+--
+-- Caller-dependency audit before this drop: get_market_intel_items is
+-- only called from JS via supabase.rpc("get_market_intel_items", ...)
+-- — no RLS policy, view, or other DB object references it. Safe to
+-- drop and recreate.
+--
 -- After apply: NOTIFY pgrst, 'reload schema' so PostgREST picks up the
 -- new return columns.
 
 BEGIN;
 
-CREATE OR REPLACE FUNCTION get_market_intel_items(p_org_id UUID)
+DROP FUNCTION IF EXISTS get_market_intel_items(UUID);
+
+CREATE FUNCTION get_market_intel_items(p_org_id UUID)
 RETURNS TABLE (
   id                       UUID,
   legacy_id                TEXT,
