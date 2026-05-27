@@ -42,42 +42,19 @@ export async function resolveOrgIdFromUserId(
  * (consistent with existing fallback behaviour in fetchDashboardData).
  */
 export async function resolveOrgIdFromCookies(): Promise<string | null> {
-  // Sprint 3 diagnostic (2026-05-27): operator-confirmed runtime state
-  // (user 2b7d21eb, membership + profile rows correctly populated) does
-  // not match observed symptom (resolveOrgIdFromCookies returning null).
-  // Logging each step to identify which gate fires unexpectedly. Remove
-  // in the follow-up fix commit once the failure mode is identified.
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    console.log(
-      "[org-id-debug] getUser returned:",
-      user?.id ?? "NULL",
-      "error:",
-      userError?.message ?? "none"
-    );
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
-    const { data, error: memError } = await supabase
+    const { data } = await supabase
       .from("org_memberships")
       .select("org_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    console.log(
-      "[org-id-debug] membership query result:",
-      data,
-      "error:",
-      memError?.message ?? "none"
-    );
-    const orgId = data?.org_id ?? null;
-    console.log("[org-id-debug] returning orgId:", orgId);
-    return orgId;
-  } catch (e) {
-    console.log(
-      "[org-id-debug] exception:",
-      e instanceof Error ? e.message : String(e)
-    );
+    return data?.org_id ?? null;
+  } catch {
     return null;
   }
 }

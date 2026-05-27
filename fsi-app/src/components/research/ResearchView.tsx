@@ -358,7 +358,15 @@ export function ResearchView({
   // state only and never filtered content).
   const [activeTheme, setActiveTheme] = useState<ThemeKey | "all">("all");
   const [activeSeverity, setActiveSeverity] = useState<Severity | "all">("all");
-  const [verticalsOn, setVerticalsOn] = useState<Set<string>>(new Set(["live-events", "fine-art"]));
+  // Sprint 3 (2026-05-27): default to empty set. Prior default of
+  // ["live-events", "fine-art"] combined with the subtractive filter
+  // semantics at line 368-387 dropped every item whose title + summary
+  // did not match VERTICAL_KEYWORDS, producing the empty-state symptom
+  // on production (640 / 0 / 0 across stat tiles, themes, verticalized
+  // findings) despite the data layer returning 137 category-routed
+  // items. Vertical chips are now opt-in until the corpus carries
+  // explicit vertical-relevance metadata (VERTICAL-TAGGING dispatch).
+  const [verticalsOn, setVerticalsOn] = useState<Set<string>>(new Set());
   const [windowFilter, setWindowFilter] = useState<"7d" | "30d" | "90d" | "all">("all");
 
   // Apply the filter set to derive what the page actually renders.
@@ -773,17 +781,26 @@ export function ResearchView({
 
           {/* Right rail */}
           <aside>
-            <RailCard accent>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 10 }}>
-                In your sector this week
-              </div>
-              <p style={{ fontFamily: "var(--font-display)", fontSize: 32, color: "var(--color-primary)", lineHeight: 1, margin: "4px 0 8px" }}>
-                {verticalCount}
-              </p>
-              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: 0 }}>
-                findings explicitly relevant to live events + fine art workspaces, of {totalDisplay} total this week.
-              </p>
-            </RailCard>
+            {/* Sprint 3 (2026-05-27): suppress when verticalCount is 0.
+                With Option A verticalsOn defaulting to empty set, the
+                page body shows the broad corpus; if no items match the
+                narrow VERTICAL_KEYWORDS regex, the rail's "0 of N"
+                framing reads as broken against a populated body.
+                Suppress until VERTICAL-TAGGING lands corpus metadata
+                that makes this count meaningful. */}
+            {verticalCount > 0 && (
+              <RailCard accent>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 10 }}>
+                  In your sector this week
+                </div>
+                <p style={{ fontFamily: "var(--font-display)", fontSize: 32, color: "var(--color-primary)", lineHeight: 1, margin: "4px 0 8px" }}>
+                  {verticalCount}
+                </p>
+                <p style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: 0 }}>
+                  findings explicitly relevant to live events + fine art workspaces, of {totalDisplay} total this week.
+                </p>
+              </RailCard>
+            )}
 
             <RailCard>
               <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 10 }}>
