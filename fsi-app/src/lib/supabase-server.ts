@@ -34,10 +34,23 @@ function getSupabase() {
 // client. Used for reads where the org-scoped RPC isn't a fit (e.g. the
 // regulation detail page resolves a single item by UUID OR legacy_id, and
 // the anon client can't see base-table rows directly).
+//
+// SF-1 (2026-05-27): the prior implementation silently fell back to the
+// anon key when SUPABASE_SERVICE_ROLE_KEY was missing. That masked
+// service-role misconfiguration in production as RLS-blocked reads,
+// which surfaced as empty payloads downstream. Now fails fast at the
+// resolver. All three current callers (dashboard/surface-coverage,
+// dashboard/critical-items, dashboard/credibility) already wrap the
+// returned client in try/catch with empty-state fallback, so a throw
+// here degrades the affected widget instead of crashing the page.
 export function getServiceSupabase() {
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is not configured. Service-role reads " +
+        "are unavailable. Set the env var in Vercel project settings."
+    );
+  }
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
     auth: { persistSession: false },
   });
