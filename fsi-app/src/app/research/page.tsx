@@ -6,12 +6,20 @@ import {
   getScopedWorkspaceAggregates,
 } from "@/lib/data";
 
+// Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
+// generation at build time has no cookies; resolveOrgIdFromCookies
+// returns null; runCategoryRpc early-returns empty (supabase-server.ts
+// :1018-1020); static HTML bakes in pipeline=0 and category-routed=0.
+// Force-dynamic skips static generation so the page renders on request
+// with the user's cookie-auth context.
+//
 // Note: previous `export const revalidate = 60` removed.
 // Per docs/ISR-WRITE-INVESTIGATION.md, /research was the *only* page with
 // a working ISR declaration (no cookie reads in its data path), and it
 // generated ~200K ISR writes over the prior 30 days. Going dynamic is
 // correct here — the new fetcher reads cookies via the authed Supabase
 // server client.
+export const dynamic = "force-dynamic";
 
 // Research scope: the surface presents the horizon-scan slice per
 // environmental-policy-and-innovation Section 3. Pass an empty filter so

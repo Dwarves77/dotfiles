@@ -2,6 +2,15 @@ import { getOperationsItems, getResourcesOnly, getScopedWorkspaceAggregates } fr
 import { OperationsPage } from "@/components/pages/OperationsPage";
 import type { Resource } from "@/types/resource";
 
+// Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
+// generation at build time has no cookies; resolveOrgIdFromCookies
+// returns null; runCategoryRpc early-returns empty (supabase-server.ts
+// :1018-1020); static HTML bakes in total: 0 + seed fallback.
+// Force-dynamic skips static generation so the page renders on request
+// with the user's cookie-auth context, and category-routing RPCs see
+// a real orgId.
+export const dynamic = "force-dynamic";
+
 // Scope filter for the aggregates RPC must mirror the page-scope intent:
 //   regionalItems: r.type === "regional_data" || r.domain === 3
 //   facilityItems: r.domain === 6
