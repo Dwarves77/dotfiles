@@ -34,6 +34,7 @@ import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
+import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import type { Resource } from "@/types/resource";
@@ -862,20 +863,31 @@ function SummaryPanel({
 
 /** Trajectory panel — price-band-only.
  *
- * Today's data layer: market signal rows don't carry an explicit
- * trajectory time-series. The hard-coded MarketPage `PriceSnapshotRow`
- * is a 4-tile aggregate, not per-signal data. Until a per-signal series
- * lands (either via marketData.{currentPrice, previousPrice} or a future
- * item_price_history table), we surface an honest empty state with a
- * marketData fallback when the row happens to carry currentPrice +
- * previousPrice (a sparse case across the corpus today). */
+ * Sprint 3 A4-3 (2026-05-27): three-tier rendering hierarchy:
+ *   1. If r.signalBand === 'price' AND r.trajectoryPoints has data →
+ *      render the 12-week TrajectoryBars (migration 107 schema-backed).
+ *      Belt 3 of three; outer band guard at line 465 already restricts
+ *      entry, this signalBand check is defense-in-depth.
+ *   2. Else if marketData.{currentPrice, previousPrice} pair present →
+ *      legacy 2-tile fallback for the sparse-corpus case where the row
+ *      has snapshot data but no time-series. Preserved from H1 Path B.
+ *   3. Else honest empty-state copy.
+ *
+ * As ingestion populates trajectory_points across the B1 corpus (agent
+ * extension + TIMESERIES-WORKER), tier 1 becomes the default and the
+ * tier 2/3 fallbacks fade. */
 function TrajectoryPanel({ resource: r }: { resource: Resource }) {
   const md = r.marketData;
   const hasPair = !!(md && md.currentPrice && md.previousPrice);
+  const hasTrajectoryData =
+    r.signalBand === "price" &&
+    (r.trajectoryPoints?.points?.length ?? 0) > 0;
 
   return (
     <BriefSection title="Trajectory">
-      {hasPair ? (
+      {hasTrajectoryData && r.trajectoryPoints ? (
+        <TrajectoryBars trajectoryPoints={r.trajectoryPoints} />
+      ) : hasPair ? (
         <div>
           <div
             style={{

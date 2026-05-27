@@ -33,6 +33,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
+import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates, SourceCitationStatsMap } from "@/lib/data";
 
@@ -668,15 +669,20 @@ function SignalCard({
   featured?: boolean;
   bandKey: BandKey;
 }) {
-  // Phase 4 H1 Path B (2026-05-25): trajectory slot renders on every
-  // B1 Price signal, not just the featured one. The actual TrajectoryBars
-  // shape was previously hardcoded to a single fabricated array; that
-  // was an integrity violation per the operator's standing rule that no
-  // fabricated data may render as fact. Stripped that array; surface now
-  // renders an honest "Trajectory data not yet available" empty state
-  // on every B1 signal. Substantive Path A fix (per-item trajectory
-  // schema + ingestion + UI swap) is on the Sprint 3 backlog.
+  // Sprint 3 A4-3 (2026-05-27): belt 3 of three. Render TrajectoryBars
+  // when the item has price-band trajectory data; otherwise fall back
+  // to TrajectoryEmptyState. Belts 1 (DB CHECK at migration 107) and 2
+  // (parse-output.ts validation) already enforce trajectory_points
+  // non-null requires signal_band='price'; belt 3 prevents render-side
+  // leakage onto B2/B3 cards even if the upstream belts fail.
+  //
+  // showTrajectory remains band-keyed (not item-keyed): every B1 Price
+  // card shows the trajectory slot. When the slot has data, it renders
+  // bars; when it doesn't, it renders the honest empty state.
   const showTrajectory = bandKey === "price";
+  const hasTrajectoryData =
+    item.signalBand === "price" &&
+    (item.trajectoryPoints?.points?.length ?? 0) > 0;
   // Phase 5 Step 10 (2026-05-25): wrap whole card in <Link> to
   // /market/[slug] detail route. item.id carries legacy_id || uuid
   // via the page.tsx mapper; the detail page handles UUID→legacy_id
@@ -738,7 +744,11 @@ function SignalCard({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <SeverityPill severity={severity} />
-        {showTrajectory && <TrajectoryEmptyState />}
+        {showTrajectory && (
+          hasTrajectoryData && item.trajectoryPoints
+            ? <TrajectoryBars trajectoryPoints={item.trajectoryPoints} />
+            : <TrajectoryEmptyState />
+        )}
       </div>
     </article>
     </Link>
