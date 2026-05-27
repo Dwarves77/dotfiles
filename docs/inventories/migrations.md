@@ -109,6 +109,7 @@
 | 104 | 104_community_post_intelligence_refs.sql | Migration 104: community_posts.referenced_intelligence_item_ids UUID[] (Q5) + GIN index for reverse-lookup powering Peer Discussion panels. Applied 2026-05-24. |
 | 105 | 105_profiles_projection.sql | Migration 105: profiles projection columns (Q6) - org_id FK, workspace_role, sector text[], region text[]. region converted in place from scalar text. Applied 2026-05-24. |
 | 106 | 106_regions_and_facts.sql | Migration 106: regions table with operations_decisions JSONB + regional_data_facts table (Q7). 5 current regions seeded (EU/US/ASIA/UK/UAE). Applied 2026-05-24. |
+| 107 | 107_intelligence_items_trajectory_points.sql | Migration 107: intelligence_items.trajectory_points JSONB column + band-gated CHECK constraint (trajectory_points IS NULL OR signal_band = 'price'). Sprint 3 A4 belt 1 of three. No backfill, NULLs stay NULL per H1 trajectory precedent. |
 
 ## Maintenance trigger
 
