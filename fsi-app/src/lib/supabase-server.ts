@@ -1009,6 +1009,10 @@ function rpcRowToResource(row: any): Resource {
     severity: row.severity || undefined,
     signalBand: row.signal_band || undefined,
     theme: row.theme || undefined,
+    // Sprint 3 A4-2 (migration 108): trajectory_points surfaced on
+    // get_market_intel_items. Belt 1 (migration 107 CHECK) guarantees
+    // this is only present when signal_band = 'price'.
+    trajectoryPoints: row.trajectory_points || undefined,
   };
 }
 

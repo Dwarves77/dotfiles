@@ -78,6 +78,19 @@ const SEVERITY_TO_PRIORITY: Record<string, string> = {
   MONITORING: "LOW",
 };
 
+/**
+ * Sprint 3 A4-2 (2026-05-27): trajectory_points JSONB shape.
+ * Only valid when signal_band === 'price'. Belt 2 of three:
+ *   Belt 1: DB CHECK constraint (migration 107)
+ *   Belt 2: parser validation (this file)
+ *   Belt 3: component-layer guard (MarketPage / MarketSignalDetailSurface)
+ */
+export interface TrajectoryPointsJSON {
+  points: Array<{ date: string; value: number }>;
+  base_date: string;
+  base_label: string;
+}
+
 export interface AgentMetadata {
   severity: typeof SEVERITY_VALUES[number];
   priority: typeof PRIORITY_VALUES[number];
@@ -86,6 +99,15 @@ export interface AgentMetadata {
   topic_tags: typeof TOPIC_TAG_VALUES[number][];
   signal_band: typeof SIGNAL_BAND_VALUES[number] | null;
   theme: typeof THEME_VALUES[number] | null;
+  /**
+   * B1 Price signal time-series. Only non-null when signal_band === 'price'.
+   * Optional — agents are not yet required to emit this; the schema +
+   * validation pipeline is ready (Sprint 3 A4-2). The system-prompt
+   * extension that instructs agents to emit trajectory_points lands as
+   * a separate dispatch (TIMESERIES-WORKER for richer ingestion, or an
+   * agent-prompt extension dispatch for opportunistic emission).
+   */
+  trajectory_points: TrajectoryPointsJSON | null;
   operational_scenario_tags: string[];
   compliance_object_tags: typeof COMPLIANCE_OBJECT_VALUES[number][];
   related_items: string[];
@@ -437,6 +459,55 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     throw new AgentOutputParseError(`Invalid last_regenerated_at: "${ts}"`);
   }
 
+  // Sprint 3 A4-2 (2026-05-27): trajectory_points is OPTIONAL — not in
+  // the required[] list. Agents are not yet required to emit it. When
+  // present, it must be inline JSON (single-line YAML value), and it
+  // is only valid when signal_band === 'price'. Belt 2 of three.
+  let trajectoryPoints: TrajectoryPointsJSON | null = null;
+  const trajRaw = fields.trajectory_points;
+  if (trajRaw !== undefined && trajRaw.trim() !== "" && trajRaw.trim().toLowerCase() !== "null") {
+    // Reject when signal_band is not 'price'. Mirrors migration 107's
+    // CHECK constraint so the agent gets a clear error pre-insert.
+    if (signalBand !== "price") {
+      throw new AgentOutputParseError(
+        `trajectory_points may only be non-null when signal_band === 'price' (got signal_band="${signalBand ?? "null"}")`
+      );
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trajRaw);
+    } catch (e) {
+      throw new AgentOutputParseError(
+        `trajectory_points must be inline JSON when present: ${(e as Error).message}`
+      );
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new AgentOutputParseError(`trajectory_points must be a JSON object, got: ${typeof parsed}`);
+    }
+    const obj = parsed as Record<string, unknown>;
+    if (!Array.isArray(obj.points) || typeof obj.base_date !== "string" || typeof obj.base_label !== "string") {
+      throw new AgentOutputParseError(
+        `trajectory_points missing required keys. Expected { points: [...], base_date: "YYYY-MM-DD", base_label: string }`
+      );
+    }
+    for (const pt of obj.points) {
+      if (typeof pt !== "object" || pt === null) {
+        throw new AgentOutputParseError(`trajectory_points.points entries must be objects`);
+      }
+      const p = pt as Record<string, unknown>;
+      if (typeof p.date !== "string" || typeof p.value !== "number") {
+        throw new AgentOutputParseError(
+          `trajectory_points.points entries must have { date: string, value: number }`
+        );
+      }
+    }
+    trajectoryPoints = {
+      points: obj.points as TrajectoryPointsJSON["points"],
+      base_date: obj.base_date,
+      base_label: obj.base_label,
+    };
+  }
+
   return {
     severity: fields.severity as AgentMetadata["severity"],
     priority: fields.priority as AgentMetadata["priority"],
@@ -445,6 +516,7 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     topic_tags: topicTags as AgentMetadata["topic_tags"],
     signal_band: signalBand,
     theme: theme,
+    trajectory_points: trajectoryPoints,
     operational_scenario_tags: opScenTags,
     compliance_object_tags: compObjTags as AgentMetadata["compliance_object_tags"],
     related_items: relatedItems,

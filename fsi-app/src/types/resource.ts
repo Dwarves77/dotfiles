@@ -139,6 +139,17 @@ export interface Resource {
   signalBand?: "price" | "corporate" | "corridor";
   /** Research theme, one of the 7 canonical themes. */
   theme?: string;
+  /**
+   * B1 Price signal time-series for TrajectoryBars rendering
+   * (migration 107). Non-null only when signalBand === 'price'
+   * (DB CHECK constraint intelligence_items_trajectory_band_check).
+   * Sprint 3 A4 (2026-05-27).
+   */
+  trajectoryPoints?: {
+    points: Array<{ date: string; value: number }>;
+    base_date: string;
+    base_label: string;
+  };
 
   // ISO 3166-1/-2 + supranational jurisdiction codes from migration 033.
   // Preferred over the legacy `jurisdiction` (single string) when present.

@@ -110,6 +110,7 @@
 | 105 | 105_profiles_projection.sql | Migration 105: profiles projection columns (Q6) - org_id FK, workspace_role, sector text[], region text[]. region converted in place from scalar text. Applied 2026-05-24. |
 | 106 | 106_regions_and_facts.sql | Migration 106: regions table with operations_decisions JSONB + regional_data_facts table (Q7). 5 current regions seeded (EU/US/ASIA/UK/UAE). Applied 2026-05-24. |
 | 107 | 107_intelligence_items_trajectory_points.sql | Migration 107: intelligence_items.trajectory_points JSONB column + band-gated CHECK constraint (trajectory_points IS NULL OR signal_band = 'price'). Sprint 3 A4 belt 1 of three. No backfill, NULLs stay NULL per H1 trajectory precedent. |
+| 108 | 108_market_intel_rpc_trajectory_payload.sql | Migration 108: extend get_market_intel_items RPC return shape with signal_band + trajectory_points so the page payload carries the data needed for A4-3's component-layer guard. CREATE OR REPLACE FUNCTION; idempotent. |
 
 ## Maintenance trigger
 
