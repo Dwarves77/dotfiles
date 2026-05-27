@@ -5,7 +5,6 @@ import { Sidebar } from "@/components/Sidebar";
 import { AskAssistant } from "@/components/AskAssistant";
 import { BackToTop } from "@/components/BackToTop";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
 
 const NO_SIDEBAR_ROUTES = ["/login", "/auth"];
 // Routes where the no-workspace banner is suppressed (the user is already
@@ -21,8 +20,12 @@ const NO_WORKSPACE_BANNER_SUPPRESS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const orgId = useWorkspaceStore((s) => s.orgId);
+  // Sprint 3 SF-WS-1 (2026-05-27): read orgId from AuthContext rather
+  // than useWorkspaceStore. AuthContext hydrates orgId synchronously
+  // from server props; the workspaceStore hydrates in a useEffect, so
+  // its server-side value is null and the banner condition triggered
+  // a flash even for users with populated workspaces.
+  const { user, orgId } = useAuth();
   const hideSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
 
   // Workstream B: render a banner for authenticated-no-workspace state.

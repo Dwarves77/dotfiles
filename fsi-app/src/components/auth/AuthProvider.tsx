@@ -7,12 +7,21 @@ import type { User } from "@supabase/supabase-js";
 
 interface AuthContext {
   user: User | null;
+  /**
+   * Server-resolved org id, hydrated synchronously from initial props.
+   * Use this — not useWorkspaceStore.orgId — for first-render gates
+   * (e.g. AppShell's no-workspace banner), since useWorkspaceStore is
+   * hydrated in an effect and is null on server render. See SF-WS-1
+   * (Sprint 3, 2026-05-27).
+   */
+  orgId: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContext>({
   user: null,
+  orgId: null,
   loading: true,
   signOut: async () => {},
 });
@@ -52,6 +61,13 @@ export function AuthProvider({
   initialSectors = [],
 }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(initialUser);
+  // Sprint 3 SF-WS-1 (2026-05-27): orgId hydrates synchronously from
+  // server props so first-render gates (e.g. AppShell's no-workspace
+  // banner) see the populated value instead of the workspaceStore's
+  // module-default null. Without this, banner rendered against a
+  // server-side null for ~one paint between RSC stream and the
+  // workspaceStore's useEffect hydration.
+  const [orgId] = useState<string | null>(initialOrgId);
   // Already hydrated from server props — never enter a loading state on
   // first render. Components reading useAuth().loading get false from
   // the start, so role-gated UI doesn't flash between "loading" and
@@ -109,7 +125,7 @@ export function AuthProvider({
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, orgId, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
