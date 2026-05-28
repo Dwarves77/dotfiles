@@ -29,7 +29,7 @@
  * the inline data swaps for a server-side projection.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
@@ -300,6 +300,7 @@ export function OperationsPage({
   initialResources,
   aggregates,
   regulationsByRegion = [],
+  operationsCoverage,
 }: OperationsPageProps) {
   // Phase 4 (2026-05-24): Facility Data tab stripped per operator
   // standing rule (no non-functional elements). The tab rendered a
@@ -342,21 +343,79 @@ export function OperationsPage({
   const totalItems = aggregates?.totalItems ?? initialResources.length;
   const totalJurisdictions = aggregates?.totalJurisdictions ?? 0;
 
+  // Sprint 3 A6.3b (2026-05-27): live-vs-hardcoded fact lookup.
+  // Maps the component's local dim.key vocab to the DB enum used in
+  // regional_data_facts.dimension. Operator-locked mapping per
+  // migration 106's CHECK constraint.
+  const DIM_KEY_TO_DB: Record<string, string> = useMemo(
+    () => ({
+      resources: "regional_resources",
+      labor: "labor_markets",
+      materials: "materials_sourcing",
+      infrastructure: "infrastructure",
+      cost: "operational_cost",
+      regulatory: "regulatory_feasibility",
+    }),
+    []
+  );
+
+  // Build a (region_code, dim.key) → live facts map from
+  // operationsCoverage.facts. Adapts the OperationsFact shape into the
+  // component-local Fact interface so the render-side render(fact)
+  // signature stays unchanged.
+  const liveFactsByCell = useMemo(() => {
+    const map = new Map<string, Fact[]>();
+    if (!operationsCoverage) return map;
+    for (const f of operationsCoverage.facts) {
+      // Reverse-lookup: find the component dim.key matching this DB dim value.
+      const dimKey = Object.entries(DIM_KEY_TO_DB).find(
+        ([, db]) => db === f.dimension
+      )?.[0];
+      if (!dimKey) continue;
+      const cellKey = `${f.region_code}|${dimKey}`;
+      const arr = map.get(cellKey) || [];
+      arr.push({
+        label: f.fact_label,
+        value: f.value,
+        trend: f.trend ?? undefined,
+        source: f.source_name || f.source_note || "",
+      });
+      map.set(cellKey, arr);
+    }
+    return map;
+  }, [operationsCoverage, DIM_KEY_TO_DB]);
+
+  // Helper: prefer live facts when populated for this (region, dim);
+  // fall back to the hard-coded FACTS vertical-slice for cells that
+  // haven't been backfilled yet (EU + US under the operator-stated
+  // demonstration scope).
+  const getFactsFor = useCallback(
+    (regionKey: string, dimKey: string): Fact[] => {
+      const live = liveFactsByCell.get(`${regionKey}|${dimKey}`);
+      if (live && live.length > 0) return live;
+      return (FACTS[regionKey]?.[dimKey] as Fact[] | undefined) ?? [];
+    },
+    [liveFactsByCell]
+  );
+
   // Coverage stats (per dimension, count of regions with data).
+  // Sprint 3 A6.3b: counts BOTH live-backfilled AND hardcoded coverage.
   const dimensionCoverage = useMemo(() => {
     const cov: Record<string, number> = {};
     for (const dim of DIMENSIONS) {
       if (dim.key === "regulatory") {
         cov[dim.key] = Object.values(regulationsByRegionMap).filter((arr) => arr.length > 0).length;
       } else {
-        cov[dim.key] = Object.keys(FACTS).filter((region) => FACTS[region]?.[dim.key]?.length).length;
+        cov[dim.key] = REGIONS.filter((r) => getFactsFor(r.key, dim.key).length > 0).length;
       }
     }
     return cov;
-  }, [regulationsByRegionMap]);
+  }, [regulationsByRegionMap, getFactsFor]);
 
-  const regionsWithData = Object.keys(FACTS).filter(
-    (region) => Object.values(FACTS[region] || {}).some((arr) => arr && arr.length > 0)
+  // Sprint 3 A6.3b: includes Asia/UK/UAE backfilled by A6.2 (75 facts)
+  // in addition to hard-coded EU + US.
+  const regionsWithData = REGIONS.filter(
+    (r) => DIMENSIONS.some((d) => d.key !== "regulatory" && getFactsFor(r.key, d.key).length > 0)
   ).length;
 
   // Phase 4 (2026-05-24): cell-level fill rate (region x dimension
@@ -551,6 +610,7 @@ export function OperationsPage({
                     key={region.key}
                     region={region}
                     regulations={regulationsByRegionMap[region.key] || []}
+                    getFactsFor={getFactsFor}
                   />
                 ))}
               </>
@@ -731,7 +791,15 @@ function SideCard({ accent, children }: { accent?: boolean; children: React.Reac
   );
 }
 
-function RegionAccordion({ region, regulations }: { region: Region; regulations: Resource[] }) {
+function RegionAccordion({
+  region,
+  regulations,
+  getFactsFor,
+}: {
+  region: Region;
+  regulations: Resource[];
+  getFactsFor: (regionKey: string, dimKey: string) => Fact[];
+}) {
   return (
     <details
       open={region.defaultOpen}
@@ -765,7 +833,9 @@ function RegionAccordion({ region, regulations }: { region: Region; regulations:
       </summary>
       <div style={{ borderTop: "1px solid var(--color-border-subtle)", padding: 0 }}>
         {DIMENSIONS.map((dim) => {
-          const facts = FACTS[region.key]?.[dim.key];
+          // Sprint 3 A6.3b: prefer live facts from regional_data_facts
+          // when populated, fall back to hard-coded FACTS otherwise.
+          const facts = getFactsFor(region.key, dim.key);
           const isD1 = dim.key === "regulatory";
           // Phase 4 (2026-05-24): empty dimensions previously
           // returned null and the accordion jumped D1 -> D3 -> D5
@@ -842,7 +912,13 @@ function RegionAccordion({ region, regulations }: { region: Region; regulations:
             </div>
           );
         })}
-        {!FACTS[region.key] && (
+        {/* Sprint 3 A6.3b: empty-region note. Renders when the region
+            has no facts in ANY non-regulatory dim (live + hardcoded
+            combined). A6.2 populated Asia/UK/UAE so this hits only
+            edge cases (e.g. brand-new region added without backfill). */}
+        {!DIMENSIONS.some(
+          (d) => d.key !== "regulatory" && getFactsFor(region.key, d.key).length > 0
+        ) && (
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", fontStyle: "italic", padding: "12px 24px" }}>
             Regional data populated for D1 (regulations) only. D2-D6 coverage queued for next quarter.
           </p>
