@@ -1,0 +1,143 @@
+{
+  "run_date": "2026-05-28T16:38:33.666Z",
+  "total_cost_usd": 1.8223109999999998,
+  "ceiling": 10,
+  "aborted_at": null,
+  "cells": [
+    {
+      "region": "ASIA",
+      "dimension": "regional_resources",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.108216
+    },
+    {
+      "region": "ASIA",
+      "dimension": "labor_markets",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.11431799999999999
+    },
+    {
+      "region": "ASIA",
+      "dimension": "materials_sourcing",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.141678
+    },
+    {
+      "region": "ASIA",
+      "dimension": "infrastructure",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.137019
+    },
+    {
+      "region": "ASIA",
+      "dimension": "operational_cost",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.10390500000000001
+    },
+    {
+      "region": "UK",
+      "dimension": "regional_resources",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.1368
+    },
+    {
+      "region": "UK",
+      "dimension": "labor_markets",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.12995400000000001
+    },
+    {
+      "region": "UK",
+      "dimension": "materials_sourcing",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.126192
+    },
+    {
+      "region": "UK",
+      "dimension": "infrastructure",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.136956
+    },
+    {
+      "region": "UK",
+      "dimension": "operational_cost",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.11654400000000001
+    },
+    {
+      "region": "UAE",
+      "dimension": "regional_resources",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.12325499999999999
+    },
+    {
+      "region": "UAE",
+      "dimension": "labor_markets",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.119823
+    },
+    {
+      "region": "UAE",
+      "dimension": "materials_sourcing",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.108126
+    },
+    {
+      "region": "UAE",
+      "dimension": "infrastructure",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.131325
+    },
+    {
+      "region": "UAE",
+      "dimension": "operational_cost",
+      "parsed": 5,
+      "inserted": 5,
+      "source_resolved": 0,
+      "provisional": 5,
+      "cost": 0.0882
+    }
+  ]
+}
