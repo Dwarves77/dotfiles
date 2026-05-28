@@ -163,9 +163,22 @@ Tag each finding with the most specific jurisdiction_iso code possible — ISO 3
   IMO / ICAO / UNFCCC for intergovernmental bodies
 If a regulation has both a state-level instrument and a federal preemption / waiver layer, return BOTH as separate findings and cross-reference them in the why_matters field.
 
-For each regulation you find, provide ALL of these fields:
+SOURCE-PORTAL VS REGULATION (CRITICAL CLASSIFICATION RULE):
+
+Distinguish between (a) a URL that IS a specific regulatory instrument and (b) a URL that is a SOURCE PORTAL describing or hosting regulations. Source portals are the homepage / main portal / framework overview pages of regulators, legislative bodies, ministries, and intergovernmental organizations. They are NOT regulations and MUST NOT be staged as regulations.
+
+Source-portal signals (any of these = source, not regulation):
+- Title contains "homepage", "main portal", "official portal", "legislative portal", "parliamentary portal"
+- Title contains "organizational overview", "regulatory framework" + the issuer's own name (e.g. "EPA Ireland Homepage - Environmental Regulatory Framework"), "key regulatory updates", "current notices"
+- Title is "Org Name - Resources" / "Org Name - Updates" without naming a specific instrument
+- URL is the issuer's root domain (e.g. https://eba.europa.eu/, https://leg.bc.ca/) or a generic /about, /overview, /resources, /home page
+- Content describes WHAT THE ORGANIZATION DOES rather than a specific binding rule, deadline, or penalty
+
+When you find a source-portal URL, emit it ONLY in the new_sources array (NOT in the regulations array). Do NOT also emit it as a regulation. Double-classification is the most common scan failure mode and causes the source corpus to pollute the regulations corpus.
+
+For each regulation you find (i.e. an actual binding instrument, not a portal), provide ALL of these fields:
 - title: Official name of the regulation
-- item_type: One of regulation | directive | standard | guidance | framework. Pick the most specific value for the legal instrument. "regulation" for binding rules with regulatory force; "directive" for EU-style directives requiring national transposition; "standard" for technical/industry standards; "guidance" for regulator interpretive guidance (non-binding); "framework" for higher-level policy frameworks. NEVER default to "regulation" when one of the more specific values applies.
+- item_type: One of regulation | directive | standard | guidance | framework. Pick the most specific value for the legal instrument. "regulation" for binding rules with regulatory force; "directive" for EU-style directives requiring national transposition; "standard" for technical/industry standards; "guidance" for regulator interpretive guidance (non-binding); "framework" for higher-level policy frameworks. NEVER default to "regulation" when one of the more specific values applies. If you cannot confidently classify the instrument, OMIT THE ROW entirely rather than guess "regulation".
 - what_is_it: Plain language explanation citing the specific legal instrument (directive/regulation number, Official Journal reference, state register citation, port authority tariff number), jurisdiction, and enforcement body. 2-3 sentences minimum.
 - why_matters: How this regulation affects freight forwarding operations — pricing, procurement, carrier contracts, customer reporting, customs processes, or route planning. Include specific cost mechanisms (surcharges, penalties, allowance costs) with real figures or ranges. No generic "this is important" language. 3-4 sentences minimum.
 - key_data: Array of hard data points — effective dates, penalty amounts, phase-in percentages, tonnage thresholds, compliance deadlines. Every bullet must be specific and sourced.
@@ -239,6 +252,59 @@ Return ONLY the JSON object, no other text.`,
       (d: any) => d.title && !existingTitles.has(d.title.toLowerCase())
     );
 
+    // INGESTION-CLASSIFY-SOURCE-VS-REGULATION (Sprint 3, 2026-05-27):
+    // post-parse heuristic catches portal-class titles the model still
+    // emitted as regulations despite the prompt rule. Each match is
+    // re-routed to newSources (provisional registry) instead of staged
+    // as a regulation. Mirrors the patterns the
+    // sprint3-corpus-reclassify-audit.mjs script uses to detect
+    // historical drift; keeping them in sync prevents recurrence.
+    const SOURCE_AGGREGATOR_PATTERNS: RegExp[] = [
+      /\b(homepage|main portal|portal)\b/i,
+      /\b(framework|overview|organizational overview)\b/i,
+      /\b(key regulatory updates|regulatory resources)\b/i,
+      /\b(parliamentary information|legislative portal)\b/i,
+      /\b(current environmental notices)\b/i,
+      /\s[-–—]\s.*\b(Resources|Updates|Updates and|Resources and)\b/i,
+    ];
+    function isPortalTitle(title: string): boolean {
+      if (!title) return false;
+      let hitCount = 0;
+      for (const re of SOURCE_AGGREGATOR_PATTERNS) {
+        if (re.test(title)) hitCount++;
+        if (hitCount >= 2) return true;
+      }
+      return false;
+    }
+
+    const portalRejects: string[] = [];
+    const regulationsAfterHeuristic = newItems.filter((d: any) => {
+      if (isPortalTitle(d.title)) {
+        portalRejects.push(d.title);
+        // Re-route to newSources for provisional review instead of
+        // dropping the data entirely. The class fix preserves the
+        // discovery work even when the model mis-classifies it.
+        if (d.source_url) {
+          newSources.push({
+            name: d.source_name || d.title,
+            url: d.source_url,
+            jurisdiction: d.jurisdiction || "",
+            jurisdiction_iso: d.jurisdiction_iso || [],
+            publishes: d.what_is_it || d.note || d.summary || "",
+          });
+        }
+        return false;
+      }
+      return true;
+    });
+    if (portalRejects.length > 0) {
+      console.log(
+        "[scan] portal-class titles re-routed to new_sources:",
+        portalRejects.length,
+        portalRejects.slice(0, 5)
+      );
+    }
+
     // Stage new sources as provisional
     const sourcesAdded = [];
     for (const src of newSources.slice(0, 5)) {
@@ -283,8 +349,19 @@ Return ONLY the JSON object, no other text.`,
     // default branches (framework -> 1, tool -> 2, initiative -> 4) are
     // the same calls the admin would make on triage.
     const stagedItems = [];
-    for (const item of newItems.slice(0, 10)) {
-      const itemType = normalizeItemType((item as { item_type?: unknown }).item_type) ?? "regulation";
+    const skippedUnknownType: string[] = [];
+    for (const item of regulationsAfterHeuristic.slice(0, 10)) {
+      // INGESTION-CLASSIFY (Sprint 3, 2026-05-27): removed the silent
+      // ?? "regulation" fallback. Items without a recognized item_type
+      // are skipped + logged rather than misclassified. The closed
+      // enum is regulation | directive | standard | guidance | framework
+      // per the system prompt; anything outside that range is a model
+      // failure and should not silently bias the staged queue.
+      const itemType = normalizeItemType((item as { item_type?: unknown }).item_type);
+      if (!itemType) {
+        skippedUnknownType.push(item.title);
+        continue;
+      }
       const domain: Domain | null = domainForItemType(itemType, null);
       const { error } = await supabase.from("staged_updates").insert({
         update_type: "new_item",
@@ -332,6 +409,11 @@ Return ONLY the JSON object, no other text.`,
       staged_titles: stagedItems,
       new_sources_discovered: sourcesAdded.length,
       new_source_names: sourcesAdded,
+      // INGESTION-CLASSIFY (Sprint 3): telemetry for the class fix.
+      portal_class_rerouted: portalRejects.length,
+      portal_class_titles: portalRejects.slice(0, 10),
+      skipped_unrecognized_item_type: skippedUnknownType.length,
+      skipped_titles: skippedUnknownType.slice(0, 10),
     }, { headers: rateLimitHeaders(auth.userId) });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
