@@ -442,15 +442,85 @@ const URL_RE = /(https?:\/\/[^\s)]+)/i;
  * stays defensive.
  */
 function parseSourcesList(markdown: string): SourceEntry[] {
-  const blocks = markdown.split(/\n{1,}/);
+  const lines = markdown.split(/\n/).map((l) => l.trim()).filter(Boolean);
   const entries: SourceEntry[] = [];
 
-  for (const raw of blocks) {
-    const trimmed = raw.trim();
-    if (!trimmed) continue;
-    if (/^[-*_]{3,}$/.test(trimmed)) continue;
+  // Detect markdown table format. The agent emits §15 as a table with
+  // columns: # | Title | Type (inline Tier) | Issuing Body | Date | URL.
+  // The previous line-by-line parser treated the header and separator
+  // rows as fake entries, inflating the count and showing raw pipes.
+  const isTableLine = (l: string) => l.startsWith("|") && l.indexOf("|", 1) > 0;
+  const isSeparatorLine = (l: string) =>
+    /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?$/.test(l);
 
-    const stripped = trimmed.replace(/^[-*+]\s+/, "");
+  const tableLines = lines.filter(isTableLine);
+  const hasSeparator = tableLines.some(isSeparatorLine);
+
+  if (tableLines.length >= 2 && hasSeparator) {
+    let sawSeparator = false;
+    let headerSkipped = false;
+    for (const line of tableLines) {
+      if (isSeparatorLine(line)) {
+        sawSeparator = true;
+        continue;
+      }
+      // First non-separator table line is the header row.
+      if (!headerSkipped) {
+        headerSkipped = true;
+        continue;
+      }
+      // Data rows come after the separator.
+      if (!sawSeparator) continue;
+
+      // Split on "|", trim, drop the empty leading/trailing cells.
+      const cells = line
+        .split("|")
+        .map((c) => c.trim())
+        .filter((c, i, arr) => !(c === "" && (i === 0 || i === arr.length - 1)));
+      if (cells.length === 0) continue;
+
+      // Skip a leading "row number" cell when present.
+      const titleIdx = /^\d+$/.test(cells[0]) && cells.length > 1 ? 1 : 0;
+      const name = cells[titleIdx] || "";
+      if (!name) continue;
+
+      // URL is the last cell containing a URL token.
+      let url: string | null = null;
+      let urlCellIdx = -1;
+      for (let i = cells.length - 1; i > titleIdx; i--) {
+        URL_RE.lastIndex = 0;
+        const m = URL_RE.exec(cells[i]);
+        URL_RE.lastIndex = 0;
+        if (m) {
+          url = m[1];
+          urlCellIdx = i;
+          break;
+        }
+      }
+
+      // Tier from the Type cell (immediately after title) when present.
+      let tier: number | null = null;
+      const typeIdx = titleIdx + 1;
+      if (typeIdx < cells.length) {
+        const tierMatch = /(?:tier\s*|T)(\d)\b/i.exec(cells[typeIdx]);
+        if (tierMatch) tier = parseInt(tierMatch[1], 10);
+      }
+
+      // Meta = cells between Title and URL, joined.
+      const metaCells: string[] = [];
+      const metaEnd = urlCellIdx >= 0 ? urlCellIdx : cells.length;
+      for (let i = titleIdx + 1; i < metaEnd; i++) {
+        if (cells[i]) metaCells.push(cells[i]);
+      }
+      entries.push({ tier, name, meta: metaCells.join(" · "), url });
+    }
+    return entries;
+  }
+
+  // Fall back: line-by-line bullet/prose parse for non-table emissions.
+  for (const raw of lines) {
+    if (/^[-*_]{3,}$/.test(raw)) continue;
+    const stripped = raw.replace(/^[-*+]\s+/, "");
 
     // Tier marker: [T1] / [T2] / [Tier 3] / "(Tier 1)".
     let tier: number | null = null;
@@ -481,7 +551,9 @@ function parseSourcesList(markdown: string): SourceEntry[] {
     }
 
     // Extract first URL.
+    URL_RE.lastIndex = 0;
     const urlMatch = URL_RE.exec(body);
+    URL_RE.lastIndex = 0;
     const url = urlMatch ? urlMatch[1] : null;
 
     if (!name) continue;
