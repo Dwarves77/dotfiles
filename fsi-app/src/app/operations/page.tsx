@@ -1,4 +1,5 @@
 import { getOperationsItems, getResourcesOnly, getScopedWorkspaceAggregates } from "@/lib/data";
+import { fetchOperationsCoverage } from "@/lib/supabase-server";
 import { OperationsPage } from "@/components/pages/OperationsPage";
 import type { Resource } from "@/types/resource";
 
@@ -53,13 +54,17 @@ export default async function Operations() {
   // fallback so the surface is never blank when the category RPC is
   // empty (anon / misconfigured); it ALSO supplies the regulation cross-
   // references for Build 9's regulatory feasibility section.
-  const [opsItems, fallback, aggregates] = await Promise.all([
+  const [opsItems, fallback, aggregates, operationsCoverage] = await Promise.all([
     getOperationsItems(),
     getResourcesOnly(),
     getScopedWorkspaceAggregates(OPERATIONS_SCOPE),
+    // Sprint 3 A6.3 (2026-05-27): regions + coverage state + facts from
+    // migrations 106 (regions + regional_data_facts) and 109
+    // (region_dimension_coverage). Empty arrays when not configured.
+    fetchOperationsCoverage(),
   ]);
   console.log(
-    `[perf] /operations data ${Date.now() - t0}ms (category-routed=${opsItems.total}, fallback=${fallback.resources.length})`
+    `[perf] /operations data ${Date.now() - t0}ms (category-routed=${opsItems.total}, fallback=${fallback.resources.length}, coverage_rows=${operationsCoverage.coverage.length}, fact_rows=${operationsCoverage.facts.length})`
   );
   const initialResources = opsItems.resources.length
     ? opsItems.resources
@@ -78,6 +83,7 @@ export default async function Operations() {
       initialResources={initialResources}
       aggregates={aggregates}
       regulationsByRegion={regulationsByRegion}
+      operationsCoverage={operationsCoverage}
     />
   );
 }

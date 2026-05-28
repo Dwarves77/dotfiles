@@ -35,11 +35,20 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
+import type { OperationsCoverageData } from "@/lib/supabase-server";
 
 interface OperationsPageProps {
   initialResources: Resource[];
   aggregates?: WorkspaceAggregates;
   regulationsByRegion?: Resource[];
+  /**
+   * Sprint 3 A6.3 (2026-05-27): live regions + coverage state + facts
+   * from migrations 106 + 109 + A6.2 backfill. Replaces the prior
+   * hard-coded EU vertical-slice fact tables. Empty arrays when not
+   * configured (graceful: page renders region accordions with the
+   * "Coverage gaps" empty-dim callouts).
+   */
+  operationsCoverage?: OperationsCoverageData;
 }
 
 // ── Severity vocabulary (operations: priority labels) ──
@@ -69,8 +78,11 @@ interface Region {
   defaultOpen?: boolean;
 }
 
+// Sprint 3 A6.3 (2026-05-27): accordion default-state CLOSED per CLAUDE.md
+// "Accordions are CLOSED across the platform" rule. The earlier `defaultOpen: true`
+// on EU pre-judged region attention before operator interaction.
 const REGIONS: Region[] = [
-  { key: "EU", label: "European Union", severity: "critical", defaultOpen: true },
+  { key: "EU", label: "European Union", severity: "critical" },
   { key: "US", label: "United States", severity: "critical" },
   { key: "ASIA", label: "Asia · Singapore + Hong Kong", severity: "high" },
   { key: "UK", label: "United Kingdom", severity: "high" },

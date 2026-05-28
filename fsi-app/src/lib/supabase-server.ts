@@ -1779,6 +1779,117 @@ export async function fetchSettingsData(orgId: string | null): Promise<{
   }
 }
 
+// ── Operations Coverage + Facts Fetch (A6.3) ─────────────────────
+/**
+ * Sprint 3 A6.3 (2026-05-27). Fetches the per-(region, dimension)
+ * coverage state from `region_dimension_coverage` (migration 109) +
+ * the actual facts from `regional_data_facts` (migration 106) +
+ * region metadata, in a single server-side call.
+ *
+ * Used by /operations page to render:
+ *   - Region accordions with per-dimension fact tables (D2-D6)
+ *   - Side-rail "By dimension" badges with state colors
+ *   - "Coverage gaps … Flag a coverage request" empty-dim callouts
+ *
+ * No fallback — empty arrays when nothing is configured.
+ */
+export interface OperationsRegion {
+  id: string;
+  code: string;
+  label: string;
+  severity: string | null;
+  displayOrder: number;
+}
+
+export interface OperationsCoverageRow {
+  region_code: string;
+  dimension: string;
+  state: "populated" | "partial" | "pending" | "missing";
+  fact_count: number;
+  notes: string | null;
+}
+
+export interface OperationsFact {
+  region_code: string;
+  dimension: string;
+  fact_label: string;
+  value: string;
+  status: string | null;
+  trend: "up" | "down" | "flat" | null;
+  source_name: string | null;
+  source_url: string | null;
+  source_note: string | null;
+}
+
+export interface OperationsCoverageData {
+  regions: OperationsRegion[];
+  coverage: OperationsCoverageRow[];
+  facts: OperationsFact[];
+}
+
+export async function fetchOperationsCoverage(): Promise<OperationsCoverageData> {
+  if (!isSupabaseConfigured()) return { regions: [], coverage: [], facts: [] };
+  try {
+    const supabase = getServiceSupabase();
+
+    const [regionsRes, coverageRes, factsRes] = await Promise.all([
+      supabase
+        .from("regions")
+        .select("id, code, label, severity, display_order")
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("region_dimension_coverage")
+        .select("region_id, dimension, state, fact_count, notes"),
+      supabase
+        .from("regional_data_facts")
+        .select("region_id, dimension, fact_label, value, status, trend, source_note, source:sources(name, url)")
+        .order("last_updated", { ascending: false }),
+    ]);
+
+    if (regionsRes.error) {
+      console.warn("fetchOperationsCoverage regions error:", regionsRes.error.message);
+      return { regions: [], coverage: [], facts: [] };
+    }
+
+    const regions: OperationsRegion[] = (regionsRes.data || []).map((r: { id: string; code: string; label: string; severity: string | null; display_order: number }) => ({
+      id: r.id,
+      code: r.code,
+      label: r.label,
+      severity: r.severity,
+      displayOrder: r.display_order,
+    }));
+    const regionCodeById = new Map(regions.map((r) => [r.id, r.code]));
+
+    const coverage: OperationsCoverageRow[] = (coverageRes.data || []).map((c: { region_id: string; dimension: string; state: string; fact_count: number; notes: string | null }) => ({
+      region_code: regionCodeById.get(c.region_id) || "?",
+      dimension: c.dimension,
+      state: c.state as OperationsCoverageRow["state"],
+      fact_count: c.fact_count,
+      notes: c.notes,
+    }));
+
+    const facts: OperationsFact[] = (factsRes.data || []).map((f: { region_id: string; dimension: string; fact_label: string; value: string; status: string | null; trend: string | null; source_note: string | null; source: { name: string; url: string } | { name: string; url: string }[] | null }) => {
+      const src = Array.isArray(f.source) ? f.source[0] : f.source;
+      return {
+        region_code: regionCodeById.get(f.region_id) || "?",
+        dimension: f.dimension,
+        fact_label: f.fact_label,
+        value: f.value,
+        status: f.status,
+        trend: ["up", "down", "flat"].includes(f.trend || "") ? (f.trend as OperationsFact["trend"]) : null,
+        source_name: src?.name ?? null,
+        source_url: src?.url ?? null,
+        source_note: f.source_note,
+      };
+    });
+
+    return { regions, coverage, facts };
+  } catch (e) {
+    console.warn("fetchOperationsCoverage exception:", e instanceof Error ? e.message : String(e));
+    return { regions: [], coverage: [], facts: [] };
+  }
+}
+
 // ── Regulation Sections Fetch (A5.3) ─────────────────────────────
 /**
  * Sprint 3 A5.3 (2026-05-27). Fetches the parsed regulation sections
