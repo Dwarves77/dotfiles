@@ -1067,29 +1067,61 @@ function SummaryPanel({
         </BriefSection>
       )}
 
-      {/* Why it matters */}
+      {/* Why it matters — Sprint 3 A5.5 (2026-05-27) visual alignment
+          to design_handoff_2026-05/regulations-detail.html .why block:
+          3px left-border in var(--color-secondary), light raised
+          surface, "WHY IT MATTERS" small-caps eyebrow, 2-paragraph
+          editorial prose at 14.5px / line-height 1.6. Path-C
+          conditional: block renders only when reasoning OR whyMatters
+          non-empty (the 121-of-641 corpus rows per the Q2 spot-check;
+          full Path-A regeneration is Sprint 4 candidate). */}
       {(r.whyMatters || r.reasoning) && (
-        <BriefSection title="Why it matters">
+        <aside
+          style={{
+            background: "var(--color-surface-raised, var(--color-bg-raised))",
+            borderLeft: "3px solid var(--color-secondary, var(--color-primary))",
+            padding: "16px 20px",
+            marginBottom: 16,
+            borderRadius: "var(--radius-sm)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--color-text-muted)",
+              marginBottom: 10,
+            }}
+          >
+            Why it matters
+          </div>
           {r.reasoning && (
-            <div
+            <p
               style={{
-                borderLeft: "3px solid var(--accent)",
-                paddingLeft: 16,
                 fontSize: 14.5,
-                lineHeight: 1.7,
-                margin: "0 0 16px",
-                color: "var(--text)",
+                lineHeight: 1.6,
+                margin: "0 0 12px",
+                color: "var(--color-text-primary)",
               }}
             >
               {r.reasoning}
-            </div>
+            </p>
           )}
           {r.whyMatters && (
-            <p style={{ fontSize: 14, lineHeight: 1.7, margin: 0, color: "var(--text)" }}>
+            <p
+              style={{
+                fontSize: 14.5,
+                lineHeight: 1.6,
+                margin: 0,
+                color: "var(--color-text-primary)",
+              }}
+            >
               {r.whyMatters}
             </p>
           )}
-        </BriefSection>
+        </aside>
       )}
 
       {/* Sprint 3 A5.3 (2026-05-27): 7 numbered regulation sections from
