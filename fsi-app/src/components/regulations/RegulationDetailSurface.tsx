@@ -2277,15 +2277,20 @@ function HeroPriorityDropdown({
 }) {
   const updatePriority = useResourceStore((s) => s.updatePriority);
   const dismissResource = useResourceStore((s) => s.dismissResource);
-  // The override state may carry a dismissed flag for this item; reflect
-  // it in the button label.
-  const isDismissed = useResourceStore(
-    (s) => !!s.overrides.get(itemId)?.dismissedAt
-  );
+  // Subscribe to the store override so the dropdown button reflects the
+  // operator's selection immediately after click. Without this the button
+  // label is locked to `currentPriority` (the server-rendered prop) and
+  // the click appears to do nothing even though the store + DB persist
+  // correctly. Store override wins; server prop is the fallback for first
+  // render before any override exists.
+  const override = useResourceStore((s) => s.overrides.get(itemId));
+  const isDismissed = !!override?.dismissedAt;
+  const effectivePriority =
+    (override?.priorityOverride as PriorityKey | undefined) ?? currentPriority;
   return (
     <PriorityDropdown
       variant="hero"
-      currentPriority={currentPriority}
+      currentPriority={effectivePriority}
       isDismissed={isDismissed}
       onSetPriority={(p) => updatePriority(itemId, p)}
       onDismiss={() => dismissResource(itemId)}
