@@ -21,7 +21,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
-import { fetchIntelligenceItem } from "@/lib/supabase-server";
+import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { JURISDICTIONS } from "@/lib/constants";
@@ -94,6 +94,13 @@ export default async function RegulationDetailPage({
   }
 
   const { resource: r, changelog, dispute, supersessions, xrefIds, refByIds } = detail;
+
+  // Sprint 3 A5.3 (2026-05-27): fetch the 7 numbered sections backfilled
+  // by A5.2. Empty array when the item has no parsed sections (the 2
+  // misses from A5.2's coverage report, or non-D1 items that were never
+  // backfilled). RegulationDetailSurface integrity-preserves silently
+  // when sections is empty.
+  const sections = await fetchIntelligenceItemSections(id);
 
   // Targeted lookup for related-items list — only fetch the titles +
   // priorities for the cross-referenced and superseded items, not the
@@ -221,6 +228,7 @@ export default async function RegulationDetailPage({
         xrefIds={xrefIds}
         refByIds={refByIds}
         resourceLookup={resourceLookup}
+        sections={sections}
       />
     </>
   );

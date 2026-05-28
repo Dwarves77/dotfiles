@@ -183,6 +183,20 @@ export function extractRegulationSections(
 
 // ── Per-section dispatch ───────────────────────────────────────────
 
+/**
+ * Public dispatch for a single section's markdown body, given the
+ * section_key and heading text. Used by A5.3's render path where the
+ * already-extracted body comes from `intelligence_item_sections.content_md`
+ * — no need to re-walk the full_brief.
+ */
+export function parseRegulationSection(
+  key: RegulationSectionKey,
+  heading: string,
+  markdown: string
+): RegulationSection | null {
+  return parseSection(key, heading, markdown);
+}
+
 function parseSection(
   key: RegulationSectionKey,
   heading: string,

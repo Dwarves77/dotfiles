@@ -56,6 +56,8 @@ import type {
   Dispute,
   Supersession,
 } from "@/types/resource";
+import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
+import { RegulationSections } from "@/components/regulations/sections/RegulationSections";
 
 interface Props {
   resource: Resource;
@@ -65,6 +67,14 @@ interface Props {
   xrefIds: string[];
   refByIds: string[];
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
+  /**
+   * Sprint 3 A5.3 (2026-05-27): parsed regulation sections backfilled
+   * to intelligence_item_sections (A5.2). The 7 numbered sections
+   * (§3 / §4 / §8 / §10 / §11 / §14 / §15) render via RegulationSections
+   * below the existing summary block. Empty array suppresses the block
+   * entirely (integrity-preserving silent omission).
+   */
+  sections?: IntelligenceItemSectionRow[];
 }
 
 // Decision #12: dropped "notes" (no collaboration data path) and "full"
@@ -161,6 +171,7 @@ export function RegulationDetailSurface({
   xrefIds,
   refByIds,
   resourceLookup,
+  sections = [],
 }: Props) {
   const [tab, setTab] = useState<TabKey>("summary");
   // Pending scroll-to-anchor inside the inline Full text section
@@ -539,6 +550,7 @@ export function RegulationDetailSurface({
               onNavigateToFullSection={navigateToFullSection}
               pendingFullSectionAnchor={pendingFullSectionAnchor}
               onAnchorConsumed={() => setPendingFullSectionAnchor(null)}
+              sections={sections}
             />
           )}
           {tab === "exposure" && (
@@ -962,6 +974,7 @@ function SummaryPanel({
   onNavigateToFullSection,
   pendingFullSectionAnchor,
   onAnchorConsumed,
+  sections,
 }: {
   r: Resource;
   changelog: ChangeLogEntry[];
@@ -969,6 +982,7 @@ function SummaryPanel({
   onNavigateToFullSection: (slug: string) => void;
   pendingFullSectionAnchor: string | null;
   onAnchorConsumed: () => void;
+  sections: IntelligenceItemSectionRow[];
 }) {
   // Tier 2 — Operational briefing extraction. Computed at render-time
   // from full_brief markdown. For non-regulatory_fact_document briefs
@@ -1076,6 +1090,15 @@ function SummaryPanel({
             </p>
           )}
         </BriefSection>
+      )}
+
+      {/* Sprint 3 A5.3 (2026-05-27): 7 numbered regulation sections from
+          intelligence_item_sections (backfilled by A5.2). Renders nothing
+          when sections is empty (the 2 corpus misses or non-D1 items). */}
+      {sections.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <RegulationSections rows={sections} />
+        </div>
       )}
 
       {/* Key data */}

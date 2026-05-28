@@ -1766,6 +1766,69 @@ export async function fetchSettingsData(orgId: string | null): Promise<{
   }
 }
 
+// ── Regulation Sections Fetch (A5.3) ─────────────────────────────
+/**
+ * Sprint 3 A5.3 (2026-05-27). Fetches the parsed regulation sections
+ * for a given intelligence_item from `intelligence_item_sections`
+ * (migration 103). Backfilled by A5.2; live writes will follow in
+ * a per-regeneration agent persist step (out of A5 scope).
+ *
+ * Returns rows sorted by `section_order`. Each row carries the raw
+ * markdown body in `content_md`; the caller (server component) is
+ * responsible for invoking `parseRegulationSection` to derive the
+ * structured payload.
+ *
+ * No fallback. Returns empty array when no rows match (e.g. one of
+ * the 2 items in the corpus that didn't parse during A5.2, or items
+ * outside the D1 domain that were never backfilled).
+ */
+export interface IntelligenceItemSectionRow {
+  section_key: string;
+  section_order: number;
+  content_md: string;
+  is_conditional: boolean;
+  source_ids: string[];
+}
+
+export async function fetchIntelligenceItemSections(
+  uiId: string
+): Promise<IntelligenceItemSectionRow[]> {
+  if (!isSupabaseConfigured() || !uiId) return [];
+  try {
+    const supabase = getServiceSupabase();
+    // intelligence_item_sections.item_id is the UUID. Resolve the
+    // legacy_id-or-uuid input to a UUID before querying.
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let uuid: string | null = uuidRe.test(uiId) ? uiId : null;
+    if (!uuid) {
+      const { data: byLegacy } = await supabase
+        .from("intelligence_items")
+        .select("id")
+        .eq("legacy_id", uiId)
+        .maybeSingle();
+      uuid = (byLegacy as { id: string } | null)?.id ?? null;
+    }
+    if (!uuid) return [];
+
+    const { data, error } = await supabase
+      .from("intelligence_item_sections")
+      .select("section_key, section_order, content_md, is_conditional, source_ids")
+      .eq("item_id", uuid)
+      .order("section_order", { ascending: true });
+    if (error) {
+      console.warn("fetchIntelligenceItemSections error:", error.message);
+      return [];
+    }
+    return (data || []) as IntelligenceItemSectionRow[];
+  } catch (e) {
+    console.warn(
+      "fetchIntelligenceItemSections exception:",
+      e instanceof Error ? e.message : String(e)
+    );
+    return [];
+  }
+}
+
 // ── Single Item Fetch (for /regulations/[id] detail page) ────────
 /**
  * Fetch a single intelligence_item by its UI-side id (legacy_id || uuid).
