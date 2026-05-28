@@ -112,6 +112,7 @@
 | 107 | 107_intelligence_items_trajectory_points.sql | Migration 107: intelligence_items.trajectory_points JSONB column + band-gated CHECK constraint (trajectory_points IS NULL OR signal_band = 'price'). Sprint 3 A4 belt 1 of three. No backfill, NULLs stay NULL per H1 trajectory precedent. |
 | 108 | 108_market_intel_rpc_trajectory_payload.sql | Migration 108: extend get_market_intel_items RPC return shape with signal_band + trajectory_points so the page payload carries the data needed for A4-3's component-layer guard. CREATE OR REPLACE FUNCTION; idempotent. |
 | 109 | 109_region_dimension_coverage.sql | Migration 109: region_dimension_coverage table (5 regions × 6 dimensions = 30 seeded rows) with 4-state CHECK (populated / partial / pending / missing), trigger-maintained fact_count from regional_data_facts. Sprint 3 A6.1. |
+| 110 | 110_callout_columns_and_rpc_extension.sql | Migration 110: 4 new TEXT columns on intelligence_items (what_it_changes / does_not_resolve / conversion_trigger / cross_references) + DROP+CREATE both get_research_items and get_market_intel_items RPCs with extended return shapes. Sprint 3 R-A + M-A. |
 
 ## Maintenance trigger
 

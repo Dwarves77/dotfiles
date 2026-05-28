@@ -151,6 +151,19 @@ export interface Resource {
     base_label: string;
   };
 
+  /**
+   * Sprint 3 R-A + M-A callout fields (migration 110, 2026-05-27).
+   * All optional; renderers omit the callout when null.
+   *   - whatItChanges     : every card on Research + Market
+   *   - doesNotResolve    : Research featured items only
+   *   - conversionTrigger : Market featured B1/B2 items
+   *   - crossReferences   : Market featured B3 corridor items
+   */
+  whatItChanges?: string;
+  doesNotResolve?: string;
+  conversionTrigger?: string;
+  crossReferences?: string;
+
   // ISO 3166-1/-2 + supranational jurisdiction codes from migration 033.
   // Preferred over the legacy `jurisdiction` (single string) when present.
   // Example: ["US-CA"] for SB 253, ["EU"] for FuelEU Maritime.

@@ -97,6 +97,8 @@ export default async function Research() {
     biasTags: r.biasTags,
     owner: null,
     partnerFlagged: false,
+    whatItChanges: r.whatItChanges,
+    doesNotResolve: r.doesNotResolve,
   }));
 
   return (

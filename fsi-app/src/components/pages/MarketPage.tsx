@@ -735,9 +735,22 @@ function SignalCard({
             {item.note}
           </p>
         )}
-        {item.jurisdiction && (
+        {/* Sprint 3 M-A (2026-05-27): byline-with-source-attribution.
+            Mockup shows `<b>{sourceName}</b> · {tier}`; impl previously
+            rendered jurisdiction here, which is informational but not the
+            source provenance signal the credibility model depends on.
+            Per SURFACE-MOCKUP-RECONCILE M22, restore the byline; fall
+            back to jurisdiction when sourceName is absent. */}
+        {(item.sourceName || item.jurisdiction) && (
           <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 8 }}>
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 700 }}>{item.jurisdiction}</b>
+            {item.sourceName ? (
+              <>
+                <b style={{ color: "var(--color-text-primary)", fontWeight: 700 }}>{item.sourceName}</b>
+                {item.jurisdiction ? <span style={{ marginLeft: 8 }}>· {item.jurisdiction}</span> : null}
+              </>
+            ) : (
+              <b style={{ color: "var(--color-text-primary)", fontWeight: 700 }}>{item.jurisdiction}</b>
+            )}
           </p>
         )}
       </div>
@@ -748,6 +761,64 @@ function SignalCard({
           hasTrajectoryData && item.trajectoryPoints
             ? <TrajectoryBars trajectoryPoints={item.trajectoryPoints} />
             : <TrajectoryEmptyState />
+        )}
+        {/* Sprint 3 M-A (2026-05-27): "What it changes" callout per
+            SURFACE-MOCKUP-RECONCILE finding M11/M12/M14. Renders on
+            every card when populated; integrity-preserving silence. */}
+        {item.whatItChanges && (
+          <div
+            style={{
+              borderLeft: "3px solid var(--color-secondary, var(--color-primary))",
+              padding: "8px 10px 8px 12px",
+              background: "var(--color-surface-raised, var(--color-bg-raised))",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 4 }}>
+              What it changes
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--color-text-primary)", margin: 0 }}>
+              {item.whatItChanges}
+            </p>
+          </div>
+        )}
+        {/* "Conversion trigger" muted callout — featured B1/B2 only
+            per mockup L522 / L601. Featured prop gates display; signal
+            band is checked via item.signalBand. */}
+        {featured && item.conversionTrigger && (bandKey === "price" || bandKey === "corporate") && (
+          <div
+            style={{
+              padding: "8px 10px 8px 12px",
+              background: "var(--color-surface-raised, var(--color-bg-raised))",
+              borderLeft: "3px solid var(--color-text-muted)",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 4 }}>
+              Conversion trigger
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--color-text-muted)", margin: 0 }}>
+              {item.conversionTrigger}
+            </p>
+          </div>
+        )}
+        {/* "Cross-references" callout — featured B3 only per mockup L684. */}
+        {featured && item.crossReferences && bandKey === "corridor" && (
+          <div
+            style={{
+              padding: "8px 10px 8px 12px",
+              background: "var(--color-surface-raised, var(--color-bg-raised))",
+              borderLeft: "3px solid var(--color-primary)",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-primary)", marginBottom: 4 }}>
+              Cross-references
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--color-text-primary)", margin: 0 }}>
+              {item.crossReferences}
+            </p>
+          </div>
         )}
       </div>
     </article>

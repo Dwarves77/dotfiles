@@ -108,6 +108,18 @@ export interface AgentMetadata {
    * agent-prompt extension dispatch for opportunistic emission).
    */
   trajectory_points: TrajectoryPointsJSON | null;
+  /**
+   * Sprint 3 R-A + M-A callout fields (migration 110, 2026-05-27).
+   * All optional/nullable; agent emits when applicable per format:
+   *   - what_it_changes      every brief (research + market + others)
+   *   - does_not_resolve     research_summary featured items
+   *   - conversion_trigger   market_signal_brief B1/B2 featured
+   *   - cross_references     market_signal_brief B3 featured
+   */
+  what_it_changes: string | null;
+  does_not_resolve: string | null;
+  conversion_trigger: string | null;
+  cross_references: string | null;
   operational_scenario_tags: string[];
   compliance_object_tags: typeof COMPLIANCE_OBJECT_VALUES[number][];
   related_items: string[];
@@ -508,6 +520,28 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     };
   }
 
+  // Sprint 3 R-A + M-A callout fields (migration 110, 2026-05-27).
+  // OPTIONAL — agents are not required to emit them. Each field is a
+  // single-line short string (~50-200 chars) that the renderer drops
+  // into a callout block per the SURFACE-MOCKUP-RECONCILE audit.
+  //
+  // Parser keeps them as plain string passthroughs with an empty/null
+  // sentinel match. The agent prompt extension (system-prompt.ts)
+  // instructs the model on when each field applies; the parser does
+  // not enforce that gating — render time can suppress mis-applied
+  // fields if needed.
+  function readOptionalString(key: string): string | null {
+    const raw = fields[key];
+    if (raw === undefined) return null;
+    const v = raw.trim();
+    if (v === "" || v.toLowerCase() === "null") return null;
+    return v;
+  }
+  const whatItChanges = readOptionalString("what_it_changes");
+  const doesNotResolve = readOptionalString("does_not_resolve");
+  const conversionTrigger = readOptionalString("conversion_trigger");
+  const crossReferences = readOptionalString("cross_references");
+
   return {
     severity: fields.severity as AgentMetadata["severity"],
     priority: fields.priority as AgentMetadata["priority"],
@@ -517,6 +551,10 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     signal_band: signalBand,
     theme: theme,
     trajectory_points: trajectoryPoints,
+    what_it_changes: whatItChanges,
+    does_not_resolve: doesNotResolve,
+    conversion_trigger: conversionTrigger,
+    cross_references: crossReferences,
     operational_scenario_tags: opScenTags,
     compliance_object_tags: compObjTags as AgentMetadata["compliance_object_tags"],
     related_items: relatedItems,

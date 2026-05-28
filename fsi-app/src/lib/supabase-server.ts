@@ -745,6 +745,9 @@ export interface ResearchPipelineRow {
   baseTier: number | null;        // Build 8.2: source.base_tier (provenance)
   effectiveTier: number | null;   // Build 8.2: source.effective_tier (dynamic; falls back to base_tier in render)
   biasTags: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;  // Build 8.3: from source_bias_tags table (mig 092)
+  // Sprint 3 R-A (2026-05-27): callout fields from migration 110.
+  whatItChanges: string | null;
+  doesNotResolve: string | null;
 }
 
 export async function fetchResearchPipelineRows(
@@ -773,7 +776,7 @@ export async function fetchResearchPipelineRows(
     const { data, error } = await supabase
       .from("intelligence_items")
       .select(
-        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, source:sources(id, name, url, base_tier, effective_tier)"
+        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, what_it_changes, does_not_resolve, source:sources(id, name, url, base_tier, effective_tier)"
       )
       .eq("is_archived", false)
       .order("added_date", { ascending: false })
@@ -804,6 +807,8 @@ export async function fetchResearchPipelineRows(
         baseTier: typeof src?.base_tier === "number" ? src.base_tier : null,
         effectiveTier: typeof src?.effective_tier === "number" ? src.effective_tier : null,
         biasTags: [],
+        whatItChanges: row.what_it_changes ?? null,
+        doesNotResolve: row.does_not_resolve ?? null,
       };
     });
 
@@ -1014,6 +1019,14 @@ function rpcRowToResource(row: any): Resource {
     // get_market_intel_items. Belt 1 (migration 107 CHECK) guarantees
     // this is only present when signal_band = 'price'.
     trajectoryPoints: row.trajectory_points || undefined,
+    // Sprint 3 R-A + M-A (migration 110): 4 callout fields. RPC payload
+    // surfaces them on get_research_items + get_market_intel_items;
+    // mapper passes through opportunistically (undefined when the RPC
+    // doesn't include them, e.g. get_operations_items).
+    whatItChanges: row.what_it_changes || undefined,
+    doesNotResolve: row.does_not_resolve || undefined,
+    conversionTrigger: row.conversion_trigger || undefined,
+    crossReferences: row.cross_references || undefined,
   };
 }
 

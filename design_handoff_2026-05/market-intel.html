@@ -165,7 +165,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 
 /* Stat tiles (matches operations + production) */
 .stat-zone { background: var(--color-surface-raised); padding: 0 40px 18px; }
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
 .stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
 .stat-tile:hover { box-shadow: var(--shadow-card-hover); }
 .stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
@@ -419,6 +419,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
         <div class="stat-tile active"><div class="icon">▲</div><div class="v">3</div><div class="lbl">Action required</div><div class="sub">Threshold breached this week</div></div>
         <div class="stat-tile high"><div class="icon">▲</div><div class="v">7</div><div class="lbl">Cost alert</div><div class="sub">Pass-through expected</div></div>
         <div class="stat-tile mod"><div class="icon">◎</div><div class="v">4</div><div class="lbl">Window closing</div><div class="sub">Deadline within 90 days</div></div>
+        <div class="stat-tile mod"><div class="icon">★</div><div class="v">2</div><div class="lbl">Competitive edge</div><div class="sub">Distinct positioning signal</div></div>
         <div class="stat-tile low"><div class="icon">○</div><div class="v">18</div><div class="lbl">Monitor</div><div class="sub">Trends to watch</div></div>
       </div>
     </div>

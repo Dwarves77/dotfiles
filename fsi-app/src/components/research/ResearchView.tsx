@@ -61,6 +61,9 @@ export interface ResearchPipelineItem {
   biasTags: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;
   owner: string | null;
   partnerFlagged: boolean;
+  // Sprint 3 R-A (2026-05-27): callout fields from migration 110.
+  whatItChanges?: string | null;
+  doesNotResolve?: string | null;
 }
 
 export interface ResearchSourceCoverageCellProp {
@@ -1081,6 +1084,44 @@ function FindingCard({
                 {b.tag}
               </span>
             ))}
+          </div>
+        )}
+        {/* Sprint 3 R-A (2026-05-27): "What it changes" callout per
+            SURFACE-MOCKUP-RECONCILE finding R11/R13. Renders only when
+            the field is non-empty; integrity-preserving silence otherwise. */}
+        {item.whatItChanges && (
+          <div
+            style={{
+              borderLeft: "3px solid var(--color-secondary, var(--color-primary))",
+              padding: "8px 10px 8px 12px",
+              background: "var(--color-surface-raised, var(--color-bg-raised))",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 4 }}>
+              What it changes
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--color-text-primary)", margin: 0 }}>
+              {item.whatItChanges}
+            </p>
+          </div>
+        )}
+        {/* "Does NOT resolve" muted secondary callout, featured items only. */}
+        {featured && item.doesNotResolve && (
+          <div
+            style={{
+              padding: "8px 10px 8px 12px",
+              background: "var(--color-surface-raised, var(--color-bg-raised))",
+              borderLeft: "3px solid var(--color-text-muted)",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 4 }}>
+              Does NOT resolve
+            </div>
+            <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--color-text-muted)", margin: 0 }}>
+              {item.doesNotResolve}
+            </p>
           </div>
         )}
       </div>
