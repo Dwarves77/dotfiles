@@ -32,29 +32,22 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .mh-meta b { color: var(--color-text-primary); font-weight: 600; }
 .body { padding: 0 40px 60px; }
 
-/* Stat tiles + priority legend */
-.stat-zone { background: var(--color-surface-raised); padding: 0 40px 18px; }
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
-.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
-.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
-.stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
-.stat-tile.active .icon { color: var(--color-critical); }
-.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
-.stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
-.stat-tile.high .v, .stat-tile.high .lbl, .stat-tile.high .icon { color: var(--color-high); }
-.stat-tile.mod .v, .stat-tile.mod .lbl, .stat-tile.mod .icon { color: var(--color-moderate); }
-.stat-tile.low .v, .stat-tile.low .lbl, .stat-tile.low .icon { color: var(--color-low); }
-.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
-.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
-.pri-legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
-.pri-legend .it { display: inline-flex; align-items: center; gap: 8px; }
-.pri-legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
-.pri-legend .it.crit .dot { background: var(--color-critical); }
-.pri-legend .it.high .dot { background: var(--color-high); }
-.pri-legend .it.mod  .dot { background: var(--color-moderate); }
-.pri-legend .it.low  .dot { background: var(--color-low); }
-.pri-legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
+/* Severity legend (5 spec labels) */
+.sev-legend { display: flex; gap: 18px; align-items: center; padding: 12px 0 16px; font-size: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 18px; }
+.sev-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 11px; border: 1px solid; border-radius: var(--radius-pill); letter-spacing: 0.02em; }
+.sev-chip .n { font-family: var(--font-display); font-weight: 400; }
+.sev-chip.action { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.sev-chip.cost { background: var(--color-high-bg); color: var(--color-high); border-color: var(--color-high-border); }
+.sev-chip.window { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
+.sev-chip.edge { background: rgba(37,99,235,0.08); color: var(--color-secondary); border-color: var(--color-secondary); }
+.sev-chip.monitor { background: var(--color-surface); color: var(--color-text-muted); border-color: var(--color-border); }
+
+/* Filter row */
+.filt-row { display: flex; gap: 14px; align-items: center; padding: 4px 0 18px; font-size: 12px; flex-wrap: wrap; }
+.filt-row .ttl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); }
+.chip { display: inline-flex; align-items: center; padding: 5px 12px; font-size: 12px; font-weight: 600; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-pill); cursor: pointer; }
+.chip.on { background: var(--color-text-primary); color: #fff; border-color: var(--color-text-primary); }
+.chip:hover { background: var(--color-surface-raised); }
 
 /* AI bar */
 .ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 22px; }
@@ -65,21 +58,6 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
 .ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
-
-/* Category breakdown rail */
-.cat-rail-wrap { margin: 0 0 22px; }
-.cat-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
-.cat-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
-.cat-rail { display: grid; grid-template-columns: repeat(var(--cat-cols, 6), 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
-.cat-cell { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 32px 32px 1fr; gap: 4px; min-height: 130px; }
-.cat-cell:hover { background: var(--color-surface-raised); }
-.cat-cell.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
-.cat-cell .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1.3; align-self: end; }
-.cat-cell.active .lbl { color: var(--color-primary); }
-.cat-cell .num { font-family: var(--font-display); font-size: 24px; line-height: 1; color: var(--color-text-primary); align-self: center; }
-.cat-cell.active .num { color: var(--color-primary); }
-.cat-cell .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; align-self: start; }
-.cat-cell .sub b { color: var(--color-text-primary); }
 
 /* Layout */
 .layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
@@ -104,15 +82,38 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .price-cell .delta.up { color: var(--color-error); font-weight: 600; }
 .price-cell .delta.down { color: var(--color-success); font-weight: 600; }
 
-/* Severity legend (5 spec labels) */
-.sev-legend { display: flex; gap: 18px; align-items: center; padding: 12px 0 16px; font-size: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 18px; }
-.sev-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 11px; border: 1px solid; border-radius: var(--radius-pill); letter-spacing: 0.02em; }
-.sev-chip .n { font-family: var(--font-display); font-weight: 400; }
-.sev-chip.action { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
-.sev-chip.cost { background: var(--color-high-bg); color: var(--color-high); border-color: var(--color-high-border); }
-.sev-chip.window { background: var(--color-moderate-bg); color: var(--color-moderate); border-color: var(--color-moderate-border); }
-.sev-chip.edge { background: rgba(37,99,235,0.08); color: var(--color-secondary); border-color: var(--color-secondary); }
-.sev-chip.monitor { background: var(--color-surface); color: var(--color-text-muted); border-color: var(--color-border); }
+/* Signal article */
+.signal { padding: 14px 0; border-bottom: 1px solid var(--color-border-subtle); display: grid; grid-template-columns: 110px 1fr 180px; gap: 18px; align-items: start; }
+.signal:last-child { border-bottom: 0; }
+.signal .kicker { font-size: 11px; }
+.signal .kicker .tag { display: block; font-family: var(--font-display); color: var(--color-text-primary); font-size: 15px; letter-spacing: 0.06em; margin-bottom: 4px; }
+.signal .kicker .when { color: var(--color-text-muted); }
+.signal .body h4 { font-size: 16px; font-weight: 700; margin: 0 0 6px; line-height: 1.35; color: var(--color-text-primary); }
+.signal .body h4 a { color: inherit; text-decoration: none; }
+.signal .body h4 a:hover { color: var(--color-primary); }
+.signal .body .byline { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.signal .body .byline b { color: var(--color-text-primary); font-weight: 700; }
+.signal .body p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0; }
+.signal .right { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; font-size: 11px; }
+.signal .right .meta { color: var(--color-text-muted); text-align: right; }
+
+/* Featured signal — same shape, with trajectory */
+.signal.featured { background: var(--color-surface-raised); padding: 14px 18px; border-radius: var(--radius-sm); border-left: 3px solid var(--color-primary); display: grid; grid-template-columns: 1fr 200px; gap: 22px; margin-bottom: 12px; }
+.signal.featured .featured-head { margin-bottom: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); }
+.signal.featured h3 { margin: 0 0 8px; font-size: 19px; font-weight: 700; line-height: 1.3; color: var(--color-text-primary); }
+.signal.featured p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 8px; }
+.signal.featured .byline { font-size: 12px; color: var(--color-text-secondary); }
+.signal.featured .byline b { color: var(--color-text-primary); font-weight: 700; }
+.signal.featured .right-col { font-size: 11px; }
+.signal.featured .right-col .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px; }
+.signal.featured .right-col p { font-size: 11.5px; line-height: 1.45; color: var(--color-text-secondary); margin: 6px 0 4px; }
+.signal.featured .right-col .xrefs { margin-top: 10px; font-size: 11px; }
+.signal.featured .right-col .xrefs a { display: block; color: var(--color-primary); font-weight: 600; text-decoration: none; padding: 2px 0; }
+
+/* Sparkline (visual only) */
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 36px; margin: 2px 0; }
+.spark span { display: block; width: 6px; background: var(--color-error); opacity: 0.55; }
+.spark span:last-child { opacity: 1; }
 
 /* Severity pill */
 .s-pill { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -127,36 +128,6 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .t-pill.t4 { color: var(--color-text-primary); }
 .t-pill.t5 { color: var(--color-text-muted); }
 
-/* Card pattern — Operations master. 1fr / 220px with 22px gap. */
-.signal {
-  display: grid !important;
-  grid-template-columns: 1fr 220px !important;
-  gap: 22px !important;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  padding: 16px 20px 18px;
-  margin: 10px 0;
-  box-shadow: var(--shadow-card);
-  align-items: start !important;
-}
-.signal:hover { box-shadow: var(--shadow-card-hover); }
-.signal .body { display: flex; flex-direction: column; min-width: 0; }
-.signal .body .item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 6px; }
-.signal .body .item-head .s-pill { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; border: 1px solid; }
-.signal .body .item-head .when { color: var(--color-text-muted); font-weight: 600; margin-left: auto; font-size: 10.5px; }
-.signal .body h4 { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 4px 0 6px; color: var(--color-text-primary); }
-.signal .body h4 a { color: inherit; text-decoration: none; }
-.signal .body p { font-size: 13px; line-height: 1.5; color: var(--color-text-secondary); margin: 0 0 6px; }
-.signal .body .byline { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; }
-.signal .body .byline b { color: var(--color-text-primary); font-weight: 700; }
-.signal .right { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 200px; max-width: 220px; }
-.signal .right .s-pill { align-self: flex-start; }
-.signal .right .t-pill { align-self: flex-start; }
-.signal .changes-callout { margin-top: 4px; background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--color-text-primary); }
-.signal .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
-
 /* Side rail */
 .rail-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; }
 .rail-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
@@ -168,7 +139,245 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .rail-card li .meta { color: var(--color-text-muted); font-size: 11px; }
 .rail-card li .num { font-family: var(--font-display); font-size: 16px; float: right; color: var(--color-primary); }
 
+.finding .right { gap: 8px; min-width: 200px; max-width: 220px; }
+.finding .right .changes-mini { font-size: 11.5px; line-height: 1.45; color: var(--color-text-primary); padding: 9px 11px; background: var(--color-surface-raised); border-left: 2px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 4px; text-align: left; width: 100%; }
+.finding .right .changes-mini .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+.signal .right { gap: 8px; min-width: 200px; max-width: 220px; }
+.signal .right .changes-mini { font-size: 11.5px; line-height: 1.45; color: var(--color-text-primary); padding: 9px 11px; background: var(--color-surface-raised); border-left: 2px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 4px; text-align: left; width: 100%; }
+.signal .right .changes-mini .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
 .side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+
+/* Category breakdown rail (matches Research themes pattern) */
+.cat-rail-wrap { margin: 0 0 22px; }
+.cat-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
+.cat-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
+.cat-rail { display: grid; grid-template-columns: repeat(var(--cat-cols, 6), 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
+.cat-cell { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 32px 32px 1fr; gap: 4px; min-height: 130px; }
+.cat-cell:hover { background: var(--color-surface-raised); }
+.cat-cell.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
+.cat-cell .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1.3; align-self: end; }
+.cat-cell.active .lbl { color: var(--color-primary); }
+.cat-cell .num { font-family: var(--font-display); font-size: 24px; line-height: 1; color: var(--color-text-primary); align-self: center; }
+.cat-cell.active .num { color: var(--color-primary); }
+.cat-cell .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; align-self: start; }
+.cat-cell .sub b { color: var(--color-text-primary); }
+
+/* Stat tiles (matches operations + production) */
+.stat-zone { background: var(--color-surface-raised); padding: 0 40px 18px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
+.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
+.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
+.stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
+.stat-tile.active .icon { color: var(--color-critical); }
+.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
+.stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
+.stat-tile.high .v, .stat-tile.high .lbl, .stat-tile.high .icon { color: var(--color-high); }
+.stat-tile.mod .v, .stat-tile.mod .lbl, .stat-tile.mod .icon { color: var(--color-moderate); }
+.stat-tile.low .v, .stat-tile.low .lbl, .stat-tile.low .icon { color: var(--color-low); }
+.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
+.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
+/* Priority legend */
+.pri-legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
+.pri-legend .it { display: inline-flex; align-items: center; gap: 8px; }
+.pri-legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
+.pri-legend .it.crit .dot { background: var(--color-critical); }
+.pri-legend .it.high .dot { background: var(--color-high); }
+.pri-legend .it.mod  .dot { background: var(--color-moderate); }
+.pri-legend .it.low  .dot { background: var(--color-low); }
+.pri-legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
+
+/* Stronger "What it changes" callout on every card */
+.finding { display: grid; grid-template-columns: 100px 1fr 180px; gap: 18px; align-items: start; }
+.finding .right { gap: 6px; min-width: 160px; max-width: 180px; align-self: start; }
+.finding .right .changes-mini { display: none !important; }
+.finding .body .changes-callout { background: var(--color-surface-raised); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-top: 10px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); }
+.finding .body .changes-callout .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+.signal { display: grid; grid-template-columns: 100px 1fr 180px; gap: 18px; align-items: start; }
+.signal .right { gap: 6px; min-width: 160px; max-width: 180px; align-self: start; }
+.signal .right .changes-mini { display: none !important; }
+.signal .body .changes-callout { background: var(--color-surface-raised); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-top: 10px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); }
+.signal .body .changes-callout .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+/* Every signal/finding card gets featured-style "mini summary" treatment */
+.signal, .finding { background: var(--color-surface); border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: var(--radius-sm); padding: 16px 20px; margin: 10px 0; box-shadow: var(--shadow-card); }
+.signal:hover, .finding:hover { box-shadow: var(--shadow-card-hover); }
+.signal .body h4, .finding .body h4 { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 4px 0 8px; color: var(--color-text-primary); }
+.signal .body h4 a, .finding .body h4 a { color: inherit; text-decoration: none; }
+.signal .body h4 a:hover, .finding .body h4 a:hover { color: var(--color-primary); }
+.signal .body p, .finding .body p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 6px; }
+.signal .body .changes-callout, .finding .body .changes-callout { background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-top: 12px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); }
+.signal .body .changes-callout .lbl, .finding .body .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+.signal .right .s-pill, .finding .right .s-pill { align-self: flex-end; }
+.signal .kicker .tag, .finding .kicker .tag { display: block; font-family: var(--font-display); font-size: 14px; letter-spacing: 0.06em; color: var(--color-text-primary); margin-bottom: 3px; }
+.signal .kicker .when, .finding .kicker .when { display: block; font-size: 10.5px; color: var(--color-text-muted); }
+
+/* Unified card layout — every signal/finding card matches the featured 2-column structure */
+.signal, .finding { display: grid !important; grid-template-columns: 1fr 220px; gap: 22px; background: var(--color-surface); border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: var(--radius-sm); padding: 18px 20px; margin: 10px 0; box-shadow: var(--shadow-card); }
+.signal .kicker, .finding .kicker { display: none !important; }
+.signal .body, .finding .body { min-width: 0; }
+.signal .body h3, .signal .body h4, .finding .body h3, .finding .body h4 { font-size: 18px; font-weight: 700; line-height: 1.3; margin: 6px 0 8px; color: var(--color-text-primary); }
+.signal .right, .finding .right { display: flex; flex-direction: column; gap: 8px; align-items: stretch; text-align: left; }
+.signal .right > *, .finding .right > * { align-self: flex-start; }
+.signal .body .severity-top, .finding .body .severity-top { display: flex; gap: 8px; margin-bottom: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); align-items: center; }
+.signal .body .changes-callout, .finding .body .changes-callout { background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); padding: 10px 14px; margin-top: 12px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.signal .body .changes-callout .lbl, .finding .body .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+/* Every signal/finding card uses the featured-card layout */
+.signal, .finding { 
+  background: var(--color-surface); 
+  border: 1px solid var(--color-border); 
+  border-left: 3px solid var(--color-primary); 
+  border-radius: var(--radius-sm); 
+  padding: 16px 20px 18px; 
+  margin: 10px 0; 
+  box-shadow: var(--shadow-card); 
+  display: grid !important; 
+  grid-template-columns: 1fr 220px !important; 
+  gap: 22px !important;
+  align-items: start !important;
+}
+.signal:hover, .finding:hover { box-shadow: var(--shadow-card-hover); }
+
+/* Hide the legacy left kicker column (date + tag) — those items move into the header strip */
+.signal > .kicker, .finding > .kicker { display: none !important; }
+
+/* Add a uniform header strip at top of .body */
+.signal .body, .finding .body { display: flex; flex-direction: column; }
+.signal .body .item-head, .finding .body .item-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--color-primary); margin-bottom: 6px; flex-wrap: wrap;
+}
+.signal .body .item-head .sep, .finding .body .item-head .sep { color: var(--color-text-muted); }
+.signal .body .item-head .when, .finding .body .item-head .when { color: var(--color-text-muted); font-weight: 600; margin-left: auto; }
+
+.signal .body h4, .finding .body h4 { 
+  font-size: 18px; font-weight: 700; line-height: 1.3; 
+  margin: 4px 0 8px; color: var(--color-text-primary); 
+}
+.signal .body h4 a, .finding .body h4 a { color: inherit; text-decoration: none; }
+.signal .body h4 a:hover, .finding .body h4 a:hover { color: var(--color-primary); }
+.signal .body > .byline, .finding .body > .byline {
+  font-size: 12px; color: var(--color-text-secondary); margin: 6px 0 0; line-height: 1.5;
+}
+.signal .body > .byline b, .finding .body > .byline b { color: var(--color-text-primary); font-weight: 700; }
+.signal .body p, .finding .body p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 6px; }
+
+/* Right column: severity pill + tier + What-it-changes callout */
+.signal > .right, .finding > .right { 
+  display: flex !important; flex-direction: column !important; 
+  align-items: stretch !important; gap: 8px !important; 
+  text-align: left !important; min-width: auto !important; max-width: none !important;
+}
+.signal > .right .s-pill, .finding > .right .s-pill { align-self: flex-start; }
+.signal > .right .t-pill, .finding > .right .t-pill { align-self: flex-start; }
+.signal > .right .b-tag, .finding > .right .b-tag { align-self: flex-start; }
+.signal > .right .meta, .finding > .right .meta { 
+  text-align: left !important; color: var(--color-text-muted); font-size: 11px; padding-top: 2px;
+}
+
+/* Strengthen "What it changes" callout in body or right column */
+.signal .changes-callout, .finding .changes-callout, 
+.signal .changes-mini, .finding .changes-mini {
+  display: block !important;
+  background: var(--color-bg-ai-strip); 
+  border-left: 3px solid var(--color-primary); 
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; 
+  padding: 10px 12px; 
+  font-size: 12px; line-height: 1.5; color: var(--color-text-primary);
+  margin-top: 6px;
+  width: 100%; max-width: none !important;
+}
+.signal .changes-callout .lbl, .finding .changes-callout .lbl,
+.signal .changes-mini .lbl, .finding .changes-mini .lbl { 
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; 
+  color: var(--color-primary); display: block; margin-bottom: 4px;
+}
+
+/* Match Operations reg-link visuals on signal + finding cards */
+.signal, .finding {
+  padding: 16px 20px 18px !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.signal .body .item-head, .finding .body .item-head {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+  gap: 10px;
+}
+.signal .body .item-head .s-pill,
+.finding .body .item-head .s-pill {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 2px 8px !important;
+  border-radius: 3px !important;
+  letter-spacing: 0.08em !important;
+  border: 1px solid !important;
+}
+.signal .body .item-head .when, .finding .body .item-head .when {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 10.5px;
+}
+.signal .body h4, .finding .body h4 {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  margin: 4px 0 6px !important;
+}
+.signal .body p, .finding .body p {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  margin: 0 0 6px !important;
+}
+.signal .body .byline, .finding .body .byline {
+  font-size: 12px !important;
+  margin-top: 8px !important;
+}
+.signal > .right, .finding > .right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-width: 200px !important;
+  max-width: 220px !important;
+}
+.signal > .right .s-pill, .finding > .right .s-pill {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.signal > .right .t-pill, .finding > .right .t-pill {
+  align-self: flex-start;
+}
+.signal .changes-callout, .finding .changes-callout {
+  margin-top: 4px;
+  background: var(--color-bg-ai-strip);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.signal .changes-callout .lbl, .finding .changes-callout .lbl {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  display: block;
+  margin-bottom: 4px;
+}
 </style>
 </head>
 <body>
@@ -180,14 +389,14 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
   <aside class="side">
     <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
         <nav>
-      <a href="#"><span class="ico">⊡</span>Dashboard</a>
-      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
-      <a href="market-intel.html" class="active"><span class="ico">▦</span>Market Intel</a>
-      <a href="research.html"><span class="ico">◉</span>Research</a>
-      <a href="operations.html"><span class="ico">◐</span>Operations</a>
-      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <a href="#"><span class="ico">▦</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">⚖</span>Regulations</a>
+      <a href="market-intel.html" class="active"><span class="ico">↗</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◎</span>Research</a>
+      <a href="operations.html"><span class="ico">⊕</span>Operations</a>
+      <a href="map.html"><span class="ico">◉</span>Map</a>
       <div class="nav-divider"></div>
-      <a href="community.html"><span class="ico">♥</span>Community</a>
+      <a href="community.html"><span class="ico">▤</span>Community</a>
     </nav>
     <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
   </aside>
@@ -197,7 +406,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
     <div class="masthead">
       <div class="mh-eyebrow"><span>Vol IV</span><span class="sep">·</span><span>No. 21</span><span class="sep">·</span><span>Sunday</span></div>
       <h1 class="mh-title">Market Intelligence</h1>
-      <div class="mh-meta">May 24, 2026 · <b>107</b> active signals · <b>45</b> jurisdictions in scope · workspace verticals: <b>Live events · Fine art</b> · lanes: <b>EU→US, EU→Asia (air primary)</b></div>
+      <div class="mh-meta">May 24, 2026 · <b>107</b> active signals · <b>45</b> jurisdictions in scope · workspace verticals: <b>Live events · Fine art</b> · lanes: <b>EU–US, EU–Asia (air primary)</b></div>
     </div>
     <div class="stat-zone">
       <div class="pri-legend">
@@ -209,8 +418,8 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
       <div class="stat-row">
         <div class="stat-tile active"><div class="icon">▲</div><div class="v">3</div><div class="lbl">Action required</div><div class="sub">Threshold breached this week</div></div>
         <div class="stat-tile high"><div class="icon">▲</div><div class="v">7</div><div class="lbl">Cost alert</div><div class="sub">Pass-through expected</div></div>
-        <div class="stat-tile mod"><div class="icon">→</div><div class="v">4</div><div class="lbl">Window closing</div><div class="sub">Deadline within 90 days</div></div>
-        <div class="stat-tile low"><div class="icon">→</div><div class="v">18</div><div class="lbl">Monitor</div><div class="sub">Trends to watch</div></div>
+        <div class="stat-tile mod"><div class="icon">◎</div><div class="v">4</div><div class="lbl">Window closing</div><div class="sub">Deadline within 90 days</div></div>
+        <div class="stat-tile low"><div class="icon">○</div><div class="v">18</div><div class="lbl">Monitor</div><div class="sub">Trends to watch</div></div>
       </div>
     </div>
     <div class="body">
@@ -234,13 +443,12 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
             <div class="sub">Chokepoints · modal · <b>2 window closing</b></div>
           </div>
         </div>
-      </div>
 
       <!-- AI bar -->
       <div class="ai-bar">
         <div class="row">
           <span class="icon">✦</span>
-          <input placeholder="Ask anything about market intel — e.g. How will SAF prices affect Q3 surcharges on my EU→US lanes?">
+          <input placeholder="Ask anything about market intel — e.g. How will SAF prices affect Q3 surcharges on my EU–US lanes?">
           <button>Ask</button>
         </div>
         <div class="ai-chips">
@@ -251,6 +459,9 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
         </div>
       </div>
 
+      
+      
+      </div>
       <!-- Layout -->
       <div class="layout">
 
@@ -278,8 +489,8 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
               <article class="signal" style="border-left-width: 4px;">
                 <div class="body">
                   <div class="item-head">
-                    <span class="s-pill cost">Cost alert</span>
-                    <span>price · featured · affects EU → US air</span>
+                    <span class="s-pill cost" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Cost alert</span>
+                    <span>price · featured · affects EU – US air</span>
                     <span class="when">5 days ago · 4 sources converge</span>
                   </div>
                   <h4>SAF spot prices break €1,800/t threshold; ReFuelEU pass-through expected on long-haul tickets by Q3.</h4>
@@ -314,30 +525,47 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 
               <!-- More price signals -->
               <article class="signal">
+                <div class="kicker"><span class="tag">CARBON</span><span class="when">21 May</span></div>
                 <div class="body">
-                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>carbon · pricing</span><span class="when">21 May</span></div>
-                  <h4><a href="#">EUA dips on Carbon Pulse report of larger free-allocation cushion for shipping; analyst consensus revises 2026 high to €82.</a></h4>
-                  <p>Sub-€80 levels persist if free-allocation interpretation holds. Workspaces with ocean-lane exposure may revise pass-through assumptions downward; air-lane impact muted.</p>
-                  <p class="byline"><b>Carbon Pulse</b> · Analyst note</p>
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>carbon · pricing</span><span class="when">21 May</span></div>
+                  <div class="byline"><b>Carbon Pulse</b> · Analyst note
                   <div class="changes-callout"><span class="lbl">What it changes</span>Revises 2026 high to €82; ocean-lane pass-through math eases temporarily.</div>
                 </div>
+                  <h4><a href="#">EUA dips on Carbon Pulse report of larger free-allocation cushion for shipping; analyst consensus revises 2026 high to €82.</a></h4>
+                  <p>Sub-€80 levels persist if free-allocation interpretation holds. Workspaces with ocean-lane exposure may revise pass-through assumptions downward; air-lane impact muted.</p>
+                </div>
                 <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Revises 2026 high to €82; ocean-lane pass-through math eases temporarily.</div>
                   <span class="s-pill monitor">Monitor</span>
                   <span class="t-pill t5">T5</span>
+                  <div style="background: var(--color-surface-raised); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 2px;">
+                    <div style="font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px;">Trajectory · 12 wk · EUA</div>
+                    <div style="display: flex; align-items: flex-end; gap: 3px; height: 42px;"><span style="width: 8px; background: #FCD0BD; height: 85%;"></span><span style="width: 8px; background: #FCD0BD; height: 88%;"></span><span style="width: 8px; background: #FCD0BD; height: 90%;"></span><span style="width: 8px; background: #FCD0BD; height: 93%;"></span><span style="width: 8px; background: #FCD0BD; height: 95%;"></span><span style="width: 8px; background: #FCD0BD; height: 100%;"></span><span style="width: 8px; background: #FBA66C; height: 96%;"></span><span style="width: 8px; background: #FBA66C; height: 92%;"></span><span style="width: 8px; background: #FBA66C; height: 88%;"></span><span style="width: 8px; background: #9AE6B4; height: 84%;"></span><span style="width: 8px; background: #9AE6B4; height: 82%;"></span><span style="width: 8px; background: #9AE6B4; height: 78%;"></span></div>
+                    <div style="font-size: 10.5px; color: var(--color-text-muted); margin-top: 6px;">Sourced: ICE EUA daily · 4-wk Δ −€2.10</div>
+                  </div>
+                  <span class="meta">2-source signal</span>
                 </div>
               </article>
 
               <article class="signal">
+                <div class="kicker"><span class="tag">FUEL</span><span class="when">18 May</span></div>
                 <div class="body">
-                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>fuel · pricing</span><span class="when">18 May</span></div>
-                  <h4><a href="#">e-SAF pilot plants in Norway, Sweden push 2027 commercial start — but at €3,200/t pre-subsidy.</a></h4>
-                  <p>The cost gap with HEFA SAF widens. For workspaces evaluating long-term fuel-mix commitments: HEFA stays the realistic blend through 2028; e-SAF remains showcase volumes.</p>
-                  <p class="byline"><b>Reuters Sustainable Switch</b> · Weekly</p>
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>fuel · pricing</span><span class="when">18 May</span></div>
+                  <div class="byline"><b>Reuters Sustainable Switch</b> · Weekly
                   <div class="changes-callout"><span class="lbl">What it changes</span>e-SAF stays showcase-only through 2028; HEFA remains realistic blend.</div>
                 </div>
+                  <h4><a href="#">e-SAF pilot plants in Norway, Sweden push 2027 commercial start — but at €3,200/t pre-subsidy.</a></h4>
+                  <p>The cost gap with HEFA SAF widens. For workspaces evaluating long-term fuel-mix commitments: HEFA stays the realistic blend through 2028; e-SAF remains showcase volumes.</p>
+                </div>
                 <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>e-SAF stays showcase-only through 2028; HEFA remains realistic blend.</div>
                   <span class="s-pill monitor">Monitor</span>
                   <span class="t-pill t5">T5</span>
+                  <div style="background: var(--color-surface-raised); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 2px;">
+                    <div style="font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px;">Trajectory · 12 wk · e-SAF index</div>
+                    <div style="display: flex; align-items: flex-end; gap: 3px; height: 42px;"><span style="width: 8px; background: #FCD0BD; height: 60%;"></span><span style="width: 8px; background: #FCD0BD; height: 62%;"></span><span style="width: 8px; background: #FCD0BD; height: 65%;"></span><span style="width: 8px; background: #FCD0BD; height: 67%;"></span><span style="width: 8px; background: #FCD0BD; height: 70%;"></span><span style="width: 8px; background: #FCD0BD; height: 72%;"></span><span style="width: 8px; background: #FCD0BD; height: 75%;"></span><span style="width: 8px; background: #FCD0BD; height: 78%;"></span><span style="width: 8px; background: #FCD0BD; height: 80%;"></span><span style="width: 8px; background: #FCD0BD; height: 82%;"></span><span style="width: 8px; background: #FCD0BD; height: 84%;"></span><span style="width: 8px; background: #FCD0BD; height: 85%;"></span></div>
+                    <div style="font-size: 10.5px; color: var(--color-text-muted); margin-top: 6px;">Sourced: Argus Bioenergy + IEA · trend flat-rising</div>
+                  </div>
                 </div>
               </article>
 
@@ -358,7 +586,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
               <article class="signal" style="border-left-width: 4px;">
                 <div class="body">
                   <div class="item-head">
-                    <span class="s-pill edge">Competitive edge</span>
+                    <span class="s-pill edge" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Competitive edge</span>
                     <span>corporate · featured · affects road last-mile + drayage</span>
                     <span class="when">5 days ago · cited 14×</span>
                   </div>
@@ -375,41 +603,50 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
               </article>
 
               <article class="signal">
+                <div class="kicker"><span class="tag">CAPACITY</span><span class="when">17 May</span></div>
                 <div class="body">
-                  <div class="item-head"><span class="s-pill cost">Cost alert</span><span>capacity · capacity decision</span><span class="when">17 May</span></div>
-                  <h4><a href="#">Lufthansa Cargo trims dedicated freighter capacity Q3; belly-cargo share rises across EU → US lanes.</a></h4>
-                  <p>Affects time-sensitive consignments — art-tour and live-events movements may see longer transit windows on belly-cargo routings. Premium air-charter capacity tightens.</p>
-                  <p class="byline"><b>Lloyd's List</b> · Trade press</p>
+                  <div class="item-head"><span class="s-pill cost" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Cost alert</span><span>capacity · capacity decision</span><span class="when">17 May</span></div>
+                  <div class="byline"><b>Lloyd's List</b> · Trade press
                   <div class="changes-callout"><span class="lbl">What it changes</span>Premium air-charter tightens; longer transit on belly routings.</div>
                 </div>
+                  <h4><a href="#">Lufthansa Cargo trims dedicated freighter capacity Q3; belly-cargo share rises across EU – US lanes.</a></h4>
+                  <p>Affects time-sensitive consignments — art-tour and live-events movements may see longer transit windows on belly-cargo routings. Premium air-charter capacity tightens.</p>
+                </div>
                 <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Premium air-charter tightens; longer transit on belly routings.</div>
                   <span class="s-pill cost">Cost alert</span>
                   <span class="t-pill t5">T5</span>
                 </div>
               </article>
 
               <article class="signal">
+                <div class="kicker"><span class="tag">SUPPLIER</span><span class="when">12 May</span></div>
                 <div class="body">
-                  <div class="item-head"><span class="s-pill edge">Competitive edge</span><span>supplier · offtake</span><span class="when">12 May</span></div>
-                  <h4><a href="#">Kuehne+Nagel locks 5-year SAF offtake with Neste — covers 18% of group long-haul lift.</a></h4>
-                  <p>Forwarder competitor positioning improves on EU-origin lanes. Workspaces without forward-buy arrangements absorb spot exposure on remaining Q3 movements.</p>
-                  <p class="byline"><b>ESG Today</b> · Reporting</p>
+                  <div class="item-head"><span class="s-pill edge" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Competitive edge</span><span>supplier · offtake</span><span class="when">12 May</span></div>
+                  <div class="byline"><b>ESG Today</b> · Reporting
                   <div class="changes-callout"><span class="lbl">What it changes</span>Competitor positioning improves on EU-origin lanes; spot exposure differential widens.</div>
                 </div>
+                  <h4><a href="#">Kuehne+Nagel locks 5-year SAF offtake with Neste — covers 18% of group long-haul lift.</a></h4>
+                  <p>Forwarder competitor positioning improves on EU-origin lanes. Workspaces without forward-buy arrangements absorb spot exposure on remaining Q3 movements.</p>
+                </div>
                 <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Competitor positioning improves on EU-origin lanes; spot exposure differential widens.</div>
                   <span class="s-pill edge">Competitive edge</span>
                   <span class="t-pill t5">T5</span>
                 </div>
               </article>
 
               <article class="signal">
+                <div class="kicker"><span class="tag">M&amp;A</span><span class="when">9 May</span></div>
                 <div class="body">
-                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>m&amp;a</span><span class="when">9 May</span></div>
-                  <h4><a href="#">Maersk completes Hamburg Süd integration; freezes new ocean-corridor investment through Q1 2027.</a></h4>
-                  <p class="byline"><b>FT Moral Money</b></p>
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>m&amp;a</span><span class="when">9 May</span></div>
+                  <div class="byline"><b>FT Moral Money</b>
                   <div class="changes-callout"><span class="lbl">What it changes</span>No new ocean-corridor capacity through Q1 2027.</div>
                 </div>
+                  <h4><a href="#">Maersk completes Hamburg Süd integration; freezes new ocean-corridor investment through Q1 2027.</a></h4>
+                </div>
                 <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>No new ocean-corridor capacity through Q1 2027.</div>
                   <span class="s-pill monitor">Monitor</span>
                   <span class="t-pill t4">T4</span>
                 </div>
@@ -425,51 +662,57 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
               <span class="band-name">Corridors &amp; trade routes</span>
               <span class="band-count">Chokepoints · modal shifts · regulatory windows · 5 active</span>
             </div>
-            <p class="band-summary">Geographic and route-level signals. Chokepoint disruption, port restrictions, modal shifts, and regulatory enforcement windows that close on specific corridors. Rows tagged → link back to the canonical Regulations or Operations entry.</p>
+            <p class="band-summary">Geographic and route-level signals. Chokepoint disruption, port restrictions, modal shifts, and regulatory enforcement windows that close on specific corridors. Rows tagged ↗ link back to the canonical Regulations or Operations entry.</p>
             <div class="band-body">
 
               <!-- Featured Corridors signal -->
               <article class="signal" style="border-left-width: 4px;">
                 <div class="body">
                   <div class="item-head">
-                    <span class="s-pill window">Window closing</span>
-                    <span>corridor · featured · affects EU → Asia ocean</span>
+                    <span class="s-pill window" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Window closing</span>
+                    <span>corridor · featured · affects EU – Asia ocean</span>
                     <span class="when">3 days ago</span>
                   </div>
                   <h4>Strait of Hormuz transit risk rises; ocean carriers add congestion surcharge on Persian Gulf calls.</h4>
-                  <p>Affects EU → Asia ocean lanes routed via Hormuz. Workspaces with art / luxury exposure to Gulf ports should check tender language for force-majeure carve-outs. Surcharges expected to materialize on Q3 bookings; alternative routing via Cape adds 7–10 days transit.</p>
+                  <p>Affects EU – Asia ocean lanes routed via Hormuz. Workspaces with art / luxury exposure to Gulf ports should check tender language for force-majeure carve-outs. Surcharges expected to materialize on Q3 bookings; alternative routing via Cape adds 7–10 days transit.</p>
                   <p class="byline"><b>Lloyd's List</b> + <b>Bloomberg</b> reporting · <span class="t-pill t5">T5</span> <span class="t-pill t4">T4</span></p>
                 </div>
                 <div class="right">
                   <span class="s-pill window">Window closing</span>
                   <span class="t-pill t4">T4 + T5</span>
-                  <div class="changes-callout"><span class="lbl">What it changes</span>EU → Asia ocean via Suez/Hormuz; Gulf port call surcharge on Q3 bookings; Cape route adds 7–10 days transit</div>
-                  <div class="changes-callout" style="background: var(--color-surface-raised); border-left-color: var(--color-text-muted);"><span class="lbl" style="color: var(--color-text-muted);">Cross-references</span>→ Operations · Gulf bunkering · Cape route economics</div>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>EU – Asia ocean via Suez/Hormuz; Gulf port call surcharge on Q3 bookings; Cape route adds 7–10 days transit</div>
+                  <div class="changes-callout" style="background: var(--color-surface-raised); border-left-color: var(--color-text-muted);"><span class="lbl" style="color: var(--color-text-muted);">Cross-references</span>↗ Operations · Gulf bunkering · Cape route economics</div>
                 </div>
               </article>
 
               <article class="signal">
+                <div class="kicker"><span class="tag">REG-DRIVEN</span><span class="when">15 May</span></div>
                 <div class="body">
-                  <div class="item-head"><span class="s-pill window">Window closing</span><span>reg-driven · derived</span><span class="when">15 May</span></div>
-                  <h4><a href="regulations-detail.html">CBAM enforcement window closing on Q1 declarants; importers without verified embedded-emissions data face penalty rate from 1 Apr.</a></h4>
-                  <p>Derived signal: intersection of <b>Regulations · CBAM Article 30 delegated act</b> with current declarant registration count. Affects EU-bound air-charter lanes specifically; see Regulations brief for filing detail.</p>
-                  <p class="byline"><b>Caro's Ledge intersection</b> · CBAM Article 30 + EU CBAM Registry data</p>
+                  <div class="item-head"><span class="s-pill window" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Window closing</span><span>reg-driven · derived</span><span class="when">15 May</span></div>
+                  <div class="byline"><b>Caro's Ledge intersection</b> · CBAM Article 30 + EU CBAM Registry data
                   <div class="changes-callout"><span class="lbl">What it changes</span>Q1 declarants without verified embedded-emissions face penalty rate from 1 Apr.</div>
                 </div>
+                  <h4><a href="regulations-detail.html">CBAM enforcement window closing on Q1 declarants; importers without verified embedded-emissions data face penalty rate from 1 Apr.</a></h4>
+                  <p>Derived signal: intersection of <b>Regulations · CBAM Article 30 delegated act</b> with current declarant registration count. Affects EU-bound air-charter lanes specifically; see Regulations brief for filing detail.</p>
+                </div>
                 <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Q1 declarants without verified embedded-emissions face penalty rate from 1 Apr.</div>
                   <span class="s-pill window">Window closing</span>
-                  <span style="font-size: 11px; color: var(--color-primary); font-weight: 700;">→ Regulations</span>
+                  <span style="font-size: 11px; color: var(--color-primary); font-weight: 700;">↗ Regulations</span>
                 </div>
               </article>
 
               <article class="signal">
+                <div class="kicker"><span class="tag">MODAL SHIFT</span><span class="when">8 May</span></div>
                 <div class="body">
-                  <div class="item-head"><span class="s-pill monitor">Monitor</span><span>modal shift · corridor</span><span class="when">8 May</span></div>
-                  <h4><a href="#">Cross-Alpine rail capacity expansion shifts Italy → DE freight; truck demand softens on the corridor through Q3.</a></h4>
-                  <p class="byline"><b>Loadstar</b> · Editorial</p>
-                  <div class="changes-callout"><span class="lbl">What it changes</span>Italy → DE truck demand softens; lane mix opportunity through Q3.</div>
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>modal shift · corridor</span><span class="when">8 May</span></div>
+                  <div class="byline"><b>Loadstar</b> · Editorial
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Italy – DE truck demand softens; lane mix opportunity through Q3.</div>
+                </div>
+                  <h4><a href="#">Cross-Alpine rail capacity expansion shifts Italy – DE freight; truck demand softens on the corridor through Q3.</a></h4>
                 </div>
                 <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Italy – DE truck demand softens; lane mix opportunity through Q3.</div>
                   <span class="s-pill monitor">Monitor</span>
                   <span class="t-pill t5">T5</span>
                 </div>
@@ -496,7 +739,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
               <li><span class="num">€78.40</span><b>EUA — EU ETS</b><span class="meta">▼ 4-wk · ICE · monitor</span></li>
               <li><span class="num">▲</span><b>Lufthansa Cargo capacity</b><span class="meta">Q3 trim · cost alert</span></li>
               <li><span class="num">▲</span><b>BYD solid-state $4B</b><span class="meta">5 days · competitive edge</span></li>
-              <li><span class="num">→</span><b>CBAM Q1 window</b><span class="meta">window closing · → Reg</span></li>
+              <li><span class="num">↗</span><b>CBAM Q1 window</b><span class="meta">window closing · ↗ Reg</span></li>
               <li><span class="num">▲</span><b>Hormuz transit risk</b><span class="meta">3 days · window closing</span></li>
             </ul>
           </div>

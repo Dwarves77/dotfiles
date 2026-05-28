@@ -19,7 +19,6 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .side nav a:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
 .side nav a.active { background: var(--color-active-bg); color: var(--color-active-solid); font-weight: 600; }
 .side nav .ico { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
-.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
 .side-foot { padding: 14px 22px 4px; border-top: 1px solid var(--color-border-subtle); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
 .side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
 .side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
@@ -33,34 +32,12 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .mh-meta b { color: var(--color-text-primary); font-weight: 600; }
 .body { padding: 0 40px 60px; }
 
-/* Stat tiles */
-.stat-zone { background: var(--color-surface-raised); padding: 0 40px 18px; }
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
-.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
-.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
-.stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
-.stat-tile.active .icon, .stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
-.stat-tile.high .icon, .stat-tile.high .v, .stat-tile.high .lbl { color: var(--color-high); }
-.stat-tile.mod .icon, .stat-tile.mod .v, .stat-tile.mod .lbl { color: var(--color-moderate); }
-.stat-tile.low .icon, .stat-tile.low .v, .stat-tile.low .lbl { color: var(--color-low); }
-.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
-.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
-.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
-.pri-legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
-.pri-legend .it { display: inline-flex; align-items: center; gap: 8px; }
-.pri-legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
-.pri-legend .it.crit .dot { background: var(--color-critical); }
-.pri-legend .it.high .dot { background: var(--color-high); }
-.pri-legend .it.mod  .dot { background: var(--color-moderate); }
-.pri-legend .it.low  .dot { background: var(--color-low); }
-.pri-legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
+/* Note: open repositioning decision — this view assumes customer-facing horizon-scan destination. Editorial pipeline moves to /admin. */
+.disclaimer { padding: 10px 14px; background: var(--color-moderate-bg); border: 1px solid var(--color-moderate-border); border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 12px; color: var(--color-text-primary); }
+.disclaimer b { color: var(--color-moderate); }
 
 /* Theme rail */
-.theme-rail-wrap { margin: 0 0 18px; }
-.theme-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
-.theme-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
-.theme-rail { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
+.theme-rail { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); margin: 0 0 18px; }
 .theme { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 34px 34px 1fr; gap: 4px; min-height: 140px; }
 .theme:hover { background: var(--color-surface-raised); }
 .theme.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
@@ -71,16 +48,6 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .theme .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; margin: 0; align-self: start; }
 .theme .sub b { color: var(--color-text-primary); }
 
-/* AI bar */
-.ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 22px; }
-.ai-bar .row { display: flex; align-items: center; gap: 12px; }
-.ai-bar .icon { color: var(--color-primary); font-size: 16px; }
-.ai-bar input { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 14px; outline: none; }
-.ai-bar input::placeholder { color: var(--color-text-muted); }
-.ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
-.ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-.ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
-
 /* Filter row */
 .filt-row { display: flex; gap: 14px; align-items: center; padding: 4px 0 18px; font-size: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 22px; }
 .filt-row .ttl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); }
@@ -89,35 +56,32 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 
 .layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
 
-/* Findings — same Operations card pattern (1fr / 220px, 22px gap) */
-.finding {
-  display: grid !important;
-  grid-template-columns: 1fr 220px !important;
-  gap: 22px !important;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  padding: 16px 20px 18px;
-  margin: 10px 0;
-  box-shadow: var(--shadow-card);
-  align-items: start !important;
-}
+/* Featured finding */
+.featured { background: var(--color-surface); border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md); padding: 18px 22px; margin-bottom: 18px; box-shadow: var(--shadow-card); }
+.featured .featured-head { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); margin-bottom: 8px; }
+.featured h2 { font-family: var(--font-display); font-size: 22px; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.15; margin: 0 0 12px; font-weight: 400; max-width: 50ch; }
+.featured .grid { display: grid; grid-template-columns: 1fr 240px; gap: 22px; }
+.featured p { font-size: 14px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 8px; }
+.featured .byline { font-size: 12px; margin-bottom: 0; }
+.featured .byline b { color: var(--color-text-primary); font-weight: 700; }
+.featured .right .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px; }
+.featured .right ul { padding-left: 16px; margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); }
+.featured .not-resolved { background: var(--color-surface-raised); padding: 8px 12px; margin-top: 10px; border-radius: var(--radius-sm); font-style: italic; font-size: 12px; color: var(--color-text-secondary); }
+
+/* Finding row */
+.finding { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 10px; display: grid; grid-template-columns: 100px 1fr 180px; gap: 18px; align-items: start; box-shadow: var(--shadow-card); }
 .finding:hover { box-shadow: var(--shadow-card-hover); }
-.finding .body { display: flex; flex-direction: column; min-width: 0; }
-.finding .body .item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 6px; }
-.finding .body .item-head .when { color: var(--color-text-muted); font-weight: 600; margin-left: auto; }
-.finding .body h4 { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 4px 0 6px; color: var(--color-text-primary); }
-.finding .body h4 a { color: inherit; text-decoration: none; }
-.finding .body p { font-size: 13px; line-height: 1.5; color: var(--color-text-secondary); margin: 0 0 6px; }
-.finding .body .byline { font-size: 12px; color: var(--color-text-secondary); margin-top: 8px; }
+.finding .kicker { font-size: 11px; }
+.finding .kicker .tag { display: block; font-family: var(--font-display); color: var(--color-text-primary); font-size: 15px; letter-spacing: 0.06em; margin-bottom: 4px; }
+.finding .kicker .when { color: var(--color-text-muted); }
+.finding .body .byline { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
 .finding .body .byline b { color: var(--color-text-primary); font-weight: 700; }
-.finding .right { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 200px; max-width: 220px; }
-.finding .right .s-pill { align-self: flex-start; }
-.finding .right .t-pill { align-self: flex-start; }
-.finding .right .b-tag { align-self: flex-start; }
-.finding .changes-callout { margin-top: 4px; background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--color-text-primary); }
-.finding .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+.finding .body h4 { font-size: 16px; font-weight: 700; margin: 0 0 6px; line-height: 1.35; }
+.finding .body h4 a { color: var(--color-text-primary); text-decoration: none; }
+.finding .body h4 a:hover { color: var(--color-primary); }
+.finding .body p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0; }
+.finding .right { font-size: 11px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.finding .right .meta { color: var(--color-text-muted); text-align: right; }
 
 .s-pill { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; text-transform: uppercase; }
 .s-pill.action { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
@@ -125,8 +89,8 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .s-pill.monitor { background: var(--color-surface); color: var(--color-text-muted); border: 1px solid var(--color-border); }
 .t-pill { font-family: var(--font-display); font-size: 11px; padding: 1px 6px; border: 1px solid var(--color-border); }
 .t-pill.t3 { color: var(--color-secondary); border-color: var(--color-secondary); }
-.t-pill.t4 { color: var(--color-text-primary); }
 .t-pill.t5 { color: var(--color-text-muted); }
+
 .b-tag { font-size: 10px; background: var(--color-surface-raised); padding: 1px 6px; border-radius: 3px; color: var(--color-text-primary); border: 1px solid var(--color-border); font-weight: 500; }
 
 /* Theme-grouped finding sections */
@@ -150,6 +114,245 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .rail-card li { padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); font-size: 12.5px; line-height: 1.5; }
 .rail-card li:last-child { border-bottom: 0; }
 .rail-card li b { color: var(--color-text-primary); font-weight: 700; display: block; }
+.rail-card li .meta { color: var(--color-text-muted); font-size: 11px; }
+
+.finding .right { gap: 8px; min-width: 200px; max-width: 220px; }
+.finding .right .changes-mini { font-size: 11.5px; line-height: 1.45; color: var(--color-text-primary); padding: 9px 11px; background: var(--color-surface-raised); border-left: 2px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 4px; text-align: left; width: 100%; }
+.finding .right .changes-mini .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+.signal .right { gap: 8px; min-width: 200px; max-width: 220px; }
+.signal .right .changes-mini { font-size: 11.5px; line-height: 1.45; color: var(--color-text-primary); padding: 9px 11px; background: var(--color-surface-raised); border-left: 2px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 4px; text-align: left; width: 100%; }
+.signal .right .changes-mini .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+
+/* Stat tiles (matches operations + production) */
+.stat-zone { background: var(--color-surface-raised); padding: 0 40px 18px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
+.stat-tile:hover { box-shadow: var(--shadow-card-hover); }
+.stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
+.stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
+.stat-tile.active .icon { color: var(--color-critical); }
+.stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
+.stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
+.stat-tile.high .v, .stat-tile.high .lbl, .stat-tile.high .icon { color: var(--color-high); }
+.stat-tile.mod .v, .stat-tile.mod .lbl, .stat-tile.mod .icon { color: var(--color-moderate); }
+.stat-tile.low .v, .stat-tile.low .lbl, .stat-tile.low .icon { color: var(--color-low); }
+.stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
+.stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
+/* Priority legend */
+.pri-legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
+.pri-legend .it { display: inline-flex; align-items: center; gap: 8px; }
+.pri-legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
+.pri-legend .it.crit .dot { background: var(--color-critical); }
+.pri-legend .it.high .dot { background: var(--color-high); }
+.pri-legend .it.mod  .dot { background: var(--color-moderate); }
+.pri-legend .it.low  .dot { background: var(--color-low); }
+.pri-legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
+
+/* Stronger "What it changes" callout on every card */
+.finding { display: grid; grid-template-columns: 100px 1fr 180px; gap: 18px; align-items: start; }
+.finding .right { gap: 6px; min-width: 160px; max-width: 180px; align-self: start; }
+.finding .right .changes-mini { display: none !important; }
+.finding .body .changes-callout { background: var(--color-surface-raised); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-top: 10px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); }
+.finding .body .changes-callout .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+.signal { display: grid; grid-template-columns: 100px 1fr 180px; gap: 18px; align-items: start; }
+.signal .right { gap: 6px; min-width: 160px; max-width: 180px; align-self: start; }
+.signal .right .changes-mini { display: none !important; }
+.signal .body .changes-callout { background: var(--color-surface-raised); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-top: 10px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); }
+.signal .body .changes-callout .lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+.ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 22px; }
+.ai-bar .row { display: flex; align-items: center; gap: 12px; }
+.ai-bar .icon { color: var(--color-primary); font-size: 16px; }
+.ai-bar input { flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 14px; outline: none; }
+.ai-bar input::placeholder { color: var(--color-text-muted); }
+.ai-bar button { background: var(--color-primary); color: #fff; border: 0; padding: 9px 22px; border-radius: var(--radius-pill); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
+
+/* Every signal/finding card gets featured-style "mini summary" treatment */
+.signal, .finding { background: var(--color-surface); border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: var(--radius-sm); padding: 16px 20px; margin: 10px 0; box-shadow: var(--shadow-card); }
+.signal:hover, .finding:hover { box-shadow: var(--shadow-card-hover); }
+.signal .body h4, .finding .body h4 { font-size: 17px; font-weight: 700; line-height: 1.35; margin: 4px 0 8px; color: var(--color-text-primary); }
+.signal .body h4 a, .finding .body h4 a { color: inherit; text-decoration: none; }
+.signal .body h4 a:hover, .finding .body h4 a:hover { color: var(--color-primary); }
+.signal .body p, .finding .body p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 6px; }
+.signal .body .changes-callout, .finding .body .changes-callout { background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; margin-top: 12px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); }
+.signal .body .changes-callout .lbl, .finding .body .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+.signal .right .s-pill, .finding .right .s-pill { align-self: flex-end; }
+.signal .kicker .tag, .finding .kicker .tag { display: block; font-family: var(--font-display); font-size: 14px; letter-spacing: 0.06em; color: var(--color-text-primary); margin-bottom: 3px; }
+.signal .kicker .when, .finding .kicker .when { display: block; font-size: 10.5px; color: var(--color-text-muted); }
+
+.theme-rail-wrap { margin: 0 0 18px; }
+.theme-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
+.theme-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
+
+/* Unified card layout — every signal/finding card matches the featured 2-column structure */
+.signal, .finding { display: grid !important; grid-template-columns: 1fr 220px; gap: 22px; background: var(--color-surface); border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: var(--radius-sm); padding: 18px 20px; margin: 10px 0; box-shadow: var(--shadow-card); }
+.signal .kicker, .finding .kicker { display: none !important; }
+.signal .body, .finding .body { min-width: 0; }
+.signal .body h3, .signal .body h4, .finding .body h3, .finding .body h4 { font-size: 18px; font-weight: 700; line-height: 1.3; margin: 6px 0 8px; color: var(--color-text-primary); }
+.signal .right, .finding .right { display: flex; flex-direction: column; gap: 8px; align-items: stretch; text-align: left; }
+.signal .right > *, .finding .right > * { align-self: flex-start; }
+.signal .body .severity-top, .finding .body .severity-top { display: flex; gap: 8px; margin-bottom: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); align-items: center; }
+.signal .body .changes-callout, .finding .body .changes-callout { background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); padding: 10px 14px; margin-top: 12px; font-size: 12.5px; line-height: 1.5; color: var(--color-text-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.signal .body .changes-callout .lbl, .finding .body .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
+
+/* Every signal/finding card uses the featured-card layout */
+.signal, .finding { 
+  background: var(--color-surface); 
+  border: 1px solid var(--color-border); 
+  border-left: 3px solid var(--color-primary); 
+  border-radius: var(--radius-sm); 
+  padding: 16px 20px 18px; 
+  margin: 10px 0; 
+  box-shadow: var(--shadow-card); 
+  display: grid !important; 
+  grid-template-columns: 1fr 220px !important; 
+  gap: 22px !important;
+  align-items: start !important;
+}
+.signal:hover, .finding:hover { box-shadow: var(--shadow-card-hover); }
+
+/* Hide the legacy left kicker column (date + tag) — those items move into the header strip */
+.signal > .kicker, .finding > .kicker { display: none !important; }
+
+/* Add a uniform header strip at top of .body */
+.signal .body, .finding .body { display: flex; flex-direction: column; }
+.signal .body .item-head, .finding .body .item-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--color-primary); margin-bottom: 6px; flex-wrap: wrap;
+}
+.signal .body .item-head .sep, .finding .body .item-head .sep { color: var(--color-text-muted); }
+.signal .body .item-head .when, .finding .body .item-head .when { color: var(--color-text-muted); font-weight: 600; margin-left: auto; }
+
+.signal .body h4, .finding .body h4 { 
+  font-size: 18px; font-weight: 700; line-height: 1.3; 
+  margin: 4px 0 8px; color: var(--color-text-primary); 
+}
+.signal .body h4 a, .finding .body h4 a { color: inherit; text-decoration: none; }
+.signal .body h4 a:hover, .finding .body h4 a:hover { color: var(--color-primary); }
+.signal .body > .byline, .finding .body > .byline {
+  font-size: 12px; color: var(--color-text-secondary); margin: 6px 0 0; line-height: 1.5;
+}
+.signal .body > .byline b, .finding .body > .byline b { color: var(--color-text-primary); font-weight: 700; }
+.signal .body p, .finding .body p { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); margin: 0 0 6px; }
+
+/* Right column: severity pill + tier + What-it-changes callout */
+.signal > .right, .finding > .right { 
+  display: flex !important; flex-direction: column !important; 
+  align-items: stretch !important; gap: 8px !important; 
+  text-align: left !important; min-width: auto !important; max-width: none !important;
+}
+.signal > .right .s-pill, .finding > .right .s-pill { align-self: flex-start; }
+.signal > .right .t-pill, .finding > .right .t-pill { align-self: flex-start; }
+.signal > .right .b-tag, .finding > .right .b-tag { align-self: flex-start; }
+.signal > .right .meta, .finding > .right .meta { 
+  text-align: left !important; color: var(--color-text-muted); font-size: 11px; padding-top: 2px;
+}
+
+/* Strengthen "What it changes" callout in body or right column */
+.signal .changes-callout, .finding .changes-callout, 
+.signal .changes-mini, .finding .changes-mini {
+  display: block !important;
+  background: var(--color-bg-ai-strip); 
+  border-left: 3px solid var(--color-primary); 
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; 
+  padding: 10px 12px; 
+  font-size: 12px; line-height: 1.5; color: var(--color-text-primary);
+  margin-top: 6px;
+  width: 100%; max-width: none !important;
+}
+.signal .changes-callout .lbl, .finding .changes-callout .lbl,
+.signal .changes-mini .lbl, .finding .changes-mini .lbl { 
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; 
+  color: var(--color-primary); display: block; margin-bottom: 4px;
+}
+
+/* Match Operations reg-link visuals on signal + finding cards */
+.signal, .finding {
+  padding: 16px 20px 18px !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.signal .body .item-head, .finding .body .item-head {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+  gap: 10px;
+}
+.signal .body .item-head .s-pill,
+.finding .body .item-head .s-pill {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 2px 8px !important;
+  border-radius: 3px !important;
+  letter-spacing: 0.08em !important;
+  border: 1px solid !important;
+}
+.signal .body .item-head .when, .finding .body .item-head .when {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 10.5px;
+}
+.signal .body h4, .finding .body h4 {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  margin: 4px 0 6px !important;
+}
+.signal .body p, .finding .body p {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  margin: 0 0 6px !important;
+}
+.signal .body .byline, .finding .body .byline {
+  font-size: 12px !important;
+  margin-top: 8px !important;
+}
+.signal > .right, .finding > .right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-width: 200px !important;
+  max-width: 220px !important;
+}
+.signal > .right .s-pill, .finding > .right .s-pill {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.signal > .right .t-pill, .finding > .right .t-pill {
+  align-self: flex-start;
+}
+.signal .changes-callout, .finding .changes-callout {
+  margin-top: 4px;
+  background: var(--color-bg-ai-strip);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.signal .changes-callout .lbl, .finding .changes-callout .lbl {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  display: block;
+  margin-bottom: 4px;
+}
 </style>
 </head>
 <body>
@@ -161,14 +364,14 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
   <aside class="side">
     <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
         <nav>
-      <a href="#"><span class="ico">⊡</span>Dashboard</a>
-      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
-      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
-      <a href="research.html" class="active"><span class="ico">◉</span>Research</a>
-      <a href="operations.html"><span class="ico">◐</span>Operations</a>
-      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <a href="#"><span class="ico">▦</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">⚖</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">↗</span>Market Intel</a>
+      <a href="research.html" class="active"><span class="ico">◎</span>Research</a>
+      <a href="operations.html"><span class="ico">⊕</span>Operations</a>
+      <a href="map.html"><span class="ico">◉</span>Map</a>
       <div class="nav-divider"></div>
-      <a href="community.html"><span class="ico">♥</span>Community</a>
+      <a href="community.html"><span class="ico">▤</span>Community</a>
     </nav>
     <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
   </aside>
@@ -180,7 +383,6 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
       <h1 class="mh-title">Research</h1>
       <div class="mh-meta">Horizon-scan content from peer-reviewed journals, think tanks, quantified-climate research, and named analytical press · <b>34</b> findings this week · <b>7</b> themes active · workspace verticals: <b>Live events · Fine art</b></div>
     </div>
-
     <div class="stat-zone">
       <div class="pri-legend">
         <div class="it crit"><span class="dot"></span><b>Action required</b> Decision pressure now</div>
@@ -191,27 +393,52 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
       <div class="stat-row">
         <div class="stat-tile active"><div class="icon">▲</div><div class="v">2</div><div class="lbl">Action required</div><div class="sub">In your verticals · this week</div></div>
         <div class="stat-tile high"><div class="icon">▲</div><div class="v">5</div><div class="lbl">Cost alert</div><div class="sub">Affecting margins</div></div>
-        <div class="stat-tile mod"><div class="icon">→</div><div class="v">14</div><div class="lbl">Monitor</div><div class="sub">Trending themes</div></div>
-        <div class="stat-tile low"><div class="icon">→</div><div class="v">13</div><div class="lbl">Background</div><div class="sub">Awareness coverage</div></div>
+        <div class="stat-tile mod"><div class="icon">◎</div><div class="v">14</div><div class="lbl">Monitor</div><div class="sub">Trending themes</div></div>
+        <div class="stat-tile low"><div class="icon">○</div><div class="v">13</div><div class="lbl">Background</div><div class="sub">Awareness coverage</div></div>
       </div>
     </div>
-
     <div class="body">
-
       <!-- Theme rail with label -->
       <div class="theme-rail-wrap">
         <div class="theme-rail-label"><span>Research · What we cover by theme</span><span class="sub">7 active themes · filtered to your verticals</span></div>
         <div class="theme-rail">
-          <div class="theme active"><div class="lbl">Emissions accounting</div><div class="num">8 new</div><div class="sub">Scope 3 methodology shifts on charter air. <b>3 affect your verticals.</b></div></div>
-          <div class="theme"><div class="lbl">Fuels &amp; SAF</div><div class="num">6 new</div><div class="sub">HEFA vs e-SAF cost crossover modelling.</div></div>
-          <div class="theme"><div class="lbl">Packaging &amp; circular</div><div class="num">5 new</div><div class="sub">PPWR reuse-target verification methods.</div></div>
-          <div class="theme"><div class="lbl">Carbon markets</div><div class="num">5 new</div><div class="sub">EU ETS allowance trajectory + UK CBAM design.</div></div>
-          <div class="theme"><div class="lbl">Cold-chain &amp; art</div><div class="num">4 new</div><div class="sub">Crate insulation lifecycle. <b>2 in your verticals.</b></div></div>
-          <div class="theme"><div class="lbl">Last-mile EV</div><div class="num">4 new</div><div class="sub">European urban delivery zones.</div></div>
-          <div class="theme"><div class="lbl">Disclosure</div><div class="num">2 new</div><div class="sub">CSRD omnibus revisions.</div></div>
+        <div class="theme active" onclick="document.getElementById('theme-emissions').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;">
+          <div class="lbl">Emissions accounting</div>
+          <div class="num">8 new</div>
+          <div class="sub">Scope 3 methodology shifts on charter air. <b>3 affect your verticals.</b></div>
+        </div>
+        <div class="theme">
+          <div class="lbl">Fuels &amp; SAF</div>
+          <div class="num">6 new</div>
+          <div class="sub">HEFA vs e-SAF cost crossover modelling.</div>
+        </div>
+        <div class="theme">
+          <div class="lbl">Packaging &amp; circular</div>
+          <div class="num">5 new</div>
+          <div class="sub">PPWR reuse-target verification methods.</div>
+        </div>
+        <div class="theme">
+          <div class="lbl">Carbon markets</div>
+          <div class="num">5 new</div>
+          <div class="sub">EU ETS allowance trajectory + UK CBAM design.</div>
+        </div>
+        <div class="theme">
+          <div class="lbl">Cold-chain &amp; art</div>
+          <div class="num">4 new</div>
+          <div class="sub">Crate insulation lifecycle. <b>2 in your verticals.</b></div>
+        </div>
+        <div class="theme">
+          <div class="lbl">Last-mile EV</div>
+          <div class="num">4 new</div>
+          <div class="sub">European urban delivery zones.</div>
+        </div>
+        <div class="theme">
+          <div class="lbl">Disclosure</div>
+          <div class="num">2 new</div>
+          <div class="sub">CSRD omnibus revisions.</div>
         </div>
       </div>
-
+      </div>
       <!-- AI bar -->
       <div class="ai-bar">
         <div class="row">
@@ -247,7 +474,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
           <article class="finding" style="border-left-width: 4px;">
             <div class="body">
               <div class="item-head">
-                <span class="s-pill action">Action required</span>
+                <span class="s-pill action" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Action required</span>
                 <span>emissions accounting · featured</span>
                 <span class="when">5 days ago · in your verticals</span>
               </div>
@@ -263,10 +490,319 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
             </div>
           </article>
 
-          <!-- 7 theme sections follow same pattern. See operator full mockup; truncated here for length. -->
-          <!-- Each section uses .theme-sec wrapper with .theme-sec-head/-summary/-body containing .finding cards. -->
+          <!-- THEME 1: Emissions accounting -->
+          <section class="theme-sec" id="theme-emissions">
+            <div class="theme-sec-head">
+              <span class="theme-sec-num">T1</span>
+              <span class="theme-sec-name">Emissions accounting</span>
+              <span class="theme-sec-count">8 new · 3 in your verticals</span>
+            </div>
+            <p class="theme-sec-summary">Methodology shifts and quantified frameworks that change <b>how the workspace reports Scope 3</b>, restates client claims, or rebases verifier conversations. Featured finding above covers ICCT charter factor; supporting findings below.</p>
+            <div class="theme-sec-body">
+              <article class="finding">
+                <div class="kicker"><span class="tag">EMISSIONS</span><span class="when">6 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span>emissions accounting</span><span class="when">6 May</span></div>
+                  <div class="byline"><b>Project Drawdown</b> · Quantified climate research
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Tightens case for short-haul modal shift over long-haul SAF investment on per-tCO₂e-avoided basis.</div>
+                </div>
+                  <h4><a href="#">Updated GtCO₂e abatement curve for freight: ranks SAF below modal shift but above electrification in 2030 reduction potential.</a></h4>
+                  <p>Tightens the case for short-haul modal shift over long-haul SAF investment on a per-tonne-CO₂e-avoided basis.</p>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Tightens case for short-haul modal shift over long-haul SAF investment on per-tCO₂e-avoided basis.</div>
+                  <span class="t-pill t3">T3</span>
+                  <span class="b-tag">foundation-funded</span>
+                  <span class="meta">cited 22× · cross-cutting</span>
+                </div>
+              </article>
+              <article class="finding">
+                <div class="kicker"><span class="tag">EMISSIONS</span><span class="when">2 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span>emissions accounting</span><span class="when">2 May</span></div>
+                  <div class="byline"><b>Carbon Trust</b> · Methodology brief
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Revised allocation method for charter segments — update internal methodology.</div>
+                </div>
+                  <h4><a href="#">Scope 3.4 upstream transport — revised guidance on charter-segment allocation methods.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Revised allocation method for charter segments — update internal methodology.</div>
+                  <span class="t-pill t3">T3</span>
+                  <span class="b-tag">methodologically-transparent</span>
+                  <span class="meta">cited 7× · in your sector</span>
+                </div>
+              </article>
+              <article class="finding">
+                <div class="kicker"><span class="tag">EMISSIONS</span><span class="when">29 Apr</span></div>
+                <div class="body">
+                  <div class="item-head"><span>emissions accounting</span><span class="when">29 Apr</span></div>
+                  <div class="byline"><b>Edie</b> · Analytical reporting
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Confirms post-CSRD audit upward revisions; expect similar from your verifier.</div>
+                </div>
+                  <h4><a href="#">Scope 3 freight emissions — 5 corporate reporters revise prior-year tonnage post-CSRD audit.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Confirms post-CSRD audit upward revisions; expect similar from your verifier.</div>
+                  <span class="t-pill t5">T5</span>
+                  <span class="b-tag">editorial-opinion</span>
+                </div>
+              </article>
+            </div>
+            <div class="theme-sec-more">+ 5 more in this theme →</div>
+          </section>
 
-          <p style="text-align: center; padding: 20px; color: var(--color-text-muted); font-size: 12px;">All <b>34</b> findings this week organized by theme · <a href="#" style="color: var(--color-primary);">view as flat chronological feed</a></p>
+          <!-- THEME 2: Fuels & SAF -->
+          <section class="theme-sec" id="theme-fuels">
+            <div class="theme-sec-head">
+              <span class="theme-sec-num">T2</span>
+              <span class="theme-sec-name">Fuels &amp; SAF</span>
+              <span class="theme-sec-count">6 new</span>
+            </div>
+            <p class="theme-sec-summary">Production capacity, feedstock constraints, price trajectory, and pathway cost crossover for <b>SAF, e-SAF, hydrogen, and alternative marine fuels</b>. Critical for long-haul fuel-mix planning and forward-buy decisions.</p>
+            <div class="theme-sec-body">
+              <article class="finding">
+                <div class="kicker"><span class="tag">FUELS</span><span class="when">12 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>fuels & SAF</span><span class="when">12 May</span></div>
+                  <div class="byline"><b>IEA</b> · SAF Outlook Q2 2026
+                  <div class="changes-callout"><span class="lbl">What it changes</span>e-SAF cost crossover deferred 2 years — affects 2028–2030 forward-buy posture.</div>
+                </div>
+                  <h4><a href="#">HEFA pathway production capacity ramps faster than feedstock; price crossover with e-SAF deferred to 2031.</a></h4>
+                  <p>Quarterly outlook lowers the previous IEA scenario for e-SAF cost competitiveness by 2 years. Implication for workspaces planning 2028–2030 fuel-mix forward bookings.</p>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>e-SAF cost crossover deferred 2 years — affects 2028–2030 forward-buy posture.</div>
+                  <span class="t-pill t3">T3</span>
+                  <span class="s-pill monitor">Monitor</span>
+                  <span class="b-tag">government-funded</span>
+                  <span class="meta">cited 8× · in your sector</span>
+                </div>
+              </article>
+              <article class="finding">
+                <div class="kicker"><span class="tag">FUELS</span><span class="when">7 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span>fuels & SAF</span><span class="when">7 May</span></div>
+                  <div class="byline"><b>IRENA</b> · Hydrogen Outlook
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Tightens 2030 LCOH scenario; informs long-range road / inland decarb plans.</div>
+                </div>
+                  <h4><a href="#">Green hydrogen production cost projection — €4.20/kg LCOH by 2030 in best-case scenario.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Tightens 2030 LCOH scenario; informs long-range road / inland decarb plans.</div>
+                  <span class="t-pill t3">T3</span>
+                  <span class="b-tag">government-funded</span>
+                </div>
+              </article>
+              <article class="finding">
+                <div class="kicker"><span class="tag">FUELS</span><span class="when">1 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>fuels & SAF</span><span class="when">1 May</span></div>
+                  <div class="byline"><b>FreightWaves Sustainability</b>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>e-SAF stays showcase-only through 2028; HEFA remains realistic blend.</div>
+                </div>
+                  <h4><a href="#">e-SAF pilot plants in Norway, Sweden push 2027 commercial start — but at €3,200/t pre-subsidy.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>e-SAF stays showcase-only through 2028; HEFA remains realistic blend.</div>
+                  <span class="t-pill t5">T5</span>
+                  <span class="s-pill monitor">Monitor</span>
+                </div>
+              </article>
+            </div>
+            <div class="theme-sec-more">+ 3 more in this theme →</div>
+          </section>
+
+          <!-- THEME 3: Packaging & circular -->
+          <section class="theme-sec" id="theme-packaging">
+            <div class="theme-sec-head">
+              <span class="theme-sec-num">T3</span>
+              <span class="theme-sec-name">Packaging &amp; circular</span>
+              <span class="theme-sec-count">5 new · highly relevant</span>
+            </div>
+            <p class="theme-sec-summary">PPWR reuse targets, recyclability standards, crate verification methods, and PFAS restrictions. <b>Direct impact on art-handler and live-events crate inventories</b> — affects what counts as compliant packaging on EU-bound movements.</p>
+            <div class="theme-sec-body">
+              <article class="finding">
+                <div class="kicker"><span class="tag">PACKAGING</span><span class="when">9 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span>packaging</span><span class="when">9 May</span></div>
+                  <div class="byline"><b>Loadstar</b> · Sustainability desk · Editorial
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Names three "verifiable reuse" tracking models; informs PPWR readiness build.</div>
+                </div>
+                  <h4><a href="#">Reusable-crate verification under PPWR Article 7 — analytical-press synthesis of three operator approaches.</a></h4>
+                  <p>Lewis King reviews three reusable-packaging tracking models being trialled by art handlers, distinguishing what counts as "verifiable" reuse. Direct relevance to fine-art and live-events crate inventories.</p>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Names three "verifiable reuse" tracking models; informs PPWR readiness build.</div>
+                  <span class="t-pill t5">T5</span>
+                  <span class="b-tag">subscription-supported</span>
+                  <span class="b-tag">editorial-opinion</span>
+                  <span class="meta">cited 3× · in your sector</span>
+                </div>
+              </article>
+              <article class="finding">
+                <div class="kicker"><span class="tag">PACKAGING</span><span class="when">4 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span>packaging</span><span class="when">4 May</span></div>
+                  <div class="byline"><b>Environmental Finance</b>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Sets benchmark for inner-packaging substitution timing.</div>
+                </div>
+                  <h4><a href="#">PPWR-aligned material substitution — 7 luxury brands switching to FSC-only inner packaging.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Sets benchmark for inner-packaging substitution timing.</div>
+                  <span class="t-pill t5">T5</span>
+                  <span class="b-tag">subscription-supported</span>
+                </div>
+              </article>
+            </div>
+            <div class="theme-sec-more">+ 3 more in this theme →</div>
+          </section>
+
+          <!-- THEME 4: Carbon markets -->
+          <section class="theme-sec" id="theme-carbon">
+            <div class="theme-sec-head">
+              <span class="theme-sec-num">T4</span>
+              <span class="theme-sec-name">Carbon markets</span>
+              <span class="theme-sec-count">5 new</span>
+            </div>
+            <p class="theme-sec-summary">EU ETS price trajectory, UK and other CBAM design, voluntary carbon market quality. <b>Affects pass-through math on ocean-lane surcharges</b> and the cost line on EU-bound air freight.</p>
+            <div class="theme-sec-body">
+              <article class="finding">
+                <div class="kicker"><span class="tag">CARBON</span><span class="when">3 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span>carbon markets</span><span class="when">3 May</span></div>
+                  <div class="byline"><b>Environmental Finance</b> · Analytical reporting
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Pass-through math on ocean lanes tightens; revise 2026 surcharge assumptions.</div>
+                </div>
+                  <h4><a href="#">EU ETS Phase 4 trajectory: free-allocation cushion narrows for shipping; modeled €88 by Q4 2026.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Pass-through math on ocean lanes tightens; revise 2026 surcharge assumptions.</div>
+                  <span class="t-pill t5">T5</span>
+                  <span class="b-tag">subscription-supported</span>
+                  <span class="meta">cited 6×</span>
+                </div>
+              </article>
+              <article class="finding">
+                <div class="kicker"><span class="tag">CARBON</span><span class="when">28 Apr</span></div>
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>carbon markets</span><span class="when">28 Apr</span></div>
+                  <div class="byline"><b>ICAP</b> · Carbon market status report
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Adds parallel UK pass-through risk; track consultation responses.</div>
+                </div>
+                  <h4><a href="#">UK ETS — design proposal for inclusion of shipping; consultation window 1 Jun – 31 Aug.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Adds parallel UK pass-through risk; track consultation responses.</div>
+                  <span class="t-pill t3">T3</span>
+                  <span class="s-pill monitor">Monitor</span>
+                </div>
+              </article>
+            </div>
+            <div class="theme-sec-more">+ 3 more in this theme →</div>
+          </section>
+
+          <!-- THEME 5: Cold-chain & art -->
+          <section class="theme-sec" id="theme-cold-chain">
+            <div class="theme-sec-head">
+              <span class="theme-sec-num">T5</span>
+              <span class="theme-sec-name">Cold-chain &amp; art</span>
+              <span class="theme-sec-count">4 new · 2 in your verticals</span>
+            </div>
+            <p class="theme-sec-summary">Climate-controlled crate materials, insulation lifecycle, refrigerant transitions, and conservation-grade packaging. <b>Vertical-specific research for art-handler workspaces</b>.</p>
+            <div class="theme-sec-body">
+              <article class="finding">
+                <div class="kicker"><span class="tag">COLD-CHAIN</span><span class="when">1 May</span></div>
+                <div class="body">
+                  <div class="item-head"><span>cold-chain & art</span><span class="when">1 May</span></div>
+                  <div class="byline"><b>Journal of Sustainable Transportation</b> · Peer-reviewed
+                  <div class="changes-callout"><span class="lbl">What it changes</span>VIP favorable on lifecycle CO₂e but cost penalty at typical volumes.</div>
+                </div>
+                  <h4><a href="#">Climate-controlled crate insulation lifecycle: vacuum-insulated panels vs. EPS — full LCA comparison.</a></h4>
+                  <p>Peer-reviewed LCA comparing two crate insulation approaches at the embodied + operational level. Conclusions favorable to VIP on lifecycle CO₂e but with cost penalty at typical art-handler volumes.</p>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>VIP favorable on lifecycle CO₂e but cost penalty at typical volumes.</div>
+                  <span class="t-pill t3">T3</span>
+                  <span class="b-tag">peer-reviewed</span>
+                  <span class="meta">cited 4× · in your sector</span>
+                </div>
+              </article>
+              <article class="finding">
+                <div class="kicker"><span class="tag">COLD-CHAIN</span><span class="when">25 Apr</span></div>
+                <div class="body">
+                  <div class="item-head"><span>cold-chain & art</span><span class="when">25 Apr</span></div>
+                  <div class="byline"><b>IIC (Conservation)</b> · Practice note
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Material trade-offs at conservation grade; informs museum-client tendering.</div>
+                </div>
+                  <h4><a href="#">Conservation-grade transport packaging — humidity-buffer materials and sustainability trade-offs.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Material trade-offs at conservation grade; informs museum-client tendering.</div>
+                  <span class="t-pill t4">T4</span>
+                  <span class="b-tag">standards-defining</span>
+                  <span class="meta">in your sector</span>
+                </div>
+              </article>
+            </div>
+            <div class="theme-sec-more">+ 2 more in this theme →</div>
+          </section>
+
+          <!-- THEME 6: Last-mile EV -->
+          <section class="theme-sec" id="theme-last-mile">
+            <div class="theme-sec-head">
+              <span class="theme-sec-num">T6</span>
+              <span class="theme-sec-name">Last-mile electrification</span>
+              <span class="theme-sec-count">4 new</span>
+            </div>
+            <p class="theme-sec-summary">European urban delivery zones, EV cargo capacity, charging-infrastructure rollout, and zero-emission cargo bay restrictions.</p>
+            <div class="theme-sec-body">
+              <article class="finding">
+                <div class="kicker"><span class="tag">LAST-MILE</span><span class="when">29 Apr</span></div>
+                <div class="body">
+                  <div class="item-head"><span class="s-pill monitor" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px;">Monitor</span><span>last-mile electrification</span><span class="when">29 Apr</span></div>
+                  <div class="byline"><b>FreightWaves Sustainability</b>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>38 cities enforcing ZE cargo restrictions by 2027; check city-pair exposure.</div>
+                </div>
+                  <h4><a href="#">European urban delivery zones — 38 cities now enforcing zero-emission cargo bay restrictions by 2027.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>38 cities enforcing ZE cargo restrictions by 2027; check city-pair exposure.</div>
+                  <span class="t-pill t5">T5</span>
+                  <span class="s-pill monitor">Monitor</span>
+                </div>
+              </article>
+            </div>
+            <div class="theme-sec-more">+ 3 more in this theme →</div>
+          </section>
+
+          <!-- THEME 7: Disclosure regimes -->
+          <section class="theme-sec" id="theme-disclosure">
+            <div class="theme-sec-head">
+              <span class="theme-sec-num">T7</span>
+              <span class="theme-sec-name">Disclosure regimes</span>
+              <span class="theme-sec-count">2 new</span>
+            </div>
+            <p class="theme-sec-summary">CSRD omnibus revisions, ISSB S2 interpretations, and emerging disclosure frameworks. Affects client-tender language and verifier conversations.</p>
+            <div class="theme-sec-body">
+              <article class="finding">
+                <div class="kicker"><span class="tag">DISCLOSURE</span><span class="when">22 Apr</span></div>
+                <div class="body">
+                  <div class="item-head"><span>disclosure regimes</span><span class="when">22 Apr</span></div>
+                  <div class="byline"><b>Splash247 Green</b>
+                  <div class="changes-callout"><span class="lbl">What it changes</span>Forwarder vs. carrier reporting boundaries clarified.</div>
+                </div>
+                  <h4><a href="#">CSRD omnibus — transport-sector reporting boundaries clarified for forwarders versus carriers.</a></h4>
+                </div>
+                <div class="right">
+              <div class="changes-mini"><span class="lbl">What it changes</span>Forwarder vs. carrier reporting boundaries clarified.</div>
+                  <span class="t-pill t5">T5</span>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <p style="text-align: center; padding: 20px; color: var(--color-text-muted); font-size: 12px;">All <b>34</b> findings this week organized by theme — <a href="#" style="color: var(--color-primary);">view as flat chronological feed</a></p>
 
         </div>
 

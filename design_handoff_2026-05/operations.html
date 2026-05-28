@@ -24,8 +24,10 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .side-foot .av { width: 22px; height: 22px; border-radius: 999px; background: var(--color-surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
 .side-foot .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-error); margin-left: auto; }
 
+/* Top accent line */
 .top-line { height: 4px; background: linear-gradient(90deg, #1E3A8A 0%, #DC2626 100%); }
 
+/* Main */
 .main { min-width: 0; }
 .masthead { background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); padding: 28px 40px 26px; }
 .mh-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px; display: flex; gap: 12px; }
@@ -36,7 +38,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 
 .body { padding: 26px 40px 60px; }
 
-/* Priority legend */
+/* Priority legend (matches production) */
 .legend { display: flex; gap: 22px; align-items: center; padding: 12px 0 18px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
 .legend .it { display: inline-flex; align-items: center; gap: 8px; }
 .legend .it .dot { width: 8px; height: 8px; border-radius: 999px; }
@@ -46,36 +48,29 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .legend .it.low  .dot { background: var(--color-low); }
 .legend .it b { color: var(--color-text-primary); font-weight: 700; margin-right: 4px; }
 
-/* Stat tiles */
+/* Stat tiles (matches production) */
 .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
 .stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; cursor: pointer; transition: box-shadow var(--transition-base); position: relative; }
 .stat-tile:hover { box-shadow: var(--shadow-card-hover); }
 .stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
 .stat-tile .icon { position: absolute; top: 18px; right: 18px; font-size: 14px; color: var(--color-text-muted); }
-.stat-tile.active .icon, .stat-tile.active .v, .stat-tile.active .lbl { color: var(--color-critical); }
-.stat-tile.high .icon, .stat-tile.high .v, .stat-tile.high .lbl { color: var(--color-high); }
-.stat-tile.mod .icon, .stat-tile.mod .v, .stat-tile.mod .lbl { color: var(--color-moderate); }
-.stat-tile.low .icon, .stat-tile.low .v, .stat-tile.low .lbl { color: var(--color-low); }
+.stat-tile.active .icon { color: var(--color-critical); }
+.stat-tile.high .icon { color: var(--color-high); }
+.stat-tile.mod .icon { color: var(--color-moderate); }
+.stat-tile.low .icon { color: var(--color-low); }
 .stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-text-primary); }
+.stat-tile.active .v { color: var(--color-critical); }
+.stat-tile.high .v { color: var(--color-high); }
+.stat-tile.mod .v { color: var(--color-moderate); }
+.stat-tile.low .v { color: var(--color-low); }
 .stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 10px 0 6px; color: var(--color-text-primary); }
+.stat-tile.active .lbl { color: var(--color-critical); }
+.stat-tile.high .lbl { color: var(--color-high); }
+.stat-tile.mod .lbl { color: var(--color-moderate); }
+.stat-tile.low .lbl { color: var(--color-low); }
 .stat-tile .sub { font-size: 12px; color: var(--color-text-muted); }
 
-/* Category breakdown rail */
-.cat-rail-wrap { margin: 0 0 22px; }
-.cat-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
-.cat-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
-.cat-rail { display: grid; grid-template-columns: repeat(var(--cat-cols, 6), 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
-.cat-cell { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 32px 32px 1fr; gap: 4px; min-height: 130px; }
-.cat-cell:hover { background: var(--color-surface-raised); }
-.cat-cell.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
-.cat-cell .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1.3; align-self: end; }
-.cat-cell.active .lbl { color: var(--color-primary); }
-.cat-cell .num { font-family: var(--font-display); font-size: 24px; line-height: 1; color: var(--color-text-primary); align-self: center; }
-.cat-cell.active .num { color: var(--color-primary); }
-.cat-cell .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; align-self: start; }
-.cat-cell .sub b { color: var(--color-text-primary); }
-
-/* AI bar */
+/* AI prompt bar — matches production orange pill */
 .ai-bar { background: var(--color-bg-ai-strip); border: 1px solid var(--color-border-ai); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px; }
 .ai-bar .row { display: flex; align-items: center; gap: 12px; }
 .ai-bar .icon { color: var(--color-primary); font-size: 16px; }
@@ -85,8 +80,9 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .ai-bar button:hover { background: var(--color-primary-hover); }
 .ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
+.ai-chip:hover { background: var(--color-primary); color: #fff; }
 
-/* Tabs */
+/* Tabs (matches production underline) */
 .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--color-border); margin-bottom: 22px; }
 .tabs a { padding: 12px 4px; margin-right: 32px; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); border-bottom: 2px solid transparent; cursor: pointer; text-decoration: none; transition: color var(--transition-fast); }
 .tabs a:hover { color: var(--color-text-primary); }
@@ -100,7 +96,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .section-h h2 { font-family: var(--font-display); font-size: 28px; letter-spacing: 0.025em; margin: 0 0 6px; font-weight: 400; }
 .section-h p { font-size: 14px; line-height: 1.55; color: var(--color-text-secondary); margin: 0; max-width: 90ch; }
 
-/* Region accordion */
+/* Region accordion — true to production but data-rich */
 .region { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 14px; box-shadow: var(--shadow-card); overflow: hidden; transition: box-shadow var(--transition-base); }
 .region:hover { box-shadow: var(--shadow-card-hover); }
 .region summary { padding: 18px 24px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 14px; }
@@ -117,18 +113,18 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .region .meta-row b { color: var(--color-text-primary); font-weight: 700; }
 .region .body { border-top: 1px solid var(--color-border-subtle); padding: 0; }
 
-/* Six-dimension panel */
+/* Six-dimension panel inside the region body */
 .dim { padding: 0 0 22px; border-bottom: 1px solid var(--color-border); }
 .dim:last-child { border-bottom: 0; padding-bottom: 4px; }
-.dim-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); }
+.dim-head { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 0; }
 .dim-num { font-family: var(--font-display); font-size: 13px; font-weight: 400; letter-spacing: 0.08em; color: #fff; background: var(--color-primary); padding: 4px 10px; border-radius: 3px; min-width: 36px; text-align: center; line-height: 1.1; }
 .dim-name { font-size: 13.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); }
 .dim-count { font-size: 11.5px; color: var(--color-text-muted); margin-left: auto; font-weight: 600; }
+.dim-count.empty { color: var(--color-text-muted); font-style: italic; }
 .dim-summary { font-size: 13.5px; line-height: 1.55; color: var(--color-text-secondary); padding: 14px 22px 4px; margin: 0 0 8px; max-width: 78ch; }
 .dim-summary strong { color: var(--color-text-primary); font-weight: 600; }
 .dim-body { padding: 8px 22px 4px; }
 
-/* FACT TABLES — D2-D6 use fact tables, NOT cards. README Section 5 item 7 binding. */
 .fact-table { width: 100%; font-size: 13px; border-collapse: collapse; }
 .fact-table tr { border-bottom: 1px solid var(--color-border-subtle); }
 .fact-table tr:last-child { border-bottom: 0; }
@@ -146,7 +142,72 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .fly.restrict { background: var(--color-high-bg); color: var(--color-high); border: 1px solid var(--color-high-border); }
 .fly.prohibit { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
 
-/* Operations card pattern — D1 only (regulation cross-references, clickable). 1fr / 220px / 22px gap. */
+.reg-link-list { display: flex; flex-direction: column; gap: 8px; }
+.reg-link { display: grid; grid-template-columns: 70px 1fr 90px; gap: 14px; padding: 10px 12px; background: var(--color-surface-raised); border-radius: var(--radius-sm); text-decoration: none; color: inherit; font-size: 13px; align-items: center; }
+.reg-link:hover { background: var(--color-surface-raised-hover); }
+.reg-link .code { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-muted); }
+.reg-link .ttl { font-weight: 600; color: var(--color-text-primary); line-height: 1.35; }
+.reg-link .due { font-size: 11px; color: var(--color-text-muted); text-align: right; }
+.reg-link .due.crit { color: var(--color-critical); font-weight: 700; }
+
+.empty-dim { font-size: 12.5px; color: var(--color-text-muted); font-style: italic; padding: 4px 0; }
+.empty-dim a { color: var(--color-primary); text-decoration: underline; font-style: normal; }
+
+/* Cross-surface band */
+.xrefs { background: var(--color-surface-raised); padding: 14px 18px; border-radius: var(--radius-sm); margin-top: 14px; }
+.xrefs-lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px; }
+.xrefs ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.xrefs li { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: baseline; }
+.xrefs .src-chip { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.xrefs .src-chip.reg { color: var(--color-primary); }
+.xrefs .src-chip.mkt { color: var(--color-secondary); }
+
+/* Side rail cards */
+.side-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; position: relative; overflow: hidden; }
+.side-card.coverage { padding-top: 18px; }
+.side-card.coverage::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--color-primary); }
+.cov-stats { display: block; margin: 6px 0 12px; }
+.cov-stats .num-have { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-primary); display: block; margin-bottom: 6px; }
+.cov-stats .unit { display: block; font-size: 11px; color: var(--color-text-primary); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.cov-stats .of { display: block; font-size: 12px; color: var(--color-text-muted); margin-top: 4px; font-weight: 500; }
+.cov-stats .of b { color: var(--color-text-primary); font-weight: 700; }
+.cov-bar { height: 6px; background: var(--color-surface-raised); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
+.cov-bar .fill { height: 100%; background: var(--color-primary); border-radius: 999px; }
+.cov-card-note { font-size: 12px; color: var(--color-text-muted); line-height: 1.5; margin: 0; }
+.side-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
+.side-card p { font-size: 13px; color: var(--color-text-primary); margin: 0 0 6px; line-height: 1.55; }
+.side-card .big { font-family: var(--font-display); font-size: 28px; line-height: 1; }
+.side-card a.link { color: var(--color-primary); font-weight: 700; font-size: 12px; text-decoration: none; }
+.side-card a.link:hover { text-decoration: underline; }
+.dim-list { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.dim-list .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--color-border-subtle); }
+.dim-list .row:last-child { border-bottom: 0; }
+.dim-list .row b { font-weight: 600; }
+.dim-list .row .cnt { font-weight: 700; color: var(--color-text-muted); font-family: var(--font-display); font-size: 15px; }
+.dim-list .row .cnt.bad { color: var(--color-critical); }
+.dim-list .row .cnt.warn { color: var(--color-high); }
+.dim-list .row .cnt.ok { color: var(--color-low); }
+
+
+.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
+
+/* Category breakdown rail (matches Research themes pattern) */
+.cat-rail-wrap { margin: 0 0 22px; }
+.cat-rail-label { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 6px; border-bottom: 1px solid var(--color-text-primary); }
+.cat-rail-label .sub { font-size: 11px; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; text-transform: none; }
+.cat-rail { display: grid; grid-template-columns: repeat(var(--cat-cols, 6), 1fr); gap: 1px; background: var(--color-border-subtle); border-top: 1px solid var(--color-text-primary); border-bottom: 1px solid var(--color-text-primary); }
+.cat-cell { background: var(--color-surface); padding: 14px 16px 16px; cursor: pointer; transition: background var(--transition-fast); display: grid; grid-template-rows: 32px 32px 1fr; gap: 4px; min-height: 130px; }
+.cat-cell:hover { background: var(--color-surface-raised); }
+.cat-cell.active { border-top: 2px solid var(--color-primary); margin-top: -1px; padding-top: 13px; }
+.cat-cell .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-primary); line-height: 1.3; align-self: end; }
+.cat-cell.active .lbl { color: var(--color-primary); }
+.cat-cell .num { font-family: var(--font-display); font-size: 24px; line-height: 1; color: var(--color-text-primary); align-self: center; }
+.cat-cell.active .num { color: var(--color-primary); }
+.cat-cell .sub { font-size: 11px; color: var(--color-text-muted); line-height: 1.4; align-self: start; }
+.cat-cell .sub b { color: var(--color-text-primary); }
+
+
+/* Operations regulation items match Market Intel signal cards exactly */
 .reg-link {
   display: grid !important;
   grid-template-columns: 1fr 220px !important;
@@ -164,7 +225,10 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 }
 .reg-link:hover { box-shadow: var(--shadow-card-hover) !important; }
 .reg-link .body { display: flex; flex-direction: column; }
-.reg-link .item-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); }
+.reg-link .item-head { 
+  display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; 
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary);
+}
 .reg-link .item-head .sev { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 3px; letter-spacing: 0.08em; }
 .reg-link .item-head .sev.action { background: var(--color-critical-bg); color: var(--color-critical); border: 1px solid var(--color-critical-border); }
 .reg-link .item-head .sev.window { background: var(--color-moderate-bg); color: var(--color-moderate); border: 1px solid var(--color-moderate-border); }
@@ -181,43 +245,6 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .reg-link .right .changes-callout { background: var(--color-bg-ai-strip); border-left: 3px solid var(--color-primary); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--color-text-primary); margin-top: 4px; }
 .reg-link .right .changes-callout .lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); display: block; margin-bottom: 4px; }
 .reg-link-list { display: flex; flex-direction: column; gap: 0; margin-top: 6px; }
-
-.empty-dim { font-size: 12.5px; color: var(--color-text-muted); font-style: italic; padding: 4px 0; }
-.empty-dim a { color: var(--color-primary); text-decoration: underline; font-style: normal; }
-
-/* Cross-surface band */
-.xrefs { background: var(--color-surface-raised); padding: 14px 18px; border-radius: var(--radius-sm); margin-top: 14px; }
-.xrefs-lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px; }
-.xrefs ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
-.xrefs li { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: baseline; }
-.xrefs .src-chip { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-.xrefs .src-chip.reg { color: var(--color-primary); }
-.xrefs .src-chip.mkt { color: var(--color-secondary); }
-
-/* Side rail */
-.side-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-card); margin-bottom: 14px; position: relative; overflow: hidden; }
-.side-card.coverage { padding-top: 18px; }
-.side-card.coverage::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--color-primary); }
-.cov-stats { display: block; margin: 6px 0 12px; }
-.cov-stats .num-have { font-family: var(--font-display); font-size: 56px; line-height: 1; color: var(--color-primary); display: block; margin-bottom: 6px; }
-.cov-stats .unit { display: block; font-size: 11px; color: var(--color-text-primary); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
-.cov-stats .of { display: block; font-size: 12px; color: var(--color-text-muted); margin-top: 4px; font-weight: 500; }
-.cov-stats .of b { color: var(--color-text-primary); font-weight: 700; }
-.cov-bar { height: 6px; background: var(--color-surface-raised); border-radius: 999px; overflow: hidden; margin-bottom: 12px; }
-.cov-bar .fill { height: 100%; background: var(--color-primary); border-radius: 999px; }
-.cov-card-note { font-size: 12px; color: var(--color-text-muted); line-height: 1.5; margin: 0; }
-.side-card .lbl { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 10px; }
-.side-card p { font-size: 13px; color: var(--color-text-primary); margin: 0 0 6px; line-height: 1.55; }
-.dim-list { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
-.dim-list .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--color-border-subtle); }
-.dim-list .row:last-child { border-bottom: 0; }
-.dim-list .row b { font-weight: 600; }
-.dim-list .row .cnt { font-weight: 700; color: var(--color-text-muted); font-family: var(--font-display); font-size: 15px; }
-.dim-list .row .cnt.bad { color: var(--color-critical); }
-.dim-list .row .cnt.warn { color: var(--color-high); }
-.dim-list .row .cnt.ok { color: var(--color-low); }
-
-.side nav .nav-divider { height: 1px; background: var(--color-border-subtle); margin: 10px 14px; }
 </style>
 </head>
 <body>
@@ -226,20 +253,21 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 
 <div class="app">
 
+  <!-- ───── SIDEBAR (matches production exactly) ───── -->
   <aside class="side">
     <div class="brand">
       <div class="n">CARO'S LEDGE</div>
       <div class="t">Freight Sustainability Intelligence</div>
     </div>
         <nav>
-      <a href="#"><span class="ico">⊡</span>Dashboard</a>
-      <a href="regulations.html"><span class="ico">▤</span>Regulations</a>
-      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
-      <a href="research.html"><span class="ico">◉</span>Research</a>
-      <a href="operations.html" class="active"><span class="ico">◐</span>Operations</a>
-      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <a href="#"><span class="ico">▦</span>Dashboard</a>
+      <a href="regulations.html"><span class="ico">⚖</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">↗</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◎</span>Research</a>
+      <a href="operations.html" class="active"><span class="ico">⊕</span>Operations</a>
+      <a href="map.html"><span class="ico">◉</span>Map</a>
       <div class="nav-divider"></div>
-      <a href="community.html"><span class="ico">♥</span>Community</a>
+      <a href="community.html"><span class="ico">▤</span>Community</a>
     </nav>
     <div class="side-foot">
       <div class="av">JL</div>
@@ -248,6 +276,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
     </div>
   </aside>
 
+  <!-- ───── MAIN ───── -->
   <main class="main">
 
     <div class="masthead">
@@ -262,7 +291,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 
     <div class="body">
 
-      <!-- Priority legend -->
+      <!-- Priority legend (production pattern) -->
       <div class="legend">
         <div class="it crit"><span class="dot"></span><b>Critical</b> Block / immediate cost impact</div>
         <div class="it high"><span class="dot"></span><b>High</b> Plan ahead</div>
@@ -270,47 +299,71 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
         <div class="it low"><span class="dot"></span><b>Low</b> Background awareness</div>
       </div>
 
-      <!-- 4-tile stat strip -->
+      <!-- 4-tile stat strip (production pattern) -->
       <div class="stat-row">
         <div class="stat-tile active">
           <div class="icon">▲</div>
           <div class="v">3</div>
           <div class="lbl">Critical</div>
-          <div class="sub">Threshold breached · immediate cost impact</div>
+          <div class="sub">Threshold breached — immediate cost impact</div>
         </div>
         <div class="stat-tile high">
           <div class="icon">▲</div>
           <div class="v">9</div>
           <div class="lbl">High</div>
-          <div class="sub">Plan ahead · material impact</div>
+          <div class="sub">Plan ahead — material impact</div>
         </div>
         <div class="stat-tile mod">
-          <div class="icon">→</div>
+          <div class="icon">◎</div>
           <div class="v">22</div>
           <div class="lbl">Moderate</div>
-          <div class="sub">Monitor · within range</div>
+          <div class="sub">Monitor — within range</div>
         </div>
         <div class="stat-tile low">
-          <div class="icon">→</div>
+          <div class="icon">○</div>
           <div class="v">44</div>
           <div class="lbl">Low</div>
           <div class="sub">Background awareness</div>
         </div>
       </div>
 
+      
       <!-- Category breakdown rail -->
       <div class="cat-rail-wrap">
         <div class="cat-rail-label"><span>Operations · what we cover by dimension</span><span class="sub">6 dimensions across your jurisdictions</span></div>
         <div class="cat-rail" style="--cat-cols: 6;">
-          <div class="cat-cell active"><div class="lbl">D1 Regulatory<br>feasibility</div><div class="num">5 / 5</div><div class="sub">jurisdictions covered</div></div>
-          <div class="cat-cell"><div class="lbl">D2 Regional<br>resources</div><div class="num">2 / 5</div><div class="sub">gaps in <b>UAE · UK · HK</b></div></div>
-          <div class="cat-cell"><div class="lbl">D3 Labor<br>markets</div><div class="num">4 / 5</div><div class="sub">pending <b>HK</b></div></div>
-          <div class="cat-cell"><div class="lbl">D4 Materials<br>sourcing</div><div class="num">2 / 5</div><div class="sub">gaps in <b>UK · UAE · HK</b></div></div>
-          <div class="cat-cell"><div class="lbl">D5 Infrastructure</div><div class="num">3 / 5</div><div class="sub">gaps in <b>UK · UAE</b></div></div>
-          <div class="cat-cell"><div class="lbl">D6 Operational<br>cost data</div><div class="num">5 / 5</div><div class="sub"><b>weekly</b> refresh on all</div></div>
+          <div class="cat-cell active">
+            <div class="lbl">D1 Regulatory<br>feasibility</div>
+            <div class="num">5 / 5</div>
+            <div class="sub">jurisdictions covered</div>
+          </div>
+          <div class="cat-cell">
+            <div class="lbl">D2 Regional<br>resources</div>
+            <div class="num">2 / 5</div>
+            <div class="sub">gaps in <b>UAE · UK · HK</b></div>
+          </div>
+          <div class="cat-cell">
+            <div class="lbl">D3 Labor<br>markets</div>
+            <div class="num">4 / 5</div>
+            <div class="sub">pending <b>HK</b></div>
+          </div>
+          <div class="cat-cell">
+            <div class="lbl">D4 Materials<br>sourcing</div>
+            <div class="num">2 / 5</div>
+            <div class="sub">gaps in <b>UK · UAE · HK</b></div>
+          </div>
+          <div class="cat-cell">
+            <div class="lbl">D5 Infrastructure</div>
+            <div class="num">3 / 5</div>
+            <div class="sub">gaps in <b>UK · UAE</b></div>
+          </div>
+          <div class="cat-cell">
+            <div class="lbl">D6 Operational<br>cost data</div>
+            <div class="num">5 / 5</div>
+            <div class="sub"><b>weekly</b> refresh on all</div>
+          </div>
         </div>
       </div>
-
       <!-- AI bar -->
       <div class="ai-bar">
         <div class="row">
@@ -327,7 +380,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
         </div>
       </div>
 
-      <!-- Tabs -->
+      <!-- Tabs (production pattern) -->
       <div class="tabs">
         <a class="on">By Jurisdiction</a>
         <a>Facility Data</a>
@@ -344,17 +397,17 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
             <p>Regulatory feasibility, regional resources, energy tariffs, labor markets, materials sourcing, infrastructure capacity, and operational cost data by jurisdiction. Six dimensions per region; click a region to expand. Each fact is sourced and dated. Use the Intelligence Assistant above for cross-cutting questions.</p>
           </div>
 
-          <!-- EU (default open) — full 6-dimension example -->
+          <!-- ───── EU ───── -->
           <details class="region" open>
             <summary>
-              <span class="globe">●</span>
+              <span class="globe">◉</span>
               <span class="name">European Union</span>
               <span class="pri crit">Critical</span>
               <span class="meta-row"><b>2</b> data points · <b>58</b> regulations · <b>4</b> citations · updated 2 days ago</span>
             </summary>
             <div class="body">
 
-              <!-- D1 Regulatory feasibility (CARDS) -->
+              <!-- D1 Regulatory feasibility -->
               <div class="dim">
                 <div class="dim-head">
                   <span class="dim-num">D1</span>
@@ -364,45 +417,82 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
                 <p class="dim-summary">Which rules apply in this region and what they bind. Items cross-reference Regulations; click a rule to read the full brief.</p>
                 <div class="dim-body"><div class="reg-link-list">
                   <a class="reg-link" href="regulations-detail.html">
-                    <div class="body">
-                      <div class="item-head">
-                        <span class="sev action">Action</span>
-                        <span>CBAM</span>
-                        <span class="when">Q2 2027 onward</span>
-                      </div>
-                      <h4>CBAM Article 30 delegated act — quarterly returns from Q2 2027</h4>
-                      <p class="summary">EU-bound charter air freight &gt;2,500 kg now triggers full CBAM filing: declarant registration, quarterly emissions returns, third-party verification, and certificate purchase.</p>
-                      <p class="byline"><b>EU Commission</b> · DG TAXUD · Delegated act OJ L 287/14</p>
-                    </div>
-                    <div class="right">
-                      <span class="s-pill action">Action required</span>
-                      <span class="t-pill">T1</span>
-                      <span class="due crit" style="font-size: 11px; color: var(--color-critical); font-weight: 800; letter-spacing: 0.04em;">Due 30 Apr 2027</span>
-                      <div class="changes-callout"><span class="lbl">What it changes</span>File charter manifest data quarterly · verify declarant registration · spec booking-system capture by Q1 2027</div>
-                    </div>
-                  </a>
+            <div class="body">
+              <div class="item-head">
+                <span class="sev action">Action</span>
+                <span>CBAM</span>
+                <span class="when">Q2 2027 onward</span>
+              </div>
+              <h4>CBAM Article 30 delegated act — quarterly returns from Q2 2027</h4>
+              <p class="summary">EU-bound charter air freight &gt;2,500 kg now triggers full CBAM filing: declarant registration, quarterly emissions returns, third-party verification, and certificate purchase.</p>
+              <p class="byline"><b>EU Commission</b> · DG TAXUD · Delegated act OJ L 287/14</p>
+            </div>
+            <div class="right">
+              <span class="s-pill action">Action required</span>
+              <span class="t-pill">T1</span>
+              <span class="due crit" style="font-size: 11px; color: var(--color-critical); font-weight: 800; letter-spacing: 0.04em;">Due 30 Apr 2027</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>File charter manifest data quarterly · verify declarant registration · spec booking-system capture by Q1 2027</div>
+            </div>
+          </a>
                   <a class="reg-link" href="regulations-detail.html">
-                    <div class="body">
-                      <div class="item-head">
-                        <span class="sev window">Window</span>
-                        <span>EPBD</span>
-                        <span class="when">1 Jan 2027</span>
-                      </div>
-                      <h4>EU EPBD recast — rooftop solar mandatory on new commercial &gt;500 m²</h4>
-                      <p class="summary">New commercial buildings &gt;500 m² in EU must have rooftop solar from Jan 2027. Existing buildings phase-in 2029. Eliminates DE/NL/BE solar-as-investment framing.</p>
-                      <p class="byline"><b>EU Commission</b> · DG ENER · EPBD recast</p>
-                    </div>
-                    <div class="right">
-                      <span class="s-pill window">Window closing</span>
-                      <span class="t-pill">T1</span>
-                      <span class="due crit" style="font-size: 11px; color: var(--color-critical); font-weight: 800; letter-spacing: 0.04em;">1 Jan 2027</span>
-                      <div class="changes-callout"><span class="lbl">What it changes</span>Solar shifts from investment to compliance for DE/NL/BE warehouses · update facility-design specs</div>
-                    </div>
-                  </a>
-                </div></div>
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>EPBD</span>
+                <span class="when">1 Jan 2027</span>
+              </div>
+              <h4>EU EPBD recast — rooftop solar mandatory on new commercial &gt;500 m²</h4>
+              <p class="summary">New commercial buildings &gt;500 m² in EU must have rooftop solar from Jan 2027. Existing buildings phase-in 2029. Eliminates DE/NL/BE solar-as-investment framing.</p>
+              <p class="byline"><b>EU Commission</b> · DG ENER · EPBD recast</p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T1</span>
+              <span class="due crit" style="font-size: 11px; color: var(--color-critical); font-weight: 800; letter-spacing: 0.04em;">1 Jan 2027</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Solar shifts from investment to compliance for DE/NL/BE warehouses · update facility-design specs</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>PPWR</span>
+                <span class="when">2030 phase-in</span>
+              </div>
+              <h4>Packaging &amp; Packaging Waste Regulation — reuse target Annex VI</h4>
+              <p class="summary">Packaging &amp; Packaging Waste Regulation Annex VI sets reuse targets for transport packaging. Direct effect on art-handler crate inventories and live-events road cases.</p>
+              <p class="byline"><b>EU Commission</b> · DG ENV · PPWR Article 7</p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">2030 phase-in</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Verify crate-reuse tracking models · update procurement specs · trial three operator approaches</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev action">Action</span>
+                <span>ReFuelEU</span>
+                <span class="when">In force</span>
+              </div>
+              <h4>ReFuelEU Aviation — 2% SAF blend at EU airports</h4>
+              <p class="summary">EU airports must blend at least 2% SAF from 2025; rising annual targets through 2050. Direct cost pass-through on EU-origin long-haul tickets.</p>
+              <p class="byline"><b>EU Commission</b> · DG MOVE · ReFuelEU Aviation</p>
+            </div>
+            <div class="right">
+              <span class="s-pill action">Action required</span>
+              <span class="t-pill">T1</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">In force</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Q3 surcharge pass-through expected on long-haul tickets · review forward-buy posture · client briefing required</div>
+            </div>
+          </a>
+                </div>
+                </div>
               </div>
 
-              <!-- D2 Regional resource availability (FACT TABLE) -->
+              <!-- D2 Regional resource availability -->
               <div class="dim">
                 <div class="dim-head">
                   <span class="dim-num">D2</span>
@@ -415,10 +505,11 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
                   <tr><td class="lbl">Reusable transport packaging — qualified suppliers</td><td class="val">14 registered <span class="trend-up">▲ 3 this Q</span><span class="src">German VerpackG registry · 12 May</span></td></tr>
                   <tr><td class="lbl">Aluminum (rolled, low-CO₂ certified)</td><td class="val">Available <span class="src">Hydro / Speira / Norsk Hydro · current supply tight on coil widths &gt;1500mm</span></td></tr>
                   <tr><td class="lbl">FSC-certified hardwood crating</td><td class="val">Available — DE / FI / SE <span class="src">EUDR-ready supplier list maintained by FIATA EU chapter</span></td></tr>
-                </table></div>
+                </table>
+                </div>
               </div>
 
-              <!-- D3 Labor (FACT TABLE) -->
+              <!-- D3 Labor -->
               <div class="dim">
                 <div class="dim-head">
                   <span class="dim-num">D3</span>
@@ -431,10 +522,11 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
                   <tr><td class="lbl">LGV / Class 1 driver — DE avg</td><td class="val"><span class="num">€41.60</span> / hr <span class="trend-up">▲ 6%</span><span class="src">BAG Bundesamt Güterverkehr · Apr 2026</span></td></tr>
                   <tr><td class="lbl">Workforce availability — warehouse roles, Frankfurt area</td><td class="val">Constrained. <span class="src">2.1% unemployment in transport &amp; logistics · Bundesagentur für Arbeit</span></td></tr>
                   <tr><td class="lbl">Art-handling specialist labor</td><td class="val">Tight pool — Berlin / Munich <span class="src">Industry interpretation; no public benchmark</span></td></tr>
-                </table></div>
+                </table>
+                </div>
               </div>
 
-              <!-- D4 Materials sourcing (FACT TABLE) -->
+              <!-- D4 Materials sourcing -->
               <div class="dim">
                 <div class="dim-head">
                   <span class="dim-num">D4</span>
@@ -446,10 +538,11 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
                   <tr><td class="lbl">Cold-rolled steel mills serving DE/NL/BE</td><td class="val">8 active <span class="src">EUROFER member directory · ThyssenKrupp / ArcelorMittal Gent / Tata IJmuiden</span></td></tr>
                   <tr><td class="lbl">Climate-controlled crate fabricators (art)</td><td class="val">4 in DE · 2 in FR <span class="src">ROKBOX / TURTLE / regional independents</span></td></tr>
                   <tr><td class="lbl">In-region vs import (recycled PET resin)</td><td class="val">In-region ~€140/t premium <span class="src">vs. SE Asia FOB landed cost; trend stable</span></td></tr>
-                </table></div>
+                </table>
+                </div>
               </div>
 
-              <!-- D5 Infrastructure (FACT TABLE) -->
+              <!-- D5 Infrastructure capacity -->
               <div class="dim">
                 <div class="dim-head">
                   <span class="dim-num">D5</span>
@@ -462,10 +555,11 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
                   <tr><td class="lbl">Frankfurt FRA — air cargo capacity utilization</td><td class="val"><span class="num">87%</span> <span class="src">Fraport monthly stats Apr 2026</span></td></tr>
                   <tr><td class="lbl">Public HGV charging — DE motorway corridors</td><td class="val">Limited <span class="fly restrict">Restricted</span><span class="src">AFIR rollout target 2027; 11 sites operational vs 86 mandated · ACEA tracker</span></td></tr>
                   <tr><td class="lbl">Rotterdam — shore power for vessels</td><td class="val">Operational at 3 of 12 terminals <span class="src">Port shore-power plan · 23 Apr</span></td></tr>
-                </table></div>
+                </table>
+                </div>
               </div>
 
-              <!-- D6 Operational cost data (FACT TABLE) -->
+              <!-- D6 Operational cost data -->
               <div class="dim">
                 <div class="dim-head">
                   <span class="dim-num">D6</span>
@@ -484,9 +578,9 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
                 <div class="xrefs">
                   <div class="xrefs-lbl">Pending changes that shift this region's calculus</div>
                   <ul>
-                    <li><span class="src-chip reg">REG →</span><span><strong>EU EPBD recast</strong> — rooftop solar shifts from investment to compliance. Affects DE/NL/BE warehouses &gt;500 m² from 1 Jan 2027.</span></li>
-                    <li><span class="src-chip mkt">MKT →</span><span><strong>SAF index breach €1,800/t</strong> — Q3 surcharge pass-through expected on EU-origin air freight. 4 sources converge (IEA, Argus, Platts, FlightGlobal).</span></li>
-                    <li><span class="src-chip reg">REG →</span><span><strong>ReFuelEU enforcement year close</strong> — 1 Oct 2026 penalty exposure for carriers missing 2% blend; downstream surcharge.</span></li>
+                    <li><span class="src-chip reg">REG ↗</span><span><strong>EU EPBD recast</strong> — rooftop solar shifts from investment to compliance. Affects DE/NL/BE warehouses &gt;500 m² from 1 Jan 2027.</span></li>
+                    <li><span class="src-chip mkt">MKT ↗</span><span><strong>SAF index breach €1,800/t</strong> — Q3 surcharge pass-through expected on EU-origin air freight. 4 sources converge (IEA, Argus, Platts, FlightGlobal).</span></li>
+                    <li><span class="src-chip reg">REG ↗</span><span><strong>ReFuelEU enforcement year close</strong> — 1 Oct 2026 penalty exposure for carriers missing 2% blend; downstream surcharge.</span></li>
                   </ul>
                 </div>
                 </div>
@@ -495,12 +589,394 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
             </div>
           </details>
 
-          <!-- US, Asia, UK, UAE accordions (collapsed by default) follow the same D1-D6 structure -->
-          <!-- See operator's full mockup for the per-region body content; pattern is identical -->
+          <!-- ───── US ───── -->
+          <details class="region">
+            <summary>
+              <span class="globe">◉</span>
+              <span class="name">United States</span>
+              <span class="pri crit">Critical</span>
+              <span class="meta-row"><b>2</b> data points · <b>32</b> regulations · <b>2</b> citations · 2 weeks ago</span>
+            </summary>
+            <div class="body">
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D1</span><span class="dim-name">Regulatory feasibility</span><span class="dim-count">8 regs apply · 2 critical</span></div>
+                <p class="dim-summary">Which rules apply in this region and what they bind. Items cross-reference Regulations; click a rule to read the full brief.</p>
+                <div class="dim-body"><div class="reg-link-list">
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>EPA HD3</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>EPA Heavy-Duty Greenhouse Gas Phase 3 — MY 2027+</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due crit" style="font-size: 11px; color: var(--color-critical); font-weight: 800; letter-spacing: 0.04em;">In force</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>CARB ACT</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>CARB Advanced Clean Trucks — fleet sales mandate</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">Annual</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>NEM 3.0</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>CPUC NEM 3.0 — net-metering reform · CA</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">In force</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                </div>
+                </div>
+              </div>
+
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D2</span><span class="dim-name">Regional resource availability</span><span class="dim-count">CA / NY / TX</span></div>
+                <p class="dim-summary">Whether the materials, recyclables, and qualified suppliers your live-events and fine-art operations depend on are present, constrained, or absent here.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Recyclable PET — CA pre-treatment capacity</td><td class="val">Adequate <span class="src">CalRecycle Q1 2026 facility utilization 71%</span></td></tr>
+                  <tr><td class="lbl">FSC hardwood crating — Pacific NW</td><td class="val">Available · 3 qualified mills <span class="src">FSC-US chain-of-custody registry</span></td></tr>
+                </table>
+                </div>
+              </div>
+
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D3</span><span class="dim-name">Labor markets</span></div>
+                <p class="dim-summary">Loaded-cost wages and workforce availability for warehouse, driver, and art-handler roles. Inputs to automation-vs-hire and capacity decisions.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Warehouse operative — LA County avg</td><td class="val"><span class="num">$24.80</span> / hr <span class="trend-up">▲ 3% YoY</span><span class="src">BLS QCEW NAICS 4931 · Q4 2025</span></td></tr>
+                  <tr><td class="lbl">Class A CDL driver — Long Beach</td><td class="val"><span class="num">$31.50</span> / hr <span class="trend-up">▲ 5%</span><span class="src">BLS OEWS / industry interpretation</span></td></tr>
+                  <tr><td class="lbl">Art handling specialist — NYC market</td><td class="val">Highly constrained <span class="src">No public benchmark; industry interpretation only</span></td></tr>
+                </table>
+                </div>
+              </div>
+
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D4</span><span class="dim-name">Materials sourcing</span></div>
+                <p class="dim-summary">Where to qualify supply for crating, packaging, and structural materials. In-region versus import economics, and certification status.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Low-CO₂ aluminum — domestic supply</td><td class="val">Limited. <span class="src">Century / Alcoa Hawesville · capacity 60% allocated; lead times 16-22 wks</span></td></tr>
+                  <tr><td class="lbl">Climate-controlled crate fabricators</td><td class="val">5 in CA · 4 in NY/NJ <span class="src">Trade directory survey · May 2026</span></td></tr>
+                </table>
+                </div>
+              </div>
+
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D5</span><span class="dim-name">Infrastructure capacity</span></div>
+                <p class="dim-summary">Port dwell, air-cargo capacity, shore power, and electric-truck charging. Where lanes flow and where they bottleneck.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">LA / Long Beach — container dwell</td><td class="val"><span class="num">4.1</span> days <span class="trend-dn">▼ 0.3 d</span><span class="src">PortVision weekly · w/c 19 May</span></td></tr>
+                  <tr><td class="lbl">JFK air cargo capacity</td><td class="val">Available · belly &amp; freighter mix <span class="src">PANYNJ stats Apr 2026</span></td></tr>
+                  <tr><td class="lbl">Class 8 truck charging — I-5 corridor</td><td class="val">Sparse <span class="fly restrict">Restricted</span><span class="src">FHWA NEVI deployment tracker · CA section, 19 sites operational</span></td></tr>
+                </table>
+                </div>
+              </div>
+
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D6</span><span class="dim-name">Operational cost data</span></div>
+                <p class="dim-summary">Per-unit grid, fuel, handling, and drayage rates. The cost-baseline inputs for tender pricing and pass-through math.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Industrial electricity — CA avg</td><td class="val"><span class="num">$0.196</span> / kWh <span class="trend-flat">flat</span><span class="src">EIA April 2026 industrial sector · CA</span></td></tr>
+                  <tr><td class="lbl">Diesel — CA retail avg</td><td class="val"><span class="num">$4.82</span> / gal <span class="trend-flat">flat</span><span class="src">EIA weekly · 19 May</span></td></tr>
+                  <tr><td class="lbl">Drayage — LA/LB to Inland Empire</td><td class="val"><span class="num">$485</span> / load <span class="trend-up">▲ 6% YoY</span><span class="src">JOC drayage tracker · Q1 2026</span></td></tr>
+                  <tr><td class="lbl">LAX air cargo handling</td><td class="val"><span class="num">$0.24</span> / kg <span class="trend-up">▲ 4%</span><span class="src">Industry rate card; airline-specific variation</span></td></tr>
+                </table>
+
+                <div class="xrefs">
+                  <div class="xrefs-lbl">Pending changes that shift this region's calculus</div>
+                  <ul>
+                    <li><span class="src-chip mkt">MKT ↗</span><span><strong>NEM 3.0 retrofit math has shifted</strong> — operators reporting 4.6y payback at LA / Burbank locations post-April 2024 changes. Active peer discussion in US Live Events group (4 replies).</span></li>
+                    <li><span class="src-chip reg">REG ↗</span><span><strong>EPA endangerment rescission status</strong> — affects HD Phase 3 enforcement timeline; monitoring.</span></li>
+                  </ul>
+                </div>
+                </div>
+              </div>
+
+            </div>
+          </details>
+
+          <!-- ───── ASIA (HK / SG) ───── -->
+          <details class="region">
+            <summary>
+              <span class="globe">◉</span>
+              <span class="name">Asia · Singapore + Hong Kong</span>
+              <span class="pri high">High</span>
+              <span class="meta-row"><b>1</b> data point · <b>9</b> regulations · <b>1</b> citation · 1 month ago</span>
+            </summary>
+            <div class="body">
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D1</span><span class="dim-name">Regulatory feasibility</span></div>
+                <p class="dim-summary">Which rules apply in this region and what they bind. Items cross-reference Regulations; click a rule to read the full brief.</p>
+                <div class="dim-body"><div class="reg-link-list">
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>SG MARITIME</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>Maritime Singapore Decarbonisation Blueprint 2050</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">Implementation</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>HK FiT</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>HK Feed-in-Tariff scheme — 25 kW cap on commercial PV</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">In force</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                </div>
+                </div>
+              </div>
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D3</span><span class="dim-name">Labor markets</span></div>
+                <p class="dim-summary">Loaded-cost wages and workforce availability for warehouse, driver, and art-handler roles. Inputs to automation-vs-hire and capacity decisions.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Warehouse operative — Singapore</td><td class="val"><span class="num">S$14.20</span> / hr <span class="trend-up">▲ 4%</span><span class="src">MOM labour market Q1 2026</span></td></tr>
+                  <tr><td class="lbl">Warehouse operative — HK</td><td class="val"><span class="num">HKD 95</span> / hr <span class="src">Census &amp; Statistics Dept · Q1 2026</span></td></tr>
+                </table>
+                </div>
+              </div>
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D5</span><span class="dim-name">Infrastructure capacity</span></div>
+                <p class="dim-summary">Port dwell, air-cargo capacity, shore power, and electric-truck charging. Where lanes flow and where they bottleneck.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Singapore — port shore power</td><td class="val">Operational at 4 terminals <span class="fly ok">Possible</span><span class="src">MPA shore power program · 12 May</span></td></tr>
+                  <tr><td class="lbl">Changi air cargo</td><td class="val">High capacity <span class="src">CAG monthly stats</span></td></tr>
+                </table>
+                </div>
+              </div>
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D6</span><span class="dim-name">Operational cost data</span></div>
+                <p class="dim-summary">Per-unit grid, fuel, handling, and drayage rates. The cost-baseline inputs for tender pricing and pass-through math.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Industrial electricity — SG</td><td class="val"><span class="num">S$0.272</span> / kWh <span class="trend-up">▲ 2%</span><span class="src">EMA quarterly · Q1 2026</span></td></tr>
+                  <tr><td class="lbl">Industrial electricity — HK</td><td class="val"><span class="num">HKD 1.21</span> / kWh <span class="trend-flat">flat</span><span class="src">CLP / HK Electric current tariff</span></td></tr>
+                </table>
+                </div>
+              </div>
+
+              <p class="empty-dim" style="padding: 12px 24px 0;">Coverage gaps: D2 Regional resources and D4 Materials sourcing not yet populated for this region. <a href="#">Flag a coverage request</a>.</p>
+
+            </div>
+          </details>
+
+          <!-- ───── UK ───── -->
+          <details class="region">
+            <summary>
+              <span class="globe">◉</span>
+              <span class="name">United Kingdom</span>
+              <span class="pri high">High</span>
+              <span class="meta-row"><b>1</b> data point · <b>14</b> regulations · 3 weeks ago</span>
+            </summary>
+            <div class="body">
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D1</span><span class="dim-name">Regulatory feasibility</span></div>
+                <p class="dim-summary">Which rules apply in this region and what they bind. Items cross-reference Regulations; click a rule to read the full brief.</p>
+                <div class="dim-body"><div class="reg-link-list">
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>UK SAF</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>UK SAF Mandate — 2% blend from Jan 2025; supplier obligation</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">Active</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>UK CBAM</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>UK CBAM — design under consultation; effective Jan 2027</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">Q1 2027</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>UK SEG</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>Smart Export Guarantee — solar export rates</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">Live</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                </div>
+                </div>
+              </div>
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D3</span><span class="dim-name">Labor markets</span></div>
+                <p class="dim-summary">Loaded-cost wages and workforce availability for warehouse, driver, and art-handler roles. Inputs to automation-vs-hire and capacity decisions.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Warehouse operative — London avg</td><td class="val"><span class="num">£15.80</span> / hr <span class="trend-up">▲ 4%</span><span class="src">ONS ASHE 2026 · NAICS 522</span></td></tr>
+                  <tr><td class="lbl">HGV Class 1 driver — UK avg</td><td class="val"><span class="num">£17.20</span> / hr <span class="trend-flat">flat</span><span class="src">RHA wage survey Q1 2026</span></td></tr>
+                </table>
+                </div>
+              </div>
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D6</span><span class="dim-name">Operational cost data</span></div>
+                <p class="dim-summary">Per-unit grid, fuel, handling, and drayage rates. The cost-baseline inputs for tender pricing and pass-through math.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Industrial electricity — UK avg</td><td class="val"><span class="num">£0.221</span> / kWh <span class="trend-flat">flat</span><span class="src">BEIS quarterly · Q1 2026 industrial band IC</span></td></tr>
+                  <tr><td class="lbl">Diesel — UK retail avg</td><td class="val"><span class="num">£1.49</span> / L <span class="trend-up">▲ £0.02</span><span class="src">RAC fuel watch · 22 May</span></td></tr>
+                  <tr><td class="lbl">SAF — UK spot</td><td class="val"><span class="num">£1,560</span> / t <span class="trend-up">▲ £85</span><span class="src">Argus UK desk</span></td></tr>
+                  <tr><td class="lbl">SEG export tariff — best available</td><td class="val"><span class="num">£0.078</span> / kWh <span class="src">Octopus Outgoing Fixed · current</span></td></tr>
+                </table>
+                </div>
+              </div>
+
+              <p class="empty-dim" style="padding: 12px 24px 0;">Coverage gaps: D2 / D4 / D5 not yet populated. <a href="#">Flag a coverage request</a>.</p>
+
+            </div>
+          </details>
+
+          <!-- ───── UAE ───── -->
+          <details class="region">
+            <summary>
+              <span class="globe">◉</span>
+              <span class="name">UAE · Dubai</span>
+              <span class="pri mod">Moderate</span>
+              <span class="meta-row"><b>0</b> data points · <b>6</b> regulations · partial coverage</span>
+            </summary>
+            <div class="body">
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D1</span><span class="dim-name">Regulatory feasibility</span></div>
+                <p class="dim-summary">Which rules apply in this region and what they bind. Items cross-reference Regulations; click a rule to read the full brief.</p>
+                <div class="dim-body"><div class="reg-link-list">
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>DEWA SHAMS</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>Shams Dubai solar program — self-consumption only</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">Active</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                  <a class="reg-link" href="regulations-detail.html">
+            <div class="body">
+              <div class="item-head">
+                <span class="sev window">Window</span>
+                <span>DUBAI 2050</span>
+                <span class="when">Tracking</span>
+              </div>
+              <h4>Dubai Clean Energy Strategy 2050 — utility-scale focus</h4>
+              <p class="summary">Brief in scope for the regional intelligence.</p>
+              <p class="byline"><b>Regulator</b></p>
+            </div>
+            <div class="right">
+              <span class="s-pill window">Window closing</span>
+              <span class="t-pill">T2</span>
+              <span class="due" style="font-size: 11px; color: var(--color-text-muted); font-weight: 600; letter-spacing: 0.04em;">Phase-in</span>
+              <div class="changes-callout"><span class="lbl">What it changes</span>Review applicability to live events + fine art</div>
+            </div>
+          </a>
+                </div>
+                </div>
+              </div>
+              <div class="dim">
+                <div class="dim-head"><span class="dim-num">D6</span><span class="dim-name">Operational cost data</span></div>
+                <p class="dim-summary">Per-unit grid, fuel, handling, and drayage rates. The cost-baseline inputs for tender pricing and pass-through math.</p>
+                <div class="dim-body"><table class="fact-table">
+                  <tr><td class="lbl">Industrial electricity — Dubai</td><td class="val"><span class="num">AED 0.42</span> / kWh <span class="src">DEWA commercial tariff slab</span></td></tr>
+                  <tr><td class="lbl">Diesel — UAE retail</td><td class="val"><span class="num">AED 3.10</span> / L <span class="src">ENOC weekly · May</span></td></tr>
+                  <tr><td class="lbl">Grid export (sell back)</td><td class="val"><span class="fly prohibit">Prohibited</span><span class="src">DEWA grid-code — commercial PV self-consumption only</span></td></tr>
+                </table>
+                </div>
+              </div>
+
+              <p class="empty-dim" style="padding: 12px 24px 0;">Coverage gaps: D2 / D3 / D4 / D5 not yet populated. <a href="#">Flag a coverage request</a>.</p>
+
+            </div>
+          </details>
 
         </div>
 
-        <!-- Side rail -->
+        <!-- ───── SIDE RAIL ───── -->
         <aside>
           <div class="side-card coverage">
             <div class="lbl">Coverage</div>
@@ -524,6 +1000,15 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
               <div class="row"><b>D6 Operational cost</b><span class="cnt ok">5 / 5</span></div>
             </div>
             <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 10px;">Cells are populated when at least one sourced, dated fact exists. Cost data refreshes weekly.</p>
+          </div>
+
+          <div class="side-card">
+            <div class="lbl">Recent updates</div>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12.5px; display: flex; flex-direction: column; gap: 8px;">
+              <li><b style="color: var(--color-text-primary);">EU</b> — SAF spot updated 23 May<br><span style="color: var(--color-text-muted); font-size: 11px;">€1,840/t · 4 sources converge</span></li>
+              <li><b style="color: var(--color-text-primary);">UK</b> — UK CBAM consultation closed 19 May<br><span style="color: var(--color-text-muted); font-size: 11px;">Awaiting government response</span></li>
+              <li><b style="color: var(--color-text-primary);">US</b> — CA drayage tracker Q1 published<br><span style="color: var(--color-text-muted); font-size: 11px;">+6% YoY at LA/LB</span></li>
+            </ul>
           </div>
 
           <div class="side-card">

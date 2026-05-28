@@ -32,18 +32,22 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .mh-meta { font-size: 13px; color: var(--color-text-secondary); }
 .mh-meta b { color: var(--color-text-primary); font-weight: 600; }
 
-/* Stat tiles area */
+/* Stat tiles area still under raised masthead area (matching production) */
 .stat-zone { background: var(--color-surface-raised); padding: 0 40px 28px; }
 .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .stat-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 22px 24px 20px; box-shadow: var(--shadow-card); cursor: pointer; transition: box-shadow var(--transition-base); }
 .stat-tile:hover { box-shadow: var(--shadow-card-hover); }
 .stat-tile.active { border-color: var(--color-critical); box-shadow: 0 0 0 1px var(--color-critical) inset; }
 .stat-tile .lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; margin: 0 0 8px; color: var(--color-text-primary); }
-.stat-tile.active .lbl, .stat-tile.active .v { color: var(--color-critical); }
-.stat-tile.high .lbl, .stat-tile.high .v { color: var(--color-high); }
-.stat-tile.mod .lbl, .stat-tile.mod .v { color: var(--color-moderate); }
-.stat-tile.low .lbl, .stat-tile.low .v { color: var(--color-low); }
+.stat-tile.active .lbl { color: var(--color-critical); }
+.stat-tile.high .lbl { color: var(--color-high); }
+.stat-tile.mod .lbl { color: var(--color-moderate); }
+.stat-tile.low .lbl { color: var(--color-low); }
 .stat-tile .v { font-family: var(--font-display); font-size: 56px; line-height: 1; }
+.stat-tile.active .v { color: var(--color-critical); }
+.stat-tile.high .v { color: var(--color-high); }
+.stat-tile.mod .v { color: var(--color-moderate); }
+.stat-tile.low .v { color: var(--color-low); }
 .stat-tile .sub { font-size: 12px; color: var(--color-text-muted); margin-top: 8px; }
 
 .body { padding: 26px 40px 60px; }
@@ -58,7 +62,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .ai-chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .ai-chip { font-size: 12px; padding: 5px 13px; background: var(--color-surface); border: 1px solid var(--color-border-ai); color: var(--color-primary); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; }
 
-/* Toolbar */
+/* Toolbar (matches production with sort options + view icons) */
 .toolbar { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 14px; display: flex; align-items: center; gap: 18px; margin-bottom: 28px; font-size: 13px; box-shadow: var(--shadow-card); }
 .toolbar .search { flex: 1; max-width: 380px; position: relative; }
 .toolbar .search input { width: 100%; padding: 7px 12px 7px 32px; border: 0; background: var(--color-surface-raised); border-radius: var(--radius-pill); font-family: inherit; font-size: 13px; outline: none; }
@@ -77,7 +81,7 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 .section-h h2 { font-family: var(--font-display); font-size: 30px; letter-spacing: 0.03em; text-transform: uppercase; margin: 0; color: var(--color-secondary); font-weight: 400; }
 .section-h .sub { font-size: 12px; color: var(--color-text-muted); }
 
-/* Kanban — capped per spec */
+/* Kanban */
 .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .column { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px 12px 14px; box-shadow: var(--shadow-card); }
 .column.crit { background: #FEF5F4; }
@@ -111,14 +115,14 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
   <aside class="side">
     <div class="brand"><div class="n">CARO'S LEDGE</div><div class="t">Freight Sustainability Intelligence</div></div>
     <nav>
-      <a href="#"><span class="ico">⊡</span>Dashboard</a>
-      <a href="regulations.html" class="active"><span class="ico">▤</span>Regulations</a>
-      <a href="market-intel.html"><span class="ico">▦</span>Market Intel</a>
-      <a href="research.html"><span class="ico">◉</span>Research</a>
-      <a href="operations.html"><span class="ico">◐</span>Operations</a>
-      <a href="map.html"><span class="ico">◎</span>Map</a>
+      <a href="#"><span class="ico">▦</span>Dashboard</a>
+      <a href="regulations.html" class="active"><span class="ico">⚖</span>Regulations</a>
+      <a href="market-intel.html"><span class="ico">↗</span>Market Intel</a>
+      <a href="research.html"><span class="ico">◎</span>Research</a>
+      <a href="operations.html"><span class="ico">⊕</span>Operations</a>
+      <a href="map.html"><span class="ico">◉</span>Map</a>
       <div class="nav-divider"></div>
-      <a href="community.html"><span class="ico">♥</span>Community</a>
+      <a href="community.html"><span class="ico">▤</span>Community</a>
     </nav>
     <div class="side-foot"><div class="av">JL</div><span>jasonlosh</span><span class="dot"></span></div>
   </aside>
@@ -160,9 +164,9 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
           <a>A→Z</a>
         </div>
         <div class="views">
-          <span class="view-ico on" title="Cards">⊞</span>
-          <span class="view-ico" title="List">≣</span>
-          <span class="view-ico" title="Table">▦</span>
+          <span class="view-ico on" title="Cards">▦</span>
+          <span class="view-ico" title="List">☰</span>
+          <span class="view-ico" title="Table">⊞</span>
         </div>
         <div class="bulk">Bulk select</div>
         <button class="filters">Filters ▾</button>
@@ -172,18 +176,42 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
 
       <div class="kanban">
 
-        <!-- IMMEDIATE ACTION — capped at 8 visible, "Open all 51 →" at bottom -->
+        <!-- IMMEDIATE ACTION -->
         <div class="column crit">
           <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Immediate action</span></div><span class="n">51</span></div>
 
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">NO<span class="sep">·</span>NO</div><div class="title">Norway Enacts Zero-Emission Requirements for Passenger Ships in World Heritage Fjords (Effective January 1, 2025 for Ships &lt;10,000 GT)</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GLOBAL<span class="sep">·</span>GLOBAL</div><div class="title">2023 IMO Strategy on Reduction of GHG Emissions from Ships — Framework for International Maritime Decarbonization</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">Luxembourg Environmental Portal: Multi-Sector Climate Adaptation and Nature Restoration Strategy (2025–2035)</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">CN<span class="sep">·</span>CN</div><div class="title">China's Environmental Code: First Climate Legislation Supporting 2060 Carbon Neutrality Goal</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">EU Official Journal Legal Instrument L-2024–01610</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">EPA Final Rule: Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles — Phase 3 (MY 2027+)</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">EU Heavy-Duty Vehicle CO₂ Emissions Standards: 2025 Automotive Package Amendment and Revised Compliance Targets</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">Trump Administration Repeals EPA Endangerment Finding; California Announces Legal Challenge</div></a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">NO<span class="sep">·</span>NO</div>
+            <div class="title">Norway Enacts Zero-Emission Requirements for Passenger Ships in World Heritage Fjords (Effective January 1, 2025 for Ships &lt;10,000 GT)</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">GLOBAL<span class="sep">·</span>GLOBAL</div>
+            <div class="title">2023 IMO Strategy on Reduction of GHG Emissions from Ships — Framework for International Maritime Decarbonization</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">EU<span class="sep">·</span>EU</div>
+            <div class="title">Luxembourg Environmental Portal: Multi-Sector Climate Adaptation and Nature Restoration Strategy (2025–2035)</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">CN<span class="sep">·</span>CN</div>
+            <div class="title">China's Environmental Code: First Climate Legislation Supporting 2060 Carbon Neutrality Goal</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">EU<span class="sep">·</span>EU</div>
+            <div class="title">EU Official Journal Legal Instrument L-2024–01610</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US<span class="sep">·</span>US</div>
+            <div class="title">EPA Final Rule: Greenhouse Gas Emissions Standards for Heavy-Duty Vehicles — Phase 3 (MY 2027+)</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">EU<span class="sep">·</span>EU</div>
+            <div class="title">EU Heavy-Duty Vehicle CO₂ Emissions Standards: 2025 Automotive Package Amendment and Revised Compliance Targets</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US<span class="sep">·</span>US</div>
+            <div class="title">Trump Administration Repeals EPA Endangerment Finding; California Announces Legal Challenge</div>
+          </a>
 
           <button class="col-foot">Open all 51 →</button>
         </div>
@@ -192,14 +220,38 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
         <div class="column high">
           <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Action · 6 mo</span></div><span class="n">80</span></div>
 
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">ES<span class="sep">·</span>ES</div><div class="title">MITECO Spain: Climate Action, Energy Transition and Demographic Initiatives 2026</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-NY<span class="sep">·</span>US-NY</div><div class="title">New York State Truck &amp; Motor Carrier Rules &amp; Regulations — Safety and Compliance Framework</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">NJEDA Opens Multiple Business Support Programs: NJ BASE Immersion (May 4–June 15, 2026) and NOL Tax Certificate Transfer</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">CA<span class="sep">·</span>CA</div><div class="title">BREEAM V7: Leading Holistic Sustainability Framework for Built Environment Certification</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">RO<span class="sep">·</span>RO</div><div class="title">Romania Ministry of Environment Opens Public Consultation on Electronic Waste Traceability System and Announces Water Infrastructure Completion</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">SG<span class="sep">·</span>SG</div><div class="title">Maritime Singapore Decarbonisation Blueprint: Working Towards 2050</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">AE<span class="sep">·</span>AE</div><div class="title">Mohammed bin Rashid Al Maktoum Solar Park — DEWA Strategic Initiative</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GLOBAL<span class="sep">·</span>GLOBAL</div><div class="title">IMO Future Fuels and Technology Outlook</div></a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">ES<span class="sep">·</span>ES</div>
+            <div class="title">MITECO Spain: Climate Action, Energy Transition and Demographic Initiatives 2026</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US-NY<span class="sep">·</span>US-NY</div>
+            <div class="title">New York State Truck &amp; Motor Carrier Rules &amp; Regulations — Safety and Compliance Framework</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US<span class="sep">·</span>US</div>
+            <div class="title">NJEDA Opens Multiple Business Support Programs: NJ BASE Immersion (May 4–June 15, 2026) and NOL Tax Certificate Transfer</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">CA<span class="sep">·</span>CA</div>
+            <div class="title">BREEAM V7: Leading Holistic Sustainability Framework for Built Environment Certification</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">RO<span class="sep">·</span>RO</div>
+            <div class="title">Romania Ministry of Environment Opens Public Consultation on Electronic Waste Traceability System and Announces Water Infrastructure Completion</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">SG<span class="sep">·</span>SG</div>
+            <div class="title">Maritime Singapore Decarbonisation Blueprint: Working Towards 2050</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">AE<span class="sep">·</span>AE</div>
+            <div class="title">Mohammed bin Rashid Al Maktoum Solar Park — DEWA Strategic Initiative</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">GLOBAL<span class="sep">·</span>GLOBAL</div>
+            <div class="title">IMO Future Fuels and Technology Outlook</div>
+          </a>
 
           <button class="col-foot">Open all 80 →</button>
         </div>
@@ -208,13 +260,34 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
         <div class="column mod">
           <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Monitor 6–12 mo</span></div><span class="n">84</span></div>
 
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-TX<span class="sep">·</span>US-TX</div><div class="title">TxDOT Freight Planning: Statewide Framework and Resources</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">Slovenia Ministry of Environment, Climate and Energy — National Energy and Climate Plan 2030–2040 Preparation Initiated</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">Maine DEP Mobile Sources Program — Vehicle Emissions Regulations and Guidance</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-RI<span class="sep">·</span>US-RI</div><div class="title">Rhode Island Fish Passage Initiative and River Herring Migration Restoration</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US<span class="sep">·</span>US</div><div class="title">AAPA Seaport Infrastructure Advocacy and Industry Leadership Platform</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">CA<span class="sep">·</span>CA</div><div class="title">New Brunswick Environment and Local Government Department — Climate Action and Water Strategy Resources</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">AE<span class="sep">·</span>AE</div><div class="title">Mohammed bin Rashid Al Maktoum Solar Park — DEWA Strategic Initiative</div></a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US-TX<span class="sep">·</span>US-TX</div>
+            <div class="title">TxDOT Freight Planning: Statewide Framework and Resources</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">EU<span class="sep">·</span>EU</div>
+            <div class="title">Slovenia Ministry of Environment, Climate and Energy — National Energy and Climate Plan 2030–2040 Preparation Initiated</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US<span class="sep">·</span>US</div>
+            <div class="title">Maine DEP Mobile Sources Program — Vehicle Emissions Regulations and Guidance</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US-RI<span class="sep">·</span>US-RI</div>
+            <div class="title">Rhode Island Fish Passage Initiative and River Herring Migration Restoration</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US<span class="sep">·</span>US</div>
+            <div class="title">AAPA Seaport Infrastructure Advocacy and Industry Leadership Platform</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">CA<span class="sep">·</span>CA</div>
+            <div class="title">New Brunswick Environment and Local Government Department — Climate Action and Water Strategy Resources</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">AE<span class="sep">·</span>AE</div>
+            <div class="title">Mohammed bin Rashid Al Maktoum Solar Park — DEWA Strategic Initiative</div>
+          </a>
 
           <button class="col-foot">Open all 84 →</button>
         </div>
@@ -223,14 +296,38 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
         <div class="column low">
           <div class="col-head"><div class="ttl-wrap"><span class="dot"></span><span class="ttl">Awareness only</span></div><span class="n">179</span></div>
 
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GB<span class="sep">·</span>GB</div><div class="title">International Institute for Conservation — Professional Guidance and Standards for Historic and Artistic Works Conservation</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GB<span class="sep">·</span>GB</div><div class="title">Financial Conduct Authority — Main Portal and Regulatory Resources</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">European Banking Authority — Key Regulatory Updates and Supervisory Framework</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">EU<span class="sep">·</span>EU</div><div class="title">ESMA MiCA Transitional Period Expiration and Crypto-Asset Service Provider Compliance Deadline — July 1, 2026</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">US-AR<span class="sep">·</span>US-AR</div><div class="title">Arkansas State Legislature 95th General Assembly — Fiscal Session 2026</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">LV<span class="sep">·</span>LV</div><div class="title">Latvian Saeima Official Homepage — Parliamentary Information and Legislative Portal</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">GB<span class="sep">·</span>GB</div><div class="title">UK DEFRA — Food &amp; Rural Affairs Department Overview</div></a>
-          <a class="reg-card" href="regulations-detail.html"><div class="kicker">NZ<span class="sep">·</span>NZ</div><div class="title">NZ Department of Conservation — Overview</div></a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">GB<span class="sep">·</span>GB</div>
+            <div class="title">International Institute for Conservation — Professional Guidance and Standards for Historic and Artistic Works Conservation</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">GB<span class="sep">·</span>GB</div>
+            <div class="title">Financial Conduct Authority — Main Portal and Regulatory Resources</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">EU<span class="sep">·</span>EU</div>
+            <div class="title">European Banking Authority — Key Regulatory Updates and Supervisory Framework</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">EU<span class="sep">·</span>EU</div>
+            <div class="title">ESMA MiCA Transitional Period Expiration and Crypto-Asset Service Provider Compliance Deadline — July 1, 2026</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">US-AR<span class="sep">·</span>US-AR</div>
+            <div class="title">Arkansas State Legislature 95th General Assembly — Fiscal Session 2026</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">LV<span class="sep">·</span>LV</div>
+            <div class="title">Latvian Saeima Official Homepage — Parliamentary Information and Legislative Portal</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">GB<span class="sep">·</span>GB</div>
+            <div class="title">UK DEFRA — Food &amp; Rural Affairs Department Overview</div>
+          </a>
+          <a class="reg-card" href="regulations-detail.html">
+            <div class="kicker">NZ<span class="sep">·</span>NZ</div>
+            <div class="title">NZ Department of Conservation — Overview</div>
+          </a>
 
           <button class="col-foot">Open all 179 →</button>
         </div>
