@@ -117,7 +117,7 @@ function log(line) {
 console.log("[A5.4] querying active D1 items…");
 const { data: allD1, error: qErr } = await supabase
   .from("intelligence_items")
-  .select("id, legacy_id, title, note, jurisdictions, topic_tags, source_url, full_brief")
+  .select("id, legacy_id, title, summary, jurisdictions, topic_tags, source_url, full_brief")
   .eq("domain", 1)
   .eq("is_archived", false);
 
@@ -239,7 +239,7 @@ for (let i = 0; i < remaining.length; i++) {
 - jurisdictions: ${JSON.stringify(row.jurisdictions || [])}
 - topic_tags: ${JSON.stringify(row.topic_tags || [])}
 - source_url: ${row.source_url || "(none)"}
-- note: ${(row.note || "").slice(0, 500)}
+- summary: ${(row.summary || "").slice(0, 500)}
 
 EXISTING LEGACY FULL_BRIEF (predates §3-§15 contract; your primary anchor):
 ${(row.full_brief || "").slice(0, 30000)}
