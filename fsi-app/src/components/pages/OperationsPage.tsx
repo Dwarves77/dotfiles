@@ -1011,7 +1011,6 @@ function FactTable({ facts }: { facts: Fact[] }) {
             <td style={{ padding: "8px 12px 8px 0", verticalAlign: "top" }}>
               <span
                 style={{
-                  fontFamily: "var(--font-display)",
                   fontWeight: 600,
                   color: "var(--color-text-primary)",
                 }}
