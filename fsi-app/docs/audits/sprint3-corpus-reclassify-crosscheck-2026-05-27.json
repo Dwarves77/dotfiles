@@ -1,0 +1,3201 @@
+{
+  "run_date": "2026-05-28T02:09:56.846Z",
+  "candidates_evaluated": 117,
+  "url_match_count": 116,
+  "url_match_with_aligned_source_id": 116,
+  "no_match_count": 1,
+  "url_match_priority_distribution": {
+    "HIGH": 8,
+    "CRITICAL": 8,
+    "LOW": 80,
+    "MODERATE": 20
+  },
+  "url_match_item_type_distribution": {
+    "framework": 46,
+    "regulation": 7,
+    "directive": 2,
+    "guidance": 55,
+    "tool": 1,
+    "standard": 5
+  },
+  "no_match_priority_distribution": {
+    "HIGH": 1
+  },
+  "no_match_item_type_distribution": {
+    "regulation": 1
+  },
+  "url_match_rows": [
+    {
+      "id": "2617c566-eca5-4b62-8601-332a76b9995e",
+      "legacy_id": null,
+      "title": "IMO Future Fuels and Technology Portal: Comprehensive Gateway for Maritime Decarbonization Information and Alternative Fuel Implementation",
+      "source_url": "https://futurefuels.imo.org/",
+      "intel_source_id": "2d0d2d7f-acee-4cc7-a887-30ae581bb7f8",
+      "priority": "HIGH",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The IMO Future Fuels and Technology Project portal serves as a centralized information gateway supporting implementation",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "2d0d2d7f-acee-4cc7-a887-30ae581bb7f8",
+          "name": "International Maritime Organization (IMO) / Republic of Korea Partnership Project",
+          "url": "https://futurefuels.imo.org/",
+          "source_role": "intergovernmental_body",
+          "base_tier": 3,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "478ee79c-e2f6-4794-af47-32b8f9e4cc9f",
+      "legacy_id": null,
+      "title": "UK Sustainable Aviation Fuel (SAF) Mandate: 2025-2040 Supply Obligation Framework",
+      "source_url": "https://gov.uk/government/collections/sustainable-aviation-fuel-saf-mandate",
+      "intel_source_id": "0cd629a2-84fb-4e80-a0a5-546a92a5e2c6",
+      "priority": "CRITICAL",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The UK government's SAF Mandate is a regulatory framework requiring aviation fuel suppliers to increase sustainable avia",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "0cd629a2-84fb-4e80-a0a5-546a92a5e2c6",
+          "name": "UK Department for Transport / GOV.UK",
+          "url": "https://gov.uk/government/collections/sustainable-aviation-fuel-saf-mandate",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+      "legacy_id": null,
+      "title": "Japan Customs Bureau - Tariff Law Amendments and Trade Regulation Updates (FY2026)",
+      "source_url": "https://customs.go.jp/english/index.htm",
+      "intel_source_id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+      "priority": "CRITICAL",
+      "item_type": "regulation",
+      "hits": [
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "Japanese Customs Bureau announces multiple significant regulatory changes effective FY2026, including amendments to the ",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+          "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+          "url": "https://customs.go.jp/english/index.htm",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "355af9e8-d6e0-4bf5-8b9c-27edc914c25f",
+      "legacy_id": null,
+      "title": "EU Commission Proposal COM(2023)441 - Digital Markets and Competition Regulatory Framework",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=comnat:COM_2023_0441_FIN",
+      "intel_source_id": "41c1cadd-f6b2-4f56-8e22-ba4dd6db9a9c",
+      "priority": "CRITICAL",
+      "item_type": "directive",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "European Commission legislative proposal COM(2023)441 addressing digital markets regulation, competition policy, and mar",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "e6956d6f-4c95-47b6-a72e-04cec98992f2",
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32019R1242",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "363abb3f-921f-47fe-9bb3-e085c70c0c91",
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32023R1805",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "93fc8015-69cc-4bdc-a73f-ccfb560b928a",
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_202401610",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "41c1cadd-f6b2-4f56-8e22-ba4dd6db9a9c",
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=comnat:COM_2023_0441_FIN",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "de36ea2b-fa9e-4406-8158-3a3c8dde6860",
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32023R0956",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "777c7a9c-8e46-4791-af04-aa8d4aaf92b5",
+          "name": "EUR-Lex / European Union",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32023R1804",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "c048ce5e-bbf4-4e74-a03c-575283bcfba3",
+          "name": "EUR-Lex (Official Journal of the European Union)",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:52021DC0550",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "44ddd506-81ea-4e7c-beef-33de2933e5fb",
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX%3A32013R0952",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "13f9585a-1f19-4b07-a0f7-df65ae0f5712",
+          "name": "Publications Office of the European Union / EUR-Lex",
+          "url": "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_202500040",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "53c3fcd5-a234-4e97-a294-908dacb01c04",
+      "legacy_id": null,
+      "title": "EU Finance Portal: Central Hub for Financial Regulation, Supervision and Capital Markets Union",
+      "source_url": "https://finance.ec.europa.eu/",
+      "intel_source_id": "1d0265c2-38ce-463e-befb-f623146ee517",
+      "priority": "HIGH",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The European Commission Finance directorate portal provides comprehensive information on EU financial regulation, superv",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "1d0265c2-38ce-463e-befb-f623146ee517",
+          "name": "European Commission DG FISMA (finance)",
+          "url": "https://finance.ec.europa.eu/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "d1a333dd-ece2-41e9-984b-7c6e6a3e4434",
+      "legacy_id": null,
+      "title": "Louisiana Department of Environmental Quality - Comprehensive Environmental Regulation and Compliance Portal",
+      "source_url": "https://deq.louisiana.gov/",
+      "intel_source_id": "b5f85b79-82e0-4f2d-9665-51f1d4d146ca",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Louisiana Department of Environmental Quality (LDEQ) website serves as the primary informational hub for environment",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "b5f85b79-82e0-4f2d-9665-51f1d4d146ca",
+          "name": "Louisiana Department of Environmental Quality (LDEQ)",
+          "url": "https://deq.louisiana.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "4b2803d4-bdd3-4a56-91c9-7b8f45904b0e",
+      "legacy_id": null,
+      "title": "EPA Ireland Homepage - Environmental Regulatory Framework and Services",
+      "source_url": "https://epa.ie/",
+      "intel_source_id": "22ad6bf3-eb3d-4118-b514-26f5af1050e0",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "EPA Ireland homepage providing navigation to regulatory services, guidance, and monitoring in environmental protection i",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "22ad6bf3-eb3d-4118-b514-26f5af1050e0",
+          "name": "Environmental Protection Agency (EPA) — Ireland",
+          "url": "https://epa.ie/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "c5f34b7e-738c-4df3-9363-a14dda60cbe2",
+      "legacy_id": null,
+      "title": "Nevada Division of Environmental Protection - Comprehensive Environmental Regulatory Framework and Permitting Portal",
+      "source_url": "https://ndep.nv.gov/",
+      "intel_source_id": "4bfde4f6-cffc-4bff-88b9-9c94c9db5db8",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The Nevada Division of Environmental Protection (NDEP) website serves as the central hub for state environmental regulat",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "4bfde4f6-cffc-4bff-88b9-9c94c9db5db8",
+          "name": "Nevada Division of Environmental Protection (NDEP)",
+          "url": "https://ndep.nv.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "6a8036a0-41b5-4aa3-a118-5ac05f1f4e71",
+      "legacy_id": null,
+      "title": "Community of European Railways - Organizational Overview",
+      "source_url": "https://cer.be/about-us/who-we-are",
+      "intel_source_id": "2b6d9e9a-c8ed-42de-942f-1576dfa931ac",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Basic institutional webpage from the Community of European Railways (CER) organization, providing foundational informati",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "2b6d9e9a-c8ed-42de-942f-1576dfa931ac",
+          "name": "CER – Community of European Railway and Infrastructure Companies",
+          "url": "https://cer.be/about-us/who-we-are",
+          "source_role": "industry_association",
+          "base_tier": 4,
+          "status": "active",
+          "category": "market_news"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "851a8e5a-a5e5-4ff9-a883-49cd98362721",
+      "legacy_id": null,
+      "title": "Lithuanian Parliament (Seimas) Official Portal and Legislative Activities Overview",
+      "source_url": "https://lrs.lt/",
+      "intel_source_id": "0cc23a7e-4c41-4667-b0fb-6094d134d71b",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Content from the Lithuanian Parliament (Seimas) official website showing parliamentary structure, legislative processes,",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "0cc23a7e-4c41-4667-b0fb-6094d134d71b",
+          "name": "Seimas of the Republic of Lithuania",
+          "url": "https://lrs.lt/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "432a5042-1a51-4713-bfa0-8aca3fbfee62",
+      "legacy_id": null,
+      "title": "ASEAN Transport Strategic Plan 2016-2025 and Regional Cooperation Framework",
+      "source_url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025",
+      "intel_source_id": "e50b19a7-1ea4-44c7-beb1-33dcc0cc0b38",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Content references ASEAN Transport Strategic Plan 2016-2025 alongside recent ASEAN Summit outcomes (48th Summit, May 202",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "e50b19a7-1ea4-44c7-beb1-33dcc0cc0b38",
+          "name": "ASEAN Main Portal (asean.org)",
+          "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025",
+          "source_role": "academic_research",
+          "base_tier": 3,
+          "status": "active",
+          "category": "research"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "dff7017e-c4e6-4b74-8bb8-1d7946b00cf2",
+      "legacy_id": null,
+      "title": "Massachusetts General Laws Repository - 194th General Court Legislative Reference Portal",
+      "source_url": "https://malegislature.gov/Laws/GeneralLaws",
+      "intel_source_id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Massachusetts Legislature's official General Laws portal provides access to the codified permanent laws of Massachus",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+          "name": "Massachusetts Legislature (General Court) – Session Laws & MGL",
+          "url": "https://malegislature.gov/Laws/GeneralLaws",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "5511a87f-2bba-485a-9f54-6911ef385a63",
+      "legacy_id": null,
+      "title": "New York Department of Environmental Conservation Regulatory Framework",
+      "source_url": "https://dec.ny.gov/regulatory",
+      "intel_source_id": "8ea87818-aec3-4402-8df1-3a67f9903e69",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Primary regulatory portal for New York State environmental conservation policies, regulations, and compliance requiremen",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "8ea87818-aec3-4402-8df1-3a67f9903e69",
+          "name": "New York State Department of Environmental Conservation (NYSDEC)",
+          "url": "https://dec.ny.gov/regulatory",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+      "legacy_id": null,
+      "title": "WTO Trade and Environment Framework: Key Initiatives on Climate, Plastics, and Fossil Fuel Subsidy Reform",
+      "source_url": "https://wto.org/english/tratop_e/envir_e/envt_intro_e.htm",
+      "intel_source_id": "4140b9d2-62db-4e9d-83a4-37b7421b2343",
+      "priority": "HIGH",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The WTO provides a comprehensive framework addressing the intersection of international trade and environmental goals. T",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "4140b9d2-62db-4e9d-83a4-37b7421b2343",
+          "name": "World Trade Organization (WTO)",
+          "url": "https://wto.org/english/tratop_e/envir_e/envt_intro_e.htm",
+          "source_role": "intergovernmental_body",
+          "base_tier": 3,
+          "status": "active",
+          "category": "research"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "2c814d07-3742-4d3e-ab0a-caef6f5de332",
+      "legacy_id": null,
+      "title": "ACT Legislation Register - Official Legislative Database Portal",
+      "source_url": "https://legislation.act.gov.au/",
+      "intel_source_id": "acfa9bc1-51c8-4099-b8f9-9cace671a016",
+      "priority": "LOW",
+      "item_type": "tool",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The ACT Legislation Register is the official public portal for accessing Australian Capital Territory legislation, inclu",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "acfa9bc1-51c8-4099-b8f9-9cace671a016",
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "url": "https://legislation.act.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "1add1175-f418-44f7-82e8-f66015afae0c",
+      "legacy_id": null,
+      "title": "Alberta Government Services Directory and Public Information Portal",
+      "source_url": "https://alberta.ca/environment-and-parks.aspx",
+      "intel_source_id": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Alberta.ca government services portal providing access to provincial government services and information resources. Cont",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+          "name": "Alberta Environment and Protected Areas",
+          "url": "https://alberta.ca/environment-and-parks.aspx",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "8cb6e73e-1c35-428f-8f5c-f1ee51a9e169",
+      "legacy_id": null,
+      "title": "European Banking Authority - Key Regulatory Updates and Supervisory Framework",
+      "source_url": "https://eba.europa.eu/",
+      "intel_source_id": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview",
+        "key_regulatory_updates",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The EBA homepage provides an overview of ongoing regulatory consultations and initiatives including amendments to RTS on",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+          "name": "European Banking Authority (EBA)",
+          "url": "https://eba.europa.eu/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "104eb3a4-390a-429c-b860-f8cd1ae26795",
+      "legacy_id": null,
+      "title": "Northern Territory Legislation Portal",
+      "source_url": "https://legislation.nt.gov.au/",
+      "intel_source_id": "5766d220-756f-4f78-844f-f6733c92ade7",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official Northern Territory legislation website providing access to Acts, subordinate legislation, Bills, Hansard record",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5766d220-756f-4f78-844f-f6733c92ade7",
+          "name": "NT Legislation – Northern Territory Legislation Website",
+          "url": "https://legislation.nt.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "3581c084-9486-4085-82cc-b650380bd83d",
+      "legacy_id": "c5",
+      "title": "GLEC Framework v3",
+      "source_url": "https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
+      "intel_source_id": "5aa6c2c0-2778-4359-b683-55cb8144efbf",
+      "priority": "MODERATE",
+      "item_type": "standard",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "ACTIVE STANDARD. Widely adopted by industry. ACTION NOW: Ensure emissions calculation engine uses GLEC v3 methodology. T",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5aa6c2c0-2778-4359-b683-55cb8144efbf",
+          "name": "Smart Freight Centre",
+          "url": "https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
+          "source_role": "statistical_data_agency",
+          "base_tier": 4,
+          "status": "active",
+          "category": "operational_data"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ec086e7d-be11-4b9c-a305-1adc8a6a8b0d",
+      "legacy_id": null,
+      "title": "Chicago Department of Public Health - Environmental Health Services Portal",
+      "source_url": "https://chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+      "intel_source_id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for Chicago Department of Public Health (CDPH) environmental health division, providing access to various p",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+          "name": "Chicago Department of Public Health — Environmental Health",
+          "url": "https://chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ce04b2c9-dda0-48a9-a048-07b480a30976",
+      "legacy_id": null,
+      "title": "Montana Department of Environmental Quality - Regulatory Services and Programs Portal",
+      "source_url": "https://deq.mt.gov/",
+      "intel_source_id": "5993fd5f-ce69-4d3e-b3c1-737dd8fd5754",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Montana DEQ homepage providing access to environmental quality programs and services across air, water, energy, mining, ",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5993fd5f-ce69-4d3e-b3c1-737dd8fd5754",
+          "name": "Montana Department of Environmental Quality (DEQ)",
+          "url": "https://deq.mt.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "9ebe8337-0cf5-4a98-ad89-d841b9dc087f",
+      "legacy_id": null,
+      "title": "Japan MLIT Infrastructure and Transportation Policy Portal - Smart Cities and Decarbonization Initiatives",
+      "source_url": "https://mlit.go.jp/en",
+      "intel_source_id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Japanese Ministry of Land, Infrastructure, Transport and Tourism (MLIT) portal showcases government initiatives acro",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "10528abf-f3bb-4245-b844-8c35de0daf49",
+          "name": "Japan MLIT",
+          "url": "https://mlit.go.jp/en",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "provisional",
+          "category": "regulatory"
+        },
+        {
+          "id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+          "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+          "url": "https://mlit.go.jp/en",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "2f4dc1f8-155c-4eb2-a371-3f2eb2a01d03",
+      "legacy_id": null,
+      "title": "Montreal City Environment Portal - Navigation and Information Hub",
+      "source_url": "https://montreal.ca/en/topics/environment",
+      "intel_source_id": "b434ddee-7755-4071-b729-70088256af06",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "A 404 error page from the Montreal city environment topic portal, containing navigation menus, borough links, and contac",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "b434ddee-7755-4071-b729-70088256af06",
+          "name": "Ville de Montréal — Environnement",
+          "url": "https://montreal.ca/en/topics/environment",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "a530f0a4-29e8-44b4-be47-df917529f101",
+      "legacy_id": null,
+      "title": "Nebraska Legislature - Official Legislative Portal and Resources",
+      "source_url": "https://nebraskalegislature.gov/",
+      "intel_source_id": "a927b18c-f5f4-4fa3-a5cf-6982ed7b6e36",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "Homepage of the Nebraska Unicameral Legislature providing access to legislative information, bills, statutes, hearing sc",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "a927b18c-f5f4-4fa3-a5cf-6982ed7b6e36",
+          "name": "Nebraska Legislature",
+          "url": "https://nebraskalegislature.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "5a85fb2b-8bf0-4ab1-a1d2-6daf11034c6b",
+      "legacy_id": null,
+      "title": "Virginia Legislative Information System (LIS) - Official Portal",
+      "source_url": "https://lis.virginia.gov/",
+      "intel_source_id": "83bb800b-13fa-4096-99af-5c6bfaa57b61",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Virginia Legislative Information System (LIS) is the official legislative information portal for the Virginia Genera",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "83bb800b-13fa-4096-99af-5c6bfaa57b61",
+          "name": "Virginia Legislative Information System (LIS)",
+          "url": "https://lis.virginia.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "23d9a3ed-5d2d-49af-a8ab-3db0ce1dd84c",
+      "legacy_id": null,
+      "title": "Oklahoma Legislature Official Portal and Legislative Information System",
+      "source_url": "https://oklegislature.gov/",
+      "intel_source_id": "ef2643ee-a501-4d4a-ac0e-899e884cf8fd",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Oklahoma Legislature homepage providing access to legislative bill tracking, statutes, constitution, committee informati",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "ef2643ee-a501-4d4a-ac0e-899e884cf8fd",
+          "name": "Oklahoma Legislature",
+          "url": "https://oklegislature.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+      "legacy_id": "a7",
+      "title": "GLEC Framework (Air Freight)",
+      "source_url": "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council",
+      "intel_source_id": "d6e87364-309a-4f1b-90e9-93223133f29a",
+      "priority": "LOW",
+      "item_type": "standard",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "ACTIVE STANDARD. ACTION NOW: Implement GLEC air freight module in emissions calculation engine. Use aircraft-type-specif",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "d6e87364-309a-4f1b-90e9-93223133f29a",
+          "name": "Smart Freight Centre / GLEC Framework",
+          "url": "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council",
+          "source_role": "academic_research",
+          "base_tier": 5,
+          "status": "active",
+          "category": "research"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "f40e2170-e2d2-4ff6-ac15-673488e3e183",
+      "legacy_id": null,
+      "title": "Illinois General Assembly Official Legislative Portal",
+      "source_url": "https://ilga.gov/",
+      "intel_source_id": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Illinois General Assembly home page providing access to legislative information including bills, resolutions, public act",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+          "name": "Illinois General Assembly",
+          "url": "https://ilga.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "fa2e776f-b238-44ab-8f0d-6f398c8bdc0f",
+      "legacy_id": null,
+      "title": "South Carolina Legislature Online Portal - Legislative Information and Tracking Resource",
+      "source_url": "https://scstatehouse.gov/",
+      "intel_source_id": "58ffd350-38b1-429a-9f82-aaa96cc7b193",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The South Carolina State House website provides access to legislative information, bill tracking, committee postings, me",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "58ffd350-38b1-429a-9f82-aaa96cc7b193",
+          "name": "South Carolina General Assembly (SC Statehouse)",
+          "url": "https://scstatehouse.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "3b873d0b-ccd8-4df8-9a3b-82290d991475",
+      "legacy_id": null,
+      "title": "Northern Ireland Assembly - Official Parliamentary Portal and Legislative Operations",
+      "source_url": "http://niassembly.gov.uk/",
+      "intel_source_id": "e99a7e99-ebae-4a39-81cb-e81a3d5e218d",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Northern Ireland Assembly website serves as the official portal for Northern Ireland's devolved government operation",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "e99a7e99-ebae-4a39-81cb-e81a3d5e218d",
+          "name": "Northern Ireland Assembly (Stormont)",
+          "url": "http://niassembly.gov.uk/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ca7d3a75-b606-4517-9ff9-7624b4edc566",
+      "legacy_id": null,
+      "title": "French Senate (Sénat) - Parliamentary Portal and Institutional Framework",
+      "source_url": "https://senat.fr/",
+      "intel_source_id": "61fd172f-b2b8-472e-9d92-06139889b24a",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Homepage and navigation portal for the French Senate (Sénat), presenting the institutional structure, parliamentary work",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "61fd172f-b2b8-472e-9d92-06139889b24a",
+          "name": "Sénat (France)",
+          "url": "https://senat.fr/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "a9d71682-533b-43ae-b86f-530fc0908fe7",
+      "legacy_id": null,
+      "title": "DC Municipal Regulations (DCMR) - Official Repository and Navigation Portal",
+      "source_url": "https://dcregs.dc.gov/",
+      "intel_source_id": "16c23231-33d2-4b7b-b021-c0d0ca201a52",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Homepage for the District of Columbia Municipal Regulations (DCMR) and DC Register, providing access to regulations orga",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "16c23231-33d2-4b7b-b021-c0d0ca201a52",
+          "name": "DC Municipal Regulations & DC Register (dcregs.dc.gov)",
+          "url": "https://dcregs.dc.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "402d311f-ea4a-4bfa-8bda-93a64076898d",
+      "legacy_id": null,
+      "title": "Colorado General Assembly Laws Portal and Legislative Resources",
+      "source_url": "https://leg.colorado.gov/laws",
+      "intel_source_id": "00b6cd1a-61a5-4023-ad7b-0835fdc16fe7",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Overview page of Colorado General Assembly website providing access to legislative materials including Colorado Revised ",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "00b6cd1a-61a5-4023-ad7b-0835fdc16fe7",
+          "name": "Colorado General Assembly",
+          "url": "https://leg.colorado.gov/laws",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "856166be-0cf8-4c0e-8b2d-dbded771f0d5",
+      "legacy_id": null,
+      "title": "Financial Conduct Authority - Main Portal and Regulatory Resources",
+      "source_url": "https://fca.org.uk/",
+      "intel_source_id": "c75ea058-f29a-4606-a76e-bb0295565958",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "key_regulatory_updates",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "FCA homepage providing comprehensive overview of UK financial services regulation, including consumer protection resourc",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "c75ea058-f29a-4606-a76e-bb0295565958",
+          "name": "UK Financial Conduct Authority (FCA)",
+          "url": "https://fca.org.uk/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "0841c98d-dee1-4d81-956f-a8b0754db62c",
+      "legacy_id": null,
+      "title": "North Dakota Department of Environmental Quality - Portal and Current Environmental Notices",
+      "source_url": "https://deq.nd.gov/",
+      "intel_source_id": "5012a359-bb4b-44f7-b28a-e9b976383051",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "current_notices"
+      ],
+      "summary_excerpt": "The North Dakota DEQ website provides access to environmental regulatory guidance, public notices, and current alerts. N",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5012a359-bb4b-44f7-b28a-e9b976383051",
+          "name": "North Dakota Department of Environmental Quality (NDDEQ)",
+          "url": "https://deq.nd.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "7f687602-297c-4c49-91cb-7aee0455f24e",
+      "legacy_id": null,
+      "title": "Japan Ministry of the Environment - Official Portal and Policy Framework",
+      "source_url": "https://env.go.jp/",
+      "intel_source_id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Homepage of Japan's Ministry of the Environment providing access to environmental policies, regulations, and initiatives",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+          "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+          "url": "https://env.go.jp/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "8dff0e0e-b3a2-40c8-93d7-5b84d008031f",
+      "legacy_id": null,
+      "title": "Kansas Office of Revisor of Statutes - Legislative Legal Resources Portal",
+      "source_url": "https://ksrevisor.gov/",
+      "intel_source_id": "1bc48b90-4e2a-4f3f-aaa2-6a470b51eb41",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The Kansas Office of Revisor of Statutes website serves as the official portal for accessing Kansas legislative legal ex",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "1bc48b90-4e2a-4f3f-aaa2-6a470b51eb41",
+          "name": "Kansas Legislature – Kansas Statutes Annotated (KSA) Revisor of Statutes",
+          "url": "https://ksrevisor.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "d48a35ed-5f82-4121-97ee-2d79bcfcd42f",
+      "legacy_id": null,
+      "title": "BC Legislative Assembly Official Portal",
+      "source_url": "https://leg.bc.ca/",
+      "intel_source_id": "3cb91963-21a2-418e-bc33-fa391fd96d38",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official website of the Legislative Assembly of British Columbia, the provincial legislative body.",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "3cb91963-21a2-418e-bc33-fa391fd96d38",
+          "name": "Legislative Assembly of British Columbia",
+          "url": "https://leg.bc.ca/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "6693899d-7b45-4d20-94ea-72a66526aff8",
+      "legacy_id": null,
+      "title": "Wyoming Legislature Portal and 2026 Session Information",
+      "source_url": "https://wyoleg.gov/",
+      "intel_source_id": "e775a938-dca3-49c9-87f7-5d98237a1cc0",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Wyoming Legislature website serves as the primary portal for state legislative information, including statutes, budg",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "e775a938-dca3-49c9-87f7-5d98237a1cc0",
+          "name": "Wyoming Legislature – Wyoming Statutes",
+          "url": "https://wyoleg.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "edf0c87e-5eb1-464c-8c69-f5bcd7de88aa",
+      "legacy_id": null,
+      "title": "Bulgarian Ministry of Environment and Waters - Institutional Framework and Regulatory Overview",
+      "source_url": "https://moew.government.bg/",
+      "intel_source_id": "bb38c4f7-2b4a-421a-91cf-d1185902e9c2",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The Bulgarian Ministry of Environment and Waters (МОСВ) website presents the institutional structure and portfolio of th",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "bb38c4f7-2b4a-421a-91cf-d1185902e9c2",
+          "name": "Ministry of Environment and Water (MOEW)",
+          "url": "https://moew.government.bg/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "7b159d86-b1d1-4458-a58e-57026564ecfb",
+      "legacy_id": null,
+      "title": "Oregon Revised Statutes (ORS) 2025 Edition - Legislative Reference Portal",
+      "source_url": "https://oregonlegislature.gov/bills_laws/Pages/ORS.aspx",
+      "intel_source_id": "6abf5dce-b873-47ad-a834-115ddd65e210",
+      "priority": "LOW",
+      "item_type": "regulation",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Oregon Legislature's official portal providing access to Oregon Revised Statutes (ORS) for 2025, including codified ",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "6abf5dce-b873-47ad-a834-115ddd65e210",
+          "name": "Oregon Legislature – Oregon Revised Statutes (ORS) & Legislative Information System",
+          "url": "https://oregonlegislature.gov/bills_laws/Pages/ORS.aspx",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "55ed451c-360a-4bed-b742-ffea2167d76d",
+      "legacy_id": null,
+      "title": "Ministry of Environmental Protection and Regional Development - VARAM Official Portal",
+      "source_url": "https://varam.gov.lv/",
+      "intel_source_id": "584a0085-e145-4a53-8918-a77630845b59",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Portal of Latvia's Ministry of Environmental Protection and Regional Development (VARAM) providing access to governance ",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "584a0085-e145-4a53-8918-a77630845b59",
+          "name": "Vides aizsardzības un reģionālās attīstības ministrija (VARAM)",
+          "url": "https://varam.gov.lv/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "259082d3-8493-4931-8f51-e64b93085c96",
+      "legacy_id": null,
+      "title": "South Australian Parliament Portal - Legislative Calendar and Committee Submissions",
+      "source_url": "https://parliament.sa.gov.au/",
+      "intel_source_id": "2167775a-1320-48e6-b3d5-c90c72464305",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "South Australian Parliament website providing access to legislative information, committee details, and public engagemen",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "2167775a-1320-48e6-b3d5-c90c72464305",
+          "name": "Parliament of South Australia",
+          "url": "https://parliament.sa.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "d3e36935-75db-4652-90d4-2cab9d9a6cd3",
+      "legacy_id": null,
+      "title": "Umweltbundesamt (German Federal Environment Agency) - Comprehensive Climate, Energy, and Environmental Guidance Portal",
+      "source_url": "https://umweltbundesamt.de/",
+      "intel_source_id": "28e82808-aa9f-4110-a5be-9564944106ec",
+      "priority": "HIGH",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Umweltbundesamt (UBA) is Germany's primary federal environmental authority providing authoritative guidance on clima",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "28e82808-aa9f-4110-a5be-9564944106ec",
+          "name": "Umweltbundesamt (UBA) — German Environment Agency",
+          "url": "https://umweltbundesamt.de/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "cdeecc90-993d-40c2-b278-1169c6a4cba5",
+      "legacy_id": null,
+      "title": "Alabama Legislature Portal - Legislative Session and Bill Information",
+      "source_url": "https://legislature.state.al.us/",
+      "intel_source_id": "c8b87abd-146d-4e79-8c91-d14ad8943681",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Navigation and informational content from the official Alabama Legislature website, providing access to legislative reso",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "c8b87abd-146d-4e79-8c91-d14ad8943681",
+          "name": "Alabama State Legislature",
+          "url": "https://legislature.state.al.us/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "70786648-9dec-46ce-beb5-41936b94564d",
+      "legacy_id": null,
+      "title": "Austrian Parliament Official Website - Institutional Overview",
+      "source_url": "https://parlament.gv.at/",
+      "intel_source_id": "a0e2be6c-1c62-4bad-bda6-469285ffa57c",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Homepage of the Austrian Parliament (Parlament Österreich) providing institutional structure information, including deta",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "a0e2be6c-1c62-4bad-bda6-469285ffa57c",
+          "name": "Österreichisches Parlament (Nationalrat & Bundesrat)",
+          "url": "https://parlament.gv.at/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "54b1082b-e9da-439e-8d46-dc909f6be686",
+      "legacy_id": null,
+      "title": "Pennsylvania Department of Environmental Protection - Agency Programs and Services Overview",
+      "source_url": "https://pa.gov/agencies/dep.html",
+      "intel_source_id": "eec932a5-c797-4adb-bd17-076937979da1",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Pennsylvania DEP agency homepage providing comprehensive directory of environmental protection programs including air qu",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "eec932a5-c797-4adb-bd17-076937979da1",
+          "name": "Pennsylvania Department of Environmental Protection (DEP)",
+          "url": "https://pa.gov/agencies/dep.html",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "e1dfa782-dda8-4c16-81c0-97b7a163eef3",
+      "legacy_id": null,
+      "title": "Michigan EGLE Department Portal and Regulatory Framework Overview",
+      "source_url": "https://michigan.gov/egle",
+      "intel_source_id": "559687e8-45cb-4ed6-a78e-ed58ca63d3be",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Michigan Department of Environment, Great Lakes, and Energy (EGLE) provides comprehensive environmental regulatory guida",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "559687e8-45cb-4ed6-a78e-ed58ca63d3be",
+          "name": "Michigan Department of Environment, Great Lakes, and Energy (EGLE)",
+          "url": "https://michigan.gov/egle",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ab0f3f3a-5cbf-43d9-8d40-bc3e00071d8a",
+      "legacy_id": null,
+      "title": "Assemblée Nationale Official Portal - French National Assembly Parliamentary Activities",
+      "source_url": "https://assemblee-nationale.fr/",
+      "intel_source_id": "f65fd561-795b-471d-ad1c-55a292cb712a",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official French National Assembly (Assemblée Nationale) portal providing access to parliamentary proceedings, deputies i",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "f65fd561-795b-471d-ad1c-55a292cb712a",
+          "name": "Assemblée nationale",
+          "url": "https://assemblee-nationale.fr/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "8ca59f48-3d54-4dc9-b352-663bab616610",
+      "legacy_id": null,
+      "title": "Ohio Legislature Official Portal and Legislative Resources",
+      "source_url": "https://legislature.ohio.gov/",
+      "intel_source_id": "593a9a84-46ad-440a-a1f7-746a155e8736",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for the Ohio Legislature website providing navigation to legislative schedules, bill tracking, committee in",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "593a9a84-46ad-440a-a1f7-746a155e8736",
+          "name": "Ohio General Assembly",
+          "url": "https://legislature.ohio.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "d690c4ca-ab2c-4057-97e4-51d8f8eb4399",
+      "legacy_id": null,
+      "title": "Umweltbundesamt Austria - Environmental Monitoring and Sustainability Services Portal",
+      "source_url": "https://umweltbundesamt.at/",
+      "intel_source_id": "f404180d-6e41-42e1-967e-615e6d8377e4",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Austrian Federal Environment Agency (Umweltbundesamt) website providing comprehensive environmental monitoring, research",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "f404180d-6e41-42e1-967e-615e6d8377e4",
+          "name": "Umweltbundesamt — Austrian Environment Agency",
+          "url": "https://umweltbundesamt.at/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "d1c0422e-dc1d-49c7-adcf-8ed2bca86e69",
+      "legacy_id": null,
+      "title": "Indiana General Assembly Official Portal",
+      "source_url": "https://iga.in.gov/",
+      "intel_source_id": "196fb848-7740-4d1b-9add-20a8d355b53c",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Indiana General Assembly main website requiring JavaScript functionality. Primary access point for Indiana state legisla",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "196fb848-7740-4d1b-9add-20a8d355b53c",
+          "name": "Indiana General Assembly",
+          "url": "https://iga.in.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "0554d47e-3e90-40cb-aced-fcfb42ff793d",
+      "legacy_id": null,
+      "title": "Latvian Saeima Official Homepage - Parliamentary Information and Legislative Portal",
+      "source_url": "https://saeima.lv/",
+      "intel_source_id": "f692281c-95c6-4d78-96b2-c8aa9f2beb0c",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Official website of the Latvian Parliament (Saeima) providing comprehensive information on legislative processes, parlia",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "f692281c-95c6-4d78-96b2-c8aa9f2beb0c",
+          "name": "Saeima of the Republic of Latvia",
+          "url": "https://saeima.lv/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "9dd72c7d-1074-439a-8f1e-84f865863127",
+      "legacy_id": null,
+      "title": "Australian Parliament Official Portal and Legislative Information Hub",
+      "source_url": "https://aph.gov.au/",
+      "intel_source_id": "d4107279-8725-4499-8040-436b6a0c0040",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Australian Parliament homepage provides access to parliamentary business, legislative documents, chamber proceedings",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "d4107279-8725-4499-8040-436b6a0c0040",
+          "name": "Parliament of Australia",
+          "url": "https://aph.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "8043d234-5b73-45d9-a0c9-b072e293eca5",
+      "legacy_id": null,
+      "title": "Saskatchewan Legislative Assembly Portal - Public Information Hub",
+      "source_url": "https://legassembly.sk.ca/",
+      "intel_source_id": "f011d2e9-c1b9-40de-92e2-4490b7f8b14f",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Homepage and navigation portal for Saskatchewan's Legislative Assembly, providing access to legislative records, parliam",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "f011d2e9-c1b9-40de-92e2-4490b7f8b14f",
+          "name": "Legislative Assembly of Saskatchewan",
+          "url": "https://legassembly.sk.ca/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "09bdd3a0-4cd2-4ce5-8f7a-79454ae4f381",
+      "legacy_id": null,
+      "title": "2023 IMO Strategy on Reduction of GHG Emissions from Ships - Framework for International Maritime Decarbonization",
+      "source_url": "https://imo.org/en/ourwork/environment/pages/2023-imo-strategy-on-reduction-of-ghg-emissions-from-ships.aspx",
+      "intel_source_id": "2c88abc4-7564-4aca-9575-59404ba2d965",
+      "priority": "CRITICAL",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The IMO adopted the 2023 GHG Strategy in July 2023 (MEPC 80), establishing mandatory targets for international shipping:",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "2c88abc4-7564-4aca-9575-59404ba2d965",
+          "name": "International Maritime Organization (IMO)",
+          "url": "https://imo.org/en/ourwork/environment/pages/2023-imo-strategy-on-reduction-of-ghg-emissions-from-ships.aspx",
+          "source_role": "intergovernmental_body",
+          "base_tier": 3,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "1c68ba4c-8f35-4a13-9a7e-03e24ec9b21a",
+      "legacy_id": null,
+      "title": "New Brunswick Environment and Local Government Department - Climate Action and Water Strategy Resources",
+      "source_url": "https://www2.gnb.ca/content/gnb/en/departments/elg.html",
+      "intel_source_id": "4663bf16-d7f0-41cf-befd-c38da3549ab8",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "New Brunswick's Environment and Local Government department landing page providing access to climate change initiatives,",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "4663bf16-d7f0-41cf-befd-c38da3549ab8",
+          "name": "New Brunswick Department of Environment and Climate Change",
+          "url": "https://www2.gnb.ca/content/gnb/en/departments/elg.html",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "9e70b75b-48be-405e-9c1f-41f7c3b5538b",
+      "legacy_id": null,
+      "title": "Polish Chief Environmental Inspectorate (GIOŚ) - Environmental Monitoring and Waste Management Framework",
+      "source_url": "https://gov.pl/web/gios",
+      "intel_source_id": "47fd8e2e-d1ae-4a81-b6b3-ed74d4763957",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The Główny Inspektorat Ochrony Środowiska (GIOS) is Poland's principal environmental protection authority responsible fo",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "47fd8e2e-d1ae-4a81-b6b3-ed74d4763957",
+          "name": "Główny Inspektorat Ochrony Środowiska (GIOŚ)",
+          "url": "https://gov.pl/web/gios",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+      "legacy_id": null,
+      "title": "New York State Truck & Motor Carrier Rules & Regulations - Safety and Compliance Framework",
+      "source_url": "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+      "intel_source_id": "610ed5ac-ae3b-4fc6-b82f-df2988bb78e3",
+      "priority": "HIGH",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "New York State Department of Transportation establishes truck and motor carrier regulations incorporating federal safety",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "610ed5ac-ae3b-4fc6-b82f-df2988bb78e3",
+          "name": "New York State Department of Transportation (NYSDOT)",
+          "url": "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ac07f339-3ff8-4251-a1cf-9c8fd5ca3b2a",
+      "legacy_id": null,
+      "title": "Utah Legislature Official Portal - Legislative Sessions and Bill Tracking",
+      "source_url": "https://le.utah.gov/",
+      "intel_source_id": "1c4df84e-8c9a-4c11-b6e1-605ed46dd0bc",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Utah State Legislature homepage providing access to legislative information including bills, sessions, committees, budge",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "1c4df84e-8c9a-4c11-b6e1-605ed46dd0bc",
+          "name": "Utah State Legislature – Utah Code & Utah Administrative Code",
+          "url": "https://le.utah.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "c126e152-569a-4c21-80a8-7981c294ed8f",
+      "legacy_id": null,
+      "title": "Scottish Parliament Website and Legislative Framework Overview",
+      "source_url": "https://parliament.scot/",
+      "intel_source_id": "a02669f2-d31a-4822-bb42-90e8bc919a81",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "General overview of the Scottish Parliament website structure, navigation, and core functions including bills, laws, MSP",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "a02669f2-d31a-4822-bb42-90e8bc919a81",
+          "name": "Scottish Parliament (Holyrood)",
+          "url": "https://parliament.scot/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "908b0e94-07f6-4ba4-988c-7f3bf6a8ba16",
+      "legacy_id": null,
+      "title": "Connecticut General Assembly Official Portal and Legislative Resources",
+      "source_url": "https://cga.ct.gov/",
+      "intel_source_id": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Connecticut General Assembly (CGA) official website providing access to legislative information, bill tracking, legislat",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+          "name": "Connecticut General Assembly (cga.ct.gov)",
+          "url": "https://cga.ct.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "5537112d-4439-4b72-bd8c-529743a86654",
+      "legacy_id": null,
+      "title": "Quebec Ministry of Environment: Environmental Regulations, Compliance Reporting, and Public Consultations Portal",
+      "source_url": "https://environnement.gouv.qc.ca/",
+      "intel_source_id": "586ebf7c-0146-4d0e-871d-db604490e358",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for Quebec's Ministry of Environment, Climate Change, Wildlife and Parks (MELCCFP). Provides access to envi",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "586ebf7c-0146-4d0e-871d-db604490e358",
+          "name": "Ministère de l'Environnement, de la Lutte contre les changements climatiques, de la Faune et des Parcs (MELCCFP)",
+          "url": "https://environnement.gouv.qc.ca/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "98444815-7d34-47b0-911a-1bfee87e6d25",
+      "legacy_id": null,
+      "title": "Iowa Utilities Commission - Regulatory Authority and Customer Resources",
+      "source_url": "https://iuc.iowa.gov/",
+      "intel_source_id": "b926dd11-6242-4b2f-ba34-cfdb789e7402",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The Iowa Utilities Commission (IUC) website provides comprehensive information about utility regulation, customer assist",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "b926dd11-6242-4b2f-ba34-cfdb789e7402",
+          "name": "Iowa Utilities Commission (IUC)",
+          "url": "https://iuc.iowa.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "c3318232-238e-4d82-8c83-5a2c87c75df8",
+      "legacy_id": null,
+      "title": "Environmental Protection Department Hong Kong - Official Portal",
+      "source_url": "https://epd.gov.hk/",
+      "intel_source_id": "4ebe9bba-5fb0-48a5-a601-1974e1bcc73c",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Hong Kong Environmental Protection Department homepage with navigation to regulatory guidance, press releases, speeches,",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "4ebe9bba-5fb0-48a5-a601-1974e1bcc73c",
+          "name": "Environmental Protection Department (EPD), Hong Kong SAR",
+          "url": "https://epd.gov.hk/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "60f5f42e-0b91-4ba9-9091-37476337fe11",
+      "legacy_id": null,
+      "title": "Massachusetts Department of Environmental Protection - Official Portal and Resources",
+      "source_url": "https://mass.gov/orgs/massachusetts-department-of-environmental-protection",
+      "intel_source_id": "5b676647-171e-4ba4-b468-28f7d41c2e72",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "Homepage and portal for the Massachusetts Department of Environmental Protection (MassDEP), providing access to environm",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5b676647-171e-4ba4-b468-28f7d41c2e72",
+          "name": "Massachusetts Department of Environmental Protection (MassDEP)",
+          "url": "https://mass.gov/orgs/massachusetts-department-of-environmental-protection",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "692732ac-388e-460b-8a38-d30bfb005a27",
+      "legacy_id": null,
+      "title": "NSW Parliament Official Portal - Legislative Framework and Public Access",
+      "source_url": "https://parliament.nsw.gov.au/",
+      "intel_source_id": "abe48613-c63c-4914-b8d7-39f1640c519b",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The NSW Parliament website serves as the primary public gateway for accessing legislative information, parliamentary pro",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "abe48613-c63c-4914-b8d7-39f1640c519b",
+          "name": "Parliament of New South Wales",
+          "url": "https://parliament.nsw.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "d012bc20-9e9c-4669-942a-f50c3d4d2fe2",
+      "legacy_id": null,
+      "title": "NC DEQ Air Quality Division - Programs, Monitoring, and Compliance Resources",
+      "source_url": "https://deq.nc.gov/about/divisions/air-quality",
+      "intel_source_id": "86474c7e-a858-4a25-a206-d4aadf17d09f",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The North Carolina Division of Environmental Quality (DEQ) Air Quality Division provides comprehensive air quality manag",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "86474c7e-a858-4a25-a206-d4aadf17d09f",
+          "name": "North Carolina Department of Environmental Quality (NC DEQ) – Division of Air Quality",
+          "url": "https://deq.nc.gov/about/divisions/air-quality",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "3a8fbb7a-76c4-4f02-9a81-c0679b03744b",
+      "legacy_id": null,
+      "title": "Hrvatski Sabor Official Portal - Parliamentary Sessions and Legislation Access",
+      "source_url": "https://sabor.hr/",
+      "intel_source_id": "7cc36395-3e20-47d9-b23c-5cb64dc13663",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official website of the Croatian Parliament (Hrvatski sabor) providing access to legislative documentation, parliamentar",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "7cc36395-3e20-47d9-b23c-5cb64dc13663",
+          "name": "Hrvatski sabor – Croatian Parliament",
+          "url": "https://sabor.hr/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "156ec17c-9be4-48b8-92f7-f00aed7bc91b",
+      "legacy_id": null,
+      "title": "GRI Standards Download Portal - Cookie Policy and Website Consent Management",
+      "source_url": "https://globalreporting.org/standards/download-the-standards",
+      "intel_source_id": "239f2838-18b4-47ef-a2ea-e7cde7162b5d",
+      "priority": "LOW",
+      "item_type": "standard",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for Global Reporting Initiative (GRI) Standards download portal with cookie consent and website usage polic",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "239f2838-18b4-47ef-a2ea-e7cde7162b5d",
+          "name": "Global Reporting Initiative (GRI)",
+          "url": "https://globalreporting.org/standards/download-the-standards",
+          "source_role": "standards_body",
+          "base_tier": 4,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ccba4af8-806e-4b89-8554-096c83f25760",
+      "legacy_id": null,
+      "title": "French Ministry of Ecological Transition Roadmap for Fossil Fuel Phase-Out and Climate Action Framework",
+      "source_url": "https://ecologie.gouv.fr/",
+      "intel_source_id": "81df8e97-9b84-45c3-94a5-5e9e5838c10a",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The French Ministry of Ecological Transition, Territorial Planning, Transport, City and Housing presents a comprehensive",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "81df8e97-9b84-45c3-94a5-5e9e5838c10a",
+          "name": "Ministère de la Transition écologique et de la Cohésion des territoires (MITECO)",
+          "url": "https://ecologie.gouv.fr/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "194c091e-a822-4421-b414-6c4042f1a3ab",
+      "legacy_id": null,
+      "title": "BREEAM V7: Leading Holistic Sustainability Framework for Built Environment Certification",
+      "source_url": "https://breeam.com/",
+      "intel_source_id": "ef347aa7-6dc2-40b8-ac18-6555f964c037",
+      "priority": "HIGH",
+      "item_type": "standard",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "BREEAM is the world's leading science-based sustainability assessment framework for the built environment, offering thir",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "ef347aa7-6dc2-40b8-ac18-6555f964c037",
+          "name": "BREEAM (BRE Global)",
+          "url": "https://breeam.com/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "dcb667a7-c489-478b-97a6-8c82e451c4b6",
+          "name": "BRE Group (Building Research Establishment)",
+          "url": "https://breeam.com/",
+          "source_role": null,
+          "base_tier": 4,
+          "status": "active",
+          "category": "research"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "3f11c0fb-4dbe-4d7d-b7d5-aef69ad9a560",
+      "legacy_id": null,
+      "title": "Environment Protection Authority Victoria - Regulatory Overview and Compliance Resources",
+      "source_url": "https://epa.vic.gov.au/",
+      "intel_source_id": "9190b411-0a6d-408b-8a3e-1dd3d86bbe7b",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The EPA Victoria website provides comprehensive guidance on environmental regulation, including air and water quality mo",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "9190b411-0a6d-408b-8a3e-1dd3d86bbe7b",
+          "name": "Environment Protection Authority Victoria (EPA Victoria)",
+          "url": "https://epa.vic.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "2bcefab5-f9c6-47ac-9d56-1a494f46b97f",
+      "legacy_id": null,
+      "title": "Arkansas Department of Energy and Environment - Division of Environmental Quality Portal",
+      "source_url": "https://adeq.state.ar.us/",
+      "intel_source_id": "f6a642dd-25c6-4a67-ab6d-86df394a2ee9",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Institutional landing page for Arkansas Division of Environmental Quality (DEQ), part of the Department of Energy and En",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "f6a642dd-25c6-4a67-ab6d-86df394a2ee9",
+          "name": "Arkansas Department of Environmental Quality (ADEQ / DEQ)",
+          "url": "https://adeq.state.ar.us/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ca56db13-2102-4061-bf4e-5cac79c50414",
+      "legacy_id": null,
+      "title": "Indiana Department of Environmental Management - Portal Overview and Regulatory Resources",
+      "source_url": "https://in.gov/idem",
+      "intel_source_id": "147ee8c6-ac78-4941-ab6d-6e65e829541b",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview",
+        "key_regulatory_updates",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The Indiana Department of Environmental Management (IDEM) homepage provides access to state environmental regulatory pro",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "147ee8c6-ac78-4941-ab6d-6e65e829541b",
+          "name": "Indiana Department of Environmental Management (IDEM)",
+          "url": "https://in.gov/idem",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "eacc5c0b-ebc5-4bae-8b26-9f67db185ea7",
+      "legacy_id": null,
+      "title": "Minnesota Legislature Official Portal and Legislative Information Hub",
+      "source_url": "https://leg.mn.gov/",
+      "intel_source_id": "c5177c00-fc69-4823-a9bb-c15c03fc6935",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "This is the Minnesota Legislature's official website homepage providing navigation and access to legislative information",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "c5177c00-fc69-4823-a9bb-c15c03fc6935",
+          "name": "Minnesota Legislature",
+          "url": "https://leg.mn.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "46f08c24-562e-474f-9118-7310a73c98e3",
+      "legacy_id": null,
+      "title": "Alaska State Legislature Official Portal and Session Information",
+      "source_url": "https://akleg.gov/",
+      "intel_source_id": "9c108fc0-afce-4645-bdaa-92f48a966ad5",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official Alaska State Legislature website providing access to legislative information including current members, bills, ",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "9c108fc0-afce-4645-bdaa-92f48a966ad5",
+          "name": "Alaska State Legislature – Alaska Statutes",
+          "url": "https://akleg.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "e44a5408-72b2-4ca5-b2a2-51bbbeee31d4",
+      "legacy_id": null,
+      "title": "Decarbonising Transport: A Better, Greener Britain - UK Government Policy Framework",
+      "source_url": "https://assets.publishing.service.gov.uk/media/610d63ffe90e0706d92fa282/decarbonising-transport-a-better-greener-britain.pdf",
+      "intel_source_id": "4ff469ca-5d44-4814-ac28-5bc9cf2d3feb",
+      "priority": "CRITICAL",
+      "item_type": "directive",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "UK government directive outlining comprehensive transport decarbonization strategy to achieve net-zero emissions through",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "4ff469ca-5d44-4814-ac28-5bc9cf2d3feb",
+          "name": "UK Department for Transport via assets.publishing.service.gov.uk",
+          "url": "https://assets.publishing.service.gov.uk/media/610d63ffe90e0706d92fa282/decarbonising-transport-a-better-greener-britain.pdf",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "9fbe9daf-d8e3-496a-b6b8-d7fe23223ab5",
+      "legacy_id": null,
+      "title": "D.C. Code and Law Library - Legislative Framework Documentation",
+      "source_url": "https://code.dccouncil.gov/",
+      "intel_source_id": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+      "priority": "LOW",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The D.C. Law Library provides public access to the Code of the District of Columbia, including 5,701 codified D.C. laws,",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+          "name": "Council of the District of Columbia – D.C. Law Library",
+          "url": "https://code.dccouncil.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "6c170351-b8d6-49de-a964-261401c6c62c",
+      "legacy_id": null,
+      "title": "Parliament of Singapore - Official Legislative Portal and Information Hub",
+      "source_url": "https://parliament.gov.sg/",
+      "intel_source_id": "8cdde50d-62eb-4518-9b8a-ca6f696cad9a",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Official website of the Parliament of Singapore providing access to parliamentary business, legislative information, mem",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "8cdde50d-62eb-4518-9b8a-ca6f696cad9a",
+          "name": "Parliament of Singapore",
+          "url": "https://parliament.gov.sg/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "bd4ec1bd-5179-4a66-8930-7adc74a5d5aa",
+      "legacy_id": null,
+      "title": "House of Councillors (Sangiin) Official Portal - Legislative Sessions and Public Information",
+      "source_url": "https://sangiin.go.jp/",
+      "intel_source_id": "9a04d213-688a-45eb-a4e1-84dc7f4b7241",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official website of Japan's House of Councillors (upper chamber of National Diet) providing information on parliamentary",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "9a04d213-688a-45eb-a4e1-84dc7f4b7241",
+          "name": "House of Councillors of Japan (Sangiin / 参議院)",
+          "url": "https://sangiin.go.jp/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "5351d10b-62e7-42ec-98bf-c18595a9c20d",
+      "legacy_id": null,
+      "title": "IADB Transport Sector Framework - Access Blocked",
+      "source_url": "https://iadb.org/en/who-we-are/topics/transport/sector-framework-transport",
+      "intel_source_id": "a7475879-6fb6-4bfd-bd0f-41f96e5f280d",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Content from IADB transport sector framework page is currently inaccessible due to Cloudflare security blocking. The pag",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "a7475879-6fb6-4bfd-bd0f-41f96e5f280d",
+          "name": "Inter-American Development Bank (IDB)",
+          "url": "https://iadb.org/en/who-we-are/topics/transport/sector-framework-transport",
+          "source_role": "academic_research",
+          "base_tier": 3,
+          "status": "active",
+          "category": "research"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "f99dd005-5bc8-4bed-a8c7-7fb718600bf2",
+      "legacy_id": null,
+      "title": "IMO Alternative Fuels Insight Portal - Future Fuels and Technology Framework",
+      "source_url": "https://futurefuels.imo.org/publication/alternative-fuels-insight",
+      "intel_source_id": "669899ef-7c42-4c53-a809-b19f59eed777",
+      "priority": "HIGH",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The Alternative Fuels Insight is an IMO-Korea partnership initiative providing comprehensive guidance on maritime transi",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "669899ef-7c42-4c53-a809-b19f59eed777",
+          "name": "International Maritime Organization (IMO)",
+          "url": "https://futurefuels.imo.org/publication/alternative-fuels-insight",
+          "source_role": "intergovernmental_body",
+          "base_tier": 3,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+      "legacy_id": null,
+      "title": "IMO Air Pollution Prevention and Control Framework",
+      "source_url": "https://imo.org/en/ourwork/environment/pages/air-pollution.aspx",
+      "intel_source_id": "04c4aeca-ae1f-47f8-91a1-53ec4c12d2e0",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "IMO website navigation and general information about air pollution initiatives under the Marine Environment work stream.",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "04c4aeca-ae1f-47f8-91a1-53ec4c12d2e0",
+          "name": "International Maritime Organization (IMO)",
+          "url": "https://imo.org/en/ourwork/environment/pages/air-pollution.aspx",
+          "source_role": "intergovernmental_body",
+          "base_tier": 3,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "248440a6-1d55-4713-baf7-113fddeaf491",
+      "legacy_id": null,
+      "title": "Berlin Abgeordnetenhaus (House of Representatives) - Parliamentary Portal and Documentation",
+      "source_url": "https://parlament-berlin.de/",
+      "intel_source_id": "acc6322f-09fa-4d48-a369-f905e5411bb7",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official homepage of the Berlin Abgeordnetenhaus (House of Representatives), providing access to parliamentary documenta",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "acc6322f-09fa-4d48-a369-f905e5411bb7",
+          "name": "Abgeordnetenhaus von Berlin",
+          "url": "https://parlament-berlin.de/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "c644c7f7-d2a3-4daa-a12c-4706aa5ece02",
+      "legacy_id": null,
+      "title": "National Council of the Slovak Republic - Official Parliamentary Portal",
+      "source_url": "https://nrsr.sk/",
+      "intel_source_id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Homepage and navigation portal for the National Council of the Slovak Republic (NRSR), the primary legislative body. Pro",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+          "name": "Národná rada Slovenskej republiky",
+          "url": "https://nrsr.sk/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "1f09c93a-d8f4-45ae-ad19-b4b13c580749",
+      "legacy_id": null,
+      "title": "Shanghai Municipal Government Portal - Public Services and Administrative Information Hub",
+      "source_url": "https://shanghai.gov.cn/",
+      "intel_source_id": "92fe8f7e-6888-4941-b006-bc695be09b9d",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Shanghai Municipal Government official website homepage serving as a comprehensive portal for government services, a",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "92fe8f7e-6888-4941-b006-bc695be09b9d",
+          "name": "Shanghai Municipal People's Government (上海市人民政府)",
+          "url": "https://shanghai.gov.cn/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "25216b94-4da4-4718-8c94-8fa591426ebf",
+      "legacy_id": null,
+      "title": "Alaska Department of Environmental Conservation - Regulatory Guidance and Compliance Portal",
+      "source_url": "https://dec.alaska.gov/",
+      "intel_source_id": "e13722ed-be7f-4e56-a264-ec08a747f4cb",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Alaska DEC homepage providing access to environmental regulations, compliance programs, and guidance across multiple dom",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "e13722ed-be7f-4e56-a264-ec08a747f4cb",
+          "name": "Alaska Department of Environmental Conservation (DEC)",
+          "url": "https://dec.alaska.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "875b7fd1-bb44-422c-9461-89726874a423",
+      "legacy_id": null,
+      "title": "Northwest Territories Legislative Assembly Committee Structure and Operations Framework",
+      "source_url": "https://assembly.gov.nt.ca/",
+      "intel_source_id": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Overview of the Legislative Assembly of the Northwest Territories' committee system, including Committee of the Whole, S",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+          "name": "Northwest Territories Legislative Assembly",
+          "url": "https://assembly.gov.nt.ca/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "e68c91e5-7c2f-4530-bcad-3ac37cb09aed",
+      "legacy_id": null,
+      "title": "National Legal and Regulatory Database - Chinese Legal Framework Portal",
+      "source_url": "https://flk.npc.gov.cn/",
+      "intel_source_id": "dae165c8-a279-4612-a579-08119cb73031",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Official Chinese National Legal and Regulatory Database (国家法律法规数据库) operated by the Standing Committee of the National P",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "dae165c8-a279-4612-a579-08119cb73031",
+          "name": "National Database of Laws and Regulations (China)",
+          "url": "https://flk.npc.gov.cn/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "b4b04ad0-7884-4722-9bc5-19137708254c",
+          "name": "General Office of the Standing Committee of the National People's Congress of the People's Republic of China",
+          "url": "https://flk.npc.gov.cn/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "0587f0b7-4132-4572-99e6-713de3f60356",
+      "legacy_id": null,
+      "title": "UK Department for Environment, Food & Rural Affairs: Organizational Overview and Policy Framework",
+      "source_url": "https://gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+      "intel_source_id": "543d6c68-da55-4a66-8e41-474c4ddc3717",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "This is the primary landing page for the UK Department for Environment, Food & Rural Affairs (Defra), a ministerial depa",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "543d6c68-da55-4a66-8e41-474c4ddc3717",
+          "name": "UK Department for Environment, Food & Rural Affairs (DEFRA)",
+          "url": "https://gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "4293a34d-c779-4645-bf2b-61d646f0f6f8",
+      "legacy_id": null,
+      "title": "Ontario Ministry of Environment, Conservation and Parks - Portal and Regulatory Overview",
+      "source_url": "https://ontario.ca/page/ministry-environment-conservation-parks",
+      "intel_source_id": "5a5afc4f-b319-4429-a340-554ca046c251",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Landing page for Ontario's Ministry of the Environment, Conservation and Parks, serving as a primary portal for environm",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5a5afc4f-b319-4429-a340-554ca046c251",
+          "name": "Ontario Ministry of the Environment, Conservation and Parks",
+          "url": "https://ontario.ca/page/ministry-environment-conservation-parks",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "8767e010-dc79-41e2-9fb8-53d7a0bf7b8a",
+      "legacy_id": null,
+      "title": "ICAO Global Framework for Sustainable Aviation Fuels (SAF) and Aviation Cleaner Energies",
+      "source_url": "https://icao.int/environmental-protection/pages/SAF.aspx",
+      "intel_source_id": "68cbe865-33fb-4d56-b79f-4a39393bed22",
+      "priority": "CRITICAL",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "ICAO's comprehensive framework for Sustainable Aviation Fuels (SAF) and cleaner aviation energies, positioned as the hig",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "68cbe865-33fb-4d56-b79f-4a39393bed22",
+          "name": "International Civil Aviation Organization (ICAO)",
+          "url": "https://icao.int/environmental-protection/pages/SAF.aspx",
+          "source_role": "intergovernmental_body",
+          "base_tier": 3,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "c3051d98-985e-49d7-8cff-42a0c8fe9161",
+      "legacy_id": null,
+      "title": "BREEAM V7: World-Leading Sustainability Assessment Framework for Built Environment",
+      "source_url": "https://breeam.com/",
+      "intel_source_id": "dcb667a7-c489-478b-97a6-8c82e451c4b6",
+      "priority": "HIGH",
+      "item_type": "standard",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "BREEAM is the global leading holistic framework for assessing and certifying sustainability in the built environment. Th",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "ef347aa7-6dc2-40b8-ac18-6555f964c037",
+          "name": "BREEAM (BRE Global)",
+          "url": "https://breeam.com/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        },
+        {
+          "id": "dcb667a7-c489-478b-97a6-8c82e451c4b6",
+          "name": "BRE Group (Building Research Establishment)",
+          "url": "https://breeam.com/",
+          "source_role": null,
+          "base_tier": 4,
+          "status": "active",
+          "category": "research"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "281644c5-32d3-423d-b1f3-e5517ae7f21e",
+      "legacy_id": null,
+      "title": "Korea Legislation Research Institute - English Statutes Database Portal",
+      "source_url": "https://elaw.klri.re.kr/eng_service/main.do",
+      "intel_source_id": "29845b19-7004-485e-86f3-fdd84f8aa3f5",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Korea Legislation Research Institute (KLRI) provides a comprehensive online search platform for Korean statutes, enf",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "29845b19-7004-485e-86f3-fdd84f8aa3f5",
+          "name": "Statutes of the Republic of Korea",
+          "url": "https://elaw.klri.re.kr/eng_service/main.do",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "277c7466-a4f7-4176-97b5-dde41599bef7",
+      "legacy_id": null,
+      "title": "Luxembourg Environmental Portal: Multi-Sector Climate Adaptation and Nature Restoration Strategy (2025-2035)",
+      "source_url": "https://environnement.public.lu/",
+      "intel_source_id": "9c13dca2-f674-4dec-a2bb-7e93cb49d596",
+      "priority": "CRITICAL",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Luxembourg's official environmental ministry portal announcing comprehensive climate adaptation strategy with 152 concre",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "9c13dca2-f674-4dec-a2bb-7e93cb49d596",
+          "name": "Ministère de l'Environnement, du Climat et de la Biodiversité (MECDD) — Luxembourg",
+          "url": "https://environnement.public.lu/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "45932a38-f994-460d-aa03-1ddcb9e68b9d",
+      "legacy_id": null,
+      "title": "Maryland General Assembly Legislative Portal and Session Resources",
+      "source_url": "https://mgaleg.maryland.gov/",
+      "intel_source_id": "64328f32-7e83-4487-83ac-1eb68efd6450",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Maryland General Assembly homepage providing access to legislative information including bills, committee meetings, floo",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "64328f32-7e83-4487-83ac-1eb68efd6450",
+          "name": "Maryland General Assembly (mgaleg.maryland.gov)",
+          "url": "https://mgaleg.maryland.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "682b3b00-790c-4fce-b316-ff2d4a7d9583",
+      "legacy_id": null,
+      "title": "Brussels Environment Official Portal - Regional Environmental Guidance and Services",
+      "source_url": "https://environnement.brussels/",
+      "intel_source_id": "0988c497-a6f1-4501-99d5-5986032d3883",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official website of Bruxelles Environnement providing comprehensive environmental guidance, services, and regulations fo",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "0988c497-a6f1-4501-99d5-5986032d3883",
+          "name": "Brussels Environment / Leefmilieu Brussel (Bruxelles Environnement)",
+          "url": "https://environnement.brussels/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "9d0497aa-5999-48fd-b30b-765ec4988d53",
+      "legacy_id": null,
+      "title": "Danish Ministry of Environment and Equality - Climate Adaptation and Environmental Policy Updates (Feb 2026)",
+      "source_url": "https://mim.dk/",
+      "intel_source_id": "5370c7f4-3f67-4701-8545-1905c6c1ee37",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "Homepage of the Danish Ministry of Environment and Equality (Miljø- og Ligestillingsministeriet) featuring recent policy",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5370c7f4-3f67-4701-8545-1905c6c1ee37",
+          "name": "Miljøministeriet (Ministry of Environment of Denmark)",
+          "url": "https://mim.dk/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "a381c08c-31b8-4d49-9b1a-403a7e215858",
+      "legacy_id": null,
+      "title": "Delaware General Assembly Legislative Portal and 2026 Session Schedule",
+      "source_url": "https://legis.delaware.gov/",
+      "intel_source_id": "a8a4c514-7430-4930-925f-5bce7c7a5997",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Delaware General Assembly website home page providing access to bills, resolutions, legislative calendars, committee mee",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "a8a4c514-7430-4930-925f-5bce7c7a5997",
+          "name": "Delaware General Assembly (legis.delaware.gov)",
+          "url": "https://legis.delaware.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "dbcf1b7a-8851-4511-b57d-10ec4f612903",
+      "legacy_id": null,
+      "title": "Saskatchewan Ministry of Environment - Government Service Portal",
+      "source_url": "https://saskatchewan.ca/government/government-structure/ministries/environment",
+      "intel_source_id": "e720fc6b-fdaf-4f76-b54a-99d1995e2f0b",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for the Saskatchewan Ministry of Environment, providing navigation to government services related to enviro",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "e720fc6b-fdaf-4f76-b54a-99d1995e2f0b",
+          "name": "Saskatchewan Ministry of Environment",
+          "url": "https://saskatchewan.ca/government/government-structure/ministries/environment",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "99a7f615-76f8-481d-88f9-d6d2ee6d6735",
+      "legacy_id": null,
+      "title": "Kansas Legislature Official Portal - 2025-2026 Session",
+      "source_url": "https://kslegislature.org/",
+      "intel_source_id": "0ff45df5-eb3b-4bed-b1ff-9dffa44e7725",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "HTML markup of the Kansas Legislature website homepage, showing the navigation structure and chamber status tracking sys",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "0ff45df5-eb3b-4bed-b1ff-9dffa44e7725",
+          "name": "Kansas Legislature",
+          "url": "https://kslegislature.org/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "290933b8-06b3-47a3-9543-1e9c8c70d919",
+      "legacy_id": null,
+      "title": "Ley Chile - National Congressional Library Legal Database Portal",
+      "source_url": "https://bcn.cl/leychile",
+      "intel_source_id": "46beff65-0d00-490a-8363-db1e85120b99",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Ley Chile is the Chilean National Congressional Library's primary legal information system providing free access to over",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "46beff65-0d00-490a-8363-db1e85120b99",
+          "name": "Ley Chile",
+          "url": "https://bcn.cl/leychile",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "bd8462c3-8928-4508-b6ff-c4f87678d9c4",
+      "legacy_id": null,
+      "title": "Office of Rail and Road May 2026 Newsletter - GBR Implementation, HSMS Guidance, and Enforcement Updates",
+      "source_url": "https://orr.gov.uk/",
+      "intel_source_id": "f45fa467-286f-4047-8a61-9ad365bab29b",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "ORR's May 2026 newsletter announces transition to interim leadership, publication of 2026-27 Business Plan supporting ra",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "f45fa467-286f-4047-8a61-9ad365bab29b",
+          "name": "Office of Rail and Road (ORR)",
+          "url": "https://orr.gov.uk/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "2a0a0efd-25a7-42ff-b693-879e4909bac6",
+      "legacy_id": null,
+      "title": "Parliament of Victoria - Legislative Activities and Public Engagement Portal",
+      "source_url": "https://parliament.vic.gov.au/",
+      "intel_source_id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Victorian Parliament homepage providing access to legislative information, committee inquiries, sitting calendars, and p",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+          "name": "Parliament of Victoria",
+          "url": "https://parliament.vic.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "3016be41-b7e0-425b-a011-972d06a3846c",
+      "legacy_id": null,
+      "title": "Louisiana State Legislature Portal - 2026 Regular Session and Legislative Information",
+      "source_url": "https://legis.la.gov/",
+      "intel_source_id": "61321847-144d-4560-99e6-057f433f7aef",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Louisiana State Legislature homepage providing access to legislative information, bill search, session schedules, and co",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "61321847-144d-4560-99e6-057f433f7aef",
+          "name": "Louisiana State Legislature",
+          "url": "https://legis.la.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "2cb40f97-0001-4171-b722-ce707eddc701",
+      "legacy_id": null,
+      "title": "Department of Water and Environmental Regulation - Western Australia Government Portal",
+      "source_url": "https://wa.gov.au/organisation/department-of-water-and-environmental-regulation",
+      "intel_source_id": "5f395d6b-7868-422c-93d3-1107fb425dfa",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for the Department of Water and Environmental Regulation (DWER) in Western Australia, providing access to g",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "5f395d6b-7868-422c-93d3-1107fb425dfa",
+          "name": "Western Australia Department of Water and Environmental Regulation (DWER)",
+          "url": "https://wa.gov.au/organisation/department-of-water-and-environmental-regulation",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "3319f9e2-bb63-4244-a3c3-cb2b9ed9c3c5",
+      "legacy_id": null,
+      "title": "Chamber of Deputies of Luxembourg - Official Parliamentary Portal",
+      "source_url": "https://chd.lu/",
+      "intel_source_id": "07da4496-58f2-48aa-b438-9ddd23c69fe7",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official homepage of the Chambre des Députés du Grand-Duché de Luxembourg (Luxembourg Parliament). The site provides acc",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "07da4496-58f2-48aa-b438-9ddd23c69fe7",
+          "name": "Chambre des Députés du Grand-Duché de Luxembourg",
+          "url": "https://chd.lu/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "45f85547-bcd4-40d2-8138-ac7c8000dd73",
+      "legacy_id": null,
+      "title": "Washington Administrative Code (WAC) - State Regulatory Framework Access and Navigation",
+      "source_url": "https://apps.leg.wa.gov/wac",
+      "intel_source_id": "c610702c-4ced-4c2d-8316-153edd9e8a76",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The Washington Administrative Code (WAC) is the official compilation of Washington State executive branch agency regulat",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "c610702c-4ced-4c2d-8316-153edd9e8a76",
+          "name": "Washington State Register (WSR) / Washington Administrative Code (WAC)",
+          "url": "https://apps.leg.wa.gov/wac",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "460fd2f2-1922-4c21-9089-3c0791a37bba",
+      "legacy_id": null,
+      "title": "Pennsylvania General Assembly Legislative Portal - Session Information and Recent Enactments",
+      "source_url": "https://legis.state.pa.us/",
+      "intel_source_id": "ec6b370e-ebc8-4d21-bff9-e09e7a4b7330",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Official Pennsylvania General Assembly website providing access to legislative information including Senate and House se",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "ec6b370e-ebc8-4d21-bff9-e09e7a4b7330",
+          "name": "Pennsylvania General Assembly (legis.state.pa.us)",
+          "url": "https://legis.state.pa.us/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "4c26f34b-b525-4824-be5e-5891cd292fcf",
+      "legacy_id": null,
+      "title": "MARPOL - International Convention for the Prevention of Pollution from Ships: Core Regulatory Framework and Technical Annexes",
+      "source_url": "https://imo.org/en/about/conventions/pages/international-convention-for-the-prevention-of-pollution-from-ships-(marpol).aspx",
+      "intel_source_id": "f7360ba7-5b98-4967-826d-6fd1961f1a62",
+      "priority": "CRITICAL",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "MARPOL is the primary international convention regulating pollution prevention from ships, covering both operational and",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "f7360ba7-5b98-4967-826d-6fd1961f1a62",
+          "name": "International Maritime Organization (IMO)",
+          "url": "https://imo.org/en/about/conventions/pages/international-convention-for-the-prevention-of-pollution-from-ships-(marpol).aspx",
+          "source_role": "intergovernmental_body",
+          "base_tier": 3,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "68b28c70-a0af-49a4-83c3-1ea8f5aaf305",
+      "legacy_id": null,
+      "title": "South Coast AQMD Portal - Air Quality Management, Permitting, and Community Programs",
+      "source_url": "https://aqmd.gov/",
+      "intel_source_id": "80bf696d-d8a2-46fd-a0ba-4b5242626b88",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "South Coast AQMD is the primary air quality regulatory authority for the South Coast region of California. The homepage ",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "80bf696d-d8a2-46fd-a0ba-4b5242626b88",
+          "name": "South Coast Air Quality Management District (SCAQMD)",
+          "url": "https://aqmd.gov/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "75bcad66-25ce-458e-9952-56d580d4ab0a",
+      "legacy_id": null,
+      "title": "Western Australian Legislation Portal - Government Acts and Subsidiary Legislation Repository",
+      "source_url": "https://legislation.wa.gov.au/",
+      "intel_source_id": "2ce9a14e-62ba-42a8-b8b8-728b6f69e1ba",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "This is the official home page of the Western Australian Legislation (WALW) portal, operated by the Government of Wester",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "2ce9a14e-62ba-42a8-b8b8-728b6f69e1ba",
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "url": "https://legislation.wa.gov.au/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "9c85fd17-92f7-4c71-b4d3-2969fdc89206",
+      "legacy_id": null,
+      "title": "Utility Regulator Northern Ireland - Regulatory Framework",
+      "source_url": "https://uregni.gov.uk/",
+      "intel_source_id": "4dd807b9-9857-4e3e-b61d-082f8d2842d1",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Utility Regulator for Northern Ireland (UREGNI) - primary regulatory body overseeing electricity, gas, and water utiliti",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "4dd807b9-9857-4e3e-b61d-082f8d2842d1",
+          "name": "Utility Regulator Northern Ireland",
+          "url": "https://uregni.gov.uk/",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "a2a5dd1c-b573-48d4-9a64-866f6c82fe47",
+      "legacy_id": null,
+      "title": "Camera dei Deputati - XIX Legislature Portal and Parliamentary Activities",
+      "source_url": "https://camera.it/",
+      "intel_source_id": "1af654f1-b9bd-45b2-8a14-3fa1451feabb",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Homepage and navigation portal for the Italian Chamber of Deputies (Camera dei Deputati) in the XIX Legislature, providi",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "1af654f1-b9bd-45b2-8a14-3fa1451feabb",
+          "name": "Camera dei Deputati – Italian Chamber of Deputies",
+          "url": "https://camera.it/",
+          "source_role": null,
+          "base_tier": 1,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    },
+    {
+      "id": "ddb948d9-a7d3-40ff-a505-7c3e4359ab2b",
+      "legacy_id": null,
+      "title": "Indiana Utility Regulatory Commission (IURC) - State Regulatory Framework and Services Portal",
+      "source_url": "https://in.gov/iurc",
+      "intel_source_id": "feb56ca1-2e79-4c2d-bc62-fde0823246df",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The Indiana Utility Regulatory Commission (IURC) website serves as the primary portal for state-level utility regulation",
+      "url_match_status": "URL_MATCH",
+      "matched_sources": [
+        {
+          "id": "feb56ca1-2e79-4c2d-bc62-fde0823246df",
+          "name": "Indiana Utility Regulatory Commission (IURC)",
+          "url": "https://in.gov/iurc",
+          "source_role": "primary_legal_authority",
+          "base_tier": 2,
+          "status": "active",
+          "category": "regulatory"
+        }
+      ],
+      "intel_source_id_matches_url_source": true
+    }
+  ],
+  "no_match_rows": [
+    {
+      "id": "e241fe75-8627-4759-a7dd-a25e9db146bf",
+      "legacy_id": "o13",
+      "title": "IMO Net-Zero Framework",
+      "source_url": "https://imo.org/en/mediacentre/pressbriefings/pages/imo-approves-netzero-regulations.aspx",
+      "intel_source_id": "1c2521c0-43ad-45f7-929f-63d656a1fe9d",
+      "priority": "HIGH",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "APPROVED BUT NOT YET ADOPTED. MEPC 84 (Spring 2026) is the next decision point. US opposition creates enforcement uncert",
+      "url_match_status": "NO_MATCH",
+      "matched_sources": [],
+      "intel_source_id_matches_url_source": false
+    }
+  ]
+}
