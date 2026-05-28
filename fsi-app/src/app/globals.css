@@ -67,6 +67,11 @@
   padding: 16px 20px;
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-base);
+  /* Sprint 3 followup Part 2: anchor for the absolute-positioned
+     PriorityDropdown ⋯ button in the top-right corner. Without this
+     the dropdown would attach to the nearest ancestor with position,
+     which on /regulations would be the page root. */
+  position: relative;
 }
 .cl-row-card:hover {
   box-shadow: var(--shadow-card-hover);

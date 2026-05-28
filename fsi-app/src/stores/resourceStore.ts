@@ -68,6 +68,11 @@ export interface WorkspaceOverride {
   archiveReason: string | null;
   archiveNote: string | null;
   notes: string;
+  // Sprint 3 follow-up Part 2 (migration 111): per-workspace dismissal.
+  // ISO timestamp when set; null when not dismissed. Distinct from
+  // is_archived — dismissed hides the regulation from active Kanban
+  // and surfaces it in the bottom stash drawer with a Restore action.
+  dismissedAt?: string | null;
 }
 
 // ── Synopsis + Change types ──
@@ -121,6 +126,12 @@ interface ResourceState {
   updatePriority: (id: string, priority: Resource["priority"]) => void;
   archiveResource: (id: string, reason: string, note: string, replacedBy?: string) => void;
   restoreResource: (id: string) => void;
+  // Sprint 3 follow-up Part 2: dismiss/restore for the dismissed-stash
+  // drawer on /regulations. Dismiss = hide from active Kanban + surface
+  // in stash drawer; restore = clear the dismissed_at timestamp so the
+  // regulation returns to its (priority_override-or-platform) column.
+  dismissResource: (id: string) => void;
+  restoreDismissed: (id: string) => void;
 
   // Actions — filters
   toggleFilter: (dimension: keyof Omit<Filters, "search" | "searchScope">, value: string) => void;
@@ -200,6 +211,11 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
   // Optimistically updates local state, then POSTs to
   // /api/workspace/overrides. On failure, rolls back to the prior state so
   // the UI accurately reflects what's persisted in workspace_item_overrides.
+  //
+  // Sprint 3 followup Part 2: when the dropdown sets a priority on a
+  // currently-dismissed regulation, the dismissed flag is cleared in the
+  // same write (the menu item contract per the dispatch spec: "userPriority
+  // = X, clear dismissed").
   updatePriority: (id, priority) => {
     const prev = get().overrides.get(id);
     set((state) => {
@@ -211,11 +227,85 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         archiveReason: null,
         archiveNote: null,
         notes: "",
+        dismissedAt: null,
       };
-      newOverrides.set(id, { ...existing, priorityOverride: priority });
+      newOverrides.set(id, {
+        ...existing,
+        priorityOverride: priority,
+        dismissedAt: null,
+      });
       return { overrides: newOverrides };
     });
-    persistOverride({ itemId: id, priorityOverride: priority }, "POST").then((ok) => {
+    persistOverride(
+      { itemId: id, priorityOverride: priority, dismissedAt: null },
+      "POST"
+    ).then((ok) => {
+      if (!ok) {
+        set((state) => {
+          const rolled = new Map(state.overrides);
+          if (prev) rolled.set(id, prev);
+          else rolled.delete(id);
+          return { overrides: rolled };
+        });
+      }
+    });
+  },
+
+  // Sprint 3 followup Part 2: dismiss = hide from active Kanban + surface
+  // in stash drawer. Per dispatch spec: "dismissed = true, clear
+  // userPriority". The clear-priority side ensures restoring a dismissed
+  // regulation surfaces it back to its platform-default column rather than
+  // a stale user override the operator may not remember setting.
+  dismissResource: (id) => {
+    const prev = get().overrides.get(id);
+    const now = new Date().toISOString();
+    set((state) => {
+      const newOverrides = new Map(state.overrides);
+      const existing = newOverrides.get(id) || {
+        itemId: id,
+        priorityOverride: null,
+        isArchived: false,
+        archiveReason: null,
+        archiveNote: null,
+        notes: "",
+        dismissedAt: null,
+      };
+      newOverrides.set(id, {
+        ...existing,
+        dismissedAt: now,
+        priorityOverride: null,
+      });
+      return { overrides: newOverrides };
+    });
+    persistOverride(
+      { itemId: id, dismissedAt: now, priorityOverride: null },
+      "POST"
+    ).then((ok) => {
+      if (!ok) {
+        set((state) => {
+          const rolled = new Map(state.overrides);
+          if (prev) rolled.set(id, prev);
+          else rolled.delete(id);
+          return { overrides: rolled };
+        });
+      }
+    });
+  },
+
+  // Sprint 3 followup Part 2: restore = clear dismissed_at, leaving any
+  // other override fields untouched (notes, archive triad). Card returns
+  // to its (priority_override-or-platform-default) column on the Kanban.
+  restoreDismissed: (id) => {
+    const prev = get().overrides.get(id);
+    set((state) => {
+      const newOverrides = new Map(state.overrides);
+      const existing = newOverrides.get(id);
+      if (existing) {
+        newOverrides.set(id, { ...existing, dismissedAt: null });
+      }
+      return { overrides: newOverrides };
+    });
+    persistOverride({ itemId: id, dismissedAt: null }, "POST").then((ok) => {
       if (!ok) {
         set((state) => {
           const rolled = new Map(state.overrides);
@@ -347,9 +437,10 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
 export function mergeWithOverrides(
   resources: Resource[],
   overrides: Map<string, WorkspaceOverride>
-): { active: Resource[]; archived: Resource[] } {
+): { active: Resource[]; archived: Resource[]; dismissed: Resource[] } {
   const active: Resource[] = [];
   const archived: Resource[] = [];
+  const dismissed: Resource[] = [];
 
   for (const r of resources) {
     const override = overrides.get(r.id);
@@ -364,6 +455,14 @@ export function mergeWithOverrides(
         archiveNote: override.archiveNote || undefined,
         archivedDate: new Date().toISOString().slice(0, 10),
       });
+    } else if (override?.dismissedAt) {
+      // Sprint 3 followup Part 2: dismissed regulations land in the
+      // bottom stash drawer on /regulations. They do NOT appear in the
+      // active Kanban view.
+      dismissed.push({
+        ...r,
+        priority: (override.priorityOverride as Resource["priority"]) || r.priority,
+      });
     } else {
       // Active item — apply priority override if present
       active.push({
@@ -373,5 +472,5 @@ export function mergeWithOverrides(
     }
   }
 
-  return { active, archived };
+  return { active, archived, dismissed };
 }

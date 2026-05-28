@@ -1214,6 +1214,10 @@ export interface WorkspaceOverrideRow {
   archiveReason: string | null;
   archiveNote: string | null;
   notes: string;
+  // Sprint 3 followup Part 2 (migration 111): ISO timestamp when the
+  // workspace has dismissed the regulation from the active Kanban view.
+  // null when not dismissed.
+  dismissedAt?: string | null;
 }
 
 export interface DashboardData {
@@ -1361,7 +1365,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .select("sector, display_name"),
       supabase
         .from("workspace_item_overrides")
-        .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes")
+        .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
         .eq("org_id", orgId),
     ]);
 
@@ -1415,6 +1419,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       archiveReason: o.archive_reason ?? null,
       archiveNote: o.archive_note ?? null,
       notes: o.notes ?? "",
+      dismissedAt: o.dismissed_at ?? null,
     }));
 
     return {
@@ -1478,7 +1483,7 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
     const supabase = getSupabase();
     const { data: overridesData } = await supabase
       .from("workspace_item_overrides")
-      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes")
+      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
       .eq("org_id", orgId);
 
     const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
@@ -1488,6 +1493,7 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
       archiveReason: o.archive_reason ?? null,
       archiveNote: o.archive_note ?? null,
       notes: o.notes ?? "",
+      dismissedAt: o.dismissed_at ?? null,
     }));
 
     return { resources: active, archived, overrides };
@@ -1625,7 +1631,7 @@ export async function fetchListingsOnly(orgId: string | null): Promise<{
     const supabase = getSupabase();
     const { data: overridesData } = await supabase
       .from("workspace_item_overrides")
-      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes")
+      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
       .eq("org_id", orgId);
 
     const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
@@ -1635,6 +1641,7 @@ export async function fetchListingsOnly(orgId: string | null): Promise<{
       archiveReason: o.archive_reason ?? null,
       archiveNote: o.archive_note ?? null,
       notes: o.notes ?? "",
+      dismissedAt: o.dismissed_at ?? null,
     }));
 
     return { resources: active, archived, overrides };

@@ -88,6 +88,17 @@ export async function POST(request: NextRequest) {
   if ("archiveReason" in body) update.archive_reason = body.archiveReason;
   if ("archiveNote" in body) update.archive_note = body.archiveNote;
   if ("notes" in body) update.notes = body.notes;
+  // Sprint 3 follow-up Part 2 (migration 111): dismissed_at.
+  // Distinct from archived_at; "dismissed" hides the regulation from the
+  // active Kanban view and surfaces it in the bottom stash drawer with a
+  // Restore action. Caller passes ISO string to dismiss, null to restore.
+  if ("dismissedAt" in body) {
+    update.dismissed_at = body.dismissedAt;
+  } else if (body.dismiss === true) {
+    update.dismissed_at = new Date().toISOString();
+  } else if (body.dismiss === false) {
+    update.dismissed_at = null;
+  }
 
   const { data, error } = await supabase
     .from("workspace_item_overrides")

@@ -58,6 +58,8 @@ import type {
 } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import { RegulationSections } from "@/components/regulations/sections/RegulationSections";
+import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
+import { useResourceStore } from "@/stores/resourceStore";
 
 interface Props {
   resource: Resource;
@@ -429,7 +431,7 @@ export function RegulationDetailSurface({
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {/* Watchlist action deferred to Sprint 3 (PR-E3 cross-cutting
               capability). Restore as a real <ActionButton primary> once
               the watchlist table + per-workspace membership API exists. */}
@@ -441,6 +443,17 @@ export function RegulationDetailSurface({
           <ActionButton onClick={() => shareCurrentRegulation(r)}>
             Share
           </ActionButton>
+          {/* Sprint 3 followup Part 2: hero variant of the priority
+              dropdown. Pill-shaped button reading "● <currentLabel> ▾".
+              Mutates workspace_item_overrides via the resourceStore
+              (mounted by the RegulationsSurface store; this surface
+              renders on the [slug] page after the listing has hydrated
+              the store on a prior visit, OR optimistically updates
+              local-only on a direct-link visit). */}
+          <HeroPriorityDropdown
+            currentPriority={r.priority as PriorityKey}
+            itemId={r.id}
+          />
         </div>
       </div>
 
@@ -2245,5 +2258,37 @@ function SourceTierLegend() {
         </li>
       </ul>
     </div>
+  );
+}
+
+// ── Hero priority dropdown ──────────────────────────────────────────
+// Thin wrapper that wires the PriorityDropdown's onSetPriority +
+// onDismiss to the resourceStore actions. Lives here (rather than at
+// the call site) so the hero JSX stays readable and the store hook
+// usage is clearly scoped.
+//
+// Sprint 3 followup Part 2.
+function HeroPriorityDropdown({
+  currentPriority,
+  itemId,
+}: {
+  currentPriority: PriorityKey;
+  itemId: string;
+}) {
+  const updatePriority = useResourceStore((s) => s.updatePriority);
+  const dismissResource = useResourceStore((s) => s.dismissResource);
+  // The override state may carry a dismissed flag for this item; reflect
+  // it in the button label.
+  const isDismissed = useResourceStore(
+    (s) => !!s.overrides.get(itemId)?.dismissedAt
+  );
+  return (
+    <PriorityDropdown
+      variant="hero"
+      currentPriority={currentPriority}
+      isDismissed={isDismissed}
+      onSetPriority={(p) => updatePriority(itemId, p)}
+      onDismiss={() => dismissResource(itemId)}
+    />
   );
 }

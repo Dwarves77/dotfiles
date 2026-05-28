@@ -65,6 +65,8 @@ import {
   loadWatchlist,
   saveWatchlist,
 } from "./BulkSelectBar";
+import { PriorityDropdown } from "./PriorityDropdown";
+import { DismissedStash } from "./DismissedStash";
 
 interface RegulationsSurfaceProps {
   initialResources: Resource[];
@@ -76,6 +78,8 @@ interface RegulationsSurfaceProps {
     archiveReason: string | null;
     archiveNote: string | null;
     notes: string;
+    // Sprint 3 followup Part 2 (migration 111): per-workspace dismiss.
+    dismissedAt?: string | null;
   }[];
   // Platform-total regulation count (regardless of sector profile). Used
   // to render the "<matched> matching your sector profile · <total>
@@ -238,6 +242,9 @@ export function RegulationsSurface({
     setArchived,
     overrides,
     setOverrides,
+    updatePriority,
+    dismissResource,
+    restoreDismissed,
   } = useResourceStore();
   const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
   const sectorWeights = useWorkspaceStore((s) => s.sectorWeights);
@@ -377,7 +384,11 @@ export function RegulationsSurface({
 
   const effectiveResources =
     platformResources.length > 0 ? platformResources : initialResources;
-  const { active: resources } = useMemo(
+  // Sprint 3 followup Part 2: `dismissed` is the third bucket from the
+  // merge layer. Active items render in the Kanban; archived items are
+  // already filtered upstream; dismissed items skip the Kanban and
+  // surface in the DismissedStash drawer at the bottom of the page.
+  const { active: resources, dismissed: dismissedResources } = useMemo(
     () => mergeWithOverrides(effectiveResources, overrides),
     [effectiveResources, overrides]
   );
@@ -397,6 +408,14 @@ export function RegulationsSurface({
   const regulatory = useMemo(
     () => resources.filter((r) => r.domain === REGULATIONS_DOMAIN),
     [resources]
+  );
+
+  // Sprint 3 followup Part 2: dismissed regulations for the bottom
+  // stash drawer. Scope to REGULATIONS_DOMAIN so a dismiss on a
+  // market-intel item doesn't accidentally surface here.
+  const dismissedRegulations = useMemo(
+    () => dismissedResources.filter((r) => r.domain === REGULATIONS_DOMAIN),
+    [dismissedResources]
   );
 
   // ── Filtering ──────────────────────────────────────────────────────
@@ -1073,6 +1092,8 @@ export function RegulationsSurface({
           bulkMode={bulkMode}
           selected={selected}
           onToggleSelected={toggleSelected}
+          onSetPriority={(id, p) => updatePriority(id, p)}
+          onDismiss={(id) => dismissResource(id)}
         />
       )}
       {view === "list" && (
@@ -1091,6 +1112,16 @@ export function RegulationsSurface({
           onToggleSelected={toggleSelected}
         />
       )}
+
+      {/* Sprint 3 followup Part 2: dismissed-stash drawer. Closed by
+          default (CLAUDE.md accordion default-state rule). Renders only
+          when at least one regulation is dismissed; never shown empty.
+          Restoring clears dismissed_at and the regulation re-enters its
+          Kanban column on the next render. */}
+      <DismissedStash
+        dismissed={dismissedRegulations}
+        onRestore={(id) => restoreDismissed(id)}
+      />
     </div>
   );
 }
@@ -1102,11 +1133,18 @@ function KanbanView({
   bulkMode,
   selected,
   onToggleSelected,
+  onSetPriority,
+  onDismiss,
 }: {
   groups: Record<string, Resource[]>;
   bulkMode: boolean;
   selected: Set<string>;
   onToggleSelected: (id: string) => void;
+  // Sprint 3 followup Part 2: per-card priority retag + dismiss handlers,
+  // threaded from RegulationsSurface so cards can mutate workspace
+  // overrides without coupling to the store internals.
+  onSetPriority: (id: string, p: PriorityKey) => void;
+  onDismiss: (id: string) => void;
 }) {
   // Design rebuild 2026-05-24: per-column expansion state. Each priority
   // column defaults to top 8 rows visible; the user toggles to see all
@@ -1218,6 +1256,8 @@ function KanbanView({
                       bulkMode={bulkMode}
                       isSelected={selected.has(r.id)}
                       onToggleSelected={() => onToggleSelected(r.id)}
+                      onSetPriority={(p) => onSetPriority(r.id, p)}
+                      onDismiss={() => onDismiss(r.id)}
                     />
                   ))}
                   {items.length > 8 && (
@@ -1712,12 +1752,19 @@ function KanbanCard({
   bulkMode,
   isSelected,
   onToggleSelected,
+  onSetPriority,
+  onDismiss,
 }: {
   r: Resource;
   tone: "critical" | "high" | "moderate" | "low";
   bulkMode: boolean;
   isSelected: boolean;
   onToggleSelected: () => void;
+  // Sprint 3 followup Part 2: priority retag + dismiss from the per-
+  // card ⋯ dropdown. PriorityKey passed through so the dropdown's
+  // closed vocabulary matches the store's API.
+  onSetPriority: (p: PriorityKey) => void;
+  onDismiss: () => void;
 }) {
   const c = TONE_VARS[tone];
   const due = formatDue(r);
@@ -1727,6 +1774,26 @@ function KanbanCard({
 
   const inner = (
     <RowCard priority={tone} padding="sm">
+      {/* Sprint 3 followup Part 2: ⋯ menu in the top-right of the card,
+          positioned over the card content but not over the kicker text.
+          Clicks on the button or the popover do NOT propagate to the
+          surrounding <Link> (the PriorityDropdown stops propagation
+          internally) so the card stays clickable for navigation. */}
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          zIndex: 2,
+        }}
+      >
+        <PriorityDropdown
+          variant="card"
+          currentPriority={(r.priority as PriorityKey) || "MODERATE"}
+          onSetPriority={onSetPriority}
+          onDismiss={onDismiss}
+        />
+      </div>
       {bulkMode && (
         <div style={{ marginBottom: 6 }}>
           <input

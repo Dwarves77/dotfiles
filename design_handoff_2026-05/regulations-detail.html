@@ -236,6 +236,17 @@ body { margin: 0; background: var(--color-bg-base); color: var(--color-text-prim
       <div class="hero-actions">
         <a href="#">Export brief</a>
         <a href="#">Share</a>
+        <!-- Sprint 3 followup Part 2: hero priority dropdown. Pill button
+             reads "● <currentLabel> ▾" (e.g. "● Action required ▾").
+             Same 5-item popover as the per-card variant, 220px wide. On
+             retag, the .hero-pill.action below would also swap colorway
+             to match — Critical (red), High (amber), Moderate (bright
+             yellow #EAB308), Background (green), Dismissed (muted grey). -->
+        <button class="hero-priority" style="display:inline-flex; align-items:center; gap:8px; padding:7px 14px; background:var(--color-surface); border:1px solid var(--color-border); border-radius:999px; font-family:inherit; font-size:12px; font-weight:700; letter-spacing:0.04em; color:var(--color-text-primary); cursor:pointer;">
+          <span style="width:10px; height:10px; border-radius:999px; background:var(--color-critical); display:inline-block;"></span>
+          Action required
+          <span style="font-size:10px;">▾</span>
+        </button>
         <a href="#">Add to watchlist</a>
         <span class="hero-meta">EU · DG TAXUD · CBAM-2026-DA-14 · Published 14 Oct 2026 · Reviewed 21 May 2026</span>
       </div>
