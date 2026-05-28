@@ -105,9 +105,9 @@
   --color-high: #D97706;
   --color-high-bg: #FFF7ED;       /* orange-50 — distinct from moderate yellow-50 */
   --color-high-border: #FED7AA;   /* orange-200 */
-  --color-moderate: #CA8A04;
+  --color-moderate: #EAB308;
   --color-moderate-bg: #FEFCE8;
-  --color-moderate-border: #FEF08A;
+  --color-moderate-border: #FDE68A;
   --color-low: #16A34A;
   --color-low-bg: #F0FDF4;
   --color-low-border: #BBF7D0;
@@ -311,9 +311,9 @@
   --color-high: #D97706;
   --color-high-bg: rgba(217,119,6,0.15);
   --color-high-border: rgba(217,119,6,0.30);
-  --color-moderate: #CA8A04;
-  --color-moderate-bg: rgba(202,138,4,0.15);
-  --color-moderate-border: rgba(202,138,4,0.30);
+  --color-moderate: #EAB308;
+  --color-moderate-bg: rgba(234,179,8,0.15);
+  --color-moderate-border: rgba(234,179,8,0.30);
   --color-low: #16A34A;
   --color-low-bg: rgba(22,163,74,0.15);
   --color-low-border: rgba(22,163,74,0.30);
