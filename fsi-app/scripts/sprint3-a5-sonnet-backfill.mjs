@@ -113,6 +113,110 @@ function log(line) {
   appendFileSync(LOG_PATH, stamped);
 }
 
+// ── tolerant JSON extractor ────────────────────────────────────────
+// Strategies, tried in order:
+//   1. Fenced ```json...``` block (with or without trailing newline)
+//   2. Fenced ```...``` block
+//   3. Outermost {...} blob via first-/last-brace
+//   4. Same blob with unescaped newlines inside string literals repaired
+//   5. Per-section regex extraction as last resort (recovers individual
+//      section content even when the surrounding object is malformed)
+//
+// Returns the parsed object or null if every strategy fails.
+function tolerantJsonParse(rawText) {
+  if (!rawText) return null;
+
+  const tryParse = (s) => {
+    try { return JSON.parse(s); } catch { return null; }
+  };
+
+  // 1. Fenced ```json ... ```
+  const fence1 = /```json\s*\n?([\s\S]*?)\n?\s*```/i.exec(rawText);
+  if (fence1) {
+    const r = tryParse(fence1[1].trim());
+    if (r && typeof r === "object") return r;
+  }
+
+  // 2. Plain ``` ... ``` containing {...}
+  const fence2 = /```\s*\n?(\{[\s\S]*?\})\s*\n?\s*```/.exec(rawText);
+  if (fence2) {
+    const r = tryParse(fence2[1].trim());
+    if (r && typeof r === "object") return r;
+  }
+
+  // 3. Outermost braces.
+  const first = rawText.indexOf("{");
+  const last = rawText.lastIndexOf("}");
+  if (first >= 0 && last > first) {
+    const blob = rawText.slice(first, last + 1);
+    const r = tryParse(blob);
+    if (r && typeof r === "object") return r;
+
+    // 4. Repair unescaped real newlines/tabs inside string values.
+    // Walks the blob, tracks in-string state, and escapes raw control
+    // chars that JSON.parse rejects.
+    const repaired = repairJsonStringControls(blob);
+    if (repaired !== blob) {
+      const r2 = tryParse(repaired);
+      if (r2 && typeof r2 === "object") return r2;
+    }
+  }
+
+  // 5. Per-section regex extraction. Recovers individual section_key
+  // values even when the surrounding object is unparseable. Matches
+  // both bare-key ("3": "...") and quoted-key forms.
+  const out = {};
+  for (const key of ["3", "4", "8", "10", "11", "14", "15"]) {
+    const re = new RegExp(`"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, "s");
+    const m = re.exec(rawText);
+    if (m && m[1].trim().length > 0) {
+      // Decode standard JSON string escapes.
+      out[key] = m[1]
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\r")
+        .replace(/\\t/g, "\t")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\");
+    }
+  }
+  if (Object.keys(out).length > 0) return out;
+  return null;
+}
+
+// Walks a JSON-ish blob and escapes raw newline/tab inside string
+// literals. Outside strings, the chars are left as-is (JSON treats
+// them as whitespace, which is fine).
+function repairJsonStringControls(blob) {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < blob.length; i++) {
+    const c = blob[i];
+    if (escaped) {
+      out += c;
+      escaped = false;
+      continue;
+    }
+    if (c === "\\" && inString) {
+      out += c;
+      escaped = true;
+      continue;
+    }
+    if (c === '"') {
+      out += c;
+      inString = !inString;
+      continue;
+    }
+    if (inString) {
+      if (c === "\n") { out += "\\n"; continue; }
+      if (c === "\r") { out += "\\r"; continue; }
+      if (c === "\t") { out += "\\t"; continue; }
+    }
+    out += c;
+  }
+  return out;
+}
+
 // ── identify uncovered D1 items ────────────────────────────────────
 console.log("[A5.4] querying active D1 items…");
 const { data: allD1, error: qErr } = await supabase
@@ -316,16 +420,10 @@ Produce the JSON object with up to 7 section keys per the system prompt. Use web
     .map((b) => b.text)
     .join("");
 
-  let sectionsObj = null;
-  try {
-    // Try a fenced ```json ... ``` block first; fall back to any {...} blob.
-    const fenceMatch = /```json\s*\n([\s\S]*?)\n```/i.exec(rawText) || /```\s*\n(\{[\s\S]*?\})\s*\n```/i.exec(rawText);
-    const jsonText = fenceMatch ? fenceMatch[1] : rawText.match(/\{[\s\S]*\}/)?.[0];
-    if (!jsonText) throw new Error("no JSON block found in response");
-    sectionsObj = JSON.parse(jsonText);
-  } catch (e) {
-    console.log(`[A5.4] item ${idx}/${total} (${row.legacy_id || row.id.slice(0, 8)}): PARSE_FAIL ${e.message} cost=$${itemCost.toFixed(3)} cumulative=$${checkpoint.total_cost.toFixed(2)}`);
-    log(`[${row.legacy_id || row.id}] PARSE_FAIL ${e.message} raw_tail=${rawText.slice(-200).replace(/\n/g, " ")} cost=$${itemCost.toFixed(3)}`);
+  let sectionsObj = tolerantJsonParse(rawText);
+  if (!sectionsObj) {
+    console.log(`[A5.4] item ${idx}/${total} (${row.legacy_id || row.id.slice(0, 8)}): PARSE_FAIL cost=$${itemCost.toFixed(3)} cumulative=$${checkpoint.total_cost.toFixed(2)}`);
+    log(`[${row.legacy_id || row.id}] PARSE_FAIL raw_full=${rawText.replace(/\n/g, " ").slice(0, 2000)} cost=$${itemCost.toFixed(3)}`);
     tally.parse_failed++;
     // Save checkpoint cost even on parse fail — we still paid for the tokens.
     saveCheckpoint();
