@@ -1,0 +1,561 @@
+{
+  "run_date": "2026-05-28T02:03:00.627Z",
+  "scope": {
+    "table": "intelligence_items",
+    "filters": {
+      "domain": 1,
+      "is_archived": false
+    },
+    "total_rows": 319
+  },
+  "distributions": {
+    "priority": {
+      "CRITICAL": 51,
+      "LOW": 140,
+      "MODERATE": 58,
+      "HIGH": 70
+    },
+    "item_type": {
+      "regulation": 118,
+      "guidance": 94,
+      "tool": 2,
+      "directive": 13,
+      "framework": 72,
+      "standard": 12,
+      "initiative": 7,
+      "regional_data": 1
+    },
+    "domain": {
+      "1": 319
+    }
+  },
+  "patterns": [
+    {
+      "label": "homepage_or_portal",
+      "regex": "\\b(homepage|main portal|portal)\\b",
+      "flags": "i",
+      "hits": 80
+    },
+    {
+      "label": "framework_or_overview",
+      "regex": "\\b(framework|overview|organizational overview)\\b",
+      "flags": "i",
+      "hits": 43
+    },
+    {
+      "label": "key_regulatory_updates",
+      "regex": "\\b(key regulatory updates|regulatory resources|regulatory updates)\\b",
+      "flags": "i",
+      "hits": 3
+    },
+    {
+      "label": "parliamentary_legislative_portal",
+      "regex": "\\b(parliamentary information|legislative portal|parliamentary portal|official homepage)\\b",
+      "flags": "i",
+      "hits": 12
+    },
+    {
+      "label": "current_notices",
+      "regex": "\\b(current (environmental )?notices|current notices)\\b",
+      "flags": "i",
+      "hits": 1
+    },
+    {
+      "label": "org_then_generic_descriptor",
+      "regex": "\\b(?:[–—:-]\\s*)(main portal|portal|homepage|overview|framework|resources|policy framework|fiscal session|supervisory framework|regulatory framework|guidance|current)",
+      "flags": "i",
+      "hits": 0
+    },
+    {
+      "label": "dash_key_dash_resources",
+      "regex": "[–—-]\\s*(key |main |portal|overview|homepage|resources|framework|guidance)",
+      "flags": "i",
+      "hits": 6
+    }
+  ],
+  "pattern_hits_unique_rows": 111,
+  "matched_distributions": {
+    "priority": {
+      "CRITICAL": 7,
+      "LOW": 78,
+      "MODERATE": 17,
+      "HIGH": 9
+    },
+    "domain": {
+      "1": 111
+    },
+    "item_type": {
+      "regulation": 7,
+      "tool": 1,
+      "guidance": 50,
+      "framework": 46,
+      "standard": 5,
+      "directive": 2
+    }
+  },
+  "operator_named_exemplar_check": [
+    {
+      "operator_named": "Financial Conduct Authority – Main Portal and Regulatory Resources",
+      "present_in_corpus": false,
+      "matched_by_pattern": false,
+      "row": null
+    },
+    {
+      "operator_named": "European Banking Authority – Key Regulatory Updates and Supervisory Framework",
+      "present_in_corpus": false,
+      "matched_by_pattern": false,
+      "row": null
+    },
+    {
+      "operator_named": "Latvian Saeima Official Homepage – Parliamentary Information and Legislative Portal",
+      "present_in_corpus": false,
+      "matched_by_pattern": false,
+      "row": null
+    },
+    {
+      "operator_named": "UK Department for Environment, Food & Rural Affairs: Organizational Overview and Policy Framework",
+      "present_in_corpus": true,
+      "matched_by_pattern": true,
+      "row": {
+        "id": "0587f0b7-4132-4572-99e6-713de3f60356",
+        "legacy_id": null,
+        "title": "UK Department for Environment, Food & Rural Affairs: Organizational Overview and Policy Framework",
+        "priority": "LOW",
+        "source_url": "https://gov.uk/government/organisations/department-for-environment-food-rural-affairs",
+        "source_id": "543d6c68-da55-4a66-8e41-474c4ddc3717"
+      }
+    },
+    {
+      "operator_named": "North Dakota Department of Environmental Quality – Portal and Current Environmental Notices",
+      "present_in_corpus": false,
+      "matched_by_pattern": false,
+      "row": null
+    },
+    {
+      "operator_named": "SEMARNAT Challenge Validation Guidance",
+      "present_in_corpus": true,
+      "matched_by_pattern": false,
+      "row": {
+        "id": "0f2e42ed-89e2-45b1-bab2-f28b6e6d8e58",
+        "legacy_id": null,
+        "title": "SEMARNAT Challenge Validation Guidance",
+        "priority": "LOW",
+        "source_url": "https://gob.mx/semarnat",
+        "source_id": "7f213384-e730-451b-85d7-e794baa62be4"
+      }
+    },
+    {
+      "operator_named": "Arkansas State Legislature 95th General Assembly – Fiscal Session 2026",
+      "present_in_corpus": false,
+      "matched_by_pattern": false,
+      "row": null
+    }
+  ],
+  "sampled_20": [
+    {
+      "id": "09bdd3a0-4cd2-4ce5-8f7a-79454ae4f381",
+      "legacy_id": null,
+      "title": "2023 IMO Strategy on Reduction of GHG Emissions from Ships - Framework for International Maritime Decarbonization",
+      "source_url": "https://imo.org/en/ourwork/environment/pages/2023-imo-strategy-on-reduction-of-ghg-emissions-from-ships.aspx",
+      "source_id": "2c88abc4-7564-4aca-9575-59404ba2d965",
+      "priority": "CRITICAL",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The IMO adopted the 2023 GHG Strategy in July 2023 (MEPC 80), establishing mandatory targets for int"
+    },
+    {
+      "id": "1add1175-f418-44f7-82e8-f66015afae0c",
+      "legacy_id": null,
+      "title": "Alberta Government Services Directory and Public Information Portal",
+      "source_url": "https://alberta.ca/environment-and-parks.aspx",
+      "source_id": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Alberta.ca government services portal providing access to provincial government services and informa"
+    },
+    {
+      "id": "d48a35ed-5f82-4121-97ee-2d79bcfcd42f",
+      "legacy_id": null,
+      "title": "BC Legislative Assembly Official Portal",
+      "source_url": "https://leg.bc.ca/",
+      "source_id": "3cb91963-21a2-418e-bc33-fa391fd96d38",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Official website of the Legislative Assembly of British Columbia, the provincial legislative body."
+    },
+    {
+      "id": "edf0c87e-5eb1-464c-8c69-f5bcd7de88aa",
+      "legacy_id": null,
+      "title": "Bulgarian Ministry of Environment and Waters - Institutional Framework and Regulatory Overview",
+      "source_url": "https://moew.government.bg/",
+      "source_id": "bb38c4f7-2b4a-421a-91cf-d1185902e9c2",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "The Bulgarian Ministry of Environment and Waters (МОСВ) website presents the institutional structure"
+    },
+    {
+      "id": "908b0e94-07f6-4ba4-988c-7f3bf6a8ba16",
+      "legacy_id": null,
+      "title": "Connecticut General Assembly Official Portal and Legislative Resources",
+      "source_url": "https://cga.ct.gov/",
+      "source_id": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Connecticut General Assembly (CGA) official website providing access to legislative information, bil"
+    },
+    {
+      "id": "2cb40f97-0001-4171-b722-ce707eddc701",
+      "legacy_id": null,
+      "title": "Department of Water and Environmental Regulation - Western Australia Government Portal",
+      "source_url": "https://wa.gov.au/organisation/department-of-water-and-environmental-regulation",
+      "source_id": "5f395d6b-7868-422c-93d3-1107fb425dfa",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for the Department of Water and Environmental Regulation (DWER) in Western Australia, p"
+    },
+    {
+      "id": "8cb6e73e-1c35-428f-8f5c-f1ee51a9e169",
+      "legacy_id": null,
+      "title": "European Banking Authority - Key Regulatory Updates and Supervisory Framework",
+      "source_url": "https://eba.europa.eu/",
+      "source_id": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "framework_or_overview",
+        "key_regulatory_updates",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The EBA homepage provides an overview of ongoing regulatory consultations and initiatives including "
+    },
+    {
+      "id": "3581c084-9486-4085-82cc-b650380bd83d",
+      "legacy_id": "c5",
+      "title": "GLEC Framework v3",
+      "source_url": "https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
+      "source_id": "5aa6c2c0-2778-4359-b683-55cb8144efbf",
+      "priority": "MODERATE",
+      "item_type": "standard",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "ACTIVE STANDARD. Widely adopted by industry. ACTION NOW: Ensure emissions calculation engine uses GL"
+    },
+    {
+      "id": "f40e2170-e2d2-4ff6-ac15-673488e3e183",
+      "legacy_id": null,
+      "title": "Illinois General Assembly Official Legislative Portal",
+      "source_url": "https://ilga.gov/",
+      "source_id": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Illinois General Assembly home page providing access to legislative information including bills, res"
+    },
+    {
+      "id": "ca56db13-2102-4061-bf4e-5cac79c50414",
+      "legacy_id": null,
+      "title": "Indiana Department of Environmental Management - Portal Overview and Regulatory Resources",
+      "source_url": "https://in.gov/idem",
+      "source_id": "147ee8c6-ac78-4941-ab6d-6e65e829541b",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal",
+        "framework_or_overview",
+        "key_regulatory_updates",
+        "dash_key_dash_resources"
+      ],
+      "summary_excerpt": "The Indiana Department of Environmental Management (IDEM) homepage provides access to state environm"
+    },
+    {
+      "id": "8dff0e0e-b3a2-40c8-93d7-5b84d008031f",
+      "legacy_id": null,
+      "title": "Kansas Office of Revisor of Statutes - Legislative Legal Resources Portal",
+      "source_url": "https://ksrevisor.gov/",
+      "source_id": "1bc48b90-4e2a-4f3f-aaa2-6a470b51eb41",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Kansas Office of Revisor of Statutes website serves as the official portal for accessing Kansas "
+    },
+    {
+      "id": "3016be41-b7e0-425b-a011-972d06a3846c",
+      "legacy_id": null,
+      "title": "Louisiana State Legislature Portal - 2026 Regular Session and Legislative Information",
+      "source_url": "https://legis.la.gov/",
+      "source_id": "61321847-144d-4560-99e6-057f433f7aef",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Louisiana State Legislature homepage providing access to legislative information, bill search, sessi"
+    },
+    {
+      "id": "dff7017e-c4e6-4b74-8bb8-1d7946b00cf2",
+      "legacy_id": null,
+      "title": "Massachusetts General Laws Repository - 194th General Court Legislative Reference Portal",
+      "source_url": "https://malegislature.gov/Laws/GeneralLaws",
+      "source_id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "The Massachusetts Legislature's official General Laws portal provides access to the codified permane"
+    },
+    {
+      "id": "c644c7f7-d2a3-4daa-a12c-4706aa5ece02",
+      "legacy_id": null,
+      "title": "National Council of the Slovak Republic - Official Parliamentary Portal",
+      "source_url": "https://nrsr.sk/",
+      "source_id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+      "priority": "LOW",
+      "item_type": "framework",
+      "hits": [
+        "homepage_or_portal",
+        "parliamentary_legislative_portal"
+      ],
+      "summary_excerpt": "Homepage and navigation portal for the National Council of the Slovak Republic (NRSR), the primary l"
+    },
+    {
+      "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+      "legacy_id": null,
+      "title": "New York State Truck & Motor Carrier Rules & Regulations - Safety and Compliance Framework",
+      "source_url": "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+      "source_id": "610ed5ac-ae3b-4fc6-b82f-df2988bb78e3",
+      "priority": "HIGH",
+      "item_type": "regulation",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "New York State Department of Transportation establishes truck and motor carrier regulations incorpor"
+    },
+    {
+      "id": "8ca59f48-3d54-4dc9-b352-663bab616610",
+      "legacy_id": null,
+      "title": "Ohio Legislature Official Portal and Legislative Resources",
+      "source_url": "https://legislature.ohio.gov/",
+      "source_id": "593a9a84-46ad-440a-a1f7-746a155e8736",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for the Ohio Legislature website providing navigation to legislative schedules, bill tr"
+    },
+    {
+      "id": "2a0a0efd-25a7-42ff-b693-879e4909bac6",
+      "legacy_id": null,
+      "title": "Parliament of Victoria - Legislative Activities and Public Engagement Portal",
+      "source_url": "https://parliament.vic.gov.au/",
+      "source_id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Victorian Parliament homepage providing access to legislative information, committee inquiries, sitt"
+    },
+    {
+      "id": "dbcf1b7a-8851-4511-b57d-10ec4f612903",
+      "legacy_id": null,
+      "title": "Saskatchewan Ministry of Environment - Government Service Portal",
+      "source_url": "https://saskatchewan.ca/government/government-structure/ministries/environment",
+      "source_id": "e720fc6b-fdaf-4f76-b54a-99d1995e2f0b",
+      "priority": "LOW",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "Landing page for the Saskatchewan Ministry of Environment, providing navigation to government servic"
+    },
+    {
+      "id": "68b28c70-a0af-49a4-83c3-1ea8f5aaf305",
+      "legacy_id": null,
+      "title": "South Coast AQMD Portal - Air Quality Management, Permitting, and Community Programs",
+      "source_url": "https://aqmd.gov/",
+      "source_id": "80bf696d-d8a2-46fd-a0ba-4b5242626b88",
+      "priority": "MODERATE",
+      "item_type": "guidance",
+      "hits": [
+        "homepage_or_portal"
+      ],
+      "summary_excerpt": "South Coast AQMD is the primary air quality regulatory authority for the South Coast region of Calif"
+    },
+    {
+      "id": "9c85fd17-92f7-4c71-b4d3-2969fdc89206",
+      "legacy_id": null,
+      "title": "Utility Regulator Northern Ireland - Regulatory Framework",
+      "source_url": "https://uregni.gov.uk/",
+      "source_id": "4dd807b9-9857-4e3e-b61d-082f8d2842d1",
+      "priority": "MODERATE",
+      "item_type": "framework",
+      "hits": [
+        "framework_or_overview"
+      ],
+      "summary_excerpt": "Utility Regulator for Northern Ireland (UREGNI) - primary regulatory body overseeing electricity, ga"
+    }
+  ],
+  "sources_table_crosscheck": [
+    {
+      "item": {
+        "id": "09bdd3a0-4cd2-4ce5-8f7a-79454ae4f381",
+        "legacy_id": null,
+        "title": "2023 IMO Strategy on Reduction of GHG Emissions from Ships - Framework for International Maritime Decarbonization",
+        "source_url": "https://imo.org/en/ourwork/environment/pages/2023-imo-strategy-on-reduction-of-ghg-emissions-from-ships.aspx",
+        "source_id": "2c88abc4-7564-4aca-9575-59404ba2d965",
+        "priority": "CRITICAL",
+        "item_type": "regulation"
+      },
+      "seed": "2023 IMO Strategy on Reduction of GHG Emissions from Ships",
+      "hits_by_url": [
+        {
+          "id": "2c88abc4-7564-4aca-9575-59404ba2d965",
+          "name": "International Maritime Organization (IMO)",
+          "url": "https://imo.org/en/ourwork/environment/pages/2023-imo-strategy-on-reduction-of-ghg-emissions-from-ships.aspx",
+          "status": "active",
+          "admin_only": false,
+          "base_tier": 3,
+          "category": "regulatory"
+        }
+      ],
+      "hits_by_name": [],
+      "duplicate_signal": "URL_MATCH"
+    },
+    {
+      "item": {
+        "id": "908b0e94-07f6-4ba4-988c-7f3bf6a8ba16",
+        "legacy_id": null,
+        "title": "Connecticut General Assembly Official Portal and Legislative Resources",
+        "source_url": "https://cga.ct.gov/",
+        "source_id": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+        "priority": "LOW",
+        "item_type": "guidance"
+      },
+      "seed": "Connecticut General Assembly Official Portal and Legislative Resources",
+      "hits_by_url": [
+        {
+          "id": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+          "name": "Connecticut General Assembly (cga.ct.gov)",
+          "url": "https://cga.ct.gov/",
+          "status": "active",
+          "admin_only": false,
+          "base_tier": 1,
+          "category": "regulatory"
+        }
+      ],
+      "hits_by_name": [],
+      "duplicate_signal": "URL_MATCH"
+    },
+    {
+      "item": {
+        "id": "f40e2170-e2d2-4ff6-ac15-673488e3e183",
+        "legacy_id": null,
+        "title": "Illinois General Assembly Official Legislative Portal",
+        "source_url": "https://ilga.gov/",
+        "source_id": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+        "priority": "LOW",
+        "item_type": "guidance"
+      },
+      "seed": "Illinois General Assembly Official Legislative Portal",
+      "hits_by_url": [
+        {
+          "id": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+          "name": "Illinois General Assembly",
+          "url": "https://ilga.gov/",
+          "status": "active",
+          "admin_only": false,
+          "base_tier": 1,
+          "category": "regulatory"
+        }
+      ],
+      "hits_by_name": [],
+      "duplicate_signal": "URL_MATCH"
+    },
+    {
+      "item": {
+        "id": "dff7017e-c4e6-4b74-8bb8-1d7946b00cf2",
+        "legacy_id": null,
+        "title": "Massachusetts General Laws Repository - 194th General Court Legislative Reference Portal",
+        "source_url": "https://malegislature.gov/Laws/GeneralLaws",
+        "source_id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+        "priority": "LOW",
+        "item_type": "guidance"
+      },
+      "seed": "Massachusetts General Laws Repository",
+      "hits_by_url": [
+        {
+          "id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+          "name": "Massachusetts Legislature (General Court) – Session Laws & MGL",
+          "url": "https://malegislature.gov/Laws/GeneralLaws",
+          "status": "active",
+          "admin_only": false,
+          "base_tier": 1,
+          "category": "regulatory"
+        }
+      ],
+      "hits_by_name": [],
+      "duplicate_signal": "URL_MATCH"
+    },
+    {
+      "item": {
+        "id": "2a0a0efd-25a7-42ff-b693-879e4909bac6",
+        "legacy_id": null,
+        "title": "Parliament of Victoria - Legislative Activities and Public Engagement Portal",
+        "source_url": "https://parliament.vic.gov.au/",
+        "source_id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+        "priority": "LOW",
+        "item_type": "guidance"
+      },
+      "seed": "Parliament of Victoria",
+      "hits_by_url": [
+        {
+          "id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+          "name": "Parliament of Victoria",
+          "url": "https://parliament.vic.gov.au/",
+          "status": "active",
+          "admin_only": false,
+          "base_tier": 1,
+          "category": "regulatory"
+        }
+      ],
+      "hits_by_name": [
+        {
+          "id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+          "name": "Parliament of Victoria",
+          "url": "https://parliament.vic.gov.au/",
+          "status": "active",
+          "admin_only": false,
+          "base_tier": 1,
+          "category": "regulatory"
+        }
+      ],
+      "duplicate_signal": "URL_MATCH"
+    }
+  ]
+}
