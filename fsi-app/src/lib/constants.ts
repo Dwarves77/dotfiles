@@ -328,17 +328,22 @@ export const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
 // (chips, table cells).
 export type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
 
+// Sprint 3 Track 5 (2026-05-28): align long + short label vocabularies on
+// the time-horizon language used by the regulations list column headers,
+// so the dropdown, hero pill, and column titles all read the same thing.
+// Prior labels split into two vocabularies (UPPERCASE long vs compact short)
+// that read as different products in different contexts.
 export const PRIORITY_DISPLAY_LABEL: Record<PriorityKey, string> = {
-  CRITICAL: "IMMEDIATE ACTION",
-  HIGH: "ACTION 6 MO",
-  MODERATE: "MONITOR 6-12 MO",
-  LOW: "AWARENESS ONLY",
+  CRITICAL: "Immediate",
+  HIGH: "Action 6mo",
+  MODERATE: "Monitor 6-12mo",
+  LOW: "Awareness",
 };
 
 export const PRIORITY_DISPLAY_LABEL_SHORT: Record<PriorityKey, string> = {
   CRITICAL: "Immediate",
-  HIGH: "6 MO",
-  MODERATE: "6-12 MO",
+  HIGH: "Action 6mo",
+  MODERATE: "Monitor 6-12mo",
   LOW: "Awareness",
 };
 

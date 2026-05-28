@@ -32,7 +32,10 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import type { PriorityKey } from "@/lib/constants";
+import {
+  PRIORITY_DISPLAY_LABEL_SHORT,
+  type PriorityKey,
+} from "@/lib/constants";
 
 export type PriorityValue = PriorityKey;
 
@@ -59,26 +62,37 @@ interface PriorityDropdownProps {
 // variables in theme.css. Sprint 3 changed --color-moderate to #EAB308
 // (commit d99b7dc); this dropdown picks up that token via CSS var, so
 // the bright-yellow dot is the new operative value automatically.
+//
+// Sprint 3 Track 5 (2026-05-28): menu labels now derive from the central
+// PRIORITY_DISPLAY_LABEL_SHORT (the time-horizon vocabulary used by the
+// Kanban column headers). One vocabulary across dropdown + columns + hero
+// pill: Immediate / Action 6mo / Monitor 6-12mo / Awareness. The "Mark "
+// prefix stays for the menu items so the action verb is explicit.
 const PRIORITY_TOKENS: Record<
   PriorityValue,
   { dotVar: string; label: string }
 > = {
-  CRITICAL: { dotVar: "var(--color-critical)", label: "Mark Critical" },
-  HIGH:     { dotVar: "var(--color-high)",     label: "Mark High" },
-  MODERATE: { dotVar: "var(--color-moderate)", label: "Mark Moderate" },
-  LOW:      { dotVar: "var(--color-low)",      label: "Mark Background" },
+  CRITICAL: {
+    dotVar: "var(--color-critical)",
+    label: `Mark ${PRIORITY_DISPLAY_LABEL_SHORT.CRITICAL}`,
+  },
+  HIGH: {
+    dotVar: "var(--color-high)",
+    label: `Mark ${PRIORITY_DISPLAY_LABEL_SHORT.HIGH}`,
+  },
+  MODERATE: {
+    dotVar: "var(--color-moderate)",
+    label: `Mark ${PRIORITY_DISPLAY_LABEL_SHORT.MODERATE}`,
+  },
+  LOW: {
+    dotVar: "var(--color-low)",
+    label: `Mark ${PRIORITY_DISPLAY_LABEL_SHORT.LOW}`,
+  },
 };
 
-// Short labels used in the hero pill button (e.g. "● Action required").
-// Mirrors the PRIORITY_DISPLAY_LABEL_SHORT vocabulary but kept local so
-// the dropdown doesn't take a hard dep on the editorial label map (the
-// dispatch spec calls the LOW button "Mark Background", not "Mark Low").
-const PRIORITY_PILL_LABEL: Record<PriorityValue, string> = {
-  CRITICAL: "Action required",
-  HIGH: "High",
-  MODERATE: "Moderate",
-  LOW: "Background",
-};
+// Hero pill button label = the time-horizon label without the "Mark "
+// prefix (the button reads "● Immediate ▾" etc).
+const PRIORITY_PILL_LABEL = PRIORITY_DISPLAY_LABEL_SHORT;
 
 const PRIORITY_ORDER: PriorityValue[] = ["CRITICAL", "HIGH", "MODERATE", "LOW"];
 

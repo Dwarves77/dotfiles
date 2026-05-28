@@ -1138,11 +1138,31 @@ function SummaryPanel({
       )}
 
       {/* Sprint 3 A5.3 (2026-05-27): 7 numbered regulation sections from
-          intelligence_item_sections (backfilled by A5.2). Renders nothing
-          when sections is empty (the 2 corpus misses or non-D1 items). */}
-      {sections.length > 0 && (
+          intelligence_item_sections (backfilled by A5.2). Renders the
+          structured cards when present, a corpus-miss affordance when
+          empty (Sprint 3 Track 3 2026-05-28: honest empty over silent
+          omission, so the reader sees a deliberate signal instead of a
+          gap between Why-it-matters and Key data). */}
+      {sections.length > 0 ? (
         <div style={{ marginTop: 16 }}>
           <RegulationSections rows={sections} />
+        </div>
+      ) : (
+        <div
+          style={{
+            marginTop: 16,
+            marginBottom: 16,
+            padding: "12px 16px",
+            background: "var(--color-surface-raised, var(--color-bg-raised))",
+            border: "1px solid var(--color-border-subtle, var(--color-border))",
+            borderLeft: "3px solid var(--color-text-muted)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: 13,
+            lineHeight: 1.55,
+            color: "var(--color-text-muted)",
+          }}
+        >
+          Detailed sections pending for this regulation; full text below.
         </div>
       )}
 
