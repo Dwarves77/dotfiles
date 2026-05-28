@@ -691,6 +691,18 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
     }
 
     // ── Step 10: Update intelligence_items row ──
+    // Sprint 3 AGENT-WRITE-PLUMBING (2026-05-27): added signal_band,
+    // theme, trajectory_points to the SET clause. These columns landed
+    // via migrations 102 (signal_band/theme) and 107 (trajectory_points)
+    // but the agent runtime never persisted them, so agent emissions
+    // for these fields were silently dropped. Parser validates them
+    // upstream; DB enforces constraints (102's signal_band CHECK and
+    // 107's intelligence_items_trajectory_band_check). With this commit,
+    // agent-emitted values reach the row, and downstream consumers
+    // (get_market_intel_items RPC payload via migration 108, the
+    // ResearchView assignTheme regex fallback, etc.) get the column-
+    // first authoritative value instead of the client-side regex
+    // derivation.
     const { error: updateErr } = await supabase
       .from("intelligence_items")
       .update({
@@ -700,6 +712,9 @@ Generate the brief per the format selected by item_type, then emit the YAML fron
         urgency_tier: metadata.urgency_tier,
         format_type: metadata.format_type,
         topic_tags: metadata.topic_tags,
+        signal_band: metadata.signal_band,
+        theme: metadata.theme,
+        trajectory_points: metadata.trajectory_points,
         operational_scenario_tags: metadata.operational_scenario_tags,
         compliance_object_tags: metadata.compliance_object_tags,
         related_items: metadata.related_items,
