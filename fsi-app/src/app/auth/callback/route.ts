@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ensurePersonalWorkspace } from "@/lib/auth/provision-personal-workspace";
 
 // Supabase auth callback. Handles:
 //   - Email-confirmation links from /signup (next=/onboarding by default)
@@ -9,6 +10,13 @@ import { NextResponse } from "next/server";
 //
 // Phase C: signup links call here with ?next=/onboarding so a freshly verified
 // user lands directly in the onboarding wizard.
+//
+// Sprint 3 Track 2 (2026-05-28): AUTO-PROVISION-ORG-ON-SIGNUP.
+// After a successful code exchange, ensure the user has a personal
+// workspace + owner membership. Idempotent: short-circuits when the
+// user already has an org_membership. Failure-tolerant: provision
+// failure does NOT block auth — the defense-in-depth null_orgId
+// seed-fallback still catches users whose provisioning silently fails.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -33,8 +41,13 @@ export async function GET(request: Request) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Provision personal workspace if no membership exists.
+      // Best-effort: any failure is logged but does not block auth.
+      if (data?.user?.id) {
+        await ensurePersonalWorkspace(data.user.id, data.user.email ?? "");
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
