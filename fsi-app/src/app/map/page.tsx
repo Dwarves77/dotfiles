@@ -1,6 +1,7 @@
 import { getListingsMapData } from "@/lib/data";
 import { getCoverageGaps } from "@/lib/coverage-gaps";
 import { MapPageView } from "@/components/map/MapPageView";
+import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import type { CommunityActivityRow } from "@/components/map/MapView";
 
@@ -31,12 +32,15 @@ export default async function MapRoute({
   console.log(`[perf] /map data ${Date.now() - t0}ms`);
 
   return (
-    <MapPageView
-      resources={data.resources}
-      coverageGaps={coverageGaps}
-      initialRegionFilter={regionParam ?? null}
-      communityActivity={communityActivity}
-    />
+    <>
+      <SystemErrorBanner message={data._error} />
+      <MapPageView
+        resources={data.resources}
+        coverageGaps={coverageGaps}
+        initialRegionFilter={regionParam ?? null}
+        communityActivity={communityActivity}
+      />
+    </>
   );
 }
 

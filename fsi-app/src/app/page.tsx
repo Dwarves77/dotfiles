@@ -26,6 +26,7 @@ import { getCriticalItemsSnapshot } from "@/lib/dashboard/critical-items";
 import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { getDashboardCredibility } from "@/lib/dashboard/credibility";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
 
@@ -95,6 +96,7 @@ export default async function Home() {
 
   return (
     <>
+      <SystemErrorBanner message={data._error} />
       <EditorialMasthead
         title="Dashboard — Your Brief"
         meta={meta}

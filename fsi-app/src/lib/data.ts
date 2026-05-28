@@ -16,6 +16,7 @@ import {
   fetchOperationsItems,
   fetchSourceCitationStatsByIds,
   fetchResearchSourceCoverage,
+  SEED_FALLBACK_ERROR,
   type ScopeFilter,
   type CategoryRoutedResult,
   type SourceCitationStat,
@@ -23,6 +24,10 @@ import {
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import {
+  recordSeedFallbackFlag,
+  type SeedFallbackTrigger,
+} from "@/lib/notifications/seed-fallback-flag";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import type {
   WorkspaceOverrideRow,
@@ -31,6 +36,19 @@ import type {
   ReviewItem,
   WorkspaceAggregates,
 } from "@/lib/supabase-server";
+
+// SF-2 Phase 1 (2026-05-27): helper to dispatch a platform integrity_flag
+// when a fetcher returns the empty + _error sentinel. Fire-and-forget so
+// it doesn't add latency to the already-degraded response. Helper is
+// dedup'd internally (one open flag per surface per hour).
+function alertIfFallback(
+  data: { _error?: string; _fallbackTrigger?: SeedFallbackTrigger },
+  route: string
+): void {
+  if (data._error && data._fallbackTrigger) {
+    void recordSeedFallbackFlag(data._fallbackTrigger, route);
+  }
+}
 
 // Re-export the Phase 3 widget types so HomeSurface and the widget files
 // can import them from a single module rather than reaching into
@@ -83,20 +101,25 @@ const cachedAppData = unstable_cache(
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
-async function appDataSeedFallback() {
+// SF-2 Phase 1 (2026-05-27): retained as an empty-shape factory rather
+// than a seed-data fallback. Old name preserved to minimize diff
+// breadth; behavior changed: no seed resources returned.
+async function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
   const seed = await import("@/data");
   return {
-    resources: seed.resources,
-    archived: seed.archived,
-    changelog: seed.changelog,
-    disputes: seed.disputes,
-    xrefPairs: seed.xrefPairs,
-    supersessions: seed.supersessions,
+    resources: [] as typeof seed.resources,
+    archived: [] as typeof seed.archived,
+    changelog: {} as typeof seed.changelog,
+    disputes: {} as typeof seed.disputes,
+    xrefPairs: [] as typeof seed.xrefPairs,
+    supersessions: [] as typeof seed.supersessions,
     auditDate: seed.AUDIT_DATE,
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],
     overrides: [],
+    _error: SEED_FALLBACK_ERROR,
+    _fallbackTrigger: _fallbackTrigger ?? ("exception" as SeedFallbackTrigger),
   };
 }
 
@@ -117,10 +140,12 @@ export async function getAppData() {
     const orgId = await resolveOrgIdFromCookies();
     const data = await cachedAppData(orgId);
     console.log(`[perf] getAppData ${Date.now() - t0}ms`);
+    alertIfFallback(data, "/");
     return data;
   } catch (e) {
     console.error("getAppData failed, using fallback:", e);
-    return appDataSeedFallback();
+    void recordSeedFallbackFlag("exception", "/");
+    return appDataSeedFallback("exception");
   }
 }
 
@@ -139,6 +164,8 @@ export async function getResourcesOnly(): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
   const t0 = Date.now();
   try {
@@ -149,14 +176,19 @@ export async function getResourcesOnly(): Promise<{
     const dataPromise = fetchResourcesOnly(orgId);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getResourcesOnly ${Date.now() - t0}ms`);
+    // SF-2 Phase 1: route-agnostic since this fetcher serves multiple
+    // surfaces (/operations, /market). Use the generic surface ref.
+    alertIfFallback(result, "/operations|/market");
     return result;
   } catch (e) {
     console.error("getResourcesOnly failed, using fallback:", e);
-    const seed = await import("@/data");
+    void recordSeedFallbackFlag("exception", "/operations|/market");
     return {
-      resources: seed.resources,
-      archived: seed.archived,
+      resources: [],
+      archived: [],
       overrides: [],
+      _error: SEED_FALLBACK_ERROR,
+      _fallbackTrigger: "exception",
     };
   }
 }
@@ -177,6 +209,8 @@ export async function getListingsOnly(): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
   const t0 = Date.now();
   try {
@@ -187,14 +221,17 @@ export async function getListingsOnly(): Promise<{
     const dataPromise = fetchListingsOnly(orgId);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getListingsOnly ${Date.now() - t0}ms`);
+    alertIfFallback(result, "/regulations");
     return result;
   } catch (e) {
     console.error("getListingsOnly failed, using fallback:", e);
-    const seed = await import("@/data");
+    void recordSeedFallbackFlag("exception", "/regulations");
     return {
-      resources: seed.resources,
-      archived: seed.archived,
+      resources: [],
+      archived: [],
       overrides: [],
+      _error: SEED_FALLBACK_ERROR,
+      _fallbackTrigger: "exception",
     };
   }
 }
@@ -214,6 +251,8 @@ export async function getMapData(): Promise<{
   disputes: Record<string, Dispute>;
   xrefPairs: [string, string][];
   supersessions: Supersession[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
   const t0 = Date.now();
   try {
@@ -224,17 +263,20 @@ export async function getMapData(): Promise<{
     const dataPromise = fetchMapData(orgId);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getMapData ${Date.now() - t0}ms`);
+    alertIfFallback(result, "/map");
     return result;
   } catch (e) {
     console.error("getMapData failed, using fallback:", e);
-    const seed = await import("@/data");
+    void recordSeedFallbackFlag("exception", "/map");
     return {
-      resources: seed.resources,
-      archived: seed.archived,
-      changelog: seed.changelog,
-      disputes: seed.disputes,
-      xrefPairs: seed.xrefPairs,
-      supersessions: seed.supersessions,
+      resources: [],
+      archived: [],
+      changelog: {},
+      disputes: {},
+      xrefPairs: [],
+      supersessions: [],
+      _error: SEED_FALLBACK_ERROR,
+      _fallbackTrigger: "exception",
     };
   }
 }
@@ -252,6 +294,8 @@ export async function getListingsMapData(): Promise<{
   disputes: Record<string, Dispute>;
   xrefPairs: [string, string][];
   supersessions: Supersession[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
   const t0 = Date.now();
   try {
@@ -262,17 +306,20 @@ export async function getListingsMapData(): Promise<{
     const dataPromise = fetchListingsMapData(orgId);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getListingsMapData ${Date.now() - t0}ms`);
+    alertIfFallback(result, "/map");
     return result;
   } catch (e) {
     console.error("getListingsMapData failed, using fallback:", e);
-    const seed = await import("@/data");
+    void recordSeedFallbackFlag("exception", "/map");
     return {
-      resources: seed.resources,
-      archived: seed.archived,
-      changelog: seed.changelog,
-      disputes: seed.disputes,
-      xrefPairs: seed.xrefPairs,
-      supersessions: seed.supersessions,
+      resources: [],
+      archived: [],
+      changelog: {},
+      disputes: {},
+      xrefPairs: [],
+      supersessions: [],
+      _error: SEED_FALLBACK_ERROR,
+      _fallbackTrigger: "exception",
     };
   }
 }
@@ -288,6 +335,8 @@ export async function getSettingsData(): Promise<{
   resources: Resource[];
   archived: Resource[];
   supersessions: Supersession[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
   const t0 = Date.now();
   try {
@@ -298,14 +347,17 @@ export async function getSettingsData(): Promise<{
     const dataPromise = fetchSettingsData(orgId);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getSettingsData ${Date.now() - t0}ms`);
+    alertIfFallback(result, "/settings");
     return result;
   } catch (e) {
     console.error("getSettingsData failed, using fallback:", e);
-    const seed = await import("@/data");
+    void recordSeedFallbackFlag("exception", "/settings");
     return {
-      resources: seed.resources,
-      archived: seed.archived,
-      supersessions: seed.supersessions,
+      resources: [],
+      archived: [],
+      supersessions: [],
+      _error: SEED_FALLBACK_ERROR,
+      _fallbackTrigger: "exception",
     };
   }
 }

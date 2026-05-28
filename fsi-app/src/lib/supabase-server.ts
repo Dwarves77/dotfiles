@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import type { Source, ProvisionalSource, SourceConflict, TrustMetrics, TrustScore } from "@/types/source";
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
+import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 
 // Static seed data fallback
 import {
@@ -1214,7 +1215,22 @@ export interface DashboardData {
   intelligenceChanges: IntelligenceChange[];
   sectorDisplayNames: SectorDisplayName[];
   overrides: WorkspaceOverrideRow[];
+  /**
+   * SF-2 Phase 1 (2026-05-27): set when the fetcher fell back to an
+   * empty payload instead of live data. Customer-visible page renders
+   * a `SystemErrorBanner` when present. The wrapper in `lib/data.ts`
+   * also records a platform integrity_flag (dedupe per-route per-hour)
+   * via `recordSeedFallbackFlag()` so admin sees the activation in the
+   * red-flag-dot + platform-flags queue.
+   */
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }
+
+// SF-2 Phase 1 (2026-05-27): customer-facing copy when a data fetcher
+// falls back. Surface-agnostic; banner component is the one rendering it.
+export const SEED_FALLBACK_ERROR =
+  "Data temporarily unavailable. Refresh to retry.";
 
 // Timeout wrapper — prevents Supabase from hanging indefinitely on Vercel
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -1225,29 +1241,38 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 export async function fetchDashboardData(orgId: string | null): Promise<DashboardData> {
-  const seedFallback: DashboardData = {
-    resources: seedResources,
-    archived: seedArchived,
-    changelog: seedChangelog,
-    disputes: seedDisputes,
-    xrefPairs: seedXrefPairs,
-    supersessions: seedSupersessions,
+  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel replaces
+  // the prior seed-data fallback. The seed array pre-dated the source-
+  // trust schema and carried no source attribution; rendering it
+  // alongside the live UI violated the integrity rule. Now we return
+  // empty + _error and let the page component show SystemErrorBanner.
+  const emptyFallback: DashboardData = {
+    resources: [],
+    archived: [],
+    changelog: {},
+    disputes: {},
+    xrefPairs: [],
+    supersessions: [],
     auditDate: seedAuditDate,
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],
     overrides: [],
   };
+  // Static seed names retained as a defensive read for grep'ability;
+  // mark the unused imports so the type-checker stays clean.
+  void seedResources; void seedArchived; void seedChangelog;
+  void seedDisputes; void seedXrefPairs; void seedSupersessions;
 
   if (!isSupabaseConfigured()) {
-    return seedFallback;
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
   }
 
-  // Anonymous request — no org resolved from auth context. Return the
-  // public/seed view (no workspace overrides). Once auth is enforced
-  // (Phase A.4), this branch is only reachable for misconfiguration.
+  // Anonymous request — proxy.ts auth gate should intercept upstream
+  // (Sprint 3 SF-2 verification 2026-05-27). This branch remains as
+  // defense-in-depth for authenticated users without an org_membership.
   if (!orgId) {
-    return seedFallback;
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
   }
 
   try {
@@ -1289,9 +1314,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       ]
     );
 
-    // If Supabase returned empty, use seed data
+    // If Supabase returned empty, treat as transient/data-layer issue
+    // and surface the error sentinel rather than seed content.
     if (!resources.length) {
-      return seedFallback;
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
     // Fetch changes + sector names + overrides (no synopses).
@@ -1392,8 +1418,8 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       overrides,
     };
   } catch (e) {
-    console.error("fetchDashboardData failed, using seed fallback:", e);
-    return seedFallback;
+    console.error("fetchDashboardData failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
   }
 }
 
@@ -1411,20 +1437,30 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
-  const seedFallback = {
-    resources: seedResources,
-    archived: seedArchived,
+  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
+  const emptyFallback = {
+    resources: [] as Resource[],
+    archived: [] as Resource[],
     overrides: [] as WorkspaceOverrideRow[],
   };
 
-  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+  if (!isSupabaseConfigured()) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
+  }
+  if (!orgId) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
+  }
 
   try {
     // Slim RPC — drops full_brief/operational_impact/open_questions/reasoning
     // from the wire. None are rendered by /regulations, /operations, /market.
     const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { slim: true });
-    if (!active.length) return seedFallback;
+    if (!active.length) {
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
+    }
 
     const supabase = getSupabase();
     const { data: overridesData } = await supabase
@@ -1443,8 +1479,8 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
 
     return { resources: active, archived, overrides };
   } catch (e) {
-    console.error("fetchResourcesOnly failed, using seed fallback:", e);
-    return seedFallback;
+    console.error("fetchResourcesOnly failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
   }
 }
 
@@ -1464,17 +1500,25 @@ export async function fetchMapData(orgId: string | null): Promise<{
   disputes: Record<string, Dispute>;
   xrefPairs: [string, string][];
   supersessions: Supersession[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
-  const seedFallback = {
-    resources: seedResources,
-    archived: seedArchived,
-    changelog: seedChangelog,
-    disputes: seedDisputes,
-    xrefPairs: seedXrefPairs,
-    supersessions: seedSupersessions,
+  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
+  const emptyFallback = {
+    resources: [] as Resource[],
+    archived: [] as Resource[],
+    changelog: {} as Record<string, ChangeLogEntry[]>,
+    disputes: {} as Record<string, Dispute>,
+    xrefPairs: [] as [string, string][],
+    supersessions: [] as Supersession[],
   };
 
-  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+  if (!isSupabaseConfigured()) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
+  }
+  if (!orgId) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
+  }
 
   try {
     const [{ active, archived }, changelog, disputes, xrefPairs, supersessions] = await withTimeout(
@@ -1488,21 +1532,23 @@ export async function fetchMapData(orgId: string | null): Promise<{
       ]),
       8000,
       [
-        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
-        seedChangelog,
-        seedDisputes,
-        seedXrefPairs,
-        seedSupersessions,
+        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
+        {} as Record<string, ChangeLogEntry[]>,
+        {} as Record<string, Dispute>,
+        [] as [string, string][],
+        [] as Supersession[],
       ] as [
-        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
-        typeof seedChangelog,
-        typeof seedDisputes,
-        typeof seedXrefPairs,
-        typeof seedSupersessions,
+        { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
+        Record<string, ChangeLogEntry[]>,
+        Record<string, Dispute>,
+        [string, string][],
+        Supersession[],
       ]
     );
 
-    if (!active.length) return seedFallback;
+    if (!active.length) {
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
+    }
 
     return {
       resources: active,
@@ -1513,8 +1559,8 @@ export async function fetchMapData(orgId: string | null): Promise<{
       supersessions,
     };
   } catch (e) {
-    console.error("fetchMapData failed, using seed fallback:", e);
-    return seedFallback;
+    console.error("fetchMapData failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
   }
 }
 
@@ -1540,18 +1586,28 @@ export async function fetchListingsOnly(orgId: string | null): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
-  const seedFallback = {
-    resources: seedResources,
-    archived: seedArchived,
+  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
+  const emptyFallback = {
+    resources: [] as Resource[],
+    archived: [] as Resource[],
     overrides: [] as WorkspaceOverrideRow[],
   };
 
-  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+  if (!isSupabaseConfigured()) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
+  }
+  if (!orgId) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
+  }
 
   try {
     const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { listings: true });
-    if (!active.length) return seedFallback;
+    if (!active.length) {
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
+    }
 
     const supabase = getSupabase();
     const { data: overridesData } = await supabase
@@ -1570,8 +1626,8 @@ export async function fetchListingsOnly(orgId: string | null): Promise<{
 
     return { resources: active, archived, overrides };
   } catch (e) {
-    console.error("fetchListingsOnly failed, using seed fallback:", e);
-    return seedFallback;
+    console.error("fetchListingsOnly failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
   }
 }
 
@@ -1589,17 +1645,25 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
   disputes: Record<string, Dispute>;
   xrefPairs: [string, string][];
   supersessions: Supersession[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
-  const seedFallback = {
-    resources: seedResources,
-    archived: seedArchived,
-    changelog: seedChangelog,
-    disputes: seedDisputes,
-    xrefPairs: seedXrefPairs,
-    supersessions: seedSupersessions,
+  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
+  const emptyFallback = {
+    resources: [] as Resource[],
+    archived: [] as Resource[],
+    changelog: {} as Record<string, ChangeLogEntry[]>,
+    disputes: {} as Record<string, Dispute>,
+    xrefPairs: [] as [string, string][],
+    supersessions: [] as Supersession[],
   };
 
-  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+  if (!isSupabaseConfigured()) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
+  }
+  if (!orgId) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
+  }
 
   try {
     const [{ active, archived }, changelog, disputes, xrefPairs, supersessions] = await withTimeout(
@@ -1612,21 +1676,23 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
       ]),
       8000,
       [
-        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
-        seedChangelog,
-        seedDisputes,
-        seedXrefPairs,
-        seedSupersessions,
+        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
+        {} as Record<string, ChangeLogEntry[]>,
+        {} as Record<string, Dispute>,
+        [] as [string, string][],
+        [] as Supersession[],
       ] as [
-        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
-        typeof seedChangelog,
-        typeof seedDisputes,
-        typeof seedXrefPairs,
-        typeof seedSupersessions,
+        { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
+        Record<string, ChangeLogEntry[]>,
+        Record<string, Dispute>,
+        [string, string][],
+        Supersession[],
       ]
     );
 
-    if (!active.length) return seedFallback;
+    if (!active.length) {
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
+    }
 
     return {
       resources: active,
@@ -1637,8 +1703,8 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
       supersessions,
     };
   } catch (e) {
-    console.error("fetchListingsMapData failed, using seed fallback:", e);
-    return seedFallback;
+    console.error("fetchListingsMapData failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
   }
 }
 
@@ -1655,14 +1721,22 @@ export async function fetchSettingsData(orgId: string | null): Promise<{
   resources: Resource[];
   archived: Resource[];
   supersessions: Supersession[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
 }> {
-  const seedFallback = {
-    resources: seedResources,
-    archived: seedArchived,
-    supersessions: seedSupersessions,
+  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
+  const emptyFallback = {
+    resources: [] as Resource[],
+    archived: [] as Resource[],
+    supersessions: [] as Supersession[],
   };
 
-  if (!isSupabaseConfigured() || !orgId) return seedFallback;
+  if (!isSupabaseConfigured()) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
+  }
+  if (!orgId) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
+  }
 
   try {
     const [{ active, archived }, supersessions] = await withTimeout(
@@ -1673,20 +1747,22 @@ export async function fetchSettingsData(orgId: string | null): Promise<{
       ]),
       8000,
       [
-        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
-        seedSupersessions,
+        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
+        [] as Supersession[],
       ] as [
-        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
-        typeof seedSupersessions,
+        { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
+        Supersession[],
       ]
     );
 
-    if (!active.length) return seedFallback;
+    if (!active.length) {
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
+    }
 
     return { resources: active, archived, supersessions };
   } catch (e) {
-    console.error("fetchSettingsData failed, using seed fallback:", e);
-    return seedFallback;
+    console.error("fetchSettingsData failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
   }
 }
 

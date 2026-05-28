@@ -16,6 +16,7 @@
 
 import { getListingsOnly, getScopedWorkspaceAggregates } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { DashboardHero } from "@/components/home/DashboardHero";
 import { RegulationsSurface } from "@/components/regulations/RegulationsSurface";
 import { toDate } from "@/lib/relative-time";
@@ -98,6 +99,7 @@ export default async function RegulationsPage({
 
   return (
     <>
+      <SystemErrorBanner message={data._error} />
       <EditorialMasthead
         title="Regulations"
         meta={meta}

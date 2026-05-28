@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSettingsData } from "@/lib/data";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { SettingsPage } from "@/components/pages/SettingsPage";
+import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 
 // Note: previous `export const revalidate = 60` was a no-op — Settings
 // reads cookies via auth.getUser, opting the page into dynamic. Removed
@@ -22,11 +23,14 @@ export default async function Settings() {
   const data = await getSettingsData();
 
   return (
-    <SettingsPage
-      initialResources={data.resources}
-      initialArchived={data.archived}
-      supersessions={data.supersessions}
-      userId={user.id}
-    />
+    <>
+      <SystemErrorBanner message={data._error} />
+      <SettingsPage
+        initialResources={data.resources}
+        initialArchived={data.archived}
+        supersessions={data.supersessions}
+        userId={user.id}
+      />
+    </>
   );
 }
