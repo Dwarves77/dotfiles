@@ -289,9 +289,10 @@ Items that may surface during Sprint 4 land in section 8.
 [ ] CLAUDE.md "Verification Before Authorization" section re-read in
     this session.
 [ ] Block 1 scope confirmed from source-provenance-model.md section 7
-    AND workflow-spec section 2 revision 2.1: 18 tasks, ~48h total
+    AND workflow-spec section 2 revision 2.2: 19 tasks, ~51h total
     (4 Vercel Workflow DevKit infrastructure tasks 1.0a-1.0d added in
-    revision 2.1; the rest unchanged from revision 2).
+    revision 2.1; source-tier audit UI task 1.15 added in revision 2.2;
+    the rest unchanged from revision 2).
 [ ] Vercel Workflow DevKit substrate confirmed for Phase 4 per decision
     log 2026-05-29: workflow@4.2.5 stable, Apache-2.0, Next.js peerDep
     >13 satisfied by 16.1.6.
@@ -536,10 +537,12 @@ The two prompt patches (legal-confirmation callout, non-regulatory empty-{} rule
 **Entry checklist** (most consequential gate in Sprint 4):
 
 ```
-[ ] Block 1 marked COMPLETE in state table (revision 2 ~39h scope); all
-    14 task exit checklist items ticked.
-[ ] Block 1.5 (per-item authority floor) either marked COMPLETE or
-    operator confirms it's deferred to Block 4.5.
+[ ] Block 1 marked COMPLETE in state table (revision 2.2 ~51h scope);
+    all 19 task exit checklist items ticked.
+[ ] Block 1.5 (per-item authority floor) marked COMPLETE. In revision
+    2.2 it is Phase 3 and runs BEFORE this checkpoint (HARD CHECKPOINT 3
+    follows Phase 3), so it must already be done at Phase 4 entry — there
+    is no deferred Block 4.5.
 [ ] Reconciliation marked COMPLETE; quarantine count surfaced and
     operator-inspected at HARD CHECKPOINT 2.
 [ ] Binding cost cap set, written into the workflow dispatch text, and

@@ -1,10 +1,10 @@
-# Sprint 4 — Dynamic Workflow Spec (Revision 2)
+# Sprint 4 — Dynamic Workflow Spec (Revision 2.2)
 
-**Status:** REVISION 2 spec for operator sign-off. Revision 2 strengthens Addition A to active sourcing, adds claim-level FACT grounding (Component 3), labeling discipline (Component 4), human verification for CRITICAL+HIGH (Component 6), span-check timeout policy (Component 7), and a customer-facing FACT/ANALYSIS/LEGAL visual affordance (Block 4 surface scope).
+**Status:** REVISION 2.2 spec; operator sign-off recorded 2026-05-29 (see governing-state decision log). Revision 2 strengthened Addition A to active sourcing, added claim-level FACT grounding (Component 3), labeling discipline (Component 4), human verification for CRITICAL+HIGH (Component 6), span-check timeout policy (Component 7), and a customer-facing FACT/ANALYSIS/LEGAL visual affordance (Block 4 surface scope). Revision 2.1 added the Vercel Workflow DevKit substrate to Block 1 (tasks 1.0a-1.0d). Revision 2.2 added Phase 1.5 (source-tier audit + provisional triage) between HC1 and Phase 2, plus Block 1 task 1.15 (source-tier audit UI).
 
-**Workflow is SPECC'd but NOT YET RUN.** Operator approves this doc + [sprint4-governing-state.md](sprint4-governing-state.md) (both at revision 2), then invokes the workflow.
+**Workflow is SPECC'd but NOT YET RUN.** Operator has signed off on this doc + [sprint4-governing-state.md](sprint4-governing-state.md) (both at revision 2.2; sign-off recorded 2026-05-29) and now invokes the workflow.
 
-**Companion contract:** [sprint4-governing-state.md](sprint4-governing-state.md) revision 2 — the state table, decision log, and phase-gate checklists the workflow executes against.
+**Companion contract:** [sprint4-governing-state.md](sprint4-governing-state.md) revision 2.2 — the state table, decision log, and phase-gate checklists the workflow executes against.
 
 **How to invoke:** the operator sends a Claude Code prompt that includes the word `workflow` and points at this spec. Suggested invocation prompt in section 9 below. Claude Code runtime generates the orchestration script, shows the operator a script preview at the approval card.
 
@@ -77,11 +77,11 @@ Phase 4: Block 4 — gated generation + visual affordance + verify  [no auto-adv
 
 ---
 
-## 2. Phase 1 — Block 1 invariant landing (revision 2.1 — Vercel Workflow DevKit infrastructure added)
+## 2. Phase 1 — Block 1 invariant landing (revision 2.2 — Vercel Workflow DevKit infrastructure + source-tier audit UI added)
 
 ### Concurrency
 
-Up to 8 parallel subagents. Phase has 18 tasks (was 14); tasks group in 6-8 parallel batches with dependencies.
+Up to 8 parallel subagents. Phase has 19 tasks (14 in revision 2, +4 Vercel Workflow DevKit tasks 1.0a-1.0d in revision 2.1, +1 source-tier audit UI task 1.15 in revision 2.2); tasks group in 6-8 parallel batches with dependencies.
 
 ### Entry checklist
 
@@ -138,11 +138,11 @@ Commits pushed to master. State table row for Block 1 updated to COMPLETE with c
 
 ### Cost
 
-~$1-2 model spend (3-item prompt audit sample in task 1.7). Subagent reasoning budget: $5 per task × 18 tasks = ~$90 total cap across phase.
+~$1-2 model spend (3-item prompt audit sample in task 1.7). Subagent reasoning budget: $5 per task × 19 tasks = ~$95 total cap across phase.
 
-### Total Block 1 effort (revision 2.1)
+### Total Block 1 effort (revision 2.2)
 
-~48h (was ~39h in revision 2). The 9h growth comes from the four Vercel Workflow DevKit infrastructure tasks (1.0a-1.0d) plus the additional integration work in tasks 1.5, 1.6, 1.12, 1.14 to use the workflow substrate instead of inline retry/Sonnet/polling logic. Block 4 effort reduces correspondingly — the durability machinery is built in Block 1, so Block 4 mainly fills in the workflow step bodies + the customer-facing affordance.
+~51h (was ~39h in revision 2, ~48h in revision 2.1). The 2.1 growth (+9h) came from the four Vercel Workflow DevKit infrastructure tasks (1.0a-1.0d) plus the additional integration work in tasks 1.5, 1.6, 1.12, 1.14 to use the workflow substrate instead of inline retry/Sonnet/polling logic. Revision 2.2 adds ~3h for task 1.15 (source-tier audit UI extension to ProvisionalReviewCard + recommendSourceTier Haiku function + commit_tier_change endpoint). Block 4 effort reduces correspondingly — the durability machinery is built in Block 1, so Block 4 mainly fills in the workflow step bodies + the customer-facing affordance.
 
 ---
 
@@ -351,54 +351,93 @@ Per operator decision at Hard Checkpoint 3. Expected ~$104 at $0.55/item × ~190
 
 ---
 
-## 9. Invocation prompt (revision 2)
+## 9. Invocation prompt (revision 2.2)
 
 When ready to start the workflow, paste this prompt verbatim:
 
 ```
-Run a workflow that executes the Sprint 4 REVISION 2 spec at
+Run a workflow that executes the Sprint 4 REVISION 2.2 spec at
 fsi-app/docs/sprint4-workflow-spec.md against the contract at
-fsi-app/docs/sprint4-governing-state.md (revision 2).
+fsi-app/docs/sprint4-governing-state.md (revision 2.2).
 
-Four phases with three hard checkpoints (former Blocks 2 + 3 folded
-into Block 1 task 1.7 system prompt update):
-  Phase 1: Block 1 invariant landing (14 tasks, schema + function +
-    trigger + agent_run_searches with result_content_excerpt +
-    section_claim_provenance + item_type_required_slots +
-    /api/agent/run instrumentation + parser extension + system prompt
-    update with active-sourcing contract + reconciliation script +
-    view cutover + staged_updates UI + admin verification queue +
-    audit log + span-check timeout policy; ~$1-2 model spend for
-    3-item prompt audit sample in task 1.7)
-  HARD CHECKPOINT 1: gate verification on synthetic test items for
-    all 6 criteria + admin verification queue tick mechanism
-  Phase 2: Reconciliation (dry-run, then HARD CHECKPOINT 2 for
-    159-quarantine list inspection, then --execute)
+FIVE phases with three hard checkpoints (former Blocks 2 + 3 folded
+into Block 1 task 1.7 system prompt update; Phase 1.5 source-tier
+audit added in revision 2.2 between HARD CHECKPOINT 1 and Phase 2):
+  Phase 1: Block 1 invariant landing (19 tasks):
+    - Vercel Workflow DevKit substrate: 1.0a install workflow@^4.2.5 +
+      @workflow/ai@^4.1.2 + @workflow/next@^4.0.6; 1.0b wire
+      withWorkflow + npx workflow health; 1.0c scaffold
+      src/workflows/generate-brief.ts with FULL STEP SKELETON (named
+      steps sourceOrFindForClaim, persistAgentRunSearches,
+      validateItemProvenance, routeOnValidation + the
+      createHook/resumeHook per-claim verify loop, empty bodies);
+      1.0d confirm Vercel plan tier via
+      npx workflow inspect runs --backend vercel
+    - Schema + function + trigger: provenance_status enum (incl.
+      pending_human_verify) + provenance_verified_at + agent_run_searches
+      (with result_content_excerpt) + section_claim_provenance +
+      item_type_required_slots + validate_item_provenance six-criteria
+      function + set_provenance_status trigger
+    - Generation instrumentation: /api/agent/run refactor to
+      start(generateBriefWorkflow), b2-runner + a5-backfill to start(),
+      system prompt active-sourcing + per-claim emission + CLOSED-SET
+      exact-match ANALYSIS labels + LEGAL routing + slot enforcement,
+      parser extension
+    - Reconciliation script + active_intelligence_items view cutover +
+      staged_updates UI + admin verification queue (PER-CLAIM TICK ONLY,
+      resumeHook) + verification audit log + span-check timeout policy
+      (RetryableError)
+    - Source-tier audit UI (1.15): ProvisionalReviewCard extension +
+      recommendSourceTier Haiku function + commit_tier_change endpoint
+    ~$1-2 model spend for the 3-item prompt audit sample in task 1.7;
+    no customer/launch-corpus data writes in this phase.
+  HARD CHECKPOINT 1: gate verification on synthetic test items for all
+    6 criteria + step-skeleton checkpoints visible in
+    npx workflow inspect run <runId> + admin verification queue tick
+    mechanism
+  Phase 1.5: Source-tier audit + provisional-source triage (~148
+    sources: 73 seeded + 75 provisional from A6.2). Haiku RECOMMENDS
+    effective_tier + confidence + rationale (recommendation only, not
+    asserted fact); operator ticks accept / override / flag-as-ambiguous;
+    ambiguous tiers FLAGGED for operator, never guessed. sources.base_tier
+    updated only on accept; provisionals promoted only on accept; NO
+    intelligence_items.provenance_status changes here. ~$0.75 Haiku,
+    cap $5; operator-paced ticking. Does NOT auto-advance into Phase 2.
+  Phase 2: Reconciliation against the now-authoritatively-tiered sources
+    (dry-run, then HARD CHECKPOINT 2 for ~159-quarantine list inspection,
+    then --execute)
   Phase 3: Block 1.5 per-item authority floor (3 tasks, auto-advance)
   HARD CHECKPOINT 3: binding cap + expected spend SEPARATELY (per
-    lift-cap-not-target) + operator green-light THIS SESSION for
-    Phase 4
-  Phase 4: Block 4 gated generation + customer-facing FACT/ANALYSIS/
-    LEGAL visual affordance + verification-queue activation. Per-item
-    cost ~$0.55 (active sourcing raises web_search budget and output
-    tokens). Expected ~$104; cap recommended ~$150.
+    lift-cap-not-target) + operator green-light THIS SESSION for Phase 4
+  Phase 4: Block 4 gated generation on the Vercel Workflow DevKit
+    substrate (DurableAgent active sourcing, RetryableError span-check
+    retries, createHook/resumeHook CRITICAL/HIGH human-verify gate) +
+    customer-facing FACT/ANALYSIS/LEGAL visual affordance (ships BEFORE
+    generation) + verification-queue activation. Per-item cost ~$0.55
+    (active sourcing raises web_search budget and output tokens).
+    Expected ~$104 across ~190 items (139 shells + ~50 regens); cap
+    recommended ~$150.
 
 At each phase entry: read sprint4-governing-state.md section 7 entry
-checklist for that phase; halt if any item fails.
+checklist for that phase (7.1 Block 1, 7.1.5 Phase 1.5, 7.2
+Reconciliation, 7.3 Block 1.5, 7.6 Block 4); halt if any item fails.
 
 At each phase exit: read sprint4-governing-state.md section 7 exit
 checklist; halt if any item fails. Update sprint4-governing-state.md
 section 3.2 with the deliverable (commits, DB writes) the same turn
 they land.
 
-Do NOT auto-advance past the three HARD CHECKPOINTS. Halt and surface
-to operator each time.
+Do NOT auto-advance past the three HARD CHECKPOINTS. Phase 1.5 is
+operator-paced and also does not auto-advance into Phase 2. Halt and
+surface to operator each time.
 
-Concurrency: up to 8 subagents in Phase 1, 1 in Phase 2, 3 in Phase 3,
-16 in Phase 4. Hard wall-time cap of 5 min per subagent task.
+Concurrency: up to 8 subagents in Phase 1, 1 in Phase 1.5 (Haiku pass;
+ticking is operator-paced), 1 in Phase 2, 3 in Phase 3, 16 in Phase 4.
+Hard wall-time cap of 5 min per subagent task.
 
-Budget: ~$1-2 model spend in Phase 1 (prompt audit). $0 in Phases 2-3.
-Phase 4 binding cap set at HARD CHECKPOINT 3 before it runs.
+Budget: ~$1-2 model spend in Phase 1 (prompt audit). ~$0.75 Haiku in
+Phase 1.5 (cap $5). $0 in Phases 2-3. Phase 4 binding cap set at
+HARD CHECKPOINT 3 before it runs.
 ```
 
 After the workflow approval card surfaces, hit `View raw script` first to inspect the orchestration the runtime generated.
