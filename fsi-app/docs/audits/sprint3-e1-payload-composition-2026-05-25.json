@@ -1,16 +1,16 @@
 {
-  "measured_at": "2026-05-26T04:27:59.790Z",
+  "measured_at": "2026-05-26T19:32:09.661Z",
   "org_id": "a0000000-0000-0000-0000-000000000001",
-  "total_bytes": 2277671,
+  "total_bytes": 2277828,
   "total_formatted": "2.17 MB",
   "next_js_cache_limit_bytes": 2097152,
-  "over_limit_by_bytes": 180519,
-  "over_limit_by_formatted": "176.3 KB",
+  "over_limit_by_bytes": 180676,
+  "over_limit_by_formatted": "176.4 KB",
   "composition": {
     "rpc_intelligence": {
       "row_count": 50,
-      "bytes": 57019,
-      "formatted": "55.7 KB"
+      "bytes": 57182,
+      "formatted": "55.8 KB"
     },
     "item_timelines": {
       "row_count": 107,
@@ -34,7 +34,7 @@
     },
     "sources": {
       "row_count": 725,
-      "bytes": 1883380,
+      "bytes": 1883374,
       "formatted": "1.80 MB"
     },
     "provisional_sources": {
@@ -134,6 +134,11 @@
       "formatted": "1.2 KB",
       "avg_per_row": "24 B"
     },
+    "category": {
+      "bytes": 1194,
+      "formatted": "1.2 KB",
+      "avg_per_row": "23 B"
+    },
     "status": {
       "bytes": 1186,
       "formatted": "1.2 KB",
@@ -153,11 +158,6 @@
       "bytes": 1101,
       "formatted": "1.1 KB",
       "avg_per_row": "22 B"
-    },
-    "category": {
-      "bytes": 1031,
-      "formatted": "1.0 KB",
-      "avg_per_row": "20 B"
     },
     "tags": {
       "bytes": 953,
@@ -222,7 +222,7 @@
       "avg_per_row": "55 B"
     },
     "updated_at": {
-      "bytes": 36244,
+      "bytes": 36243,
       "formatted": "35.4 KB",
       "avg_per_row": "49 B"
     },
@@ -362,7 +362,7 @@
       "avg_per_row": "28 B"
     },
     "processing_paused": {
-      "bytes": 20298,
+      "bytes": 20293,
       "formatted": "19.8 KB",
       "avg_per_row": "27 B"
     },

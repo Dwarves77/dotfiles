@@ -1,3 +1,5 @@
+> **DEPRECATED 2026-05-29.** This document is Sprint 3's historical record (state through commit `4cc0cae`). It stopped being updated after that turn, and substantial work shipped between then and 2026-05-29 (A2 callouts, A4 trajectory, A5 sections, A6 regional facts, Option C URL-anchor backfill, etc.). The current governing contract is [../sprint4-governing-state.md](../sprint4-governing-state.md), section 3.1 of which reconciles the actual post-2026-05-26 state. Do not rely on this file's state table for what shipped.
+
 # Caro's Ledge — Sprint 3 Status & Build Plan
 
 **Date:** 2026-05-26
