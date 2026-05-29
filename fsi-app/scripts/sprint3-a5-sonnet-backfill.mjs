@@ -66,17 +66,37 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
-// ── constants ──────────────────────────────────────────────────────
-const BUDGET_CAP_USD = 30.0;
+// ── mode + constants ───────────────────────────────────────────────
+// Two modes:
+//   brief-anchor (default) — process D1 items that HAVE full_brief but
+//     no sections; the brief is the primary content anchor. Closed.
+//   url-anchor             — process D1 items that have NO full_brief and
+//     no sections; fetch source_url via web_search as the primary anchor.
+//     Filtered to CRITICAL/HIGH priority only (Option C, 2026-05-28).
+const MODE = process.argv.includes("--mode=url-anchor") ? "url-anchor" : "brief-anchor";
+
+// CLI flag --budget=N overrides the default budget cap (USD).
+const budgetArg = process.argv.find((a) => a.startsWith("--budget="));
+const BUDGET_CAP_USD = budgetArg
+  ? parseFloat(budgetArg.split("=")[1])
+  : MODE === "url-anchor" ? 15.0 : 30.0;
+
 // Sonnet 4.6 pricing (per million tokens).
 const PRICE_PER_M_INPUT = 3.0;
 const PRICE_PER_M_OUTPUT = 15.0;
 // Web search: $10 per 1k searches → $0.01 per search.
 const PRICE_PER_WEB_SEARCH = 0.01;
+// Max web searches per item — bumped for url-anchor mode (need to fetch
+// the source URL + ground sections from the fetched content).
+const WEB_SEARCH_MAX_USES = MODE === "url-anchor" ? 5 : 3;
 
 const SKILL_VERSION = "2026-04-29";
-const CHECKPOINT_PATH = resolve(__dirname, ".a5-sonnet-checkpoint.json");
+// Separate checkpoint per mode so the url-anchor pass doesn't pollute the
+// brief-anchor pass's cumulative cost / completed list.
+const CHECKPOINT_PATH = resolve(__dirname, `.a5-sonnet-checkpoint-${MODE}.json`);
 const LOG_PATH = resolve(__dirname, ".a5-sonnet-backfill.log");
+
+console.log(`[A5.4] mode=${MODE} budget_cap=$${BUDGET_CAP_USD.toFixed(2)} web_search_max_uses=${WEB_SEARCH_MAX_USES}`);
 
 const SECTION_KEYS = ["3", "4", "8", "10", "11", "14", "15"];
 const SECTION_ORDER = { "3": 3, "4": 4, "8": 8, "10": 10, "11": 11, "14": 14, "15": 15 };
@@ -221,7 +241,7 @@ function repairJsonStringControls(blob) {
 console.log("[A5.4] querying active D1 items…");
 const { data: allD1, error: qErr } = await supabase
   .from("intelligence_items")
-  .select("id, legacy_id, title, summary, jurisdictions, topic_tags, source_url, full_brief")
+  .select("id, legacy_id, title, summary, jurisdictions, topic_tags, source_url, full_brief, priority")
   .eq("domain", 1)
   .eq("is_archived", false);
 
@@ -246,14 +266,23 @@ if (sErr) {
 const itemsWithSections = new Set((existingSections || []).map((r) => r.item_id));
 console.log(`[A5.4] items with ≥1 existing section row: ${itemsWithSections.size}`);
 
-// Uncovered = D1 active items with non-empty full_brief and zero
-// section rows. (Matches A5.2's eligibility filter — full_brief must
-// exist for the Sonnet pass to have something to anchor against.)
+// Eligibility depends on mode.
+//   brief-anchor: items with non-empty full_brief and zero section rows.
+//   url-anchor:   items with EMPTY full_brief, zero section rows, and
+//                 priority IN (CRITICAL, HIGH). source_url required.
 const uncovered = (allD1 || [])
   .filter((r) => !itemsWithSections.has(r.id))
-  .filter((r) => (r.full_brief || "").trim().length > 0);
+  .filter((r) => {
+    const briefEmpty = !(r.full_brief || "").trim();
+    const urlOk = !!(r.source_url || "").trim();
+    if (MODE === "url-anchor") {
+      const priorityOk = r.priority === "CRITICAL" || r.priority === "HIGH";
+      return briefEmpty && urlOk && priorityOk;
+    }
+    return !briefEmpty;
+  });
 
-console.log(`[A5.4] uncovered D1 items eligible for Sonnet pass: ${uncovered.length}`);
+console.log(`[A5.4] uncovered D1 items eligible for Sonnet pass (${MODE}): ${uncovered.length}`);
 
 // Filter out items already in checkpoint.
 const completedSet = new Set(checkpoint.completed_ids);
@@ -266,8 +295,8 @@ if (remaining.length === 0) {
   process.exit(0);
 }
 
-// ── system prompt ──────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are the Freight Sustainability Intelligence Agent backfilling the 7 numbered sections (§3, §4, §8, §10, §11, §14, §15) of the SKILL.md Regulatory Fact Document contract for a single D1 (Regulations domain) intelligence item.
+// ── system prompts ─────────────────────────────────────────────────
+const BRIEF_ANCHOR_SYSTEM_PROMPT = `You are the Freight Sustainability Intelligence Agent backfilling the 7 numbered sections (§3, §4, §8, §10, §11, §14, §15) of the SKILL.md Regulatory Fact Document contract for a single D1 (Regulations domain) intelligence item.
 
 ## Inputs you receive
 Per item: title, jurisdiction(s), topic tag(s), source URL, and the EXISTING legacy full_brief markdown (which predates the current §3-§15 contract — it lacks the numbered headings the A5.2 parser looks for, but may still contain grounded substance you can repurpose).
@@ -318,6 +347,64 @@ Omit keys for sections you cannot ground. Do not emit empty strings — if a sec
 
 After the JSON block, do not write anything else. No preamble, no closing remarks.`;
 
+// URL-anchor variant — for EMPTY-shell items that have no full_brief.
+// The agent must fetch the source URL via web_search FIRST, then ground
+// sections in the fetched content. Up to 5 searches per item.
+const URL_ANCHOR_SYSTEM_PROMPT = `You are the Freight Sustainability Intelligence Agent backfilling the 7 numbered sections (§3, §4, §8, §10, §11, §14, §15) of the SKILL.md Regulatory Fact Document contract for a single D1 (Regulations domain) intelligence item.
+
+## Inputs you receive
+Per item: title, jurisdiction(s), topic tag(s), source URL, priority tier, and a short summary paragraph. THIS ITEM HAS NO EXISTING FULL_BRIEF. The source URL is your primary anchor.
+
+## Your job — URL-FIRST, then sections
+FIRST: Use web_search to fetch and read the source URL. Read the regulatory text or official publication directly.
+THEN: Produce a JSON object with up to 7 keys — the section_key strings "3", "4", "8", "10", "11", "14", "15" — where each value is a markdown content body for that section, anchored to the workspace profile (freight forwarder; cargo verticals live events, fine art, luxury goods, film and TV, high-value automotive, humanitarian; transport mode priority air → road → ocean; trade lanes Americas/Europe/Asia).
+
+You have up to 5 web_search uses. Typical allocation: 1 to fetch the source URL, 1-2 for grounding deadlines/dates/registration formats, 1-2 for finding companion regulator guidance or industry interpretation cited inline.
+
+## INTEGRITY RULE — non-negotiable
+- Omit any section you cannot ground in the fetched URL content or a verifiable web_search result. Empty/missing key in the JSON output is the correct answer for ungrounded sections.
+- If the source URL returns 404, paywalled content, a generic portal landing page, or content unrelated to the item title, RETURN AN EMPTY JSON OBJECT \`{}\`. Do not invent sections from the title alone. The customer surface renders an honest "Detailed sections pending" affordance for these items — that is the correct outcome when the source is unreachable.
+- No invented facts, no fabricated operators or cost figures, no speculative legal interpretation.
+- A result with 3 of 7 sections honestly populated is correct. A result with all 7 sections populated through invention is wrong.
+- Workspace-anchored: never name a company or individual; reference "the workspace" or "workspaces in [role]" or by operational profile.
+- Cite sources inline at the end of each subsection in the format: *Source: [Title], [Issuing Body], [Date]. [URL].*
+- For §15 Sources, emit a markdown table with columns: # | Title | Type (with Tier) | Issuing Body | Date | URL.
+
+## Section contracts (SKILL.md derived)
+
+§3 Issues Requiring Immediate Action — Actions the workspace must take in the next 30 days. Each bullet leads with a SKILL severity token (ACTION REQUIRED, COST ALERT, WINDOW CLOSING, COMPETITIVE EDGE, MONITORING), then an action verb, then cost/consequence, then deadline. Format as bulleted paragraphs.
+
+§4 How the Workspace Sits in the Compliance Chain — Plain prose mapping the regulation's supply-chain role taxonomy onto the workspace's freight-forwarder operations. Identify role placement requiring legal confirmation. Trailing source citation in *Source: ...* italics.
+
+§8 Substantive Requirements — Markdown table with 4 columns: Obligation | Deadline | Status | Next Action. One row per substantive obligation the regulation imposes. Header + separator + data rows in standard markdown table form.
+
+§10 Registration and Reporting Obligations — Prose covering EPR/producer/jurisdictional registration. Format published vs. promised but not yet released. Data fields the workspace must collect. Registration scope.
+
+§11 Operational System Requirements — Prose covering what the workspace must build or modify operationally: tracking systems, reporting infrastructure, training, supplier onboarding, contract clauses. Each requirement with scope, deadline, gap from baseline.
+
+§14 Confirmed Regulatory Timeline — Bulleted list. Each entry: date — event label (source: ...). Past milestones noted as "in force as of [date]". Future milestones with conditional triggers if any.
+
+§15 Sources — Markdown table with columns: # | Title | Type (with Tier 1-6 inline) | Issuing Body | Date | URL. Tier 1 = binding law, Tier 2 = regulator guidance, Tier 3 = intergovernmental body, Tier 4 = industry body, Tier 5 = news reporting, Tier 6 = analysis/opinion. The source URL the operator gave you appears as row 1; rows 2+ are companions found via web_search.
+
+## Output format
+
+Return ONLY a JSON object inside a single fenced code block, like:
+
+\`\`\`json
+{
+  "3": "markdown content for §3...",
+  "8": "markdown table for §8...",
+  "14": "bulleted timeline for §14...",
+  "15": "sources table for §15..."
+}
+\`\`\`
+
+Omit keys for sections you cannot ground. Do not emit empty strings — if a section is omitted, leave its key out of the JSON entirely. An empty object \`{}\` is the correct answer when the source URL is unreachable.
+
+After the JSON block, do not write anything else. No preamble, no closing remarks.`;
+
+const SYSTEM_PROMPT = MODE === "url-anchor" ? URL_ANCHOR_SYSTEM_PROMPT : BRIEF_ANCHOR_SYSTEM_PROMPT;
+
 // ── per-item processing ────────────────────────────────────────────
 const tally = { ok: 0, zero_sections: 0, sonnet_failed: 0, parse_failed: 0, db_failed: 0 };
 const sectionCoverage = { "3": 0, "4": 0, "8": 0, "10": 0, "11": 0, "14": 0, "15": 0 };
@@ -337,7 +424,18 @@ for (let i = 0; i < remaining.length; i++) {
     break;
   }
 
-  const userMessage = `INPUT ITEM (D1 Regulations):
+  const userMessage = MODE === "url-anchor"
+    ? `INPUT ITEM (D1 Regulations, EMPTY-shell backfill):
+- legacy_id: ${row.legacy_id || row.id.slice(0, 8)}
+- title: ${row.title}
+- priority: ${row.priority || "(unknown)"}
+- jurisdictions: ${JSON.stringify(row.jurisdictions || [])}
+- topic_tags: ${JSON.stringify(row.topic_tags || [])}
+- source_url: ${row.source_url || "(none)"}
+- summary: ${(row.summary || "").slice(0, 800)}
+
+THIS ITEM HAS NO FULL_BRIEF. Begin by using web_search to fetch the source_url and read its content. Then produce the JSON object with up to 7 section keys per the system prompt. Omit any section you cannot ground. Return an empty {} if the source URL is unreachable, paywalled, or returns content unrelated to the title.`
+    : `INPUT ITEM (D1 Regulations):
 - legacy_id: ${row.legacy_id || row.id.slice(0, 8)}
 - title: ${row.title}
 - jurisdictions: ${JSON.stringify(row.jurisdictions || [])}
@@ -369,7 +467,7 @@ Produce the JSON object with up to 7 section keys per the system prompt. Use web
           {
             type: "web_search_20250305",
             name: "web_search",
-            max_uses: 3,
+            max_uses: WEB_SEARCH_MAX_USES,
           },
         ],
       }),
