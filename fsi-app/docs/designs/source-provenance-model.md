@@ -48,11 +48,13 @@ The constraint must live in the database schema and the write path. Prompt langu
 
 ### 3a. Schema gates
 
-- `intelligence_items.source_id` becomes `NOT NULL` for `domain IS NOT NULL` (active items in any domain). Existing nullable rows migrated to `provenance_status: 'quarantined'` until a backfill assigns `source_id`.
+> **Block 1 scope = ADDITIVE ONLY** — new columns (with defaults), new tables, the `validate_item_provenance` function, the `set_provenance_status` trigger, the `active_intelligence_items` view. The two `NOT NULL` / `CHECK` constraints below that ALTER **existing** columns are tagged **[POST-RECONCILIATION]**; they are section 4 **step 7**, NOT Block 1. An agent implementing Block 1 task 1.1 must skip the bracketed bullets. Reason: enforcing them in Block 1 would fail or mass-quarantine the existing rows that lack `source_id` before reconciliation has assigned/quarantined them.
+
+- **[POST-RECONCILIATION — NOT Block 1; lands per section 4 step 7.]** `intelligence_items.source_id` becomes `NOT NULL` for `domain IS NOT NULL` (active items in any domain). Existing nullable rows migrated to `provenance_status: 'quarantined'` until a backfill assigns `source_id`. This ALTER cannot run during gate-landing: ~24 active D1 rows currently have null `source_id`, so the constraint would fail or force a mass-quarantine ahead of HARD CHECKPOINT 2. It lands as a distinct step AFTER Phase 2 reconciliation, once the corpus is clean. Block 1 adds only the `provenance_status` column + trigger (additive) — nothing flips.
 - New column `intelligence_items.provenance_status` enum: `'verified' | 'quarantined' | 'unverified' | 'pending_human_verify'`. Default `'unverified'` at insert. Trigger sets terminal status only when criteria pass.
 - New column `intelligence_items.provenance_verified_at` timestamptz, populated by the trigger or by the admin verification queue.
 - New view `active_intelligence_items` filters to `provenance_status = 'verified'`. All customer-facing reads switch to the view.
-- `intelligence_item_sections.source_ids` becomes `NOT NULL` with default `'{}'`; CHECK requires `array_length > 0` for non-empty `content_md`.
+- **[POST-RECONCILIATION — NOT Block 1; lands per section 4 step 7.]** `intelligence_item_sections.source_ids` becomes `NOT NULL` with default `'{}'`; CHECK requires `array_length > 0` for non-empty `content_md`. Same reason: constraining existing rows is post-reconciliation, not gate-landing. Block 1 may add the column with a default but must NOT add the `NOT NULL` / `CHECK` enforcement against existing data.
 
 **New table `section_claim_provenance` (Addition A core):**
 
