@@ -21,39 +21,59 @@
 
 ---
 
-## 1. Workflow phases (revision 2: 4 phases, 3 hard checkpoints)
+## 1. Workflow phases (revision 2.2: 5 phases, 3 hard checkpoints, NEW Phase 1.5)
 
-Revision 2 folds former Block 2 + Block 3 into Block 1 task 7 (system prompt update). Block 1.5 (per-item authority floor) ships after Reconciliation.
+Revision 2 folded former Block 2 + Block 3 into Block 1 task 1.7. Revision 2.1 added Vercel Workflow DevKit substrate to Block 1. **Revision 2.2 adds Phase 1.5 — source-tier audit + provisional-source triage — between HC1 and Phase 2**, so reconciliation runs against authoritatively-tiered sources rather than seed-time guesses.
 
 ```
-Phase 1: Block 1 — invariant landing (14 tasks, ~39h)             [auto-advance OK]
+Phase 1: Block 1 — invariant landing + Vercel Workflow DevKit
+          substrate (19 tasks, ~51h; adds 1.15 source-tier audit UI) [auto-advance OK]
   ↓
-HARD_CHECKPOINT 1: gate verification on a test item
-  Operator confirms all 6 criteria fire correctly on synthetic test items
+HARD_CHECKPOINT 1: gate verification on synthetic test items
+  Operator confirms all 6 criteria fire correctly + step-skeleton checkpoints visible
+  ↓
+Phase 1.5: Source-tier audit + provisional-source triage          [operator-paced]
+       ~148 sources total: 73 seeded + 75 provisional from A6.2.
+       - Haiku reads each source URL + the source-credibility-model SKILL
+         tier definitions; recommends effective_tier + confidence + rationale
+       - Operator ticks each: source URL + recommended tier + confidence +
+         side-by-side with current; accept OR override
+       - Integrity rule: Haiku RECOMMENDS only with rationale; operator decides;
+         ambiguous tiers FLAGGED for operator, not guessed (same fact-vs-inference
+         discipline as the briefs themselves)
+       - Output: sources.base_tier updated only where operator accepts;
+         provisional_sources promoted to sources only where operator accepts
+       - Cost: ~$0.75 Haiku model total; ~30 min audit + operator-paced ticking
   ↓
 Phase 2: Reconciliation — 294-item audit + quarantine             [auto-advance OK
                                                                    for dry-run only;
                                                                    HARD_CHECKPOINT 2
                                                                    before --execute]
+       Now runs against authoritatively-tiered sources from Phase 1.5
   ↓
-HARD_CHECKPOINT 2: quarantine list inspection (159 strict)
+HARD_CHECKPOINT 2: quarantine list inspection
+  Strict baseline ~159; may shift slightly from Phase 1.5 tier corrections
   Operator inspects exact list before writes execute
   ↓
 Phase 3: Block 1.5 — per-item authority floor (3 tasks, ~2h)      [auto-advance OK]
   ↓
-HARD_CHECKPOINT 3: binding cap + expected spend + green-light for generation
-  Per lift-cap-not-target: cap and expected are SEPARATE numbers
+HARD_CHECKPOINT 3: binding cap + expected spend SEPARATELY + green-light
+  Per lift-cap-not-target: cap and expected are NOT the same number
   ↓
 Phase 4: Block 4 — gated generation + visual affordance + verify  [no auto-advance;
                                                                    HALTS at any
                                                                    budget cap]
-       Includes:
-         - Customer-facing FACT/ANALYSIS/LEGAL visual affordance
+       Vercel Workflow DevKit substrate: DurableAgent for active sourcing,
+       RetryableError for span-check retries, createHook + resumeHook for
+       CRITICAL/HIGH human-verify gate.
+         - Pre-launch FACT/ANALYSIS/LEGAL visual affordance
          - 139-shell fill at ~$0.55/item under active sourcing
          - ~45-55 Option C archived items regenerated through new gate
          - CRITICAL/HIGH items route to pending_human_verify (admin queue)
          - MODERATE/LOW items go directly to verified
 ```
+
+**Pre-launch framing** (operator clarification 2026-05-29): no customers exist yet. "Customer view" in these docs = "launch corpus / publish surface." Phase 4 generates the launch corpus; reconciliation cleans the existing 278 before they become launch content. The 16 archived items were excluded from launch corpus, not pulled from live users. This sharpens the timing argument for Phase 1.5: pre-launch room is exactly when to get tiers right, not retrofit them after launch content is already published.
 
 ---
 
@@ -106,6 +126,7 @@ Reconciliation + view + admin UI (revision 2.1 — admin tick uses resumeHook):
 | 1.12 | Admin verification queue at `/admin → Items pending verification`: per-claim source-span pre-display + tick mechanism. **PER-CLAIM TICK ONLY (locked decision); NO batch tick.** Tick handler calls `resumeHook(token, { tick: true, claim_id, reviewer })` against the durable workflow waiting on `verify-{item_id}-{claim_id}` token. The workflow then updates `section_claim_provenance.verified_by` + `verified_at`. When all FACT claims for an item have been ticked, the workflow flips `intelligence_items.provenance_status` from `pending_human_verify` to `verified` | C6 | Diff in admin surface + workflow stub function | Local render + tick test fires `resumeHook`; durable workflow advances; all-ticked CRITICAL/HIGH item flips status |
 | 1.13 | Verification audit log (record + display verification history) | C6 | Diff | Query verifies log entries |
 | 1.14 | Span-check timeout policy: 2-3 retries with exponential backoff implemented as `RetryableError` in the validation step; route to staging on exhaustion | C7 | Validation step in workflow | Test with mock unreachable URL retries then routes claim to staging |
+| 1.15 | Source-tier audit UI extension to existing `ProvisionalReviewCard` (reuse, not new build): handles both provisional sources AND seeded sources. Per source: source URL, Haiku-recommended `effective_tier` + confidence + rationale (FACT vs INFERENCE label per integrity rule), current `base_tier` for comparison, accept/override/flag-as-ambiguous controls. Plus a Haiku recommendation function `recommendSourceTier(source_id)` that reads the source URL excerpt + the source-credibility-model SKILL tier definitions and returns `{recommended_tier, confidence, rationale, kind: 'recommendation'}`. Plus a `commit_tier_change` admin endpoint gated on operator tick that updates `sources.base_tier` (for seeded) or promotes via `/api/admin/sources/promote` (for provisional). | Phase 1.5 enablement | Diffs in `ProvisionalReviewCard.tsx` + new admin endpoint + Haiku function | Local render shows tier-audit ticking UI for both seeded and provisional source rows; commit endpoint updates DB on accept |
 
 ### Exit checklist
 
@@ -180,6 +201,64 @@ Runs sprint4-governing-state.md section 7.2 exit checklist verbatim.
 ### Cost
 
 $0 model spend. Write volume: 294 UPDATE statements + ~159 INSERT statements via single script run.
+
+---
+
+## 4.5. Phase 1.5 — Source-tier audit + provisional-source triage (revision 2.2 NEW)
+
+### Concurrency
+
+1 subagent runs the Haiku recommendation pass; operator ticks proceed in parallel with no system parallelism (the ticking is the bottleneck by design).
+
+### Entry checklist
+
+```
+[ ] Block 1 marked COMPLETE; HARD CHECKPOINT 1 passed.
+[ ] Block 1 task 1.15 (source-tier audit UI extension) is live in the
+    admin surface; verified by local render.
+[ ] feedback_integrity_rule_absolute re-read.
+[ ] feedback_lift_cap_is_not_a_target re-read — Phase 1.5 cap is
+    ~$0.75 Haiku; expected ~$0.75; cap recommended $5 for safety.
+[ ] Operator confirms readiness to tick ~148 sources at operator pace
+    (~90 min if averaging 35 seconds per source).
+```
+
+### Tasks
+
+| # | Task | Deliverable | Auto-test |
+|---|---|---|---|
+| 1.5.1 | Identify the audit population: SELECT 73 active `sources` rows + 75 `provisional_sources` rows with `discovered_for_jurisdiction` set from A6.2; commit list to `/tmp/sprint4-tier-audit-population.json` | Population list | Count matches expectation |
+| 1.5.2 | Run Haiku recommendation pass against the population (~148 sources × $0.005 = ~$0.75 total). For each source, store `recommended_tier`, `confidence`, `rationale`, `kind: 'recommendation'` in `sources.recommended_tier` + `sources.classification_rationale` (or `provisional_sources.recommended_classification` for provisionals) | DB writes (recommendations only; NOT base_tier changes) | All ~148 sources have a recommendation row; no source has had its `base_tier` mutated yet |
+| 1.5.3 | Operator-paced ticking via the extended `ProvisionalReviewCard` admin surface. For each source: review Haiku recommendation + rationale + confidence + side-by-side with current `base_tier`; tick `accept` (commits the recommended tier), `override` (operator types correct tier; commits override), or `flag` (marks ambiguous; no tier change; operator returns to it). Halts when all ~148 sources ticked. | DB writes via `commit_tier_change` endpoint (gated on tick) | Per-source: tick `accept` updates `sources.base_tier` to `recommended_tier`; tick `override` updates to operator-typed value; tick `flag` writes `integrity_flags` row + leaves `base_tier` unchanged |
+| 1.5.4 | Audit yield report appended to governing doc section 8: count of accepts / overrides / flags; list of sources where Haiku and operator disagreed; list of sources flagged ambiguous | Doc commit | Report exists; tally adds up to 148 |
+
+### Exit checklist
+
+```
+[ ] All ~148 sources have been ticked: accept / override / flag.
+[ ] Sources with tick `accept` have `sources.base_tier` updated to
+    `recommended_tier`; verified via DB query.
+[ ] Sources with tick `override` have `sources.base_tier` updated to
+    operator-typed value; verified via DB query.
+[ ] Provisional sources with tick `accept` are promoted via
+    `/api/admin/sources/promote`; verified by appearance in `sources`.
+[ ] Sources with tick `flag` have an `integrity_flags` row of category
+    `source_issue`, status `open`; verified via DB query.
+[ ] Yield report committed to sprint4-governing-state.md section 8.
+[ ] No item in `intelligence_items` has had its `provenance_status`
+    changed in Phase 1.5 (item-level changes happen in Phase 2
+    Reconciliation).
+```
+
+### Cost
+
+~$0.75 Haiku model + ~90 min operator ticking. Cap: $5 model spend (safety ceiling).
+
+### Why Phase 1.5 belongs here
+
+Reconciliation's criterion 1 (validated source) joins to `sources.base_tier`. Component 3's per-claim authority floor for CRITICAL/HIGH joins to the same column. If base_tier values are seed-time guesses (mislabeled Tier 2 actually Tier 3 etc.), the gate enforces against unverified labels and HC2 surfaces a misleading quarantine count. Pre-launch, we have room to verify tiers BEFORE reconciliation rather than retrofit them after the launch corpus is built around them.
+
+The fold of provisional-source triage into the same pass closes two loose threads — seeded sources tiered AND provisionals triaged — before Phase 2 runs.
 
 ---
 

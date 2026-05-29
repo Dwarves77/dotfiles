@@ -80,9 +80,11 @@ Full design in [docs/designs/source-provenance-model.md](designs/source-provenan
 
 ## 2. Active phase
 
-**ENTERING PHASE 1 (Block 1 — invariant landing, ~39h, 14 tasks).** Revision 2 sign-off recorded 2026-05-29 (see section 4). Three open questions locked (slots, ANALYSIS labels, verification queue). Workflow invocation prepared; runtime will generate the orchestration script and surface an approval card for operator review BEFORE phase 1 executes.
+**ENTERING PHASE 1 (Block 1 — invariant landing + Vercel Workflow DevKit substrate + source-tier audit UI, ~51h, 19 tasks).** Revision 2.2 sign-off recorded 2026-05-29 (see section 4). Three open questions from revision 2 locked (slots, ANALYSIS labels, verification queue). Revision 2.1 substrate split locked. Revision 2.2 Phase 1.5 added with integrity-rule constraint on Haiku tier recommendations.
 
-**Sequence:** PRE-BLOCK-1 -> **Phase 1 / Block 1 (active)** -> HARD CHECKPOINT 1 (gate verification on 6 criteria) -> Phase 2 / Reconciliation (dry-run + HARD CHECKPOINT 2 + execute) -> Phase 3 / Block 1.5 (per-item authority floor) -> HARD CHECKPOINT 3 (binding cap + green-light) -> Phase 4 / Block 4 (gated generation + visual affordance + verification queue).
+**Sequence (revision 2.2):** PRE-BLOCK-1 -> **Phase 1 / Block 1 (active)** -> HARD CHECKPOINT 1 -> **Phase 1.5 / source-tier audit + provisional triage (~148 sources, $0.75, operator-paced)** -> Phase 2 / Reconciliation (dry-run + HARD CHECKPOINT 2 + execute) -> Phase 3 / Block 1.5 (per-item authority floor) -> HARD CHECKPOINT 3 (binding cap + green-light) -> Phase 4 / Block 4 (gated generation + visual affordance + verification queue).
+
+Workflow invocation prepared; runtime will generate the orchestration script and surface an approval card for operator review BEFORE Phase 1 executes.
 
 ---
 
@@ -122,8 +124,9 @@ Out-of-band Sprint 3 work shipped during the same window:
 | Phase | State | Commits / DB writes | Notes |
 |---|---|---|---|
 | PRE-BLOCK-1 (revision 2 docs) | IN PROGRESS | (this commit when written) | Revised 2026-05-29; awaiting operator sign-off on revision 2 |
-| Block 1 — invariant landing + Vercel Workflow DevKit setup (~48h, 18 tasks) | NOT STARTED | -- | Entry checklist 7.1; revision 2.1 spec; requires sign-off on the substrate split + 4 new tasks 1.0a-1.0d |
-| Reconciliation — 294 items | NOT STARTED | -- | Entry checklist 7.2; requires Block 1 COMPLETE + HARD CHECKPOINT 1 |
+| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | NOT STARTED | -- | Entry checklist 7.1; revision 2.2 spec; requires sign-off on Phase 1.5 add + task 1.15 |
+| Phase 1.5 — source-tier audit + provisional-source triage (~$0.75 + ~90 min ticking) | NOT STARTED | -- | Revision 2.2 NEW phase between HC1 and Reconciliation; entry checklist 7.1.5; ~148 sources (73 seeded + 75 provisional from A6.2) |
+| Reconciliation — 294 items | NOT STARTED | -- | Entry checklist 7.2; requires Block 1 COMPLETE + HC1 + Phase 1.5 COMPLETE so reconciliation runs against authoritatively-tiered sources |
 | Block 1.5 — per-item authority floor (~2h) | NOT STARTED | -- | Entry checklist 7.3; ships after Reconciliation; folds in former Block 2 |
 | Block 2 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
 | Block 3 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
@@ -208,6 +211,9 @@ Out-of-band Sprint 3 work shipped during the same window:
 | 2026-05-29 | SIGN-OFF on revision 2.1 with one refinement: Block 1 task 1.0c stub must include the STEP STRUCTURE (named steps with empty bodies), not just an empty function. Block 1 proves the step skeleton registers + checkpoints correctly via `npx workflow inspect run <runId>`; Block 4 fills logic into proven steps. | "include the STEP STRUCTURE (named steps: source-or-find, persist agent_run_searches, validate, route, the createHook/await/resume loop) with empty bodies, not just an empty function. Block 1 proves the step skeleton registers + checkpoints correctly; Block 4 fills logic into proven steps." | Operator approval + step-skeleton refinement | workflow-spec task 1.0c revised |
 | 2026-05-29 | RULING reiterated: build orchestration stays Claude Code Dynamic Workflows; Vercel Workflow DevKit is the Phase 4 substrate ONLY, not the build orchestrator. | "Vercel Workflow DevKit is the Phase 4 substrate, not the build orchestrator — build orchestration stays Claude Code subagents per the substrate split." | Operator clarification | This doc + workflow spec |
 | 2026-05-29 | Standing rule reiterated (third time): approving revision 2.1 is NOT approving quarantine (HC2) or generation spend (HC3). Those gate separately. | "Standing rule holds: approving this is NOT approving quarantine (HC2) or generation spend (HC3). Those gate separately." | Operator clarification | workflow-spec sections 4, 7, 8 |
+| 2026-05-29 | FRAMING CORRECTION: there are no customers yet — pre-launch. "Customer view" throughout these docs means "launch corpus / publish surface." "Pulled from customer view" means "excluded from launch corpus." Nothing fabricated has reached a real user. This is pre-launch data hygiene, not live-harm remediation. The corpus we build the site on IS what we launch with — gate ensures born-verified during build-out; reconciliation cleans the 278 before they become launch content. The 16 archived items were excluded from launch corpus, not pulled from live customer view. | "Correction on framing: there are no customers yet. We're building the site now, pre-launch... This doesn't reduce the work — it sharpens the timing." | Framing correction; work + structure unchanged | This doc + design + workflow-spec (future-readers interpret "customer-visible" as "launch-corpus-visible") |
+| 2026-05-29 | REVISION 2.2: Phase 1.5 source-tier audit + provisional-source triage added between HC1 and Phase 2 Reconciliation. ~148 sources (73 seeded + 75 provisional from A6.2). Haiku recommends `effective_tier` + confidence + rationale (~$0.75 total); operator ticks accept/override/flag; ambiguous tiers FLAGGED for operator, not guessed. Reconciliation then runs against authoritatively-tiered sources. Block 1 grows to 19 tasks ~51h (adds task 1.15 source-tier audit UI extension to ProvisionalReviewCard). | "Add it. Phase 1.5 source-tier audit between HC1 and Phase 2 reconciliation. Revision 2.2... If the floor (criterion 3) enforces against base_tier values we haven't verified, items pass the authority floor on mislabeled sources — structural fabrication." | New direction; pre-launch tier hygiene | source-provenance-model.md Component 1 + workflow-spec section 4.5 NEW |
+| 2026-05-29 | Integrity rule applies to Phase 1.5: Haiku RECOMMENDS source tiers with rationale and confidence; it does NOT assert tier as fact. Operator tick is authority. Source whose correct tier is genuinely ambiguous gets FLAGGED for operator decision, not guessed. Same fact-vs-inference discipline as the briefs. | "the tier audit is itself subject to the integrity rule. Haiku RECOMMENDS a tier with rationale; it does not assert the tier as fact. The operator tick is the authority. A source whose correct tier is genuinely ambiguous gets flagged for me, not guessed." | New ruling | source-provenance-model.md Component 1 (Phase 1.5) |
 
 ### 4.1 Drift pattern summary
 
@@ -452,6 +458,41 @@ PUSH + DOC UPDATE:
     Kanban listing fetch against the view.
 [ ] State table 3.2 updated with the post-reconciliation counts the turn
     the script finishes.
+```
+
+### 7.1.5 Phase 1.5 — Source-tier audit + provisional-source triage (revision 2.2 NEW)
+
+**Entry checklist:**
+
+```
+[ ] Block 1 COMPLETE; HARD CHECKPOINT 1 passed.
+[ ] Block 1 task 1.15 (source-tier audit UI extension) is live in
+    the admin surface; verified by local render.
+[ ] feedback_integrity_rule_absolute re-read.
+[ ] feedback_lift_cap_is_not_a_target re-read — Phase 1.5 expected
+    ~$0.75 Haiku; cap recommended $5 as safety ceiling.
+[ ] Operator confirms readiness to tick ~148 sources at operator
+    pace (~90 min if averaging 35 seconds per source).
+```
+
+**Exit checklist:**
+
+```
+[ ] All ~148 sources have been ticked: accept / override / flag.
+[ ] Sources with tick `accept` have `sources.base_tier` updated to
+    `recommended_tier`; verified via DB query.
+[ ] Sources with tick `override` have `sources.base_tier` updated
+    to operator-typed value; verified via DB query.
+[ ] Provisional sources with tick `accept` are promoted via
+    `/api/admin/sources/promote`; verified by appearance in `sources`.
+[ ] Sources with tick `flag` have an `integrity_flags` row of
+    category `source_issue`, status `open`; verified via DB query.
+[ ] Yield report committed to section 8 of this doc: counts of
+    accept / override / flag; list of Haiku-operator disagreements;
+    list of flagged-ambiguous sources.
+[ ] No item in `intelligence_items` has had its `provenance_status`
+    changed in Phase 1.5 (item-level changes happen in Phase 2
+    Reconciliation, which runs against the now-corrected tiers).
 ```
 
 ### 7.3 Block 1.5 — per-item authority floor (revision 2: was Block 2)
