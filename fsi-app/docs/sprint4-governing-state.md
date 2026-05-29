@@ -122,7 +122,7 @@ Out-of-band Sprint 3 work shipped during the same window:
 | Phase | State | Commits / DB writes | Notes |
 |---|---|---|---|
 | PRE-BLOCK-1 (revision 2 docs) | IN PROGRESS | (this commit when written) | Revised 2026-05-29; awaiting operator sign-off on revision 2 |
-| Block 1 — invariant landing (~39h, 14 tasks) | NOT STARTED | -- | Entry checklist 7.1; requires sign-off on REVISION 2 of this doc + workflow spec |
+| Block 1 — invariant landing + Vercel Workflow DevKit setup (~48h, 18 tasks) | NOT STARTED | -- | Entry checklist 7.1; revision 2.1 spec; requires sign-off on the substrate split + 4 new tasks 1.0a-1.0d |
 | Reconciliation — 294 items | NOT STARTED | -- | Entry checklist 7.2; requires Block 1 COMPLETE + HARD CHECKPOINT 1 |
 | Block 1.5 — per-item authority floor (~2h) | NOT STARTED | -- | Entry checklist 7.3; ships after Reconciliation; folds in former Block 2 |
 | Block 2 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
@@ -203,6 +203,11 @@ Out-of-band Sprint 3 work shipped during the same window:
 | 2026-05-29 | LOCKED DECISION (open question 1): same four required slots for ALL D1 item_types in Block 1: effective_date, primary_deadline, jurisdictional_scope, penalty_summary. The slot rule is "addressed," not "has a number." `penalty_summary` is satisfiable by an explicit-gap label where an instrument genuinely has no penalty provision (e.g., "no penalty provision in this instrument") — counts as addressed. Per-type customization deferred to Block 1.5 only if the uniform four prove wrong in practice. | "Same four for all D1 item_types in Block 1... Refinement: penalty_summary is satisfiable by an explicit-gap label where an instrument genuinely has no penalty provision. The slot rule is 'addressed,' not 'has a number.'" | New ruling, locked | source-provenance-model.md Component 3 (required slots) |
 | 2026-05-29 | LOCKED DECISION (open question 2): ANALYSIS label syntax = CLOSED SET of four EXACT patterns; validation uses exact-match regex, NOT fuzzy matching. Approved patterns: `*Per the workspace's reading:*`, `*Analytical inference:*`, `*Industry interpretation:*`, `*Operational implication:*`. A near-miss phrase ("our reading suggests") FAILS as unlabeled. A fifth pattern later is a deliberate addition to the enumerated set, NEVER a fuzzy allowance. | "TIGHTENING: closed set, EXACT-match for the validation regex, NOT fuzzy. A near-miss phrase ('our reading suggests') fails as unlabeled. Fuzzy label matching reopens the inference-as-fact gap." | New ruling, locked — directly closes a vector for inference-as-fact drift | source-provenance-model.md Component 4 |
 | 2026-05-29 | LOCKED DECISION (open question 3): verification queue is per-claim tick ONLY. NO batch-tick. The one efficiency is source span pre-displayed next to each claim so the reviewer isn't hunting. The tick stays per-claim with span in view. | "Bottlenecking is the point. No batch-tick, it enables rubber-stamping without reading, which is verification theater and defeats the reason CRITICAL/HIGH gate to human review." | New ruling, locked | source-provenance-model.md Component 6 |
+| 2026-05-29 | RULING: Workflow substrate split. Claude Code Dynamic Workflows orchestrates the BUILD (Block 1 + Reconciliation + Block 1.5). **Vercel Workflow DevKit (workflow@4.2.5 stable) is the substrate for Phase 4 generation** — DurableAgent for active sourcing + RetryableError for span-check retries + createHook/resumeHook for the CRITICAL/HIGH human-verify gate. Block 1 effort grows ~39h to ~48h (4 new infrastructure tasks 1.0a-1.0d + integration touches in 1.5/1.6/1.12/1.14). | "Use Claude Code dynamic workflows to orchestrate the build... Use Vercel Workflow DevKit as the substrate for the actual generation pipeline... Worth the ~9h Block 1 growth." | New direction; substrate decision | sprint4-workflow-spec.md revision 2.1 |
+| 2026-05-29 | Stability check on workflow@4.2.5: PASS. Latest stable, published 2026-05-22 (~7 days). Active weekly v4 release cadence through April-May 2026. v5 in beta (5.0.0-beta.8); we use v4 stable. Next.js compat: `@workflow/next` peerDep `>13` accepts 16.1.6. License Apache-2.0. Vercel-owned (first-party for our deploy platform). Residual unknown: Pro plan tier verification deferred to task 1.0d (`npx workflow inspect runs --backend vercel`). | "Before you build: confirm Vercel Workflow DevKit is production-stable... compatible with our current Next.js version + Vercel plan." | Operator-gated stability check | Bash verification 2026-05-29 |
+| 2026-05-29 | SIGN-OFF on revision 2.1 with one refinement: Block 1 task 1.0c stub must include the STEP STRUCTURE (named steps with empty bodies), not just an empty function. Block 1 proves the step skeleton registers + checkpoints correctly via `npx workflow inspect run <runId>`; Block 4 fills logic into proven steps. | "include the STEP STRUCTURE (named steps: source-or-find, persist agent_run_searches, validate, route, the createHook/await/resume loop) with empty bodies, not just an empty function. Block 1 proves the step skeleton registers + checkpoints correctly; Block 4 fills logic into proven steps." | Operator approval + step-skeleton refinement | workflow-spec task 1.0c revised |
+| 2026-05-29 | RULING reiterated: build orchestration stays Claude Code Dynamic Workflows; Vercel Workflow DevKit is the Phase 4 substrate ONLY, not the build orchestrator. | "Vercel Workflow DevKit is the Phase 4 substrate, not the build orchestrator — build orchestration stays Claude Code subagents per the substrate split." | Operator clarification | This doc + workflow spec |
+| 2026-05-29 | Standing rule reiterated (third time): approving revision 2.1 is NOT approving quarantine (HC2) or generation spend (HC3). Those gate separately. | "Standing rule holds: approving this is NOT approving quarantine (HC2) or generation spend (HC3). Those gate separately." | Operator clarification | workflow-spec sections 4, 7, 8 |
 
 ### 4.1 Drift pattern summary
 
@@ -278,8 +283,12 @@ Items that may surface during Sprint 4 land in section 8.
 [ ] CLAUDE.md "Verification Before Authorization" section re-read in
     this session.
 [ ] Block 1 scope confirmed from source-provenance-model.md section 7
-    "Sprint 4 Block 1 — invariant landing": 14 tasks, ~39h total
-    (revised up from original 18h to accommodate Additions A, B, D).
+    AND workflow-spec section 2 revision 2.1: 18 tasks, ~48h total
+    (4 Vercel Workflow DevKit infrastructure tasks 1.0a-1.0d added in
+    revision 2.1; the rest unchanged from revision 2).
+[ ] Vercel Workflow DevKit substrate confirmed for Phase 4 per decision
+    log 2026-05-29: workflow@4.2.5 stable, Apache-2.0, Next.js peerDep
+    >13 satisfied by 16.1.6.
 [ ] All six criteria of the invariant understood and present in the
     plan: (1) validated source, (2) URL grounding, (3) claim FACT
     grounding + active sourcing, (4) labeling, (5) explicit-gap-for-
@@ -298,6 +307,27 @@ Items that may surface during Sprint 4 land in section 8.
 **Exit checklist** (walk before marking Block 1 COMPLETE):
 
 ```
+VERCEL WORKFLOW DEVKIT INFRASTRUCTURE (revision 2.1 tasks 1.0a-1.0d):
+[ ] `workflow@^4.2.5`, `@workflow/ai@^4.1.2`, `@workflow/next@^4.0.6`
+    installed in `fsi-app/package.json`; lockfile committed.
+[ ] `withWorkflow` wired in Next.js setup; `npx workflow health`
+    returns OK in dev.
+[ ] `src/workflows/generate-brief.ts` scaffolded with FULL STEP
+    SKELETON, empty bodies (operator refinement 2026-05-29). Named
+    steps registered: `sourceOrFindForClaim`, `persistAgentRunSearches`,
+    `validateItemProvenance`, `routeOnValidation`. Workflow body
+    contains the createHook/await/resume loop scaffold for per-claim
+    verification with deterministic token `verify-${itemId}-${claimId}`.
+    Real logic fills in Block 4. `tsc --noEmit` clean.
+    Verification: `start(generateBriefWorkflow, [testItemId])` returns
+    real `runId`; `npx workflow inspect run <runId>` shows each named
+    step as a checkpoint (proves the skeleton registers + durably
+    checkpoints correctly).
+[ ] Vercel plan tier confirmed for Workflow DevKit production:
+    `npx workflow inspect runs --backend vercel --project <project>`
+    returns the project's runs list (empty is OK; non-error response
+    is what matters).
+
 SCHEMA + FUNCTION + TRIGGER (criteria 1-6 infrastructure):
 [ ] Migration applied: `provenance_status` enum (incl.
     `pending_human_verify`), `provenance_verified_at`,

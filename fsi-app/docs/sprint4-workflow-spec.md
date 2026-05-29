@@ -57,11 +57,11 @@ Phase 4: Block 4 — gated generation + visual affordance + verify  [no auto-adv
 
 ---
 
-## 2. Phase 1 — Block 1 invariant landing (revision 2)
+## 2. Phase 1 — Block 1 invariant landing (revision 2.1 — Vercel Workflow DevKit infrastructure added)
 
 ### Concurrency
 
-Up to 8 parallel subagents. Phase has 14 tasks; tasks group in 6-8 parallel batches with dependencies.
+Up to 8 parallel subagents. Phase has 18 tasks (was 14); tasks group in 6-8 parallel batches with dependencies.
 
 ### Entry checklist
 
@@ -69,34 +69,43 @@ Runs sprint4-governing-state.md section 7.1 entry checklist verbatim. Any failed
 
 ### Tasks
 
+Vercel Workflow DevKit infrastructure (revision 2.1 NEW — substrate for Phase 4):
+
+| # | Task | Component | Deliverable | Auto-test |
+|---|---|---|---|---|
+| 1.0a | Install `workflow@^4.2.5`, `@workflow/ai@^4.1.2`, `@workflow/next@^4.0.6` in `fsi-app/package.json`; commit lockfile | -- | `package.json` + `package-lock.json` diff | `npm install` succeeds; `npm list workflow` shows 4.2.x |
+| 1.0b | Wire `withWorkflow` into Next.js setup per `@workflow/next` docs; verify `npx workflow health` reachable in dev | -- | `next.config.ts` diff (or equivalent module config) | `npx workflow health` returns OK in dev |
+| 1.0c | Scaffold `src/workflows/generate-brief.ts` with FULL STEP SKELETON, empty bodies. Imports: `DurableAgent`, `RetryableError`, `createHook` from `workflow`. Named steps registered (bodies are TODO stubs that return placeholder values): `sourceOrFindForClaim` (active-sourcing search; returns placeholder source span + source_id), `persistAgentRunSearches` (write rows with `result_content_excerpt`), `validateItemProvenance` (calls Postgres function), `routeOnValidation` (writes to intelligence_items / staged_updates by branch). Plus the workflow function body containing the createHook/await/resume loop scaffold for per-claim verification, deterministic token `verify-${itemId}-${claimId}`. Real logic fills in Block 4 alongside the task-1.7 finalized prompt | -- | New file at `src/workflows/generate-brief.ts` | `tsc --noEmit` clean; `start(generateBriefWorkflow, [testItemId])` returns a real `runId`; each named step shows up as a checkpoint in `npx workflow inspect run <runId>` (proves the step skeleton registers and durably checkpoints correctly, not just that the workflow function exists) |
+| 1.0d | Confirm Vercel plan tier supports Workflow DevKit production deploy: `npx workflow inspect runs --backend vercel --project <project>` returns the project's runs list (empty is OK) | -- | Verification log | Command succeeds against the production project |
+
 Schema + function + trigger (criteria 1-6 infrastructure):
 
 | # | Task | Component | Deliverable | Auto-test |
 |---|---|---|---|---|
 | 1.1 | Migration: `provenance_status` enum (incl. `pending_human_verify`), `provenance_verified_at`, `agent_run_searches` (with `result_content_excerpt`), `section_claim_provenance`, `item_type_required_slots` | All | Migration file | Apply; all columns + tables exist |
-| 1.2 | Seed `item_type_required_slots`: for `regulation` (effective_date, primary_deadline, jurisdictional_scope, penalty_summary) | C3 | INSERT statements committed | DB query verifies seed rows |
+| 1.2 | Seed `item_type_required_slots`: for `regulation` and other D1 item_types (directive, standard, guidance, framework), same four slots: effective_date, primary_deadline, jurisdictional_scope, penalty_summary | C3 | INSERT statements committed | DB query verifies seed rows for each item_type |
 | 1.3 | Validation function `validate_item_provenance` — all six criteria | C1-C6 | Migration file | Synthetic test cases for each criterion pass/fail per design doc 3b |
 | 1.4 | Trigger `set_provenance_status` on `intelligence_items` + `intelligence_item_sections` + `section_claim_provenance`; branches to verified / pending_human_verify / quarantined | C6 | Migration file | Test INSERT exercises all three terminal states |
 
-Generation pipeline instrumentation:
+Generation pipeline instrumentation (revision 2.1 — uses Vercel Workflow DevKit substrate):
 
 | # | Task | Component | Deliverable | Auto-test |
 |---|---|---|---|---|
-| 1.5 | `/api/agent/run` instrumentation: persist `agent_run_searches` + `result_content_excerpt`, parse `section_claim_provenance` payload from agent output, call validation, route on failure | C2, C3, C4 | Diff committed | `tsc --noEmit` clean; synthetic invocation writes rows |
-| 1.6 | `b2-runner.mjs` + `sprint3-a5-sonnet-backfill.mjs` parallel updates | All | Diffs committed | `node --check` clean |
-| 1.7 | System prompt update: source-or-explicit-gap contract + per-claim emission (FACT span, ANALYSIS label, LEGAL routing) + active-sourcing instructions + slot enforcement + Legal-Confirmation-Required callout + non-regulatory empty-{} (the latter two folded in from old Block 3) | C3, C4 | Diff committed | 3-item audit sample confirms contract takes effect; audit findings written to governing doc section 8 |
+| 1.5 | Refactor `/api/agent/run/route.ts` to thin wrapper: `start(generateBriefWorkflow, [itemId])` returns a `runId`. Persistence of `agent_run_searches`, `section_claim_provenance`, and validation routing all move into workflow steps in `src/workflows/generate-brief.ts` (filled in Block 4) | C2, C3, C4 | Diff committed | `tsc --noEmit` clean; synthetic test call returns a real `runId` |
+| 1.6 | `b2-runner.mjs` + `sprint3-a5-sonnet-backfill.mjs` parallel updates to use `start()` instead of inline Sonnet calls; deprecate the embedded retry logic (moves into Vercel workflow step retry behavior) | All | Diffs committed | `node --check` clean |
+| 1.7 | System prompt update: source-or-explicit-gap contract + per-claim emission (FACT span, ANALYSIS label, LEGAL routing) + active-sourcing instructions + slot enforcement + Legal-Confirmation-Required callout + non-regulatory empty-{}. ANALYSIS label syntax CLOSED SET, EXACT regex match: `*Per the workspace's reading:*`, `*Analytical inference:*`, `*Industry interpretation:*`, `*Operational implication:*` | C3, C4 | Diff committed | 3-item audit sample confirms contract takes effect; audit findings written to governing doc section 8 |
 | 1.8 | Parser extension (`parse-output.ts`): extract `section_claim_provenance` payload + cross-link to `agent_run_searches` for source_id | C3, C4 | Diff committed | `tsc --noEmit` clean |
 
-Reconciliation + view + admin UI:
+Reconciliation + view + admin UI (revision 2.1 — admin tick uses resumeHook):
 
 | # | Task | Component | Deliverable | Auto-test |
 |---|---|---|---|---|
 | 1.9 | Reconciliation script `sprint4-provenance-reconcile.mjs` written; supports `--dry-run` (default) and `--execute` flags | -- | Script file | `node --check` clean |
 | 1.10 | View `active_intelligence_items` (filters `provenance_status = 'verified'`); customer-facing fetcher cutover | -- | Migration + diff in `supabase-server.ts` | View returns 0 rows pre-reconciliation; fetcher type-checks |
 | 1.11 | `staged_updates` UI extension: surface ungrounded URLs, unverified spans, unlabeled assertions, missing required slots, pattern-flagged legal conclusions | C2-C5 | Diff in admin StagedUpdates surface | Local render with synthetic staged rows for each failure mode |
-| 1.12 | Admin verification queue at `/admin → Items pending verification`: per-claim source-span pre-display + tick mechanism | C6 | Diff in admin surface | Local render + tick test writes `verified_by` + `verified_at`; all-ticked CRITICAL/HIGH item flips to `'verified'` |
+| 1.12 | Admin verification queue at `/admin → Items pending verification`: per-claim source-span pre-display + tick mechanism. **PER-CLAIM TICK ONLY (locked decision); NO batch tick.** Tick handler calls `resumeHook(token, { tick: true, claim_id, reviewer })` against the durable workflow waiting on `verify-{item_id}-{claim_id}` token. The workflow then updates `section_claim_provenance.verified_by` + `verified_at`. When all FACT claims for an item have been ticked, the workflow flips `intelligence_items.provenance_status` from `pending_human_verify` to `verified` | C6 | Diff in admin surface + workflow stub function | Local render + tick test fires `resumeHook`; durable workflow advances; all-ticked CRITICAL/HIGH item flips status |
 | 1.13 | Verification audit log (record + display verification history) | C6 | Diff | Query verifies log entries |
-| 1.14 | Span-check timeout policy: 2-3 retries with exponential backoff; route to staging on exhaustion | C7 | Validation function logic | Test with mock unreachable URL routes claim to staging |
+| 1.14 | Span-check timeout policy: 2-3 retries with exponential backoff implemented as `RetryableError` in the validation step; route to staging on exhaustion | C7 | Validation step in workflow | Test with mock unreachable URL retries then routes claim to staging |
 
 ### Exit checklist
 
@@ -108,7 +117,11 @@ Commits pushed to master. State table row for Block 1 updated to COMPLETE with c
 
 ### Cost
 
-~$1-2 model spend (3-item prompt audit sample in task 1.7). Subagent reasoning budget: $5 per task, $70 total cap across phase.
+~$1-2 model spend (3-item prompt audit sample in task 1.7). Subagent reasoning budget: $5 per task × 18 tasks = ~$90 total cap across phase.
+
+### Total Block 1 effort (revision 2.1)
+
+~48h (was ~39h in revision 2). The 9h growth comes from the four Vercel Workflow DevKit infrastructure tasks (1.0a-1.0d) plus the additional integration work in tasks 1.5, 1.6, 1.12, 1.14 to use the workflow substrate instead of inline retry/Sonnet/polling logic. Block 4 effort reduces correspondingly — the durability machinery is built in Block 1, so Block 4 mainly fills in the workflow step bodies + the customer-facing affordance.
 
 ---
 
