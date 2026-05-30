@@ -64,6 +64,8 @@ const ID = {
   analysisNoLbl: "5b1a4004-0000-4000-8000-000000000114",
   legalUnwrap:   "5b1a4005-0000-4000-8000-000000000114",
   missingSlot:   "5b1a4006-0000-4000-8000-000000000114",
+  critVerified:  "5b1a4007-0000-4000-8000-000000000114",
+  critShell:     "5b1a4008-0000-4000-8000-000000000114",
 };
 
 async function cleanup(client) {
@@ -189,8 +191,8 @@ async function main() {
 
     // Build a fully-valid item (all slots covered by span-grounded FACT claims
     // whose spans appear in EXCERPT). Returns the section id + search id.
-    const buildValid = async (itemId, priority) => {
-      await insItem(itemId, priority === "MODERATE" ? "MOD_VALID" : "CRIT_VALID", priority, ID.source, SRC_URL);
+    const buildValid = async (itemId, priority, nameOverride) => {
+      await insItem(itemId, nameOverride || (priority === "MODERATE" ? "MOD_VALID" : "CRIT_VALID"), priority, ID.source, SRC_URL);
       const secId = await insSection(
         itemId,
         "key_obligations",
@@ -299,6 +301,24 @@ async function main() {
       // effective_date slot: NO covering claim.
     }
 
+    // CASE 7: valid CRITICAL with ALL FACT claims human-verified -> verified.
+    // The 1.12 runtime-fix contract: criterion 6 is verification-aware, so once
+    // every FACT claim carries a verified_at the function recommends 'verified'
+    // and the set_provenance_status trigger AGREES with the admin-queue flip
+    // instead of reverting it.
+    await buildValid(ID.critVerified, "CRITICAL", "CRIT_VERIFIED");
+    await client.query(
+      `UPDATE public.section_claim_provenance SET verified_at = NOW(), verified_by = $2
+         WHERE intelligence_item_id = $1 AND claim_kind = 'FACT'`,
+      [ID.critVerified, "00000000-0000-4000-8000-000000000007"]
+    );
+
+    // CASE 8: CRITICAL SHELL (valid source, no sections/claims) -> the zero-claim
+    // guard. "All FACT claims verified" is vacuously true with zero claims, so
+    // without the >=1 guard a shell would flip to verified on creation. It must
+    // stay pending_human_verify until a deliberate Block-4 zero-claim tick.
+    await insItem(ID.critShell, "CRIT_SHELL", "CRITICAL", ID.source, SRC_URL);
+
     // ══════════════════════════════════════════════════════════════════
     // RUN ASSERTIONS
     // ══════════════════════════════════════════════════════════════════
@@ -337,6 +357,12 @@ async function main() {
 
     assertCase("C6 missing required slot -> valid:false (criterion 5)",
       await validate(client, ID.missingSlot), false, "quarantined", 5);
+
+    assertCase("C7 CRITICAL all FACT claims verified -> verified (1.12 fix)",
+      await validate(client, ID.critVerified), true, "verified", null);
+
+    assertCase("C8 CRITICAL zero-claim shell -> pending_human_verify (>=1 guard)",
+      await validate(client, ID.critShell), true, "pending_human_verify", null);
 
   } catch (err) {
     console.error(`[apply-114] ERROR: ${err.message}`);

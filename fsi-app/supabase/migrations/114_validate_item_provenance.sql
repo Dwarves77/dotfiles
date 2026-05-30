@@ -69,6 +69,8 @@ DECLARE
   v_url_ok        boolean;
   v_slot          RECORD;
   v_slot_count    integer;
+  v_fact_total    integer;
+  v_fact_verified integer;
   -- The closed set of four EXACT ANALYSIS label patterns (decision-log
   -- row 207, LOCKED). Exact-match, not fuzzy. A near-miss fails as unlabeled.
   c_analysis_labels constant text[] := ARRAY[
@@ -386,9 +388,34 @@ BEGIN
   IF NOT v_result.valid THEN
     v_result.recommended_status := 'quarantined';
   ELSIF v_priority_high THEN
-    -- CRITERION 6 — CRITICAL/HIGH pass the gate to pending_human_verify,
-    -- NOT verified, until the admin queue ticks each FACT claim.
-    v_result.recommended_status := 'pending_human_verify';
+    -- CRITERION 6 — CRITICAL/HIGH pass the gate to pending_human_verify, NOT
+    -- verified, until the admin verification queue (task 1.12) ticks EVERY FACT
+    -- claim. The item flips to verified only once there is AT LEAST ONE FACT claim
+    -- AND all FACT claims carry a verified_at. The >=1 guard is load-bearing: a
+    -- zero-claim CRITICAL/HIGH shell must NOT flip on vacuous truth ("all FACT
+    -- claims verified" is trivially true with zero claims) — it stays
+    -- pending_human_verify until the Block-4 zero-claim tick.
+    --
+    -- VERIFICATION-AWARE (Sprint 4 1.12 runtime fix, 2026-05-30): the
+    -- set_provenance_status trigger (task 1.4) consumes this function as the single
+    -- source of truth and re-runs it on every write. Before this, criterion 6
+    -- hard-coded 'pending_human_verify', so when the admin-queue flip set an item
+    -- to 'verified' the trigger re-ran the function, got 'pending_human_verify',
+    -- and REVERTED the flip in-transaction — no CRITICAL/HIGH item could ever
+    -- reach verified (Component 6 fully blocked). Making the function aware of the
+    -- verified_at ticks lets the trigger AGREE with the flip. Mirrors
+    -- flipToVerifiedIfAllTicked's guard exactly (>=1 FACT claim AND all verified).
+    SELECT count(*)::int,
+           count(*) FILTER (WHERE verified_at IS NOT NULL)::int
+      INTO v_fact_total, v_fact_verified
+      FROM public.section_claim_provenance
+     WHERE intelligence_item_id = p_item_id
+       AND claim_kind = 'FACT';
+    IF v_fact_total > 0 AND v_fact_verified = v_fact_total THEN
+      v_result.recommended_status := 'verified';
+    ELSE
+      v_result.recommended_status := 'pending_human_verify';
+    END IF;
   ELSE
     v_result.recommended_status := 'verified';
   END IF;

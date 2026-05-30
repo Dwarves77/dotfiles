@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, ShieldCheck, Loader2 } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 /**
  * VerificationQueue — Sprint 4 Block 1 task 1.12 + 1.13 (UNVERIFIED-PENDING-RUNTIME).
@@ -41,11 +42,16 @@ export function VerificationQueue() {
   const [error, setError] = useState<string | null>(null);
   const [ticking, setTicking] = useState<string | null>(null);
 
+  const supabase = createSupabaseBrowserClient();
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/pending-verification");
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/admin/pending-verification", {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
       setItems(json.items || []);
@@ -54,7 +60,7 @@ export function VerificationQueue() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     void load();
@@ -64,9 +70,13 @@ export function VerificationQueue() {
     async (itemId: string, claimId: string) => {
       setTicking(claimId);
       try {
+        const { data: { session } } = await supabase.auth.getSession();
         const res = await fetch("/api/admin/verify-claim", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token || ""}`,
+          },
           body: JSON.stringify({ item_id: itemId, claim_id: claimId }),
         });
         const json = await res.json();
@@ -78,7 +88,7 @@ export function VerificationQueue() {
         setTicking(null);
       }
     },
-    [load]
+    [load, supabase]
   );
 
   return (
