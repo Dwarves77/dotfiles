@@ -218,6 +218,7 @@ Out-of-band Sprint 3 work shipped during the same window:
 | 2026-05-29 | DURABLE HC3 PRECONDITION (orphaned spend cap): the runner-level $30/$15 generation budget cap was orphaned by task 1.6's `start()` refactor (commit b138cb8) — `b2-runner.mjs` + `sprint3-a5-sonnet-backfill.mjs` no longer call Sonnet inline, so they no longer see model responses and cannot meter spend. The cap MUST be reconstituted IN the workflow substrate (DurableAgent / generation step) before any Phase 4 generation pass. Recorded as a binding entry-checklist item in section 7.6 (not just a session flag) so the HC3 binding-cap discipline is enforced by live code, not a stated number. | "harden it: record this as a durable HC3 precondition in the governing doc... a cap I declare at HC3 has to be enforced by something live in the code, not just a number I state." (operator message 2026-05-29) | Operator hardening ruling | This doc section 7.6 entry checklist; task 1.6 commit b138cb8 |
 | 2026-05-29 | DORMANT-HOOK PRECONDITION (HC2/Phase-2): PreToolUse danger patterns `seed/apply-` and `reconcile.*--execute` were added to ~/.claude/settings.json mid-session but proved DORMANT — a probe command containing "reconcile --execute" did not force-ask, and the 116/117 apply did not fire the hook either. Claude-code-guide research says hooks hot-reload via file watcher with no review gate, but observed behavior contradicts that. Recorded as a binding 7.2 entry-checklist item: before Phase 2 --execute, make the patterns live (new session / open /hooks) and OBSERVE the probe force-ask once. A dormant hook is not a gate — worst exactly at corpus mutation. | "we PROVE the reconcile --execute hook fires... I am not running real reconciliation until I've seen its gate fire once. A dormant gate on the corpus-mutation step is worse than no gate." (operator message 2026-05-29) | Operator hardening ruling | This doc section 7.2 entry checklist |
 | 2026-05-29 | GATE HOLE CLOSED (fromSeed bypass): task 1.10's customer read gate on `fetchIntelligenceItem` filtered the DB query to verified-only, but the `if (error || !row) return fromSeed()` fallback served ungated legacy static SEED content (the pre-provenance corpus) for any item-detail URL whose id matched a SEED entry — leaking around the gate. Fixed to FAIL CLOSED (return null/not-found) on the configured-DB path and on DB error; the offline/dev seed-only path (guarded by !isSupabaseConfigured) is unchanged. | "if unverified detail URLs silently serve old unverified SEED content, the gate isn't actually gating item detail — it's falling through to ungated legacy data." (operator message 2026-05-29) | Operator-surfaced gate hole; fixed same turn | src/lib/supabase-server.ts fetchIntelligenceItem |
+| 2026-05-30 | HOOK WAS FAIL-OPEN (root cause of the dormant-gate finding; supersedes the bypass theory in the 2026-05-29 dormant-hook row): the PreToolUse Bash hook has been INERT since installation because `jq` is not installed on this machine. Its first line `cmd=$(jq -r ... 2>/dev/null); if [ -z "$cmd" ]; then exit 0` always emptied `cmd` and hit `exit 0` (ALLOW) on every command, in every permission mode — visible in /hooks, logically correct, but never reading a command and never able to ask. Proven via `jq --version` (not found) + hook simulation. FIXED via jq-free, fail-CLOSED rewrite (reads raw payload via `cat`, greps the danger set, ASKS when payload unreadable). LESSON: a gate visible in /hooks is not a firing gate; "applied"/"visible"/"logic correct" are each NOT "executing." Proof standard hardened: the hook earns "live" only by being OBSERVED firing in a FRESH session. DB-level guard elevated from backlog to a recorded Phase-2 protection candidate (§7.2) — a command-string hook has four silent-failure points and one just fired. | "the hook has been fail-OPEN the entire time because jq isn't installed... A gate that's visible in /hooks and allowing everything silently is the most dangerous failure mode there is — it looks like protection. The prove-not-trust instinct is exactly what caught it." (operator message 2026-05-30) | Operator ruling + root-cause finding | This doc section 7.2 (hardened HOOK-PROOF + DB-LEVEL GUARD items); ~/.claude/settings.json hook rewrite; [[project_sprint4_phase4_gating_required]] memory |
 | 2026-05-29 | SEQUENCING CLARIFICATION (reconciles row 193): `intelligence_items.source_id` NOT NULL enforcement is NOT a Block 1 task — it lands as a distinct step POST-Phase-2-reconciliation. Technical reason: ~24 active D1 rows have null `source_id`; an `ALTER ... SET NOT NULL` during Block 1 would fail or force a mass-quarantine before reconciliation has assigned/quarantined them — flipping existing items' status ahead of HARD CHECKPOINT 2, which the operator's STOP condition forbids. Correct order: Block 1 adds `provenance_status` column + trigger (additive, nothing flips) -> Phase 2 reconciliation assigns status / quarantines null-source rows -> NOT-NULL enforcement lands once the corpus is clean. Row 193's "in Block 1, not deferred" is reconciled to mean "committed, not abandoned — lands as soon as reconciliation permits," NOT "executes during Block 1." design-doc section 3a annotated to match section 4 step 7; the `intelligence_item_sections.source_ids` NOT NULL/CHECK is likewise post-reconciliation. | "section 3a contains NOT-NULL + quarantine-existing operations that would flip existing items to quarantined during Block 1 — before reconciliation, before HC2, before I've seen the list... post-reconciliation is correct." (operator message 2026-05-29) | Operator sequencing ruling | design-doc section 3a + section 4 step 7; reconciles decision-log row 193 |
 
 ### 4.1 Drift pattern summary
@@ -439,26 +440,39 @@ PUSH + DOC UPDATE:
 [ ] Script's UPDATE statement is gated by an `--execute` flag; a dry-run
     mode is the default. The script also self-gates `--execute` behind a
     second `--confirm-phase-2` key (task 1.9).
-[ ] HOOK-PROOF (dormant-gate precondition): confirm the PreToolUse hook has
-    RELOADED the `seed/apply-` and `reconcile.*--execute` danger patterns AND
-    has been OBSERVED force-asking on a test invocation. Evidence 2026-05-29:
-    the patterns were added to ~/.claude/settings.json mid-session but a probe
-    command containing "reconcile --execute" did NOT force-ask. SHARPENED
-    DIAGNOSIS (2026-05-29): a third probe matching an OLD pre-existing pattern
-    ("update intelligence_items") ALSO did not force-ask, and opening /hooks did
-    not change it. So the WHOLE hook is not surfacing asks this session — NOT a
-    regex or hot-reload problem. Most likely the session is in the shift+Tab
-    auto-accept/bypass permission mode enabled for Block 1 to stop the prompt
-    flood; bypass OVERRIDES a hook's 'ask' decision (auto-approves without a
-    visible prompt), so /hooks shows the hook loaded yet nothing prompts. A
-    dormant gate is NOT a gate, worst exactly here: reconcile --execute mutates
-    the corpus and quarantines ~159 items. Before Phase 2 --execute runs: (1) be
-    in a NORMAL (non-bypass, ask-enabled) permission mode — toggle auto-accept
-    OFF and/or start a fresh session (which also reloads settings.json hooks at
-    startup); (2) re-run the harmless "reconcile --execute" probe and CONFIRM it
-    force-asks once; (3) the reconcile script's own --confirm-phase-2 self-gate
-    (task 1.9) is the in-process guard that holds regardless of the hook. Do NOT
-    run real reconciliation until the gate has been SEEN to fire in normal mode.
+[ ] HOOK-PROOF (the hook is NOT a gate until OBSERVED firing in a FRESH SESSION).
+    ROOT CAUSE (2026-05-30, definitive): the PreToolUse hook was fail-OPEN from
+    installation because `jq` is NOT installed on this machine. Its first line
+    `cmd=$(jq -r '.tool_input.command' 2>/dev/null); if [ -z "$cmd" ]; then exit 0`
+    always emptied `cmd` and hit `exit 0` (ALLOW) on EVERY command, in EVERY
+    permission mode. The hook was visible in /hooks and logically correct but
+    INERT the entire time — the bypass-mode theory was a red herring. Proven by:
+    `jq --version` -> command not found, and simulating the hook -> "cmd EMPTY ->
+    exit 0 (ALLOW)". FIXED via jq-free, fail-CLOSED rewrite of the hook command
+    in ~/.claude/settings.json (reads the raw payload via `cat`, greps it for the
+    danger set, and ASKS when the payload can't be read instead of allowing).
+    PROOF STANDARD (non-negotiable): "applied" is not "working"; "visible in
+    /hooks" is not "firing"; "logic correct" is not "executing" — the hook had
+    all three and did nothing. The hook earns "live" status ONLY by being OBSERVED
+    force-asking IN A FRESH SESSION (mid-session reload proved unreliable twice
+    here). Re-probe in a clean session on BOTH an old pattern ("update
+    intelligence_items") AND "reconcile --execute"; both must visibly prompt.
+    UNTIL THAT OBSERVATION: every danger operation (applies, reconcile --execute,
+    destructive DDL) is treated as UNGATED by the hook and protected ONLY by
+    manual confirmation + the reconcile script's --confirm-phase-2 self-gate
+    (task 1.9), which holds regardless of the hook. Do NOT run real reconciliation
+    until the hook has been seen to fire in a fresh session.
+[ ] DB-LEVEL GUARD (Phase-2 design consideration, ELEVATED from backlog 2026-05-30):
+    the command-string hook depends on the shell environment + an installed binary
+    (jq) + the permission mode + a fail-closed default — four silent-failure points,
+    one of which (jq) just took the gate down for an entire session while it
+    appeared installed. Phase-2 corpus mutation should be protected by a DB-LEVEL
+    guard (e.g. a restricted DB role for the reconcile path, or a pre-apply
+    migration linter) that is enforced AT THE DATABASE regardless of session state,
+    binaries, or permission mode — NOT solely the command-string hook, which has
+    been directly observed failing silently while appearing installed. Scope this
+    before relying on the hook as the sole Phase-2 protection. (Not scoped now;
+    recorded so it isn't lost.)
 [ ] feedback_runtime_validation_before_fix re-read.
 [ ] feedback_lift_cap_is_not_a_target re-read — this phase does NOT
     spend model budget, but the principle that "no operation without an
