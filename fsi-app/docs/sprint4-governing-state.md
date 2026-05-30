@@ -80,11 +80,11 @@ Full design in [docs/designs/source-provenance-model.md](designs/source-provenan
 
 ## 2. Active phase
 
-**ENTERING PHASE 1 (Block 1 — invariant landing + Vercel Workflow DevKit substrate + source-tier audit UI, ~51h, 19 tasks).** Revision 2.2 sign-off recorded 2026-05-29 (see section 4). Three open questions from revision 2 locked (slots, ANALYSIS labels, verification queue). Revision 2.1 substrate split locked. Revision 2.2 Phase 1.5 added with integrity-rule constraint on Haiku tier recommendations.
+**PHASE 1 / BLOCK 1 IN PROGRESS — PAUSED at 9/19 (2026-05-29).** The gate-infrastructure foundation (1.0a-1.5) is committed on branch `sprint4/block-1-invariant-landing` (NOT merged) and verified (DB read-backs + tsc; schema/function/trigger live, 657 rows untouched). Tasks 1.6-1.15 (system-prompt rewrite + live audit + four admin-UI builds) are PENDING — they need a dev-server-up session for per-task render/runtime verification (esp. the 1.12 resumeHook tick test). **HARD CHECKPOINT 1 runs after 1.15, not before.** Full resume note: section 3.2.1. Revision 2.2 sign-off recorded 2026-05-29 (see section 4); revision-2 open questions locked (slots, ANALYSIS labels, verification queue); 2.1 substrate split + 2.2 Phase 1.5 locked.
 
 **Sequence (revision 2.2):** PRE-BLOCK-1 -> **Phase 1 / Block 1 (active)** -> HARD CHECKPOINT 1 -> **Phase 1.5 / source-tier audit + provisional triage (~148 sources, $0.75, operator-paced)** -> Phase 2 / Reconciliation (dry-run + HARD CHECKPOINT 2 + execute) -> Phase 3 / Block 1.5 (per-item authority floor) -> HARD CHECKPOINT 3 (binding cap + green-light) -> Phase 4 / Block 4 (gated generation + visual affordance + verification queue).
 
-Workflow invocation prepared; runtime will generate the orchestration script and surface an approval card for operator review BEFORE Phase 1 executes.
+Phase 1 ran as a Claude Code Dynamic Workflow through task 1.5 (9/19). Note for resume: the workflow runtime did NOT honor session prompt-suppression (defaultMode, PreToolUse hook, and shift+tab auto-accept were all ignored by the workflow's subagent prompts), so per-command approvals flooded. Resume 1.6-1.15 via direct/main-thread execution (which DOES route through the PreToolUse backstop hook) in a dev-server-up session. Branch holds the 9 verified commits; nothing merged to master.
 
 ---
 
@@ -124,13 +124,35 @@ Out-of-band Sprint 3 work shipped during the same window:
 | Phase | State | Commits / DB writes | Notes |
 |---|---|---|---|
 | PRE-BLOCK-1 (revision 2 docs) | IN PROGRESS | (this commit when written) | Revised 2026-05-29; awaiting operator sign-off on revision 2 |
-| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | NOT STARTED | -- | Entry checklist 7.1; revision 2.2 spec; requires sign-off on Phase 1.5 add + task 1.15 |
+| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | **9/19 PARTIAL — PAUSED 2026-05-29** | Branch `sprint4/block-1-invariant-landing` (NOT merged to master): 1.0a a6f0dbc, 1.1 c6f4920, 1.2 8c15c3b, 1.3 1d7a5ba, 1.4 4b1aefb, 1.0b 8fb13e0, 1.0c 11fbdaf, 1.0d bb3791f, 1.5 14ee359. Schema + `validate_item_provenance` function + `set_provenance_status` trigger are LIVE on the shared Supabase DB, additive-only (verified by read-back: 657 existing `intelligence_items` rows all `provenance_status='unverified'`, none flipped; 3 new tables agent_run_searches / section_claim_provenance / item_type_required_slots return 200). | FOUNDATION (gate infrastructure) landed and DB-read-back + tsc verified. 1.6-1.15 PENDING — resume in a session with the dev server UP for per-task render/runtime verification (esp. the 1.12 resumeHook tick test, the mechanism the human-verify gate depends on). HC1 runs after 1.15. Full resume note in section 8. |
 | Phase 1.5 — source-tier audit + provisional-source triage (~$0.75 + ~90 min ticking) | NOT STARTED | -- | Revision 2.2 NEW phase between HC1 and Reconciliation; entry checklist 7.1.5; ~148 sources (73 seeded + 75 provisional from A6.2) |
 | Reconciliation — 294 items | NOT STARTED | -- | Entry checklist 7.2; requires Block 1 COMPLETE + HC1 + Phase 1.5 COMPLETE so reconciliation runs against authoritatively-tiered sources |
 | Block 1.5 — per-item authority floor (~2h) | NOT STARTED | -- | Entry checklist 7.3; ships after Reconciliation; folds in former Block 2 |
 | Block 2 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
 | Block 3 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
 | Block 4 — gated generation + visual affordance + verification queue | NOT STARTED | -- | Entry checklist 7.6; HARD CHECKPOINT 3 before; requires binding cap + green-light THIS SESSION |
+
+### 3.2.1 Block 1 RESUME NOTE — paused at 9/19 (2026-05-29)
+
+**Why paused here.** 1.0a-1.5 (the gate infrastructure) is done and verified the way schema work is verified — DB read-backs, additive-only spot-check, tsc. 1.6-1.15 is different work — a system-prompt rewrite with a live model audit, plus four admin-UI builds — whose real proof is a render and a runtime tick, not a type-check. This session had no dev server to render-verify or runtime-exercise them, so they were paused rather than landed type-check-only-until-HC1. The 1.12 resumeHook tick test especially — the mechanism the whole CRITICAL/HIGH human-verify gate depends on — needs a real runtime test.
+
+**Done (branch `sprint4/block-1-invariant-landing`, NOT merged):** 1.0a `a6f0dbc`, 1.1 `c6f4920`, 1.2 `8c15c3b`, 1.3 `1d7a5ba`, 1.4 `4b1aefb`, 1.0b `8fb13e0`, 1.0c `11fbdaf`, 1.0d `bb3791f`, 1.5 `14ee359`. Schema + `validate_item_provenance` + `set_provenance_status` trigger LIVE on the shared DB, additive-only (657 existing rows all `unverified`, none flipped; 3 new tables return 200). Nothing merged to master; launch corpus unaffected.
+
+**Left — RESUME in a dev-server-up session, per-task render/runtime verification:**
+- 1.6 b2-runner + a5-backfill -> `start()` (node --check only; never RUN the runners)
+- 1.7 system-prompt rewrite (source-or-explicit-gap + per-claim FACT/ANALYSIS/LEGAL emission + CLOSED-SET exact-match ANALYSIS labels) + 3-item live audit (<= $2, non-persisting)
+- 1.8 `parse-output.ts` extension for `section_claim_provenance` payload
+- 1.9 `sprint4-provenance-reconcile.mjs` (--dry-run default; node --check only, do NOT run)
+- 1.10 `active_intelligence_items` view (verified-only) + `supabase-server` fetcher cutover (branch-only; 0 rows pre-reconciliation)
+- 1.11 staged_updates admin UI failure-mode surfacing — render verify
+- 1.12 admin verification queue: per-claim tick -> `resumeHook` on `verify-<item_id>-<claim_id>` — RUNTIME tick test required
+- 1.13 verification audit log (`verified_by`/`verified_at`) — render + query verify
+- 1.14 span-check timeout policy (`RetryableError` -> staging) — runtime test
+- 1.15 source-tier audit UI extension to `ProvisionalReviewCard` + `recommendSourceTier` + `commit_tier_change` — render verify
+
+**Then HARD CHECKPOINT 1** (after 1.15, NOT before): synthetic-test all 6 criteria + the 4 also-confirms (agent_run_searches populated, section_claim_provenance rows created, span-check timeout retry fires, 1.0c step-skeleton checkpoints visible in `npx workflow inspect run <runId>`), report, HALT for operator review before any merge or Phase 1.5.
+
+**Command gate going forward:** the PreToolUse Bash backstop hook (`~/.claude/settings.json`) auto-allows routine ops and force-asks the runners / git push / destructive-or-non-additive DDL / migration-apply. Phase 4 gating requirement: memory `project_sprint4_phase4_gating_required`.
 
 ### 3.3 Corpus state (post-Option-C, post-2026-05-29 archive)
 
