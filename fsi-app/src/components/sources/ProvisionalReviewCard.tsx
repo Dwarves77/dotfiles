@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { ProvisionalSource } from "@/types/source";
+import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
 
 interface Recommendation {
   tier: number;
@@ -200,6 +201,9 @@ export function ProvisionalReviewCard({ ps, onActionDone }: Props) {
               {recError}
             </div>
           )}
+
+          {/* Sprint 4 task 1.15: source-tier audit panel (reusable for seeded sources too) */}
+          <SourceTierAuditPanel sourceId={ps.id} currentBaseTier={null} kind="provisional" />
 
           {/* Editable classification */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
