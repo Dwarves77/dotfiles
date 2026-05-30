@@ -263,6 +263,58 @@ When validation needs to fetch source content (Component 3 fallback path when `a
 
 Cost: marginal in Component 3 (a few hours added to validation function for retry logic).
 
+### Component 8 — Analysis-level corroboration / authority signal (DESIGN ONLY — Phase 4 / Intelligence Assistant scope; NOT Block 1; NOT a gate criterion)
+
+**The reframe this rests on.** Caro's Ledge does not assert facts in its own voice. The platform's *output* is ANALYSIS — synthesis and interpretation. The facts underneath are not claims the platform makes; they are sourced INPUTS the analysis is built on. The unit is therefore "analysis, explicitly built on sourced information," not "a free-standing factual claim." Corroboration is an authority signal that attaches to a UNIT OF ANALYSIS — not to individual facts.
+
+**What it records.** For each unit of analysis, how many INDEPENDENT sourced inputs it rests on. An analysis triangulated across several independent sources is higher-authority than the same analysis resting on one. Two states:
+- `single_source` — the analysis rests on 1 independent source. VALID, common, NOT penalized. Much regulatory analysis legitimately rests on a single authoritative instrument.
+- `corroborated` — the analysis rests on 2+ independent sources.
+
+This is a SIGNAL, not a gate. `single_source` never fails. Component 8 adds NO pass/fail criterion and does not change the six-criteria gate.
+
+**The unit of analysis (schema placement).** The unit is an ANALYSIS-kind row in `section_claim_provenance` (criterion 4). Each ANALYSIS row is extended to declare the sourced inputs it synthesizes and to carry the computed signal:
+
+```
+-- added to section_claim_provenance, populated for claim_kind = 'ANALYSIS' rows
+analysis_input_claim_ids   uuid[]    -- the FACT/GAP section_claim_provenance rows this analysis is built on
+independent_source_count   integer   -- distinct primary-authority identities across those inputs (see below)
+authority_signal           text CHECK (authority_signal IN ('single_source','corroborated'))
+                                     -- derived: 'corroborated' iff independent_source_count >= 2, else 'single_source'
+```
+
+`independent_source_count` and `authority_signal` are SNAPSHOTS computed at generation/validation time (like `source_tier_at_grounding`), so the customer affordance renders without recomputation.
+
+**The load-bearing invariant underneath (criteria 2 + 3 — do NOT relax; MORE important here).** Because the platform's analysis has no independent authority of its own, the analysis is only as trustworthy as its sourced inputs are REAL. An analysis built on an imagined source is worse than a fabricated fact — it launders fabrication through interpretation. Therefore:
+- `independent_source_count` is computed ONLY over input FACT claims that have PASSED criterion 2 (URL grounding) AND criterion 3 (span grounding). A non-real or non-span-grounded input contributes ZERO to the count — and the analysis built on it already fails criterion 3 and never reaches a corroboration computation.
+- Corroboration is layered ON TOP of the grounding gate. It signals how much real ground the analysis stands on; it NEVER substitutes for the grounding requirement. A high corroboration count cannot rescue an ungrounded input.
+
+**Independence determination (the hard part — explicit). Independence, not source count.** "Corroborated" must mean genuinely INDEPENDENT sources, NOT one fact echoed across outlets. Three trade-press pieces that all derive from one EUR-Lex regulation rest on ONE independent source, not three. Independence is determined by resolving each sourced input to a PRIMARY-AUTHORITY IDENTITY and counting DISTINCT identities — derivative/syndicated sources collapse to the primary authority they report on.
+
+Mechanism:
+1. Add `primary_authority_key text` to `sources`: the normalized identity of the underlying first-party authority/instrument a source represents or derives from — e.g. `eu:celex:32025R0040`, `us:fedreg:2024-12345`, `imo:mepc:80/17`.
+   - For a PRIMARY source (binding law / regulator guidance — `source_role` primary_legal_authority / standards_body, base_tier 1-2), `primary_authority_key` is its OWN instrument identity.
+   - For a DERIVATIVE source (trade_press, news, industry_association commentary, analysis — base_tier 4-6), `primary_authority_key` is the identity of the instrument it reports on, NOT itself. Set at source registration / the Phase 1.5 tier audit, or surfaced by the agent at grounding time when it identifies the instrument a derivative cites.
+2. `independent_source_count = COUNT(DISTINCT primary_authority_key)` across the analysis's grounded FACT inputs.
+   - Three trade-press inputs sharing `eu:celex:32025R0040` -> one distinct key -> count 1 -> `single_source`.
+   - The EUR-Lex regulation itself + an independent ICCT analysis grounded in its own modeling (distinct key) -> count 2 -> `corroborated`.
+3. **Conservative default (never inflate).** If an input's `primary_authority_key` is null/unknown, it does NOT add independence — it is folded in at the lowest authority and the count is NOT incremented on its behalf. When independence cannot be established, the signal falls toward `single_source`, never toward `corroborated`. Inflating authority for echoed or unresolved content is the exact "looks better-grounded than it is" failure the gate exists to prevent; the default fails safe.
+
+**Anti-inflation check (the one integrity rule Component 8 adds).** At validation, the asserted `authority_signal` must be consistent with the inputs: `independent_source_count` may NOT exceed `COUNT(DISTINCT primary_authority_key)` over the span-grounded inputs. A generation step that emits `corroborated` whose inputs collapse to one authority is DOWNGRADED to `single_source` (or flagged). This is a downgrade, never a fail — single_source is valid.
+
+**Labeling unchanged (criterion 4 stands).** Corroboration is orthogonal to claim_kind:
+- The visible product remains LABELED ANALYSIS (one of the four closed-set labels). Corroboration does NOT promote an inference to FACT — multiple sources strengthen the authority signal; they do not reclassify the analysis as asserted fact.
+- LEGAL conclusions still route to `*Legal Confirmation Required:*` regardless of corroboration count. No number of corroborating sources lets the platform make a legal determination.
+
+**Customer affordance.** Alongside the FACT/ANALYSIS/LEGAL affordance (Component 4), an ANALYSIS unit carries its authority signal:
+- `corroborated` -> a quiet positive badge, e.g. "Corroborated · N independent sources," expandable to list the N primary authorities (titles + tiers).
+- `single_source` -> a NEUTRAL indicator (e.g. "Single source"), never styled as a warning or deficiency. Single-source analysis on one authoritative instrument is legitimate and expected.
+The affordance reinforces the product's honesty — "this is our analytical reading, and here is how much independent ground it stands on" — without overclaiming for echoed content or penalizing legitimate single-source analysis.
+
+**Effort (Phase 4 estimate, not Block 1):** ~6-8h. `primary_authority_key` column + backfill heuristics (~2h), independence-collapse logic in the generation/validation step (~2h), anti-inflation check (~1h), customer affordance (~2-3h, ships with the Component 4 affordance).
+
+**Phase-sequence note:** Component 8 is **Phase 4 / Intelligence Assistant scope.** It refines what the gate RECORDS and SURFACES during gated generation; it is NOT a Block 1 task and it does NOT gate (single-source analysis remains valid). It presupposes the Block 1 invariant (criteria 2 + 3 grounding, `section_claim_provenance`) and the Phase 1.5 source-tier audit (authoritative tiers + `primary_authority_key` curation), so it lands with or after first gated generation. **Status: design proposal, awaiting operator sign-off — not yet locked.**
+
 ---
 
 ## 6. Reconciliation of the 294 active D1 items
