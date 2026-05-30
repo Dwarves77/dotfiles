@@ -259,6 +259,7 @@ Both prompt = hook live → mark §7.2 HOOK-PROOF VERIFIED. Either silent = hook
 | 2026-05-29 | GATE HOLE CLOSED (fromSeed bypass): task 1.10's customer read gate on `fetchIntelligenceItem` filtered the DB query to verified-only, but the `if (error || !row) return fromSeed()` fallback served ungated legacy static SEED content (the pre-provenance corpus) for any item-detail URL whose id matched a SEED entry — leaking around the gate. Fixed to FAIL CLOSED (return null/not-found) on the configured-DB path and on DB error; the offline/dev seed-only path (guarded by !isSupabaseConfigured) is unchanged. | "if unverified detail URLs silently serve old unverified SEED content, the gate isn't actually gating item detail — it's falling through to ungated legacy data." (operator message 2026-05-29) | Operator-surfaced gate hole; fixed same turn | src/lib/supabase-server.ts fetchIntelligenceItem |
 | 2026-05-30 | HOOK WAS FAIL-OPEN (root cause of the dormant-gate finding; supersedes the bypass theory in the 2026-05-29 dormant-hook row): the PreToolUse Bash hook has been INERT since installation because `jq` is not installed on this machine. Its first line `cmd=$(jq -r ... 2>/dev/null); if [ -z "$cmd" ]; then exit 0` always emptied `cmd` and hit `exit 0` (ALLOW) on every command, in every permission mode — visible in /hooks, logically correct, but never reading a command and never able to ask. Proven via `jq --version` (not found) + hook simulation. FIXED via jq-free, fail-CLOSED rewrite (reads raw payload via `cat`, greps the danger set, ASKS when payload unreadable). LESSON: a gate visible in /hooks is not a firing gate; "applied"/"visible"/"logic correct" are each NOT "executing." Proof standard hardened: the hook earns "live" only by being OBSERVED firing in a FRESH session. DB-level guard elevated from backlog to a recorded Phase-2 protection candidate (§7.2) — a command-string hook has four silent-failure points and one just fired. | "the hook has been fail-OPEN the entire time because jq isn't installed... A gate that's visible in /hooks and allowing everything silently is the most dangerous failure mode there is — it looks like protection. The prove-not-trust instinct is exactly what caught it." (operator message 2026-05-30) | Operator ruling + root-cause finding | This doc section 7.2 (hardened HOOK-PROOF + DB-LEVEL GUARD items); ~/.claude/settings.json hook rewrite; [[project_sprint4_phase4_gating_required]] memory |
 | 2026-05-29 | SEQUENCING CLARIFICATION (reconciles row 193): `intelligence_items.source_id` NOT NULL enforcement is NOT a Block 1 task — it lands as a distinct step POST-Phase-2-reconciliation. Technical reason: ~24 active D1 rows have null `source_id`; an `ALTER ... SET NOT NULL` during Block 1 would fail or force a mass-quarantine before reconciliation has assigned/quarantined them — flipping existing items' status ahead of HARD CHECKPOINT 2, which the operator's STOP condition forbids. Correct order: Block 1 adds `provenance_status` column + trigger (additive, nothing flips) -> Phase 2 reconciliation assigns status / quarantines null-source rows -> NOT-NULL enforcement lands once the corpus is clean. Row 193's "in Block 1, not deferred" is reconciled to mean "committed, not abandoned — lands as soon as reconciliation permits," NOT "executes during Block 1." design-doc section 3a annotated to match section 4 step 7; the `intelligence_item_sections.source_ids` NOT NULL/CHECK is likewise post-reconciliation. | "section 3a contains NOT-NULL + quarantine-existing operations that would flip existing items to quarantined during Block 1 — before reconciliation, before HC2, before I've seen the list... post-reconciliation is correct." (operator message 2026-05-29) | Operator sequencing ruling | design-doc section 3a + section 4 step 7; reconciles decision-log row 193 |
+| 2026-05-30 | BINDING PHASE-2 REQUIREMENT (service-role-binding; supersedes the vague "Phase 2 needs a DB-level guard" backlog framing): the agent holds the service-role key from `.env.local`, which bypasses RLS and writes any row directly — bypassing the command-string hook, `--confirm-phase-2`, AND any script-level guard. Corpus mutation is therefore NOT gated from the agent; only the agent's voluntary routing through the sanctioned script gates it. Same 'gate not where the actor passes' class as the fail-open hook and fromSeed. The real fix is one of two, and Phase 2 corpus mutation MUST NOT proceed until one is in place: (a) RESTRICTED ROLE [preferred] — agent runs with a DB credential scoped to reads + sanctioned writes that structurally cannot flip `provenance_status` on existing rows; the service-role key is NOT in the agent's script environment, applied deliberately only for the sanctioned reconcile op by the operator. (b) DB-ENFORCED guard catching even service-role writes. Corroboration: the agent should NOT be able to demonstrate a corpus flip outside the sanctioned path even if instructed to. | "a DB guard the service-role key bypasses is just another gate I walk around... The requirement has to name what actually binds the credential I hold... Until (a) or (b) is in place, 'Phase 2 is gated' is true only by the agent's cooperation — which is not a gate." (operator message 2026-05-30) | Operator hardening ruling — binding precondition on Phase 2 corpus mutation | This doc section 7.2 DB-LEVEL GUARD item; [[project_sprint4_phase2_credential_binding]] memory |
 
 ### 4.1 Drift pattern summary
 
@@ -531,6 +532,32 @@ PUSH + DOC UPDATE:
     been directly observed failing silently while appearing installed. Scope this
     before relying on the hook as the sole Phase-2 protection. (Not scoped now;
     recorded so it isn't lost.)
+    BINDING PHASE-2 REQUIREMENT (operator, 2026-05-30 — supersedes the vague
+    "Phase 2 needs a DB-level guard" backlog framing, which does NOT close this
+    because a guard the service-role key bypasses is just another gate the agent
+    walks around):
+    "The agent holds the service-role key (from .env.local), which bypasses RLS and
+    writes any row directly — so it bypasses the command-string hook, --confirm-phase-2,
+    and any script-level guard. Corpus mutation is therefore NOT gated from the agent;
+    it is gated only by the agent routing through the sanctioned script voluntarily.
+    Same 'gate not where the actor passes' class as the fail-open hook and fromSeed.
+
+    The real fix is one of two, and Phase 2 corpus mutation MUST NOT proceed until one
+    is in place:
+    (a) RESTRICTED ROLE (preferred): the agent operates with a DB credential scoped to
+        reads + sanctioned writes only, that structurally CANNOT flip provenance_status
+        on existing rows. The service-role key is NOT present in the environment the
+        agent runs scripts in; it is applied deliberately only for the specific
+        sanctioned reconcile operation, by the operator, not sitting in .env.local for
+        any node script to use. You can't bypass a gate with a credential you don't hold.
+    (b) DB-ENFORCED guard that catches even service-role writes (harder — service-role
+        is designed to bypass row controls; only viable if the flip can be constrained
+        at the DB regardless of role, with the sanctioned path being the only satisfier).
+
+    (a) is the honest answer. Until (a) or (b) is in place, 'Phase 2 is gated' is true
+    only by the agent's cooperation — which is not a gate. The corroboration of this
+    requirement is that the agent should NOT be able to demonstrate a corpus flip
+    outside the sanctioned path even if instructed to."
 [ ] feedback_runtime_validation_before_fix re-read.
 [ ] feedback_lift_cap_is_not_a_target re-read — this phase does NOT
     spend model budget, but the principle that "no operation without an
