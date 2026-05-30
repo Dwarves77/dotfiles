@@ -763,7 +763,8 @@ export async function fetchResearchPipelineRows(
     const countQuery = await supabase
       .from("intelligence_items")
       .select("id", { count: "exact", head: true })
-      .eq("is_archived", false);
+      .eq("is_archived", false)
+      .eq("provenance_status", "verified"); // Sprint 4 task 1.10: customer read gate
     const total = typeof countQuery.count === "number" ? countQuery.count : 0;
 
     // First page of rows. Same shape as the prior /research fetcher so
@@ -779,6 +780,7 @@ export async function fetchResearchPipelineRows(
         "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, what_it_changes, does_not_resolve, source:sources(id, name, url, base_tier, effective_tier)"
       )
       .eq("is_archived", false)
+      .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .order("added_date", { ascending: false })
       .limit(cap);
 
@@ -1936,6 +1938,7 @@ export async function fetchIntelligenceItemSections(
         .from("intelligence_items")
         .select("id")
         .eq("legacy_id", uiId)
+        .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
         .maybeSingle();
       uuid = (byLegacy as { id: string } | null)?.id ?? null;
     }
@@ -2020,6 +2023,7 @@ export async function fetchIntelligenceItem(
       .from("intelligence_items")
       .select("*")
       .or(orExpr)
+      .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .maybeSingle();
 
     if (error || !row) return fromSeed();
@@ -2271,6 +2275,7 @@ export async function fetchWatchlist(
       const { data: items } = await supabase
         .from("intelligence_items")
         .select("id, legacy_id, title, jurisdictions")
+        .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
         .or(regIds.map((id) => `legacy_id.eq.${id},id.eq.${id}`).join(","));
       for (const it of (items || []) as Array<{
         id: string;
