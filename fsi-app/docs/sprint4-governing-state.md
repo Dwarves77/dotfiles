@@ -501,6 +501,25 @@ PUSH + DOC UPDATE:
     manual confirmation + the reconcile script's --confirm-phase-2 self-gate
     (task 1.9), which holds regardless of the hook. Do NOT run real reconciliation
     until the hook has been seen to fire in a fresh session.
+    RE-PROBE RESULT (fresh verify-and-fix session, resume after the 2026-05-30 pause):
+    BOTH probes SILENT — `update intelligence_items` AND `reconcile --execute`
+    produced NO permission prompt on the operator's screen. The jq-free rewrite is
+    present on disk and its grep logic was PROVEN CORRECT in isolation (both danger
+    payloads MATCH `update +intelligence_items` / `reconcile.*--execute`), so the
+    failure is NOT the regex this time — it is at the harness/permission-mode layer.
+    OBSERVED: the hook does NOT surface an `ask` on this Windows + `dontAsk` setup as
+    configured. NOT OBSERVED: the toggle test (flip `dontAsk` off, re-probe, confirm a
+    prompt then appears) was NOT run — so `defaultMode: "dontAsk"` is the LEADING
+    SUSPECT, NOT a toggle-confirmed cause. Recording it as "definitively suppressing"
+    would overstate what was observed. Secondary suspect: the `shell:"bash"` command
+    hook may not be honored by the hook runner on this Windows session. Last session's
+    cause (jq-absent fail-open) is distinct. CLASS CONCLUSION (remediation-discipline):
+    the command-string PreToolUse hook has now failed across sessions for DIFFERENT
+    reasons — treat it as PERMANENTLY UNRELIABLE for corpus-mutation gating here; the
+    DB-LEVEL GUARD (next item) is the real Phase-2 protection. Making it reliable would
+    require changing the operator's GLOBAL permission posture (a separate decision).
+    HOOK-PROOF stays UNVERIFIED. The reconcile --confirm-phase-2 self-gate holds
+    meanwhile. Do NOT treat the hook as a gate.
 [ ] DB-LEVEL GUARD (Phase-2 design consideration, ELEVATED from backlog 2026-05-30):
     the command-string hook depends on the shell environment + an installed binary
     (jq) + the permission mode + a fail-closed default — four silent-failure points,
