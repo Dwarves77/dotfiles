@@ -124,7 +124,7 @@ Out-of-band Sprint 3 work shipped during the same window:
 | Phase | State | Commits / DB writes | Notes |
 |---|---|---|---|
 | PRE-BLOCK-1 (revision 2 docs) | IN PROGRESS | (this commit when written) | Revised 2026-05-29; awaiting operator sign-off on revision 2 |
-| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | **15/19 PAUSED** (1.0a-d + 1.1-1.11 done) | `a6f0dbc..2756eb1` (branch `sprint4/block-1-invariant-landing`; nothing to master) | Paused 2026-05-30 after 1.11 for a dev-server-up session — the back half (1.12-1.15) is admin-UI / runtime work that needs render + runtime verification, not tsc-clean. Additive-only re-proven live: unverified=657 untouched, 3 new tables, view 0 rows, 3 triggers. See resume note 3.2.1. |
+| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | **19/19 CODE-COMPLETE, PAUSED** (15 verified + 1.12-1.15 WRITE-AHEAD unverified-pending-runtime) | `a6f0dbc..d73f343` (branch `sprint4/block-1-invariant-landing`; nothing to master) | Paused 2026-05-30. Write-ahead pass landed 1.12-1.15 + HC1 script blind (tsc-clean, NOT runtime-verified) so the next session is verify-and-fix, not write. Next session: prove the hook in a fresh session, dev-server render/runtime verify (1.12 tick first), then HC1. Additive-only re-proven live: unverified=657 untouched, 3 tables, view 0 rows, 3 triggers. See resume note 3.2.1. |
 | Phase 1.5 — source-tier audit + provisional-source triage (~$0.75 + ~90 min ticking) | NOT STARTED | -- | Revision 2.2 NEW phase between HC1 and Reconciliation; entry checklist 7.1.5; ~148 sources (73 seeded + 75 provisional from A6.2) |
 | Reconciliation — 294 items | NOT STARTED | -- | Entry checklist 7.2; requires Block 1 COMPLETE + HC1 + Phase 1.5 COMPLETE so reconciliation runs against authoritatively-tiered sources |
 | Block 1.5 — per-item authority floor (~2h) | NOT STARTED | -- | Entry checklist 7.3; ships after Reconciliation; folds in former Block 2 |
@@ -134,22 +134,36 @@ Out-of-band Sprint 3 work shipped during the same window:
 
 ### 3.2.1 Block 1 RESUME NOTE (paused 2026-05-30 at 15/19)
 
-**Branch:** `sprint4/block-1-invariant-landing` @ `2756eb1`, tree clean, nothing pushed to master. Resume via DIRECT main-thread execution (the Workflow runtime ignored prompt suppression; direct execution routes through the hook).
+**Branch:** `sprint4/block-1-invariant-landing` @ `d73f343`, tree clean, nothing pushed to master. **19/19 tasks CODE-COMPLETE:** 1.0a-1.11 verified; 1.12-1.15 WRITE-AHEAD (tsc-clean, marked UNVERIFIED-PENDING-RUNTIME). Resume via DIRECT main-thread execution (the Workflow runtime ignored prompt suppression; direct execution routes through the hook).
 
-**Done (15/19), commits `a6f0dbc..2756eb1`:**
+**Verified (15/19), commits `a6f0dbc..ce99fbe`:**
 - Foundation (9): 1.0a `a6f0dbc`, 1.1 `c6f4920`, 1.2 `8c15c3b`, 1.3 `1d7a5ba`, 1.4 `4b1aefb`, 1.0b `8fb13e0`, 1.0c `11fbdaf`, 1.0d `bb3791f`, 1.5 `14ee359`.
-- This session (6): 1.6 `b138cb8`, 1.7 `fe31ab1`, 1.8 `dca233d`, 1.9 `6cc3dad`, 1.10 `22230b1` (+fix `e4ff1f6`), 1.11 `ce99fbe`.
+- This session (6): 1.6 `b138cb8`, 1.7 `fe31ab1`, 1.8 `dca233d`, 1.9 `6cc3dad`, 1.10 `22230b1` (+fix `e4ff1f6`), 1.11 `ce99fbe` (1.11 render-verify still pending).
 - Docs/spec: orphaned-cap HC3 precondition `1722e6a`; hook dormant→fail-open records `48a1f96`/`1f3dea0`; Component 8 corroboration proposal `2756eb1`.
+
+**Write-ahead (4/19), tsc-clean but UNVERIFIED-PENDING-RUNTIME — do NOT treat as DONE:**
+- 1.12+1.13 `cdeebcb` (verification queue + resumeHook tick; shared `verifyHookToken` makes the token byte-identical both sides; concurrent-hook shape is the highest-risk piece).
+- 1.14 `03246b3` (span-check: timeout→RetryableError THROW unit-verified; WDK retry loop runtime-pending).
+- 1.15 `2505f1f` (tier-audit panel + recommendSourceTier + commit_tier_change; no tier pass run).
+- HC1 verify orchestrator `d73f343`.
 
 **Additive-only re-proven live 2026-05-30:** `provenance_status` distribution = unverified=657 (NOTHING flipped); 3 new tables present (agent_run_searches, section_claim_provenance, item_type_required_slots); `active_intelligence_items` view = 0 rows (verified-only gate live); 3 `set_provenance_status` triggers.
 
-**Left (4) + HC1 — these need a DEV-SERVER-UP session; per-task render/runtime verification, NOT tsc-clean:**
-- **1.11 render-verify (carry-over):** 6 SENTINEL staged rows (batch_id `SPRINT4_BLOCK1_SELFTEST_111`) are LIVE in admin → Staged updates, one per failure mode + combined. Operator eyeballs the ProvenanceFailures panel; then `node supabase/seed/sprint4-111-synthetic-staged.mjs --cleanup`.
-- **1.12 verification queue + resumeHook tick — RUNTIME-VERIFY THE TICK.** The `resumeHook` tick that flips `pending_human_verify → verified` is the mechanism the whole human-verify layer depends on. Verify it at runtime against a real tick on a sentinel-marked synthetic CRITICAL/HIGH item — do NOT defer into the HC1 batch (a failure there is buried). Per-claim tick ONLY (locked); no batch tick.
-- **1.13 verification audit log:** `verified_by`/`verified_at`; DB query after a test tick.
-- **1.14 span-check timeout policy:** `RetryableError` 2-3 retries → staging; runtime test with a mock unreachable URL.
-- **1.15 source-tier audit UI** on `ProvisionalReviewCard` + `recommendSourceTier` + `commit_tier_change`; operator render-verify; do NOT run any tier pass (that is Phase 1.5).
-- **HARD CHECKPOINT 1 after 1.15:** synthetic-test all 6 invariant criteria + 4 also-confirms; report per-criterion; HALT (do NOT auto-advance to Phase 1.5). Reconcile this §3.2 ledger on the merge base at HC1.
+**NEXT SESSION = VERIFY-AND-FIX (all code is written; this is a verify pass, not a write pass):**
+
+**STEP 1 — FRESH SESSION, prove the hook FIRST (before any danger op).** Run the re-probe (the hook greps the COMMAND string, so the danger text must be in the command, not a script file):
+- `echo "HOOK REPROBE: update intelligence_items"` → must visibly PROMPT
+- `echo "HOOK REPROBE: reconcile --execute"` → must visibly PROMPT
+Both prompt = hook live → mark §7.2 HOOK-PROOF VERIFIED. Either silent = hook still inert → corpus gate stays `--confirm-phase-2` only. (jq is NOT installed; the hook was rewritten jq-free + fail-CLOSED — see thread 1.)
+
+**STEP 2 — dev server up; render + runtime verify the write-ahead. 1.12 tick is HIGHEST RISK — do it FIRST:**
+- **1.12 tick (FIRST):** start a workflow for a sentinel CRITICAL/HIGH item with FACT claims; confirm it suspends; POST `/api/admin/verify-claim` per claim; verify `recordClaimVerification` wrote `verified_by`/`verified_at` and `flipToVerifiedIfAllTicked` flipped `pending_human_verify → verified`. WATCH the concurrent-hook (`Promise.all`) shape — if WDK rejects N concurrent hooks, fall back to sequential. Token is byte-identical via shared `verifyHookToken`. Per-claim tick ONLY (locked); no batch tick.
+- **1.13:** confirm `verified_by`/`verified_at` render in the queue after a tick.
+- **1.14:** throw already unit-verified (`node scripts/sprint4-114-spancheck-test.mjs`); runtime-verify the WDK retry loop → stage-on-exhaustion.
+- **1.15:** recommend-tier round-trip (spends Haiku — Phase 1.5 pacing) + commit-tier-change `base_tier` write; render-verify `SourceTierAuditPanel` on a provisional AND a seeded source.
+- **1.11 (carry-over):** render-verify the 6 SENTINEL staged rows (batch_id `SPRINT4_BLOCK1_SELFTEST_111`) in admin → Staged updates; then `node supabase/seed/sprint4-111-synthetic-staged.mjs --cleanup`.
+
+**STEP 3 — HC1:** `node scripts/sprint4-hc1-verify.mjs` (runs 6 criteria + span-check now; prints exact commands for the 3 runtime also-confirms). Compile per-criterion report + hashes, reconcile this §3.2 ledger on the merge base, HALT for operator. Do NOT auto-advance to Phase 1.5; no merge to master without operator review.
 
 **Open threads carried forward (do not lose):**
 1. **Hook is fail-open-FIXED but UNPROVEN.** Root cause: `jq` not installed → the old hook always `exit 0` (allow) in every mode (see 7.2 + decision log 2026-05-30). Rewritten jq-free + fail-CLOSED in `~/.claude/settings.json`. It is NOT a working gate until OBSERVED force-asking in a FRESH session (mid-session reload failed twice). Re-probe `update intelligence_items` AND `reconcile --execute` in a clean session; both must visibly prompt.
