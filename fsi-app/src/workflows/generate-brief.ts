@@ -17,6 +17,7 @@ import { createHook, RetryableError } from "workflow";
 import { DurableAgent } from "@workflow/ai/agent";
 import { createClient } from "@supabase/supabase-js";
 import { verifyHookToken } from "../lib/agent/verify-token";
+import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 
 // Reserved substrate primitives — wired now, exercised in Block 4. The `void`
 // references keep them genuinely used (the DevKit bundler 500s on unused
@@ -143,6 +144,16 @@ export async function flipToVerifiedIfAllTicked(itemId: string): Promise<boolean
     .eq("id", itemId)
     .eq("provenance_status", "pending_human_verify");
   return true;
+}
+
+// Task 1.14: span-check fetch step (Component 7). Wraps spanCheckFetch; the WDK
+// step retry config drives 2-3 attempts + backoff, and a RetryableError that
+// survives exhaustion routes the claim to staging via routeOnValidation. The
+// timeout/network -> RetryableError throw is unit-verified
+// (scripts/sprint4-114-spancheck-test.mjs); the WDK retry loop is runtime-pending.
+export async function spanCheckClaim(url: string): Promise<SpanCheckResult> {
+  "use step";
+  return spanCheckFetch(url);
 }
 
 // ── Workflow orchestration (durable) ──
