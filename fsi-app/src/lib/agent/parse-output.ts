@@ -129,9 +129,40 @@ export interface AgentMetadata {
   regeneration_skill_version: string;
 }
 
+// Sprint 4 Block 1 (task 1.8): claim-level provenance payload.
+// The agent emits a Claim Provenance Ledger between the sentinels
+//   <<<CLAIM_PROVENANCE_LEDGER ... CLAIM_PROVENANCE_LEDGER>>>
+// (a single JSON array), positioned after "New Sources Identified" and
+// before the YAML frontmatter. Each record maps to one
+// section_claim_provenance row (per docs/designs/source-provenance-model.md
+// section 3a). FACT records require a verbatim source_span plus a grounding
+// source_id (UUID from the pool) OR source_url (newly found via web_search).
+const CLAIM_KIND_VALUES = ["FACT", "ANALYSIS", "LEGAL", "GAP"] as const;
+export type ClaimKind = typeof CLAIM_KIND_VALUES[number];
+
+export interface ClaimProvenanceRecord {
+  section: string;            // section key the claim appears in ("3","4","8",...)
+  claim_text: string;         // verbatim claim as written in the prose
+  claim_kind: ClaimKind;
+  source_span: string | null; // verbatim quote from the grounding source (FACT)
+  source_id: string | null;   // sources.id UUID from the pool (FACT)
+  source_url: string | null;  // grounding URL when newly found (FACT)
+  slot_key: string | null;    // item-type required slot this claim covers, else null
+  // Filled by crossLinkClaimSources() at persist time, not by the agent:
+  search_result_id?: string | null; // agent_run_searches.id whose result_url matched source_url
+}
+
 export interface ParsedAgentOutput {
-  body: string; // Markdown body with YAML stripped (citation table preserved)
+  body: string; // Markdown body with YAML + claim ledger stripped (citation table preserved)
   metadata: AgentMetadata;
+  claims: ClaimProvenanceRecord[]; // Sprint 4 task 1.8 — may be empty (honest no-claim result)
+}
+
+// Minimal shape of an agent_run_searches row needed for cross-linking. Kept
+// structural so callers can pass DB rows or synthetic fixtures.
+export interface AgentRunSearchLink {
+  id: string;
+  result_url: string | null;
 }
 
 export class AgentOutputParseError extends Error {
@@ -565,9 +596,116 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
   };
 }
 
+// Sprint 4 task 1.8: locate + parse the Claim Provenance Ledger. Returns the
+// validated records and the [start,end) span of the block in rawText so the
+// caller can strip it from the body. Returns null when no ledger is present
+// (additive: pre-Sprint-4 outputs simply have none — the YAML block remains
+// the hard requirement).
+const CLAIM_LEDGER_RE = /<<<CLAIM_PROVENANCE_LEDGER\s*([\s\S]*?)\s*CLAIM_PROVENANCE_LEDGER>>>/;
+const CLAIM_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function locateClaimLedger(
+  rawText: string,
+): { claims: ClaimProvenanceRecord[]; start: number; end: number } | null {
+  const m = CLAIM_LEDGER_RE.exec(rawText);
+  if (!m) return null;
+  const inner = m[1].trim();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(inner);
+  } catch (e) {
+    throw new AgentOutputParseError(
+      `Claim Provenance Ledger is not valid JSON: ${(e as Error).message}`,
+      inner.slice(0, 500),
+    );
+  }
+  if (!Array.isArray(parsed)) {
+    throw new AgentOutputParseError("Claim Provenance Ledger must be a JSON array");
+  }
+  const claims: ClaimProvenanceRecord[] = parsed.map((raw, i) => {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      throw new AgentOutputParseError(`Claim ledger record ${i} is not an object`);
+    }
+    const o = raw as Record<string, unknown>;
+    const kind = o.claim_kind;
+    if (typeof kind !== "string" || !CLAIM_KIND_VALUES.includes(kind as ClaimKind)) {
+      throw new AgentOutputParseError(`Claim ledger record ${i} has invalid claim_kind: ${String(kind)}`);
+    }
+    const claimText = typeof o.claim_text === "string" ? o.claim_text : "";
+    if (!claimText.trim()) {
+      throw new AgentOutputParseError(`Claim ledger record ${i} has empty claim_text`);
+    }
+    const section = o.section == null ? "" : String(o.section);
+    const sourceSpan = o.source_span == null ? null : String(o.source_span);
+    const sourceId = o.source_id == null ? null : String(o.source_id);
+    const sourceUrl = o.source_url == null ? null : String(o.source_url);
+    const slotKey = o.slot_key == null ? null : String(o.slot_key);
+    // FACT records must be grounded: span + (id OR url). Mirrors the
+    // validate_item_provenance criterion-3 check, surfaced at parse time so a
+    // malformed FACT is caught before it reaches the gate.
+    if (kind === "FACT") {
+      if (!sourceSpan || !sourceSpan.trim()) {
+        throw new AgentOutputParseError(`FACT claim ${i} ("${claimText.slice(0, 50)}") is missing source_span`);
+      }
+      if (!sourceId && !sourceUrl) {
+        throw new AgentOutputParseError(`FACT claim ${i} ("${claimText.slice(0, 50)}") has neither source_id nor source_url`);
+      }
+    }
+    if (sourceId !== null && !CLAIM_UUID_RE.test(sourceId)) {
+      throw new AgentOutputParseError(`Claim ledger record ${i} has non-UUID source_id: ${sourceId}`);
+    }
+    return {
+      section,
+      claim_text: claimText,
+      claim_kind: kind as ClaimKind,
+      source_span: sourceSpan,
+      source_id: sourceId,
+      source_url: sourceUrl,
+      slot_key: slotKey,
+      search_result_id: null,
+    };
+  });
+  return { claims, start: m.index, end: m.index + m[0].length };
+}
+
 /**
- * Parse the full agent output: body + metadata.
- * Throws AgentOutputParseError if the YAML block is missing or malformed.
+ * Sprint 4 task 1.8: standalone ledger extractor for callers that only want
+ * the claims (e.g. the workflow persist step) without re-parsing YAML.
+ * Returns [] when no ledger block is present. Throws on a malformed ledger.
+ */
+export function extractClaimLedger(rawText: string): ClaimProvenanceRecord[] {
+  const located = locateClaimLedger(rawText);
+  return located ? located.claims : [];
+}
+
+/**
+ * Sprint 4 task 1.8: cross-link each claim's grounding source to the
+ * agent_run_searches row that surfaced it. For FACT claims grounded by a
+ * web_search result (source_url set, source_id often null), match source_url
+ * against the searches' result_url and stamp search_result_id. Pure function:
+ * the workflow persist step calls it with the run's persisted search rows.
+ * Returns a new array; does not mutate the input.
+ */
+export function crossLinkClaimSources(
+  claims: ClaimProvenanceRecord[],
+  searches: AgentRunSearchLink[],
+): ClaimProvenanceRecord[] {
+  const byUrl = new Map<string, string>();
+  for (const s of searches) {
+    if (s.result_url) byUrl.set(s.result_url, s.id);
+  }
+  return claims.map((c) => {
+    if (c.source_url && byUrl.has(c.source_url)) {
+      return { ...c, search_result_id: byUrl.get(c.source_url)! };
+    }
+    return { ...c, search_result_id: c.search_result_id ?? null };
+  });
+}
+
+/**
+ * Parse the full agent output: body + metadata + claim provenance ledger.
+ * Throws AgentOutputParseError if the YAML block is missing or malformed, or
+ * if a claim ledger is present but malformed.
  */
 export function parseAgentOutput(rawText: string): ParsedAgentOutput {
   const block = findYamlBlock(rawText);
@@ -578,6 +716,14 @@ export function parseAgentOutput(rawText: string): ParsedAgentOutput {
     );
   }
   const metadata = parseYamlFrontmatter(block.yaml);
-  const body = rawText.slice(0, block.start).replace(/\s+$/, "");
-  return { body, metadata };
+  // Sprint 4 task 1.8: extract the claim ledger (sits before the YAML block)
+  // and strip it from the stored body so full_brief stays clean prose.
+  const ledger = locateClaimLedger(rawText);
+  const claims = ledger ? ledger.claims : [];
+  let body = rawText.slice(0, block.start);
+  if (ledger && ledger.end <= block.start) {
+    body = body.slice(0, ledger.start) + body.slice(ledger.end);
+  }
+  body = body.replace(/\s+$/, "");
+  return { body, metadata, claims };
 }
