@@ -2026,7 +2026,12 @@ export async function fetchIntelligenceItem(
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .maybeSingle();
 
-    if (error || !row) return fromSeed();
+    // Sprint 4 task 1.10 gate: a gated-out (unverified) or missing item must NOT
+    // fall back to ungated legacy SEED content — that would leak around the
+    // provenance gate. Fail CLOSED: return not-found. (The seed-only path above,
+    // guarded by !isSupabaseConfigured(), still serves SEED in offline/dev mode
+    // where no DB and therefore no gate applies.)
+    if (error || !row) return null;
 
     const resourceId: string = row.legacy_id || row.id;
 
@@ -2193,8 +2198,10 @@ export async function fetchIntelligenceItem(
 
     return { resource, changelog, dispute, supersessions, xrefIds, refByIds };
   } catch (e) {
-    console.error("fetchIntelligenceItem failed, using seed fallback:", e);
-    return fromSeed();
+    // Sprint 4 task 1.10 gate: on DB error, fail CLOSED rather than serve
+    // ungated legacy SEED content for what may be an unverified item.
+    console.error("fetchIntelligenceItem failed (failing closed, not serving seed):", e);
+    return null;
   }
 }
 
