@@ -32,12 +32,51 @@ export async function recommendSourceTier(sourceId: string): Promise<SourceTierR
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.SUPABASE_SERVICE_ROLE_KEY as string
   );
-  const { data: src } = await supabase
+  // Table-aware: the tier-audit panel mounts on BOTH seeded sources (rows in
+  // `sources`) and provisional sources (rows in `provisional_sources`, a separate
+  // table). Try `sources` first; fall back to `provisional_sources` so recommend
+  // works at the provisional mount too — symmetric with commit-tier-change's
+  // seeded/provisional split. Provisional rows have no publisher/source_role;
+  // provisional_tier is mapped as the current tier for display.
+  let src:
+    | { name: string; url: string; publisher: string | null; base_tier: number | null; source_role: string | null }
+    | null = null;
+  // `sources` has source_role (migration 063) but NO `publisher` column. Selecting
+  // a non-existent column makes PostgREST error and return null data, which reads
+  // silently as "not found" (the agent/run error-swallow class — CLAUDE.md). Select
+  // only existing columns AND destructure the error so any future drift surfaces.
+  const { data: seeded, error: seededErr } = await supabase
     .from("sources")
-    .select("id, name, url, publisher, base_tier, source_role")
+    .select("id, name, url, base_tier, source_role")
     .eq("id", sourceId)
     .maybeSingle();
-  if (!src) throw new Error(`source ${sourceId} not found`);
+  if (seededErr) console.warn(`[recommendSourceTier] sources lookup error: ${seededErr.message}`);
+  if (seeded) {
+    src = {
+      name: seeded.name as string,
+      url: seeded.url as string,
+      publisher: null, // sources has no publisher column
+      base_tier: (seeded.base_tier as number | null) ?? null,
+      source_role: (seeded.source_role as string | null) ?? null,
+    };
+  } else {
+    const { data: prov, error: provErr } = await supabase
+      .from("provisional_sources")
+      .select("id, name, url, provisional_tier")
+      .eq("id", sourceId)
+      .maybeSingle();
+    if (provErr) console.warn(`[recommendSourceTier] provisional_sources lookup error: ${provErr.message}`);
+    if (prov) {
+      src = {
+        name: prov.name as string,
+        url: prov.url as string,
+        publisher: null,
+        base_tier: (prov.provisional_tier as number | null) ?? null,
+        source_role: "provisional",
+      };
+    }
+  }
+  if (!src) throw new Error(`source ${sourceId} not found in sources or provisional_sources`);
 
   // Best-effort content excerpt for grounding the recommendation.
   let excerpt = "(source content unreachable)";
