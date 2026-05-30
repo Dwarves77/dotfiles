@@ -626,6 +626,24 @@ Open issues that surface during work go here. Not in lieu of memory entries — 
 | 2026-05-29 | 64 of the 80 Option C items have sections but were NOT in the 19 B-audited subset. Their s15 URLs were not reachability-checked. Two paths: extend B audit to all 64 (~$0, ~30 min), or roll into Block 1 reconciliation which will quarantine them automatically under strict criterion 2. The reconciliation path is the design intent; the extended B audit is optional comfort. |
 | 2026-05-29 | The 3 CLEAN items from the B audit (sdir.no fjord, Canada CFR, TCEQ Texas) are NOT pulled. They remain active. They will face Block 1 reconciliation along with the rest of the corpus; their s15 URLs are reachable but the items still fail criterion 2 if `agent_run_searches` is required (which it is). They will quarantine in reconciliation; their `integrity_flag` will note "no fabrication detected; quarantine due to missing search log only" so the remediation path is lightweight (script-only restore as `verified_post_hoc`). |
 
+### 8.1 Task 1.7 prompt-audit findings (2026-05-29)
+
+Live 3-item, non-persisting audit of the claim-level provenance contract added to `src/lib/agent/system-prompt.ts`. Harness: `scripts/sprint4-17-prompt-audit.mjs` (read-only DB + generate-and-inspect; nothing written). Sonnet 4.6, web_search max 4/item. Total spend $1.35 (+$0.12 prior no-search smoke ≈ $1.47, within the ≤$2 spec authorization).
+
+| Item | Type/Priority | Verdict | Ledger contents |
+|---|---|---|---|
+| CARB Advanced Clean Fleets | regulation/HIGH | FAIL — no ledger | 0 rows (output truncated at 16k tokens before trailing blocks) |
+| Diário Oficial da União (Brazil) | guidance/LOW | ALL PASS | 20 rows: 12 FACT (all grounded), 1 ANALYSIS, 3 LEGAL, 4 GAP; all 4 slots covered |
+| edie portal | market_signal/LOW | FAIL — GAP inline form | 34 rows: 27 FACT (all grounded), 2 ANALYSIS, 2 LEGAL, 3 GAP |
+
+**Contract takes effect (the auto-test's bar):** labeling discipline (ANALYSIS closed-set labels + LEGAL routing) PASSED on all 3 items; FACT grounding (span + source_id/url) PASSED on both items that emitted a ledger — 39 FACT claims total, every one grounded; item 2 is a clean full pass across all 8 checks. The invariant's core (born-labeled, born-grounded) is working.
+
+**Finding 1 — trailing-block truncation (most serious).** Item 1 (regulation/HIGH, 56.9k-char brief) hit the audit harness's `max_tokens: 16000` and truncated before emitting the ledger OR the YAML — both are emitted last, so both are the first casualty. Partly an audit artifact (production b2-runner used `max_tokens: 24000`, not 16k), but it exposes a real risk on large regulation briefs. Mitigations: (a) prompt hardened with a MANDATORY-TRAILING-EMISSION rule (keep body tight, the ledger + YAML are required, a response that ends before both is a failed regeneration); (b) **HC3/Block-4 action: the workflow generation step must set `max_tokens` high enough (>= 24k, likely higher for regulation briefs) to fit body + ledger + YAML, and treat `stop_reason: "max_tokens"` as a failed regeneration, not a silent partial.** This is now a Block-4 generation-config requirement.
+
+**Finding 2 — GAP inline-form inconsistency (minor).** Item 3 emitted 3 GAP records in the ledger but the prose lacked the exact `*Specific [...] not available from primary sources as of [date].*` form the criterion-5 check looks for. Mitigation: prompt hardened with a MATCHED-PAIR GAP rule (every ledger GAP must have a matching inline statement and vice versa).
+
+**Re-verification deferred to HC3, by design (no re-spend now).** The hardened prompt is re-exercised by the HC3 pre-run probes already in checklist 7.6 — probe 3 (labeling), probe 4 (active-sourcing / explicit-GAP), probe 5 (slot enforcement) directly re-test these exact behaviors against live generation before any scaled run. The 1.7 audit confirmed the contract takes effect and surfaced the findings; HC3 closes the loop on the hardening. A single-item re-verify of the regulation case at 24k tokens (~$0.65) is available on operator request but not required to close 1.7.
+
 ---
 
 ## 9. References
