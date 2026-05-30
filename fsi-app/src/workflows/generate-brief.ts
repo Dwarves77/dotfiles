@@ -13,7 +13,7 @@
 //   - createHook     : per-claim human-verification gate (CRITICAL/HIGH).
 //   - DurableAgent   : Block 4 active-sourcing agent (reserved here).
 //   - RetryableError : Block 4 / task 1.14 span-check retry signal (reserved).
-import { createHook, RetryableError } from "workflow";
+import { createHook, RetryableError, getStepMetadata } from "workflow";
 import { DurableAgent } from "@workflow/ai/agent";
 import { createClient } from "@supabase/supabase-js";
 import { verifyHookToken } from "../lib/agent/verify-token";
@@ -23,7 +23,7 @@ import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 // references keep them genuinely used (the DevKit bundler 500s on unused
 // workflow imports, and tsc may flag unused locals).
 void DurableAgent;
-void RetryableError;
+// RetryableError is now genuinely used in spanCheckClaim (task 1.14).
 
 export interface ProvenanceValidationResult {
   valid: boolean;
@@ -146,15 +146,38 @@ export async function flipToVerifiedIfAllTicked(itemId: string): Promise<boolean
   return true;
 }
 
-// Task 1.14: span-check fetch step (Component 7). Wraps spanCheckFetch; the WDK
-// step retry config drives 2-3 attempts + backoff, and a RetryableError that
-// survives exhaustion routes the claim to staging via routeOnValidation. The
-// timeout/network -> RetryableError throw is unit-verified
-// (scripts/sprint4-114-spancheck-test.mjs); the WDK retry loop is runtime-pending.
+// Task 1.14: span-check fetch step (Component 7). The operator's Component-7 retry
+// contract is made EXPLICIT here, not left to WDK defaults:
+//   - maxRetries PINNED to 3 (4 total attempts). A WDK default change must not be
+//     able to silently alter the retry contract (same invisible-drift lesson as the
+//     jq fail-open hook: pin it, don't depend on a default).
+//   - EXPONENTIAL backoff: retryAfter = attempt^2 seconds, from
+//     getStepMetadata().attempt. A constant retryAfter would not be exponential.
+//   - On retry EXHAUSTION the step throws and the workflow run ends FAILED — the
+//     claim is NOT returned as validated (fail SAFE). The route-to-staging
+//     DESTINATION on exhaustion is Block 4 (routeOnValidation real body + wiring
+//     spanCheckClaim into the generation path); Block 1 guarantees fail-safe only.
+// The timeout/network -> RetryableError throw is unit-verified
+// (scripts/sprint4-114-spancheck-test.mjs); the retry loop + exponential backoff +
+// fail-safe-on-exhaustion are runtime-verified via the worker probe (2026-05-30).
 export async function spanCheckClaim(url: string): Promise<SpanCheckResult> {
   "use step";
-  return spanCheckFetch(url);
+  const meta = getStepMetadata();
+  try {
+    return await spanCheckFetch(url);
+  } catch (e) {
+    if (e instanceof RetryableError) {
+      const attempt = typeof meta?.attempt === "number" ? meta.attempt : 1;
+      // Exponential backoff per the operator ruling (attempt^2 seconds).
+      throw new RetryableError(`span-check unverified for ${url} (attempt ${attempt})`, {
+        retryAfter: attempt ** 2 * 1000,
+      });
+    }
+    throw e;
+  }
 }
+// Pinned: 4 total attempts (1 + 3 retries). Do NOT rely on the WDK default.
+spanCheckClaim.maxRetries = 3;
 
 // ── Workflow orchestration (durable) ──
 export async function generateBriefWorkflow(
