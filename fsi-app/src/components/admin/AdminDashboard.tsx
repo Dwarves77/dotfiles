@@ -16,6 +16,7 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { IssuesQueue } from "@/components/admin/IssuesQueue";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
 import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
+import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
 import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
@@ -814,6 +815,8 @@ export function AdminDashboard({
                       {update.reason || JSON.stringify(update.proposed_changes, null, 2)}
                     </p>
                   )}
+                  {/* Sprint 4 task 1.11: provenance-gate failure modes */}
+                  <ProvenanceFailures failures={extractFailures(update)} />
                   <div className="flex gap-2">
                     <Button
                       variant="primary"
