@@ -443,13 +443,22 @@ PUSH + DOC UPDATE:
     RELOADED the `seed/apply-` and `reconcile.*--execute` danger patterns AND
     has been OBSERVED force-asking on a test invocation. Evidence 2026-05-29:
     the patterns were added to ~/.claude/settings.json mid-session but a probe
-    command containing "reconcile --execute" did NOT force-ask — the hook did
-    not hot-reload (the 116/117 apply likewise did not fire it). A dormant hook
-    is NOT a gate, and it is worst exactly here: reconcile --execute mutates the
-    corpus and quarantines ~159 items. Before Phase 2 --execute runs: (1) make
-    the patterns live (new session and/or open /hooks to force a reload), then
-    (2) re-run the harmless "reconcile --execute" probe and CONFIRM it force-asks
-    once. Do NOT run real reconciliation until the gate has been seen to fire.
+    command containing "reconcile --execute" did NOT force-ask. SHARPENED
+    DIAGNOSIS (2026-05-29): a third probe matching an OLD pre-existing pattern
+    ("update intelligence_items") ALSO did not force-ask, and opening /hooks did
+    not change it. So the WHOLE hook is not surfacing asks this session — NOT a
+    regex or hot-reload problem. Most likely the session is in the shift+Tab
+    auto-accept/bypass permission mode enabled for Block 1 to stop the prompt
+    flood; bypass OVERRIDES a hook's 'ask' decision (auto-approves without a
+    visible prompt), so /hooks shows the hook loaded yet nothing prompts. A
+    dormant gate is NOT a gate, worst exactly here: reconcile --execute mutates
+    the corpus and quarantines ~159 items. Before Phase 2 --execute runs: (1) be
+    in a NORMAL (non-bypass, ask-enabled) permission mode — toggle auto-accept
+    OFF and/or start a fresh session (which also reloads settings.json hooks at
+    startup); (2) re-run the harmless "reconcile --execute" probe and CONFIRM it
+    force-asks once; (3) the reconcile script's own --confirm-phase-2 self-gate
+    (task 1.9) is the in-process guard that holds regardless of the hook. Do NOT
+    run real reconciliation until the gate has been SEEN to fire in normal mode.
 [ ] feedback_runtime_validation_before_fix re-read.
 [ ] feedback_lift_cap_is_not_a_target re-read — this phase does NOT
     spend model budget, but the principle that "no operation without an
