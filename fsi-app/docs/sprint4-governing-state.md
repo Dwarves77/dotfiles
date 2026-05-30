@@ -124,13 +124,38 @@ Out-of-band Sprint 3 work shipped during the same window:
 | Phase | State | Commits / DB writes | Notes |
 |---|---|---|---|
 | PRE-BLOCK-1 (revision 2 docs) | IN PROGRESS | (this commit when written) | Revised 2026-05-29; awaiting operator sign-off on revision 2 |
-| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | NOT STARTED | -- | Entry checklist 7.1; revision 2.2 spec; requires sign-off on Phase 1.5 add + task 1.15 |
+| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | **15/19 PAUSED** (1.0a-d + 1.1-1.11 done) | `a6f0dbc..2756eb1` (branch `sprint4/block-1-invariant-landing`; nothing to master) | Paused 2026-05-30 after 1.11 for a dev-server-up session — the back half (1.12-1.15) is admin-UI / runtime work that needs render + runtime verification, not tsc-clean. Additive-only re-proven live: unverified=657 untouched, 3 new tables, view 0 rows, 3 triggers. See resume note 3.2.1. |
 | Phase 1.5 — source-tier audit + provisional-source triage (~$0.75 + ~90 min ticking) | NOT STARTED | -- | Revision 2.2 NEW phase between HC1 and Reconciliation; entry checklist 7.1.5; ~148 sources (73 seeded + 75 provisional from A6.2) |
 | Reconciliation — 294 items | NOT STARTED | -- | Entry checklist 7.2; requires Block 1 COMPLETE + HC1 + Phase 1.5 COMPLETE so reconciliation runs against authoritatively-tiered sources |
 | Block 1.5 — per-item authority floor (~2h) | NOT STARTED | -- | Entry checklist 7.3; ships after Reconciliation; folds in former Block 2 |
 | Block 2 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
 | Block 3 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
 | Block 4 — gated generation + visual affordance + verification queue | NOT STARTED | -- | Entry checklist 7.6; HARD CHECKPOINT 3 before; requires binding cap + green-light THIS SESSION |
+
+### 3.2.1 Block 1 RESUME NOTE (paused 2026-05-30 at 15/19)
+
+**Branch:** `sprint4/block-1-invariant-landing` @ `2756eb1`, tree clean, nothing pushed to master. Resume via DIRECT main-thread execution (the Workflow runtime ignored prompt suppression; direct execution routes through the hook).
+
+**Done (15/19), commits `a6f0dbc..2756eb1`:**
+- Foundation (9): 1.0a `a6f0dbc`, 1.1 `c6f4920`, 1.2 `8c15c3b`, 1.3 `1d7a5ba`, 1.4 `4b1aefb`, 1.0b `8fb13e0`, 1.0c `11fbdaf`, 1.0d `bb3791f`, 1.5 `14ee359`.
+- This session (6): 1.6 `b138cb8`, 1.7 `fe31ab1`, 1.8 `dca233d`, 1.9 `6cc3dad`, 1.10 `22230b1` (+fix `e4ff1f6`), 1.11 `ce99fbe`.
+- Docs/spec: orphaned-cap HC3 precondition `1722e6a`; hook dormant→fail-open records `48a1f96`/`1f3dea0`; Component 8 corroboration proposal `2756eb1`.
+
+**Additive-only re-proven live 2026-05-30:** `provenance_status` distribution = unverified=657 (NOTHING flipped); 3 new tables present (agent_run_searches, section_claim_provenance, item_type_required_slots); `active_intelligence_items` view = 0 rows (verified-only gate live); 3 `set_provenance_status` triggers.
+
+**Left (4) + HC1 — these need a DEV-SERVER-UP session; per-task render/runtime verification, NOT tsc-clean:**
+- **1.11 render-verify (carry-over):** 6 SENTINEL staged rows (batch_id `SPRINT4_BLOCK1_SELFTEST_111`) are LIVE in admin → Staged updates, one per failure mode + combined. Operator eyeballs the ProvenanceFailures panel; then `node supabase/seed/sprint4-111-synthetic-staged.mjs --cleanup`.
+- **1.12 verification queue + resumeHook tick — RUNTIME-VERIFY THE TICK.** The `resumeHook` tick that flips `pending_human_verify → verified` is the mechanism the whole human-verify layer depends on. Verify it at runtime against a real tick on a sentinel-marked synthetic CRITICAL/HIGH item — do NOT defer into the HC1 batch (a failure there is buried). Per-claim tick ONLY (locked); no batch tick.
+- **1.13 verification audit log:** `verified_by`/`verified_at`; DB query after a test tick.
+- **1.14 span-check timeout policy:** `RetryableError` 2-3 retries → staging; runtime test with a mock unreachable URL.
+- **1.15 source-tier audit UI** on `ProvisionalReviewCard` + `recommendSourceTier` + `commit_tier_change`; operator render-verify; do NOT run any tier pass (that is Phase 1.5).
+- **HARD CHECKPOINT 1 after 1.15:** synthetic-test all 6 invariant criteria + 4 also-confirms; report per-criterion; HALT (do NOT auto-advance to Phase 1.5). Reconcile this §3.2 ledger on the merge base at HC1.
+
+**Open threads carried forward (do not lose):**
+1. **Hook is fail-open-FIXED but UNPROVEN.** Root cause: `jq` not installed → the old hook always `exit 0` (allow) in every mode (see 7.2 + decision log 2026-05-30). Rewritten jq-free + fail-CLOSED in `~/.claude/settings.json`. It is NOT a working gate until OBSERVED force-asking in a FRESH session (mid-session reload failed twice). Re-probe `update intelligence_items` AND `reconcile --execute` in a clean session; both must visibly prompt.
+2. **`--confirm-phase-2` holds the reconcile gate regardless of the hook** (task 1.9 self-gate). Until the hook is proven, EVERY danger op is gated only by manual confirm + this self-gate.
+3. **DB-level guard elevated** to the real Phase-2 corpus-mutation protection candidate (7.2) — a command-string hook has four silent-failure points and one just fired.
+4. **Component 8 (analysis-level corroboration / authority signal)** is a design PROPOSAL (`2756eb1`), Phase 4 / Intelligence Assistant scope, AWAITING operator sign-off — open question: who populates `primary_authority_key` (Phase 1.5 curation vs agent-at-grounding).
 
 ### 3.3 Corpus state (post-Option-C, post-2026-05-29 archive)
 
