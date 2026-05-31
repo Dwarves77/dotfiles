@@ -16,6 +16,8 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { IssuesQueue } from "@/components/admin/IssuesQueue";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
 import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
+import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
+import { VerificationQueue } from "@/components/admin/VerificationQueue";
 import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
@@ -83,6 +85,7 @@ export function AdminDashboard({
     | "orgs"
     | "sources"
     | "staged"
+    | "pending-verification"
     | "scan"
     | "integrity-flags"
     | "platform-integrity-flags"
@@ -108,6 +111,7 @@ export function AdminDashboard({
     "orgs",
     "sources",
     "staged",
+    "pending-verification",
     "scan",
     "integrity-flags",
     "platform-integrity-flags",
@@ -278,6 +282,7 @@ export function AdminDashboard({
     { id: "orgs", label: "Organizations", count: orgs.length },
     { id: "sources", label: "Source registry", count: 0 },
     { id: "staged", label: "Staged updates", count: stagedUpdates.length },
+    { id: "pending-verification", label: "Pending verification", count: 0 },
     { id: "integrity-flags", label: "Integrity flags", count: integrityFlagCount },
     { id: "platform-integrity-flags", label: "Platform flags", count: platformIntegrityFlagCount },
     { id: "tier-opinions", label: "Tier disagreements", count: 0 },
@@ -814,6 +819,8 @@ export function AdminDashboard({
                       {update.reason || JSON.stringify(update.proposed_changes, null, 2)}
                     </p>
                   )}
+                  {/* Sprint 4 task 1.11: provenance-gate failure modes */}
+                  <ProvenanceFailures failures={extractFailures(update)} />
                   <div className="flex gap-2">
                     <Button
                       variant="primary"
@@ -837,6 +844,9 @@ export function AdminDashboard({
             )}
           </div>
         )}
+
+        {/* Pending verification Tab — Sprint 4 task 1.12/1.13 (UNVERIFIED-PENDING-RUNTIME) */}
+        {activeTab === "pending-verification" && <VerificationQueue />}
 
         {/* Integrity flags Tab — W2.C
             Surfaces intelligence_items.agent_integrity_flag rows from

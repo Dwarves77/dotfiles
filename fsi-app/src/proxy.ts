@@ -69,6 +69,12 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // `.well-known/workflow/` is excluded so this proxy handler never
+    // intercepts the Workflow DevKit's internal queue request (e.g.
+    // POST /.well-known/workflow/v1/flow). Per @workflow/next docs this is
+    // easy to miss in Next.js 16 where proxy.ts replaced middleware.ts; the
+    // symptom is a "[local world] Queue operation failed" / detached
+    // ArrayBuffer error and a failing `npx workflow health`. (Sprint 4 1.0b)
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|.well-known/workflow/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+import { withWorkflow } from "workflow/next";
 
 // Both outputFileTracingRoot and turbopack.root must resolve to the same path
 // (Next.js 16 enforcement). On Vercel, the build context root is /vercel/path0
@@ -141,6 +142,14 @@ const nextConfig: NextConfig = {
 // Outputs static HTML reports to .next/analyze/ that visualize per-route
 // chunk composition. Use via `npm run analyze`. Required reading before
 // any code-splitting or perf dispatch — see docs/PERF-PLAYBOOK.md.
-export default withBundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-})(nextConfig);
+// Sprint 4 Block 1 (task 1.0b): wrap the Next.js config with withWorkflow()
+// from the Workflow DevKit. This enables the "use workflow" / "use step"
+// directives (consumed by src/workflows/* in later Block 1 tasks) and stands
+// up the SDK's internal route handlers under /.well-known/workflow/, against
+// which `npx workflow health` runs its queue-based check. Composition order:
+// withWorkflow wraps the bundle-analyzer-wrapped config so both plugins apply.
+export default withWorkflow(
+  withBundleAnalyzer({
+    enabled: process.env.ANALYZE === "true",
+  })(nextConfig)
+);
