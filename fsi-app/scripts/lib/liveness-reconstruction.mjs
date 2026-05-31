@@ -1,4 +1,4 @@
-// D3 §3 — self-liveness LAYER 3 (real-artifact reconstruction). READ-MOSTLY:
+// D3 section 3 — self-liveness LAYER 3 (real-artifact reconstruction). READ-MOSTLY:
 // inserts/updates/deletes ONE SENTINEL-marked row used purely as a real-DB timestamp
 // vehicle, then removes it. No real flag, no corpus row.
 //
@@ -9,7 +9,7 @@
 // run exists), observed externally, not D3's self-attestation.
 //
 // NOTE ON THE REAL STORE: the heartbeat's production home is a dedicated d3_runs table
-// (DDL proposed in the §3 report, NOT applied here — that is the unbuilt-trigger infra
+// (DDL proposed in the section 3 report, NOT applied here — that is the unbuilt-trigger infra
 // self-liveness exists to guard). This L3 uses a SENTINEL integrity_flags row
 // (status='archived', never an active flag) only as a real timestamp round-trip.
 import pg from "pg";
@@ -38,7 +38,7 @@ async function readerComputesLiveness(client, nowMs) {
   return assessLiveness(latestRunAtMs(rows, "ran_at"), nowMs, WINDOW);
 }
 
-console.log("=== §3 self-liveness L3 — external reader computes verdict from a stored timestamp ===\n");
+console.log("=== section 3 self-liveness L3 — external reader computes verdict from a stored timestamp ===\n");
 
 const c = new pg.Client({ connectionString: CONN });
 await c.connect();
@@ -84,6 +84,6 @@ console.log("      We do not claim D3 detects its own death in a vacuum — only
 console.log("      present as GREEN to any reader.");
 
 console.log(`\n${fails === 0
-  ? "§3 self-liveness L3 PASS — external reader derived NEVER/STALE/LIVE from a stored timestamp; not-run rendered LOUD UNKNOWN; clean only under a fresh heartbeat."
-  : fails + " §3 L3 FAILURE(S)"}`);
+  ? "section 3 self-liveness L3 PASS — external reader derived NEVER/STALE/LIVE from a stored timestamp; not-run rendered LOUD UNKNOWN; clean only under a fresh heartbeat."
+  : fails + " section 3 L3 FAILURE(S)"}`);
 process.exitCode = fails === 0 ? 0 : 1;

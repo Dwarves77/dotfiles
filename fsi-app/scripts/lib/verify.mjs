@@ -1,7 +1,7 @@
 // D3 Component A — outcome-assertion primitives.
 //
 // Each primitive asserts a CATEGORY, so the session failures it re-detects are
-// INSTANCES that trip the category, NOT hardcoded signatures (design §1(a)):
+// INSTANCES that trip the category, NOT hardcoded signatures (design section 1(a)):
 //   assertReadBack  — "operation reported success but persisted state differs"
 //   fetchOk         — "non-2xx must not be read as success/absence"
 //   observeFired    — "a gate's EFFECT, not its installation"
@@ -64,7 +64,7 @@ export async function observeFired(label, probeFn) {
   }
 }
 
-// Lint (text-scan — acknowledged lower-confidence per design §2): flags a raw
+// Lint (text-scan — acknowledged lower-confidence per design section 2): flags a raw
 // fetch( of a variable/url that is NEITHER the canonical token NOR the model API.
 export function findRawSourceFetch(sourceText, { canonicalToken } = {}) {
   const hits = [];

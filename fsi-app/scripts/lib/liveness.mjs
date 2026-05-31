@@ -1,4 +1,4 @@
-// D3 §3 — self-liveness (the meta-level of the whole investigation).
+// D3 section 3 — self-liveness (the meta-level of the whole investigation).
 //
 // THE TRAP (recursion): D3 attesting its own liveness is a proxy. A dead D3 writes
 // nothing AND checks nothing -> silent. A liveness check that only runs when D3 runs

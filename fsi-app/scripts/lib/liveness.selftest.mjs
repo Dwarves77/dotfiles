@@ -1,9 +1,9 @@
-// D3 §3 — self-liveness LAYER 1 (known-answer pairs) + LAYER 2 (mutation).
+// D3 section 3 — self-liveness LAYER 1 (known-answer pairs) + LAYER 2 (mutation).
 // Run: node --test scripts/lib/liveness.selftest.mjs
 //
 // The load-bearing property under test: not-run renders LOUD, never clean. The pairs
 // fix that; the mutations prove a broken liveness gate would let a skipped run pass as
-// clean — the exact silent-green trap §3 exists to prevent.
+// clean — the exact silent-green trap section 3 exists to prevent.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LIVENESS, assessLiveness, latestRunAtMs, consumerView } from "./liveness.mjs";
