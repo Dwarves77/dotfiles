@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { start } from "workflow/api";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
@@ -68,6 +69,14 @@ export async function POST(request: NextRequest) {
   // Hand off to the durable workflow. start() returns immediately with a runId;
   // it does not wait for completion. Callers poll via the workflow inspect/run
   // APIs or the agent_runs telemetry the steps write (Block 4).
+  // D3 async audit (brief-gen + citation event class). The corpus mutation happens in
+  // the durable workflow; this records that a gated-generation pass was triggered and
+  // is a phase4 signal for self-liveness. Fresh client (the request-scoped one above is
+  // block-scoped to the sourceUrl resolution). d3AuditEvent never throws.
+  await d3AuditEvent(
+    createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!),
+    { scope: "data", event: "ingest:brief-gen" }
+  );
   const run = await start(generateBriefWorkflow, [itemId]);
   return NextResponse.json({ runId: run.runId, item_id: itemId }, { status: 202 });
 }

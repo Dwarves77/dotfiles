@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -83,6 +84,8 @@ export async function POST(request: NextRequest) {
     `[commit-tier-change] source=${source_id} base_tier ${prior.base_tier ?? "null"} -> ${tier} ` +
       `by admin=${auth.userId}`
   );
+
+  await d3AuditEvent(supabase, { scope: "data", event: "ingest:classification" });
 
   return NextResponse.json(
     { success: true, source_id, prior_tier: prior.base_tier ?? null, tier },

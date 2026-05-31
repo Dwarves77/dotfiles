@@ -24,6 +24,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { resumeHook } from "workflow/api";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -80,6 +81,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  await d3AuditEvent(supabase, { scope: "data", event: "ingest:provenance" });
 
   return NextResponse.json(
     { success: true, token, item_id: body.item_id, claim_id: body.claim_id, reviewer },

@@ -26,6 +26,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { d3GuardAdmission } from "@/lib/d3/hooks.mjs";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -668,7 +669,20 @@ async function executeAction(
     return { action: "rejected" };
   }
 
-  if (tier === "H") {
+  // D3 admission guard: the H classification was validated through the plain-fetch
+  // content path (an unreliable method pre-D1). When the validating method is
+  // unreliable, bias auto-admission to PROVISIONAL (human review) rather than
+  // auto-active — so a bot-blocked mis-read can't auto-admit a wrongly-tiered source.
+  // On a clean method the guard returns 'active' and the original path runs unchanged.
+  const hAdmit =
+    tier === "H"
+      ? await d3GuardAdmission(supabase, {
+          candidateUrl: candidate.url,
+          method: "plain-fetch-reachability",
+        })
+      : null;
+
+  if (tier === "H" && hAdmit?.outcome === "active") {
     // Map AI trust tier → numeric tier on sources table:
     //   T1 → tier 1 (canonical primary)
     //   T2 → tier 2 (canonical regulator)

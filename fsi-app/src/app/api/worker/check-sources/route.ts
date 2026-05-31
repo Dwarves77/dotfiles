@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isGloballyPaused } from "@/lib/api/pause";
+import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
 
 /**
  * POST /api/worker/check-sources
@@ -102,9 +103,20 @@ export async function POST(request: NextRequest) {
           updates.last_inaccessible = new Date().toISOString();
           updates.total_checks = (source as any).total_checks + 1 || 1;
           updates.consecutive_accessible = 0;
-          // Flag as inaccessible if repeated failures
+          // Flag as inaccessible if repeated failures — but ONLY if the reachability
+          // verdict came from a reliable method. This check uses a plain UA-less HEAD
+          // fetch (the unreliable method that returns 403/404 to bot-protected real
+          // sources). The D3 rejection guard quarantines instead of evicting, preventing
+          // the 420-class eviction at the decision point until the canonical fetch lands.
           if ((source as any).consecutive_accessible === 0) {
-            updates.status = "inaccessible";
+            const guard = await d3GuardRejection(supabase, {
+              candidateUrl: source.url,
+              method: "plain-fetch-reachability",
+            });
+            if (guard.outcome === "evict") {
+              updates.status = "inaccessible";
+            }
+            // else: quarantine — leave status as-is; the guard flagged it for review.
           }
         }
 

@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { createHash } from "crypto";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -113,6 +114,8 @@ export async function POST(
     last_checked: new Date().toISOString(),
     last_accessible: new Date().toISOString(),
   }).eq("id", source.id);
+
+  await d3AuditEvent(supabase, { scope: "data", event: "ingest:fetch" });
 
   return NextResponse.json(
     {

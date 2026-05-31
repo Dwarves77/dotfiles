@@ -15,6 +15,7 @@
 // schema are unchanged.
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -400,6 +401,8 @@ Return ONLY the JSON object, no other text.`,
       triggered_by: auth.userId,
       metadata: { topic: topic || null, jurisdiction: jurisdiction || null, staged: stagedItems.length },
     }, { onConflict: "action_key" });
+
+    await d3AuditEvent(supabase, { scope: "data", event: "ingest:scan" });
 
     return NextResponse.json({
       success: true,
