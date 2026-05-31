@@ -28,6 +28,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
+import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
@@ -265,30 +266,19 @@ function validateRow(
 async function headCheck(
   url: string
 ): Promise<{ status: number | "error"; reason?: string }> {
-  const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), HEAD_TIMEOUT_MS);
+  // D1 canonical fetch — reachability via browserlessRender (the single source of
+  // truth). The prior plain HEAD returned a bot-block artifact on import for
+  // bot-protected real sources; a successful render is the reliable reachable signal.
   try {
-    let resp = await fetch(url, {
-      method: "HEAD",
-      redirect: "follow",
-      signal: ac.signal,
-    });
-    if (resp.status === 405 || resp.status === 501) {
-      resp = await fetch(url, {
-        method: "GET",
-        redirect: "follow",
-        signal: ac.signal,
-      });
-    }
-    return { status: resp.status };
+    const r = await browserlessRender(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
+    return { status: r.status };
   } catch (e) {
+    if (e instanceof BrowserlessError && typeof e.status === "number") return { status: e.status };
     const err = e as Error;
     return {
       status: "error",
       reason: err.name === "AbortError" ? "timeout" : err.message,
     };
-  } finally {
-    clearTimeout(timer);
   }
 }
 

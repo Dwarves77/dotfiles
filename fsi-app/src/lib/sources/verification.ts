@@ -293,36 +293,15 @@ async function checkReachability(url: string): Promise<{
       // Exponential backoff between retries.
       await sleep(HEAD_BACKOFF_MS[attempt - 1]);
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), HEAD_TIMEOUT_MS);
     try {
-      // Manual redirect tracking — fetch follows up to 20 by default but
-      // we want to log the chain. Cap at 3 redirects (per spec).
-      let current = url;
-      let resp: Response | null = null;
-      for (let hop = 0; hop <= 3; hop++) {
-        resp = await fetch(current, {
-          method: "HEAD",
-          redirect: "manual",
-          signal: controller.signal,
-          headers: {
-            "User-Agent": "CarosLedge-Verifier/1.0 (+https://carosledge.com)",
-          },
-        });
-        if (resp.status >= 300 && resp.status < 400) {
-          const loc = resp.headers.get("location");
-          if (!loc) break;
-          // Resolve relative redirects.
-          const next = new URL(loc, current).toString();
-          redirects.push(next);
-          current = next;
-          continue;
-        }
-        break;
-      }
-      clearTimeout(timer);
-      finalStatus = resp?.status ?? null;
-      finalUrl = current;
+      // D1 canonical fetch — reachability via browserlessRender (the single source of
+      // truth). The prior plain HEAD + bot UA returned 403/404 from bot-protected real
+      // sources — the verification-side half of the 420 mis-rejection mechanism.
+      // Browserless resolves redirects internally, so the chain is no longer surfaced
+      // (callers use ok/finalStatus, not the redirect list). Retries + backoff preserved.
+      const r = await browserlessRender(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
+      finalStatus = r.status;
+      finalUrl = url;
       // Success criteria: 2xx after redirect resolution. 4xx/5xx counts
       // as a hard fail and we move on; transient 5xx triggers retry.
       if (finalStatus !== null && finalStatus >= 200 && finalStatus < 300) {
@@ -346,7 +325,7 @@ async function checkReachability(url: string): Promise<{
       }
       lastError = `HTTP ${finalStatus}`;
     } catch (e: unknown) {
-      clearTimeout(timer);
+      finalStatus = e instanceof BrowserlessError ? (e.status ?? null) : null;
       lastError = e instanceof Error ? e.message : String(e);
       // Network error / timeout / abort → retry.
     }
@@ -368,11 +347,10 @@ function sleep(ms: number): Promise<void> {
 // ────────────────────────────────────────────────────────────────────────────
 // Step 2: Content fetch
 // ────────────────────────────────────────────────────────────────────────────
-// Plain fetch + strip-html. Browserless is overkill for the ~6000 chars
-// Haiku needs — most authoritative sources serve content in static HTML
-// that fetch can read directly. If a particular host turns out to need
-// JS rendering we can swap in browserlessRender() per-host without
-// changing the pipeline shape.
+// D1: content is retrieved via browserlessRender (the canonical SSOT all sites CALL).
+// The earlier plain-GET approach mis-read bot-protected real sources (403/404/thin),
+// the verification-side half of the 420 mis-rejection; routing every host through
+// Browserless removes that per-host variance without changing the pipeline shape.
 
 const CONTENT_TIMEOUT_MS = 10_000;
 const CONTENT_MAX_CHARS = 6_000;
@@ -385,7 +363,7 @@ async function fetchContent(url: string): Promise<{
 }> {
   // D1 canonical fetch — ALL source content goes through browserlessRender (the single
   // source of truth all sites CALL, so they cannot diverge again). The prior plain
-  // UA-less fetch() returned 403/404/thin from bot-protected real sources (EUR-Lex,
+  // UA-less GET returned 403/404/thin from bot-protected real sources (EUR-Lex,
   // Council of the EU, gov portals, IRENA), mis-classifying real candidates; Browserless
   // resolves them. gotoTimeoutMs carries the prior content-timeout budget.
   try {
@@ -911,7 +889,7 @@ export async function verifyCandidate(
     return result;
   }
 
-  // Step 2 — content fetch (only if we're going to use it)
+  // Step 2 — content retrieval (only when we will use it)
   const content = await fetchContent(resolvedUrl);
   log.content = {
     fetched: content.fetched,

@@ -10,6 +10,7 @@
 // invoked during Phase 1.5 (after HC1), per-source, operator-paced.
 
 import { createClient } from "@supabase/supabase-js";
+import { browserlessRender } from "@/lib/sources/browserless";
 
 export interface SourceTierRecommendation {
   recommended_tier: number;
@@ -81,8 +82,11 @@ export async function recommendSourceTier(sourceId: string): Promise<SourceTierR
   // Best-effort content excerpt for grounding the recommendation.
   let excerpt = "(source content unreachable)";
   try {
-    const r = await fetch(src.url as string, { signal: AbortSignal.timeout(8000) });
-    if (r.ok) excerpt = (await r.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 4000);
+    // D1 canonical fetch — browserlessRender (the single source of truth). The prior
+    // plain fetch returned thin/403 from bot-protected sources, biasing the tier
+    // recommendation toward low-confidence on real high-authority sources.
+    const r = await browserlessRender(src.url as string, { maxTextLength: 4000 });
+    if (r.text) excerpt = r.text;
   } catch {
     /* leave the unreachable sentinel; Haiku must reflect low confidence */
   }

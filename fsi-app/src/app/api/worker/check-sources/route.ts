@@ -105,11 +105,11 @@ export async function POST(request: NextRequest) {
           updates.last_inaccessible = new Date().toISOString();
           updates.total_checks = (source as any).total_checks + 1 || 1;
           updates.consecutive_accessible = 0;
-          // Flag as inaccessible if repeated failures — but ONLY if the reachability
-          // verdict came from a reliable method. This check uses a plain UA-less HEAD
-          // fetch (the unreliable method that returns 403/404 to bot-protected real
-          // sources). The D3 rejection guard quarantines instead of evicting, preventing
-          // the 420-class eviction at the decision point until the canonical fetch lands.
+          // Flag as inaccessible only when the D3 rejection guard allows it. Reachability
+          // now runs through browserlessRender (canonical, reliable), so the guard's
+          // method is reliable and it permits normal eviction. The 420-class risk (a
+          // plain bot-UA HEAD mis-marking bot-protected real sources as dead) is resolved
+          // at the source — the guard no longer needs to quarantine these.
           if ((source as any).consecutive_accessible === 0) {
             const guard = await d3GuardRejection(supabase, {
               candidateUrl: source.url,
