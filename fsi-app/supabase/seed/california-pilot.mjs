@@ -18,6 +18,7 @@
 //   - Total ≈ $0.17
 
 import Anthropic from "@anthropic-ai/sdk";
+import { browserlessFetch } from "../../src/lib/sources/canonical-fetch.mjs";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -516,33 +517,13 @@ async function checkReachability(url) {
     if (attempt > 1) {
       await sleep(HEAD_BACKOFF_MS[attempt - 1]);
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), HEAD_TIMEOUT_MS);
     try {
-      let current = url;
-      let resp = null;
-      for (let hop = 0; hop <= 3; hop++) {
-        resp = await fetch(current, {
-          method: "HEAD",
-          redirect: "manual",
-          signal: controller.signal,
-          headers: {
-            "User-Agent": "CarosLedge-Verifier/1.0 (+https://carosledge.com)",
-          },
-        });
-        if (resp.status >= 300 && resp.status < 400) {
-          const loc = resp.headers.get("location");
-          if (!loc) break;
-          const next = new URL(loc, current).toString();
-          redirects.push(next);
-          current = next;
-          continue;
-        }
-        break;
-      }
-      clearTimeout(timer);
-      finalStatus = resp?.status ?? null;
-      finalUrl = current;
+      // D1 canonical fetch — reachability via the SSOT browserlessFetch (was a plain
+      // HEAD that mis-rejected bot-protected real sources). Redirects resolve inside
+      // Browserless; the chain is not surfaced (callers use ok/finalStatus).
+      const r = await browserlessFetch(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
+      finalStatus = r.status;
+      finalUrl = url;
       if (finalStatus !== null && finalStatus >= 200 && finalStatus < 300) {
         return { ok: true, finalStatus, finalUrl, attempts: attempt, redirects };
       }
@@ -561,7 +542,7 @@ async function checkReachability(url) {
       }
       lastError = `HTTP ${finalStatus}`;
     } catch (e) {
-      clearTimeout(timer);
+      finalStatus = e?.status ?? null;
       lastError = e instanceof Error ? e.message : String(e);
     }
   }
@@ -576,34 +557,12 @@ async function checkReachability(url) {
 }
 
 async function fetchContent(url) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CONTENT_TIMEOUT_MS);
+  // D1 canonical fetch — content via the SSOT browserlessFetch (was a plain UA-less GET).
   try {
-    const resp = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "CarosLedge-Verifier/1.0 (+https://carosledge.com)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    clearTimeout(timer);
-    if (!resp.ok) {
-      return { fetched: false, httpStatus: resp.status, error: `HTTP ${resp.status}` };
-    }
-    const html = await resp.text();
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, CONTENT_MAX_CHARS);
-    return { fetched: true, httpStatus: resp.status, text };
+    const r = await browserlessFetch(url, { maxTextLength: CONTENT_MAX_CHARS, gotoTimeoutMs: CONTENT_TIMEOUT_MS });
+    return { fetched: true, httpStatus: r.status, text: r.text };
   } catch (e) {
-    clearTimeout(timer);
-    return { fetched: false, error: e instanceof Error ? e.message : String(e) };
+    return { fetched: false, httpStatus: e?.status, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
