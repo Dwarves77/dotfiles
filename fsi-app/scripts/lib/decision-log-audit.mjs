@@ -55,8 +55,9 @@ try {
   console.log("");
   // 1. coverage: every doc row 1..47 anchored
   const rowsCovered = new Set(results.map((r) => r.row));
-  const missing = Array.from({ length: 47 }, (_, i) => i + 1).filter((n) => !rowsCovered.has(n));
-  ok("coverage: every decision-log row 1..47 has an anchor + verdict", missing.length === 0, missing.length ? `missing rows: ${missing.join(",")}` : "47/47");
+  const maxRow = Math.max(...results.map((r) => r.row));
+  const missing = Array.from({ length: maxRow }, (_, i) => i + 1).filter((n) => !rowsCovered.has(n));
+  ok(`coverage: every decision-log row 1..${maxRow} has an anchor + verdict (47 log rows + the row-48 D3 self-guard)`, missing.length === 0 && maxRow === 48, missing.length ? `missing rows: ${missing.join(",")}` : `${maxRow}/48`);
 
   // 2. no-glyph loop closed
   const r1 = results.find((r) => r.row === 1);
@@ -82,8 +83,10 @@ try {
   // spotlight the two operator-critical ones
   const phase2Binding = pendingAnchors.find((a) => a.row === 43);
   const hc3Cap = pendingAnchors.find((a) => a.row === 38);
+  const guardStale = pendingAnchors.find((a) => a.row === 48);
   ok("#43 Phase-2 service-role binding will go LOUD at Phase-2 (not forgotten)", resolveVerdict({ kind: "pending", triggerMet: true, present: await phase2Binding.present(ctx) }) === VERDICT.PENDING_VIOLATION);
   ok("#38 HC3 spend-cap reconstitution will go LOUD at Phase-4 (not forgotten)", resolveVerdict({ kind: "pending", triggerMet: true, present: await hc3Cap.present(ctx) }) === VERDICT.PENDING_VIOLATION);
+  ok("#48 D3 guard method-param will go LOUD at D1 if still stale (the self-watching anchor)", resolveVerdict({ kind: "pending", triggerMet: true, present: await guardStale.present(ctx) }) === VERDICT.PENDING_VIOLATION, `present(stale)=${await guardStale.present(ctx)}`);
 
   // 6. only-expected LOUD: UNCONFIRMABLE on #2/#39/#41; no unexpected DRIFTED
   const drifted = results.filter((r) => r.verdict === VERDICT.DRIFTED);
@@ -95,6 +98,6 @@ try {
 }
 
 console.log(`\n${fails === 0
-  ? "section 3 decision-log audit L3 PASS — 47/47 anchored; #1 caught->fixed->IMPLEMENTED; 4 PENDINGs quiet + wired to fire loud at Phase-2/Phase-4; only the expected UNCONFIRMABLE rows are loud; no unexpected drift."
+  ? "section 3 decision-log audit L3 PASS — 48/48 anchored (47 log + the row-48 D3 self-guard); #1 caught->fixed->IMPLEMENTED; 5 PENDINGs quiet + wired to fire loud at Phase-2 / Phase-4 / D1; only the expected UNCONFIRMABLE rows are loud; no unexpected drift."
   : fails + " section 3 L3 FAILURE(S)"}`);
 process.exitCode = fails === 0 ? 0 : 1;

@@ -22,6 +22,7 @@
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { evalPredicate as driftEval, DRIFT } from "./drift-check.mjs";
 
 export const VERDICT = Object.freeze({
   IMPLEMENTED: "IMPLEMENTED",
@@ -58,9 +59,13 @@ export function resolveVerdict({ kind, present, triggerMet }) {
 //            verified/pending_human_verify, OR section_claim_provenance populated
 //            (claim grounding only happens in the gated pipeline), OR branch names
 //            block-4/phase-4.
+//   d1Landed = the canonical fetch (browserlessRender) is the scrape-path fetch.
+//            Observable (BEHAVIORAL, not text — so a stale comment naming the fn can't
+//            false-trigger): verification.ts actually CALLS browserlessRender (AST).
 export const TRIGGERS = Object.freeze({
   phase2: (ctx) => ctx.signals.flippedCount > 0 || /phase-?2|reconcil/i.test(ctx.branch),
   phase4: (ctx) => ctx.signals.gatedGenCount > 0 || ctx.signals.scpCount > 0 || /block-?4|phase-?4/i.test(ctx.branch),
+  d1Landed: (ctx) => ctx.signals.d1Landed,
 });
 
 // ── check builders (IO; resolve `present`) ──
@@ -126,6 +131,19 @@ export const ANCHORS = Object.freeze([
   { row: 45, short: "spanCheckClaim maxRetries=3 + exponential", kind: "code", evidence: "generate-brief.ts", present: fileHas("src/workflows/generate-brief.ts", /maxRetries\s*=\s*3/) },
   { row: 46, short: "recommend-source-tier table-aware + no publisher", kind: "code", evidence: "recommend-source-tier.ts", present: (ctx) => fileHas("src/lib/sources/recommend-source-tier.ts", /provisional_sources/)(ctx) && fileHas("src/lib/sources/recommend-source-tier.ts", /no `?publisher`? column/i)(ctx) },
   { row: 47, short: "HC1 accepted; merge held; Phase 1.5 not started", kind: "governance", why: "checkpoint acceptance + process-state holds" },
+  // row 48 — operator ruling 2026-05-31. NOT from the original 47-row log: a binding
+  // obligation on D3's OWN guards. The 2 sync guards hardcode method='plain-fetch-
+  // reachability' (correct pre-D1). When D1 lands the canonical fetch, the call-sites
+  // MUST update the method param to the reliable id, or the guards downgrade good
+  // admissions to provisional FOREVER and never evict. A stale string param IS drift,
+  // inside D3 itself — so D3 watches it: PENDING-quiet until D1, LOUD if still stale
+  // at the D1 trigger. The trigger is BEHAVIORAL (verification.ts AST-calls
+  // browserlessRender), so a stale comment cannot false-fire it.
+  { row: 48, short: "D3 guard method param tracks the canonical fetch id (not stale plain-fetch)", kind: "pending", trigger: "d1Landed",
+    evidence: "check-sources + verification.ts guard call-sites",
+    present: (ctx) =>
+      !fileHas("src/app/api/worker/check-sources/route.ts", /method:\s*"plain-fetch-reachability"/)(ctx) &&
+      !fileHas("src/lib/sources/verification.ts", /method:\s*"plain-fetch-reachability"/)(ctx) },
 ]);
 
 // Evaluate one anchor against ctx -> { row, short, kind, verdict, loud, present, triggerMet }.
@@ -156,12 +174,18 @@ export async function loadContext(client, root, branch) {
   const scp = (await client.query("SELECT count(*)::int n FROM public.section_claim_provenance")).rows[0].n;
   const iflag = (await client.query("SELECT count(*)::int n FROM public.intelligence_items WHERE agent_integrity_flag = true").catch(() => ({ rows: [{ n: 0 }] }))).rows[0].n;
   const glyph = countGlyph(root);
+  // D1-landed signal (behavioral): does verification.ts CALL browserlessRender (the
+  // canonical scrape fetch)? A stale comment naming the fn does not count — AST only.
+  let d1Landed = false;
+  try {
+    d1Landed = driftEval(readFileSync(resolve(root, "src/lib/sources/verification.ts"), "utf8"), { kind: "calls", callee: "browserlessRender" }).verdict === DRIFT.IMPLEMENTED;
+  } catch {}
   return {
     root, branch,
     signals: {
       validateExists: !!def, validateDef: def, triggerExists: trg, sourceIdNullable: nul, claimKindExists: ck,
       flippedCount: flipped, gatedGenCount: gated, scpCount: scp, integrityFlagCount: iflag,
-      glyphInNewCode: glyph,
+      glyphInNewCode: glyph, d1Landed,
       affordanceExists: false,   // Block-4 surface not built (PENDING present=false)
       restrictedRoleGuard: false, // Phase-2 restricted-role/DB-guard not built (PENDING present=false)
     },
