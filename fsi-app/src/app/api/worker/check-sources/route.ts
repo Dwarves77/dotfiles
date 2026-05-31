@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
+import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 
 /**
  * POST /api/worker/check-sources
@@ -70,20 +71,21 @@ export async function POST(request: NextRequest) {
     // Step 2: Check each source
     for (const source of dueSources) {
       try {
-        // Accessibility check: can we reach the URL?
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(source.url, {
-          method: "HEAD",
-          signal: controller.signal,
-          headers: { "User-Agent": "CarosLedge-Monitor/1.0" },
-        }).catch((e: any) => ({ ok: false, status: 0, statusText: e.message }));
-
-        clearTimeout(timeout);
-
-        const isAccessible = "ok" in response && response.ok;
-        const httpStatus = "status" in response ? response.status : 0;
+        // Accessibility check via the D1 canonical fetch (browserlessRender, the single
+        // source of truth). The prior plain HEAD with a bot UA returned 403/404 from
+        // bot-protected real sources — the 420-class eviction risk. A successful
+        // Browserless render is the reliable "reachable" signal; bot blocks no longer
+        // masquerade as dead.
+        let isAccessible = false;
+        let httpStatus = 0;
+        try {
+          const r = await browserlessRender(source.url, { maxTextLength: 2000 });
+          httpStatus = r.status;
+          isAccessible = r.status >= 200 && r.status < 400;
+        } catch (e: any) {
+          httpStatus = e instanceof BrowserlessError ? (e.status ?? 0) : 0;
+          isAccessible = false;
+        }
 
         // Step 3: Update source metrics
         const updates: Record<string, any> = {
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
           if ((source as any).consecutive_accessible === 0) {
             const guard = await d3GuardRejection(supabase, {
               candidateUrl: source.url,
-              method: "plain-fetch-reachability",
+              method: "browserless-render", // D1: reachability now via browserlessRender (canonical, reliable) -> guard allows normal eviction
             });
             if (guard.outcome === "evict") {
               updates.status = "inaccessible";

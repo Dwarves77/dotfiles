@@ -27,6 +27,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { d3GuardAdmission } from "@/lib/d3/hooks.mjs";
+import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -382,37 +383,17 @@ async function fetchContent(url: string): Promise<{
   text?: string;
   error?: string;
 }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CONTENT_TIMEOUT_MS);
+  // D1 canonical fetch — ALL source content goes through browserlessRender (the single
+  // source of truth all sites CALL, so they cannot diverge again). The prior plain
+  // UA-less fetch() returned 403/404/thin from bot-protected real sources (EUR-Lex,
+  // Council of the EU, gov portals, IRENA), mis-classifying real candidates; Browserless
+  // resolves them. gotoTimeoutMs carries the prior content-timeout budget.
   try {
-    const resp = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "CarosLedge-Verifier/1.0 (+https://carosledge.com)",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-    });
-    clearTimeout(timer);
-    if (!resp.ok) {
-      return { fetched: false, httpStatus: resp.status, error: `HTTP ${resp.status}` };
-    }
-    const html = await resp.text();
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, CONTENT_MAX_CHARS);
-    return { fetched: true, httpStatus: resp.status, text };
+    const r = await browserlessRender(url, { maxTextLength: CONTENT_MAX_CHARS, gotoTimeoutMs: CONTENT_TIMEOUT_MS });
+    return { fetched: true, httpStatus: r.status, text: r.text };
   } catch (e: unknown) {
-    clearTimeout(timer);
-    return {
-      fetched: false,
-      error: e instanceof Error ? e.message : String(e),
-    };
+    const status = e instanceof BrowserlessError ? e.status : undefined;
+    return { fetched: false, httpStatus: status, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -678,7 +659,7 @@ async function executeAction(
     tier === "H"
       ? await d3GuardAdmission(supabase, {
           candidateUrl: candidate.url,
-          method: "plain-fetch-reachability",
+          method: "browserless-render", // D1: this path now validates via browserlessRender (canonical, reliable)
         })
       : null;
 

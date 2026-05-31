@@ -66,9 +66,11 @@ try {
   // 3. no evaluation errors
   ok("no anchor evaluation errors", !(ctx._errs && ctx._errs.length), ctx._errs ? ctx._errs.join(" | ") : "");
 
-  // 4. PENDING anchors quiet now (all four)
+  // 4. no PENDING obligation is in VIOLATION — each is quiet (trigger not met) or
+  //    IMPLEMENTED (trigger met + the obligation now satisfied, e.g. row 48 post-D1).
   const pendingAnchors = ANCHORS.filter((a) => a.kind === "pending");
-  ok("all PENDING obligations quiet now (triggers not met)", pend.length === pendingAnchors.length, `${pend.length}/${pendingAnchors.length}`);
+  const violations = results.filter((r) => r.verdict === VERDICT.PENDING_VIOLATION);
+  ok("no PENDING obligation is in VIOLATION (quiet-not-due, or implemented-when-due)", violations.length === 0, `${pend.length} quiet, ${results.filter(r=>r.kind==="pending"&&r.verdict===VERDICT.IMPLEMENTED).length} implemented, ${violations.length} violations`);
 
   // 5. wiring: each PENDING goes LOUD (PENDING_VIOLATION) if its trigger fires while still absent
   let wired = 0;
@@ -86,7 +88,11 @@ try {
   const guardStale = pendingAnchors.find((a) => a.row === 48);
   ok("#43 Phase-2 service-role binding will go LOUD at Phase-2 (not forgotten)", resolveVerdict({ kind: "pending", triggerMet: true, present: await phase2Binding.present(ctx) }) === VERDICT.PENDING_VIOLATION);
   ok("#38 HC3 spend-cap reconstitution will go LOUD at Phase-4 (not forgotten)", resolveVerdict({ kind: "pending", triggerMet: true, present: await hc3Cap.present(ctx) }) === VERDICT.PENDING_VIOLATION);
-  ok("#48 D3 guard method-param will go LOUD at D1 if still stale (the self-watching anchor)", resolveVerdict({ kind: "pending", triggerMet: true, present: await guardStale.present(ctx) }) === VERDICT.PENDING_VIOLATION, `present(stale)=${await guardStale.present(ctx)}`);
+  const r48 = results.find((r) => r.row === 48);
+  if (r48.verdict === VERDICT.PENDING)
+    ok("#48 D3 guard method-param will go LOUD at D1 if still stale (pre-D1, quiet now)", resolveVerdict({ kind: "pending", triggerMet: true, present: await guardStale.present(ctx) }) === VERDICT.PENDING_VIOLATION, `present(stale)=${await guardStale.present(ctx)}`);
+  else
+    ok("#48 D1 LANDED + guard params fresh -> IMPLEMENTED (anchor closed correctly); would STILL fire LOUD if a param went stale", r48.verdict === VERDICT.IMPLEMENTED && resolveVerdict({ kind: "pending", triggerMet: true, present: false }) === VERDICT.PENDING_VIOLATION, `row48=${r48.verdict}`);
 
   // 6. only-expected LOUD: UNCONFIRMABLE on #2/#39/#41; no unexpected DRIFTED
   const drifted = results.filter((r) => r.verdict === VERDICT.DRIFTED);
