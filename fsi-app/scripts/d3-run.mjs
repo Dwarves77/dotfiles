@@ -85,10 +85,11 @@ try {
       for (const f of res.findings) { console.log(`   * ${f.crit}: ${f.note}`); flag("data_integrity", `block1:${f.crit}`, f.note); }
     } else {
       const p = res.panel;
-      console.log(`[block1] criterion probes CLEAN (=SUSPECT). probe-depth panel all-caught=${p.allCaught} (a=${p.proxyPass} b=${p.surface} c=${p.exclusion} drift=${p.behavioralDrift} neg=${p.negClean})`);
-      console.log(`[block1] uncaught classes: ${p.uncaughtClasses.join("; ")}`);
-      console.log("[block1] BOUNDED VERDICT: clean to D3's probe depth (C1/C3/C5/C6 enforced by outcome; 4 classes caught); residual = C2/C4/tick-flow not outcome-probed + error-swallow uncaught + novel absence. Does NOT certify Block 1.");
-      if (!p.allCaught) { ok = false; flag("data_integrity", "block1:probe-depth", "a requirement class is uncaught — clean cannot be accepted"); }
+      const vac = (res.residual || []).filter((r) => r.vacuous);
+      console.log(`[block1] criterion probes CLEAN (=SUSPECT). residual foundation (C2/C4/tick-flow): ${(res.residual || []).map((r) => `${r.id}=${r.blocked ? "blocked" : "FLIPPED!"}/${r.legitOk ? "ok" : "OVERBLOCK"}`).join("  ")} vacuous=${vac.length}`);
+      console.log(`[block1] probe-depth panel all-caught=${p.allCaught} (a=${p.proxyPass} b=${p.surface} c=${p.exclusion} drift=${p.behavioralDrift} neg=${p.negClean}); uncaught: ${p.uncaughtClasses.join("; ")}`);
+      console.log("[block1] BOUNDED VERDICT (deepened): clean to D3's probe depth — C1-C6 + tick-flow enforced by OUTCOME (every violation blocked, every legit verified, vacuous=0); 4 classes caught. RESIDUAL = C4 unlabeled-modal scan + resumeHook delivery + error-swallow (living set) + novel absence. Does NOT certify Block 1.");
+      if (!p.allCaught || vac.length) { ok = false; flag("data_integrity", "block1:probe-depth", "a requirement class uncaught or a residual probe vacuous — clean cannot be accepted"); }
     }
   }
 

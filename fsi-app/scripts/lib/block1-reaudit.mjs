@@ -39,9 +39,11 @@ async function cleanup(c) {
   await c.query("DELETE FROM public.sources WHERE name LIKE $1", [`${MARK}%`]);
 }
 
-// Seed a CRITICAL item. opts: { sourceStatus, sourceTier, groundingTier, slots, tick }.
+// Seed a CRITICAL item. opts: { sourceStatus, sourceTier, groundingTier, slots, tick,
+//   tickN (tick first N FACT claims; tick:true => all), extraContent (appended to
+//   content_md), analysis [claim texts], legal [claim texts] }.
 async function seed(c, key, opts) {
-  const o = { sourceStatus: "active", sourceTier: 1, groundingTier: 1, slots: SLOTS, tick: false, ...opts };
+  const o = { sourceStatus: "active", sourceTier: 1, groundingTier: 1, slots: SLOTS, tick: false, extraContent: "", analysis: [], legal: [], ...opts };
   const sid = `${MARK}_${key}_S`;
   const src = (await c.query(
     `INSERT INTO public.sources (name,url,description,tier,tier_at_creation,base_tier,effective_tier,status)
@@ -55,16 +57,25 @@ async function seed(c, key, opts) {
   const sec = (await c.query(
     `INSERT INTO public.intelligence_item_sections (item_id,section_key,section_order,content_md,source_ids)
      VALUES ($1,'key_obligations',1,$2,$3) RETURNING id`,
-    [iid, `Facts grounded. ${o.slots.join("; ")}. See ${url}.`, [src]])).rows[0].id;
+    [iid, `Facts grounded. ${o.slots.join("; ")}. See ${url}.${o.extraContent}`, [src]])).rows[0].id;
   const srch = (await c.query(
     `INSERT INTO public.agent_run_searches (intelligence_item_id,search_query,result_url,result_title,result_index,result_content_excerpt,searched_at)
      VALUES ($1,'q',$2,'r',0,$3,NOW()) RETURNING id`, [iid, url, EXCERPT])).rows[0].id;
-  for (const f of o.slots) {
+  const tickN = o.tick ? o.slots.length : (o.tickN ?? 0);
+  for (let i = 0; i < o.slots.length; i++) {
     await c.query(
       `INSERT INTO public.section_claim_provenance (section_row_id,intelligence_item_id,claim_text,claim_kind,source_span,source_id,search_result_id,source_tier_at_grounding,verified_at)
        VALUES ($1,$2,$3,'FACT',$4,$5,$6,$7,$8)`,
-      [sec, iid, f, f, src, srch, o.groundingTier, o.tick ? new Date().toISOString() : null]);
+      [sec, iid, o.slots[i], o.slots[i], src, srch, o.groundingTier, i < tickN ? new Date().toISOString() : null]);
   }
+  for (const a of o.analysis)
+    await c.query(
+      `INSERT INTO public.section_claim_provenance (section_row_id,intelligence_item_id,claim_text,claim_kind,source_span,source_id,search_result_id,source_tier_at_grounding)
+       VALUES ($1,$2,$3,'ANALYSIS',$3,$4,$5,$6)`, [sec, iid, a, src, srch, o.groundingTier]);
+  for (const lg of o.legal)
+    await c.query(
+      `INSERT INTO public.section_claim_provenance (section_row_id,intelligence_item_id,claim_text,claim_kind,source_span,source_id,search_result_id,source_tier_at_grounding)
+       VALUES ($1,$2,$3,'LEGAL',$3,$4,$5,$6)`, [sec, iid, lg, src, srch, o.groundingTier]);
   return iid;
 }
 const readStatus = async (c, iid) => (await c.query("SELECT provenance_status::text s FROM public.intelligence_items WHERE id=$1", [iid])).rows[0]?.s;
@@ -78,11 +89,45 @@ async function probe(c, key, opts, { mustReach }) {
   return { key, after, reached, mustReach };
 }
 
+// RESIDUAL probes — the foundation D3 named but had NOT outcome-probed (C2 citation,
+// C4 labeling, tick-flow runtime). Same method: each has a VIOLATION (must be blocked)
+// AND a legit variant (must reach verified — the negative control proving the check
+// is not vacuously over-blocking). A violation that reaches verified = UNKNOWN found.
+const LABEL = "*Analytical inference:*";        // one of the 4 exact ANALYSIS labels
+const CALLOUT = "*Legal Confirmation Required:*"; // the exact LEGAL callout
+const ANA = "the workspace reads this scope as broad";
+const LEG = "this provision concerns binding duties";
+const RESIDUAL = [
+  { id: "C2-citation", crit: "C2 citation URL grounding",
+    violation: { tick: true, extraContent: " Also see https://ungrounded-zzz.example/bogus." },
+    legit: { tick: true } },
+  { id: "C4-analysis", crit: "C4 ANALYSIS labeling discipline",
+    violation: { tick: true, analysis: [ANA] }, // no label pattern in content
+    legit: { tick: true, analysis: [ANA], extraContent: ` ${LABEL} ${ANA}.` } },
+  { id: "C4-legal", crit: "C4 LEGAL routes to callout",
+    violation: { tick: true, legal: [LEG] }, // no callout in content
+    legit: { tick: true, legal: [LEG], extraContent: ` ${CALLOUT} ${LEG}.` } },
+  { id: "tickflow-partial", crit: "human-verify tick-flow (partial tick must NOT flip)",
+    violation: { tickN: 3 }, legit: { tick: true } }, // 3 of 4 vs all 4 FACT claims ticked
+];
+async function residualProbes(c) {
+  const rows = [];
+  for (const r of RESIDUAL) {
+    const vi = await probe(c, `${r.id}-vio`, r.violation, { mustReach: false });
+    const le = await probe(c, `${r.id}-legit`, r.legit, { mustReach: true });
+    rows.push({ id: r.id, crit: r.crit, violation: vi.after, legit: le.after,
+      blocked: vi.reached === false, legitOk: le.reached === true,
+      foundUnknown: vi.reached === true, vacuous: le.reached !== true });
+  }
+  return rows;
+}
+
 async function main() {
   const c = new pg.Client({ connectionString: CONN });
   await c.connect();
   const findings = [];
   let positiveOk = false;
+  let residual = [];
   try {
     await cleanup(c);
     console.log("=== Test 2 — Block-1 re-audit by OUTCOME (live validate fn + trigger) ===\n");
@@ -105,11 +150,18 @@ async function main() {
       console.log(`  [${enforced ? "blocked" : "FLIPPED!"}] ${p.crit} -> ${r.after}`);
       if (!enforced) findings.push({ crit: p.crit, status: r.after, note: "violation reached 'verified' — criterion silently unenforced (UNKNOWN surfaced)" });
     }
+
+    console.log("\n  -- residual foundation probes (C2 / C4 / tick-flow) --");
+    residual = await residualProbes(c);
+    for (const r of residual)
+      console.log(`  [${r.blocked ? "blocked" : "FLIPPED!"} | legit:${r.legitOk ? "verified" : "OVER-BLOCKED"}] ${r.crit}  vio=${r.violation}  legit=${r.legit}`);
+    for (const r of residual.filter((x) => x.foundUnknown))
+      findings.push({ crit: r.crit, status: r.violation, note: "violation reached 'verified' — criterion silently unenforced (UNKNOWN surfaced)" });
   } finally {
     await cleanup(c);
     await c.end();
   }
-  return { findings, positiveOk };
+  return { findings, positiveOk, residual };
 }
 
 // INJECTED-DEFECT PANEL — only meaningful when criterion probes are clean. Inject one
@@ -157,12 +209,18 @@ if (process.argv[1]?.endsWith("block1-reaudit.mjs")) {
     console.log(`   D3 does NOT catch: ${p.uncaughtClasses.join("; ")}`);
     if (!p.allCaught) { console.log("\nA requirement class is NOT caught -> real gap (living set), clean cannot be accepted."); process.exitCode = 1; }
     else {
-      console.log("\nBOUNDED VERDICT: clean to D3's probe depth — provenance criteria C1/C3/C5/C6 enforced by OUTCOME");
-      console.log("(positive control verifies; each violation blocked), and all 4 requirement-class injected defects caught.");
-      console.log("RESIDUAL (uncovered): C2 citation + C4 labeling + the human-verify tick-flow runtime were NOT outcome-probed;");
-      console.log("the silent error-swallow class (living-set entry 1) is uncaught; novel absence-shapes remain uncoverable.");
-      console.log("This does NOT certify Block 1. It certifies: D3 looked THIS hard, found nothing, here is how hard, here is what it still cannot see.");
-      process.exitCode = 0;
+      const vac = res.residual.filter((r) => r.vacuous);
+      console.log(`\n  residual matrix: ${res.residual.map((r) => `${r.id}=${r.blocked ? "blocked" : "FLIPPED!"}/${r.legitOk ? "legit-ok" : "OVER-BLOCK"}`).join("  ")}  vacuous=${vac.length}`);
+      if (vac.length) { console.log("residual probe VACUOUS (legit over-blocked) — fix the probe before trusting any 'blocked'."); process.exitCode = 1; }
+      else {
+        console.log("\nBOUNDED VERDICT (deepened): clean to D3's probe depth — provenance criteria C1-C6 AND the human-verify");
+        console.log("tick-flow now enforced by OUTCOME (positive verifies; every violation blocked; every legit non-violation");
+        console.log("verified; vacuous=0), and all 4 requirement-class injected defects caught.");
+        console.log("RESIDUAL (still uncovered): the C4 unlabeled-strong-modal prose scan; the workflow hook DELIVERY itself");
+        console.log("(only the DB tick OUTCOME was probed, not resumeHook); the silent error-swallow class (living set); novel absence.");
+        console.log("Does NOT certify Block 1. Certifies: D3 looked THIS hard, found nothing, here is the depth + the remaining blind spots.");
+        process.exitCode = 0;
+      }
     }
   }
 }
