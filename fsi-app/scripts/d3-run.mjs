@@ -45,6 +45,7 @@ const runsData = SCOPE === "data" || SCOPE === "periodic" || SCOPE === "full";
 const runsCode = SCOPE === "code" || SCOPE === "periodic" || SCOPE === "full";
 const runsLiveness = SCOPE === "periodic" || SCOPE === "full";
 const runsBootstrap = SCOPE === "bootstrap";
+const runsBlock1 = SCOPE === "block1";
 
 const findings = []; // LOUD items routed to integrity_flags
 const checksRun = [];
@@ -71,6 +72,24 @@ try {
     console.log(`[bootstrap] ${res.fullyCaught}/${res.total} fully caught (positive+negative); #10 symptom-caught + root-gap flagged; vacuous=${res.vacuous.length}`);
     ok = res.allOk;
     for (const r of res.rows.filter((x) => !x.ok)) flag("data_integrity", `bootstrap:${r.n}`, `Test1 #${r.n} ${r.failure}: did NOT generalize (caught=${r.caught} clean=${r.clean})`);
+  }
+
+  // ── BLOCK1 scope: Acceptance Test 2 (re-audit Block 1 by outcome, bounded exit) ─
+  if (runsBlock1) {
+    checksRun.push("block1-reaudit");
+    const { runBlock1Reaudit } = await import("./lib/block1-reaudit.mjs");
+    const res = await runBlock1Reaudit();
+    if (!res.positiveOk) { ok = false; console.log("[block1] ABORTED — positive control did not verify (vacuous probe)."); }
+    else if (res.findings.length > 0) {
+      console.log(`[block1] D3 SURFACED ${res.findings.length} UNKNOWN(S) — each a WIN:`);
+      for (const f of res.findings) { console.log(`   * ${f.crit}: ${f.note}`); flag("data_integrity", `block1:${f.crit}`, f.note); }
+    } else {
+      const p = res.panel;
+      console.log(`[block1] criterion probes CLEAN (=SUSPECT). probe-depth panel all-caught=${p.allCaught} (a=${p.proxyPass} b=${p.surface} c=${p.exclusion} drift=${p.behavioralDrift} neg=${p.negClean})`);
+      console.log(`[block1] uncaught classes: ${p.uncaughtClasses.join("; ")}`);
+      console.log("[block1] BOUNDED VERDICT: clean to D3's probe depth (C1/C3/C5/C6 enforced by outcome; 4 classes caught); residual = C2/C4/tick-flow not outcome-probed + error-swallow uncaught + novel absence. Does NOT certify Block 1.");
+      if (!p.allCaught) { ok = false; flag("data_integrity", "block1:probe-depth", "a requirement class is uncaught — clean cannot be accepted"); }
+    }
   }
 
   // ── DATA scope: (c) exclusion probe ─────────────────────────────────────────
