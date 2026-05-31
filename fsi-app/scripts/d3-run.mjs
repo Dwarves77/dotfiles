@@ -44,6 +44,7 @@ const BRANCH = execSync("git rev-parse --abbrev-ref HEAD", { cwd: ROOT }).toStri
 const runsData = SCOPE === "data" || SCOPE === "periodic" || SCOPE === "full";
 const runsCode = SCOPE === "code" || SCOPE === "periodic" || SCOPE === "full";
 const runsLiveness = SCOPE === "periodic" || SCOPE === "full";
+const runsBootstrap = SCOPE === "bootstrap";
 
 const findings = []; // LOUD items routed to integrity_flags
 const checksRun = [];
@@ -55,6 +56,23 @@ const c = new pg.Client({ connectionString: CONN });
 await c.connect();
 let ok = true;
 try {
+  // ── BOOTSTRAP scope: Acceptance Test 1 (re-catch the known failures, generalized) ─
+  if (runsBootstrap) {
+    checksRun.push("bootstrap-test1");
+    const { runBootstrap } = await import("./lib/bootstrap-test1.mjs");
+    const res = await runBootstrap();
+    console.log("[bootstrap] Test 1 — each line: general check + positive(caught) + negative(clean):");
+    for (const r of res.rows) {
+      const v = r.rootGap ? (r.ok ? "SYMPTOM-CAUGHT/ROOT-GAP" : "FAIL") : (r.ok ? "CAUGHT+DISCRIMINATES" : (r.vacuous ? "VACUOUS-FAIL" : "MISSED"));
+      console.log(`   #${r.n} [${v}] ${r.failure}`);
+      console.log(`        ${r.check}  +pos ${r.pos}  -neg ${r.neg}`);
+      console.log(`        instance: ${r.instance}${r.gapNote ? "\n        GAP -> living set: " + r.gapNote : ""}`);
+    }
+    console.log(`[bootstrap] ${res.fullyCaught}/${res.total} fully caught (positive+negative); #10 symptom-caught + root-gap flagged; vacuous=${res.vacuous.length}`);
+    ok = res.allOk;
+    for (const r of res.rows.filter((x) => !x.ok)) flag("data_integrity", `bootstrap:${r.n}`, `Test1 #${r.n} ${r.failure}: did NOT generalize (caught=${r.caught} clean=${r.clean})`);
+  }
+
   // ── DATA scope: (c) exclusion probe ─────────────────────────────────────────
   if (runsData) {
     checksRun.push("exclusion-audit");
