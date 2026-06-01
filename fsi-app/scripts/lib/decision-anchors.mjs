@@ -64,7 +64,13 @@ export function resolveVerdict({ kind, present, triggerMet }) {
 //            false-trigger): verification.ts actually CALLS browserlessRender (AST).
 export const TRIGGERS = Object.freeze({
   phase2: (ctx) => ctx.signals.flippedCount > 0 || /phase-?2|reconcil/i.test(ctx.branch),
-  phase4: (ctx) => ctx.signals.gatedGenCount > 0 || ctx.signals.scpCount > 0 || /block-?4|phase-?4/i.test(ctx.branch),
+  // phase4 = a gated GENERATION pass produced claims. The faithful observable is
+  // section_claim_provenance rows (a generation pass emits FACT/ANALYSIS/LEGAL claims);
+  // reconciliation creates none. gatedGenCount (items at verified/pending_human_verify)
+  // was DROPPED as a disjunct: Phase-2 reconciliation flips existing items into those
+  // states WITHOUT any Phase-4 generation, so it would false-arm phase4 (and was — it
+  // turned #24/#38 LOUD the moment the reconciliation ran). scpCount + branch are clean.
+  phase4: (ctx) => ctx.signals.scpCount > 0 || /block-?4|phase-?4/i.test(ctx.branch),
   d1Landed: (ctx) => ctx.signals.d1Landed,
 });
 
@@ -126,7 +132,7 @@ export const ANCHORS = Object.freeze([
   { row: 40, short: "fromSeed gate hole closed (fail-closed)", kind: "code", evidence: "fetchIntelligenceItem", present: fileHas("src/lib/supabase-server.ts", /!isSupabaseConfigured\(\)\)\s*return fromSeed/) },
   { row: 41, short: "hook was fail-open (jq); rewritten fail-closed", kind: "unconfirmable", why: "settings.json artifact + runtime firing, not statically determinable from repo code" },
   { row: 42, short: "source_id NOT NULL POST-reconciliation", kind: "schema", evidence: "is_nullable=YES now", present: sig((s) => s.sourceIdNullable) },
-  { row: 43, short: "Phase-2 service-role credential binding", kind: "pending", trigger: "phase2", evidence: "restricted-role guard exists AND service-role key absent from agent env", present: sig((s) => s.restrictedRoleGuard) },
+  { row: 43, short: "Phase-2 service-role credential binding", kind: "pending", trigger: "phase2", evidence: "non-owner reconciler guard built (guard_provenance_flip_trg + scoped reconciler role, not owner/super/bypassrls); flip ran THROUGH it. RESIDUAL (signals.unrestrictedCredInEnv): unrestricted creds still in .env.local — postgres OWNER can disable the guard; operator credential-hygiene step, tracked separately, NOT folded into this present=", present: sig((s) => s.restrictedRoleGuard) },
   { row: 44, short: "criterion-6 verification-aware", kind: "schema", evidence: "validate fn (verified_at + FACT)", present: fnHas(/verified_at/) },
   { row: 45, short: "spanCheckClaim maxRetries=3 + exponential", kind: "code", evidence: "generate-brief.ts", present: fileHas("src/workflows/generate-brief.ts", /maxRetries\s*=\s*3/) },
   { row: 46, short: "recommend-source-tier table-aware + no publisher", kind: "code", evidence: "recommend-source-tier.ts", present: (ctx) => fileHas("src/lib/sources/recommend-source-tier.ts", /provisional_sources/)(ctx) && fileHas("src/lib/sources/recommend-source-tier.ts", /no `?publisher`? column/i)(ctx) },
@@ -180,6 +186,23 @@ export async function loadContext(client, root, branch) {
   try {
     d1Landed = driftEval(readFileSync(resolve(root, "src/lib/sources/verification.ts"), "utf8"), { kind: "calls", callee: "browserlessRender" }).verdict === DRIFT.IMPLEMENTED;
   } catch {}
+  // Phase-2 #43 binding (live probe). The guard trigger exists AND a non-owner
+  // `reconciler` role exists (not owner of intelligence_items, not super, not bypassrls)
+  // = the "restricted-role guard exists" clause, confirmable now.
+  const guardTrg = (await client.query("SELECT 1 FROM pg_trigger WHERE tgname='guard_provenance_flip_trg' AND NOT tgisinternal")).rowCount > 0;
+  const recon = (await client.query(`SELECT rolsuper, rolbypassrls,
+      (SELECT tableowner FROM pg_tables WHERE tablename='intelligence_items') = 'reconciler' AS is_owner
+    FROM pg_roles WHERE rolname='reconciler'`)).rows[0];
+  const reconNonOwner = !!recon && !recon.rolsuper && !recon.rolbypassrls && !recon.is_owner;
+  const restrictedRoleGuard = guardTrg && reconNonOwner;
+  // RESIDUAL (env-hygiene clause): are the unrestricted creds still in the agent env?
+  // The guard binds service_role by construction, but the postgres OWNER pooler password
+  // in .env.local can DISABLE the guard. True until the operator removes/rotates them.
+  let unrestrictedCredInEnv = false;
+  try {
+    const env = readFileSync(resolve(root, ".env.local"), "utf8");
+    unrestrictedCredInEnv = /^SUPABASE_SERVICE_ROLE_KEY=.+/m.test(env) || /^SUPABASE_DB_PASSWORD=.+/m.test(env);
+  } catch {}
   return {
     root, branch,
     signals: {
@@ -187,7 +210,8 @@ export async function loadContext(client, root, branch) {
       flippedCount: flipped, gatedGenCount: gated, scpCount: scp, integrityFlagCount: iflag,
       glyphInNewCode: glyph, d1Landed,
       affordanceExists: false,   // Block-4 surface not built (PENDING present=false)
-      restrictedRoleGuard: false, // Phase-2 restricted-role/DB-guard not built (PENDING present=false)
+      restrictedRoleGuard,        // Phase-2 #43: non-owner reconciler guard built (live probe)
+      unrestrictedCredInEnv,      // RESIDUAL: unrestricted creds still in agent env (owner can disable guard)
     },
   };
 }
