@@ -532,7 +532,7 @@ async function fetchWorkspaceResources(
       title: row.title,
       url: row.source_url || "",
       note: row.summary || "",
-      type: row.item_type || "regulation",
+      type: row.item_type || "uncertain", // honest-inconclusive: an absent item_type is NOT a regulation (line-191 read layer)
       priority: (row.effective_priority || row.priority) as Resource["priority"],
       added: row.added_date,
       reasoning: row.reasoning || "",
@@ -996,7 +996,7 @@ function rpcRowToResource(row: any): Resource {
     title: row.title,
     url: row.source_url || "",
     note: row.summary || "",
-    type: row.item_type || "regulation",
+    type: row.item_type || "uncertain", // honest-inconclusive: an absent item_type is NOT a regulation (line-191 read layer)
     priority: (row.effective_priority || row.priority) as Resource["priority"],
     added: row.added_date,
     reasoning: row.reasoning || "",
@@ -2093,7 +2093,7 @@ export async function fetchIntelligenceItem(
       title: row.title,
       url: row.source_url || "",
       note: row.summary || "",
-      type: row.item_type || "regulation",
+      type: row.item_type || "uncertain", // honest-inconclusive: an absent item_type is NOT a regulation (line-191 read layer)
       priority: (row.priority || "MODERATE") as Resource["priority"],
       added: row.added_date,
       reasoning: row.reasoning || "",

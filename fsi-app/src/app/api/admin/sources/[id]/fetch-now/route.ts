@@ -13,6 +13,8 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { browserlessRender } from "@/lib/sources/browserless";
+import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
+import { isErrorBody } from "@/lib/sources/entity-gate.mjs";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const NREL_API_KEY = process.env.NREL_API_KEY;
@@ -98,13 +100,43 @@ export async function POST(
       method = "browserless";
     }
   } catch (e: any) {
+    // fetchOk in the route (FORM 1): a fetch that FAILED TO ANSWER (429 / 5xx / timeout /
+    // network) is INCONCLUSIVE — a try-later, not a definitive "inaccessible". Only a
+    // definitive-dead status (404/410) stamps last_inaccessible. Everything else records the
+    // attempt (last_checked) and returns 503, so a rate-limit/blip can't mark a live source dead.
+    const status =
+      typeof e?.status === "number" ? e.status
+      : Number(String(e?.message || "").match(/\b(\d{3})\b/)?.[1]) || undefined;
+    if (classifyReachability({ status, errored: true }) === REACH.DEAD) {
+      await supabase.from("sources").update({
+        last_checked: new Date().toISOString(),
+        last_inaccessible: new Date().toISOString(),
+      }).eq("id", source.id);
+      return NextResponse.json(
+        { success: false, dead: true, error: e.message, source: source.name, method: source.access_method },
+        { status: 502, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
     await supabase.from("sources").update({
       last_checked: new Date().toISOString(),
-      last_inaccessible: new Date().toISOString(),
     }).eq("id", source.id);
     return NextResponse.json(
-      { success: false, error: e.message, source: source.name, method: source.access_method },
-      { status: 502, headers: rateLimitHeaders(auth.userId) }
+      { success: false, inconclusive: true, error: e.message, source: source.name, method: source.access_method },
+      { status: 503, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // Entry-4 in the route (FORM 3): a 200 that returned an error / bot-block BODY is NOT genuine
+  // content. Treat it as a non-answer — do NOT stamp last_accessible (the source is not really
+  // reachable) and return 503 inconclusive, rather than recording an error page as healthy content.
+  if (isErrorBody(content)) {
+    await supabase.from("sources").update({
+      last_checked: new Date().toISOString(),
+    }).eq("id", source.id);
+    return NextResponse.json(
+      { success: false, inconclusive: true, reason: "error-body", source: source.name, method,
+        contentPreview: content.slice(0, 300) },
+      { status: 503, headers: rateLimitHeaders(auth.userId) }
     );
   }
 
