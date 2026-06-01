@@ -46,6 +46,7 @@ import {
   VERIFICATION_HAIKU_SYSTEM_PROMPT,
   __internals,
 } from "@/lib/sources/verification";
+import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 
 const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -96,62 +97,26 @@ type HaikuErr = { ok: false; error: string };
 async function checkReachability(
   url: string
 ): Promise<{ ok: boolean; status: number | null; finalUrl: string | null }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), HEAD_TIMEOUT_MS);
+  // D1 canonical fetch — reachability via browserlessRender (the single source of
+  // truth). The prior plain HEAD + bot UA returned 403/404 from bot-protected real
+  // sources; Browserless follows redirects internally and a successful render is the
+  // reliable reachable signal. finalUrl is no longer the post-redirect URL (redirects
+  // resolve inside Browserless) — callers use `ok`/`status`, not finalUrl, for verdicts.
   try {
-    let current = url;
-    let resp: Response | null = null;
-    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      resp = await fetch(current, {
-        method: "HEAD",
-        redirect: "manual",
-        signal: controller.signal,
-        headers: { "User-Agent": "CarosLedge-SpotCheck/1.0" },
-      });
-      if (resp.status >= 300 && resp.status < 400) {
-        const loc = resp.headers.get("location");
-        if (!loc) break;
-        current = new URL(loc, current).toString();
-        continue;
-      }
-      break;
-    }
-    clearTimeout(timer);
-    const status = resp?.status ?? null;
-    const ok =
-      status !== null && ((status >= 200 && status < 300) || status === 405);
-    return { ok, status, finalUrl: current };
-  } catch {
-    clearTimeout(timer);
-    return { ok: false, status: null, finalUrl: null };
+    const r = await browserlessRender(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
+    return { ok: r.status >= 200 && r.status < 400, status: r.status, finalUrl: url };
+  } catch (e) {
+    const status = e instanceof BrowserlessError ? (e.status ?? null) : null;
+    return { ok: false, status, finalUrl: null };
   }
 }
 
 async function fetchContent(url: string): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CONTENT_TIMEOUT_MS);
+  // D1 canonical fetch — browserlessRender (the single source of truth).
   try {
-    const resp = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "CarosLedge-SpotCheck/1.0",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    clearTimeout(timer);
-    if (!resp.ok) return "";
-    const html = await resp.text();
-    return html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, CONTENT_MAX_CHARS);
+    const r = await browserlessRender(url, { maxTextLength: CONTENT_MAX_CHARS, gotoTimeoutMs: CONTENT_TIMEOUT_MS });
+    return r.text;
   } catch {
-    clearTimeout(timer);
     return "";
   }
 }

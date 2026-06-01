@@ -21,9 +21,10 @@
 //
 // Outputs:
 //   - per-item console log
-//   - C:\Users\jason\dotfiles\docs\CA-BRIEFS-RESULTS.md
+//   - docs/CA-BRIEFS-RESULTS.md (repo-relative)
 
 import { createClient } from "@supabase/supabase-js";
+import { browserlessFetch as browserlessRender } from "../../src/lib/sources/canonical-fetch.mjs";
 import { writeFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
@@ -446,52 +447,11 @@ This section is parsed by the agent route and used to populate source_citations 
 13. Every brief serves four lenses: substantive content, competitive positioning, client-conversation enablement, action.
 14. Format selected by item_type, not by section count target. Brief length is determined by sourced content, not by aspirational length.`;
 
-// ─── Inlined: browserless render (mirror of src/lib/sources/browserless.ts) ─
-
-async function browserlessRender(url, { maxTextLength = 80_000, waitSelector = "body", waitTimeoutMs = 5000, gotoTimeoutMs = 15_000 } = {}) {
-  if (!BROWSERLESS_API_KEY) {
-    // Plain-fetch fallback when Browserless is not configured.
-    const t0 = Date.now();
-    const r = await fetch(url, {
-      headers: { "User-Agent": "fsi-ca-briefs/1.0" },
-      signal: AbortSignal.timeout(gotoTimeoutMs),
-    });
-    if (!r.ok) throw new Error(`Plain fetch ${r.status}`);
-    const html = await r.text();
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, maxTextLength);
-    return { status: r.status, html, text, htmlLength: html.length, textLength: text.length, renderMs: Date.now() - t0 };
-  }
-  const t0 = Date.now();
-  const res = await fetch(`https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url,
-      waitForSelector: { selector: waitSelector, timeout: waitTimeoutMs },
-      gotoOptions: { waitUntil: "networkidle2", timeout: gotoTimeoutMs },
-    }),
-    signal: AbortSignal.timeout(gotoTimeoutMs + waitTimeoutMs + 5000),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Browserless ${res.status}: ${body.slice(0, 200)}`);
-  }
-  const html = await res.text();
-  const text = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxTextLength);
-  return { status: res.status, html, text, htmlLength: html.length, textLength: text.length, renderMs: Date.now() - t0 };
-}
+// ─── Browserless render: imported from the canonical SSOT (canonical-fetch.mjs). ──
+// D1: the previous INLINE mirror here — a divergent copy that even carried a plain-fetch
+// fallback — was the exact duplicated-and-diverged defect D1 exists to kill. This runner
+// now calls the ONE function (browserlessRender below is an alias of browserlessFetch;
+// see the import at the top of this file). No plain-fetch fallback: all-Browserless.
 
 // ─── Inlined: agent output parser (mirror of src/lib/agent/parse-output.ts) ─
 

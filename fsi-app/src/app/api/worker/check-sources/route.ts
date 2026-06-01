@@ -1,6 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { isGloballyPaused } from "@/lib/api/pause";
+import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
+import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
+import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
+
+type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number }>;
+type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
+
+// Per-source accessibility assessment + status update. Extracted so the consumer's OWN
+// stored outcome (sources.status) is testable under a forced failure — verified at the
+// consumer, not inherited from the reachability SSOT. render/classify are injectable.
+//
+// #4 CLASS FIX (non-answer-as-negative): a NON-ANSWER (429/5xx/timeout/abort/403/render-fail)
+// is INCONCLUSIVE and must NOT evict (status -> 'inaccessible'); only a definitive DEAD
+// (404/410) is evictable, through the existing d3 guard. Pre-fix: any catch -> isAccessible
+// =false -> the eviction branch (so a Browserless 429 would mark a live source inaccessible —
+// the bug). NOTE: pre-fix the eviction was also INERT in production because the route never
+// SELECTed consecutive_accessible/status (undefined === 0 is false); this fix also loads those
+// fields so eviction/reactivation actually work, now on the corrected non-answer principle.
+export async function assessAndUpdateSource(
+  supabase: any,
+  source: any,
+  opts?: { render?: RenderFn; classify?: ClassifyFn }
+): Promise<{ status: string; httpStatus: number; outcome: string }> {
+  const render = opts?.render ?? (browserlessRender as unknown as RenderFn);
+  const classify = opts?.classify ?? (classifyReachability as ClassifyFn);
+
+  let outcome: string;
+  let httpStatus = 0;
+  try {
+    const r = await render(source.url, { maxTextLength: 2000 });
+    httpStatus = r.status;
+    outcome = classify({ status: r.status, errored: false });
+  } catch (e: unknown) {
+    httpStatus = e instanceof BrowserlessError ? (e.status ?? 0) : 0;
+    outcome = classify({ status: httpStatus || null, errored: true });
+  }
+  const isAccessible = outcome === REACH.REACHABLE;
+
+  const updates: Record<string, unknown> = {
+    last_checked: new Date().toISOString(),
+    next_scheduled_check: getNextCheck(source.update_frequency),
+  };
+  if (isAccessible) {
+    updates.last_accessible = new Date().toISOString();
+    updates.consecutive_accessible = (source.consecutive_accessible ?? 0) + 1;
+    updates.successful_checks = (source.successful_checks ?? 0) + 1;
+    updates.total_checks = (source.total_checks ?? 0) + 1;
+    if (source.status === "inaccessible") updates.status = "active";
+  } else {
+    updates.last_inaccessible = new Date().toISOString();
+    updates.total_checks = (source.total_checks ?? 0) + 1;
+    updates.consecutive_accessible = 0;
+    // ONLY a definitive DEAD (404/410) may evict. INCONCLUSIVE (the non-answer) does NOT.
+    if (outcome === REACH.DEAD && (source.consecutive_accessible ?? 0) === 0) {
+      const guard = await d3GuardRejection(supabase, { candidateUrl: source.url, method: "browserless-render" });
+      if (guard.outcome === "evict") updates.status = "inaccessible";
+    }
+    // INCONCLUSIVE: quarantine — record the check, leave status as-is. No eviction.
+  }
+
+  await supabase.from("sources").update(updates).eq("id", source.id);
+  await supabase.from("source_trust_events").insert({
+    source_id: source.id,
+    event_type: "accessibility_check",
+    details: { type: "accessibility_check", success: isAccessible, http_status: httpStatus, reachability: outcome },
+    created_by: "worker",
+  });
+  await supabase.from("monitoring_queue").insert({
+    source_id: source.id,
+    scheduled_check: new Date().toISOString(),
+    priority: "normal",
+    last_result: isAccessible ? "no_change" : outcome,
+    change_detected: false,
+    checked_at: new Date().toISOString(),
+    error_message: isAccessible ? null : `${outcome} (HTTP ${httpStatus})`,
+  });
+  return { status: isAccessible ? "accessible" : outcome, httpStatus, outcome };
+}
 
 /**
  * POST /api/worker/check-sources
@@ -48,7 +126,7 @@ export async function POST(request: NextRequest) {
     // on every Q7 recompute).
     const { data: dueSources, error: queueError } = await supabase
       .from("sources")
-      .select("id, name, url, base_tier, update_frequency, last_checked, access_method, auto_run_enabled")
+      .select("id, name, url, base_tier, update_frequency, last_checked, access_method, auto_run_enabled, status, consecutive_accessible, successful_checks, total_checks")
       .eq("status", "active")
       .eq("processing_paused", false)
       .eq("auto_run_enabled", true)
@@ -69,74 +147,15 @@ export async function POST(request: NextRequest) {
     // Step 2: Check each source
     for (const source of dueSources) {
       try {
-        // Accessibility check: can we reach the URL?
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(source.url, {
-          method: "HEAD",
-          signal: controller.signal,
-          headers: { "User-Agent": "CarosLedge-Monitor/1.0" },
-        }).catch((e: any) => ({ ok: false, status: 0, statusText: e.message }));
-
-        clearTimeout(timeout);
-
-        const isAccessible = "ok" in response && response.ok;
-        const httpStatus = "status" in response ? response.status : 0;
-
-        // Step 3: Update source metrics
-        const updates: Record<string, any> = {
-          last_checked: new Date().toISOString(),
-          next_scheduled_check: getNextCheck(source.update_frequency),
-        };
-
-        if (isAccessible) {
-          updates.last_accessible = new Date().toISOString();
-          updates.consecutive_accessible = (source as any).consecutive_accessible + 1 || 1;
-          updates.successful_checks = (source as any).successful_checks + 1 || 1;
-          updates.total_checks = (source as any).total_checks + 1 || 1;
-          if ((source as any).status === "inaccessible") {
-            updates.status = "active";
-          }
-        } else {
-          updates.last_inaccessible = new Date().toISOString();
-          updates.total_checks = (source as any).total_checks + 1 || 1;
-          updates.consecutive_accessible = 0;
-          // Flag as inaccessible if repeated failures
-          if ((source as any).consecutive_accessible === 0) {
-            updates.status = "inaccessible";
-          }
-        }
-
-        await supabase.from("sources").update(updates).eq("id", source.id);
-
-        // Step 4: Log trust event
-        await supabase.from("source_trust_events").insert({
-          source_id: source.id,
-          event_type: "accessibility_check",
-          details: {
-            type: "accessibility_check",
-            success: isAccessible,
-            http_status: httpStatus,
-          },
-          created_by: "worker",
-        });
-
-        // Step 5: Log to monitoring queue
-        await supabase.from("monitoring_queue").insert({
-          source_id: source.id,
-          scheduled_check: new Date().toISOString(),
-          priority: "normal",
-          last_result: isAccessible ? "no_change" : "inaccessible",
-          change_detected: false,
-          checked_at: new Date().toISOString(),
-          error_message: isAccessible ? null : `HTTP ${httpStatus}`,
-        });
-
-        results.push({
-          source: source.name,
-          status: isAccessible ? "accessible" : "inaccessible",
-        });
+        // Accessibility check via the D1 canonical fetch (browserlessRender, the single
+        // source of truth). The prior plain HEAD with a bot UA returned 403/404 from
+        // bot-protected real sources — the 420-class eviction risk. A successful
+        // Browserless render is the reliable "reachable" signal; bot blocks no longer
+        // masquerade as dead.
+        // Assessment + status update is extracted (and reachability now goes through the
+        // SSOT classifier) so a NON-ANSWER does not evict and the consumer outcome is testable.
+        const assessed = await assessAndUpdateSource(supabase, source);
+        results.push({ source: source.name, status: assessed.status });
       } catch (e: any) {
         results.push({
           source: source.name,

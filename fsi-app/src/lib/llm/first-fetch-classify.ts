@@ -21,6 +21,7 @@
 // per the wave1b stub-quality investigation, 2026-05-11.
 
 import { asDomain, domainForItemType, type Domain, type SourceCategory } from "@/lib/domains";
+import { isErrorBody } from "@/lib/sources/entity-gate.mjs";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const HAIKU_INPUT_PER_MTOK_USD = 1.0;
@@ -32,9 +33,11 @@ const CONTENT_MAX_CHARS = 6_000;
 //   - migration 101 CASE expression (lines 130-161)
 //   - fsi-app/src/lib/domains.ts domainForItemType()
 // Any change to the rule lands in all three places simultaneously.
-const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"item_type":"...","domain":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
+const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
 
-item_type: regulation|directive|standard|guidance|technology|market_signal|regional_data|research_finding|innovation|framework|tool|initiative
+entity_verdict: specific_document | portal | uncertain — THE FIRST DECISION. Is this page a SPECIFIC regulatory document/finding (a particular regulation, directive, rule, ruling, report) that should become one intelligence item, OR a PORTAL / navigational homepage / institution landing / index / "latest news" hub (e.g. a ministry or legislature home page) that is a SOURCE, not an item? Return "portal" for navigational/institution-landing content; "specific_document" only when the excerpt is one specific instrument or finding; "uncertain" when you genuinely cannot tell. NEVER guess "specific_document" to be safe — an honest "uncertain" is correct and required.
+
+item_type: regulation|directive|standard|guidance|technology|market_signal|regional_data|research_finding|innovation|framework|tool|initiative — only meaningful when entity_verdict=specific_document; omit (do not guess) when portal or uncertain.
 severity: ACTION REQUIRED|COST ALERT|WINDOW CLOSING|COMPETITIVE EDGE|MONITORING
 priority: CRITICAL|HIGH|MODERATE|LOW
 urgency_tier: watch|elevated|stable|informational
@@ -75,7 +78,11 @@ export interface FirstFetchClassifyInput {
 }
 
 export interface FirstFetchClassifyOutput {
-  item_type: string;
+  /** THE entity gate signal (source != item). 'portal'/'uncertain' mean DO NOT mint an item. */
+  entity_verdict: "specific_document" | "portal" | "uncertain";
+  /** Only meaningful for entity_verdict='specific_document'; null when portal/uncertain
+   *  (line-191 fix: an unsure classification is NOT silently defaulted to "regulation"). */
+  item_type: string | null;
   /** Domain 1-7 emitted by Haiku per the routing rule, or NULL when the
    *  classifier could not route. Insert sites MUST pass NULL through to
    *  the column (no silent coercion to 1). */
@@ -120,6 +127,32 @@ export async function firstFetchClassify(
   input: FirstFetchClassifyInput,
   apiKey: string
 ): Promise<FirstFetchClassifyResult> {
+  // ENTRY-4 (error-body-as-item leak): reject an error / bot-block RESPONSE BODY
+  // DETERMINISTICALLY, before Haiku. The fetchOk principle in ingestion: an unreadable/error
+  // fetch is INCONCLUSIVE -> not a document. Do NOT rely on Haiku to call it 'uncertain' (it
+  // may infer a topic from the URL/title and mint an error page — the observed leak). entity_
+  // verdict='uncertain' here makes the entity gate skip the mint.
+  if (isErrorBody(input.text)) {
+    return {
+      ok: true,
+      result: {
+        entity_verdict: "uncertain",
+        item_type: null,
+        domain: null,
+        severity: "monitoring",
+        priority: "LOW",
+        urgency_tier: "informational",
+        topic_tags: [],
+        jurisdictions: [],
+        title_candidate: input.source_name || input.source_url,
+        summary: "",
+        rationale: "entity-gate: error / bot-block response body detected — not content; not minted",
+        cost_usd_estimated: 0,
+        render_ms: 0,
+      },
+    };
+  }
+
   const text = input.text.slice(0, CONTENT_MAX_CHARS);
   const sourceCategoryLabel =
     input.source_category && typeof input.source_category === "string"
@@ -188,7 +221,19 @@ Output the JSON object only.`;
     return { ok: false, error: `Haiku JSON parse: ${e instanceof Error ? e.message : String(e)}` };
   }
 
-  const item_type = typeof parsed.item_type === "string" ? parsed.item_type : "regulation";
+  // ENTITY VERDICT (source != item) + LINE-191 BUG-CLASS FIX. The old code did
+  //   item_type = parsed.item_type ?? "regulation"
+  // — a non-answer (Haiku omitted item_type) mapped to a substantive POSITIVE ("regulation"),
+  // the same shape as fetch-failure->negative, here uncertainty->positive. Now: an omitted
+  // item_type, or an explicit 'uncertain'/'portal' entity_verdict, yields item_type=null and a
+  // non-document entity verdict, so the caller does NOT mint an item.
+  const item_type_raw = typeof parsed.item_type === "string" && parsed.item_type.trim() ? parsed.item_type.trim() : null;
+  const ev_raw = typeof parsed.entity_verdict === "string" ? parsed.entity_verdict : null;
+  const entity_verdict: "specific_document" | "portal" | "uncertain" =
+    ev_raw === "portal" ? "portal"
+      : ev_raw === "specific_document" && item_type_raw ? "specific_document"
+        : "uncertain"; // omitted/unknown verdict, OR specific_document with no item_type -> honest uncertain
+  const item_type = entity_verdict === "specific_document" ? item_type_raw : null;
   // Domain handling per leakage fix dispatch 2026-05-23:
   //   - Validate Haiku output to 1-7 via asDomain(); out-of-range or
   //     missing values return null (NOT silently coerced to 1).
@@ -197,7 +242,7 @@ Output the JSON object only.`;
   //     safety net. That function also returns null on unrecognized
   //     item_type, preserving the no-silent-coerce contract.
   let domain: Domain | null = asDomain(parsed.domain);
-  if (domain === null) {
+  if (domain === null && item_type) {
     domain = domainForItemType(item_type, input.source_category ?? null);
   }
   const severity = typeof parsed.severity === "string" ? parsed.severity : "MONITORING";
@@ -218,6 +263,7 @@ Output the JSON object only.`;
   return {
     ok: true,
     result: {
+      entity_verdict,
       item_type,
       domain,
       severity,

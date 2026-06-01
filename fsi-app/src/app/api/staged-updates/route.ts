@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { APP_DATA_TAG } from "@/lib/data";
+import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -286,6 +287,15 @@ async function applyUpdate(
           source_name: _sn,
           ...insertData
         } = proposed;
+
+        // ENTITY GATE (source != item): a root / landing source_url is the portal homepage —
+        // a SOURCE, not an item. Do NOT materialize it as an intelligence_item even on approve.
+        if (typeof insertData.source_url === "string" && urlIsRoot(insertData.source_url)) {
+          return {
+            success: false,
+            error: `entity-gate: ${insertData.source_url} is a portal root URL — a source, not an item; not materialized`,
+          };
+        }
 
         // Leakage fix defense-in-depth 2026-05-23 (B4 per
         // caros-ledge-platform-intent REC-OBS-G): warn (do not reject)

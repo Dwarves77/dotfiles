@@ -98,7 +98,10 @@ export function DashboardAwaitingReview({
       </h3>
       <ul className="cl-typeset-list">
         {items.map((it) => {
-          const chip = TYPE_TO_CHIP[it.type];
+          // null-safe: an unknown/absent type yields a neutral fallback chip instead of crashing.
+          // Paired obligation: this guard must hold for EVERY type-consumer before the item_type
+          // column-default migration lands (see type-consumer-probe.mjs).
+          const chip = TYPE_TO_CHIP[it.type] ?? { cls: "", label: String(it.type ?? "?") };
           const itemStale = it.daysWaiting > 7;
           return (
             <li

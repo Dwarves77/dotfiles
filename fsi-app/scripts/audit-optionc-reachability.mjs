@@ -1,21 +1,21 @@
-// PART 1 B audit — reachability + page-content check on the 19 Option C items
-// whose source_url is NOT cited in their s15 block.
+// PART 1 B audit — reachability + page-content check.
 //
-// Per item, per s15 URL:
-//   1. HEAD request: alive (2xx/3xx that ends 2xx) or unreachable (4xx/5xx/timeout/dns).
-//   2. If HEAD ok and content-type is HTML, GET + extract <title>.
-//   3. Compare extracted title against the cited "Title" cell in the s15 markdown row.
+// CLASS FIX 2026-06-01 (non-answer-as-negative, bug-class site #5). THE BUG: this detector
+// mapped UNREACHABLE (a plain 15s bot-blockable fetch's 4xx/5xx/TIMEOUT/dns) -> FABRICATED_URL,
+// and its output DROVE AN ARCHIVING DECISION (16 regulations archived 2026-05-29, incl. core
+// assets IMO/EPA/MARPOL). A fetch that FAILED TO ANSWER is INCONCLUSIVE, never fabricated.
+// FIX: (1) fetch via the canonical Browserless render (not a plain bot-blockable fetch);
+// (2) a render failure / 429 / 5xx / timeout -> INCONCLUSIVE, only a rendered error/404 page
+// -> FABRICATED_URL, a rendered page whose title diverges -> FABRICATED_METADATA.
+// DE-ALLOWLIST: this file was left on plain fetch in D1 as a "reachability diagnostic." That
+// was WRONG — its result archives regulations, so it is a DECISION-DRIVING fetch and must use
+// the canonical path. It is no longer on the legitimate-plain-fetch allowlist.
 //
-// Failure classes:
-//   FABRICATED_URL — HEAD non-2xx or follows redirect to a generic landing (host root).
-//   FABRICATED_METADATA — URL alive but page title doesn't loosely match s15 row title.
-//   CLEAN — URL alive AND title roughly matches.
-//   SKIPPED — non-HTML content type (PDF, etc.) where we can only confirm reachability.
-//
-// Read-only. Writes report to /tmp/optionc-b-audit.txt. No model calls. No DB writes.
+// Read-only (classification only). No DB writes from this file.
 
 import { readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
+import { browserlessFetch, BrowserlessError } from "../src/lib/sources/canonical-fetch.mjs";
 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,8 +30,12 @@ function loadSupabaseRows(path) {
   return JSON.parse(raw.slice(firstBrace, lastBrace + 1)).rows || [];
 }
 
-const items = loadSupabaseRows(ITEMS_PATH);
-const s15Rows = loadSupabaseRows(S15_PATH);
+// Run the audit ONLY when invoked directly — importing checkUrl/classifyResult (e.g. from
+// the re-check + selftest) must be SIDE-EFFECT-FREE (no /tmp reads, no 287 Browserless calls).
+const IS_MAIN = /audit-optionc-reachability\.mjs$/.test((process.argv[1] || "").replace(/\\/g, "/"));
+
+const items = IS_MAIN ? loadSupabaseRows(ITEMS_PATH) : [];
+const s15Rows = IS_MAIN ? loadSupabaseRows(S15_PATH) : [];
 
 const URL_RE = /https?:\/\/[^\s|)`<>"\]]+/g;
 
@@ -96,61 +100,50 @@ function extractS15Rows(s15) {
 
 const UA = "Mozilla/5.0 (Caro's Ledge audit script; contact admin@carosledge.com)";
 
-async function checkUrl(url) {
-  const result = { url, status: null, finalUrl: null, host: hostOf(url), title: null, classification: null };
+export async function checkUrl(url, render = browserlessFetch) {
+  const result = { url, status: null, errored: false, host: hostOf(url), title: null };
   try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 15000);
-    const resp = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      headers: { "User-Agent": UA, "Accept": "text/html,*/*" },
-      signal: ctrl.signal,
-    });
-    clearTimeout(t);
-    result.status = resp.status;
-    result.finalUrl = resp.url;
-    const ct = resp.headers.get("content-type") || "";
-    if (resp.ok && ct.includes("text/html")) {
-      const body = await resp.text();
-      const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(body);
-      if (m) result.title = m[1].replace(/\s+/g, " ").trim().slice(0, 300);
-    } else if (resp.ok) {
-      result.title = `(non-HTML: ${ct.split(";")[0]})`;
-    }
+    // CLASS FIX: canonical Browserless render, NOT a plain bot-blockable fetch. A throw
+    // (render failure / 429 / 5xx / timeout) is a NON-ANSWER -> errored=true -> INCONCLUSIVE.
+    const r = await render(url, { maxTextLength: 4000, gotoTimeoutMs: 30000 });
+    result.status = r.status;
+    const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(r.html || r.text || "");
+    if (m) result.title = m[1].replace(/\s+/g, " ").trim().slice(0, 300);
   } catch (e) {
-    result.classification = "UNREACHABLE";
-    result.title = `(${e.name}: ${e.message?.slice(0, 100)})`;
+    result.errored = true; // the fetchOk distinction: a non-answer, NOT a fabrication
+    result.status = e instanceof BrowserlessError ? (e.status ?? null) : null;
+    result.title = `(${e?.name}: ${(e?.message || "").slice(0, 100)})`;
   }
   return result;
 }
 
-function classifyResult(check, cited) {
-  if (check.classification === "UNREACHABLE") return "FABRICATED_URL";
-  if (check.status >= 400) return "FABRICATED_URL";
-  // Final URL == host root after redirect from specific path = generic landing
-  if (check.finalUrl && check.host) {
-    try {
-      const original = new URL(check.url);
-      const final = new URL(check.finalUrl);
-      if (original.pathname.length > 3 && final.pathname.length <= 2 && original.hostname === final.hostname) {
-        return "FABRICATED_URL"; // redirected to home
-      }
-    } catch {}
+export function classifyResult(check, cited) {
+  // CLASS FIX (non-answer != negative): a render failure / 429 / 5xx / timeout is
+  // INCONCLUSIVE — the detector could not get an answer; it is NOT evidence of fabrication.
+  if (check.errored) return "INCONCLUSIVE";
+  // Rendered an error / not-found page => the cited page genuinely does not exist.
+  const t = (check.title || "").toLowerCase();
+  if (/\b(404|not found|page not found|forbidden|unexpected error|error 5\d\d)\b/.test(t) &&
+      !(cited || "").toLowerCase().includes("error")) {
+    return "FABRICATED_URL";
   }
-  if (check.title && check.title.startsWith("(non-HTML:")) return "CLEAN_NON_HTML";
-
   if (!check.title) return "UNVERIFIABLE_NO_TITLE";
-
-  // Loose title match: any of the first 4+ char words in cited title appear in extracted title.
+  // Rendered a real page: title-divergence is genuine FABRICATED_METADATA (the page exists,
+  // the cited title does not match it) — no longer confounded by bot-block error-page titles.
   const citedNorm = (cited || "").toLowerCase().replace(/[^\w\s]/g, " ");
-  const extractedNorm = check.title.toLowerCase().replace(/[^\w\s]/g, " ");
+  const extractedNorm = t.replace(/[^\w\s]/g, " ");
   const citedTokens = citedNorm.split(/\s+/).filter((w) => w.length >= 4);
   if (citedTokens.length === 0) return "UNVERIFIABLE_TITLE_TOO_SHORT";
-  const matched = citedTokens.filter((t) => extractedNorm.includes(t)).length;
-  const ratio = matched / citedTokens.length;
-  if (ratio >= 0.3) return "CLEAN";
-  return "FABRICATED_METADATA";
+  const matched = citedTokens.filter((tok) => extractedNorm.includes(tok)).length;
+  return matched / citedTokens.length >= 0.3 ? "CLEAN" : "FABRICATED_METADATA";
+}
+
+// PRE-FIX classifier, retained ONLY as the mutation-check baseline (proves the new
+// assertion discriminates). Faithful to the bug: a non-answer -> FABRICATED_URL.
+export function classifyResult_LEGACY_BUGGY(check) {
+  if (check.errored) return "FABRICATED_URL";     // BUG: timeout/429/5xx -> fabricated
+  if (check.status >= 400) return "FABRICATED_URL"; // BUG: any 4xx/5xx -> fabricated
+  return check.title ? "CLEAN" : "UNVERIFIABLE_NO_TITLE";
 }
 
 writeFileSync(REPORT_PATH, `Option C Part 1 B audit — reachability + page-content check\n=================\n\n`, "utf8");

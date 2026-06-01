@@ -114,6 +114,13 @@
 | 109 | 109_region_dimension_coverage.sql | Migration 109: region_dimension_coverage table (5 regions × 6 dimensions = 30 seeded rows) with 4-state CHECK (populated / partial / pending / missing), trigger-maintained fact_count from regional_data_facts. Sprint 3 A6.1. |
 | 110 | 110_callout_columns_and_rpc_extension.sql | Migration 110: 4 new TEXT columns on intelligence_items (what_it_changes / does_not_resolve / conversion_trigger / cross_references) + DROP+CREATE both get_research_items and get_market_intel_items RPCs with extended return shapes. Sprint 3 R-A + M-A. |
 | 111 | 111_workspace_overrides_dismissed_at.sql | Migration 111: ADD COLUMN dismissed_at TIMESTAMPTZ on workspace_item_overrides + partial index. Powers the manual priority tagging + dismissed stash dispatch (PRIORITY-TAGGING side-agent commit). |
+| 112 | 112_provenance_invariant_schema.sql | Migration 112: source-provenance invariant — schema landing (provenance_status enum + columns + 3 supporting tables). Sprint 4 Block 1, task 1.1. |
+| 113 | 113_seed_item_type_required_slots.sql | Migration 113: seed item_type_required_slots for the 5 D1 item_types (the provenance-criteria slot table). Sprint 4 Block 1, task 1.2. |
+| 114 | 114_validate_item_provenance.sql | Migration 114: validate_item_provenance(item_id) — six-criteria provenance validation function. Sprint 4 Block 1, task 1.3. |
+| 115 | 115_set_provenance_status_trigger.sql | Migration 115: set_provenance_status trigger on intelligence_items + sections + claims (re-derives + stamps the terminal provenance_status on write). Sprint 4 Block 1, task 1.4. |
+| 116 | 116_active_intelligence_items_view.sql | Migration 116: active_intelligence_items view (verified-only customer surface). Sprint 4 Block 1, task 1.10. |
+| 117 | 117_provenance_gate_customer_rpcs.sql | Migration 117: provenance-gate the RPC-routed customer surfaces — adds AND ii.provenance_status = 'verified' to the two query points (full-gate half). Sprint 4 Block 1, task 1.10. |
+| 118 | 118_provenance_flip_binding.sql | Migration 118: #43 provenance-flip credential binding — a pre-existing intelligence_items row may be flipped off provenance_status='unverified' ONLY by the scoped non-owner reconciler role + guard trigger. Sprint 4 Phase 2 precondition. |
 
 ## Maintenance trigger
 

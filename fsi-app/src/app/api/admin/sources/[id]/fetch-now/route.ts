@@ -7,11 +7,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { createHash } from "crypto";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { browserlessRender } from "@/lib/sources/browserless";
+import { decideFetchOutcome } from "@/lib/sources/fetch-now-decision.mjs";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const NREL_API_KEY = process.env.NREL_API_KEY;
@@ -83,36 +85,53 @@ export async function POST(
   }
 
   const startTime = Date.now();
-  let content: string;
-  let method: "api" | "browserless";
+  let content: string | undefined;
+  let method: "api" | "browserless" =
+    source.access_method === "api" && source.api_endpoint ? "api" : "browserless";
+  let fetchError: any;
 
   try {
-    if (source.access_method === "api" && source.api_endpoint) {
+    if (method === "api" && source.api_endpoint) {
       const keyEnv = source.notes?.match(/Key:\s*(\w+)/)?.[1] || undefined;
       const acceptHeader = source.notes?.match(/Accept:\s*([^\n]+)/)?.[1]?.trim() || undefined;
       content = await fetchViaApi(source.api_endpoint, keyEnv, acceptHeader);
-      method = "api";
     } else {
       content = await fetchViaBrowserless(source.url);
       method = "browserless";
     }
   } catch (e: any) {
-    await supabase.from("sources").update({
-      last_checked: new Date().toISOString(),
-      last_inaccessible: new Date().toISOString(),
-    }).eq("id", source.id);
+    fetchError = e;
+  }
+
+  // FORM 1 + FORM 3, delegated to a pure, fixture-tested decision: a non-answer (429/5xx/timeout)
+  // is INCONCLUSIVE (503), only a definitive-dead (404/410) stamps last_inaccessible; an error/
+  // bot-block BODY is INCONCLUSIVE too (no last_accessible). last_checked is always recorded.
+  const decision = decideFetchOutcome({ content, error: fetchError });
+  const now = new Date().toISOString();
+  const sourceUpdate: Record<string, string> = { last_checked: now };
+  if (decision.stamp.inaccessible) sourceUpdate.last_inaccessible = now;
+  if (decision.stamp.accessible) sourceUpdate.last_accessible = now;
+  await supabase.from("sources").update(sourceUpdate).eq("id", source.id);
+
+  if (decision.kind === "dead") {
     return NextResponse.json(
-      { success: false, error: e.message, source: source.name, method: source.access_method },
-      { status: 502, headers: rateLimitHeaders(auth.userId) }
+      { success: false, dead: true, error: fetchError?.message, source: source.name, method: source.access_method },
+      { status: decision.httpStatus, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (decision.kind === "inconclusive") {
+    return NextResponse.json(
+      { success: false, inconclusive: true, reason: decision.reason, error: fetchError?.message,
+        source: source.name, method, contentPreview: content ? content.slice(0, 300) : undefined },
+      { status: decision.httpStatus, headers: rateLimitHeaders(auth.userId) }
     );
   }
 
-  const contentHash = createHash("sha256").update(content).digest("hex").slice(0, 16);
+  // kind === "ok" — content is genuine
+  const okContent = content as string;
+  const contentHash = createHash("sha256").update(okContent).digest("hex").slice(0, 16);
 
-  await supabase.from("sources").update({
-    last_checked: new Date().toISOString(),
-    last_accessible: new Date().toISOString(),
-  }).eq("id", source.id);
+  await d3AuditEvent(supabase, { scope: "data", event: "ingest:fetch" });
 
   return NextResponse.json(
     {
@@ -120,9 +139,9 @@ export async function POST(
       source: source.name,
       url: source.url,
       method,
-      contentLength: content.length,
+      contentLength: okContent.length,
       contentHash,
-      contentPreview: content.slice(0, 800),
+      contentPreview: okContent.slice(0, 800),
       durationMs: Date.now() - startTime,
     },
     { headers: rateLimitHeaders(auth.userId) }

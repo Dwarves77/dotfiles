@@ -1,26 +1,20 @@
-// Single source of truth for Browserless content fetches.
+// Typed TS wrapper over the canonical Browserless content fetch.
 //
-// Four routes need to render JS-heavy sources via Browserless:
-//   - /api/agent/run             — agent route source-content fetch
-//   - /api/admin/sources/[id]/fetch-now — manual admin re-fetch button
-//   - /api/data/fetch-source     — single-source server fetch
-//   - /api/data/scan-all         — batch scan worker
+// The render + parse logic now lives ONCE in canonical-fetch.mjs (plain JS) so that the
+// .mjs build/discovery runners call the SAME implementation as the TS routes — no more
+// aligned-but-divergent copies (when Browserless v2 changed waitForSelector from string
+// to object, four files needed the same fix and one was missed, leaving the manual-fetch
+// button broken in production; D1 makes the single-source-of-truth real on BOTH sides).
 //
-// All four POST to chrome.browserless.io/content with the same schema.
-// Before this helper, the schema was duplicated across the four files
-// — when Browserless v2 changed waitForSelector from string to object,
-// four files needed the same fix and one path was missed in the first
-// pass, leaving the manual-fetch button broken in production. This
-// helper consolidates the schema in one place so future Browserless
-// schema changes touch a single file.
-//
-// Returns both raw HTML and stripped text; callers slice to whatever
-// length they need. Throws on non-2xx response or network failure;
-// callers wrap in try/catch as before.
+// This file keeps the TS-facing API stable: the BrowserlessOptions/BrowserlessResult
+// types, the browserlessRender(url, options) signature, and BrowserlessError (re-exported
+// from canonical-fetch.mjs so `e instanceof BrowserlessError` is the SAME class across
+// the TS and .mjs worlds). It adds the per-host SEC fair-access UA before delegating.
 
 import { secFairAccessUaForUrl } from "@/lib/sources/rss-fetch";
+import { browserlessFetch, BrowserlessError } from "@/lib/sources/canonical-fetch.mjs";
 
-const BROWSERLESS_API_KEY = process.env.BROWSERLESS_API_KEY;
+export { BrowserlessError };
 
 export interface BrowserlessOptions {
   /** CSS selector to wait for. Default: "body". */
@@ -48,98 +42,23 @@ export interface BrowserlessResult {
   renderMs: number;
 }
 
-export class BrowserlessError extends Error {
-  constructor(message: string, public readonly status?: number, public readonly renderMs?: number) {
-    super(message);
-    this.name = "BrowserlessError";
-  }
-}
-
 /**
- * Render `url` via Browserless and return both raw HTML and stripped
- * text. Schema follows docs.browserless.io OpenAPI for the /content
- * endpoint as of Apr 2026:
- *
- *   waitForSelector: { selector: "...", timeout: ..., visible: true }
- *
- * The string form (`waitForSelector: "body"`) was the v1 schema; v2
- * returns 400 "must be of type object". `visible: true` ensures the
- * DOM is actually rendered, not just present in markup.
+ * Render `url` via Browserless and return both raw HTML and stripped text. Delegates to
+ * the canonical implementation (canonical-fetch.mjs); this wrapper only computes the
+ * per-host SEC fair-access UA and applies the typed result shape. Throws BrowserlessError
+ * on non-2xx / network failure, exactly as before — callers wrap in try/catch.
  */
 export async function browserlessRender(
   url: string,
   options: BrowserlessOptions = {}
 ): Promise<BrowserlessResult> {
-  if (!BROWSERLESS_API_KEY) {
-    throw new BrowserlessError("BROWSERLESS_API_KEY not configured");
-  }
-
-  const {
-    waitSelector = "body",
-    waitTimeoutMs = 5000,
-    gotoTimeoutMs = 15000,
-    maxTextLength = 100000,
-  } = options;
-
-  const start = Date.now();
-  let status = 0;
-  try {
-    // visible:true was too strict — sites with display:none containers (or
-    // delayed body visibility on SPA portals like climate-laws.org and some
-    // .gov sites) timed out the waitForSelector even though the body was
-    // present and renderable. Drop the visible flag; selector-presence
-    // alone is the right signal for content extraction.
-    // SEC fair-access policy requires a contact-email UA on every sec.gov
-    // request, including JS-rendered ones. Browserless v2 takes `userAgent`
-    // and `setExtraHTTPHeaders` fields on the /content body; we set both so
-    // the policy match works regardless of how SEC's edge inspects the
-    // request. No-op for non-SEC hosts.
-    const secUa = secFairAccessUaForUrl(url);
-    const renderBody: Record<string, unknown> = {
-      url,
-      waitForSelector: { selector: waitSelector, timeout: waitTimeoutMs },
-      gotoOptions: { waitUntil: "networkidle2", timeout: gotoTimeoutMs },
-    };
-    if (secUa) {
-      renderBody.userAgent = secUa;
-      renderBody.setExtraHTTPHeaders = { "User-Agent": secUa };
-    }
-    const res = await fetch(
-      `https://chrome.browserless.io/content?token=${BROWSERLESS_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(renderBody),
-      }
-    );
-    status = res.status;
-    if (!res.ok) {
-      const body = await res.text();
-      throw new BrowserlessError(
-        `Browserless ${res.status}: ${body.slice(0, 200)}`,
-        res.status,
-        Date.now() - start
-      );
-    }
-    const html = await res.text();
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, maxTextLength);
-    return {
-      status,
-      html,
-      text,
-      htmlLength: html.length,
-      textLength: text.length,
-      renderMs: Date.now() - start,
-    };
-  } catch (e: unknown) {
-    if (e instanceof BrowserlessError) throw e;
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new BrowserlessError(msg, status || undefined, Date.now() - start);
-  }
+  const secUa = secFairAccessUaForUrl(url);
+  const result = await browserlessFetch(url, {
+    waitSelector: options.waitSelector,
+    waitTimeoutMs: options.waitTimeoutMs,
+    gotoTimeoutMs: options.gotoTimeoutMs,
+    maxTextLength: options.maxTextLength,
+    userAgent: secUa ?? undefined,
+  });
+  return result as BrowserlessResult;
 }

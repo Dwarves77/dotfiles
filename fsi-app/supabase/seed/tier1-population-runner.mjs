@@ -43,6 +43,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { browserlessFetch } from "../../src/lib/sources/canonical-fetch.mjs";
+import { checkReachability as ssotCheckReachability, reachabilityTier, classifyReachability } from "../../src/lib/sources/reachability.mjs";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -774,95 +776,26 @@ function sleep(ms) {
 }
 
 async function checkReachability(url) {
-  const redirects = [];
-  let finalStatus = null;
-  let finalUrl = null;
-  let lastError;
-
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    if (attempt > 1) {
-      await sleep(HEAD_BACKOFF_MS[attempt - 1]);
-    }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), HEAD_TIMEOUT_MS);
-    try {
-      let current = url;
-      let resp = null;
-      for (let hop = 0; hop <= 3; hop++) {
-        resp = await fetch(current, {
-          method: "HEAD",
-          redirect: "manual",
-          signal: controller.signal,
-          headers: {
-            "User-Agent": "CarosLedge-Verifier/1.0 (+https://carosledge.com)",
-          },
-        });
-        if (resp.status >= 300 && resp.status < 400) {
-          const loc = resp.headers.get("location");
-          if (!loc) break;
-          const next = new URL(loc, current).toString();
-          redirects.push(next);
-          current = next;
-          continue;
-        }
-        break;
-      }
-      clearTimeout(timer);
-      finalStatus = resp?.status ?? null;
-      finalUrl = current;
-      if (finalStatus !== null && finalStatus >= 200 && finalStatus < 300) {
-        return { ok: true, finalStatus, finalUrl, attempts: attempt, redirects };
-      }
-      if (finalStatus === 405) {
-        return { ok: true, finalStatus, finalUrl, attempts: attempt, redirects };
-      }
-      if (finalStatus !== null && finalStatus >= 400 && finalStatus < 500) {
-        return {
-          ok: false, finalStatus, finalUrl, attempts: attempt, redirects,
-          error: `HTTP ${finalStatus}`,
-        };
-      }
-      lastError = `HTTP ${finalStatus}`;
-    } catch (e) {
-      clearTimeout(timer);
-      lastError = e instanceof Error ? e.message : String(e);
-    }
-  }
-  return {
-    ok: false, finalStatus, finalUrl, attempts: 3, redirects,
-    error: lastError ?? "exhausted retries",
-  };
+  // D1-INTERPRETATION FIX: delegate to the SSOT reachability classifier (the ONE
+  // implementation shared with verification.ts + california-pilot — no more aligned
+  // copies). A Browserless 429/5xx/timeout is INCONCLUSIVE, never a negative.
+  const r = await ssotCheckReachability(url, {
+    render: browserlessFetch,
+    classify: classifyReachability,
+    timeoutMs: HEAD_TIMEOUT_MS,
+    backoff: HEAD_BACKOFF_MS,
+  });
+  return { ok: r.ok, outcome: r.outcome, finalStatus: r.finalStatus, finalUrl: url, attempts: r.attempts, redirects: [], error: r.error };
 }
 
 async function fetchContent(url) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CONTENT_TIMEOUT_MS);
+  // D1 canonical fetch — content via the SSOT browserlessFetch (was a plain UA-less GET
+  // that mis-classified bot-protected real sources; this runner tiers off this content).
   try {
-    const resp = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "CarosLedge-Verifier/1.0 (+https://carosledge.com)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-    });
-    clearTimeout(timer);
-    if (!resp.ok) {
-      return { fetched: false, httpStatus: resp.status, error: `HTTP ${resp.status}` };
-    }
-    const html = await resp.text();
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, CONTENT_MAX_CHARS);
-    return { fetched: true, httpStatus: resp.status, text };
+    const r = await browserlessFetch(url, { maxTextLength: CONTENT_MAX_CHARS, gotoTimeoutMs: CONTENT_TIMEOUT_MS });
+    return { fetched: true, httpStatus: r.status, text: r.text };
   } catch (e) {
-    clearTimeout(timer);
-    return { fetched: false, error: e instanceof Error ? e.message : String(e) };
+    return { fetched: false, httpStatus: e?.status, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -1253,24 +1186,26 @@ async function verifyOne(candidate, jurisdictionIso, supabase, hostsSet) {
     error: reach.error,
   };
 
-  // Reachability failure → tier L immediately, write audit row, exit.
-  if (!reach.ok) {
-    const agg = aggregateTier({
-      reachable: false, duplicate: false,
-      domainConfidence: "low", language: null, ai: null,
-    });
-    log.aggregation = { triggers: agg.triggers, decision: agg.tier };
-    log.action.taken = "rejected";
+  // D1-INTERPRETATION FIX: reachability resolves THREE ways. INCONCLUSIVE (429/5xx/
+  // timeout/abort/403/render-fail) → tier M (queue for review — don't reject a row we
+  // couldn't determine); DEAD (definitive 404/410) → tier L. The pre-fix code mapped
+  // every non-2xx → tier L: the non-answer-as-negative bug.
+  const reachVerdict = reachabilityTier(reach.outcome);
+  if (reachVerdict) {
+    const tier = reachVerdict.tier;
+    const action = tier === "M" ? "queued-provisional" : "rejected";
+    log.aggregation = { triggers: [reachVerdict.rejection_reason], decision: tier };
+    log.action.taken = action;
     log.timing.totalMs = Date.now() - startedAt;
 
     await writeAuditRow(
       supabase, candidate, jurisdictionIso, null, null,
-      "L", "rejected", agg.rejection_reason, log, null, null
+      tier, action, reachVerdict.rejection_reason, log, null, null
     );
 
     return {
-      tier: "L",
-      action: "rejected",
+      tier,
+      action,
       ai_relevance_score: null,
       ai_freight_score: null,
       ai_trust_tier: null,
@@ -1278,7 +1213,7 @@ async function verifyOne(candidate, jurisdictionIso, supabase, hostsSet) {
       head_status: reach.finalStatus,
       domain_confidence: "low",
       domain_pattern: null,
-      rejection_reason: agg.rejection_reason,
+      rejection_reason: reachVerdict.rejection_reason,
       duplicate: false,
       haiku_called: false,
     };

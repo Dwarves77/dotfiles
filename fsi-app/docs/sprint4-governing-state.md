@@ -80,11 +80,11 @@ Full design in [docs/designs/source-provenance-model.md](designs/source-provenan
 
 ## 2. Active phase
 
-**ENTERING PHASE 1 (Block 1 — invariant landing + Vercel Workflow DevKit substrate + source-tier audit UI, ~51h, 19 tasks).** Revision 2.2 sign-off recorded 2026-05-29 (see section 4). Three open questions from revision 2 locked (slots, ANALYSIS labels, verification queue). Revision 2.1 substrate split locked. Revision 2.2 Phase 1.5 added with integrity-rule constraint on Haiku tier recommendations.
+**PHASE 1 / BLOCK 1 COMPLETE — HARD CHECKPOINT 1 ACCEPTED (2026-05-30, HEAD `bcdb3c0`).** 19/19 tasks runtime-verified; four write-ahead runtime bugs caught + fixed; corpus untouched (verified=0, unverified=657). Branch HELD pre-merge (operator deferred merge to next session). **Phase 1.5 NOT STARTED** (operator-gated; next session). Revision 2.2 sign-off recorded 2026-05-29.
 
-**Sequence (revision 2.2):** PRE-BLOCK-1 -> **Phase 1 / Block 1 (active)** -> HARD CHECKPOINT 1 -> **Phase 1.5 / source-tier audit + provisional triage (~148 sources, $0.75, operator-paced)** -> Phase 2 / Reconciliation (dry-run + HARD CHECKPOINT 2 + execute) -> Phase 3 / Block 1.5 (per-item authority floor) -> HARD CHECKPOINT 3 (binding cap + green-light) -> Phase 4 / Block 4 (gated generation + visual affordance + verification queue).
+**Sequence (revision 2.2):** PRE-BLOCK-1 [done] -> **Phase 1 / Block 1 [COMPLETE, HC1 ACCEPTED]** -> HARD CHECKPOINT 1 [PASSED 2026-05-30] -> **Phase 1.5 / source-tier audit + provisional triage (~148 sources, ~$0.75, operator-paced) [NEXT, not started]** -> Phase 2 / Reconciliation (dry-run + HARD CHECKPOINT 2 + execute) -> Phase 3 / Block 1.5 (per-item authority floor) -> HARD CHECKPOINT 3 (binding cap + green-light) -> Phase 4 / Block 4 (gated generation + visual affordance + verification queue).
 
-Workflow invocation prepared; runtime will generate the orchestration script and surface an approval card for operator review BEFORE Phase 1 executes.
+Next-session agenda (per §3.2.1): (a) merge branch→master branch-authoritative on the `1e5c380` governing-state conflict; (b) Phase 1.5. Phase-2 corpus mutation remains gated by `--confirm-phase-2` + the binding service-role-credential requirement (§7.2); the command-string hook is INERT and is NOT a gate.
 
 ---
 
@@ -124,13 +124,70 @@ Out-of-band Sprint 3 work shipped during the same window:
 | Phase | State | Commits / DB writes | Notes |
 |---|---|---|---|
 | PRE-BLOCK-1 (revision 2 docs) | IN PROGRESS | (this commit when written) | Revised 2026-05-29; awaiting operator sign-off on revision 2 |
-| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | NOT STARTED | -- | Entry checklist 7.1; revision 2.2 spec; requires sign-off on Phase 1.5 add + task 1.15 |
+| Block 1 — invariant landing + Vercel Workflow DevKit setup + source-tier audit UI (~51h, 19 tasks) | **COMPLETE — HC1 ACCEPTED 2026-05-30 (HEAD `bcdb3c0`); HELD pre-merge (operator deferred merge to next session)** | `a6f0dbc..bcdb3c0` (branch `sprint4/block-1-invariant-landing`; 33 ahead of master, NOT merged) | Verify-and-fix pass complete 2026-05-30. 1.0a-1.11 verified; 1.12/1.13/1.14/1.15 RUNTIME-VERIFIED this session, surfacing + fixing FOUR runtime bugs the tsc-clean write-ahead hid: (i) criterion-6 verification-unawareness reverted every CRITICAL/HIGH human-verify flip (blocked Component 6 entirely); (ii) VerificationQueue admin auth missing Bearer (would 401); (iii) span-check retry contract unpinned + non-exponential (vs the ruling); (iv) recommendSourceTier read-only-`sources` + `publisher` error-swallow (would 500 the seeded half of the Phase-1.5 pass). All fixed + committed (see decision log 2026-05-30 + 3.2.1). HC1 evidence: 8/8 invariant cases PASS (C1-C8); span-check throw PASS; step-skeleton checkpoints seen in live runs. MERGE-BASE RECONCILIATION (fold per operator): merge-base `0ff2f95`; master tip `1e5c380` ("record Block 1 pause at 9/19") is 1 commit NOT in the branch and it edits the SAME `sprint4-governing-state.md` — so a branch→master merge WILL conflict in this file. The branch version is AUTHORITATIVE (master's 9/19 note is stale; the branch carries 19/19). Resolve by taking the branch's governing-state content (or rebase the branch onto `1e5c380`, dropping its obsolete 9/19 edit). Recorded so the merge is not a surprise. Corpus additive-only intact: `verified=0` after sentinel cleanup, `unverified=657` untouched. |
 | Phase 1.5 — source-tier audit + provisional-source triage (~$0.75 + ~90 min ticking) | NOT STARTED | -- | Revision 2.2 NEW phase between HC1 and Reconciliation; entry checklist 7.1.5; ~148 sources (73 seeded + 75 provisional from A6.2) |
 | Reconciliation — 294 items | NOT STARTED | -- | Entry checklist 7.2; requires Block 1 COMPLETE + HC1 + Phase 1.5 COMPLETE so reconciliation runs against authoritatively-tiered sources |
 | Block 1.5 — per-item authority floor (~2h) | NOT STARTED | -- | Entry checklist 7.3; ships after Reconciliation; folds in former Block 2 |
 | Block 2 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
 | Block 3 (removed in revision 2) | -- | -- | Folded into Block 1 task 7 system prompt update |
 | Block 4 — gated generation + visual affordance + verification queue | NOT STARTED | -- | Entry checklist 7.6; HARD CHECKPOINT 3 before; requires binding cap + green-light THIS SESSION |
+
+### 3.2.1 Block 1 — COMPLETE / HC1 ACCEPTED (2026-05-30, HEAD `bcdb3c0`)
+
+**Block 1 is CLOSED and checkpointed.** 19/19 tasks runtime-verified; HARD CHECKPOINT 1 ACCEPTED by operator 2026-05-30 (see decision log). Branch `sprint4/block-1-invariant-landing`, HEAD `bcdb3c0`, 33 ahead of master, tree clean, **NOT merged** (merge held to next session per operator).
+
+**NEXT-SESSION AGENDA (in order):**
+- (a) **Merge branch → master**, resolving the `1e5c380` `sprint4-governing-state.md` conflict **BRANCH-AUTHORITATIVE** (master's "9/19" pause note is stale; the branch carries 19/19 + the full HC1 record). Deliberate resolution — do not lose the reconciliation detail. (Alternative: rebase the branch onto `1e5c380`, dropping its obsolete 9/19 edit.)
+- (b) **Phase 1.5 — source-tier audit + provisional triage** (~148 sources, ~$0.75 Haiku, operator-paced; entry checklist 7.1.5). Runs off branch state. Operator-gated; do NOT auto-start.
+
+**STANDING THREADS carried forward (do not lose):**
+1. **Hook is INERT / NOT a gate** (proven this fresh session — both probes silent; root cause at the harness/`defaultMode:"dontAsk"` layer, not the regex). Treat as permanently unreliable for corpus-mutation gating here.
+2. **Phase-2 corpus-mutation gate** = the reconcile `--confirm-phase-2` self-gate + the **BINDING service-role-credential requirement** (§7.2): the gate must bind the credential the agent actually holds (restricted DB role preferred), not just the script. MUST be satisfied before any `reconcile --execute`. [[project_sprint4_phase2_credential_binding]]
+3. **Component 8** (analysis-level corroboration / authority signal, proposal `2756eb1`) AWAITS operator sign-off — do NOT implement; open question: who populates `primary_authority_key`.
+4. **Phase-1.5 fetchability finding:** `recommendSourceTier` grounds tier on FETCHED content; anti-scraped Tier-1 sources (federalregister.gov etc.) return CAPTCHA block pages → low-confidence/flagged. A disproportionate flagged pile will be the BEST sources — "flagged" ≠ "low quality" (the integrity rule refusing to assert tier from URL alone).
+
+The four write-ahead runtime bugs found + fixed this session (criterion-6 flip-revert, VerificationQueue auth, span-check retry contract, recommendSourceTier table/publisher) are in the decision log dated 2026-05-30 + the per-task bullets below.
+
+---
+
+#### 3.2.1-history — the verify-and-fix pass that closed Block 1 (the paused-at-15/19 note, now superseded)
+
+**Branch:** `sprint4/block-1-invariant-landing` — write-ahead complete at `984bee5` (26 commits ahead of master; this resume-note commit may sit one or two doc-commits later, so run `git rev-parse HEAD` for the absolute latest). Tree clean, nothing pushed to master. The write-ahead commits `cdeebcb` (1.12+1.13), `03246b3` (1.14), `2505f1f` (1.15), `d73f343` (HC1) are all present in `git log`. **19/19 tasks CODE-COMPLETE:** 1.0a-1.11 verified; 1.12-1.15 WRITE-AHEAD (tsc-clean, marked UNVERIFIED-PENDING-RUNTIME). Resume via DIRECT main-thread execution (the Workflow runtime ignored prompt suppression; direct execution routes through the hook).
+
+**Verified (15/19), commits `a6f0dbc..ce99fbe`:**
+- Foundation (9): 1.0a `a6f0dbc`, 1.1 `c6f4920`, 1.2 `8c15c3b`, 1.3 `1d7a5ba`, 1.4 `4b1aefb`, 1.0b `8fb13e0`, 1.0c `11fbdaf`, 1.0d `bb3791f`, 1.5 `14ee359`.
+- This session (6): 1.6 `b138cb8`, 1.7 `fe31ab1`, 1.8 `dca233d`, 1.9 `6cc3dad`, 1.10 `22230b1` (+fix `e4ff1f6`), 1.11 `ce99fbe` (1.11 render-verify still pending).
+- Docs/spec: orphaned-cap HC3 precondition `1722e6a`; hook dormant→fail-open records `48a1f96`/`1f3dea0`; Component 8 corroboration proposal `2756eb1`.
+
+**Write-ahead (4/19), tsc-clean but UNVERIFIED-PENDING-RUNTIME — do NOT treat as DONE:**
+- 1.12+1.13 `cdeebcb` (verification queue + resumeHook tick; shared `verifyHookToken` makes the token byte-identical both sides; concurrent-hook shape is the highest-risk piece). **→ RUNTIME-VERIFIED 2026-05-30 (with a foundation fix).** Proven end-to-end on a sentinel CRITICAL item: 4 concurrent hooks suspended with deterministic tokens, 4 admin-queue ticks resumed them, item flipped pending_human_verify→verified, run completed. Surfaced + fixed the criterion-6 verification-unawareness bug that had blocked Component 6 entirely (see decision log 2026-05-30); also fixed VerificationQueue admin-auth (missing Bearer). Commit chain after `984bee5` (see latest `git log`).
+- 1.14 `03246b3` (span-check timeout policy). **→ RUNTIME-VERIFIED 2026-05-30 (with a Component-7 fix).** The write-ahead diverged from the ruling: retry count was unpinned (relied on WDK default `maxRetries=3`) and backoff was a fixed `3s`, NOT exponential. Fixed in `spanCheckClaim`: `maxRetries` PINNED to 3 (don't depend on a default that a version bump could change) + EXPONENTIAL backoff (attempt² seconds) via `getStepMetadata().attempt`. A worker-secret probe (added + removed) against an unreachable URL proved at runtime: 4 attempts (1+3), inter-attempt gaps 1s/4s/9s (= attempt²), run ended FAILED on exhaustion = **FAIL SAFE** (no validated output escapes; the claim does not sail through). The staging ROUTE on exhaustion is deferred to Block 4 (needs `routeOnValidation`'s real body + `spanCheckClaim` wired into the generation path) — legitimate because Block 1 guarantees fail-safe, only the route waits.
+- 1.15 `2505f1f` (tier-audit panel + recommendSourceTier + commit_tier_change). **→ RUNTIME-VERIFIED 2026-05-30 (with 2 fixes + 1 mount add).** Proven on sentinel sources: recommend-tier round-trip both kinds (seeded gov-primary + provisional trade-press, Haiku, integrity-honest — see fetchability note below), commit-tier-change SEEDED `base_tier` write PERSISTED (6→1, DB read-back, not `success:true`), provisional 409-defer. TWO runtime bugs found + fixed: (a) `recommendSourceTier` only read `sources` → 500 at its only (provisional) mount; now table-aware (falls back to `provisional_sources`). (b) the `sources` select referenced a non-existent `publisher` column → silent PostgREST error → false "not found" 500 on EVERY seeded source (the agent/run error-swallow class); dropped `publisher`, destructured + log the error. Without (b) the seeded half of the Phase-1.5 148-source pass would have 500'd. Plus a SEEDED mount added to SourceHealthDashboard's expanded SourceRow (the panel was provisional-only despite "reusable for seeded"; the seeded base_tier write-path now has a surface). PHASE-1.5 FETCHABILITY NOTE: recommendSourceTier grounds the tier on FETCHED content; the highest-authority sources (gov gazettes/federal registers) serve anti-bot/CAPTCHA block pages to automated fetches, so they return LOW-confidence/flagged recommendations — a chunk of the BEST sources will flag for operator review. This is the integrity rule working (don't assert tier from URL alone); do NOT misread "flagged" as "low quality."
+- HC1 verify orchestrator `d73f343`.
+
+**Additive-only re-proven live 2026-05-30:** `provenance_status` distribution = unverified=657 (NOTHING flipped); 3 new tables present (agent_run_searches, section_claim_provenance, item_type_required_slots); `active_intelligence_items` view = 0 rows (verified-only gate live); 3 `set_provenance_status` triggers.
+
+**NEXT SESSION = VERIFY-AND-FIX (all code is written; this is a verify pass, not a write pass):**
+
+**STEP 1 — FRESH SESSION, prove the hook FIRST (before any danger op).** Run the re-probe (the hook greps the COMMAND string, so the danger text must be in the command, not a script file):
+- `echo "HOOK REPROBE: update intelligence_items"` → must visibly PROMPT
+- `echo "HOOK REPROBE: reconcile --execute"` → must visibly PROMPT
+Both prompt = hook live → mark §7.2 HOOK-PROOF VERIFIED. Either silent = hook still inert → corpus gate stays `--confirm-phase-2` only. (jq is NOT installed; the hook was rewritten jq-free + fail-CLOSED — see thread 1.)
+
+**STEP 2 — dev server up; render + runtime verify the write-ahead. 1.12 tick is HIGHEST RISK — do it FIRST:**
+- **1.12 tick (FIRST):** start a workflow for a sentinel CRITICAL/HIGH item with FACT claims; confirm it suspends; POST `/api/admin/verify-claim` per claim; verify `recordClaimVerification` wrote `verified_by`/`verified_at` and `flipToVerifiedIfAllTicked` flipped `pending_human_verify → verified`. WATCH the concurrent-hook (`Promise.all`) shape — if WDK rejects N concurrent hooks, fall back to sequential. Token is byte-identical via shared `verifyHookToken`. Per-claim tick ONLY (locked); no batch tick.
+- **1.13:** confirm `verified_by`/`verified_at` render in the queue after a tick.
+- **1.14:** throw already unit-verified (`node scripts/sprint4-114-spancheck-test.mjs`); runtime-verify the WDK retry loop → stage-on-exhaustion.
+- **1.15:** recommend-tier round-trip (spends Haiku — Phase 1.5 pacing) + commit-tier-change `base_tier` write; render-verify `SourceTierAuditPanel` on a provisional AND a seeded source.
+- **1.11 (carry-over):** render-verify the 6 SENTINEL staged rows (batch_id `SPRINT4_BLOCK1_SELFTEST_111`) in admin → Staged updates; then `node supabase/seed/sprint4-111-synthetic-staged.mjs --cleanup`.
+
+**STEP 3 — HC1:** `node scripts/sprint4-hc1-verify.mjs` (runs 6 criteria + span-check now; prints exact commands for the 3 runtime also-confirms). Compile per-criterion report + hashes, reconcile this §3.2 ledger on the merge base, HALT for operator. Do NOT auto-advance to Phase 1.5; no merge to master without operator review.
+
+**Open threads carried forward (do not lose):**
+1. **Hook is fail-open-FIXED but UNPROVEN.** Root cause: `jq` not installed → the old hook always `exit 0` (allow) in every mode (see 7.2 + decision log 2026-05-30). Rewritten jq-free + fail-CLOSED in `~/.claude/settings.json`. It is NOT a working gate until OBSERVED force-asking in a FRESH session (mid-session reload failed twice). Re-probe `update intelligence_items` AND `reconcile --execute` in a clean session; both must visibly prompt.
+2. **`--confirm-phase-2` holds the reconcile gate regardless of the hook** (task 1.9 self-gate). Until the hook is proven, EVERY danger op is gated only by manual confirm + this self-gate.
+3. **DB-level guard elevated** to the real Phase-2 corpus-mutation protection candidate (7.2) — a command-string hook has four silent-failure points and one just fired.
+4. **Component 8 (analysis-level corroboration / authority signal)** is a design PROPOSAL (`2756eb1`), Phase 4 / Intelligence Assistant scope, AWAITING operator sign-off — open question: who populates `primary_authority_key` (Phase 1.5 curation vs agent-at-grounding).
 
 ### 3.3 Corpus state (post-Option-C, post-2026-05-29 archive)
 
@@ -214,6 +271,17 @@ Out-of-band Sprint 3 work shipped during the same window:
 | 2026-05-29 | FRAMING CORRECTION: there are no customers yet — pre-launch. "Customer view" throughout these docs means "launch corpus / publish surface." "Pulled from customer view" means "excluded from launch corpus." Nothing fabricated has reached a real user. This is pre-launch data hygiene, not live-harm remediation. The corpus we build the site on IS what we launch with — gate ensures born-verified during build-out; reconciliation cleans the 278 before they become launch content. The 16 archived items were excluded from launch corpus, not pulled from live customer view. | "Correction on framing: there are no customers yet. We're building the site now, pre-launch... This doesn't reduce the work — it sharpens the timing." | Framing correction; work + structure unchanged | This doc + design + workflow-spec (future-readers interpret "customer-visible" as "launch-corpus-visible") |
 | 2026-05-29 | REVISION 2.2: Phase 1.5 source-tier audit + provisional-source triage added between HC1 and Phase 2 Reconciliation. ~148 sources (73 seeded + 75 provisional from A6.2). Haiku recommends `effective_tier` + confidence + rationale (~$0.75 total); operator ticks accept/override/flag; ambiguous tiers FLAGGED for operator, not guessed. Reconciliation then runs against authoritatively-tiered sources. Block 1 grows to 19 tasks ~51h (adds task 1.15 source-tier audit UI extension to ProvisionalReviewCard). | "Add it. Phase 1.5 source-tier audit between HC1 and Phase 2 reconciliation. Revision 2.2... If the floor (criterion 3) enforces against base_tier values we haven't verified, items pass the authority floor on mislabeled sources — structural fabrication." | New direction; pre-launch tier hygiene | source-provenance-model.md Component 1 + workflow-spec section 4.5 NEW |
 | 2026-05-29 | Integrity rule applies to Phase 1.5: Haiku RECOMMENDS source tiers with rationale and confidence; it does NOT assert tier as fact. Operator tick is authority. Source whose correct tier is genuinely ambiguous gets FLAGGED for operator decision, not guessed. Same fact-vs-inference discipline as the briefs. | "the tier audit is itself subject to the integrity rule. Haiku RECOMMENDS a tier with rationale; it does not assert the tier as fact. The operator tick is the authority. A source whose correct tier is genuinely ambiguous gets flagged for me, not guessed." | New ruling | source-provenance-model.md Component 1 (Phase 1.5) |
+| 2026-05-29 | SIGN-OFF on revision 2.2: governing doc + workflow spec both APPROVED after the doc-fidelity sweep (workflow-spec header/status/section 2/section 9 + governing-state 7.1/7.6 reconciled to 19 tasks / ~51h / five phases incl. Phase 1.5; section 9 invocation corrected to the 2.2 form). Recorded as an explicit approval act rather than left inferred from the direction rulings at rows 215-216. | "Verified clean. Proof-of-clean quote correct, both 7.6 fixes applied, section 9 corrected to 2.2, decision log faithful. Sign-off on revision 2.2 — proceed to fire the corrected invocation." | Operator sign-off | This doc revision 2.2 + workflow-spec revision 2.2 (fidelity sweep commit 8315b24) |
+| 2026-05-29 | DURABLE HC3 PRECONDITION (orphaned spend cap): the runner-level $30/$15 generation budget cap was orphaned by task 1.6's `start()` refactor (commit b138cb8) — `b2-runner.mjs` + `sprint3-a5-sonnet-backfill.mjs` no longer call Sonnet inline, so they no longer see model responses and cannot meter spend. The cap MUST be reconstituted IN the workflow substrate (DurableAgent / generation step) before any Phase 4 generation pass. Recorded as a binding entry-checklist item in section 7.6 (not just a session flag) so the HC3 binding-cap discipline is enforced by live code, not a stated number. | "harden it: record this as a durable HC3 precondition in the governing doc... a cap I declare at HC3 has to be enforced by something live in the code, not just a number I state." (operator message 2026-05-29) | Operator hardening ruling | This doc section 7.6 entry checklist; task 1.6 commit b138cb8 |
+| 2026-05-29 | DORMANT-HOOK PRECONDITION (HC2/Phase-2): PreToolUse danger patterns `seed/apply-` and `reconcile.*--execute` were added to ~/.claude/settings.json mid-session but proved DORMANT — a probe command containing "reconcile --execute" did not force-ask, and the 116/117 apply did not fire the hook either. Claude-code-guide research says hooks hot-reload via file watcher with no review gate, but observed behavior contradicts that. Recorded as a binding 7.2 entry-checklist item: before Phase 2 --execute, make the patterns live (new session / open /hooks) and OBSERVE the probe force-ask once. A dormant hook is not a gate — worst exactly at corpus mutation. | "we PROVE the reconcile --execute hook fires... I am not running real reconciliation until I've seen its gate fire once. A dormant gate on the corpus-mutation step is worse than no gate." (operator message 2026-05-29) | Operator hardening ruling | This doc section 7.2 entry checklist |
+| 2026-05-29 | GATE HOLE CLOSED (fromSeed bypass): task 1.10's customer read gate on `fetchIntelligenceItem` filtered the DB query to verified-only, but the `if (error || !row) return fromSeed()` fallback served ungated legacy static SEED content (the pre-provenance corpus) for any item-detail URL whose id matched a SEED entry — leaking around the gate. Fixed to FAIL CLOSED (return null/not-found) on the configured-DB path and on DB error; the offline/dev seed-only path (guarded by !isSupabaseConfigured) is unchanged. | "if unverified detail URLs silently serve old unverified SEED content, the gate isn't actually gating item detail — it's falling through to ungated legacy data." (operator message 2026-05-29) | Operator-surfaced gate hole; fixed same turn | src/lib/supabase-server.ts fetchIntelligenceItem |
+| 2026-05-30 | HOOK WAS FAIL-OPEN (root cause of the dormant-gate finding; supersedes the bypass theory in the 2026-05-29 dormant-hook row): the PreToolUse Bash hook has been INERT since installation because `jq` is not installed on this machine. Its first line `cmd=$(jq -r ... 2>/dev/null); if [ -z "$cmd" ]; then exit 0` always emptied `cmd` and hit `exit 0` (ALLOW) on every command, in every permission mode — visible in /hooks, logically correct, but never reading a command and never able to ask. Proven via `jq --version` (not found) + hook simulation. FIXED via jq-free, fail-CLOSED rewrite (reads raw payload via `cat`, greps the danger set, ASKS when payload unreadable). LESSON: a gate visible in /hooks is not a firing gate; "applied"/"visible"/"logic correct" are each NOT "executing." Proof standard hardened: the hook earns "live" only by being OBSERVED firing in a FRESH session. DB-level guard elevated from backlog to a recorded Phase-2 protection candidate (§7.2) — a command-string hook has four silent-failure points and one just fired. | "the hook has been fail-OPEN the entire time because jq isn't installed... A gate that's visible in /hooks and allowing everything silently is the most dangerous failure mode there is — it looks like protection. The prove-not-trust instinct is exactly what caught it." (operator message 2026-05-30) | Operator ruling + root-cause finding | This doc section 7.2 (hardened HOOK-PROOF + DB-LEVEL GUARD items); ~/.claude/settings.json hook rewrite; [[project_sprint4_phase4_gating_required]] memory |
+| 2026-05-29 | SEQUENCING CLARIFICATION (reconciles row 193): `intelligence_items.source_id` NOT NULL enforcement is NOT a Block 1 task — it lands as a distinct step POST-Phase-2-reconciliation. Technical reason: ~24 active D1 rows have null `source_id`; an `ALTER ... SET NOT NULL` during Block 1 would fail or force a mass-quarantine before reconciliation has assigned/quarantined them — flipping existing items' status ahead of HARD CHECKPOINT 2, which the operator's STOP condition forbids. Correct order: Block 1 adds `provenance_status` column + trigger (additive, nothing flips) -> Phase 2 reconciliation assigns status / quarantines null-source rows -> NOT-NULL enforcement lands once the corpus is clean. Row 193's "in Block 1, not deferred" is reconciled to mean "committed, not abandoned — lands as soon as reconciliation permits," NOT "executes during Block 1." design-doc section 3a annotated to match section 4 step 7; the `intelligence_item_sections.source_ids` NOT NULL/CHECK is likewise post-reconciliation. | "section 3a contains NOT-NULL + quarantine-existing operations that would flip existing items to quarantined during Block 1 — before reconciliation, before HC2, before I've seen the list... post-reconciliation is correct." (operator message 2026-05-29) | Operator sequencing ruling | design-doc section 3a + section 4 step 7; reconciles decision-log row 193 |
+| 2026-05-30 | BINDING PHASE-2 REQUIREMENT (service-role-binding; supersedes the vague "Phase 2 needs a DB-level guard" backlog framing): the agent holds the service-role key from `.env.local`, which bypasses RLS and writes any row directly — bypassing the command-string hook, `--confirm-phase-2`, AND any script-level guard. Corpus mutation is therefore NOT gated from the agent; only the agent's voluntary routing through the sanctioned script gates it. Same 'gate not where the actor passes' class as the fail-open hook and fromSeed. The real fix is one of two, and Phase 2 corpus mutation MUST NOT proceed until one is in place: (a) RESTRICTED ROLE [preferred] — agent runs with a DB credential scoped to reads + sanctioned writes that structurally cannot flip `provenance_status` on existing rows; the service-role key is NOT in the agent's script environment, applied deliberately only for the sanctioned reconcile op by the operator. (b) DB-ENFORCED guard catching even service-role writes. Corroboration: the agent should NOT be able to demonstrate a corpus flip outside the sanctioned path even if instructed to. | "a DB guard the service-role key bypasses is just another gate I walk around... The requirement has to name what actually binds the credential I hold... Until (a) or (b) is in place, 'Phase 2 is gated' is true only by the agent's cooperation — which is not a gate." (operator message 2026-05-30) | Operator hardening ruling — binding precondition on Phase 2 corpus mutation | This doc section 7.2 DB-LEVEL GUARD item; [[project_sprint4_phase2_credential_binding]] memory |
+| 2026-05-30 | TASK 1.12 RUNTIME BUG FOUND + FIXED — criterion-6 verification-unawareness in `validate_item_provenance`. **BLAST RADIUS (the reason this is a foundation fix, not a sentinel quirk): it blocked Component 6 ENTIRELY — NO CRITICAL/HIGH item could ever reach `verified` through the human-verify queue.** Root cause: criterion 6 hard-coded `recommended_status='pending_human_verify'` for every passing CRITICAL/HIGH item, with no notion of claim-verification state. The `set_provenance_status` trigger (115) re-runs the function on the admin-queue flip's `UPDATE intelligence_items SET provenance_status='verified'`, the function returned `pending_human_verify`, and the trigger REVERTED the flip in the same transaction. PROVEN AT RUNTIME (write-ahead bet paying off): sentinel CRITICAL item, 4 concurrent `Promise.all` hooks all ticked (4 `verified_at` written, run completed) — yet item STILL `pending_human_verify`; `validate()` returned `pending_human_verify` despite all 4 ticked. FIX (SQL-only, no TS change — the TS workflow/route/queue were correct): criterion 6 made verification-aware — CRITICAL/HIGH → `verified` IFF ≥1 FACT claim AND all FACT claims carry `verified_at`, else `pending_human_verify`. The ≥1 guard is load-bearing (a zero-claim shell must not flip on vacuous truth). The trigger now AGREES with the flip instead of reverting it (the function is the single source of truth the trigger consumes). PROVEN FIXED: 8/8 `apply-114` cases (C2 un-ticked CRITICAL still→pending_human_verify [no regression]; NEW C7 all-verified CRITICAL→verified; NEW C8 zero-claim shell→pending_human_verify) + sentinel end-to-end re-run FLIPPED (read-back: item `verified`, 4 claims stamped, run completed) + sentinel cleaned (corpus back to verified=0). ALSO FIXED in the same pass: `VerificationQueue.tsx` admin auth (plain `fetch` with no Bearer → would 401 in the real UI; now uses the established `createSupabaseBrowserClient().auth.getSession()` pattern). Pre-check before the function change: 0 items at `verified`, so the `CREATE OR REPLACE` could not re-grade anything live. | Operator approved after diagnosis-before-patch: "the trigger consumes the function, so the function is the single source of truth, so the verification logic belongs in the function. SQL-only, no TS change... Right call." (operator message 2026-05-30) | Operator-approved foundation-function fix; 1.12 + 1.13 RUNTIME-VERIFIED | migration 114 criterion 6; apply-114 cases C7-C8; src/components/admin/VerificationQueue.tsx; src/workflows/generate-brief.ts (flipToVerifiedIfAllTicked, unchanged) |
+| 2026-05-30 | TASK 1.14 — Component-7 divergence found + fixed (caught by reading the WDK docs before claiming a runtime pass). The write-ahead span-check retry config did NOT match the operator's "2-3 retries with exponential backoff" ruling: the retry count was UNPINNED (relied on the WDK default `maxRetries=3`) and the backoff was a constant `retryAfter: "3s"` — NOT exponential. Fix (`spanCheckClaim`, generate-brief.ts): PIN `maxRetries=3` (a WDK default change must not be able to silently alter the retry contract — same invisible-drift class as the jq fail-open hook) + EXPONENTIAL backoff (`attempt² seconds`) from `getStepMetadata().attempt`. Runtime-verified via a temporary worker-secret probe on an unreachable closed-port URL (added + removed, nothing shipped): 4 attempts (1+3 retries), inter-attempt gaps 1s/4s/9s (= attempt²), run ended FAILED on exhaustion = **FAIL SAFE** (no validated result ever produced; the claim does not escape the gate). LOAD-BEARING: fail-safe is exactly what makes deferring the staging ROUTE to Block 4 legitimate — exhaustion does NOT fail open (which would be a Block-1 gate hole). Block-1/Block-4 split recorded: throw (unit) + pinned retries + exponential + fail-safe-on-exhaustion = Block 1 DONE; the staging ROUTE itself (`routeOnValidation` real body + wiring `spanCheckClaim` into the generation pipeline) = Block 4. | "A — pin maxRetries=3 + make backoff exponential + probe now; defer the staging ROUTE to Block 4... The probe must confirm exhaustion FAILS SAFE. If exhaustion fails open, stop and fix it in Block 1; don't defer it." (operator message 2026-05-30) | Operator-approved Block-1 fix + scope split | src/workflows/generate-brief.ts spanCheckClaim; node_modules/workflow/docs/foundations/errors-and-retries.mdx |
+| 2026-05-30 | TASK 1.15 — two runtime bugs found + fixed + a seeded mount added (caught by driving the round-trip against real wiring before declaring a pass). (1) `recommendSourceTier` read only `sources`, but the panel's only mount is provisional (`provisional_sources`, a separate table) → 500 "not found" at its only mount; fixed TABLE-AWARE (sources, then provisional_sources fallback), symmetric with commit-tier-change's seeded/provisional split. (2) the `sources` select referenced a NON-EXISTENT `publisher` column → silent PostgREST error → null data → false "not found" 500 on EVERY seeded source (the agent/run error-swallow class, CLAUDE.md: "any .select() that destructures data without error is a code smell"); fixed by dropping `publisher` + destructuring/logging the error. WITHOUT (2) the SEEDED half of the Phase-1.5 148-source pass would have 500'd. (3) the panel was mounted ONLY for provisional despite "reusable for seeded" → added a SEEDED mount in SourceHealthDashboard's expanded SourceRow so the base_tier write-path has a surface + is render-verifiable. PROVEN: recommend both kinds (200, integrity-honest), commit-tier-change SEEDED base_tier PERSISTED 6→1 (DB read-back, not success:true), provisional 409-defer; both panels render. PHASE-1.5 FETCHABILITY NOTE: recommendSourceTier grounds the tier on FETCHED content; Tier-1 sources with anti-scraping (federalregister.gov) return CAPTCHA block pages → low-confidence/flagged recs — the BEST sources will often flag for operator review; "flagged" must NOT be misread as "low quality" (it is the integrity rule refusing to assert tier from URL alone). | Operator approved both fixes + (a) seeded mount: "(1) is ... completing the task ... (a), not (b) ... the seeded path is the load-bearing write path." (operator messages 2026-05-30) | Operator-approved Block-1 fixes + mount add | src/lib/sources/recommend-source-tier.ts (table-aware + publisher error-swallow); src/components/sources/SourceHealthDashboard.tsx (seeded mount) |
+| 2026-05-30 | HARD CHECKPOINT 1 ACCEPTED. Block 1 COMPLETE (19/19 runtime-verified) at HEAD `bcdb3c0`. 8/8 invariant cases pass; the four write-ahead runtime bugs (criterion-6 flip-revert [Component 6 blocker], VerificationQueue auth, span-check retry contract, recommendSourceTier table/publisher [148-source-pass blocker]) were caught one-deep on synthetics and fixed; the also-confirm split is honest (3a/3b Block-4-gated — substrate built + writable, pipeline population is Block 4 — not Block-1 gaps). Fences held; corpus untouched (verified=0, unverified=657); no runner, no push. DECISIONS: (2) MERGE HELD — do NOT merge to master now; the `1e5c380` governing-state conflict needs a deliberate branch-authoritative resolution done fresh next session; branch is safe (33 ahead, tree clean, nothing lost). (3) PHASE 1.5 NOT STARTED — the operator-paced ~148-source tier audit deserves a fresh session, especially given the fetchability finding (anti-scraped Tier-1 sources flag low-confidence — a disproportionate flagged pile of the BEST sources to pace review on). | "Accept HC1... Merge to master: HOLD, don't merge now... Phase 1.5: DO NOT START." (operator message 2026-05-30) | Operator HC1 acceptance + hold rulings | This doc 3.2 Block 1 row + 3.2.1 resume note |
 
 ### 4.1 Drift pattern summary
 
@@ -289,9 +357,10 @@ Items that may surface during Sprint 4 land in section 8.
 [ ] CLAUDE.md "Verification Before Authorization" section re-read in
     this session.
 [ ] Block 1 scope confirmed from source-provenance-model.md section 7
-    AND workflow-spec section 2 revision 2.1: 18 tasks, ~48h total
+    AND workflow-spec section 2 revision 2.2: 19 tasks, ~51h total
     (4 Vercel Workflow DevKit infrastructure tasks 1.0a-1.0d added in
-    revision 2.1; the rest unchanged from revision 2).
+    revision 2.1; source-tier audit UI task 1.15 added in revision 2.2;
+    the rest unchanged from revision 2).
 [ ] Vercel Workflow DevKit substrate confirmed for Phase 4 per decision
     log 2026-05-29: workflow@4.2.5 stable, Apache-2.0, Next.js peerDep
     >13 satisfied by 16.1.6.
@@ -431,7 +500,86 @@ PUSH + DOC UPDATE:
 [ ] Reconciliation script `sprint4-provenance-reconcile.mjs` written and
     reviewed.
 [ ] Script's UPDATE statement is gated by an `--execute` flag; a dry-run
-    mode is the default.
+    mode is the default. The script also self-gates `--execute` behind a
+    second `--confirm-phase-2` key (task 1.9).
+[ ] HOOK-PROOF (the hook is NOT a gate until OBSERVED firing in a FRESH SESSION).
+    ROOT CAUSE (2026-05-30, definitive): the PreToolUse hook was fail-OPEN from
+    installation because `jq` is NOT installed on this machine. Its first line
+    `cmd=$(jq -r '.tool_input.command' 2>/dev/null); if [ -z "$cmd" ]; then exit 0`
+    always emptied `cmd` and hit `exit 0` (ALLOW) on EVERY command, in EVERY
+    permission mode. The hook was visible in /hooks and logically correct but
+    INERT the entire time — the bypass-mode theory was a red herring. Proven by:
+    `jq --version` -> command not found, and simulating the hook -> "cmd EMPTY ->
+    exit 0 (ALLOW)". FIXED via jq-free, fail-CLOSED rewrite of the hook command
+    in ~/.claude/settings.json (reads the raw payload via `cat`, greps it for the
+    danger set, and ASKS when the payload can't be read instead of allowing).
+    PROOF STANDARD (non-negotiable): "applied" is not "working"; "visible in
+    /hooks" is not "firing"; "logic correct" is not "executing" — the hook had
+    all three and did nothing. The hook earns "live" status ONLY by being OBSERVED
+    force-asking IN A FRESH SESSION (mid-session reload proved unreliable twice
+    here). Re-probe in a clean session on BOTH an old pattern ("update
+    intelligence_items") AND "reconcile --execute"; both must visibly prompt.
+    UNTIL THAT OBSERVATION: every danger operation (applies, reconcile --execute,
+    destructive DDL) is treated as UNGATED by the hook and protected ONLY by
+    manual confirmation + the reconcile script's --confirm-phase-2 self-gate
+    (task 1.9), which holds regardless of the hook. Do NOT run real reconciliation
+    until the hook has been seen to fire in a fresh session.
+    RE-PROBE RESULT (fresh verify-and-fix session, resume after the 2026-05-30 pause):
+    BOTH probes SILENT — `update intelligence_items` AND `reconcile --execute`
+    produced NO permission prompt on the operator's screen. The jq-free rewrite is
+    present on disk and its grep logic was PROVEN CORRECT in isolation (both danger
+    payloads MATCH `update +intelligence_items` / `reconcile.*--execute`), so the
+    failure is NOT the regex this time — it is at the harness/permission-mode layer.
+    OBSERVED: the hook does NOT surface an `ask` on this Windows + `dontAsk` setup as
+    configured. NOT OBSERVED: the toggle test (flip `dontAsk` off, re-probe, confirm a
+    prompt then appears) was NOT run — so `defaultMode: "dontAsk"` is the LEADING
+    SUSPECT, NOT a toggle-confirmed cause. Recording it as "definitively suppressing"
+    would overstate what was observed. Secondary suspect: the `shell:"bash"` command
+    hook may not be honored by the hook runner on this Windows session. Last session's
+    cause (jq-absent fail-open) is distinct. CLASS CONCLUSION (remediation-discipline):
+    the command-string PreToolUse hook has now failed across sessions for DIFFERENT
+    reasons — treat it as PERMANENTLY UNRELIABLE for corpus-mutation gating here; the
+    DB-LEVEL GUARD (next item) is the real Phase-2 protection. Making it reliable would
+    require changing the operator's GLOBAL permission posture (a separate decision).
+    HOOK-PROOF stays UNVERIFIED. The reconcile --confirm-phase-2 self-gate holds
+    meanwhile. Do NOT treat the hook as a gate.
+[ ] DB-LEVEL GUARD (Phase-2 design consideration, ELEVATED from backlog 2026-05-30):
+    the command-string hook depends on the shell environment + an installed binary
+    (jq) + the permission mode + a fail-closed default — four silent-failure points,
+    one of which (jq) just took the gate down for an entire session while it
+    appeared installed. Phase-2 corpus mutation should be protected by a DB-LEVEL
+    guard (e.g. a restricted DB role for the reconcile path, or a pre-apply
+    migration linter) that is enforced AT THE DATABASE regardless of session state,
+    binaries, or permission mode — NOT solely the command-string hook, which has
+    been directly observed failing silently while appearing installed. Scope this
+    before relying on the hook as the sole Phase-2 protection. (Not scoped now;
+    recorded so it isn't lost.)
+    BINDING PHASE-2 REQUIREMENT (operator, 2026-05-30 — supersedes the vague
+    "Phase 2 needs a DB-level guard" backlog framing, which does NOT close this
+    because a guard the service-role key bypasses is just another gate the agent
+    walks around):
+    "The agent holds the service-role key (from .env.local), which bypasses RLS and
+    writes any row directly — so it bypasses the command-string hook, --confirm-phase-2,
+    and any script-level guard. Corpus mutation is therefore NOT gated from the agent;
+    it is gated only by the agent routing through the sanctioned script voluntarily.
+    Same 'gate not where the actor passes' class as the fail-open hook and fromSeed.
+
+    The real fix is one of two, and Phase 2 corpus mutation MUST NOT proceed until one
+    is in place:
+    (a) RESTRICTED ROLE (preferred): the agent operates with a DB credential scoped to
+        reads + sanctioned writes only, that structurally CANNOT flip provenance_status
+        on existing rows. The service-role key is NOT present in the environment the
+        agent runs scripts in; it is applied deliberately only for the specific
+        sanctioned reconcile operation, by the operator, not sitting in .env.local for
+        any node script to use. You can't bypass a gate with a credential you don't hold.
+    (b) DB-ENFORCED guard that catches even service-role writes (harder — service-role
+        is designed to bypass row controls; only viable if the flip can be constrained
+        at the DB regardless of role, with the sanctioned path being the only satisfier).
+
+    (a) is the honest answer. Until (a) or (b) is in place, 'Phase 2 is gated' is true
+    only by the agent's cooperation — which is not a gate. The corroboration of this
+    requirement is that the agent should NOT be able to demonstrate a corpus flip
+    outside the sanctioned path even if instructed to."
 [ ] feedback_runtime_validation_before_fix re-read.
 [ ] feedback_lift_cap_is_not_a_target re-read — this phase does NOT
     spend model budget, but the principle that "no operation without an
@@ -536,14 +684,24 @@ The two prompt patches (legal-confirmation callout, non-regulatory empty-{} rule
 **Entry checklist** (most consequential gate in Sprint 4):
 
 ```
-[ ] Block 1 marked COMPLETE in state table (revision 2 ~39h scope); all
-    14 task exit checklist items ticked.
-[ ] Block 1.5 (per-item authority floor) either marked COMPLETE or
-    operator confirms it's deferred to Block 4.5.
+[ ] Block 1 marked COMPLETE in state table (revision 2.2 ~51h scope);
+    all 19 task exit checklist items ticked.
+[ ] Block 1.5 (per-item authority floor) marked COMPLETE. In revision
+    2.2 it is Phase 3 and runs BEFORE this checkpoint (HARD CHECKPOINT 3
+    follows Phase 3), so it must already be done at Phase 4 entry — there
+    is no deferred Block 4.5.
 [ ] Reconciliation marked COMPLETE; quarantine count surfaced and
     operator-inspected at HARD CHECKPOINT 2.
 [ ] Binding cost cap set, written into the workflow dispatch text, and
     captured in decision log section 4 THIS SESSION.
+[ ] Phase 4 spend cap must be live IN the workflow (DurableAgent/generation
+    step) before any generation pass — the runner's old $30/$15 cap was
+    orphaned by the 1.6 start() refactor (b138cb8: b2-runner +
+    sprint3-a5-sonnet-backfill no longer see model responses, so they can no
+    longer meter spend) and must be reconstituted in the workflow substrate.
+    Verify at HC3 before green-light. A cap declared at HC3 has teeth ONLY if
+    something live in the code enforces it — confirm the enforcement exists,
+    not just the number.
 [ ] EXPECTED cost separate from cap, also captured. Per
     feedback_lift_cap_is_not_a_target: cap is the halt threshold, not
     the spend target. Expected ~$0.55/item; 139 shells + ~50 regens =
@@ -611,6 +769,24 @@ Open issues that surface during work go here. Not in lieu of memory entries — 
 | 2026-05-29 | The 2 Australian CCA items archived under fabrication flags include many `(AbortError: This operation was aborted)` URL timeouts. Some may resolve with longer timeout. A retry with 60s timeout is a cheap follow-up that could restore items if the underlying URLs are real. |
 | 2026-05-29 | 64 of the 80 Option C items have sections but were NOT in the 19 B-audited subset. Their s15 URLs were not reachability-checked. Two paths: extend B audit to all 64 (~$0, ~30 min), or roll into Block 1 reconciliation which will quarantine them automatically under strict criterion 2. The reconciliation path is the design intent; the extended B audit is optional comfort. |
 | 2026-05-29 | The 3 CLEAN items from the B audit (sdir.no fjord, Canada CFR, TCEQ Texas) are NOT pulled. They remain active. They will face Block 1 reconciliation along with the rest of the corpus; their s15 URLs are reachable but the items still fail criterion 2 if `agent_run_searches` is required (which it is). They will quarantine in reconciliation; their `integrity_flag` will note "no fabrication detected; quarantine due to missing search log only" so the remediation path is lightweight (script-only restore as `verified_post_hoc`). |
+
+### 8.1 Task 1.7 prompt-audit findings (2026-05-29)
+
+Live 3-item, non-persisting audit of the claim-level provenance contract added to `src/lib/agent/system-prompt.ts`. Harness: `scripts/sprint4-17-prompt-audit.mjs` (read-only DB + generate-and-inspect; nothing written). Sonnet 4.6, web_search max 4/item. Total spend $1.35 (+$0.12 prior no-search smoke ≈ $1.47, within the ≤$2 spec authorization).
+
+| Item | Type/Priority | Verdict | Ledger contents |
+|---|---|---|---|
+| CARB Advanced Clean Fleets | regulation/HIGH | FAIL — no ledger | 0 rows (output truncated at 16k tokens before trailing blocks) |
+| Diário Oficial da União (Brazil) | guidance/LOW | ALL PASS | 20 rows: 12 FACT (all grounded), 1 ANALYSIS, 3 LEGAL, 4 GAP; all 4 slots covered |
+| edie portal | market_signal/LOW | FAIL — GAP inline form | 34 rows: 27 FACT (all grounded), 2 ANALYSIS, 2 LEGAL, 3 GAP |
+
+**Contract takes effect (the auto-test's bar):** labeling discipline (ANALYSIS closed-set labels + LEGAL routing) PASSED on all 3 items; FACT grounding (span + source_id/url) PASSED on both items that emitted a ledger — 39 FACT claims total, every one grounded; item 2 is a clean full pass across all 8 checks. The invariant's core (born-labeled, born-grounded) is working.
+
+**Finding 1 — trailing-block truncation (most serious).** Item 1 (regulation/HIGH, 56.9k-char brief) hit the audit harness's `max_tokens: 16000` and truncated before emitting the ledger OR the YAML — both are emitted last, so both are the first casualty. Partly an audit artifact (production b2-runner used `max_tokens: 24000`, not 16k), but it exposes a real risk on large regulation briefs. Mitigations: (a) prompt hardened with a MANDATORY-TRAILING-EMISSION rule (keep body tight, the ledger + YAML are required, a response that ends before both is a failed regeneration); (b) **HC3/Block-4 action: the workflow generation step must set `max_tokens` high enough (>= 24k, likely higher for regulation briefs) to fit body + ledger + YAML, and treat `stop_reason: "max_tokens"` as a failed regeneration, not a silent partial.** This is now a Block-4 generation-config requirement.
+
+**Finding 2 — GAP inline-form inconsistency (minor).** Item 3 emitted 3 GAP records in the ledger but the prose lacked the exact `*Specific [...] not available from primary sources as of [date].*` form the criterion-5 check looks for. Mitigation: prompt hardened with a MATCHED-PAIR GAP rule (every ledger GAP must have a matching inline statement and vice versa).
+
+**Re-verification deferred to HC3, by design (no re-spend now).** The hardened prompt is re-exercised by the HC3 pre-run probes already in checklist 7.6 — probe 3 (labeling), probe 4 (active-sourcing / explicit-GAP), probe 5 (slot enforcement) directly re-test these exact behaviors against live generation before any scaled run. The 1.7 audit confirmed the contract takes effect and surfaced the findings; HC3 closes the loop on the hardening. A single-item re-verify of the regulation case at 24k tokens (~$0.65) is available on operator request but not required to close 1.7.
 
 ---
 

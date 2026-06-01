@@ -12,6 +12,7 @@
 // search calls per discovery, ~3000 input + 1500 output tokens average).
 
 import { createClient } from "@supabase/supabase-js";
+import { browserlessFetch } from "../../src/lib/sources/canonical-fetch.mjs";
 import { readFileSync } from "fs";
 
 process.loadEnvFile(".env.local");
@@ -99,19 +100,15 @@ Search for the authoritative canonical source. Return JSON.`;
 
 async function verifyCandidate(url, itemTitle) {
   try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": "CarosLedge-Discover/1.0" },
-      signal: AbortSignal.timeout(15000),
-      redirect: "follow",
-    });
-    if (!res.ok) return { verified: false, code: res.status, excerpt: null };
-    const html = await res.text();
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    // D1 canonical fetch — discovery validates/admits via the SSOT browserlessFetch
+    // (was a plain UA-less GET that mis-validated bot-protected real candidates).
+    let text;
+    try {
+      const res = await browserlessFetch(url, { maxTextLength: 8000, gotoTimeoutMs: 15000 });
+      text = res.text;
+    } catch (e) {
+      return { verified: false, code: e?.status ?? null, excerpt: null };
+    }
     const excerpt = text.slice(0, 1000);
     // Title overlap check: do at least 2 distinct words ≥4 chars from itemTitle appear in fetched content?
     const titleWords = (itemTitle || "").split(/\s+/).filter((w) => w.length >= 3 && /[A-Za-z]/.test(w)).map((w) => w.toLowerCase());

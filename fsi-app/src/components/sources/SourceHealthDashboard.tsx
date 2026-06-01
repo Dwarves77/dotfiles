@@ -16,6 +16,7 @@ import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceRevie
 import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
 import { B2ProgressBanner } from "@/components/sources/B2ProgressBanner";
 import { GlobalPauseToggle, SourceRowControls, SourceTierOverrideControl } from "@/components/sources/SourceAdminControls";
+import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
 
 // ── Tier Summary Card ──
 
@@ -264,6 +265,18 @@ function SourceRow({ source }: { source: Source }) {
               initialBaseTier={source.base_tier}
               initialTierOverride={(source as unknown as { tier_override?: number | null }).tier_override ?? null}
               initialEffectiveTier={source.effective_tier}
+            />
+          </div>
+
+          {/* Sprint 4 task 1.15: source-tier audit panel — SEEDED mount. Haiku
+              tier recommendation + commit-tier-change base_tier write for an
+              active registry source. (The provisional mount lives in
+              ProvisionalReviewCard.) */}
+          <div className="pt-3 border-t" style={{ borderColor: "var(--color-border-subtle)" }}>
+            <SourceTierAuditPanel
+              sourceId={source.id}
+              currentBaseTier={source.base_tier}
+              kind="seeded"
             />
           </div>
         </div>

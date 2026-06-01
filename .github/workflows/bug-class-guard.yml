@@ -1,0 +1,65 @@
+name: Bug-class guard
+
+# The non-answer -> definitive-answer bug class, wired into CI so the pattern cannot
+# reintroduce unflagged. TWO tiers, deliberately:
+#   HARD  — the discrimination selftests (deterministic; 11/11 + 6/6 + the SSOT units). A
+#           regression here means the detector lost discrimination or a fixed SSOT regressed.
+#           This job FAILS the build.
+#   SOFT  — the repo-wide scans (inconclusive-report + type-consumer-probe). These flag
+#           CANDIDATES for review and are REPORT-ONLY (exit 0) because the lexicon still has
+#           documented false-positive classes; a hard-fail on a noisy detector would train
+#           people to bypass it. Read the job log; new live CANDIDATE_CORRUPT is a review signal.
+# When the lexicon is hardened (false-positive classes eliminated), promote the soft scan to a
+# diff-gate (fail only on NEW candidates vs the merge base).
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  discrimination-guard:
+    name: HARD — detector discrimination + SSOT units
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fsi-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+      # The detector rides the surface registry -> drift-check.mjs -> imports `typescript`, so the
+      # selftests need node_modules on a fresh CI checkout (same reason discipline.yml installs).
+      - name: Install deps
+        run: npm ci --prefer-offline --no-audit
+      - name: Detector + SSOT selftests (must pass)
+        run: |
+          node --test \
+            scripts/lib/inconclusive-probe.selftest.mjs \
+            scripts/lib/type-consumer-probe.selftest.mjs \
+            scripts/lib/reachability.selftest.mjs \
+            scripts/lib/entity-gate.selftest.mjs
+
+  bug-class-scan:
+    name: SOFT — bug-class repo scan (review signal, never fails the build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fsi-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+      - name: Install deps
+        run: npm ci --prefer-offline --no-audit
+      - name: Non-answer -> definitive scan (forms 1-4) — report only
+        run: node scripts/lib/inconclusive-report.mjs . || true
+      - name: Unguarded type-consumer scan (item_type migration precondition) — report only
+        run: node scripts/lib/type-consumer-probe.mjs . || true
