@@ -79,8 +79,9 @@ export function findClassifyDefaults(text, file) {
 const CONTENT_FETCH = /\b(browserlessRender|browserlessFetch|fetchContent|firstFetchClassify|drain|seedStub)\b/i;
 const CONTENT_CONSUME =
   /\b(full_brief|summary|content|body|item_type|seedStubIntelligenceItem|insert\(\s*\{|intelligence_items)\b/;
-// SOUND: an error-body guard is present in the file.
-const ERRORBODY_GUARD = /\bisErrorBody\b|\berrorMarkerCount\b|ERROR_SIGNATURES|error[_-]?body/i;
+// SOUND: an error-body guard is present in the file — either a direct isErrorBody/errorMarkerCount
+// check, OR delegation to a known guard-bearing decision function (the route composes the guard).
+const ERRORBODY_GUARD = /\bisErrorBody\b|\berrorMarkerCount\b|ERROR_SIGNATURES|error[_-]?body|\bdecideFetchOutcome\b/i;
 
 export function findErrorBodyContent(text, file) {
   if (!CONTENT_FETCH.test(text)) return [];
