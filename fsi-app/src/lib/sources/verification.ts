@@ -30,9 +30,9 @@ import { d3GuardAdmission } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import {
   checkReachability as ssotCheckReachability,
-  reachabilityTier,
   classifyReachability,
 } from "@/lib/sources/reachability.mjs";
+import { decideReachabilityAction } from "@/lib/sources/verification-decision.mjs";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -816,17 +816,17 @@ export async function verifyCandidate(
   //     Haiku-classify-failure branch below ("don't reject a row we couldn't determine").
   //   DEAD (definitive 404/410) → tier L, rejected (a genuine negative).
   // The pre-fix code mapped every !2xx to tier L; that is the non-answer-as-negative bug.
-  const reachVerdict = reachabilityTier(reach.outcome);
-  if (reachVerdict) {
-    const tier = reachVerdict.tier as VerificationTier;
-    log.aggregation = { triggers: [reachVerdict.rejection_reason], decision: tier };
+  const reachDecision = decideReachabilityAction(reach.outcome);
+  if (reachDecision.shortCircuit) {
+    const tier = reachDecision.tier as VerificationTier;
+    log.aggregation = { triggers: [reachDecision.rejection_reason], decision: tier };
 
-    let action: VerificationAction = tier === "M" ? "queued-provisional" : "rejected";
+    let action: VerificationAction = reachDecision.action as VerificationAction;
     let resulting_provisional_id: string | undefined;
     if (!dryRun && tier === "M") {
       // Queue a provisional for review — we could not determine reachability, so we hand
       // it to the operator rather than silently dropping it (the bug's destructive direction).
-      const exec = await executeAction(candidate, "M", null, null, reachVerdict.rejection_reason, supabase);
+      const exec = await executeAction(candidate, "M", null, null, reachDecision.rejection_reason, supabase);
       action = exec.action;
       resulting_provisional_id = exec.resulting_provisional_id;
       log.action = { taken: action, error: exec.error };
@@ -842,7 +842,7 @@ export async function verifyCandidate(
       ai_freight_score: null,
       ai_trust_tier: null,
       language: null,
-      rejection_reason: reachVerdict.rejection_reason,
+      rejection_reason: reachDecision.rejection_reason,
       log,
       resulting_provisional_id,
     };

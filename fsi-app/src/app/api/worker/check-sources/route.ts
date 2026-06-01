@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
-import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
+import { classifyReachability } from "@/lib/sources/reachability.mjs";
+import { decideSourceAssessment } from "@/lib/sources/check-sources-decision.mjs";
 
 type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number }>;
 type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
@@ -37,24 +38,25 @@ export async function assessAndUpdateSource(
     httpStatus = e instanceof BrowserlessError ? (e.status ?? 0) : 0;
     outcome = classify({ status: httpStatus || null, errored: true });
   }
-  const isAccessible = outcome === REACH.REACHABLE;
+  // Decision delegated to a pure, fixture-tested fn (check-sources-decision.mjs): a non-answer
+  // is INCONCLUSIVE (not accessible, NOT evict-eligible); only a definitive DEAD with a 0 streak
+  // may consult the eviction guard.
+  const decision = decideSourceAssessment({ outcome, source });
+  const isAccessible = decision.isAccessible;
 
   const updates: Record<string, unknown> = {
     last_checked: new Date().toISOString(),
     next_scheduled_check: getNextCheck(source.update_frequency),
+    consecutive_accessible: decision.consecutive_accessible,
+    total_checks: (source.total_checks ?? 0) + 1,
   };
   if (isAccessible) {
     updates.last_accessible = new Date().toISOString();
-    updates.consecutive_accessible = (source.consecutive_accessible ?? 0) + 1;
     updates.successful_checks = (source.successful_checks ?? 0) + 1;
-    updates.total_checks = (source.total_checks ?? 0) + 1;
-    if (source.status === "inaccessible") updates.status = "active";
+    if (decision.reactivate) updates.status = "active";
   } else {
     updates.last_inaccessible = new Date().toISOString();
-    updates.total_checks = (source.total_checks ?? 0) + 1;
-    updates.consecutive_accessible = 0;
-    // ONLY a definitive DEAD (404/410) may evict. INCONCLUSIVE (the non-answer) does NOT.
-    if (outcome === REACH.DEAD && (source.consecutive_accessible ?? 0) === 0) {
+    if (decision.evictEligible) {
       const guard = await d3GuardRejection(supabase, { candidateUrl: source.url, method: "browserless-render" });
       if (guard.outcome === "evict") updates.status = "inaccessible";
     }

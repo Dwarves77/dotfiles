@@ -42,7 +42,10 @@ jobs:
             scripts/lib/inconclusive-probe.selftest.mjs \
             scripts/lib/type-consumer-probe.selftest.mjs \
             scripts/lib/reachability.selftest.mjs \
-            scripts/lib/entity-gate.selftest.mjs
+            scripts/lib/entity-gate.selftest.mjs \
+            scripts/lib/fetch-now-decision.selftest.mjs \
+            scripts/lib/check-sources-decision.selftest.mjs \
+            scripts/lib/verification-decision.selftest.mjs
 
   bug-class-scan:
     name: SOFT — bug-class repo scan (review signal, never fails the build)
