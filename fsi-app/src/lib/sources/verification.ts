@@ -333,7 +333,10 @@ function sleep(ms: number): Promise<void> {
 const CONTENT_TIMEOUT_MS = 10_000;
 const CONTENT_MAX_CHARS = 6_000;
 
-async function fetchContent(url: string): Promise<{
+async function fetchContent(
+  url: string,
+  render: ReachInject["render"] = (u, o) => browserlessRender(u, o)
+): Promise<{
   fetched: boolean;
   httpStatus?: number;
   text?: string;
@@ -343,9 +346,10 @@ async function fetchContent(url: string): Promise<{
   // source of truth all sites CALL, so they cannot diverge again). The prior plain
   // UA-less GET returned 403/404/thin from bot-protected real sources (EUR-Lex,
   // Council of the EU, gov portals, IRENA), mis-classifying real candidates; Browserless
-  // resolves them. gotoTimeoutMs carries the prior content-timeout budget.
+  // resolves them. `render` is injectable so the method swap (plain vs browserless) is
+  // testable at the stored outcome (content.fetched false->true).
   try {
-    const r = await browserlessRender(url, { maxTextLength: CONTENT_MAX_CHARS, gotoTimeoutMs: CONTENT_TIMEOUT_MS });
+    const r = await render(url, { maxTextLength: CONTENT_MAX_CHARS, gotoTimeoutMs: CONTENT_TIMEOUT_MS });
     return { fetched: true, httpStatus: r.status, text: r.text };
   } catch (e: unknown) {
     const status = e instanceof BrowserlessError ? e.status : undefined;
@@ -891,8 +895,9 @@ export async function verifyCandidate(
     return result;
   }
 
-  // Step 2 — content retrieval (only when we will use it)
-  const content = await fetchContent(resolvedUrl);
+  // Step 2 — content retrieval (only when we will use it). Same injected render as
+  // reachability so the method swap (plain vs browserless) is testable end-to-end.
+  const content = await fetchContent(resolvedUrl, opts?.render);
   log.content = {
     fetched: content.fetched,
     httpStatus: content.httpStatus,
