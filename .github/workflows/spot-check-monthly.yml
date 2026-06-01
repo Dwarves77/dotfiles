@@ -57,9 +57,14 @@ jobs:
           echo "Calling $target"
 
           tmp_body=$(mktemp)
+          # FIX #2: do NOT auto-retry. /spot-check/recurring is a NON-IDEMPOTENT POST (it runs
+          # 20 Haiku spot-checks and stamps a 4h cooldown). curl's --retry treats 429/5xx as
+          # transient and re-sends — but attempt 1 already ran the side effect and armed the
+          # cooldown, so the retry (a) can't succeed and (b) risks DOUBLE-EXECUTION. General
+          # principle: never auto-retry a non-idempotent operation. --retry 0 = no retry.
           status=$(curl -sS -o "$tmp_body" -w "%{http_code}" \
             --max-time 240 \
-            --retry 1 --retry-delay 10 --retry-connrefused \
+            --retry 0 \
             -X POST \
             -H "x-worker-secret: $WORKER_SECRET" \
             -H "Content-Type: application/json" \
@@ -73,6 +78,14 @@ jobs:
           if [ "${curl_exit:-0}" -ne 0 ]; then
             echo "::error::curl failed with exit code $curl_exit"
             exit "$curl_exit"
+          fi
+
+          # FIX #1: a 429 means "on cooldown — already ran recently" (the endpoint's 4h gate).
+          # That is BENIGN (inconclusive / try-later), NOT a failure. The fetchOk principle in CI:
+          # a rate-limit/cooldown is INCONCLUSIVE = skip-not-fail. Skip cleanly, do not fail the run.
+          if [ "$status" -eq 429 ]; then
+            echo "Recurring spot-check is on cooldown (HTTP 429) — already ran recently; skipping this scheduled run."
+            exit 0
           fi
 
           # The endpoint deliberately returns 502 when the false-positive
