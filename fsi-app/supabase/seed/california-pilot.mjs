@@ -19,6 +19,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { browserlessFetch } from "../../src/lib/sources/canonical-fetch.mjs";
+import { checkReachability as ssotCheckReachability, reachabilityTier, classifyReachability } from "../../src/lib/sources/reachability.mjs";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -508,53 +509,18 @@ function sleep(ms) {
 }
 
 async function checkReachability(url) {
-  const redirects = [];
-  let finalStatus = null;
-  let finalUrl = null;
-  let lastError;
-
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    if (attempt > 1) {
-      await sleep(HEAD_BACKOFF_MS[attempt - 1]);
-    }
-    try {
-      // D1 canonical fetch — reachability via the SSOT browserlessFetch (was a plain
-      // HEAD that mis-rejected bot-protected real sources). Redirects resolve inside
-      // Browserless; the chain is not surfaced (callers use ok/finalStatus).
-      const r = await browserlessFetch(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
-      finalStatus = r.status;
-      finalUrl = url;
-      if (finalStatus !== null && finalStatus >= 200 && finalStatus < 300) {
-        return { ok: true, finalStatus, finalUrl, attempts: attempt, redirects };
-      }
-      if (finalStatus === 405) {
-        return { ok: true, finalStatus, finalUrl, attempts: attempt, redirects };
-      }
-      if (finalStatus !== null && finalStatus >= 400 && finalStatus < 500) {
-        return {
-          ok: false,
-          finalStatus,
-          finalUrl,
-          attempts: attempt,
-          redirects,
-          error: `HTTP ${finalStatus}`,
-        };
-      }
-      lastError = `HTTP ${finalStatus}`;
-    } catch (e) {
-      finalStatus = e?.status ?? null;
-      lastError = e instanceof Error ? e.message : String(e);
-    }
-  }
-  return {
-    ok: false,
-    finalStatus,
-    finalUrl,
-    attempts: 3,
-    redirects,
-    error: lastError ?? "exhausted retries",
-  };
+  // D1-INTERPRETATION FIX: delegate to the SSOT reachability classifier (shared with
+  // verification.ts + tier1-population-runner — no more aligned copies). A Browserless
+  // 429/5xx/timeout is INCONCLUSIVE, never a negative.
+  const r = await ssotCheckReachability(url, {
+    render: browserlessFetch,
+    classify: classifyReachability,
+    timeoutMs: HEAD_TIMEOUT_MS,
+    backoff: HEAD_BACKOFF_MS,
+  });
+  return { ok: r.ok, outcome: r.outcome, finalStatus: r.finalStatus, finalUrl: url, attempts: r.attempts, redirects: [], error: r.error };
 }
+
 
 async function fetchContent(url) {
   // D1 canonical fetch — content via the SSOT browserlessFetch (was a plain UA-less GET).
@@ -716,18 +682,15 @@ async function verifyOne(candidate) {
   // Step 1: HEAD reachability
   const reach = await checkReachability(candidate.url);
   result.head_status = reach.finalStatus;
-  if (!reach.ok) {
+  // D1-INTERPRETATION FIX: INCONCLUSIVE (429/5xx/timeout) → tier M, not L; DEAD (404/410)
+  // → tier L. Pre-fix mapped every non-2xx → tier L (the non-answer-as-negative bug).
+  const reachVerdict = reachabilityTier(reach.outcome);
+  if (reachVerdict) {
     result.head_error = reach.error;
-    const agg = aggregateTier({
-      reachable: false,
-      domainConfidence: "low",
-      language: null,
-      ai: null,
-    });
-    result.tier = agg.tier;
-    result.triggers = agg.triggers;
-    result.rejection_reason = agg.rejection_reason ?? null;
-    result.would_action = tierToAction(agg.tier);
+    result.tier = reachVerdict.tier;
+    result.triggers = [reachVerdict.rejection_reason];
+    result.rejection_reason = reachVerdict.rejection_reason;
+    result.would_action = tierToAction(reachVerdict.tier);
     return result;
   }
 

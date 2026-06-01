@@ -28,6 +28,11 @@ import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { d3GuardAdmission } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
+import {
+  checkReachability as ssotCheckReachability,
+  reachabilityTier,
+  classifyReachability,
+} from "@/lib/sources/reachability.mjs";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -275,68 +280,41 @@ const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const HEAD_TIMEOUT_MS = 8_000;
 const HEAD_BACKOFF_MS = [200, 800, 3200] as const;
 
-async function checkReachability(url: string): Promise<{
+type ReachInject = {
+  render?: (u: string, o: { maxTextLength?: number; gotoTimeoutMs?: number }) => Promise<{ status: number; text?: string }>;
+  classify?: (r: { status: number | null; errored: boolean }) => string;
+};
+
+async function checkReachability(url: string, inject?: ReachInject): Promise<{
   ok: boolean;
+  outcome: string;
   finalStatus: number | null;
   finalUrl: string | null;
   attempts: number;
   redirects: string[];
   error?: string;
 }> {
-  const redirects: string[] = [];
-  let finalStatus: number | null = null;
-  let finalUrl: string | null = null;
-  let lastError: string | undefined;
-
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    if (attempt > 1) {
-      // Exponential backoff between retries.
-      await sleep(HEAD_BACKOFF_MS[attempt - 1]);
-    }
-    try {
-      // D1 canonical fetch — reachability via browserlessRender (the single source of
-      // truth). The prior plain HEAD + bot UA returned 403/404 from bot-protected real
-      // sources — the verification-side half of the 420 mis-rejection mechanism.
-      // Browserless resolves redirects internally, so the chain is no longer surfaced
-      // (callers use ok/finalStatus, not the redirect list). Retries + backoff preserved.
-      const r = await browserlessRender(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
-      finalStatus = r.status;
-      finalUrl = url;
-      // Success criteria: 2xx after redirect resolution. 4xx/5xx counts
-      // as a hard fail and we move on; transient 5xx triggers retry.
-      if (finalStatus !== null && finalStatus >= 200 && finalStatus < 300) {
-        return { ok: true, finalStatus, finalUrl, attempts: attempt, redirects };
-      }
-      // Some servers reject HEAD with 405 but accept GET. Treat 405 as
-      // "reachable" so we don't lose legitimate sources to method-policy.
-      if (finalStatus === 405) {
-        return { ok: true, finalStatus, finalUrl, attempts: attempt, redirects };
-      }
-      // 5xx → retry. 4xx (except 405) → don't retry, fail fast.
-      if (finalStatus !== null && finalStatus >= 400 && finalStatus < 500) {
-        return {
-          ok: false,
-          finalStatus,
-          finalUrl,
-          attempts: attempt,
-          redirects,
-          error: `HTTP ${finalStatus}`,
-        };
-      }
-      lastError = `HTTP ${finalStatus}`;
-    } catch (e: unknown) {
-      finalStatus = e instanceof BrowserlessError ? (e.status ?? null) : null;
-      lastError = e instanceof Error ? e.message : String(e);
-      // Network error / timeout / abort → retry.
-    }
-  }
+  // D1-INTERPRETATION FIX: delegate to the SSOT reachability classifier (the ONE
+  // implementation verification.ts + the corpus runners share). D1 swapped the fetch
+  // METHOD to browserlessRender but left the INTERPRETATION wrong — a Browserless
+  // 429/5xx/timeout still returned ok:false -> tier L (reject). Now a non-answer is
+  // INCONCLUSIVE (-> tier M), only a definitive 404/410 is DEAD (-> tier L). `render` is
+  // injectable so the still-happening failure (a Browserless 429) can be force-tested;
+  // `classify` is injectable ONLY for the mutation-check baseline.
+  const r = await ssotCheckReachability(url, {
+    render: inject?.render ?? ((u, o) => browserlessRender(u, o)),
+    classify: inject?.classify ?? classifyReachability,
+    timeoutMs: HEAD_TIMEOUT_MS,
+    backoff: [...HEAD_BACKOFF_MS],
+  });
   return {
-    ok: false,
-    finalStatus,
-    finalUrl,
-    attempts: 3,
-    redirects,
-    error: lastError ?? "exhausted retries",
+    ok: r.ok,
+    outcome: r.outcome,
+    finalStatus: r.finalStatus,
+    finalUrl: url,
+    attempts: r.attempts,
+    redirects: [],
+    error: r.error,
   };
 }
 
@@ -775,7 +753,15 @@ function getServiceClient(): SupabaseClient {
 
 export async function verifyCandidate(
   candidateIn: VerificationCandidate,
-  opts?: { skipDuplicateCheck?: boolean; dryRun?: boolean; supabase?: SupabaseClient }
+  opts?: {
+    skipDuplicateCheck?: boolean;
+    dryRun?: boolean;
+    supabase?: SupabaseClient;
+    /** Test-only: inject a renderer to force a reachability failure mode. */
+    render?: ReachInject["render"];
+    /** Test-only: inject the legacy-buggy classifier for the mutation-check baseline. */
+    __classifyReachability?: ReachInject["classify"];
+  }
 ): Promise<VerificationResult> {
   const startedAt = Date.now();
   const supabase = opts?.supabase ?? getServiceClient();
@@ -807,8 +793,11 @@ export async function verifyCandidate(
     timing: { totalMs: 0 },
   };
 
-  // Step 1 — reachability
-  const reach = await checkReachability(candidate.url);
+  // Step 1 — reachability (D1-INTERPRETATION FIX: three-way, non-answer != negative).
+  const reach = await checkReachability(candidate.url, {
+    render: opts?.render,
+    classify: opts?.__classifyReachability,
+  });
   log.reachability = {
     attempts: reach.attempts,
     finalStatus: reach.finalStatus,
@@ -817,28 +806,41 @@ export async function verifyCandidate(
     error: reach.error,
   };
 
-  // If unreachable → tier L immediately. Skip Haiku entirely.
-  if (!reach.ok) {
-    const agg = aggregateTier({
-      reachable: false,
-      duplicate: false,
-      domainConfidence: "low",
-      language: null,
-      ai: null,
-    });
-    log.aggregation = { triggers: agg.triggers, decision: agg.tier };
-    log.action.taken = "rejected";
+  // Not reachable resolves THREE ways, not two:
+  //   INCONCLUSIVE (429 / 5xx / timeout / abort / dns / 403 / render-fail) → tier M,
+  //     QUEUE for operator review — a non-answer is NOT a negative. This mirrors the
+  //     Haiku-classify-failure branch below ("don't reject a row we couldn't determine").
+  //   DEAD (definitive 404/410) → tier L, rejected (a genuine negative).
+  // The pre-fix code mapped every !2xx to tier L; that is the non-answer-as-negative bug.
+  const reachVerdict = reachabilityTier(reach.outcome);
+  if (reachVerdict) {
+    const tier = reachVerdict.tier as VerificationTier;
+    log.aggregation = { triggers: [reachVerdict.rejection_reason], decision: tier };
+
+    let action: VerificationAction = tier === "M" ? "queued-provisional" : "rejected";
+    let resulting_provisional_id: string | undefined;
+    if (!dryRun && tier === "M") {
+      // Queue a provisional for review — we could not determine reachability, so we hand
+      // it to the operator rather than silently dropping it (the bug's destructive direction).
+      const exec = await executeAction(candidate, "M", null, null, reachVerdict.rejection_reason, supabase);
+      action = exec.action;
+      resulting_provisional_id = exec.resulting_provisional_id;
+      log.action = { taken: action, error: exec.error };
+    } else {
+      log.action.taken = action;
+    }
     log.timing.totalMs = Date.now() - startedAt;
 
     const result: VerificationResult = {
-      tier: "L",
-      action: "rejected",
+      tier,
+      action,
       ai_relevance_score: null,
       ai_freight_score: null,
       ai_trust_tier: null,
       language: null,
-      rejection_reason: agg.rejection_reason,
+      rejection_reason: reachVerdict.rejection_reason,
       log,
+      resulting_provisional_id,
     };
     if (!dryRun) await writeAuditLog(candidate, result, log, supabase);
     return result;
