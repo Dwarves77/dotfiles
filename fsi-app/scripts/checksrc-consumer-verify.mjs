@@ -54,10 +54,30 @@ console.log(`   FIXED : sources.status=${fixedStatus}  <- NOT evicted (non-answe
 const discriminates = fixedStatus === "active" && brokenStatus !== "active";
 console.log(`\n-- MUTATION CHECK (assertion: stored status stays 'active') PASSES on fixed / FAILS on broken => ${discriminates}`);
 
+// NEGATIVE CONTROL — the fix ALSO activated a dormant path (the route never SELECTed the
+// status fields, so eviction/reactivation never fired). Both now-live branches must be
+// verified, not just the don't-evict-on-429 branch the bug-class touched.
+const render404 = async () => ({ status: 404 }); // definitive not-found (DEAD)
+const render200 = async () => ({ status: 200 }); // reachable
+console.log(`\n-- NEGATIVE CONTROL (the now-live branches the fix activated) --`);
+await reset();
+await assessAndUpdateSource(sb, srcObj(), { render: render404 });
+const deadStatus = await readStatus();
+console.log(`   404 definitive-dead  -> sources.status=${deadStatus}  (expect 'inaccessible' — eviction DOES fire on a genuine negative)`);
+
+await sb.from("sources").update({ status: "inaccessible", consecutive_accessible: 0 }).eq("id", SID);
+await assessAndUpdateSource(sb, { ...srcObj(), status: "inaccessible" }, { render: render200 });
+const reactStatus = await readStatus();
+console.log(`   200 from inaccessible -> sources.status=${reactStatus}  (expect 'active' — reactivation on recovery)`);
+
+const controlsOk = deadStatus === "inaccessible" && reactStatus === "active";
+console.log(`   both now-live branches correct: ${controlsOk}`);
+const allOk = discriminates && controlsOk;
+
 // cleanup
 await sb.from("monitoring_queue").delete().eq("source_id", SID);
 await sb.from("source_trust_events").delete().eq("source_id", SID);
 await sb.from("ingest_rejections").delete().eq("candidate_url", URL_).then(() => {}, () => {});
 await sb.from("sources").delete().eq("id", SID);
 console.log("\n(sentinel source + its events cleaned)");
-process.exit(discriminates ? 0 : 1);
+process.exit(allOk ? 0 : 1);
