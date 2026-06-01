@@ -527,7 +527,6 @@ async function classifyWithHaiku(
 // fall through to M.
 
 function aggregateTier(input: {
-  reachable: boolean;
   duplicate: boolean;
   domainConfidence: "high" | "medium" | "low";
   language: string | null;
@@ -535,11 +534,13 @@ function aggregateTier(input: {
 }): { tier: VerificationTier; triggers: string[]; rejection_reason?: string } {
   const triggers: string[] = [];
 
+  // NOTE: reachability is NOT handled here. verifyCandidate short-circuits ALL non-reachable
+  // outcomes (INCONCLUSIVE -> tier M, DEAD -> tier L) via decideReachabilityAction BEFORE this
+  // runs, so aggregateTier is only ever reached for a REACHABLE candidate. The former
+  // `if (!reachable) -> tier L` branch was the pre-fix two-way bug-class shape; removing the
+  // `reachable` param makes the non-answer-as-negative mis-call un-typecheckable here.
+
   // L-triggers (any one → L)
-  if (!input.reachable) {
-    triggers.push("reachability_fail");
-    return { tier: "L", triggers, rejection_reason: "reachability" };
-  }
   if (input.duplicate) {
     triggers.push("duplicate");
     return { tier: "L", triggers, rejection_reason: "duplicate" };
@@ -871,7 +872,6 @@ export async function verifyCandidate(
 
   if (duplicate.matched) {
     const agg = aggregateTier({
-      reachable: true,
       duplicate: true,
       domainConfidence: domain.confidence,
       language: null,
@@ -935,7 +935,6 @@ export async function verifyCandidate(
 
   // Step 7 — aggregate
   const agg = aggregateTier({
-    reachable: true,
     duplicate: false,
     domainConfidence: domain.confidence,
     language: lang.language,
