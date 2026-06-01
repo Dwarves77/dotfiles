@@ -4,6 +4,7 @@ import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
 import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
 import { firstFetchClassify } from "@/lib/llm/first-fetch-classify";
+import { urlIsRoot, entityVerdict, ENTITY } from "@/lib/sources/entity-gate.mjs";
 import type { Domain, SourceCategory } from "@/lib/domains";
 
 /**
@@ -220,6 +221,7 @@ async function preFetchAndClassify(
       return null;
     }
     return {
+      entity_verdict: cls.result.entity_verdict,
       title: cls.result.title_candidate,
       summary: cls.result.summary,
       severity: cls.result.severity,
@@ -243,12 +245,14 @@ async function preFetchAndClassify(
 }
 
 interface HaikuEnrichment {
+  /** Entity gate signal (source != item): 'portal'/'uncertain' => do NOT mint. */
+  entity_verdict: "specific_document" | "portal" | "uncertain";
   title: string;
   summary: string;
   severity: string;
   priority: string;
   urgency_tier: string;
-  item_type: string;
+  item_type: string | null;
   /** Domain 1-7 emitted by Haiku per the routing rule, or NULL when the
    *  classifier could not route. Leakage fix 2026-05-23: the seed row MUST
    *  pass NULL through to the column instead of the historical hardcoded
@@ -267,7 +271,7 @@ interface HaikuEnrichment {
  * shape (title=source.name, summary='') so the queue still progresses.
  * Returns true on success or if a row already exists.
  */
-async function seedStubIntelligenceItem(
+export async function seedStubIntelligenceItem(
   supabase: SupabaseClient,
   source: SourceRow,
   enrichment: HaikuEnrichment | null
@@ -485,12 +489,55 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
+    // ENTITY GATE (source != item). DETERMINISTIC PRE-GATE FIRST: a root / trivial-landing URL
+    // is the portal homepage -> a SOURCE, not an item. Skip the mint AND the Haiku spend. The
+    // leak fixed: pre-fix every source (incl. portal homepages) minted exactly one item.
+    if (urlIsRoot(source.url)) {
+      await supabase
+        .from("pending_first_fetch")
+        .update({ status: "done", last_error_text: "entity-gate: portal (root URL) — source, not an item; no intelligence_item minted" })
+        .eq("id", row.id);
+      result.outcome = "skipped";
+      result.error = "entity-gate: portal (root URL)";
+      results.push(result);
+      skipped++;
+      continue;
+    }
+
     // Pre-fetch + Haiku classify so the seed carries title/summary/
     // priority/etc. instead of seed defaults. Returns null on any
     // failure; the seed below falls back to the legacy bare-stub
     // shape so the queue lifecycle still progresses (the Sonnet brief
     // from /api/agent/run is the primary value; Haiku is enrichment).
     const enrichment = await preFetchAndClassify(source);
+
+    // ENTITY VERDICT for the deep url. portal (deep navigational) OR uncertain (honest-
+    // inconclusive — Haiku unsure or failed) => DO NOT mint. Only a confident specific_document
+    // mints. Pre-fix minted unconditionally; an unsure classification silently defaulted to
+    // item_type "regulation" (the bug-class, inverted: non-answer -> substantive positive).
+    const verdict = entityVerdict({ url: source.url, haikuVerdict: enrichment?.entity_verdict });
+    if (verdict !== ENTITY.DOCUMENT) {
+      await supabase
+        .from("pending_first_fetch")
+        .update({ status: "done", last_error_text: `entity-gate: ${verdict} — no intelligence_item minted` })
+        .eq("id", row.id);
+      if (verdict === ENTITY.UNCERTAIN) {
+        await supabase
+          .from("integrity_flags")
+          .insert({
+            category: "data_quality", subject_type: "source", subject_ref: source.id,
+            description: `First-fetch entity verdict UNCERTAIN for ${source.url}: could not confidently classify as a specific document; NO item minted (honest-inconclusive, not defaulted to regulation). Review: portal (mark source) or document (re-run)?`,
+            recommended_actions: [{ action: "Review the source URL entity type", rationale: "entity-gate could not confidently type it" }],
+            status: "open", created_by: "entity-gate-2026-06-01",
+          })
+          .then(() => {}, () => {});
+      }
+      result.outcome = "skipped";
+      result.error = `entity-gate: ${verdict}`;
+      results.push(result);
+      skipped++;
+      continue;
+    }
 
     // Seed stub intelligence_items row so /api/agent/run can find one.
     const seed = await seedStubIntelligenceItem(supabase, source, enrichment);

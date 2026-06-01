@@ -27,6 +27,7 @@ import { dirname, resolve } from "node:path";
 import { appendFileSync, mkdirSync, existsSync } from "node:fs";
 import { checkFetchQuality } from "./lib/fetch-quality.mjs";
 import { urgencyScoreFromTier } from "./lib/urgency.mjs";
+import { urlIsRoot } from "../src/lib/sources/entity-gate.mjs";
 
 process.on("unhandledRejection", (reason) => {
   console.error("[unhandledRejection]", reason);
@@ -450,6 +451,12 @@ async function main() {
         if (itemsBySourceId.has(source.id)) {
           backfillOnly++;
           backfillNote = "backfill_only";
+        } else if (urlIsRoot(source.url)) {
+          // ENTITY GATE (source != item): a root/landing URL is the portal homepage — a SOURCE,
+          // not an item. Do NOT mint. (Deterministic pre-gate; this spent cold-start script's
+          // inline haikuClassify is a 4th copy lacking entity_verdict — fold into
+          // firstFetchClassify if ever revived. See src/lib/sources/entity-gate.mjs.)
+          backfillNote = "portal_skip_root_url";
         } else {
           const cls = await haikuClassify(source, fetched);
           costUsd = cls.cost_usd_estimated ?? 0;
