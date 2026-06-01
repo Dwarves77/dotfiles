@@ -70,13 +70,23 @@ const ERROR_SIGNATURES = [
   /content unavailable/i,
 ];
 
+// Count of DISTINCT error-signature markers in `text` (the shared signal both isErrorBody and the
+// retroactive cleanup use — one criterion family).
+export function errorMarkerCount(text) {
+  if (!text) return 0;
+  const head = text.slice(0, 2500);
+  return ERROR_SIGNATURES.filter((re) => re.test(head)).length;
+}
+
 // Returns true when `text` is an error / bot-block body (or empty / too short to be content).
 // Conservative: a long real document (won't carry multiple distinct error markers) is NOT
 // flagged — requires (short body AND >=1 marker) OR (>=2 distinct markers) OR (empty/tiny).
+// FORWARD use (on a fetched response body). For the RETROACTIVE cleanup on a short stored
+// title+summary, use errorMarkerCount(...) >= 2 instead (the short+1 form would over-block a
+// real item that merely references one error code — preserving the discrimination requirement).
 export function isErrorBody(text) {
   if (!text || text.trim().length < 60) return true;     // empty / tiny = no real content
-  const head = text.slice(0, 2500);                       // error pages declare themselves early
-  const hits = ERROR_SIGNATURES.filter((re) => re.test(head)).length;
+  const hits = errorMarkerCount(text);
   if (text.trim().length < 1500 && hits >= 1) return true; // short + an error marker = error page
   if (hits >= 2) return true;                              // multiple distinct markers = error page
   return false;
