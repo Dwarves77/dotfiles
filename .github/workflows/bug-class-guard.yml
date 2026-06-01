@@ -29,7 +29,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+      # The detector rides the surface registry -> drift-check.mjs -> imports `typescript`, so the
+      # selftests need node_modules on a fresh CI checkout (same reason discipline.yml installs).
+      - name: Install deps
+        run: npm ci --prefer-offline --no-audit
       - name: Detector + SSOT selftests (must pass)
         run: |
           node --test \
@@ -48,7 +54,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+      - name: Install deps
+        run: npm ci --prefer-offline --no-audit
       - name: Non-answer -> definitive scan (forms 1-4) — report only
         run: node scripts/lib/inconclusive-report.mjs . || true
       - name: Unguarded type-consumer scan (item_type migration precondition) — report only
