@@ -29,6 +29,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
+import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
@@ -263,14 +264,43 @@ function validateRow(
   return { errors, effectiveJurisdiction };
 }
 
+// #6 CONSUMER DECISION — a head result -> the import's branch. THE BUG (pre-fix): a
+// non-answer (headCheck status:'error' on a timeout, or a 429/5xx number) -> "reject", so a
+// Browserless rate-limit/timeout dropped a real candidate before verifyCandidate was ever
+// reached. FIX (SSOT classification): INCONCLUSIVE (non-answer) -> "queue-provisional" (NOT
+// reject); only a definitive DEAD (404/410) -> "reject"; REACHABLE -> "proceed" (run the
+// pipeline). The actual stored insert is delegated to verifyCandidate downstream (already
+// stored-verified for non-answer -> tier M -> provisional).
+export function headReachabilityDecision(
+  head: { status: number | "error" }
+): "reject" | "queue-provisional" | "proceed" {
+  const o = classifyReachability(
+    head.status === "error" ? { status: null, errored: true } : { status: head.status, errored: false }
+  );
+  if (o === REACH.DEAD) return "reject";              // definitive 404/410 = genuine negative
+  if (o === REACH.INCONCLUSIVE) return "queue-provisional"; // non-answer -> queue, NOT reject
+  return "proceed";                                   // reachable -> run the verifyCandidate pipeline
+}
+
+// PRE-FIX decision, retained ONLY as the mutation-check baseline.
+export function headReachabilityDecision_LEGACY_BUGGY(
+  head: { status: number | "error" }
+): "reject" | "queue-provisional" | "proceed" {
+  if (head.status === "error") return "reject";       // BUG: timeout/non-answer -> reject
+  if (typeof head.status === "number" && head.status >= 400) return "reject"; // BUG: 429/5xx -> reject
+  return "proceed";
+}
+
+type HeadRenderFn = (u: string, o: { maxTextLength?: number; gotoTimeoutMs?: number }) => Promise<{ status: number }>;
+
 async function headCheck(
-  url: string
+  url: string,
+  render: HeadRenderFn = browserlessRender as unknown as HeadRenderFn
 ): Promise<{ status: number | "error"; reason?: string }> {
-  // D1 canonical fetch — reachability via browserlessRender (the single source of
-  // truth). The prior plain HEAD returned a bot-block artifact on import for
-  // bot-protected real sources; a successful render is the reliable reachable signal.
+  // D1 canonical fetch — reachability via browserlessRender (the single source of truth).
+  // render is injectable so a non-answer (Browserless 429/timeout) can be force-tested.
   try {
-    const r = await browserlessRender(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
+    const r = await render(url, { maxTextLength: 1000, gotoTimeoutMs: HEAD_TIMEOUT_MS });
     return { status: r.status };
   } catch (e) {
     if (e instanceof BrowserlessError && typeof e.status === "number") return { status: e.status };
@@ -467,10 +497,13 @@ export async function POST(request: NextRequest) {
     const head = await headCheck(row.url);
     let proposedAction: PreviewRow["proposed_action"] = "queue-provisional";
 
-    if (head.status === "error") {
+    // #6 FIX: a NON-ANSWER (timeout/429/5xx) is INCONCLUSIVE -> queue for review, NOT reject.
+    // Only a definitive DEAD (404/410) is rejected here; reachable rows run the pipeline.
+    const headDecision = headReachabilityDecision(head);
+    if (headDecision === "reject") {
       proposedAction = "reject";
-    } else if (typeof head.status === "number" && head.status >= 400) {
-      proposedAction = "reject";
+    } else if (headDecision === "queue-provisional") {
+      proposedAction = "queue-provisional";
     } else if (verification?.verifyCandidate) {
       try {
         const v = await verification.verifyCandidate(
