@@ -10,6 +10,8 @@ import { randomBytes } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("phase2-build-binding", { applied: "2026-06-01", commit: "61f86cd", effect: "apply migration 118 + create reconciler role (re-ALTERs role password)", idempotent: true });
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ENV_PATH = resolve(ROOT, ".env.local");

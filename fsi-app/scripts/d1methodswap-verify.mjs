@@ -6,6 +6,8 @@ import { createClient } from "@supabase/supabase-js";
 import esbuild from "esbuild";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("d1methodswap-verify", { applied: "2026-06-01", commit: "8cecfd6", effect: "sentinel source_verifications write (self-cleaned); slated for retirement" });
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));

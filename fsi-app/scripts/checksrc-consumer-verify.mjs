@@ -8,6 +8,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("checksrc-consumer-verify", { applied: "2026-06-01", commit: "55536c9", effect: "sentinel sources/events write (self-cleaned); slated for retirement" });
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const BUNDLE = resolve(ROOT, "scripts/tmp/_checksrc-bundle.mjs");

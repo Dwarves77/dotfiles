@@ -22,6 +22,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { d3GuardAdmission } from "../src/lib/d3/hooks.mjs";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("recovery-readmit", { applied: "2026-06-01", commit: "513262d", effect: "INSERT 90 provisional_sources (Phase 3 re-admit)", idempotent: true });
 import { assertReadBack, VERDICT } from "./lib/verify.mjs";
 
 const EXECUTE = process.argv.includes("--execute");

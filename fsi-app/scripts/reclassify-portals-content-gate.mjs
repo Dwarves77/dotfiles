@@ -13,6 +13,8 @@
 // Verify by read-back of stored state. --dry-run default; --execute archives.
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("reclassify-portals-content-gate", { applied: "2026-06-01", commit: "e4f801d", effect: "archive 210 root-URL intelligence_items (is_archived=true)", idempotent: true });
 import esbuild from "esbuild";
 import { readFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";

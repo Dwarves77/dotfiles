@@ -8,6 +8,8 @@ import esbuild from "esbuild";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("entitygate-stored-verify", { applied: "2026-06-01", commit: "569e7f7", effect: "sentinel sources/intelligence_items write (self-cleaned); slated for retirement" });
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));

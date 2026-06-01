@@ -11,6 +11,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { checkUrl, classifyResult, classifyResult_LEGACY_BUGGY } from "./audit-optionc-reachability.mjs";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("recheck-fabrication-16", { applied: "2026-06-01", commit: "b973fcc", effect: "resolve 5 timeout-false integrity_flags (open->resolved)", idempotent: true });
 
 const EXECUTE = process.argv.includes("--execute");
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");

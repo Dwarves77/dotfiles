@@ -14,6 +14,8 @@ import pg from "pg";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("phase2-reconcile", { applied: "2026-06-01", commit: "0571c11", effect: "flip ~600 unverified intelligence_items to terminal provenance_status", idempotent: true });
 import { assertReadBack, VERDICT } from "./lib/verify.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");

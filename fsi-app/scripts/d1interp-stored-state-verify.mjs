@@ -12,6 +12,8 @@
 import { createClient } from "@supabase/supabase-js";
 import esbuild from "esbuild";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { assertExecutedDataOp } from "./_dataops/interlock.mjs";
+assertExecutedDataOp("d1interp-stored-state-verify", { applied: "2026-06-01", commit: "f84ee2d", effect: "sentinel source_verifications write (self-cleaned); slated for retirement" });
 import { dirname, resolve } from "node:path";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
