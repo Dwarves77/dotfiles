@@ -33,17 +33,17 @@ tests that **cannot touch prod at all**:
 
 | # | Retired harness | Fix it verified | Standing fixture replacement |
 |---|-----------------|-----------------|------------------------------|
-| 6 | `d1interp-stored-state-verify.mjs` | D1-interp reachability tier (`f84ee2d`) | `scripts/lib/reachability.selftest.mjs` (7/7) — decision logic |
-| 7 | `checksrc-consumer-verify.mjs` | check-sources status (`55536c9`) | `reachability.selftest` (decision) + **owed**: an `assessAndUpdateSource` decision-fn fixture for full composition coverage |
-| 8 | `d1methodswap-verify.mjs` | D1 method swap (`8cecfd6`) | `reachability.selftest` (decision) + **owed**: a `verifyCandidate` decision-fn fixture |
+| 6 | `d1interp-stored-state-verify.mjs` | D1-interp reachability tier (`f84ee2d`) | `reachability.selftest` (decision) + `verification-decision.selftest.mjs` (4/4) — **composition DONE** |
+| 7 | `checksrc-consumer-verify.mjs` | check-sources status (`55536c9`) | `reachability.selftest` (decision) + `check-sources-decision.selftest.mjs` (5/5) — **composition DONE** |
+| 8 | `d1methodswap-verify.mjs` | D1 method swap (`8cecfd6`) | `reachability.selftest` (decision) + `verification-decision.selftest.mjs` (4/4) — **composition DONE** |
 | 9 | `entitygate-stored-verify.mjs` | portal-as-item gate (`569e7f7`) | `scripts/lib/entity-gate.selftest.mjs` (11/11) — gate + isErrorBody decision |
 
-**Pattern for the owed composition fixtures:** `src/lib/sources/fetch-now-decision.mjs` +
-`scripts/lib/fetch-now-decision.selftest.mjs` (`d7fbe09`) — extract a route's decision into a pure fn
-(no DB/HTTP/Date) and assert it in a fixture. Apply the same to `assessAndUpdateSource` and
-`verifyCandidate` for check-sources / method-swap **composition** coverage (their decision LOGIC is
-already covered by the SSOT selftests above; only the route-level composition is not yet fixtured). All
-run in the CI HARD gate (`.github/workflows/bug-class-guard.yml`).
+**Composition fixtures DONE (commit `483ff6c`):** the pattern is `src/lib/sources/fetch-now-decision.mjs`
++ `scripts/lib/fetch-now-decision.selftest.mjs` (`d7fbe09`) — extract a route's decision into a pure fn
+(no DB/HTTP/Date) and assert it in a fixture. Applied to `assessAndUpdateSource`
+(`check-sources-decision.mjs`) and `verifyCandidate` (`verification-decision.mjs`); both routes now
+delegate to the pure fn. **Every route is now composition-fixtured** and all three fixtures run in the
+CI HARD gate (`.github/workflows/bug-class-guard.yml`). Sentinel harnesses fully replaced.
 
 ## Bucket 1 — PURE CODE (mergeable via PR; NOT in this ledger)
 
