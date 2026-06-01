@@ -21,6 +21,7 @@
 // per the wave1b stub-quality investigation, 2026-05-11.
 
 import { asDomain, domainForItemType, type Domain, type SourceCategory } from "@/lib/domains";
+import { isErrorBody } from "@/lib/sources/entity-gate.mjs";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const HAIKU_INPUT_PER_MTOK_USD = 1.0;
@@ -126,6 +127,32 @@ export async function firstFetchClassify(
   input: FirstFetchClassifyInput,
   apiKey: string
 ): Promise<FirstFetchClassifyResult> {
+  // ENTRY-4 (error-body-as-item leak): reject an error / bot-block RESPONSE BODY
+  // DETERMINISTICALLY, before Haiku. The fetchOk principle in ingestion: an unreadable/error
+  // fetch is INCONCLUSIVE -> not a document. Do NOT rely on Haiku to call it 'uncertain' (it
+  // may infer a topic from the URL/title and mint an error page — the observed leak). entity_
+  // verdict='uncertain' here makes the entity gate skip the mint.
+  if (isErrorBody(input.text)) {
+    return {
+      ok: true,
+      result: {
+        entity_verdict: "uncertain",
+        item_type: null,
+        domain: null,
+        severity: "monitoring",
+        priority: "LOW",
+        urgency_tier: "informational",
+        topic_tags: [],
+        jurisdictions: [],
+        title_candidate: input.source_name || input.source_url,
+        summary: "",
+        rationale: "entity-gate: error / bot-block response body detected — not content; not minted",
+        cost_usd_estimated: 0,
+        render_ms: 0,
+      },
+    };
+  }
+
   const text = input.text.slice(0, CONTENT_MAX_CHARS);
   const sourceCategoryLabel =
     input.source_category && typeof input.source_category === "string"
