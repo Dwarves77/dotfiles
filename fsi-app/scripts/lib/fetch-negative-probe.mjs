@@ -69,9 +69,9 @@ const INCONCLUSIVE = [
 // not). Per-file: is the CURRENT state still corrupt, or fixed-to-sound (we still must SEE
 // it). expectFlag=true => probe must flag at least one site here.
 export const KNOWN_ANSWERS = [
-  { file: "scripts/audit-optionc-reachability.mjs", note: "fabrication detector: UNREACHABLE -> FABRICATED_URL (confirmed CORRUPT, live)" },
-  { file: "src/lib/sources/verification.ts",        note: "reachability/check-source path (the ~420 origin); D1 swapped the fetch method — verify the FAILURE->negative mapping too" },
-  { file: "scripts/recovery-measure.mjs",           note: "recovery classification (corrected this session to inconclusive-5xx — must still be SEEN to confirm it stayed sound)" },
+  { file: "scripts/audit-optionc-reachability.mjs", fixed: true, note: "fabrication detector — FIXED 2026-06-01 (non-answer -> INCONCLUSIVE; de-allowlisted). BLIND is now EXPECTED: the fix removed the pattern." },
+  { file: "src/lib/sources/verification.ts",        fixed: true, note: "reachability SSOT — FIXED 2026-06-01 (non-answer -> tier M). Still SURFACES for the DEAD(404/410)->tier L genuine-negative path (REVIEW), which is correct." },
+  { file: "scripts/recovery-measure.mjs",           note: "recovery classification (corrected to inconclusive-5xx — must still be SEEN to confirm it stayed sound)" },
 ];
 
 const NEG_WINDOW = 14; // lines after an anchor to scan for its conclusion
@@ -138,8 +138,11 @@ if (/fetch-negative-probe\.mjs$/.test(process.argv[1]?.replace(/\\/g, "/") || ""
   console.log(`coverage complete: ${completeness.complete}${completeness.missing.length ? " MISSING: " + completeness.missing.join(",") : ""}`);
   console.log("\n-- coverage block --"); console.dir(coverage, { depth: 5 });
 
-  console.log("\n-- KNOWN-ANSWER re-catch (probe is blind if any surfaced=false) --");
-  for (const k of known) console.log(`  ${k.surfaced ? "SEEN " : "BLIND"}  ${k.file}  — ${k.note}`);
+  console.log("\n-- KNOWN-ANSWER re-catch (a non-fixed entry that is BLIND means the probe lost detection) --");
+  for (const k of known) {
+    const tag = k.fixed ? (k.surfaced ? "FIXED*" : "FIXED ") : (k.surfaced ? "SEEN " : "BLIND");
+    console.log(`  ${tag}  ${k.file}  — ${k.note}`);
+  }
 
   const show = (label, arr) => {
     console.log(`\n-- ${label}: ${arr.length} --`);
