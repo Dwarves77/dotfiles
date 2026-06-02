@@ -296,7 +296,7 @@ export function AdminDashboard({
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <EditorialMasthead
-        eyebrow="Platform Admin · May 24, 2026"
+        eyebrow="Platform Admin"
         title="Platform Admin"
         meta="Workspaces, sources, ingest, coverage. Aggregated needs-attention queue refreshes every 60 seconds."
       />

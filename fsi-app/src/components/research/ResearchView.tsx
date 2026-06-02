@@ -480,8 +480,9 @@ export function ResearchView({
             <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{totalDisplay}</b> active findings this week
             {" · "}
             <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{themesActive}</b> themes active
-            {" · "}
-            workspace verticals: <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Live events · Fine art</b>
+            {/* Stripped (surface-honesty): hardcoded "Live events · Fine art"
+                workspace verticals — presented as live workspace context but
+                never read from the workspace profile. */}
           </>
         }
       />
