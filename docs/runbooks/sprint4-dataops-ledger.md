@@ -23,6 +23,8 @@ script here is guarded or quarantined from auto-execution (CI / tests / build). 
 | 4 | `recheck-fabrication-16.mjs` | `b973fcc` | Resolved 5 timeout-false `integrity_flags` (`b-audit-2026-05-29`) open→resolved; annotated 11 unadjudicable | Yes — already-resolved rows unchanged | Set the 5 flags back to `open` |
 | 5 | `reclassify-portals-content-gate.mjs` | `e4f801d` | Archived 210 root-URL `intelligence_items` (`is_archived=true`, portal/error-page artifact); 21 kept; **source rows untouched** | Yes — already-archived rows unchanged | Un-archive (the **#5B** restore — operator-locked to regenerate-through-the-gate, NOT a blind `is_archived` flip) |
 | 6 | `tier-reconcile.mjs` | (this commit) | Moved `base_tier` on **25 sources**: CAT1 = 11 genuine-news `trade_press` T5→T6 (Decision 2, A canonical); CAT2 = 14 clean Class-1 fixes (EcoVadis ×5 T5→T6, US EIA ×3 T1→T4, 3 trade-press T4→T6, J.P. Morgan T3→T6, China MEE + EC DG-Energy T3→T2). Per-row `UPDATE … WHERE base_tier=expectedOld` + read-back assert; all 25 verified. **Role-mislabels (Class 2) deliberately excluded.** | Yes — `WHERE base_tier=expectedOld` no-ops once moved; re-run dry-run shows 25 `[already]`, 0 drift | Per-row reverse move (new→old) by the same id set |
+| 7 | `roleaudit-reclassify.mjs` (OP 1, role) | (this commit) | Role-audit reclass — `source_role` on **28 sources**: Block A ×18 → `intergovernmental_body`, Block B ×9 → `industry_association`, Block D ×1 (Smart Freight/GLEC) → `standards_body`. Per-row `UPDATE … WHERE source_role='academic_research'` + read-back; all 28 verified. Excludes NREL (URL-dead, held) + 6 taxonomy-held rows. | Yes — `WHERE source_role=expectedOld` no-ops once moved | Per-row reverse (new→`academic_research`) by the id set |
+| 8 | `roleaudit-reclassify.mjs` (OP 2, tier) | (this commit) | Role-audit reclass — `base_tier` on **13 sources**: Block B ×9 → T5 (WBCSD 2→5, rest 3→5), Block C ×4 (MIT Climate Machine 1→4, CSRF/MIT-CTL/Tyndall 2→4). Per-row `UPDATE … WHERE base_tier=expectedOld` + read-back; all 13 verified. | Yes — no-ops once moved | Per-row reverse (new→old) by the id set |
 
 ## Bucket 3 — The DANGEROUS MIDDLE: verification harnesses that wrote to prod — RETIRED 2026-06-01
 
@@ -33,17 +35,17 @@ tests that **cannot touch prod at all**:
 
 | # | Retired harness | Fix it verified | Standing fixture replacement |
 |---|-----------------|-----------------|------------------------------|
-| 6 | `d1interp-stored-state-verify.mjs` | D1-interp reachability tier (`f84ee2d`) | `scripts/lib/reachability.selftest.mjs` (7/7) — decision logic |
-| 7 | `checksrc-consumer-verify.mjs` | check-sources status (`55536c9`) | `reachability.selftest` (decision) + **owed**: an `assessAndUpdateSource` decision-fn fixture for full composition coverage |
-| 8 | `d1methodswap-verify.mjs` | D1 method swap (`8cecfd6`) | `reachability.selftest` (decision) + **owed**: a `verifyCandidate` decision-fn fixture |
+| 6 | `d1interp-stored-state-verify.mjs` | D1-interp reachability tier (`f84ee2d`) | `reachability.selftest` (decision) + `verification-decision.selftest.mjs` (4/4) — **composition DONE** |
+| 7 | `checksrc-consumer-verify.mjs` | check-sources status (`55536c9`) | `reachability.selftest` (decision) + `check-sources-decision.selftest.mjs` (5/5) — **composition DONE** |
+| 8 | `d1methodswap-verify.mjs` | D1 method swap (`8cecfd6`) | `reachability.selftest` (decision) + `verification-decision.selftest.mjs` (4/4) — **composition DONE** |
 | 9 | `entitygate-stored-verify.mjs` | portal-as-item gate (`569e7f7`) | `scripts/lib/entity-gate.selftest.mjs` (11/11) — gate + isErrorBody decision |
 
-**Pattern for the owed composition fixtures:** `src/lib/sources/fetch-now-decision.mjs` +
-`scripts/lib/fetch-now-decision.selftest.mjs` (`d7fbe09`) — extract a route's decision into a pure fn
-(no DB/HTTP/Date) and assert it in a fixture. Apply the same to `assessAndUpdateSource` and
-`verifyCandidate` for check-sources / method-swap **composition** coverage (their decision LOGIC is
-already covered by the SSOT selftests above; only the route-level composition is not yet fixtured). All
-run in the CI HARD gate (`.github/workflows/bug-class-guard.yml`).
+**Composition fixtures DONE (commit `483ff6c`):** the pattern is `src/lib/sources/fetch-now-decision.mjs`
++ `scripts/lib/fetch-now-decision.selftest.mjs` (`d7fbe09`) — extract a route's decision into a pure fn
+(no DB/HTTP/Date) and assert it in a fixture. Applied to `assessAndUpdateSource`
+(`check-sources-decision.mjs`) and `verifyCandidate` (`verification-decision.mjs`); both routes now
+delegate to the pure fn. **Every route is now composition-fixtured** and all three fixtures run in the
+CI HARD gate (`.github/workflows/bug-class-guard.yml`). Sentinel harnesses fully replaced.
 
 ## Bucket 1 — PURE CODE (mergeable via PR; NOT in this ledger)
 
