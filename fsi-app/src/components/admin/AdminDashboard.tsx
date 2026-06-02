@@ -500,19 +500,27 @@ export function AdminDashboard({
               >
                 {s.desc}
               </p>
-              <div
-                style={{
-                  fontSize: 11.5,
-                  color: "var(--text-2)",
-                  borderTop: "1px solid var(--border-sub)",
-                  paddingTop: 10,
-                }}
-              >
-                <b style={{ color: s.urgent ? "var(--critical)" : "var(--text)", fontWeight: 700 }}>
-                  {s.count}
-                </b>{" "}
-                {s.unit}
-              </div>
+              {/* Honest-empty: show a count ONLY when it is a real positive number. The
+                  hardcoded `count: 0` placeholders (sources/coverage/research/community
+                  pickups) were rendering false metrics ("0 provisional pending" while the
+                  live backlog is 485, contradicting the IssuesQueue above). The real
+                  needs-attention numbers live in the IssuesQueue; these nav cards no longer
+                  assert a fabricated count. */}
+              {s.count > 0 && (
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: "var(--text-2)",
+                    borderTop: "1px solid var(--border-sub)",
+                    paddingTop: 10,
+                  }}
+                >
+                  <b style={{ color: s.urgent ? "var(--critical)" : "var(--text)", fontWeight: 700 }}>
+                    {s.count}
+                  </b>{" "}
+                  {s.unit}
+                </div>
+              )}
             </button>
           ))}
         </div>
