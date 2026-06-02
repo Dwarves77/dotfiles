@@ -53,4 +53,26 @@ The criteria are strict and conjunctive — **every** URL grounded, **every** FA
 
 ## Decision owed before building
 
-- **Re-generate vs. retro-ground.** Option A: re-run generation through the pipeline (new briefs, fully grounded) — replaces existing prose. Option B: retro-ground the EXISTING 1005 sections (extract claims from current prose, find spans) — preserves prose but may not satisfy C4/C5 without rewriting. Recommend A (clean, contract-conformant); flag that it regenerates briefs.
+- **Re-generate vs. retro-ground.** Option A: re-run generation through the pipeline (new briefs, fully grounded) — replaces existing prose. Option B: retro-ground the EXISTING 1005 sections (extract claims from current prose, find spans) — preserves prose.
+
+## PILOT RESULT (2026-06-02) — retro-ground is VIABLE
+
+`scripts/_diag/block4-pilot-cbam.mjs` (non-mutating: transaction + ROLLBACK) ran the
+retro-ground path on the real CBAM item (`t1`, CRITICAL, 7 sections), against the live
+DB and the real sources (eur-lex CELEX:32023R0956 + the EC CBAM portal):
+
+1. Fetch the two source contents.
+2. One Claude call (`claude-sonnet-4-6`, ~11.5k in / ~4k out, **no web_search needed** — sources provided) emits a Claim Provenance Ledger: ~21 FACT claims with **verbatim** spans + 1 GAP, covering all 4 required slots and every modal-bearing section.
+3. Span-check gate (mirrors `span-check.ts`): drop any FACT whose span isn't verbatim in its excerpt.
+4. Transaction: insert `agent_run_searches` (per source) + `section_claim_provenance` (slot_key embedded in `claim_text` for FACT/GAP), `crossLinkClaimSources` for `search_result_id`, `source_tier_at_grounding=2`.
+5. `validate_item_provenance(t1)` → **valid=true, 0 failures, recommended_status=`pending_human_verify`.** ROLLBACK.
+
+Progression across iterations: 9 failures (baseline) → 3 (`c4`) → 1 (`c3` span-fidelity) → **0**.
+
+**Conclusions:**
+- **Retro-grounding the EXISTING briefs works** — no regeneration required. The current prose + real sources yield criteria-passing claims.
+- **Cost ~$0.05–0.10/item** (claim extraction, no web_search) vs. ~$0.30–0.70 for full re-generation. ~109 sectioned items → **~$5–11**.
+- The one reliability knob is span fidelity (the agent must copy spans character-exact); `span-check.ts` already gates this — a non-verbatim FACT routes to staging/retry rather than passing.
+- CRITICAL/HIGH items land at `pending_human_verify` (correct); the existing task-1.12 tick loop flips them to `verified`.
+
+**Recommendation (updated):** build Block 4 as a **retro-ground** pipeline (Option B), not full re-generation. The pilot harness is the working core of steps 1–5; productionizing = wire it into the durable workflow steps (or a checkpoint-resumable batch runner like `b2-runner`), add the real `span-check` retry, and run the corpus in batches. Far cheaper and preserves the existing prose.
