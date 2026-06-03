@@ -26,6 +26,7 @@ import pg from "pg";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { browserlessFetch } from "../src/lib/sources/canonical-fetch.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
@@ -51,14 +52,13 @@ async function withClient(fn) {
 }
 const cleanCtl = (s) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 const urlsIn = (md) => [...new Set((String(md || "").match(/https?:\/\/[^\s)\]\}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
+// ALL information pulling goes through Browserless (canonical fetch) — never
+// plain fetch. Official/gov sources block bots; Browserless renders + returns text.
 async function fetchText(url) {
   try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { "user-agent": "Mozilla/5.0" } });
-    if (!r.ok) return { url, ok: false, text: "" };
-    const html = await r.text();
-    const text = cleanCtl(html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ")).replace(/\s+/g, " ").trim().slice(0, 40000);
-    return { url, ok: true, text };
+    const r = await browserlessFetch(url, { maxTextLength: 40000 });
+    const text = cleanCtl(r.text || "").replace(/\s+/g, " ").trim();
+    return { url, ok: text.length > 0, text };
   } catch { return { url, ok: false, text: "" }; }
 }
 function extractClaimLedger(rawText) {
