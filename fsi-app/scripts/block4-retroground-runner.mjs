@@ -27,10 +27,18 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { browserlessFetch } from "../src/lib/sources/canonical-fetch.mjs";
+import { createJiti } from "jiti";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
+
+// Canonical agent-output parsing via jiti — NOT a hand-rolled ledger parser.
+// extractClaimLedger validates every record (FACT needs source_span + source_id/url,
+// claim_kind enum, UUID checks) and THROWS on malformed; crossLinkClaimSources
+// fills search_result_id by source_url match. (src/lib/agent/parse-output.ts SSOT.)
+const jiti = createJiti(import.meta.url, { interopDefault: true });
+const { extractClaimLedger, crossLinkClaimSources } = await jiti.import("../src/lib/agent/parse-output.ts");
 const ref = readFileSync(resolve(ROOT, "supabase/.temp/project-ref"), "utf8").trim();
 const pooler = readFileSync(resolve(ROOT, "supabase/.temp/pooler-url"), "utf8").trim();
 const CONN = pooler.replace(`postgres.${ref}@`, `postgres.${ref}:${encodeURIComponent(process.env.SUPABASE_DB_PASSWORD)}@`);
@@ -60,14 +68,6 @@ async function fetchText(url) {
     const text = cleanCtl(r.text || "").replace(/\s+/g, " ").trim();
     return { url, ok: text.length > 0, text };
   } catch { return { url, ok: false, text: "" }; }
-}
-function extractClaimLedger(rawText) {
-  const open = rawText.indexOf("<<<CLAIM_PROVENANCE_LEDGER"), close = rawText.indexOf("CLAIM_PROVENANCE_LEDGER>>>");
-  if (open === -1 || close === -1 || close <= open) return [];
-  const inner = rawText.slice(open + 26, close).trim();
-  const lb = inner.indexOf("["), rb = inner.lastIndexOf("]");
-  if (lb === -1 || rb === -1) return [];
-  try { return JSON.parse(inner.slice(lb, rb + 1)); } catch { return []; }
 }
 async function callAgent(system, content) {
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -138,7 +138,9 @@ for (const it of targets) {
     let raw, stop;
     try { ({ raw, stop } = await callAgent(system, user + feedback)); }
     catch (e) { console.log(`${tag} a${attempt} ${e.message}`); continue; }
-    const claims = extractClaimLedger(raw);
+    let claims;
+    try { claims = extractClaimLedger(raw); }
+    catch (e) { console.log(`${tag} a${attempt} canonical parser REJECTED ledger: ${(e.message || "").slice(0, 70)}`); continue; }
     if (!claims.length) { console.log(`${tag} a${attempt} 0 claims (stop=${stop})`); continue; }
     const kept = claims.filter((c) => {
       if (c.claim_kind !== "FACT") return true;
@@ -165,12 +167,13 @@ for (const it of targets) {
              VALUES ($1,$2,$3,$4, now()) RETURNING id, result_url`, [it.id, "block4 url-ground", u, 99]);
           searchRows.push({ id: r.rows[0].id, result_url: r.rows[0].result_url });
         }
-        const byUrl = new Map(searchRows.filter((s) => s.result_url).map((s) => [s.result_url, s.id]));
-        for (const c2 of kept) {
+        // Canonical search<->claim cross-linking: fills search_result_id by source_url match.
+        const linked = crossLinkClaimSources(kept, searchRows);
+        for (const c2 of linked) {
           const sectionRowId = sectionMap[String(c2.section)] || secs[0].id;
           const storedText = cleanCtl((["FACT", "GAP"].includes(c2.claim_kind) && c2.slot_key) ? `[${c2.slot_key}] ${c2.claim_text}` : c2.claim_text);
           const tier = c2.claim_kind === "FACT" ? srcTier : null;
-          const searchId = (c2.source_url && byUrl.has(c2.source_url)) ? byUrl.get(c2.source_url) : null;
+          const searchId = c2.search_result_id || null;
           await c.query(
             `INSERT INTO public.section_claim_provenance
               (section_row_id, intelligence_item_id, claim_text, claim_kind, source_span, source_id, search_result_id, source_tier_at_grounding)
