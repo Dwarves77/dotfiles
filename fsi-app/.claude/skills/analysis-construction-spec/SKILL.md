@@ -59,7 +59,7 @@ A section is specified by five things, not a title:
 4. INTEGRITY, sourced and dated, omitted with a note if unpopulated, gaps labeled, never invented.
 5. GROUNDING MODEL, how the section's content is proven. One of four (section 2 below).
 
-Five overlays sit on every section, inherited from the skill or stated here:
+Six overlays sit on every section, inherited from the skill or stated here:
 - The four lenses: substantive, competitive, client-conversation, action.
 - A severity label where decision pressure exists: ACTION REQUIRED, COST ALERT, WINDOW CLOSING,
   COMPETITIVE EDGE, MONITORING. Mandatory on regulatory, market, technology, operations; optional
@@ -73,6 +73,9 @@ Five overlays sit on every section, inherited from the skill or stated here:
 - The Context Rule (section 3).
 - The No-Vacuum Rule (section 3b). Cross-pollination: an item's analysis draws direction from its
   documented relationships to items on OTHER surfaces, not only from its own source.
+- The Forward-Intelligence Rule (section 3c). Proactive, not reactive: surface what is COMING
+  (in-progress work, intent, participants, expected timing), not only formalized results — and set
+  a monitor re-check trigger for the eventual update. Fires on EVERY pull and EVERY update.
 
 ## 2. Grounding models (the four; declared per section)
 Grounding is not one operation. Each section declares which of these proves it:
@@ -124,6 +127,28 @@ comparison is. The intersection layer is not decoration on the brief; it is one 
 of the brief's direction. Every format must EMIT the intersection-readiness fields (the 13-field
 agent contract already does this) AND CONSUME them where they supply a section's direction; the
 surfaces render the relationships via the detect_intersections RPC.
+
+## 3c. The Forward-Intelligence Rule (proactive, every pull + every update)
+The platform is PROACTIVE, not reactive. Its value is knowing what is COMING before competitors —
+where to focus energy, how to participate in emerging innovation and testing — not just reporting
+formalized, published results. This is a TRIGGER that fires on EVERY information pull and EVERY
+update of an existing item, across all formats:
+
+1. Surface the forward picture as first-class. In-progress work IS intelligence: a regulation in
+   consultation, a technology in trials, a market signal pre-conversion, a research programme
+   pre-publication. Surface its intent, participants/parties, current phase/status, and what it is
+   investigating — do NOT omit it as "thin" because the outcome is not yet published.
+2. Surface expected timing. A stated schedule is a FACT (sourced). Otherwise emit a labeled
+   "Analytical inference:" estimate from industry-standard durations — NEVER a stated date without
+   a source.
+3. If coverage is limited, SEEK MORE before concluding. Search trade reporting and adjacent sources
+   to support the source or to establish it is not worth including. "Limited primary source" is a
+   prompt to research further, not a stop.
+4. Set the MONITOR re-check trigger. When the real outcome (findings, enactment, conversion) is
+   pending, emit MONITORING severity + the expected window so the reconcile loop re-pulls at the
+   right time. The brief GENERATES NOW with the forward picture; only the outcome update is deferred
+   to the trigger. Sufficiency counts forward intelligence (intent, participants, expected window)
+   as CORE grounding — a forward brief that surfaces it scores RICH, not thin.
 
 ---
 
@@ -235,9 +260,18 @@ decision; link the affected item.
 Grounding by section: S1 span, S2 transitive, S3 transitive, S4 transitive, S5 span (contradicting
 studies) plus transitive, S6 span.
 
-- S1 What the Research Found. INGEST headline finding, brief methodology, scope and limits, source
-  class, tier, recency. TRANSFORM state it with methodology and limits up front. OUTPUT how robust,
-  how to weight it. INTEGRITY a finding without sourced methodology is flagged.
+- S1 What the Research Found — OR What the Research Is Investigating (in-progress is first-class).
+  INGEST the finding if published; OTHERWISE the research DESIGN, PARTICIPANTS, PHASE, and STATUS,
+  plus methodology, scope/limits, source class, tier, recency. TRANSFORM: when findings are pending,
+  the design/participants/phase/intent ARE the finding — state them as the headline, never omit S1
+  as "thin." (JOLT exemplar: ~12-15 named operators, 4 manufacturers, round-robin phase, the
+  eHGV-vs-44t-diesel cost question.) OUTPUT how robust / how to weight it / where it sits in its
+  lifecycle. INTEGRITY a finding without sourced methodology is flagged; an in-progress programme
+  is stated AS in-progress (status sourced), not dressed up as a published result.
+- (forward-intelligence note) Pending-publication research GENERATES NOW with the full forward
+  picture (intent, participants, expected window). Surfacing the forward picture scores RICH, not
+  thin — this is the proactive value: knowing what is coming, where to focus, how to participate in
+  the testing, before competitors. The monitor re-check trigger (S5) is the ONLY thing deferred.
 - S2 Why This Finding Matters Operationally and Commercially. INGEST finding plus workspace
   profile. TRANSFORM the mechanism by mode and vertical. OUTPUT relevance to this business.
   INTEGRITY indirect relevance stated as such.
@@ -248,10 +282,14 @@ studies) plus transitive, S6 span.
 - S4 Client Conversation Talking Points and Public Position. INGEST S1 to S3. TRANSFORM credible
   claims, questions, pitfalls. OUTPUT talking points and position. INTEGRITY do not cite an
   unvalidated study.
-- S5 What the Finding Does Not Resolve. INGEST study limits, open questions, convergent or
-  contradictory research. TRANSFORM the limits, conditions for acting, and what converges or
-  contradicts. OUTPUT the boundaries and what to watch. INTEGRITY contradictory research surfaced,
-  not hidden.
+- S5 What the Finding Does Not Resolve (+ forward timing). INGEST study limits, open questions,
+  convergent or contradictory research, AND — for in-progress work — results-pending status + the
+  expected publication window. TRANSFORM the limits, conditions for acting, what converges or
+  contradicts, and WHEN the findings are due. A stated schedule is a FACT (sourced); otherwise a
+  labeled "Analytical inference:" estimate from industry-standard trial/study durations — NEVER a
+  stated date without a source. OUTPUT the boundaries, what to watch, and a MONITORING re-check
+  trigger for the actual publication. INTEGRITY contradictory research surfaced not hidden; an
+  estimated date is labeled as an inference, never asserted as fact.
 - S6 Sources. The paper, peer-review status, convergent or contradictory research, type-labeled.
 
 ---
