@@ -117,6 +117,17 @@ export function ResourceCard({ resource: r, why, onShareClick, embedded }: Resou
 
           {/* Sub-jurisdiction + conflict indicators + source provenance */}
           <div className="flex flex-wrap items-center gap-1 mb-1">
+            {/* Voluntary marker: framework/standard/guidance are non-binding. Keeps the
+                Regulations surface's "binding regulatory intelligence" promise honest —
+                a surface label, not a re-route (these item_types belong on Regulations). */}
+            {["framework", "standard", "guidance"].includes((r.type || "").toLowerCase()) && (
+              <span
+                className="text-[11px] font-semibold px-2 py-0.5 rounded border border-[#8E8E93]/40 bg-[#8E8E93]/10 text-[#6E6E73]"
+                title="Voluntary — framework / standard / guidance is non-binding, not enforceable law"
+              >
+                Voluntary
+              </span>
+            )}
             {r.subJurisdictionLabel && (
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded border border-text-accent/20 bg-text-accent/10 text-text-accent">
                 {r.subJurisdictionLabel}

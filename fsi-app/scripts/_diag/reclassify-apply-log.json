@@ -1,0 +1,157 @@
+{
+  "at": "2026-06-04",
+  "retyped": [
+    {
+      "id": "576554b3-7e69-431c-aa4f-474131458b14",
+      "title": "UK Transport Decarbonisation Plan: Government Pathway to Net Zero Transport by 2050",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "specific_document",
+      "newType": "guidance",
+      "rationale": "This is a specific regulatory/policy guidance document from the UK Department for Transpor"
+    }
+  ],
+  "demote_flagged": [
+    {
+      "id": "dde5a446-cdfd-4cff-a6ba-40e12f3c0a65",
+      "title": "ICAP Allowance Price Explorer: Terms of Use and Data Documentation",
+      "current": "tool",
+      "flag": "platform-as-tech",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is a portal/documentation page serving as a landing point and terms/conditions docume"
+    },
+    {
+      "id": "d6a9889f-20a6-4b4f-a846-e52fe9f18340",
+      "title": "Major Economic Indicators Summary - May 2026: CPI, Unemployment, Employment, and Wage Data",
+      "current": "market_signal",
+      "flag": "off-vertical?",
+      "fetched": true,
+      "verdict": "uncertain",
+      "newType": null,
+      "rationale": "entity-gate: error / bot-block response body detected — not content; not minted"
+    },
+    {
+      "id": "432a5042-1a51-4713-bfa0-8aca3fbfee62",
+      "title": "ASEAN Transport Strategic Plan 2016-2025 and Regional Cooperation Framework",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "The excerpt is clearly a portal/institutional landing page from the ASEAN Secretariat main"
+    },
+    {
+      "id": "08b0a1b3-ff0f-4bcb-9b8e-bc05a7c2cb47",
+      "title": "UN SDGs 9 & 13",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is the UN Sustainable Development Goals landing/portal page (sdgs.un.org/goals), serv"
+    },
+    {
+      "id": "d8305603-0aaf-4dcf-b6be-8b2d5d9fec19",
+      "title": "IEA Data and Statistics Explorer Platform",
+      "current": "technology",
+      "flag": "platform-as-tech",
+      "fetched": true,
+      "verdict": "uncertain",
+      "newType": null,
+      "rationale": "entity-gate: error / bot-block response body detected — not content; not minted"
+    },
+    {
+      "id": "2648d4ad-eac5-406b-888c-d551d5e1d403",
+      "title": "UNCTAD Sustainable Freight Transport Framework: Six-Step Strategic Planning Methodology for Global Supply Chain Decarbonization",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is a navigational homepage and institution landing page for the UNCTAD SFT Framework."
+    },
+    {
+      "id": "5f218fc4-8cc0-4b35-87a1-616da962322a",
+      "title": "DOT National Freight Strategic Plan",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "uncertain",
+      "newType": null,
+      "rationale": "entity-gate: error / bot-block response body detected — not content; not minted"
+    },
+    {
+      "id": "340ddf31-e533-4e2d-b2a6-5b6b1b70e470",
+      "title": "DP World Sustainability Strategy: Net Zero Pathway and ESG Framework Alignment",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is a sustainability hub/landing page for DP World that serves as a navigational porta"
+    },
+    {
+      "id": "7ff81425-54de-427f-b7a1-0d9e1ab1e60a",
+      "title": "Measurabl Ordinance Filing Platform: Automated Compliance Support for Energy and Water Reporting Requirements",
+      "current": "tool",
+      "flag": "platform-as-tech",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is a vendor product/service landing page for Measurabl's ordinance compliance softwar"
+    },
+    {
+      "id": "5fec12c6-23be-4a7f-b2d3-4b8e9faadc22",
+      "title": "IATA Sustainable Aviation Fuel (SAF) Framework and Net Zero Roadmap",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "uncertain",
+      "newType": null,
+      "rationale": "entity-gate: error / bot-block response body detected — not content; not minted"
+    },
+    {
+      "id": "abd83595-cb54-4ccc-b80b-2f9421596465",
+      "title": "Stockholm Environment Institute",
+      "current": "research_finding",
+      "flag": "institution-as-finding",
+      "fetched": true,
+      "verdict": "uncertain",
+      "newType": null,
+      "rationale": "entity-gate: error / bot-block response body detected — not content; not minted"
+    },
+    {
+      "id": "ad5b78ea-ddf1-4df0-a532-0d2829df96cf",
+      "title": "ASEAN Transport Strategic Plan",
+      "current": "framework",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is a navigational/institutional landing page of the ASEAN Secretariat's Transport sec"
+    },
+    {
+      "id": "627da433-864b-4d60-98e6-3248726a3738",
+      "title": "World Resources Institute",
+      "current": "research_finding",
+      "flag": "institution-as-finding",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is a navigational homepage and research institution landing page featuring navigation"
+    },
+    {
+      "id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+      "title": "China's Environmental Code: First Climate Legislation Supporting 2060 Carbon Neutrality Goal",
+      "current": "regulation",
+      "flag": "nonbinding-as-binding",
+      "fetched": true,
+      "verdict": "portal",
+      "newType": null,
+      "rationale": "This is a homepage/institutional landing page serving as a content portal and navigation h"
+    }
+  ]
+}
