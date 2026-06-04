@@ -36,6 +36,8 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { classifySourceRole } from "@/lib/sources/classify-source-role";
+import { checkVerticalFitGate } from "@/lib/sources/vertical-fit-gate";
 
 function getServiceClient() {
   return createClient(
@@ -200,7 +202,34 @@ export async function POST(request: NextRequest) {
   let sourceId: string | null = body.existingSourceId || null;
   let createdSource = false;
 
+  // Dedup guard (defect (a)): even without a client-supplied existingSourceId, a source with
+  // this canonical URL may already exist. Resolve canonically (host-narrow + JS compare) before
+  // creating — never mint a duplicate. Mirrors bulk-approve + the promote guard.
   if (!sourceId) {
+    const canonCandUrl = canonicalizeUrl(cand.candidate_url);
+    let canonHost = "";
+    try { canonHost = new URL(canonCandUrl).host; } catch { /* non-URL candidate */ }
+    const { data: hostMatches } = canonHost
+      ? await supabase.from("sources").select("id, url").ilike("url", `%${canonHost}%`)
+      : { data: [] };
+    const existingByUrl = (hostMatches || []).find((s) => canonicalizeUrl(s.url) === canonCandUrl);
+    if (existingByUrl) sourceId = existingByUrl.id;
+  }
+
+  if (!sourceId) {
+    // Vertical-fit GATE: block re-adding a host deliberately retired as off-vertical
+    // (negative list). Legislatures are otherwise kept by default.
+    const gate = await checkVerticalFitGate(supabase, {
+      name: cand.candidate_publisher || cand.candidate_title,
+      url: canonicalizeUrl(cand.candidate_url),
+    });
+    if (!gate.allow) {
+      return NextResponse.json(
+        { ok: false, error: `vertical-fit gate: ${gate.reason}`, requiresReauthorization: true },
+        { status: 422 }
+      );
+    }
+
     // No existing source for this URL — create one.
     // F8 (Sprint Architecture): client sends operator-chosen tier value via
     // body.assignedTier (semantically-named, not schema-shaped). Fallback to
@@ -216,6 +245,9 @@ export async function POST(request: NextRequest) {
     const newSource = {
       name: cand.candidate_publisher || cand.candidate_title || cand.candidate_url,
       url: canonicalizeUrl(cand.candidate_url),
+      // source_role = WHAT the entity is; category + intelligence_types derive via the
+      // migration-123 trigger (no hardcoded ['GUIDE'] placeholder).
+      source_role: classifySourceRole(cand.candidate_publisher || cand.candidate_title, canonicalizeUrl(cand.candidate_url)),
       description: cand.candidate_title || "",
       // Phase 1.5: Q2 split. base_tier = operator-selected classifier value;
       // effective_tier initialized equal per Day 1 invariant (Q7 batch
@@ -230,7 +262,7 @@ export async function POST(request: NextRequest) {
       access_method: "scrape" as const,
       status: "active" as const,
       update_frequency: "weekly" as const,
-      intelligence_types: ["GUIDE"],
+      intelligence_types: [] as string[], // derived by the migration-123 trigger from category; never hardcoded
       vertical_tags: [] as string[],
       notes:
         `Promoted from canonical_source_candidates 2026-04-28 by reviewer ${auth.userId.slice(0, 8)}. ` +

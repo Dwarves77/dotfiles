@@ -135,7 +135,8 @@ async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfa
     const { data: itemsRaw, error: itemsErr } = await supabase
       .from("intelligence_items")
       .select("id, item_type, domain")
-      .eq("is_archived", false);
+      .eq("is_archived", false)
+      .eq("provenance_status", "verified"); // Sprint 4 task 1.10: customer read gate
     if (itemsErr) {
       console.error(
         "[dashboard/surface-coverage] intelligence_items fetch error:",

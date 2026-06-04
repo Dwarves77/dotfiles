@@ -121,6 +121,12 @@
 | 116 | 116_active_intelligence_items_view.sql | Migration 116: active_intelligence_items view (verified-only customer surface). Sprint 4 Block 1, task 1.10. |
 | 117 | 117_provenance_gate_customer_rpcs.sql | Migration 117: provenance-gate the RPC-routed customer surfaces — adds AND ii.provenance_status = 'verified' to the two query points (full-gate half). Sprint 4 Block 1, task 1.10. |
 | 118 | 118_provenance_flip_binding.sql | Migration 118: #43 provenance-flip credential binding — a pre-existing intelligence_items row may be flipped off provenance_status='unverified' ONLY by the scoped non-owner reconciler role + guard trigger. Sprint 4 Phase 2 precondition. |
+| 119 | 119_validate_item_provenance_failclose.sql | Migration 119: validate_item_provenance FAIL-CLOSE — a 0-section item no longer vacuously passes criteria 2-5; records no_section_content → quarantined. Sprint 4 Block 1. |
+| 120 | 120_provenance_gate_remaining_customer_rpcs.sql | Migration 120: provenance-gate the remaining customer RPCs (completes the surface gate begun in 117). Sprint 4 Block 1. |
+| 121 | 121_uniform_promotion_no_human_tick.sql | Migration 121: uniform promotion — a valid item flips to verified for ALL tiers (human-in-the-loop removed); criteria 1-5 byte-identical to 119. Sprint 4 Block 1. |
+| 122 | 122_source_institutions.sql | Migration 122: institutions table (WHO published, keyed by registrable_domain) + sources.institution_id FK. A grouping/identity dimension, never a merge key; orthogonal to source_role/category. Source-layer fix, defect (b). |
+| 123 | 123_source_label_derivation.sql | Migration 123: source label is a LIVE derivation — derive_source_category (== migration 084 CASE) + derive_source_intelligence_types + BEFORE INSERT/UPDATE trigger. category + intelligence_types now derive from source_role+name on every write (kills the hardcoded ['GUIDE'] placeholder + drift). See src/lib/sources/classify-source-role.ts. |
+| 124 | 124_monitoring_queue_reconciled_at.sql | Migration 124: monitoring_queue.reconciled_at — claim marker for the reconcile worker (/api/worker/reconcile) so it consumes change_detected=true rows idempotently. Reconcile-loop activation. |
 
 ## Maintenance trigger
 

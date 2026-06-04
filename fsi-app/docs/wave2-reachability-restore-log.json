@@ -1,0 +1,34 @@
+{
+  "completed": true,
+  "restored": 4,
+  "log": [
+    {
+      "id": "f0f9aae2-6464-4aab-9c46-4863f69519f2",
+      "name": "Maritime and Port Authority of Singapore Sustainability Hub",
+      "url": "https://mpa.gov.sg/sustainability",
+      "ok": true,
+      "status_after": "pending_review"
+    },
+    {
+      "id": "6a219de3-1dcb-4005-8816-64039df587c8",
+      "name": "UAE Ministry of Energy and Infrastructure",
+      "url": "https://moei.gov.ae/en/home.aspx",
+      "ok": true,
+      "status_after": "pending_review"
+    },
+    {
+      "id": "c55fbf5f-11fa-4044-895b-55b66c066b81",
+      "name": "Japan METI Transportation Efficiency Standards",
+      "url": "https://meti.go.jp/policy/energy_environment/energy_efficiency/transportation",
+      "ok": true,
+      "status_after": "pending_review"
+    },
+    {
+      "id": "f383bef9-06b8-410d-b824-c96d3ff43a5f",
+      "name": "Korea Ministry of Environment K-Taxonomy Portal",
+      "url": "https://me.go.kr/eng/web/index.do?menuId=16",
+      "ok": true,
+      "status_after": "pending_review"
+    }
+  ]
+}

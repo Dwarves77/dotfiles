@@ -5,8 +5,18 @@
 // `verification.ts` saying "browserlessRender is overkill") cannot false-IMPLEMENT.
 // A predicate that is runtime-only, or expressible only as text, → UNCONFIRMABLE
 // (LOUD — never silent-pass; inconclusive ≠ implemented).
-import ts from "typescript";
+import { createRequire } from "node:module";
 import { readFileSync, existsSync } from "node:fs";
+
+// Lazy-load the TypeScript compiler — only when an AST predicate actually runs,
+// NOT at module import. Importing drift-check (for DRIFT / evalPredicate, as
+// surface-registry and the bug-class selftests do) must NOT require the heavy
+// `typescript` package: the prior eager `import ts from "typescript"` made the
+// HARD bug-class-guard job fail with ERR_MODULE_NOT_FOUND on a fresh checkout
+// before `npm ci`. With this, the failure mode is structurally impossible.
+const _require = createRequire(import.meta.url);
+let _ts;
+const ts = () => (_ts ??= _require("typescript"));
 
 export const DRIFT = Object.freeze({
   IMPLEMENTED: "IMPLEMENTED",
@@ -15,15 +25,15 @@ export const DRIFT = Object.freeze({
 });
 
 function parseSource(text) {
-  return ts.createSourceFile("anchor.ts", text, ts.ScriptTarget.Latest, /*setParentNodes*/ true);
+  return ts().createSourceFile("anchor.ts", text, ts().ScriptTarget.Latest, /*setParentNodes*/ true);
 }
 function calleeName(e) {
-  if (ts.isIdentifier(e)) return e.text;
-  if (ts.isPropertyAccessExpression(e)) return e.name.text;
+  if (ts().isIdentifier(e)) return e.text;
+  if (ts().isPropertyAccessExpression(e)) return e.name.text;
   return null;
 }
 function eachCall(sf, fn) {
-  (function visit(n) { if (ts.isCallExpression(n)) fn(n); ts.forEachChild(n, visit); })(sf);
+  (function visit(n) { if (ts().isCallExpression(n)) fn(n); ts().forEachChild(n, visit); })(sf);
 }
 
 // behavioral: a real CALL to `callee` exists (a comment/string mention is not a call).
@@ -40,9 +50,9 @@ function hasRawSourceFetch(sf) {
     if (calleeName(n.expression) !== "fetch") return;
     const a = n.arguments[0];
     if (!a) return;
-    if (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a)) {
+    if (ts().isStringLiteral(a) || ts().isNoSubstitutionTemplateLiteral(a)) {
       if (/^https?:\/\//i.test(a.text) && !/api\.anthropic\.com/i.test(a.text)) raw = true;
-    } else if (ts.isIdentifier(a) || ts.isPropertyAccessExpression(a) || ts.isTemplateExpression(a)) {
+    } else if (ts().isIdentifier(a) || ts().isPropertyAccessExpression(a) || ts().isTemplateExpression(a)) {
       raw = true; // fetch(<var>) — a source-url variable
     }
   });
@@ -80,7 +90,7 @@ export function evaluateAnchor(a) {
   return { ...evalPredicate(readFileSync(a.file, "utf8"), a.predicate), decision: a.decision, file: a.file };
 }
 
-// The NAIVE text predicate — NOT used for verdicts. Exposed only so the self-tests
+// The NAIVE text predicate — NOT used for verdicts(). Exposed only so the self-tests
 // can demonstrate that text would false-IMPLEMENT where AST correctly reports DRIFTED.
 export function textGrepHas(filePath, token) {
   if (!existsSync(filePath)) return false;

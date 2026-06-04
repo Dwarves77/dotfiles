@@ -22,11 +22,12 @@
  * Intelligence Assistant for cross-cutting questions. NOT a decision-
  * engine UI.
  *
- * Data layer compromise: D2-D6 dimension facts are hard-coded for the
- * EU region as a vertical slice that demonstrates the structure;
- * other regions render empty-state placeholders. When the
- * `regions.operations_decisions` and `regional_data_facts` tables land,
- * the inline data swaps for a server-side projection.
+ * Data layer (surface-honesty, 2026-06): D2-D6 dimension facts are read
+ * LIVE ONLY from `regional_data_facts` via `operationsCoverage`. Regions
+ * with backfill (Asia / UK / UAE) show real facts; regions without (EU + US
+ * today) render the honest "Coverage pending" empty-state. The former
+ * hard-coded EU/US vertical-slice was removed — it rendered invented facts
+ * identically to live ones.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -135,7 +136,7 @@ const DIMENSIONS: Dimension[] = [
   },
 ];
 
-// ── Fact tables (hard-coded vertical slice for EU; placeholders elsewhere) ──
+// ── Fact tables (live from regional_data_facts; honest empty-state elsewhere) ──
 
 interface Fact {
   label: string;
@@ -144,99 +145,20 @@ interface Fact {
   source: string;
 }
 
-const FACTS: Record<string, Partial<Record<string, Fact[]>>> = {
-  EU: {
-    resources: [
-      { label: "Recycled PET supply (DE)", value: "Constrained", trend: "flat", source: "Plastics Recyclers Europe Q1 2026 outlook · 9 May" },
-      { label: "Reusable transport packaging, qualified suppliers", value: "14 registered", trend: "up", source: "German VerpackG registry · 12 May" },
-      { label: "Aluminum (rolled, low-CO2 certified)", value: "Available", source: "Hydro / Speira / Norsk Hydro" },
-      { label: "FSC-certified hardwood crating", value: "Available, DE / FI / SE", source: "EUDR-ready supplier list maintained by FIATA EU chapter" },
-    ],
-    labor: [
-      { label: "Warehouse operative, DE avg fully-loaded", value: "EUR 34.20 / hr", trend: "up", source: "Destatis Q1 2026" },
-      { label: "LGV / Class 1 driver, DE avg", value: "EUR 41.60 / hr", trend: "up", source: "BAG Bundesamt Gueterverkehr · Apr 2026" },
-      { label: "Workforce availability, Frankfurt area", value: "Constrained", source: "2.1% unemployment in transport & logistics" },
-      { label: "Art-handling specialist labor", value: "Tight pool, Berlin / Munich", source: "Industry interpretation; no public benchmark" },
-    ],
-    materials: [
-      { label: "Cold-rolled steel mills serving DE/NL/BE", value: "8 active", source: "EUROFER member directory" },
-      { label: "Climate-controlled crate fabricators (art)", value: "4 in DE · 2 in FR", source: "ROKBOX / TURTLE / regional independents" },
-      { label: "In-region vs import (recycled PET resin)", value: "In-region ~EUR 140/t premium", source: "vs. SE Asia FOB landed cost; trend stable" },
-    ],
-    infrastructure: [
-      { label: "Rotterdam, container dwell time", value: "3.4 days", trend: "up", source: "Port of Rotterdam KPI dashboard · w/c 19 May" },
-      { label: "Frankfurt FRA, air cargo capacity utilization", value: "87%", source: "Fraport monthly stats Apr 2026" },
-      { label: "Public HGV charging, DE motorway corridors", value: "Limited", source: "AFIR rollout target 2027; 11 sites operational vs 86 mandated · ACEA tracker" },
-      { label: "Rotterdam, shore power for vessels", value: "Operational at 3 of 12 terminals", source: "Port shore-power plan · 23 Apr" },
-    ],
-    cost: [
-      { label: "Industrial electricity, DE", value: "EUR 0.184 / kWh", trend: "up", source: "Destatis Q1 2026 industrial band IC" },
-      { label: "Diesel, DE retail avg", value: "EUR 1.62 / L", trend: "down", source: "BAFA week 21 · 23 May" },
-      { label: "SAF, EU spot", value: "EUR 1,840 / t", trend: "up", source: "IEA SAF Outlook Q2 2026 + Argus Bioenergy" },
-      { label: "Rotterdam, container handling THC", value: "EUR 185 / TEU", trend: "flat", source: "Lloyd's List shipper tariff snapshot · May" },
-      { label: "Drayage, Rotterdam to Eindhoven 110km", value: "EUR 340 / load", trend: "up", source: "Industry tracking; EVO/Fenedex member survey Q2" },
-    ],
-  },
-  US: {
-    resources: [
-      { label: "Recyclable PET, CA pre-treatment capacity", value: "Adequate", source: "CalRecycle Q1 2026 facility utilization 71%" },
-      { label: "FSC hardwood crating, Pacific NW", value: "Available · 3 qualified mills", source: "FSC-US chain-of-custody registry" },
-    ],
-    labor: [
-      { label: "Warehouse operative, LA County avg", value: "USD 24.80 / hr", trend: "up", source: "BLS QCEW NAICS 4931 · Q4 2025" },
-      { label: "Class A CDL driver, Long Beach", value: "USD 31.50 / hr", trend: "up", source: "BLS OEWS / industry interpretation" },
-      { label: "Art handling specialist, NYC market", value: "Highly constrained", source: "No public benchmark; industry interpretation only" },
-    ],
-    materials: [
-      { label: "Low-CO2 aluminum, domestic supply", value: "Limited", source: "Century / Alcoa Hawesville · capacity 60% allocated; lead times 16-22 wks" },
-      { label: "Climate-controlled crate fabricators", value: "5 in CA · 4 in NY/NJ", source: "Trade directory survey · May 2026" },
-    ],
-    infrastructure: [
-      { label: "LA / Long Beach, container dwell", value: "4.1 days", trend: "down", source: "PortVision weekly · w/c 19 May" },
-      { label: "JFK air cargo capacity", value: "Available, belly & freighter mix", source: "PANYNJ stats Apr 2026" },
-      { label: "Class 8 truck charging, I-5 corridor", value: "Sparse", source: "FHWA NEVI deployment tracker · CA section, 19 sites operational" },
-    ],
-    cost: [
-      { label: "Industrial electricity, CA avg", value: "USD 0.196 / kWh", trend: "flat", source: "EIA April 2026 industrial sector · CA" },
-      { label: "Diesel, CA retail avg", value: "USD 4.82 / gal", trend: "flat", source: "EIA weekly · 19 May" },
-      { label: "Drayage, LA/LB to Inland Empire", value: "USD 485 / load", trend: "up", source: "JOC drayage tracker · Q1 2026" },
-      { label: "LAX air cargo handling", value: "USD 0.24 / kg", trend: "up", source: "Industry rate card; airline-specific variation" },
-    ],
-  },
-  ASIA: {
-    labor: [
-      { label: "Warehouse operative, Singapore", value: "SGD 14.20 / hr", trend: "up", source: "MOM labour market Q1 2026" },
-      { label: "Warehouse operative, HK", value: "HKD 95 / hr", source: "Census & Statistics Dept · Q1 2026" },
-    ],
-    infrastructure: [
-      { label: "Singapore, port shore power", value: "Operational at 4 terminals", source: "MPA shore power program · 12 May" },
-      { label: "Changi air cargo", value: "High capacity", source: "CAG monthly stats" },
-    ],
-    cost: [
-      { label: "Industrial electricity, SG", value: "SGD 0.272 / kWh", trend: "up", source: "EMA quarterly · Q1 2026" },
-      { label: "Industrial electricity, HK", value: "HKD 1.21 / kWh", trend: "flat", source: "CLP / HK Electric current tariff" },
-    ],
-  },
-  UK: {
-    labor: [
-      { label: "Warehouse operative, London avg", value: "GBP 15.80 / hr", trend: "up", source: "ONS ASHE 2026 · NAICS 522" },
-      { label: "HGV Class 1 driver, UK avg", value: "GBP 17.20 / hr", trend: "flat", source: "RHA wage survey Q1 2026" },
-    ],
-    cost: [
-      { label: "Industrial electricity, UK avg", value: "GBP 0.221 / kWh", trend: "flat", source: "BEIS quarterly · Q1 2026 industrial band IC" },
-      { label: "Diesel, UK retail avg", value: "GBP 1.49 / L", trend: "up", source: "RAC fuel watch · 22 May" },
-      { label: "SAF, UK spot", value: "GBP 1,560 / t", trend: "up", source: "Argus UK desk" },
-      { label: "SEG export tariff, best available", value: "GBP 0.078 / kWh", source: "Octopus Outgoing Fixed · current" },
-    ],
-  },
-  UAE: {
-    cost: [
-      { label: "Industrial electricity, Dubai", value: "AED 0.42 / kWh", source: "DEWA commercial tariff slab" },
-      { label: "Diesel, UAE retail", value: "AED 3.10 / L", source: "ENOC weekly · May" },
-      { label: "Grid export (sell back)", value: "Prohibited", source: "DEWA grid-code, commercial PV self-consumption only" },
-    ],
-  },
-};
+// FACTS object REMOVED (surface-honesty remediation, Phase 1).
+//
+// This was a ~37-entry hard-coded table of region/dimension "facts" (EU + US
+// fuel/labor/electricity/dwell-time figures with invented citations like
+// "Rotterdam dwell 3.4 days · Destatis Q1 2026") that rendered IDENTICALLY to
+// the live `regional_data_facts` rows, with no demo/placeholder marker — so a
+// fabricated EU electricity price was indistinguishable from a backfilled one.
+// EU + US had NO live backfill, so every cell they showed was invented.
+//
+// `getFactsFor` is now live-only: regions with backfilled `regional_data_facts`
+// (Asia / UK / UAE) keep their real facts; EU + US fall through to the existing
+// honest "Coverage pending ... populate via the regional_data_facts table"
+// empty-state until the operator team backfills them. Per Rule 11, the dead data
+// is deleted, not annotated-in-place.
 
 // ── Region grouping for regulations ──
 
@@ -343,7 +265,7 @@ export function OperationsPage({
   const totalItems = aggregates?.totalItems ?? initialResources.length;
   const totalJurisdictions = aggregates?.totalJurisdictions ?? 0;
 
-  // Sprint 3 A6.3b (2026-05-27): live-vs-hardcoded fact lookup.
+  // Sprint 3 A6.3b (2026-05-27): live fact lookup from regional_data_facts.
   // Maps the component's local dim.key vocab to the DB enum used in
   // regional_data_facts.dimension. Operator-locked mapping per
   // migration 106's CHECK constraint.
@@ -385,21 +307,19 @@ export function OperationsPage({
     return map;
   }, [operationsCoverage, DIM_KEY_TO_DB]);
 
-  // Helper: prefer live facts when populated for this (region, dim);
-  // fall back to the hard-coded FACTS vertical-slice for cells that
-  // haven't been backfilled yet (EU + US under the operator-stated
-  // demonstration scope).
+  // Helper: live facts only (regional_data_facts via operationsCoverage).
+  // The hard-coded FACTS fallback was removed (surface-honesty) — cells with
+  // no live backfill (EU + US today) render the honest "Coverage pending"
+  // empty-state rather than fabricated facts shown as live.
   const getFactsFor = useCallback(
     (regionKey: string, dimKey: string): Fact[] => {
-      const live = liveFactsByCell.get(`${regionKey}|${dimKey}`);
-      if (live && live.length > 0) return live;
-      return (FACTS[regionKey]?.[dimKey] as Fact[] | undefined) ?? [];
+      return liveFactsByCell.get(`${regionKey}|${dimKey}`) ?? [];
     },
     [liveFactsByCell]
   );
 
   // Coverage stats (per dimension, count of regions with data).
-  // Sprint 3 A6.3b: counts BOTH live-backfilled AND hardcoded coverage.
+  // Counts regions with live-backfilled coverage per dimension.
   const dimensionCoverage = useMemo(() => {
     const cov: Record<string, number> = {};
     for (const dim of DIMENSIONS) {
@@ -412,8 +332,8 @@ export function OperationsPage({
     return cov;
   }, [regulationsByRegionMap, getFactsFor]);
 
-  // Sprint 3 A6.3b: includes Asia/UK/UAE backfilled by A6.2 (75 facts)
-  // in addition to hard-coded EU + US.
+  // Counts regions with any live (regional_data_facts) coverage. Asia/UK/UAE
+  // were backfilled by A6.2; EU + US have none yet (honest empty-state).
   const regionsWithData = REGIONS.filter(
     (r) => DIMENSIONS.some((d) => d.key !== "regulatory" && getFactsFor(r.key, d.key).length > 0)
   ).length;
@@ -423,10 +343,9 @@ export function OperationsPage({
   // not a facts cell; the denominator is REGIONS x (DIMENSIONS - 1).
   const totalCells = REGIONS.length * (DIMENSIONS.length - 1);
   const filledCells = REGIONS.reduce((sum, region) => {
-    const factsForRegion = FACTS[region.key] || {};
     const filled = DIMENSIONS.filter((d) => {
       if (d.key === "regulatory") return false;
-      return Array.isArray(factsForRegion[d.key]) && (factsForRegion[d.key] as Fact[]).length > 0;
+      return getFactsFor(region.key, d.key).length > 0;
     }).length;
     return sum + filled;
   }, 0);
@@ -438,13 +357,12 @@ export function OperationsPage({
         title="Operations Intelligence"
         meta={
           <>
-            May 24, 2026
-            {" · "}
+            {/* Stripped (surface-honesty): a frozen "May 24, 2026" as-of date and
+                hardcoded "Live events · Fine art" verticals. Kept the real,
+                aggregate-derived active-item count and jurisdiction count. */}
             <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{totalItems}</b> active items
             {" · "}
             <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{totalJurisdictions || REGIONS.length}</b> jurisdictions in scope
-            {" · "}
-            workspace verticals: <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Live events · Fine art</b>
           </>
         }
       />
@@ -833,8 +751,7 @@ function RegionAccordion({
       </summary>
       <div style={{ borderTop: "1px solid var(--color-border-subtle)", padding: 0 }}>
         {DIMENSIONS.map((dim) => {
-          // Sprint 3 A6.3b: prefer live facts from regional_data_facts
-          // when populated, fall back to hard-coded FACTS otherwise.
+          // Live facts from regional_data_facts; empty -> "Coverage pending".
           const facts = getFactsFor(region.key, dim.key);
           const isD1 = dim.key === "regulatory";
           // Phase 4 (2026-05-24): empty dimensions previously
@@ -912,10 +829,9 @@ function RegionAccordion({
             </div>
           );
         })}
-        {/* Sprint 3 A6.3b: empty-region note. Renders when the region
-            has no facts in ANY non-regulatory dim (live + hardcoded
-            combined). A6.2 populated Asia/UK/UAE so this hits only
-            edge cases (e.g. brand-new region added without backfill). */}
+        {/* Empty-region note. Renders when the region has no live facts in
+            ANY non-regulatory dim. A6.2 backfilled Asia/UK/UAE; EU + US show
+            this until the operator team backfills regional_data_facts. */}
         {!DIMENSIONS.some(
           (d) => d.key !== "regulatory" && getFactsFor(region.key, d.key).length > 0
         ) && (

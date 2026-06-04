@@ -1,0 +1,12 @@
+{
+  "mode": "EXECUTE",
+  "at": "2026-06-04",
+  "urlFixes": [
+    {
+      "id": "5457d581-d325-4742-b07c-3eedaab29cae",
+      "name": "CNMI Bureau of Environmental and Coastal Quality (BECQ)",
+      "old": "https://becq.cnmi.gov/",
+      "neu": "https://becq.gov.mp/"
+    }
+  ]
+}

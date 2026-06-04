@@ -1,0 +1,47 @@
+{
+  "completed": true,
+  "updated": 5,
+  "remaining_nrel_hosts": 0,
+  "log": [
+    {
+      "id": "58fb7e21-b1b3-4b51-8606-dfad928d157d",
+      "name": "National Renewable Energy Laboratory (NREL)",
+      "before": "https://nrel.gov/reopt/projects/case-study-commercial-storage.html",
+      "after": "https://nlr.gov/reopt/projects/case-study-commercial-storage.html",
+      "ok": true,
+      "needs_reachability_revalidation": true
+    },
+    {
+      "id": "2e1ca35a-97fa-46bb-a719-27c36d613f58",
+      "name": "National Renewable Energy Laboratory (NREL)",
+      "before": "https://nrel.gov/solar/market-research-analysis/solar-plus-storage-analysis",
+      "after": "https://nlr.gov/solar/market-research-analysis/solar-plus-storage-analysis",
+      "ok": true,
+      "needs_reachability_revalidation": true
+    },
+    {
+      "id": "1ceff300-5831-4f4a-b437-160bd7c25e6e",
+      "name": "NREL NSRDB National Solar Radiation Database",
+      "before": "https://nsrdb.nrel.gov/",
+      "after": "https://nsrdb.nlr.gov/",
+      "ok": true,
+      "needs_reachability_revalidation": true
+    },
+    {
+      "id": "d223ee3b-b3d3-46af-b213-0a9533a7533e",
+      "name": "NREL PVWatts Calculator",
+      "before": "https://pvwatts.nrel.gov/",
+      "after": "https://pvwatts.nlr.gov/",
+      "ok": true,
+      "needs_reachability_revalidation": true
+    },
+    {
+      "id": "04014768-151f-4adf-91ff-b29e4113cc00",
+      "name": "NREL System Advisor Model (SAM)",
+      "before": "https://sam.nrel.gov/",
+      "after": "https://sam.nlr.gov/",
+      "ok": true,
+      "needs_reachability_revalidation": true
+    }
+  ]
+}

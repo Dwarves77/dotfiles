@@ -82,7 +82,7 @@ const BANDS: Band[] = [
     label: "Price signals",
     subtitle: "Fuel · carbon · energy · freight",
     summary:
-      "Current commodity prices that flow through to freight surcharges, lane costs, and quote pricing. Each cell sourced and dated; 4-week deltas indicate trajectory.",
+      "Commodity prices that flow through to freight surcharges, lane costs, and quote pricing. Live price feed not yet connected.",
   },
   {
     key: "corporate",
@@ -229,13 +229,11 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
         title="Market Intelligence"
         meta={
           <>
-            May 24, 2026
-            {" · "}
+            {/* Stripped (surface-honesty): a frozen "May 24, 2026" as-of date, a hardcoded
+                "45 jurisdictions", and hardcoded "Live events · Fine art" verticals — all
+                presented as live workspace context but never read from data. Kept only the
+                real, aggregate-derived active-signal count. */}
             <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{totalSignals}</b> active signals
-            {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>45</b> jurisdictions in scope
-            {" · "}
-            workspace verticals: <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>Live events · Fine art</b>
           </>
         }
       />
@@ -293,7 +291,7 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
           >
             <span>Market Intel, what we track by signal type</span>
             <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.04em", textTransform: "none" }}>
-              3 bands, filtered to your lanes
+              3 signal bands
             </span>
           </div>
           <div
@@ -511,7 +509,12 @@ export function MarketPage({ initialResources, aggregates }: MarketPageProps) {
             <RailCard>
               <div style={cardLblStyle}>Sources tracked</div>
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.55, margin: 0 }}>
-                IEA · Argus · S&amp;P Platts · ICE · Bloomberg Green · Lloyd's List · Loadstar · Reuters Sustainable Switch · FT Moral Money · Carbon Pulse · ESG Today · BloombergNEF · Carbon Brief · GreenBiz
+                {/* Stripped (surface-honesty): a static roster of price-data vendors
+                    (IEA · Argus · Platts · ICE · …) presented as actively tracked, but the
+                    commodity-price feed they name is not connected. The live source registry —
+                    what the platform actually monitors — is the Source Health dashboard. */}
+                The price-data source roster populates here once the commodity-price feed is
+                connected. The live source registry is under Sources &rarr; Source Health.
               </p>
             </RailCard>
           </aside>
@@ -608,52 +611,25 @@ function RailCard({ accent, children }: { accent?: boolean; children: React.Reac
 }
 
 function PriceSnapshotRow() {
-  const cells = [
-    { lbl: "SAF · EU spot", val: "EUR 1,840", unit: "/ t", delta: "▲ EUR 120 vs 4-wk · IEA · 23 May", dir: "up" as const },
-    { lbl: "EUA · EU ETS", val: "EUR 78.40", unit: "", delta: "▼ EUR 2.10 vs 4-wk · ICE · 23 May", dir: "down" as const },
-    { lbl: "Jet A-1 · Rotterdam", val: "EUR 620", unit: "/ t", delta: "▲ EUR 18 · Platts · 23 May", dir: "up" as const },
-    { lbl: "Diesel · DE retail", val: "EUR 1.62", unit: "/ L", delta: "▼ EUR 0.04 · BAFA · 22 May", dir: "down" as const },
-  ];
+  // HONEST EMPTY-STATE (surface-honesty remediation). The prior version rendered fabricated
+  // commodity prices with fabricated citations ("EUR 1,840 · IEA · 23 May") as if live — a
+  // no-invented-figures violation in the UI, and there is no price feed/table behind it. Until a
+  // real commodity-price source is wired, show the absence honestly rather than invent
+  // sourced-and-dated numbers.
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 0,
         borderTop: "1px solid var(--color-border)",
         borderBottom: "1px solid var(--color-border)",
         marginBottom: 16,
+        padding: "14px 18px",
+        fontSize: 12.5,
+        lineHeight: 1.6,
+        color: "var(--color-text-muted)",
       }}
     >
-      {cells.map((c, i) => (
-        <div
-          key={i}
-          style={{
-            padding: "14px 18px",
-            borderRight: i < cells.length - 1 ? "1px solid var(--color-border-subtle)" : 0,
-          }}
-        >
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 6 }}>
-            {c.lbl}
-          </div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1 }}>
-            {c.val}
-            <span style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--color-text-secondary)", marginLeft: 4, fontWeight: 500 }}>
-              {c.unit}
-            </span>
-          </div>
-          <div
-            style={{
-              fontSize: 11.5,
-              marginTop: 6,
-              color: c.dir === "up" ? "var(--color-error)" : "var(--color-success)",
-              fontWeight: 600,
-            }}
-          >
-            {c.delta}
-          </div>
-        </div>
-      ))}
+      Commodity price feed not yet connected. Live SAF / EUA / jet-fuel / diesel prices will appear
+      here once a price source is wired — no figures are shown until they can be sourced.
     </div>
   );
 }

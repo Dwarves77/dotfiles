@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
         `
       )
       .eq("is_archived", false)
+      .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .order("priority")
       .limit(30);
 

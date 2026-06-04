@@ -89,8 +89,6 @@ interface CommunityViewProps {
   threads: CommunityViewThread[];
   publicForums: CommunityViewPublicForum[];
   currentUserName: string;
-  totalThreads?: number;
-  totalOrganizations?: number;
 }
 
 type Tab = "region" | "pulse" | "hot" | "people" | "editorial";
@@ -106,25 +104,11 @@ const REGION_OVERVIEW = [
   { key: "MEAF", label: "MEAF", regionsInCount: ["MEA"] },
 ] as const;
 
-// Topic-by-region matrix. Placeholder counts until
-// community_posts.topic + a region-aggregate RPC land in the data
-// layer. Structure binds to mockup; values are stand-in.
-const TOPIC_ROWS = [
-  { topic: "CBAM Article 30", subtitle: "indirect-importer, charter filing", regions: { EU: 18, UK: 4, AM: 1 }, total: 23 },
-  { topic: "SAF / fuel surcharges", subtitle: "Q3 pass-through, forward-buy", regions: { EU: 8, AM: 4, AP: 2 }, total: 14 },
-  { topic: "Trucking & last-mile", subtitle: "EV fleet, drayage, charging", regions: { AM: 9, EU: 2 }, total: 11 },
-  { topic: "Packaging & crating", subtitle: "PPWR, reusable, climate-control", regions: { EU: 6, UK: 2, AM: 1 }, total: 9 },
-  { topic: "Solar & on-site generation", subtitle: "NEM 3.0, EPBD, permit windows", regions: { AM: 5, EU: 2, AP: 1 }, total: 8 },
-  { topic: "CSRD & reporting", subtitle: "Scope 3, verifier choice", regions: { EU: 4, UK: 2, AM: 1 }, total: 7 },
-];
-
 export function CommunityView({
   memberships,
   regionCounts,
   threads,
   publicForums,
-  totalThreads = 147,
-  totalOrganizations = 23,
 }: CommunityViewProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("region");
@@ -159,12 +143,14 @@ export function CommunityView({
     return map;
   }, [threads]);
 
+  // Tab count badges removed (surface-honesty): tabs 2-5 are labeled empty
+  // states; the prior badges (147 / 412 / 8) were fabricated over no data.
   const tabs: Array<{ key: Tab; label: string; count?: number }> = [
     { key: "region", label: "By Region & Group" },
-    { key: "pulse", label: "Industry Pulse", count: totalThreads },
+    { key: "pulse", label: "Industry Pulse" },
     { key: "hot", label: "Hot Topics" },
-    { key: "people", label: "People", count: 412 },
-    { key: "editorial", label: "Editorial Picks", count: 8 },
+    { key: "people", label: "People" },
+    { key: "editorial", label: "Editorial Picks" },
   ];
 
   return (
@@ -174,10 +160,10 @@ export function CommunityView({
         meta={
           <>
             Peer information sharing across regions and groups
-            {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{totalThreads}</b> active threads
-            {" · "}
-            <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{totalOrganizations}</b> organizations
+            {/* Stripped (surface-honesty): fabricated "147 active threads" and
+                "23 organizations" — no platform-wide thread/org count is wired
+                (the threads query is a 24-row display slice). Kept only the
+                real membership-derived counts. */}
             {" · "}
             <b style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>{myGroupsCount}</b> of your groups
             {" · "}
@@ -325,61 +311,27 @@ function RegionAndGroupTab({
         ))}
       </div>
 
-      {/* Topics matrix */}
+      {/* Topics matrix — HONEST EMPTY-STATE (surface-honesty). The prior
+          version rendered a hard-coded TOPIC_ROWS matrix (CBAM Article 30 · 23,
+          SAF · 14, …) with stand-in counts presented as "Topics this week."
+          No topic aggregation exists yet (needs community_posts.topic + a
+          region-aggregate RPC). Until then, show the absence honestly. */}
       <SectionH title="Topics this week, by region" hint="Where the conversations live" />
       <div
         style={{
           background: "var(--color-surface)",
-          border: "1px solid var(--color-border)",
+          border: "1px dashed var(--color-border)",
           borderRadius: "var(--radius-md)",
-          padding: "4px 22px",
+          padding: "22px",
           marginBottom: 24,
-          boxShadow: "var(--shadow-card)",
+          fontSize: 12.5,
+          color: "var(--color-text-muted)",
+          lineHeight: 1.6,
         }}
       >
-        {TOPIC_ROWS.map((row) => (
-          <div
-            key={row.topic}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "180px 1fr 60px",
-              gap: 16,
-              padding: "12px 0",
-              borderBottom: "1px solid var(--color-border-subtle)",
-              alignItems: "center",
-              fontSize: 12.5,
-            }}
-          >
-            <div style={{ fontWeight: 700, color: "var(--color-text-primary)" }}>
-              {row.topic}
-              <span style={{ display: "block", fontSize: 11, color: "var(--color-text-muted)", fontWeight: 500, marginTop: 2 }}>
-                {row.subtitle}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              {Object.entries(row.regions).map(([reg, count]) => (
-                <span
-                  key={reg}
-                  style={{
-                    fontSize: 11,
-                    padding: "3px 9px",
-                    background: "var(--color-bg-raised)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "var(--radius-pill)",
-                  }}
-                >
-                  {reg}{" "}
-                  <b style={{ fontFamily: "var(--font-display)", fontWeight: 400, color: "var(--color-primary)", marginLeft: 3 }}>
-                    {count}
-                  </b>
-                </span>
-              ))}
-            </div>
-            <div style={{ textAlign: "right", fontFamily: "var(--font-display)", fontSize: 18, color: "var(--color-text-primary)" }}>
-              {row.total}
-            </div>
-          </div>
-        ))}
+        Topic-by-region aggregation is not yet connected. When community posts
+        are tagged by topic, the most-active topics across your regions will
+        surface here.
       </div>
 
       {/* Two-col layout: main groups column + right rail */}
@@ -435,11 +387,13 @@ function RegionAndGroupTab({
         <aside>
           <RailCard>
             <div style={cardLblStyle}>Orgs new to your network</div>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              <RailItem name="Atelier 4" meta="Fine art · NY · joined this week" />
-              <RailItem name="Gondrand Berlin" meta="Luxury · DE" />
-              <RailItem name="SuperTransport US" meta="Trucking · US" />
-            </ul>
+            {/* Stripped (surface-honesty): three hard-coded org rows (Atelier 4,
+                Gondrand Berlin, SuperTransport US) shown as live network
+                activity over no data source. */}
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", lineHeight: 1.55, margin: "0 0 4px" }}>
+              New organizations joining your network will appear here. Browse the
+              full peer directory to find organizations to connect with.
+            </p>
             <a
               href="/community/browse"
               style={{
@@ -825,15 +779,6 @@ function RailCard({ children }: { children: React.ReactNode }) {
     >
       {children}
     </div>
-  );
-}
-
-function RailItem({ name, meta }: { name: string; meta: string }) {
-  return (
-    <li style={{ padding: "8px 0", borderBottom: "1px solid var(--color-border-subtle)", fontSize: 12.5, lineHeight: 1.5 }}>
-      <b style={{ color: "var(--color-text-primary)", fontWeight: 700, display: "block" }}>{name}</b>
-      <span style={{ color: "var(--color-text-muted)", fontSize: 11 }}>{meta}</span>
-    </li>
   );
 }
 

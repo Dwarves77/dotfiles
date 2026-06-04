@@ -111,6 +111,7 @@ async function buildSnapshot(orgId: string | null): Promise<CriticalItemsSnapsho
       .from("intelligence_items")
       .select("id, title, jurisdictions, compliance_deadline, priority")
       .eq("is_archived", false)
+      .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .in("priority", ["CRITICAL", "HIGH"])
       .gte("compliance_deadline", todayIso)
       .lte("compliance_deadline", horizonIso);
@@ -162,6 +163,7 @@ async function buildSnapshot(orgId: string | null): Promise<CriticalItemsSnapsho
         .select("id, title, jurisdictions, compliance_deadline, priority")
         .in("id", timelineOnlyIds)
         .eq("is_archived", false)
+        .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
         .in("priority", ["CRITICAL", "HIGH"]);
       if (tiErr) {
         console.error(

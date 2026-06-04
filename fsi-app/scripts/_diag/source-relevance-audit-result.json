@@ -1,0 +1,3304 @@
+{
+  "generated_for": "authorization (read-only; no DB mutation performed)",
+  "active": 722,
+  "typeDist": {
+    "academic_research": 31,
+    "general_legislature": 108,
+    "sectoral_regulator_ministry": 209,
+    "industry": 71,
+    "statute_gazette_db": 37,
+    "unknown": 124,
+    "statistical_data_agency": 37,
+    "intergovernmental": 92,
+    "standards_body": 13
+  },
+  "kill": [
+    {
+      "id": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+      "name": "Northwest Territories Legislative Assembly",
+      "url": "https://assembly.gov.nt.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-NT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "095d2a2c-0e59-43c9-b759-c3a7d19ad71d",
+      "name": "Tokyo Metropolitan Assembly (東京都議会)",
+      "url": "https://gikai.metro.tokyo.jp/",
+      "country": "JP",
+      "jurisdiction_iso": [
+        "JP-13"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Japan Ministry of Economy, Trade and Industry (METI)",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "c5177c00-fc69-4823-a9bb-c15c03fc6935",
+      "name": "Minnesota Legislature",
+      "url": "https://leg.mn.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MN"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "9a04d213-688a-45eb-a4e1-84dc7f4b7241",
+      "name": "House of Councillors of Japan (Sangiin / 参議院)",
+      "url": "https://sangiin.go.jp/",
+      "country": "JP",
+      "jurisdiction_iso": [
+        "JP"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Japan Ministry of Economy, Trade and Industry (METI)",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "2167775a-1320-48e6-b3d5-c90c72464305",
+      "name": "Parliament of South Australia",
+      "url": "https://parliament.sa.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-SA"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "f65fd561-795b-471d-ad1c-55a292cb712a",
+      "name": "Assemblée nationale",
+      "url": "https://assemblee-nationale.fr/",
+      "country": "FR",
+      "jurisdiction_iso": [
+        "FR"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "3594e5a7-16f4-4681-bfec-2c836dca23f1",
+      "name": "Deutscher Bundestag",
+      "url": "https://bundestag.de/",
+      "country": "DE",
+      "jurisdiction_iso": [
+        "DE"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "ef2643ee-a501-4d4a-ac0e-899e884cf8fd",
+      "name": "Oklahoma Legislature",
+      "url": "https://oklegislature.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-OK"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "b8c5905c-4461-46df-aad4-e73b7e98799f",
+      "name": "National Assembly of the Republic of Bulgaria",
+      "url": "https://parliament.bg/",
+      "country": "BG",
+      "jurisdiction_iso": [
+        "BG"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "c8b87abd-146d-4e79-8c91-d14ad8943681",
+      "name": "Alabama State Legislature",
+      "url": "https://legislature.state.al.us/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-AL"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "61321847-144d-4560-99e6-057f433f7aef",
+      "name": "Louisiana State Legislature",
+      "url": "https://legis.la.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-LA"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "bedb8f15-e9d2-4877-8902-ae5152b055fd",
+      "name": "Arizona State Legislature",
+      "url": "https://azleg.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-AZ"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "ef56e193-1110-4015-b199-e275d8e810ce",
+      "name": "Guam Legislature (I Liheslaturan Guåhan)",
+      "url": "https://guamlegislature.com/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-GU"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "3cb91963-21a2-418e-bc33-fa391fd96d38",
+      "name": "Legislative Assembly of British Columbia",
+      "url": "https://leg.bc.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-BC"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "97b05c0a-ad3e-4f8a-87af-7e948297a81c",
+      "name": "Maine Legislature (legislature.maine.gov)",
+      "url": "https://legislature.maine.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-ME"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "47d12be8-c8ac-44f5-8756-7486ec4d1b67",
+      "name": "ACT Legislative Assembly",
+      "url": "https://parliament.act.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-ACT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "a02669f2-d31a-4822-bb42-90e8bc919a81",
+      "name": "Scottish Parliament (Holyrood)",
+      "url": "https://parliament.scot/",
+      "country": "GB",
+      "jurisdiction_iso": [
+        "GB-SCT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "UK Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "legislation.gov.uk (His Majesty's Stationery Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "legislation.gov.uk (UK Statute Law Database)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "7a608c06-2205-4b24-b791-77bd33b56da0",
+      "name": "National Assembly of the Republic of Korea (대한민국 국회)",
+      "url": "https://assembly.go.kr/",
+      "country": "KR",
+      "jurisdiction_iso": [
+        "KR"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Statutes of the Republic of Korea",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Ministry of Oceans and Fisheries, Republic of Korea",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Ministry of Environment of the Republic of Korea (환경부 / ME)",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "198b04d6-cce0-4c4a-aefb-38be73bc2e48",
+      "name": "Državni zbor Republike Slovenije",
+      "url": "https://dz-rs.si/",
+      "country": "SI",
+      "jurisdiction_iso": [
+        "SI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+      "name": "Connecticut General Assembly (cga.ct.gov)",
+      "url": "https://cga.ct.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-CT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "f011d2e9-c1b9-40de-92e2-4490b7f8b14f",
+      "name": "Legislative Assembly of Saskatchewan",
+      "url": "https://legassembly.sk.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-SK"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "22fb8ec4-1084-4aae-86ec-ae998713d4ee",
+      "name": "Sveriges Riksdag (Swedish Parliament)",
+      "url": "https://riksdagen.se/",
+      "country": "SE",
+      "jurisdiction_iso": [
+        "SE"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "0455a9ec-27df-4953-ac85-75185e133a2e",
+      "name": "Mississippi Legislature",
+      "url": "https://legislature.ms.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MS"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "4ae80922-49e4-429b-97af-5ed4012fb42b",
+      "name": "Legislative Assembly of Puerto Rico (Oficina de Servicios Legislativos)",
+      "url": "https://oslpr.org/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-PR"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+      "name": "Illinois General Assembly",
+      "url": "https://ilga.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-IL"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "014cd242-606b-4200-a699-b2d8180c487f",
+      "name": "Missouri General Assembly",
+      "url": "https://senate.mo.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MO"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "a819d580-44e4-4fd9-981d-a660bbabe96d",
+      "name": "Tweede Kamer der Staten-Generaal",
+      "url": "https://tweedekamer.nl/",
+      "country": "NL",
+      "jurisdiction_iso": [
+        "NL"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "3819e20d-0bf4-48d1-91d3-c2ddb5dcfc12",
+      "name": "Riigikogu – Parliament of Estonia",
+      "url": "https://riigikogu.ee/",
+      "country": "EE",
+      "jurisdiction_iso": [
+        "EE"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+      "name": "Parliament of Victoria",
+      "url": "https://parliament.vic.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-VIC"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "f6843bed-0120-477c-9cdf-4df8df6048be",
+      "name": "Tennessee General Assembly",
+      "url": "https://capitol.tn.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-TN"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "bd336e46-60cf-4b70-bfd6-6376ad404a68",
+      "name": "Országgyűlés – National Assembly of Hungary",
+      "url": "https://parlament.hu/",
+      "country": "HU",
+      "jurisdiction_iso": [
+        "HU"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "b6b32cb2-0575-4fd7-ba88-3ee7409f4ef1",
+      "name": "Legislative Assembly of Ontario",
+      "url": "https://ola.org/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-ON"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "4bd7d688-d76c-401c-86da-55c17bad7445",
+      "name": "Texas Legislature Online",
+      "url": "https://capitol.texas.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-TX"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "d4107279-8725-4499-8040-436b6a0c0040",
+      "name": "Parliament of Australia",
+      "url": "https://aph.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "45c66e48-2428-4636-b2a3-74ec1e64e737",
+      "name": "Commonwealth of the Northern Mariana Islands Legislature",
+      "url": "https://cnmileg.gov.mp/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MP"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "8de70bd9-d0ac-4d11-8c54-ccf006184f34",
+      "name": "Iowa Legislature",
+      "url": "https://legis.iowa.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-IA"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "fdf22d9f-ba9d-4ebf-93c4-f47fd9700652",
+      "name": "Rhode Island General Assembly – Legislative Portal",
+      "url": "https://rilegislature.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-RI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "af78aadc-ea59-4db0-9e2e-e248d6464239",
+      "name": "Camera Deputaților – Chamber of Deputies of Romania",
+      "url": "https://cdep.ro/",
+      "country": "RO",
+      "jurisdiction_iso": [
+        "RO"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "f27f1e92-54b0-4f47-be25-4301025888a7",
+      "name": "Legislative Assembly of Alberta",
+      "url": "https://assembly.ab.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-AB"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "58ffd350-38b1-429a-9f82-aaa96cc7b193",
+      "name": "South Carolina General Assembly (SC Statehouse)",
+      "url": "https://scstatehouse.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-SC"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "f968026e-ec27-409e-adcf-81a6645a31f8",
+      "name": "Parliament of Tasmania",
+      "url": "https://parliament.tas.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-TAS"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "592129fc-2313-44d6-b252-64d494bdfaa6",
+      "name": "Houses of the Oireachtas (Irish Parliament)",
+      "url": "https://oireachtas.ie/",
+      "country": "IE",
+      "jurisdiction_iso": [
+        "IE"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "594c9aec-707f-43a5-9538-7f00d2b79437",
+      "name": "Cortes Generales – Congreso de los Diputados",
+      "url": "https://congreso.es/",
+      "country": "ES",
+      "jurisdiction_iso": [
+        "ES"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "026c73a4-2747-4e8e-8c9b-139cc1946e6c",
+      "name": "National People's Congress of the People's Republic of China",
+      "url": "https://npc.gov.cn/",
+      "country": "CN",
+      "jurisdiction_iso": [],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "National Database of Laws and Regulations (China)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Shanghai Municipal Bureau of Ecology and Environment (上海市生态环境局)",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "China Ministry of Ecology and Environment (MEE)",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "fd9d21c6-6269-40fe-ad6c-d56b0d438f65",
+      "name": "Sejm of the Republic of Poland",
+      "url": "https://sejm.gov.pl/",
+      "country": "PL",
+      "jurisdiction_iso": [
+        "PL"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+      "name": "Národná rada Slovenskej republiky",
+      "url": "https://nrsr.sk/",
+      "country": "SK",
+      "jurisdiction_iso": [
+        "SK"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "b5e7624e-7c17-485f-8731-25b67e3127d7",
+      "name": "Queensland Parliament",
+      "url": "https://parliament.qld.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-QLD"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "a0e2be6c-1c62-4bad-bda6-469285ffa57c",
+      "name": "Österreichisches Parlament (Nationalrat & Bundesrat)",
+      "url": "https://parlament.gv.at/",
+      "country": "AT",
+      "jurisdiction_iso": [
+        "AT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "a927b18c-f5f4-4fa3-a5cf-6982ed7b6e36",
+      "name": "Nebraska Legislature",
+      "url": "https://nebraskalegislature.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-NE"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "e43b64a1-0469-4232-9639-03ee0733be8c",
+      "name": "Parliament of Western Australia",
+      "url": "https://parliament.wa.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-WA"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "24f4b92e-6a76-4773-91b4-4463e9f19da9",
+      "name": "Legislative Assembly of Nunavut",
+      "url": "https://assembly.nu.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-NU"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "1c31ece5-3a0d-4b21-bfdf-86eaa9647687",
+      "name": "New York City Council",
+      "url": "https://council.nyc.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-NY",
+        "US-NYC"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "196fb848-7740-4d1b-9add-20a8d355b53c",
+      "name": "Indiana General Assembly",
+      "url": "https://iga.in.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-IN"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "cf6d4da3-6fa3-46d6-b949-eb147d57fd50",
+      "name": "Atlanta City Council",
+      "url": "https://citycouncil.atlantaga.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-GA",
+        "US-ATL"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "0cc23a7e-4c41-4667-b0fb-6094d134d71b",
+      "name": "Seimas of the Republic of Lithuania",
+      "url": "https://lrs.lt/",
+      "country": "LT",
+      "jurisdiction_iso": [
+        "LT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "8acfd015-bf97-41ca-87c6-b20682a2ff35",
+      "name": "House of Representatives of Cyprus",
+      "url": "https://parliament.cy/",
+      "country": "CY",
+      "jurisdiction_iso": [
+        "CY"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "ac7d233a-3e85-40ec-a454-47a6c987f4a2",
+      "name": "Legislature of the Virgin Islands",
+      "url": "https://legvi.org/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-VI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "ec6b370e-ebc8-4d21-bff9-e09e7a4b7330",
+      "name": "Pennsylvania General Assembly (legis.state.pa.us)",
+      "url": "https://legis.state.pa.us/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-PA"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "874767f5-887e-47a1-ab4d-b12924bc6188",
+      "name": "Assemblée nationale du Québec",
+      "url": "https://assnat.qc.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-QC"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "1c5588e3-e45d-4985-9154-113558853c7f",
+      "name": "House of Representatives of Japan (Shugiin / 衆議院)",
+      "url": "https://shugiin.go.jp/",
+      "country": "JP",
+      "jurisdiction_iso": [
+        "JP"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Japan Ministry of Economy, Trade and Industry (METI)",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "8cdde50d-62eb-4518-9b8a-ca6f696cad9a",
+      "name": "Parliament of Singapore",
+      "url": "https://parliament.gov.sg/",
+      "country": "SG",
+      "jurisdiction_iso": [
+        "SG"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Singapore Statutes Online",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Maritime and Port Authority of Singapore (MPA)",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Monetary Authority of Singapore (MAS)",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "1af654f1-b9bd-45b2-8a14-3fa1451feabb",
+      "name": "Camera dei Deputati – Italian Chamber of Deputies",
+      "url": "https://camera.it/",
+      "country": "IT",
+      "jurisdiction_iso": [
+        "IT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "64328f32-7e83-4487-83ac-1eb68efd6450",
+      "name": "Maryland General Assembly (mgaleg.maryland.gov)",
+      "url": "https://mgaleg.maryland.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MD"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "6033c43e-82ff-4acf-b38d-5810178ebc7f",
+      "name": "Arkansas General Assembly",
+      "url": "https://arkleg.state.ar.us/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-AR"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "abe48613-c63c-4914-b8d7-39f1640c519b",
+      "name": "Parliament of New South Wales",
+      "url": "https://parliament.nsw.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-NSW"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "0ff45df5-eb3b-4bed-b1ff-9dffa44e7725",
+      "name": "Kansas Legislature",
+      "url": "https://kslegislature.org/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-KS"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "e6342fcd-872c-4fd7-9f3c-79c107414f58",
+      "name": "Wisconsin State Legislature",
+      "url": "https://docs.legis.wisconsin.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-WI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "8bbf8fd5-7ef9-439e-b951-4bacf0f10265",
+      "name": "Hellenic Parliament",
+      "url": "https://hellenicparliament.gr/",
+      "country": "GR",
+      "jurisdiction_iso": [
+        "GR"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "f692281c-95c6-4d78-96b2-c8aa9f2beb0c",
+      "name": "Saeima of the Republic of Latvia",
+      "url": "https://saeima.lv/",
+      "country": "LV",
+      "jurisdiction_iso": [
+        "LV"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "7cc36395-3e20-47d9-b23c-5cb64dc13663",
+      "name": "Hrvatski sabor – Croatian Parliament",
+      "url": "https://sabor.hr/",
+      "country": "HR",
+      "jurisdiction_iso": [
+        "HR"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "35ce9af9-a6ff-4acf-a367-e3e3dd54a6dc",
+      "name": "Folketinget (Danish Parliament)",
+      "url": "https://ft.dk/",
+      "country": "DK",
+      "jurisdiction_iso": [
+        "DK"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "593a9a84-46ad-440a-a1f7-746a155e8736",
+      "name": "Ohio General Assembly",
+      "url": "https://legislature.ohio.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-OH"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "b92386d4-9e79-4854-9a0f-8f9c7c79de13",
+      "name": "Legislative Assembly of Prince Edward Island",
+      "url": "https://assembly.pe.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-PE"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "25189f99-1ecd-457e-9fb1-e5126fbc19d8",
+      "name": "Legislative Assembly of the Northern Territory",
+      "url": "https://parliament.nt.gov.au/",
+      "country": "AU",
+      "jurisdiction_iso": [
+        "AU-NT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Australian Government Federal Register of Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Western Australian Government Gazette (WA Legislation)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "9127af37-57dd-4c07-9d5e-df779077e1a5",
+      "name": "UK Parliament (Westminster)",
+      "url": "https://parliament.uk/",
+      "country": "GB",
+      "jurisdiction_iso": [
+        "GB"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "UK Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "legislation.gov.uk (His Majesty's Stationery Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "legislation.gov.uk (UK Statute Law Database)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "e2fa9583-ada5-45aa-986a-888b7efa349f",
+      "name": "Eduskunta (Parliament of Finland)",
+      "url": "https://eduskunta.fi/",
+      "country": "FI",
+      "jurisdiction_iso": [
+        "FI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "a8a4c514-7430-4930-925f-5bce7c7a5997",
+      "name": "Delaware General Assembly (legis.delaware.gov)",
+      "url": "https://legis.delaware.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-DE"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "987ad67e-288c-4cf0-afdd-4fab324aa4ab",
+      "name": "Kentucky General Assembly (Legislative Research Commission)",
+      "url": "https://legislature.ky.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-KY"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "42daf048-7524-4ef7-b3c7-b5676a448b69",
+      "name": "Parliament of Malta",
+      "url": "https://parlament.mt/",
+      "country": "MT",
+      "jurisdiction_iso": [
+        "MT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "23a9f77a-1106-43fd-bb6b-79a973449339",
+      "name": "Yukon Legislative Assembly",
+      "url": "https://yukonassembly.ca/",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-YT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "1138f3cd-dbe0-4ed0-97c3-80d76b797054",
+      "name": "South Dakota Legislature",
+      "url": "https://sdlegislature.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-SD"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "b4b04ad0-7884-4722-9bc5-19137708254c",
+      "name": "General Office of the Standing Committee of the National People's Congress of the People's Republic of China",
+      "url": "https://flk.npc.gov.cn/",
+      "country": "CN",
+      "jurisdiction_iso": [],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "National Database of Laws and Regulations (China)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Shanghai Municipal Bureau of Ecology and Environment (上海市生态环境局)",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "China Ministry of Ecology and Environment (MEE)",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "d9424b30-ca5a-4e6e-bb52-6b2a319c9402",
+      "name": "Philadelphia City Council",
+      "url": "https://phlcouncil.com/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-PA",
+        "US-PHI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    },
+    {
+      "id": "74042f41-644e-4cdc-85a5-58fe9fa3ed15",
+      "name": "Senedd Cymru / Welsh Parliament",
+      "url": "https://senedd.wales/",
+      "country": "GB",
+      "jurisdiction_iso": [
+        "GB-WLS"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "UK Legislation",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "legislation.gov.uk (His Majesty's Stationery Office)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "legislation.gov.uk (UK Statute Law Database)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "KILL",
+      "reason": "off-vertical general-legislature ROOT PORTAL; jurisdiction's vertical-relevant authority already covered (no coverage gap)"
+    }
+  ],
+  "reviewStatuteDb": [
+    {
+      "id": "f58fb9bf-e2bb-4a95-a418-9e4196f9eac7",
+      "name": "West Virginia Legislature – Legislative Rulemaking Review / WV Code of State Rules",
+      "url": "https://wvlegislature.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-WV"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "6c2490a4-15d1-4d17-addc-d67d14c409c9",
+      "name": "Nevada Legislature – Nevada Revised Statutes (NRS) & Legislative Counsel Bureau",
+      "url": "https://leg.state.nv.us/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-NV"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "1bc48b90-4e2a-4f3f-aaa2-6a470b51eb41",
+      "name": "Kansas Legislature – Kansas Statutes Annotated (KSA) Revisor of Statutes",
+      "url": "https://ksrevisor.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-KS"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "e775a938-dca3-49c9-87f7-5d98237a1cc0",
+      "name": "Wyoming Legislature – Wyoming Statutes",
+      "url": "https://wyoleg.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-WY"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "55ac3187-6b19-4cfe-86d3-6e2dd291d400",
+      "name": "New Mexico Legislature – New Mexico Statutes Annotated (NMSA) and Session Laws",
+      "url": "https://nmlegis.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-NM"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "55a4cd0c-7d3f-4084-bf96-2b29aa5cbc15",
+      "name": "Idaho Legislature – Idaho Statutes & Idaho Administrative Code",
+      "url": "https://legislature.idaho.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-ID"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "88124255-6d96-4521-9e3e-fc663fd82994",
+      "name": "North Dakota Legislative Assembly – North Dakota Century Code & Administrative Code",
+      "url": "https://legis.nd.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-ND"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "3e0d6c3f-5a66-41c7-a78f-41de7491593a",
+      "name": "Michigan Legislature – Michigan Compiled Laws (MCL) & Administrative Code",
+      "url": "https://legislature.mi.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+      "name": "Massachusetts Legislature (General Court) – Session Laws & MGL",
+      "url": "https://malegislature.gov/Laws/GeneralLaws",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MA"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "084892de-00f7-47a1-8776-4df6c8f980d9",
+      "name": "Hawai‘i State Legislature – Hawai‘i Revised Statutes",
+      "url": "https://capitol.hawaii.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-HI"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "9c108fc0-afce-4645-bdaa-92f48a966ad5",
+      "name": "Alaska State Legislature – Alaska Statutes",
+      "url": "https://akleg.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-AK"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "e0e9d808-bc39-4317-8107-883943d86a71",
+      "name": "Montana Legislature – Montana Code Annotated (MCA)",
+      "url": "https://leg.mt.gov/bills/mca",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "5664b6a2-1e50-4ea0-ba69-dd94d40bb068",
+      "name": "Vermont Legislature – General Assembly (statutes & session laws)",
+      "url": "https://legislature.vermont.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-VT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "1c4df84e-8c9a-4c11-b6e1-605ed46dd0bc",
+      "name": "Utah State Legislature – Utah Code & Utah Administrative Code",
+      "url": "https://le.utah.gov/",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-UT"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": true,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    },
+    {
+      "id": "6abf5dce-b873-47ad-a834-115ddd65e210",
+      "name": "Oregon Legislature – Oregon Revised Statutes (ORS) & Legislative Information System",
+      "url": "https://oregonlegislature.gov/bills_laws/Pages/ORS.aspx",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-OR"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_STATUTE_DB",
+      "reason": "named as a legislature but hosts the jurisdiction's statute/code text database — borderline legal-text source, NOT a pure political portal; your call"
+    }
+  ],
+  "reviewDeepPage": [
+    {
+      "id": "f8721185-8c86-4b5d-a202-718a36e88ceb",
+      "name": "Seattle City Council",
+      "url": "https://seattle.gov/council",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-WA",
+        "US-SEA"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "90202733-5283-4744-bf8a-98335b136abd",
+      "name": "Boston City Council",
+      "url": "https://boston.gov/departments/city-council",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-MA",
+        "US-BOS"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "de8eea1b-926b-4fec-9934-0675c4cd02de",
+      "name": "Los Angeles City Council",
+      "url": "https://lacity.gov/government/about-us/elected-officials/los-angeles-city-council",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-CA",
+        "US-LAX"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "179972a0-c1db-4868-9d74-2bf527906eb7",
+      "name": "New York State Senate / Assembly Legislative Information",
+      "url": "https://nysenate.gov/legislation",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-NY"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "2f0e6c2d-29a4-47d7-b467-3708bd2a2001",
+      "name": "American Samoa Fono (Legislature)",
+      "url": "https://americansamoa.gov/legislature",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-AS"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "9e3f5b77-0a9d-41c4-9703-cdcb55999ce4",
+      "name": "Legislative Assembly of New Brunswick",
+      "url": "https://www2.gnb.ca/content/gnb/en/legislative.html",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-NB"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "62398739-5a17-494d-ae0e-74acc7bf9cf0",
+      "name": "European Parliament — Legislative Train Schedule",
+      "url": "https://europarl.europa.eu/legislative-train/spotlight-JD%2023-24/file-measurement-of-transport-and-logistics-emissions",
+      "country": "EU",
+      "jurisdiction_iso": [
+        "EU"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 2,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "EUR-Lex",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex / Official Journal of the European Union",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "EUR-Lex (Official Journal / European Commission)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "00b6cd1a-61a5-4023-ad7b-0835fdc16fe7",
+      "name": "Colorado General Assembly",
+      "url": "https://leg.colorado.gov/laws",
+      "country": "US",
+      "jurisdiction_iso": [
+        "US-CO"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Federal Register",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+          "itype": "statute_gazette_db"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    },
+    {
+      "id": "2f7e1fcf-17b4-40e3-9770-2f54afd14ce9",
+      "name": "Legislative Assembly of Manitoba",
+      "url": "https://gov.mb.ca/legislature",
+      "country": "CA",
+      "jurisdiction_iso": [
+        "CA-MB"
+      ],
+      "source_role": "primary_legal_authority",
+      "base_tier": 1,
+      "itype": "general_legislature",
+      "isRoot": false,
+      "coveredBy": [
+        {
+          "name": "Canada Gazette",
+          "itype": "statute_gazette_db"
+        },
+        {
+          "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+          "itype": "sectoral_regulator_ministry"
+        },
+        {
+          "name": "Transport Canada",
+          "itype": "sectoral_regulator_ministry"
+        }
+      ],
+      "verdict": "REVIEW_DEEP_PAGE",
+      "reason": "general-legislature institution but the URL is a deep topical page, not a root portal — may be curated relevant content (e.g. a transport-emissions tracker)"
+    }
+  ],
+  "reviewGap": [],
+  "fixWww": [
+    {
+      "id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+      "name": "ClassNK Environmental",
+      "current": "https://classnk.or.jp/hp/en/activities/statutory/index.html",
+      "proposed": "https://www.classnk.or.jp/hp/en/activities/statutory/index.html",
+      "itype": "standards_body"
+    },
+    {
+      "id": "fdd32abd-4bb9-4d60-995c-5c13b8a70141",
+      "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+      "current": "https://mlit.go.jp/en/statistics/white-paper-mlit-index.html",
+      "proposed": "https://www.mlit.go.jp/en/statistics/white-paper-mlit-index.html",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "9b2c1d4f-f206-4e50-acd8-d9e1d95bef92",
+      "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+      "current": "https://mlit.go.jp/sogoseisaku/transport/content/001578180.pdf",
+      "proposed": "https://www.mlit.go.jp/sogoseisaku/transport/content/001578180.pdf",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "39b4489c-8c37-4620-9893-f8352423c2de",
+      "name": "Japan Ministry of Economy, Trade and Industry (METI)",
+      "current": "https://meti.go.jp",
+      "proposed": "https://www.meti.go.jp",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+      "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+      "current": "https://env.go.jp/",
+      "proposed": "https://www.env.go.jp/",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "b737a500-8b9c-4928-84fb-b1028bd37852",
+      "name": "Northwest Territories Department of Environment and Climate Change",
+      "current": "https://gov.nt.ca/ecc",
+      "proposed": "https://www.gov.nt.ca/ecc",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "93cf5493-0351-4c9f-8a56-518cb39774d6",
+      "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT) – Maritime Bureau",
+      "current": "https://mlit.go.jp/en/maritime/index.html",
+      "proposed": "https://www.mlit.go.jp/en/maritime/index.html",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+      "name": "Cranfield University – School of Management",
+      "current": "https://cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+      "proposed": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+      "itype": "academic_research"
+    },
+    {
+      "id": "1cb71636-fa0c-410a-9981-817b896709ca",
+      "name": "Monetary Authority of Singapore (MAS)",
+      "current": "https://mas.gov.sg",
+      "proposed": "https://www.mas.gov.sg",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+      "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+      "current": "https://mlit.go.jp/en",
+      "proposed": "https://www.mlit.go.jp/en",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "04061547-7d93-4f14-9d4d-e232121a6822",
+      "name": "Pennsylvania Public Utility Commission (PA PUC) – Motor Carrier Division",
+      "current": "https://puc.pa.gov/motor-carrier",
+      "proposed": "https://www.puc.pa.gov/motor-carrier",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+      "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+      "current": "https://customs.go.jp/english/index.htm",
+      "proposed": "https://www.customs.go.jp/english/index.htm",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "62323e04-77bd-428a-a881-f81cc6b78d7b",
+      "name": "Policy Research Institute for Land, Infrastructure, Transport and Tourism (PRILIT) / MLIT, Government of Japan",
+      "current": "https://mlit.go.jp/pri/english/houkoku/english_nendo.html",
+      "proposed": "https://www.mlit.go.jp/pri/english/houkoku/english_nendo.html",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "051c99be-3a75-4862-a5dd-fd3f7af64e2c",
+      "name": "National Heavy Vehicle Regulator (NHVR)",
+      "current": "https://nhvr.gov.au/",
+      "proposed": "https://www.nhvr.gov.au/",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "d5f9920c-d07a-46a1-9fc9-d563832b86df",
+      "name": "Tokyo Metropolitan Government Bureau of Environment (東京都環境局)",
+      "current": "https://kankyo.metro.tokyo.lg.jp/",
+      "proposed": "https://www.kankyo.metro.tokyo.lg.jp/",
+      "itype": "sectoral_regulator_ministry"
+    }
+  ],
+  "subdomainMoved": [
+    {
+      "id": "82a5c70e-cf83-498c-83d2-924e06ba9c81",
+      "name": "Ministerio de Transporte de Colombia",
+      "url": "https://transportesostenible.mintransporte.gov.co/normatividad-2",
+      "liveParent": "mintransporte.gov.co",
+      "code": "EAI_AGAIN",
+      "itype": "sectoral_regulator_ministry"
+    },
+    {
+      "id": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+      "name": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+      "url": "https://denr.sd.gov/",
+      "liveParent": "sd.gov",
+      "code": "ENOTFOUND",
+      "itype": "sectoral_regulator_ministry"
+    }
+  ],
+  "inconclusiveDns": [
+    {
+      "id": "54dbe02c-8025-4b0f-82e7-b19038be906b",
+      "name": "Sustainable Air Freight Alliance (SAFA)",
+      "url": "https://safa.aero",
+      "code": "EAI_AGAIN",
+      "itype": "industry"
+    },
+    {
+      "id": "8f7db0b5-d2b2-442f-93cd-877fb1fd0384",
+      "name": "Building Performance Standards Coalition",
+      "url": "https://buildingperformancestandards.org/",
+      "code": "EAI_AGAIN",
+      "itype": "industry"
+    },
+    {
+      "id": "5457d581-d325-4742-b07c-3eedaab29cae",
+      "name": "CNMI Bureau of Environmental and Coastal Quality (BECQ)",
+      "url": "https://becq.cnmi.gov/",
+      "code": "EAI_AGAIN",
+      "itype": "sectoral_regulator_ministry"
+    }
+  ]
+}

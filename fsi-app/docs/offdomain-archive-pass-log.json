@@ -1,0 +1,179 @@
+{
+  "completed": true,
+  "archived": 19,
+  "suspended": 6,
+  "preserved_sources_active": 13,
+  "log": [
+    {
+      "id": "2cb40f97-0001-4171-b722-ce707eddc701",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "5f395d6b-7868-422c-93d3-1107fb425dfa",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "cd238eda-20ee-426d-847d-86ec673d8e55",
+      "legacy_id": null,
+      "archive_reason": "non_regulatory_source",
+      "source_id": "7d18d831-429b-450a-a209-22446a8d886f",
+      "source_action": "suspend",
+      "source_status": "suspended",
+      "ok": true
+    },
+    {
+      "id": "6918e77f-7be5-446c-8c92-ced130359185",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "61895e25-5dc2-4bf9-ab34-156fcfa61289",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "14ff3453-96ae-4bf2-91d7-3bace7948e9d",
+      "legacy_id": null,
+      "archive_reason": "non_regulatory_source",
+      "source_id": "49b28864-8179-4107-b518-bf7d9130ce6a",
+      "source_action": "suspend",
+      "source_status": "suspended",
+      "ok": true
+    },
+    {
+      "id": "dbcf1b7a-8851-4511-b57d-10ec4f612903",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "e720fc6b-fdaf-4f76-b54a-99d1995e2f0b",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "dff7017e-c4e6-4b74-8bb8-1d7946b00cf2",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "ec086e7d-be11-4b9c-a305-1adc8a6a8b0d",
+      "legacy_id": null,
+      "archive_reason": "non_regulatory_source",
+      "source_id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+      "source_action": "suspend",
+      "source_status": "suspended",
+      "ok": true
+    },
+    {
+      "id": "24cf9264-3349-4252-95b3-c483003c9e46",
+      "legacy_id": null,
+      "archive_reason": "error_page_artifact",
+      "source_id": "89485cf1-c7a5-476f-ac21-9346018e2f74",
+      "source_action": "suspend",
+      "source_status": "suspended",
+      "ok": true
+    },
+    {
+      "id": "290933b8-06b3-47a3-9543-1e9c8c70d919",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "46beff65-0d00-490a-8363-db1e85120b99",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "445a06b2-899b-4f4c-80fa-ac697b03587a",
+      "legacy_id": null,
+      "archive_reason": "non_regulatory_source",
+      "source_id": "7353dea0-a2e7-4b3e-be3f-202e981eed4f",
+      "source_action": "suspend",
+      "source_status": "suspended",
+      "ok": true
+    },
+    {
+      "id": "344a58cd-907f-42ff-afbf-04ed008804ed",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "5a08fec4-cecd-4cb8-8b25-45e034d94980",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "1add1175-f418-44f7-82e8-f66015afae0c",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "cac4ab4c-2d39-475a-a04c-e27c49e7ebf2",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "28ecc6b0-436b-4bf4-889f-fb2673497562",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "653f174b-6e44-4f4c-8909-4ce9b000191d",
+      "legacy_id": null,
+      "archive_reason": "non_regulatory_source",
+      "source_id": "ba680206-2b54-4d08-8d98-909da2b3c643",
+      "source_action": "suspend",
+      "source_status": "suspended",
+      "ok": true
+    },
+    {
+      "id": "7b159d86-b1d1-4458-a58e-57026564ecfb",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "6abf5dce-b873-47ad-a834-115ddd65e210",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "22d0883e-3101-4d48-a277-e2e2ff920452",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "fdd32abd-4bb9-4d60-995c-5c13b8a70141",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "edad4e2c-de8b-489e-aff7-2303c24d96d8",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "4d37573e-14b1-4531-9629-92605571e404",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "281644c5-32d3-423d-b1f3-e5517ae7f21e",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "29845b19-7004-485e-86f3-fdd84f8aa3f5",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    },
+    {
+      "id": "b8fb3eba-4ca3-49a6-a677-2f3e5e79a626",
+      "legacy_id": null,
+      "archive_reason": "portal_artifact",
+      "source_id": "2f7e1fcf-17b4-40e3-9770-2f54afd14ce9",
+      "source_action": "preserve",
+      "source_status": "preserved",
+      "ok": true
+    }
+  ]
+}

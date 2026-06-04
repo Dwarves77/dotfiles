@@ -17,7 +17,6 @@ import { IssuesQueue } from "@/components/admin/IssuesQueue";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
 import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
 import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
-import { VerificationQueue } from "@/components/admin/VerificationQueue";
 import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
@@ -85,7 +84,6 @@ export function AdminDashboard({
     | "orgs"
     | "sources"
     | "staged"
-    | "pending-verification"
     | "scan"
     | "integrity-flags"
     | "platform-integrity-flags"
@@ -111,7 +109,6 @@ export function AdminDashboard({
     "orgs",
     "sources",
     "staged",
-    "pending-verification",
     "scan",
     "integrity-flags",
     "platform-integrity-flags",
@@ -282,7 +279,6 @@ export function AdminDashboard({
     { id: "orgs", label: "Organizations", count: orgs.length },
     { id: "sources", label: "Source registry", count: 0 },
     { id: "staged", label: "Staged updates", count: stagedUpdates.length },
-    { id: "pending-verification", label: "Pending verification", count: 0 },
     { id: "integrity-flags", label: "Integrity flags", count: integrityFlagCount },
     { id: "platform-integrity-flags", label: "Platform flags", count: platformIntegrityFlagCount },
     { id: "tier-opinions", label: "Tier disagreements", count: 0 },
@@ -296,7 +292,7 @@ export function AdminDashboard({
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <EditorialMasthead
-        eyebrow="Platform Admin · May 24, 2026"
+        eyebrow="Platform Admin"
         title="Platform Admin"
         meta="Workspaces, sources, ingest, coverage. Aggregated needs-attention queue refreshes every 60 seconds."
       />
@@ -500,19 +496,27 @@ export function AdminDashboard({
               >
                 {s.desc}
               </p>
-              <div
-                style={{
-                  fontSize: 11.5,
-                  color: "var(--text-2)",
-                  borderTop: "1px solid var(--border-sub)",
-                  paddingTop: 10,
-                }}
-              >
-                <b style={{ color: s.urgent ? "var(--critical)" : "var(--text)", fontWeight: 700 }}>
-                  {s.count}
-                </b>{" "}
-                {s.unit}
-              </div>
+              {/* Honest-empty: show a count ONLY when it is a real positive number. The
+                  hardcoded `count: 0` placeholders (sources/coverage/research/community
+                  pickups) were rendering false metrics ("0 provisional pending" while the
+                  live backlog is 485, contradicting the IssuesQueue above). The real
+                  needs-attention numbers live in the IssuesQueue; these nav cards no longer
+                  assert a fabricated count. */}
+              {s.count > 0 && (
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: "var(--text-2)",
+                    borderTop: "1px solid var(--border-sub)",
+                    paddingTop: 10,
+                  }}
+                >
+                  <b style={{ color: s.urgent ? "var(--critical)" : "var(--text)", fontWeight: 700 }}>
+                    {s.count}
+                  </b>{" "}
+                  {s.unit}
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -844,9 +848,6 @@ export function AdminDashboard({
             )}
           </div>
         )}
-
-        {/* Pending verification Tab — Sprint 4 task 1.12/1.13 (UNVERIFIED-PENDING-RUNTIME) */}
-        {activeTab === "pending-verification" && <VerificationQueue />}
 
         {/* Integrity flags Tab — W2.C
             Surfaces intelligence_items.agent_integrity_flag rows from

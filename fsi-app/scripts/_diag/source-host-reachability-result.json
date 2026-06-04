@@ -1,0 +1,437 @@
+{
+  "swept": 722,
+  "distinctHosts": 539,
+  "live": 512,
+  "dead": [
+    {
+      "host": "assembly.gov.nt.ca",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+          "name": "Northwest Territories Legislative Assembly",
+          "url": "https://assembly.gov.nt.ca/",
+          "access_method": "rss"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.assembly.gov.nt.ca resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "gikai.metro.tokyo.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "095d2a2c-0e59-43c9-b759-c3a7d19ad71d",
+          "name": "Tokyo Metropolitan Assembly (東京都議会)",
+          "url": "https://gikai.metro.tokyo.jp/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "DOMAIN_GONE (nothing in the chain up to the registry resolves -> domain expired, never existed, or registry-level NXDOMAIN; code ENOTFOUND)",
+      "liveParent": null,
+      "wwwResolves": false
+    },
+    {
+      "host": "leg.mn.gov",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "c5177c00-fc69-4823-a9bb-c15c03fc6935",
+          "name": "Minnesota Legislature",
+          "url": "https://leg.mn.gov/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.leg.mn.gov resolves -> stored URL missing www)",
+      "liveParent": "mn.gov",
+      "wwwResolves": true
+    },
+    {
+      "host": "sangiin.go.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "9a04d213-688a-45eb-a4e1-84dc7f4b7241",
+          "name": "House of Councillors of Japan (Sangiin / 参議院)",
+          "url": "https://sangiin.go.jp/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.sangiin.go.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "safa.aero",
+      "code": "EAI_AGAIN",
+      "sources": [
+        {
+          "id": "54dbe02c-8025-4b0f-82e7-b19038be906b",
+          "name": "Sustainable Air Freight Alliance (SAFA)",
+          "url": "https://safa.aero",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "DOMAIN_GONE (nothing in the chain up to the registry resolves -> domain expired, never existed, or registry-level NXDOMAIN; code EAI_AGAIN)",
+      "liveParent": null,
+      "wwwResolves": false
+    },
+    {
+      "host": "classnk.or.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+          "name": "ClassNK Environmental",
+          "url": "https://classnk.or.jp/hp/en/activities/statutory/index.html",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.classnk.or.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "assemblee-nationale.fr",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "f65fd561-795b-471d-ad1c-55a292cb712a",
+          "name": "Assemblée nationale",
+          "url": "https://assemblee-nationale.fr/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.assemblee-nationale.fr resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "legislature.state.al.us",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "c8b87abd-146d-4e79-8c91-d14ad8943681",
+          "name": "Alabama State Legislature",
+          "url": "https://legislature.state.al.us/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.legislature.state.al.us resolves -> stored URL missing www)",
+      "liveParent": "state.al.us",
+      "wwwResolves": true
+    },
+    {
+      "host": "mlit.go.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "fdd32abd-4bb9-4d60-995c-5c13b8a70141",
+          "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+          "url": "https://mlit.go.jp/en/statistics/white-paper-mlit-index.html",
+          "access_method": "scrape"
+        },
+        {
+          "id": "9b2c1d4f-f206-4e50-acd8-d9e1d95bef92",
+          "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+          "url": "https://mlit.go.jp/sogoseisaku/transport/content/001578180.pdf",
+          "access_method": "scrape"
+        },
+        {
+          "id": "93cf5493-0351-4c9f-8a56-518cb39774d6",
+          "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT) – Maritime Bureau",
+          "url": "https://mlit.go.jp/en/maritime/index.html",
+          "access_method": "scrape"
+        },
+        {
+          "id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+          "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+          "url": "https://mlit.go.jp/en",
+          "access_method": "scrape"
+        },
+        {
+          "id": "62323e04-77bd-428a-a881-f81cc6b78d7b",
+          "name": "Policy Research Institute for Land, Infrastructure, Transport and Tourism (PRILIT) / MLIT, Government of Japan",
+          "url": "https://mlit.go.jp/pri/english/houkoku/english_nendo.html",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.mlit.go.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "meti.go.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "39b4489c-8c37-4620-9893-f8352423c2de",
+          "name": "Japan Ministry of Economy, Trade and Industry (METI)",
+          "url": "https://meti.go.jp",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.meti.go.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "dz-rs.si",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "198b04d6-cce0-4c4a-aefb-38be73bc2e48",
+          "name": "Državni zbor Republike Slovenije",
+          "url": "https://dz-rs.si/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.dz-rs.si resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "env.go.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+          "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+          "url": "https://env.go.jp/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.env.go.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "nrsr.sk",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+          "name": "Národná rada Slovenskej republiky",
+          "url": "https://nrsr.sk/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.nrsr.sk resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "parliament.qld.gov.au",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "b5e7624e-7c17-485f-8731-25b67e3127d7",
+          "name": "Queensland Parliament",
+          "url": "https://parliament.qld.gov.au/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.parliament.qld.gov.au resolves -> stored URL missing www)",
+      "liveParent": "qld.gov.au",
+      "wwwResolves": true
+    },
+    {
+      "host": "gov.nt.ca",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "b737a500-8b9c-4928-84fb-b1028bd37852",
+          "name": "Northwest Territories Department of Environment and Climate Change",
+          "url": "https://gov.nt.ca/ecc",
+          "access_method": "rss"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.gov.nt.ca resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "parliament.wa.gov.au",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "e43b64a1-0469-4232-9639-03ee0733be8c",
+          "name": "Parliament of Western Australia",
+          "url": "https://parliament.wa.gov.au/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.parliament.wa.gov.au resolves -> stored URL missing www)",
+      "liveParent": "wa.gov.au",
+      "wwwResolves": true
+    },
+    {
+      "host": "shugiin.go.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "1c5588e3-e45d-4985-9154-113558853c7f",
+          "name": "House of Representatives of Japan (Shugiin / 衆議院)",
+          "url": "https://shugiin.go.jp/",
+          "access_method": "api"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.shugiin.go.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "cranfield.ac.uk",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+          "name": "Cranfield University – School of Management",
+          "url": "https://cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.cranfield.ac.uk resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "mas.gov.sg",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "1cb71636-fa0c-410a-9981-817b896709ca",
+          "name": "Monetary Authority of Singapore (MAS)",
+          "url": "https://mas.gov.sg",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.mas.gov.sg resolves -> stored URL missing www)",
+      "liveParent": "gov.sg",
+      "wwwResolves": true
+    },
+    {
+      "host": "puc.pa.gov",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "04061547-7d93-4f14-9d4d-e232121a6822",
+          "name": "Pennsylvania Public Utility Commission (PA PUC) – Motor Carrier Division",
+          "url": "https://puc.pa.gov/motor-carrier",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.puc.pa.gov resolves -> stored URL missing www)",
+      "liveParent": "pa.gov",
+      "wwwResolves": true
+    },
+    {
+      "host": "buildingperformancestandards.org",
+      "code": "EAI_AGAIN",
+      "sources": [
+        {
+          "id": "8f7db0b5-d2b2-442f-93cd-877fb1fd0384",
+          "name": "Building Performance Standards Coalition",
+          "url": "https://buildingperformancestandards.org/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "DOMAIN_GONE (nothing in the chain up to the registry resolves -> domain expired, never existed, or registry-level NXDOMAIN; code EAI_AGAIN)",
+      "liveParent": null,
+      "wwwResolves": false
+    },
+    {
+      "host": "customs.go.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+          "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+          "url": "https://customs.go.jp/english/index.htm",
+          "access_method": "rss"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.customs.go.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "transportesostenible.mintransporte.gov.co",
+      "code": "EAI_AGAIN",
+      "sources": [
+        {
+          "id": "82a5c70e-cf83-498c-83d2-924e06ba9c81",
+          "name": "Ministerio de Transporte de Colombia",
+          "url": "https://transportesostenible.mintransporte.gov.co/normatividad-2",
+          "access_method": "rss"
+        }
+      ],
+      "diagnosis": "SUBDOMAIN_DEAD (parent \"mintransporte.gov.co\" resolves; the \"transportesostenible\" portion does not -> subdomain/host decommissioned, domain still owned)",
+      "liveParent": "mintransporte.gov.co",
+      "wwwResolves": false
+    },
+    {
+      "host": "nhvr.gov.au",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "051c99be-3a75-4862-a5dd-fd3f7af64e2c",
+          "name": "National Heavy Vehicle Regulator (NHVR)",
+          "url": "https://nhvr.gov.au/",
+          "access_method": "rss"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.nhvr.gov.au resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "becq.cnmi.gov",
+      "code": "EAI_AGAIN",
+      "sources": [
+        {
+          "id": "5457d581-d325-4742-b07c-3eedaab29cae",
+          "name": "CNMI Bureau of Environmental and Coastal Quality (BECQ)",
+          "url": "https://becq.cnmi.gov/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "DOMAIN_GONE (nothing in the chain up to the registry resolves -> domain expired, never existed, or registry-level NXDOMAIN; code EAI_AGAIN)",
+      "liveParent": null,
+      "wwwResolves": false
+    },
+    {
+      "host": "kankyo.metro.tokyo.lg.jp",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "d5f9920c-d07a-46a1-9fc9-d563832b86df",
+          "name": "Tokyo Metropolitan Government Bureau of Environment (東京都環境局)",
+          "url": "https://kankyo.metro.tokyo.lg.jp/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "WWW_ONLY (apex/host fails but www.kankyo.metro.tokyo.lg.jp resolves -> stored URL missing www)",
+      "liveParent": null,
+      "wwwResolves": true
+    },
+    {
+      "host": "denr.sd.gov",
+      "code": "ENOTFOUND",
+      "sources": [
+        {
+          "id": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+          "name": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+          "url": "https://denr.sd.gov/",
+          "access_method": "scrape"
+        }
+      ],
+      "diagnosis": "SUBDOMAIN_DEAD (parent \"sd.gov\" resolves; the \"denr\" portion does not -> subdomain/host decommissioned, domain still owned)",
+      "liveParent": "sd.gov",
+      "wwwResolves": false
+    }
+  ],
+  "malformed": []
+}

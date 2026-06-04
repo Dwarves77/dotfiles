@@ -122,3 +122,45 @@ export function canonicalizeUrl(rawUrl: string): string {
   const authority = port.length > 0 ? `${host}:${port}` : host;
   return `${scheme}//${authority}${path}${query}`;
 }
+
+/**
+ * www-NORMALIZATION ONLY. Rewrites ONLY the host's `www.` prefix and touches NOTHING
+ * else — scheme, userinfo, port, path, query, and fragment are preserved byte-for-byte.
+ *
+ * This is deliberately NOT `canonicalizeUrl`: a full canonicalize also strips `www`
+ * (the wrong direction here — some hosts only resolve at `www.`), sorts query params, and
+ * trims trailing slashes, which re-encodes percent-escapes and would corrupt EUR-Lex CELEX
+ * colons. That is exactly why stored URLs were never bulk-canonicalized (defect a). When a
+ * registry URL's bare host is dead but `www.<host>` resolves, this surgical helper produces
+ * the corrected URL without any other mutation.
+ *
+ * Implemented by string surgery on the authority span (not URL rebuild) so no other byte
+ * of the URL can change. Returns the input unchanged if it is not a `scheme://…` URL.
+ *
+ * @example wwwNormalize("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1805")
+ *   // add=true → "https://www.eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1805"
+ *   // (the CELEX colon and everything after the host are untouched)
+ */
+export function wwwNormalize(rawUrl: string, opts: { add?: boolean } = {}): string {
+  const add = opts.add ?? true;
+  if (typeof rawUrl !== "string" || rawUrl.length === 0) return rawUrl;
+  const m = rawUrl.match(/^([a-z][a-z0-9+.-]*:\/\/)([^/?#]*)([\s\S]*)$/i);
+  if (!m) return rawUrl; // not a scheme://… URL — leave untouched
+  const scheme = m[1], authority = m[2], rest = m[3];
+
+  // authority = [userinfo@]host[:port]; split off userinfo and port, keep host only.
+  const at = authority.lastIndexOf("@");
+  const userinfo = at >= 0 ? authority.slice(0, at + 1) : "";
+  const hostport = at >= 0 ? authority.slice(at + 1) : authority;
+  let host = hostport, port = "";
+  if (!hostport.startsWith("[")) { // not an IPv6 literal
+    const c = hostport.lastIndexOf(":");
+    if (c >= 0 && /^\d+$/.test(hostport.slice(c + 1))) { host = hostport.slice(0, c); port = hostport.slice(c); }
+  }
+
+  const hasWww = /^www\./i.test(host);
+  if (add && !hasWww) host = "www." + host;
+  else if (!add && hasWww) host = host.replace(/^www\./i, "");
+
+  return scheme + userinfo + host + port + rest;
+}

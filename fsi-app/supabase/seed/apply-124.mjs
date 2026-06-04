@@ -1,0 +1,10 @@
+import pg from "pg";import{readFileSync}from"node:fs";import{fileURLToPath}from"node:url";import{dirname,resolve}from"node:path";
+const __d=dirname(fileURLToPath(import.meta.url)),ROOT=resolve(__d,"..","..");process.loadEnvFile(resolve(ROOT,".env.local"));
+const ref=readFileSync(resolve(ROOT,"supabase/.temp/project-ref"),"utf8").trim();const pooler=readFileSync(resolve(ROOT,"supabase/.temp/pooler-url"),"utf8").trim();
+const CONN=pooler.replace(`postgres.${ref}@`,`postgres.${ref}:${encodeURIComponent(process.env.SUPABASE_DB_PASSWORD)}@`);
+const c=new pg.Client({connectionString:CONN});await c.connect();
+await c.query(readFileSync(resolve(ROOT,"supabase/migrations/124_monitoring_queue_reconciled_at.sql"),"utf8"));
+if(!(await c.query("SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='124'")).rows.length) await c.query("INSERT INTO supabase_migrations.schema_migrations (version,name) VALUES ('124','monitoring_queue_reconciled_at')");
+await c.query("NOTIFY pgrst, 'reload schema'");
+console.log("[apply-124] reconciled_at column:", (await c.query(`SELECT 1 FROM information_schema.columns WHERE table_name='monitoring_queue' AND column_name='reconciled_at'`)).rows.length?"OK":"MISSING");
+await c.end();

@@ -1,0 +1,806 @@
+{
+  "basis": "per-jurisdiction freight-sustainability lawmaking (2026-06-04)",
+  "assessed": 108,
+  "keep": [
+    {
+      "name": "Northwest Territories Legislative Assembly",
+      "url": "https://assembly.gov.nt.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "Minnesota Legislature",
+      "url": "https://leg.mn.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (minnesota) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "House of Councillors of Japan (Sangiin / 参議院)",
+      "url": "https://sangiin.go.jp/",
+      "country": "JP",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "Parliament of South Australia",
+      "url": "https://parliament.sa.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Assemblée nationale",
+      "url": "https://assemblee-nationale.fr/",
+      "country": "FR",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Deutscher Bundestag",
+      "url": "https://bundestag.de/",
+      "country": "DE",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Oklahoma Legislature",
+      "url": "https://oklegislature.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "National Assembly of the Republic of Bulgaria",
+      "url": "https://parliament.bg/",
+      "country": "BG",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Alabama State Legislature",
+      "url": "https://legislature.state.al.us/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Louisiana State Legislature",
+      "url": "https://legis.la.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Arizona State Legislature",
+      "url": "https://azleg.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Legislative Assembly of British Columbia",
+      "url": "https://leg.bc.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "Maine Legislature (legislature.maine.gov)",
+      "url": "https://legislature.maine.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (maine) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "ACT Legislative Assembly",
+      "url": "https://parliament.act.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Scottish Parliament (Holyrood)",
+      "url": "https://parliament.scot/",
+      "country": "GB",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "National Assembly of the Republic of Korea (대한민국 국회)",
+      "url": "https://assembly.go.kr/",
+      "country": "KR",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "Državni zbor Republike Slovenije",
+      "url": "https://dz-rs.si/",
+      "country": "SI",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Connecticut General Assembly (cga.ct.gov)",
+      "url": "https://cga.ct.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (connecticut) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Legislative Assembly of Saskatchewan",
+      "url": "https://legassembly.sk.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "Sveriges Riksdag (Swedish Parliament)",
+      "url": "https://riksdagen.se/",
+      "country": "SE",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Mississippi Legislature",
+      "url": "https://legislature.ms.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Legislative Assembly of Puerto Rico (Oficina de Servicios Legislativos)",
+      "url": "https://oslpr.org/",
+      "country": "US",
+      "reason": "Law 33-2019 Climate Change Act + Act 17-2019 (100% renewable, EV transition) — independent freight-sustainability legislation"
+    },
+    {
+      "name": "Illinois General Assembly",
+      "url": "https://ilga.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Missouri General Assembly",
+      "url": "https://senate.mo.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Tweede Kamer der Staten-Generaal",
+      "url": "https://tweedekamer.nl/",
+      "country": "NL",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Riigikogu – Parliament of Estonia",
+      "url": "https://riigikogu.ee/",
+      "country": "EE",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Parliament of Victoria",
+      "url": "https://parliament.vic.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Tennessee General Assembly",
+      "url": "https://capitol.tn.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Országgyűlés – National Assembly of Hungary",
+      "url": "https://parlament.hu/",
+      "country": "HU",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Legislative Assembly of Ontario",
+      "url": "https://ola.org/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "Texas Legislature Online",
+      "url": "https://capitol.texas.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Parliament of Australia",
+      "url": "https://aph.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Iowa Legislature",
+      "url": "https://legis.iowa.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Rhode Island General Assembly – Legislative Portal",
+      "url": "https://rilegislature.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (rhode island) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Camera Deputaților – Chamber of Deputies of Romania",
+      "url": "https://cdep.ro/",
+      "country": "RO",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Legislative Assembly of Alberta",
+      "url": "https://assembly.ab.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "South Carolina General Assembly (SC Statehouse)",
+      "url": "https://scstatehouse.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Parliament of Tasmania",
+      "url": "https://parliament.tas.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Houses of the Oireachtas (Irish Parliament)",
+      "url": "https://oireachtas.ie/",
+      "country": "IE",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Cortes Generales – Congreso de los Diputados",
+      "url": "https://congreso.es/",
+      "country": "ES",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "National People's Congress of the People's Republic of China",
+      "url": "https://npc.gov.cn/",
+      "country": "CN",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "Sejm of the Republic of Poland",
+      "url": "https://sejm.gov.pl/",
+      "country": "PL",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Národná rada Slovenskej republiky",
+      "url": "https://nrsr.sk/",
+      "country": "SK",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Queensland Parliament",
+      "url": "https://parliament.qld.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Österreichisches Parlament (Nationalrat & Bundesrat)",
+      "url": "https://parlament.gv.at/",
+      "country": "AT",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Nebraska Legislature",
+      "url": "https://nebraskalegislature.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Parliament of Western Australia",
+      "url": "https://parliament.wa.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Legislative Assembly of Nunavut",
+      "url": "https://assembly.nu.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "New York City Council",
+      "url": "https://council.nyc.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (new york) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Indiana General Assembly",
+      "url": "https://iga.in.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Atlanta City Council",
+      "url": "https://citycouncil.atlantaga.gov/",
+      "country": "US",
+      "reason": "US city legislature — local freight law (port clean-truck programs / building-performance / last-mile rules)"
+    },
+    {
+      "name": "Seimas of the Republic of Lithuania",
+      "url": "https://lrs.lt/",
+      "country": "LT",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "House of Representatives of Cyprus",
+      "url": "https://parliament.cy/",
+      "country": "CY",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Pennsylvania General Assembly (legis.state.pa.us)",
+      "url": "https://legis.state.pa.us/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Assemblée nationale du Québec",
+      "url": "https://assnat.qc.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "House of Representatives of Japan (Shugiin / 衆議院)",
+      "url": "https://shugiin.go.jp/",
+      "country": "JP",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "Parliament of Singapore",
+      "url": "https://parliament.gov.sg/",
+      "country": "SG",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "Camera dei Deputati – Italian Chamber of Deputies",
+      "url": "https://camera.it/",
+      "country": "IT",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Maryland General Assembly (mgaleg.maryland.gov)",
+      "url": "https://mgaleg.maryland.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (maryland) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Arkansas General Assembly",
+      "url": "https://arkleg.state.ar.us/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Parliament of New South Wales",
+      "url": "https://parliament.nsw.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "Kansas Legislature",
+      "url": "https://kslegislature.org/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Wisconsin State Legislature",
+      "url": "https://docs.legis.wisconsin.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Hellenic Parliament",
+      "url": "https://hellenicparliament.gr/",
+      "country": "GR",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Saeima of the Republic of Latvia",
+      "url": "https://saeima.lv/",
+      "country": "LV",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Hrvatski sabor – Croatian Parliament",
+      "url": "https://sabor.hr/",
+      "country": "HR",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Folketinget (Danish Parliament)",
+      "url": "https://ft.dk/",
+      "country": "DK",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Ohio General Assembly",
+      "url": "https://legislature.ohio.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Legislative Assembly of Prince Edward Island",
+      "url": "https://assembly.pe.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "Legislative Assembly of the Northern Territory",
+      "url": "https://parliament.nt.gov.au/",
+      "country": "AU",
+      "reason": "Australian legislature — state/federal EPA + transport-emissions law"
+    },
+    {
+      "name": "UK Parliament (Westminster)",
+      "url": "https://parliament.uk/",
+      "country": "GB",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "Eduskunta (Parliament of Finland)",
+      "url": "https://eduskunta.fi/",
+      "country": "FI",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Delaware General Assembly (legis.delaware.gov)",
+      "url": "https://legis.delaware.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (delaware) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Kentucky General Assembly (Legislative Research Commission)",
+      "url": "https://legislature.ky.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Parliament of Malta",
+      "url": "https://parlament.mt/",
+      "country": "MT",
+      "reason": "EU member parliament — transposes EU freight-sustainability law (ETS-maritime, FuelEU, CBAM, ReFuelEU)"
+    },
+    {
+      "name": "Yukon Legislative Assembly",
+      "url": "https://yukonassembly.ca/",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "South Dakota Legislature",
+      "url": "https://sdlegislature.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "General Office of the Standing Committee of the National People's Congress of the People's Republic of China",
+      "url": "https://flk.npc.gov.cn/",
+      "country": "CN",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "Philadelphia City Council",
+      "url": "https://phlcouncil.com/",
+      "country": "US",
+      "reason": "US city legislature — local freight law (port clean-truck programs / building-performance / last-mile rules)"
+    },
+    {
+      "name": "Senedd Cymru / Welsh Parliament",
+      "url": "https://senedd.wales/",
+      "country": "GB",
+      "reason": "major freight nation — national binding freight-sustainability law"
+    },
+    {
+      "name": "West Virginia Legislature – Legislative Rulemaking Review / WV Code of State Rules",
+      "url": "https://wvlegislature.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (virginia) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Nevada Legislature – Nevada Revised Statutes (NRS) & Legislative Counsel Bureau",
+      "url": "https://leg.state.nv.us/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Kansas Legislature – Kansas Statutes Annotated (KSA) Revisor of Statutes",
+      "url": "https://ksrevisor.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Wyoming Legislature – Wyoming Statutes",
+      "url": "https://wyoleg.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "New Mexico Legislature – New Mexico Statutes Annotated (NMSA) and Session Laws",
+      "url": "https://nmlegis.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (new mexico) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Idaho Legislature – Idaho Statutes & Idaho Administrative Code",
+      "url": "https://legislature.idaho.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "North Dakota Legislative Assembly – North Dakota Century Code & Administrative Code",
+      "url": "https://legis.nd.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Michigan Legislature – Michigan Compiled Laws (MCL) & Administrative Code",
+      "url": "https://legislature.mi.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Massachusetts Legislature (General Court) – Session Laws & MGL",
+      "url": "https://malegislature.gov/Laws/GeneralLaws",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (massachusetts) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Hawai‘i State Legislature – Hawai‘i Revised Statutes",
+      "url": "https://capitol.hawaii.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Alaska State Legislature – Alaska Statutes",
+      "url": "https://akleg.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Montana Legislature – Montana Code Annotated (MCA)",
+      "url": "https://leg.mt.gov/bills/mca",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Vermont Legislature – General Assembly (statutes & session laws)",
+      "url": "https://legislature.vermont.gov/",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (vermont) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Utah State Legislature – Utah Code & Utah Administrative Code",
+      "url": "https://le.utah.gov/",
+      "country": "US",
+      "reason": "US state legislature — enacts binding transport/trucking/port law; no-activity not provable"
+    },
+    {
+      "name": "Oregon Legislature – Oregon Revised Statutes (ORS) & Legislative Information System",
+      "url": "https://oregonlegislature.gov/bills_laws/Pages/ORS.aspx",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (oregon) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Seattle City Council",
+      "url": "https://seattle.gov/council",
+      "country": "US",
+      "reason": "US city legislature — local freight law (port clean-truck programs / building-performance / last-mile rules)"
+    },
+    {
+      "name": "Boston City Council",
+      "url": "https://boston.gov/departments/city-council",
+      "country": "US",
+      "reason": "US city legislature — local freight law (port clean-truck programs / building-performance / last-mile rules)"
+    },
+    {
+      "name": "Los Angeles City Council",
+      "url": "https://lacity.gov/government/about-us/elected-officials/los-angeles-city-council",
+      "country": "US",
+      "reason": "US city legislature — local freight law (port clean-truck programs / building-performance / last-mile rules)"
+    },
+    {
+      "name": "New York State Senate / Assembly Legislative Information",
+      "url": "https://nysenate.gov/legislation",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (new york) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Legislative Assembly of New Brunswick",
+      "url": "https://www2.gnb.ca/content/gnb/en/legislative.html",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    },
+    {
+      "name": "European Parliament — Legislative Train Schedule",
+      "url": "https://europarl.europa.eu/legislative-train/spotlight-JD%2023-24/file-measurement-of-transport-and-logistics-emissions",
+      "country": "EU",
+      "reason": "EU institution — EU-level freight-sustainability legislation/tracking"
+    },
+    {
+      "name": "Colorado General Assembly",
+      "url": "https://leg.colorado.gov/laws",
+      "country": "US",
+      "reason": "US CARB/CFS adopter (colorado) — documented clean-truck/clean-fuel freight legislation"
+    },
+    {
+      "name": "Legislative Assembly of Manitoba",
+      "url": "https://gov.mb.ca/legislature",
+      "country": "CA",
+      "reason": "Canadian legislature — provincial carbon pricing / federal freight law (QC cap-and-trade, BC LCFS, Transport Canada)"
+    }
+  ],
+  "lowActivity": [
+    {
+      "name": "Tokyo Metropolitan Assembly (東京都議会)",
+      "url": "https://gikai.metro.tokyo.jp/",
+      "country": "JP",
+      "reason": "metro legislature; Tokyo cap-and-trade is published by the Tokyo Bureau of Environment (already covered); dead host, 0 items"
+    },
+    {
+      "name": "Guam Legislature (I Liheslaturan Guåhan)",
+      "url": "https://guamlegislature.com/",
+      "country": "US",
+      "reason": "Pacific/Caribbean micro-territory legislature; freight-sustainability action is federal-plan/EPA-driven, not legislative (EPA PCAP); tiny import-only economy"
+    },
+    {
+      "name": "Commonwealth of the Northern Mariana Islands Legislature",
+      "url": "https://cnmileg.gov.mp/",
+      "country": "US",
+      "reason": "Pacific/Caribbean micro-territory legislature; freight-sustainability action is federal-plan/EPA-driven, not legislative (EPA PCAP); tiny import-only economy"
+    },
+    {
+      "name": "Legislature of the Virgin Islands",
+      "url": "https://legvi.org/",
+      "country": "US",
+      "reason": "Pacific/Caribbean micro-territory legislature; freight-sustainability action is federal-plan/EPA-driven, not legislative (EPA PCAP); tiny import-only economy"
+    },
+    {
+      "name": "American Samoa Fono (Legislature)",
+      "url": "https://americansamoa.gov/legislature",
+      "country": "US",
+      "reason": "Pacific/Caribbean micro-territory legislature; freight-sustainability action is federal-plan/EPA-driven, not legislative (EPA PCAP); tiny import-only economy"
+    }
+  ],
+  "cleanup": {
+    "fixWww": [
+      {
+        "id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+        "name": "ClassNK Environmental",
+        "current": "https://classnk.or.jp/hp/en/activities/statutory/index.html",
+        "proposed": "https://www.classnk.or.jp/hp/en/activities/statutory/index.html",
+        "itype": "standards_body"
+      },
+      {
+        "id": "fdd32abd-4bb9-4d60-995c-5c13b8a70141",
+        "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+        "current": "https://mlit.go.jp/en/statistics/white-paper-mlit-index.html",
+        "proposed": "https://www.mlit.go.jp/en/statistics/white-paper-mlit-index.html",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "9b2c1d4f-f206-4e50-acd8-d9e1d95bef92",
+        "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+        "current": "https://mlit.go.jp/sogoseisaku/transport/content/001578180.pdf",
+        "proposed": "https://www.mlit.go.jp/sogoseisaku/transport/content/001578180.pdf",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "39b4489c-8c37-4620-9893-f8352423c2de",
+        "name": "Japan Ministry of Economy, Trade and Industry (METI)",
+        "current": "https://meti.go.jp",
+        "proposed": "https://www.meti.go.jp",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+        "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+        "current": "https://env.go.jp/",
+        "proposed": "https://www.env.go.jp/",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "b737a500-8b9c-4928-84fb-b1028bd37852",
+        "name": "Northwest Territories Department of Environment and Climate Change",
+        "current": "https://gov.nt.ca/ecc",
+        "proposed": "https://www.gov.nt.ca/ecc",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "93cf5493-0351-4c9f-8a56-518cb39774d6",
+        "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT) – Maritime Bureau",
+        "current": "https://mlit.go.jp/en/maritime/index.html",
+        "proposed": "https://www.mlit.go.jp/en/maritime/index.html",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+        "name": "Cranfield University – School of Management",
+        "current": "https://cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+        "proposed": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+        "itype": "academic_research"
+      },
+      {
+        "id": "1cb71636-fa0c-410a-9981-817b896709ca",
+        "name": "Monetary Authority of Singapore (MAS)",
+        "current": "https://mas.gov.sg",
+        "proposed": "https://www.mas.gov.sg",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+        "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+        "current": "https://mlit.go.jp/en",
+        "proposed": "https://www.mlit.go.jp/en",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "04061547-7d93-4f14-9d4d-e232121a6822",
+        "name": "Pennsylvania Public Utility Commission (PA PUC) – Motor Carrier Division",
+        "current": "https://puc.pa.gov/motor-carrier",
+        "proposed": "https://www.puc.pa.gov/motor-carrier",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+        "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+        "current": "https://customs.go.jp/english/index.htm",
+        "proposed": "https://www.customs.go.jp/english/index.htm",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "62323e04-77bd-428a-a881-f81cc6b78d7b",
+        "name": "Policy Research Institute for Land, Infrastructure, Transport and Tourism (PRILIT) / MLIT, Government of Japan",
+        "current": "https://mlit.go.jp/pri/english/houkoku/english_nendo.html",
+        "proposed": "https://www.mlit.go.jp/pri/english/houkoku/english_nendo.html",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "051c99be-3a75-4862-a5dd-fd3f7af64e2c",
+        "name": "National Heavy Vehicle Regulator (NHVR)",
+        "current": "https://nhvr.gov.au/",
+        "proposed": "https://www.nhvr.gov.au/",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "d5f9920c-d07a-46a1-9fc9-d563832b86df",
+        "name": "Tokyo Metropolitan Government Bureau of Environment (東京都環境局)",
+        "current": "https://kankyo.metro.tokyo.lg.jp/",
+        "proposed": "https://www.kankyo.metro.tokyo.lg.jp/",
+        "itype": "sectoral_regulator_ministry"
+      }
+    ],
+    "subdomainMoved": [
+      {
+        "id": "82a5c70e-cf83-498c-83d2-924e06ba9c81",
+        "name": "Ministerio de Transporte de Colombia",
+        "url": "https://transportesostenible.mintransporte.gov.co/normatividad-2",
+        "liveParent": "mintransporte.gov.co",
+        "code": "EAI_AGAIN",
+        "itype": "sectoral_regulator_ministry"
+      },
+      {
+        "id": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+        "name": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+        "url": "https://denr.sd.gov/",
+        "liveParent": "sd.gov",
+        "code": "ENOTFOUND",
+        "itype": "sectoral_regulator_ministry"
+      }
+    ],
+    "inconclusiveDns": [
+      {
+        "id": "54dbe02c-8025-4b0f-82e7-b19038be906b",
+        "name": "Sustainable Air Freight Alliance (SAFA)",
+        "url": "https://safa.aero",
+        "code": "EAI_AGAIN",
+        "itype": "industry"
+      },
+      {
+        "id": "8f7db0b5-d2b2-442f-93cd-877fb1fd0384",
+        "name": "Building Performance Standards Coalition",
+        "url": "https://buildingperformancestandards.org/",
+        "code": "EAI_AGAIN",
+        "itype": "industry"
+      },
+      {
+        "id": "5457d581-d325-4742-b07c-3eedaab29cae",
+        "name": "CNMI Bureau of Environmental and Coastal Quality (BECQ)",
+        "url": "https://becq.cnmi.gov/",
+        "code": "EAI_AGAIN",
+        "itype": "sectoral_regulator_ministry"
+      }
+    ]
+  }
+}

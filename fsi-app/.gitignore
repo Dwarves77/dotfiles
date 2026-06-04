@@ -49,3 +49,6 @@ supabase/seed/b2-progress.log
 
 # canonical-source discovery scratch (regeneratable from agent)
 canonical-flagged.json
+
+# runtime backfill checkpoints/logs (transient state)
+scripts/.a5-sonnet*
