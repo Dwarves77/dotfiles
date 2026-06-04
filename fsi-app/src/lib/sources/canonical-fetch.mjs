@@ -42,7 +42,11 @@ export async function browserlessFetch(url, options = {}) {
       renderBody.userAgent = userAgent;
       renderBody.setExtraHTTPHeaders = { "User-Agent": userAgent };
     }
-    const res = await fetch(`https://chrome.browserless.io/content?token=${key}`, {
+    // Base URL is configurable so upgrading to a paid plan (which uses a regional endpoint,
+    // e.g. https://production-sfo.browserless.io) or self-hosting needs only an env var, not a
+    // code change. Defaults to the free/legacy cloud endpoint.
+    const base = (process.env.BROWSERLESS_BASE_URL || "https://chrome.browserless.io").replace(/\/+$/, "");
+    const res = await fetch(`${base}/content?token=${key}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(renderBody),

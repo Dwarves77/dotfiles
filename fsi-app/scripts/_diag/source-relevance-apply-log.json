@@ -1,0 +1,111 @@
+{
+  "mode": "EXECUTE",
+  "at": "2026-06-04",
+  "suspends": [
+    {
+      "id": "095d2a2c-0e59-43c9-b759-c3a7d19ad71d",
+      "name": "Tokyo Metropolitan Assembly (東京都議会)",
+      "from": "active",
+      "to": "suspended"
+    }
+  ],
+  "urlFixes": [
+    {
+      "id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+      "name": "ClassNK Environmental",
+      "old": "https://classnk.or.jp/hp/en/activities/statutory/index.html",
+      "neu": "https://www.classnk.or.jp/hp/en/activities/statutory/index.html"
+    },
+    {
+      "id": "fdd32abd-4bb9-4d60-995c-5c13b8a70141",
+      "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+      "old": "https://mlit.go.jp/en/statistics/white-paper-mlit-index.html",
+      "neu": "https://www.mlit.go.jp/en/statistics/white-paper-mlit-index.html"
+    },
+    {
+      "id": "9b2c1d4f-f206-4e50-acd8-d9e1d95bef92",
+      "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+      "old": "https://mlit.go.jp/sogoseisaku/transport/content/001578180.pdf",
+      "neu": "https://www.mlit.go.jp/sogoseisaku/transport/content/001578180.pdf"
+    },
+    {
+      "id": "39b4489c-8c37-4620-9893-f8352423c2de",
+      "name": "Japan Ministry of Economy, Trade and Industry (METI)",
+      "old": "https://meti.go.jp",
+      "neu": "https://www.meti.go.jp"
+    },
+    {
+      "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+      "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+      "old": "https://env.go.jp/",
+      "neu": "https://www.env.go.jp/"
+    },
+    {
+      "id": "b737a500-8b9c-4928-84fb-b1028bd37852",
+      "name": "Northwest Territories Department of Environment and Climate Change",
+      "old": "https://gov.nt.ca/ecc",
+      "neu": "https://www.gov.nt.ca/ecc"
+    },
+    {
+      "id": "93cf5493-0351-4c9f-8a56-518cb39774d6",
+      "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT) – Maritime Bureau",
+      "old": "https://mlit.go.jp/en/maritime/index.html",
+      "neu": "https://www.mlit.go.jp/en/maritime/index.html"
+    },
+    {
+      "id": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+      "name": "Cranfield University – School of Management",
+      "old": "https://cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+      "neu": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management"
+    },
+    {
+      "id": "1cb71636-fa0c-410a-9981-817b896709ca",
+      "name": "Monetary Authority of Singapore (MAS)",
+      "old": "https://mas.gov.sg",
+      "neu": "https://www.mas.gov.sg"
+    },
+    {
+      "id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+      "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+      "old": "https://mlit.go.jp/en",
+      "neu": "https://www.mlit.go.jp/en"
+    },
+    {
+      "id": "04061547-7d93-4f14-9d4d-e232121a6822",
+      "name": "Pennsylvania Public Utility Commission (PA PUC) – Motor Carrier Division",
+      "old": "https://puc.pa.gov/motor-carrier",
+      "neu": "https://www.puc.pa.gov/motor-carrier"
+    },
+    {
+      "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+      "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+      "old": "https://customs.go.jp/english/index.htm",
+      "neu": "https://www.customs.go.jp/english/index.htm"
+    },
+    {
+      "id": "62323e04-77bd-428a-a881-f81cc6b78d7b",
+      "name": "Policy Research Institute for Land, Infrastructure, Transport and Tourism (PRILIT) / MLIT, Government of Japan",
+      "old": "https://mlit.go.jp/pri/english/houkoku/english_nendo.html",
+      "neu": "https://www.mlit.go.jp/pri/english/houkoku/english_nendo.html"
+    },
+    {
+      "id": "051c99be-3a75-4862-a5dd-fd3f7af64e2c",
+      "name": "National Heavy Vehicle Regulator (NHVR)",
+      "old": "https://nhvr.gov.au/",
+      "neu": "https://www.nhvr.gov.au/"
+    },
+    {
+      "id": "d5f9920c-d07a-46a1-9fc9-d563832b86df",
+      "name": "Tokyo Metropolitan Government Bureau of Environment (東京都環境局)",
+      "old": "https://kankyo.metro.tokyo.lg.jp/",
+      "neu": "https://www.kankyo.metro.tokyo.lg.jp/"
+    },
+    {
+      "id": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+      "name": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+      "old": "https://denr.sd.gov/",
+      "neu": "https://danr.sd.gov/"
+    }
+  ],
+  "halted": false
+}

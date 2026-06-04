@@ -19,6 +19,8 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { classifySourceRole } from "@/lib/sources/classify-source-role";
+import { checkVerticalFitGate } from "@/lib/sources/vertical-fit-gate";
 
 function getServiceClient() {
   return createClient(
@@ -106,13 +108,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Q10 DEDUP GUARD — seals the promote bypass (defect (a) of the source-layer fix).
+    // promote previously canonicalized the URL then inserted BLINDLY, with no existence
+    // check, so promoting the same provisional twice (or a URL another path already
+    // registered) minted a DUPLICATE source (e.g. MIT Climate Machine x2, identical URL).
+    // Robust resolve (bulk-approve philosophy): stored URLs may be legacy-non-canonical, so
+    // compare CANONICALLY in JS rather than a raw .eq that would miss them. Narrow candidates
+    // to the host, then canonicalize-compare. If a row matches, reuse it and mark the
+    // provisional promoted-to it — never create a second row.
+    const canonUrl = canonicalizeUrl(prov.url);
+    let canonHost = "";
+    try { canonHost = new URL(canonUrl).host; } catch { /* non-URL provisional URL */ }
+    const { data: hostMatches } = canonHost
+      ? await supabase.from("sources").select("id, url").ilike("url", `%${canonHost}%`)
+      : { data: [] };
+    const existingSource = (hostMatches || []).find((s) => canonicalizeUrl(s.url) === canonUrl) || null;
+    if (existingSource) {
+      await supabase
+        .from("provisional_sources")
+        .update({
+          status: "promoted",
+          promoted_to_source_id: existingSource.id,
+          reviewed_at: now,
+          reviewer_notes:
+            `${body.reviewerNotes || ""} [reused existing source ${existingSource.id.slice(0, 8)} — canonical URL already in registry; no duplicate created]`.trim(),
+        })
+        .eq("id", body.provisionalSourceId);
+      return NextResponse.json(
+        {
+          ok: true,
+          sourceId: existingSource.id,
+          reused: true,
+          message: "Canonical URL already in registry — reused existing source; no duplicate created.",
+        },
+        { headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+
+    // Vertical-fit GATE: block re-adding a source whose host was deliberately retired as
+    // off-vertical (the negative list). Legislatures are otherwise kept by default.
+    const gate = await checkVerticalFitGate(supabase, { name: prov.name, url: canonUrl });
+    if (!gate.allow) {
+      return NextResponse.json(
+        { ok: false, error: `vertical-fit gate: ${gate.reason}`, requiresReauthorization: true },
+        { status: 422, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+
     // Build the new source row from the provisional record + reviewer fields.
-    // Q10: canonicalize defensively — the provisional row's URL was canonicalized
-    // on insert post-migration 087, but a pre-migration row promoted now would
-    // still carry a non-canonical URL.
+    // source_role = WHAT the entity is (classified from name+url). category +
+    // intelligence_types DERIVE from it via the migration-123 trigger, so they are NOT set here
+    // (the old hardcoded intelligence_types:['GUIDE'] placeholder is gone — the trigger overrides).
     const newSource = {
       name: prov.name,
-      url: canonicalizeUrl(prov.url),
+      url: canonUrl,
+      source_role: classifySourceRole(prov.name, canonUrl),
       description: prov.description || "",
       // Phase 1.5: Q2 split. base_tier = operator promotion choice;
       // effective_tier initialized equal per Day 1 invariant.
@@ -126,7 +176,7 @@ export async function POST(request: NextRequest) {
       access_method: "scrape", // sane default; route handler decides per source later
       status: "active",
       update_frequency: "weekly",
-      intelligence_types: ["GUIDE"],
+      intelligence_types: [] as string[], // derived by the migration-123 trigger from category; never hardcoded
       vertical_tags: [],
       notes:
         `Promoted from provisional 2026-04-28 by reviewer ${auth.userId.slice(0, 8)}. ` +

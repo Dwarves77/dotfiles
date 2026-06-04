@@ -50,6 +50,7 @@ import {
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { urgencyScoreFromPriority } from "@/lib/urgency";
 import { asDomain, domainForItemType, ALL_DOMAINS, type Domain } from "@/lib/domains";
+import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 
 // ──────────────────────────────────────────────────────────────
 // Constants and validators
@@ -396,6 +397,14 @@ export async function POST(
     // ADR-008 (urgency_score default behavior; accepted 2026-05-21 Option C-bias):
     // explicit urgency_score derived from priority via PRIORITY_TO_URGENCY_SCORE
     // mapping. No silent schema default; F4 enforces.
+    // Entity-gate (source != item): a root/portal URL must NOT become an item, even when an
+    // admin promotes a community post that links one. Mirrors staged-updates + drain-first-fetch.
+    if (typeof itemPayload.source_url === "string" && urlIsRoot(itemPayload.source_url)) {
+      return NextResponse.json(
+        { error: `entity-gate: source_url ${itemPayload.source_url} is a portal/landing page (a SOURCE, not an item) — not promoted to an intelligence_item.` },
+        { status: 422 }
+      );
+    }
     const { data: item, error: itemErr } = await service
       .from("intelligence_items")
       .insert({
