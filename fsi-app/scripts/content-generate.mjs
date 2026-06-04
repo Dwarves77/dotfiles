@@ -43,6 +43,9 @@ const ONLY = (() => { const a = argv.find((x) => x.startsWith("--only=")); retur
 if (EXECUTE && !CONFIRM) { console.error("--execute requires --confirm"); process.exit(2); }
 
 const REG_TYPES = ["regulation", "directive", "standard", "guidance", "framework"];
+// --types=research_finding (etc.) targets a non-regulatory format; defaults to the regulatory set.
+// The system prompt is already format-aware (selects by item_type), so only the candidate filter changes.
+const TYPES = (() => { const a = argv.find((x) => x.startsWith("--types=")); return a ? a.split("=")[1].split(",") : REG_TYPES; })();
 const OFF = /city council|municipal|department directory|departments & bureaus|member directory|navigation error|portal$|agency portal|repository|congressional library|public health|legislative reference|statutes database|services directory|official portal|government structure|government service/i;
 const cleanCtl = (s) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 
@@ -68,7 +71,7 @@ try {
     `SELECT id, legacy_id, title, priority, item_type, source_id, source_url
        FROM intelligence_items WHERE is_archived=false AND provenance_status='quarantined'
         AND source_id IS NOT NULL AND source_url IS NOT NULL AND COALESCE(full_brief,'')=''
-        AND item_type = ANY($1) ORDER BY array_position(ARRAY['CRITICAL','HIGH','MODERATE','LOW'], priority)`, [REG_TYPES]);
+        AND item_type = ANY($1) ORDER BY array_position(ARRAY['CRITICAL','HIGH','MODERATE','LOW'], priority)`, [TYPES]);
   let targets = cand.filter((it) => !withSec.has(it.id) && !OFF.test(it.title || ""));
   if (ONLY) targets = targets.filter((it) => ONLY.includes(it.legacy_id) || ONLY.some((o) => it.id.startsWith(o)));
   targets = targets.slice(0, LIMIT);
