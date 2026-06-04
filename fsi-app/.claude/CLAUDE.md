@@ -29,7 +29,7 @@ Reference for the pattern: `fsi-app/scripts/pr-a1-investigate.mjs` (read-only in
 
 ## Standing dispatch-inventory rule (in force from 2026-05-20)
 
-**Every Caro's Ledge dispatch begins with a skill-inventory pass before any other work.** The agent inventories the 5 custom platform skills (`caros-ledge-platform-intent`, `sprint-followups-discipline`, `source-credibility-model`, `environmental-policy-and-innovation`, `remediation-discipline`) plus the load-bearing superpowers (`verification-before-completion` always; `writing-plans` + `executing-plans` for 3+ dispatch coordinations; `dispatching-parallel-agents`, `using-git-worktrees`, `subagent-driven-development`, `finishing-a-development-branch` as the dispatch context warrants).
+**Every Caro's Ledge dispatch begins with a skill-inventory pass before any other work.** The agent inventories the 6 custom platform skills (`caros-ledge-platform-intent`, `sprint-followups-discipline`, `source-credibility-model`, `environmental-policy-and-innovation`, `remediation-discipline`, `analysis-construction-spec`) plus the load-bearing superpowers (`verification-before-completion` always; `writing-plans` + `executing-plans` for 3+ dispatch coordinations; `dispatching-parallel-agents`, `using-git-worktrees`, `subagent-driven-development`, `finishing-a-development-branch` as the dispatch context warrants).
 
 Each custom skill carries a `when_to_load:` block in its YAML frontmatter listing the triggering conditions. The agent scans those blocks against the dispatch's scope and loads every skill whose triggers fire. Cross-skill load is additive, not exclusive: multiple skills typically apply to one dispatch.
 
