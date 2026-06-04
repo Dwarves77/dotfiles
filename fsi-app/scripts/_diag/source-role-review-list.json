@@ -1,0 +1,433 @@
+{
+  "at": "2026-06-04",
+  "note": "classifier-vs-stored mismatches; NOT auto-applied (classifier regresses Council-of-EU/NREL/ICAP). Deliberate review owed BEFORE Market build.",
+  "count": 71,
+  "mismatches": [
+    {
+      "id": "4a956756-9117-451e-b3f1-1e976dd79e39",
+      "name": "EcoVadis",
+      "from": "vendor_corporate",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "5ba23288-e27e-47ee-a2de-3b65cd9bfa97",
+      "name": "Measurabl — Building Benchmarking Tracker",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "e1cf70bc-7981-4c83-b9f3-bae57b035cee",
+      "name": "Carbon Pulse",
+      "from": "trade_press",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "f81c2cd0-2627-4e92-aa07-478ef395c2a2",
+      "name": "Gallery Climate Coalition (research)",
+      "from": "academic_research",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "6d184dc2-fc25-403f-b14d-32f48637aac8",
+      "name": "Carbon Trust",
+      "from": "statistical_data_agency",
+      "proposed": "academic_research"
+    },
+    {
+      "id": "c5038439-a2bc-42a0-9dec-d5ee136f351a",
+      "name": "Press Information Bureau, Government of India (PIB)",
+      "from": "government_press",
+      "proposed": "primary_legal_authority"
+    },
+    {
+      "id": "0e59fd78-9354-4631-995a-b1e2d852df67",
+      "name": "ScienceDirect (Elsevier)",
+      "from": "academic_research",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "00d006cf-33ec-4439-be45-3a51ee1849a3",
+      "name": "Julie's Bicycle",
+      "from": "industry_association",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "bb2dbe84-d48d-4883-a586-b8bd724d3719",
+      "name": "Hydrogen Insight",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "60898344-665a-43cf-baed-b8311c10817a",
+      "name": "Smart Freight Centre",
+      "from": "academic_research",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "63f65853-8fc0-455d-b352-be0d77cc0d25",
+      "name": "ICAP Emissions Trading Status Report",
+      "from": "primary_legal_authority",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "d5aadce8-c12b-44e5-93ed-91995f271737",
+      "name": "Thomson Reuters Regulatory Intelligence",
+      "from": "industry_data_provider",
+      "proposed": "trade_press"
+    },
+    {
+      "id": "a6b20a8a-e6a9-41aa-9c6c-0f38b71016ba",
+      "name": "EcoVadis",
+      "from": "vendor_corporate",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+      "name": "ClassNK Environmental",
+      "from": "standards_body",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "bec1a090-c849-4e78-b463-f7f34e64afb6",
+      "name": "International Council on Clean Transportation (ICCT)",
+      "from": "statistical_data_agency",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "576516c6-899e-4a82-b83b-a63bf44cb20a",
+      "name": "MarineTraffic",
+      "from": "primary_legal_authority",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "3f7ad273-3503-4c15-aba1-11729f0725cc",
+      "name": "U.S. Bureau of Labor Statistics / Federal Reserve Bank of St. Louis (FRED)",
+      "from": "primary_legal_authority",
+      "proposed": "statistical_data_agency"
+    },
+    {
+      "id": "0e633b61-70ab-4886-80b8-66ef93d20497",
+      "name": "U.S. Department of State",
+      "from": "industry_association",
+      "proposed": "primary_legal_authority"
+    },
+    {
+      "id": "fbbacc94-d511-4f3e-8738-64f861ed2851",
+      "name": "Council of the European Union",
+      "from": "primary_legal_authority",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "d223ee3b-b3d3-46af-b213-0a9533a7533e",
+      "name": "NREL PVWatts Calculator",
+      "from": "academic_research",
+      "proposed": "statistical_data_agency"
+    },
+    {
+      "id": "98ea1dbe-6ddf-4af9-bb13-9420d13c3fae",
+      "name": "CleanTechnica",
+      "from": "trade_press",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "56a5763d-95f8-4af9-831a-ef7738ca8b62",
+      "name": "Lloyd's Register Foundation (lrfoundation.org.uk)",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "ef347aa7-6dc2-40b8-ac18-6555f964c037",
+      "name": "BREEAM (BRE Global)",
+      "from": "primary_legal_authority",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "9bc66c9e-b95a-4444-ad74-9182d5703661",
+      "name": "Miami City Commission",
+      "from": "primary_legal_authority",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "7fd006b9-e51a-4adc-b92d-8a8a48654168",
+      "name": "International Institute for Conservation (IIC)",
+      "from": "industry_association",
+      "proposed": "academic_research"
+    },
+    {
+      "id": "413c42ec-ff72-4a5b-a85a-ff5c1bf532fd",
+      "name": "European Sea Ports Organisation (ESPO) / EcoPorts",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "92c05577-d85d-4a07-91a4-88d2f24fb5e6",
+      "name": "Smart Freight Centre",
+      "from": "academic_research",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "1361fa34-d4c1-41e5-a99a-6e937880fa8f",
+      "name": "H2Accelerate Collaboration (industry consortium: Daimler Truck, Volvo Group, Iveco, Shell, Linde, TotalEnergies, TEAL Mobility, Hyundai Hydrogen Mobility, et al.)",
+      "from": "vendor_corporate",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "68fe7082-3b95-4a5a-a9d8-5d5ac3529524",
+      "name": "Maritime Carbon Intelligence",
+      "from": "trade_press",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "bf630add-6c5a-4c0b-9984-2f66fc8efc6b",
+      "name": "DNV Maritime Regulatory Updates",
+      "from": "standards_body",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "58fb7e21-b1b3-4b51-8606-dfad928d157d",
+      "name": "National Renewable Energy Laboratory (NREL)",
+      "from": "academic_research",
+      "proposed": "primary_legal_authority"
+    },
+    {
+      "id": "8344c305-bd30-4fea-a2cf-fd51424fb177",
+      "name": "U.S. Department of Energy (DOE) – Alternative Fuels Data Center (AFDC)",
+      "from": "primary_legal_authority",
+      "proposed": "academic_research"
+    },
+    {
+      "id": "c7cee2e1-1d6c-4e7f-95d0-944de3e4a1d7",
+      "name": "The Aspen Institute",
+      "from": "statistical_data_agency",
+      "proposed": "academic_research"
+    },
+    {
+      "id": "2e1ca35a-97fa-46bb-a719-27c36d613f58",
+      "name": "National Renewable Energy Laboratory (NREL)",
+      "from": "academic_research",
+      "proposed": "primary_legal_authority"
+    },
+    {
+      "id": "cd7ed847-c50f-44a5-b946-a66e29692a8d",
+      "name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)",
+      "from": "statistical_data_agency",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "5aa6c2c0-2778-4359-b683-55cb8144efbf",
+      "name": "Smart Freight Centre",
+      "from": "statistical_data_agency",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "790b6557-0cd2-48ea-8635-22d42fa3b023",
+      "name": "UNFCCC",
+      "from": "industry_association",
+      "proposed": "intergovernmental_body"
+    },
+    {
+      "id": "1ceff300-5831-4f4a-b437-160bd7c25e6e",
+      "name": "NREL NSRDB National Solar Radiation Database",
+      "from": "academic_research",
+      "proposed": "statistical_data_agency"
+    },
+    {
+      "id": "91128f76-b322-4315-b0f2-5b189958d1db",
+      "name": "Smart Freight Centre",
+      "from": "academic_research",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "81f10615-1e7e-4646-9fd4-e576a38fd232",
+      "name": "InsideEVs",
+      "from": "trade_press",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "bb8954b0-c4fa-4387-9cff-3e5c4c0f8768",
+      "name": "CDP Supply Chain",
+      "from": "industry_data_provider",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "6a4fbc59-5412-4541-a9a3-eeb155b15cc6",
+      "name": "ESG Today",
+      "from": "trade_press",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "5ef07695-889c-40f8-a488-00b2f702f5b1",
+      "name": "Carbon Trust",
+      "from": "statistical_data_agency",
+      "proposed": "academic_research"
+    },
+    {
+      "id": "20fb520a-38d2-4c68-928c-e359d9ff5d41",
+      "name": "Electrek",
+      "from": "trade_press",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "4fdb662c-3ab1-4987-b754-5530c9e511e1",
+      "name": "EcoVadis",
+      "from": "vendor_corporate",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "584a0085-e145-4a53-8918-a77630845b59",
+      "name": "Vides aizsardzības un reģionālās attīstības ministrija (VARAM)",
+      "from": "primary_legal_authority",
+      "proposed": "intergovernmental_body"
+    },
+    {
+      "id": "beecae98-5bdb-4513-8215-eaa3ce8bf0d1",
+      "name": "U.S. Green Building Council (USGBC)",
+      "from": "statistical_data_agency",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "9de14df4-98a8-4c16-ace4-652178024f6b",
+      "name": "DP World (dpworld.com)",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "2e34415c-4afc-44dd-8c2b-9e137afbe31d",
+      "name": "Lloyd's Register Maritime Decarbonisation Hub (thedecarbhub.org)",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "a0efc8f6-940f-4807-b568-ba8d9e883ea8",
+      "name": "Lloyd's Register Group (lr.org)",
+      "from": "standards_body",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "a2d25d50-0bb7-4b7c-8cda-e37d26803e8e",
+      "name": "EcoVadis",
+      "from": "vendor_corporate",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "fb877c31-51f3-4ae7-9c03-13f88771fd8f",
+      "name": "International Carbon Action Partnership (ICAP)",
+      "from": "intergovernmental_body",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "8d26629e-9b60-43c0-bf2f-f14189bcb9d6",
+      "name": "ICAP Allowance Price Explorer",
+      "from": "primary_legal_authority",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "867e2609-8a91-4fda-b731-b25f8f77c0f3",
+      "name": "Yara International ASA",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "5a70d4a5-27af-4b11-9a6c-d4d193731c4e",
+      "name": "Aviation Week Network (Informa)",
+      "from": "trade_press",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "d888d3a0-4fac-406e-9997-3e888c450354",
+      "name": "McKinsey Sustainability",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "62323e04-77bd-428a-a881-f81cc6b78d7b",
+      "name": "Policy Research Institute for Land, Infrastructure, Transport and Tourism (PRILIT) / MLIT, Government of Japan",
+      "from": "primary_legal_authority",
+      "proposed": "academic_research"
+    },
+    {
+      "id": "259dc287-2130-4341-95a4-6b5a06a76104",
+      "name": "City of Miami — Office of Resilience & Sustainability",
+      "from": "primary_legal_authority",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "3654fc96-0f23-43d7-8fe9-8403fed5f927",
+      "name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)",
+      "from": "statistical_data_agency",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "89c7b905-596f-4274-bc15-09b8182166c8",
+      "name": "Bureau Veritas Marine & Offshore",
+      "from": "standards_body",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "971e661f-4c7b-4639-98cd-3489e7150d5a",
+      "name": "Project Drawdown (drawdown.org)",
+      "from": "statistical_data_agency",
+      "proposed": "academic_research"
+    },
+    {
+      "id": "04014768-151f-4adf-91ff-b29e4113cc00",
+      "name": "NREL System Advisor Model (SAM)",
+      "from": "academic_research",
+      "proposed": "primary_legal_authority"
+    },
+    {
+      "id": "b13504d2-68e3-44dd-9ce0-2ba1e3519860",
+      "name": "DP World (dpworld.com)",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "1a5e8577-f280-47ef-af24-334576472cde",
+      "name": "Packaging Europe",
+      "from": "statistical_data_agency",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "81c57c2c-09c1-4428-a272-547a668e979b",
+      "name": "Council of the European Union Press",
+      "from": "primary_legal_authority",
+      "proposed": "trade_press"
+    },
+    {
+      "id": "dcaf69fa-d9fd-4bd8-b462-041e1d4dc386",
+      "name": "U.S. Green Building Council (USGBC)",
+      "from": "statistical_data_agency",
+      "proposed": "industry_association"
+    },
+    {
+      "id": "6f698bf0-8e67-4432-83d1-83f9daff7283",
+      "name": "EcoVadis",
+      "from": "vendor_corporate",
+      "proposed": "standards_body"
+    },
+    {
+      "id": "d9f534eb-84aa-4a61-9a9c-3badb922f68c",
+      "name": "ABS Sustainability",
+      "from": "standards_body",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "d8d21ad5-47b3-4839-b9ea-9afa392c4f20",
+      "name": "European Commission Press Corner",
+      "from": "government_press",
+      "proposed": "trade_press"
+    },
+    {
+      "id": "290e66c9-a757-4be6-ab68-a40414ec33b6",
+      "name": "Office of the City Clerk of Chicago",
+      "from": "primary_legal_authority",
+      "proposed": "vendor_corporate"
+    },
+    {
+      "id": "d9424b30-ca5a-4e6e-bb52-6b2a319c9402",
+      "name": "Philadelphia City Council",
+      "from": "primary_legal_authority",
+      "proposed": "industry_association"
+    }
+  ]
+}
