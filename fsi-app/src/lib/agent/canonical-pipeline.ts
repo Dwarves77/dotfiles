@@ -28,6 +28,10 @@ import { growSourcesFromBrief } from "@/lib/sources/source-growth";
 
 const REG_FORMATS = new Set(["regulation", "directive", "standard", "guidance", "framework"]);
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
+// Strip markdown emphasis markers (* _ ~) glued to the END of a URL — the synthesis wraps URLs in
+// emphasis (*https://x/*), and the URL-grounding regex (validate_item_provenance criterion 2) would
+// otherwise capture the trailing marker and fail to match the grounded url. Never part of a real URL.
+const stripUrlMarkers = (s: string | null | undefined) => (s == null ? s : String(s).replace(/(https?:\/\/[^\s)\]}"'<>*_~]+)[*_~]+/g, "$1"));
 const urlsIn = (md: string) => [...new Set((String(md || "").match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
 
 function svc(): SupabaseClient {
@@ -136,9 +140,17 @@ Follow your output contract exactly: brief body, then the Claim Provenance Ledge
 SOURCE CONTENT (copy FACT spans verbatim from here — ${fetched.length} sources):
 ${blocks}`;
   const parsed = parseAgentOutput(await callSonnet(SYSTEM_PROMPT, user));
-  const body = (parsed.body || "").trim();
+  const body = stripUrlMarkers((parsed.body || "").trim()) as string;
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
   await sb.from("intelligence_items").update({ full_brief: cleanCtl(body), updated_at: new Date().toISOString() }).eq("id", itemId);
+
+  // Persist the fetched multi-source pool so grounding verifies FACT spans against the SAME content
+  // generate synthesised from — no independent re-fetch that fails on PDF/Cloudflare. Replace any
+  // prior pool for this item (a regeneration starts a fresh pool).
+  await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
+  for (let i = 0; i < fetched.length; i++) {
+    await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:generate-pool", result_url: fetched[i].url, result_title: "generate pool source", result_index: i, result_content_excerpt: cleanCtl(fetched[i].text), searched_at: new Date().toISOString() });
+  }
   return { ok: true, detail: `brief ${body.length}ch synthesised from ${fetched.length} sources (${corroborators.length} discovered via web_search)` };
 }
 
@@ -154,10 +166,11 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
   }
   const rows = extractResearchSections(it.full_brief);
   if (!rows.length) return { ok: false, detail: "no sections extracted" };
+  // Replace stale sections from a prior generation (a re-gen may emit fewer/renamed sections).
+  await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
   for (const s of rows) {
-    await sb.from("intelligence_item_sections").upsert(
-      { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: s.content_md, is_conditional: s.is_conditional },
-      { onConflict: "item_id,section_key" }
+    await sb.from("intelligence_item_sections").insert(
+      { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: s.content_md, is_conditional: s.is_conditional }
     );
   }
   return { ok: true, detail: `${rows.length} sections` };
@@ -175,9 +188,28 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   if (!secs?.length) return { ok: false, detail: "no sections" };
   const { data: slots } = await sb.from("item_type_required_slots").select("slot_key, description").eq("item_type", it.item_type);
   const sectionMap = Object.fromEntries(secs.map((s) => [String(s.section_key), s.id]));
-  const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
-  const fetched = (await Promise.all(groundUrls.map(async (u) => ({ url: u, text: await fetchText(u, 16000) })))).filter((b) => b.text.length > 200);
-  if (!fetched.length) return { ok: false, detail: "no fetchable grounding content" };
+  // Grounding corpus = the pool generate already fetched + stored (the SAME content the brief was
+  // synthesised from), so a source that is unfetchable on re-check (PDF/Cloudflare) does not break
+  // grounding. Fall back to fetching the section/source URLs only when no stored pool exists.
+  const { data: pool } = await sb.from("agent_run_searches").select("id, result_url, result_content_excerpt").eq("intelligence_item_id", itemId);
+  let fetched: Array<{ url: string; text: string }>;
+  let searchRows: Array<{ id: string; result_url: string }>;
+  const searchIds: string[] = [];
+  let ownSearches = false;
+  if (pool && pool.length) {
+    fetched = pool.map((r) => ({ url: r.result_url as string, text: (r.result_content_excerpt as string) || "" })).filter((b) => b.text.length > 200);
+    searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
+  } else {
+    const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
+    fetched = (await Promise.all(groundUrls.map(async (u) => ({ url: u, text: await fetchText(u, 16000) })))).filter((b) => b.text.length > 200);
+    searchRows = [];
+    ownSearches = true;
+    for (let i = 0; i < fetched.length; i++) {
+      const { data: r } = await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical ground", result_url: fetched[i].url, result_title: "source", result_index: i, result_content_excerpt: fetched[i].text, searched_at: new Date().toISOString() }).select("id, result_url").single();
+      if (r) { searchIds.push(r.id); searchRows.push({ id: r.id, result_url: r.result_url }); }
+    }
+  }
+  if (!fetched.length) return { ok: false, detail: "no grounding content (no generate pool; nothing fetchable)" };
   const excByUrl = Object.fromEntries(fetched.map((b) => [b.url, b.text]));
   const allText = fetched.map((b) => b.text).join(" ").toLowerCase();
   const system = `You extract a Claim Provenance Ledger for a brief. Output ONLY the ledger.
@@ -190,14 +222,9 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   const user = `BRIEF SECTIONS:\n${secs.map((s) => `### SECTION ${s.section_key}\n${(s.content_md || "").slice(0, 2200)}`).join("\n\n")}\n\n====\nSOURCE CONTENT (copy spans VERBATIM):\n${fetched.map((b, i) => `### SOURCE ${i + 1} url=${b.url}\n${b.text.slice(0, 16000)}`).join("\n\n")}`;
   let claims;
   try { claims = extractClaimLedger(await callSonnet(system, user)); } catch (e) { return { ok: false, detail: `ledger rejected: ${(e as Error).message.slice(0, 60)}` }; }
+  for (const cl of claims) { if (cl.source_url) cl.source_url = stripUrlMarkers(cl.source_url) as string; }
   const kept = claims.filter((cl) => cl.claim_kind !== "FACT" ? true : cl.source_span ? (excByUrl[cl.source_url ?? ""] || allText).toLowerCase().includes(String(cl.source_span).toLowerCase().trim()) : false);
 
-  const searchIds: string[] = [];
-  const searchRows: Array<{ id: string; result_url: string }> = [];
-  for (let i = 0; i < fetched.length; i++) {
-    const { data: r } = await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical ground", result_url: fetched[i].url, result_title: "source", result_index: i, result_content_excerpt: fetched[i].text, searched_at: new Date().toISOString() }).select("id, result_url").single();
-    if (r) { searchIds.push(r.id); searchRows.push({ id: r.id, result_url: r.result_url }); }
-  }
   const linked = crossLinkClaimSources(kept, searchRows);
   const claimIds: string[] = [];
   for (const c2 of linked) {
@@ -211,7 +238,9 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   if (vr?.valid) return { ok: true, detail: `grounded kept=${kept.length} -> ${vr.recommended_status}` };
   // manual rollback: the brief did not validate (or the RPC failed) — remove the just-inserted rows.
   if (claimIds.length) await sb.from("section_claim_provenance").delete().in("id", claimIds);
-  if (searchIds.length) await sb.from("agent_run_searches").delete().in("id", searchIds);
+  // Only delete searches THIS step created (fallback path). The generate-stored pool is left intact
+  // so a re-ground attempt still has the corpus.
+  if (ownSearches && searchIds.length) await sb.from("agent_run_searches").delete().in("id", searchIds);
   const why = vrErr ? `rpc error: ${vrErr.message}` : `validation failed: ${JSON.stringify(vr?.failures ?? "no result")}`;
   return { ok: false, detail: why.slice(0, 140) };
 }

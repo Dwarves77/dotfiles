@@ -97,7 +97,7 @@ const runId = body.runId;
 // grow runs AFTER the verified flip, so keep polling until citations settle too.
 console.log(`\npolling for auto-triggered chain (runId ${runId}) ...`);
 let flipped = false, grew = false, last = "";
-for (let i = 0; i < 50; i++) {
+for (let i = 0; i < 75; i++) {
   await sleep(6000);
   const { data: it } = await admin.from("intelligence_items").select("provenance_status, full_brief").eq("id", item.id).single();
   const { count: scp } = await admin.from("section_claim_provenance").select("id", { count: "exact", head: true }).eq("intelligence_item_id", item.id);
