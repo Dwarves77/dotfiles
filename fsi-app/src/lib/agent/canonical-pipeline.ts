@@ -137,6 +137,10 @@ Synthesise ACROSS ALL the source blocks below — do NOT rely on the primary sou
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
 Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.
 Ground every FACT claim's source_span as a VERBATIM substring of one of the SOURCE blocks below; set source_url to THAT block's url. HARD RULE: a FACT claim's source_url MUST be one of the SOURCE block urls actually provided below — never a URL you only saw while searching. A source you know of but that is NOT among the blocks below may be listed under "## New Sources Identified" as a lead for later retrieval, but MUST NOT be used as a FACT source_url or source_span; carry its content as a labeled "Analytical inference:" or omit it. Item source_id for the primary FACT source_id: ${it.source_id}.${discoveredHint}
+VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED if violated:
+- Label EVERY analytical / interpretive sentence at its start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". Unlabeled analysis is rejected.
+- In UNLABELED prose do NOT use binding-obligation verbs (must, requires, mandates, obligates, prohibits, "applies to") — they read as ungrounded regulatory assertions. For a research finding use descriptive phrasing ("the study finds", "emissions fall when", "the pathway depends on"); if a prescriptive statement is needed, either quote it VERBATIM from a SOURCE block (so it grounds as a FACT) or prefix it with an analysis label.
+- Every URL anywhere in the brief MUST be copied exactly from a SOURCE block url or the discovered-corroborators list — no wildcards, no markdown emphasis around URLs, no invented paths.
 Follow your output contract exactly: brief body, then the Claim Provenance Ledger, then the YAML frontmatter, including a "## New Sources Identified" table of the corroborating sources you used.
 
 SOURCE CONTENT (copy FACT spans verbatim from here — ${fetched.length} sources):
@@ -232,6 +236,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
 - Emit one block: a line "<<<CLAIM_PROVENANCE_LEDGER", a JSON array, a line "CLAIM_PROVENANCE_LEDGER>>>".
 - Record: {"section","claim_text","claim_kind","source_span","source_id","source_url","slot_key"}.
 - FACT: source_span MUST be VERBATIM copied char-for-char from a SOURCE block; source_id = "${it.source_id}".
+- ANALYSIS: emit claim_kind "ANALYSIS" ONLY for a statement the brief text EXPLICITLY labels with "Analytical inference:", "Industry interpretation:" or "Operational implication:". Set claim_text to that labeled sentence (so it appears verbatim in the section). NEVER mark unlabeled prose as ANALYSIS — if it has a verbatim source span it is FACT, otherwise omit it.
 - Cover EACH required slot with >=1 FACT or GAP claim (set slot_key):\n${(slots ?? []).map((s) => `- ${s.slot_key}: ${s.description}`).join("\n")}
 - For EVERY section (${secs.map((s) => s.section_key).join(", ")}) with must/requires/shall/applies/mandates/prohibits/obligates, emit >=1 FACT claim with "section" set + a verbatim span.
 - No verbatim span for a slot -> claim_kind "GAP", source_span null. Never invent spans. CLOSE with CLAIM_PROVENANCE_LEDGER>>>.`;
@@ -239,7 +244,21 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   let claims;
   try { claims = extractClaimLedger(await callSonnet(system, user)); } catch (e) { return { ok: false, detail: `ledger rejected: ${(e as Error).message.slice(0, 60)}` }; }
   for (const cl of claims) { if (cl.source_url) cl.source_url = stripUrlMarkers(cl.source_url) as string; }
-  const kept = claims.filter((cl) => cl.claim_kind !== "FACT" ? true : cl.source_span ? (excByUrl[cl.source_url ?? ""] || allText).toLowerCase().includes(String(cl.source_span).toLowerCase().trim()) : false);
+  // Mirror validate_item_provenance criteria so every INSERTED claim already passes the gate:
+  //  - FACT: source_span must be a verbatim substring of fetched content (criterion 3).
+  //  - ANALYSIS: claim_text must appear verbatim in a section that ALSO carries an analysis label
+  //    (criterion 4) — drop a paraphrased/unlabeled ANALYSIS claim rather than fail the whole item.
+  const ANALYSIS_LABELS = ["analytical inference", "industry interpretation", "operational implication"];
+  const sectionTextsLc = secs.map((s) => (s.content_md || "").toLowerCase());
+  const analysisGrounded = (claimText: string | null | undefined) => {
+    const ct = String(claimText || "").toLowerCase().trim();
+    return ct.length > 0 && sectionTextsLc.some((t) => ANALYSIS_LABELS.some((l) => t.includes(l)) && t.includes(ct));
+  };
+  const kept = claims.filter((cl) => {
+    if (cl.claim_kind === "FACT") return cl.source_span ? (excByUrl[cl.source_url ?? ""] || allText).toLowerCase().includes(String(cl.source_span).toLowerCase().trim()) : false;
+    if (cl.claim_kind === "ANALYSIS") return analysisGrounded(cl.claim_text);
+    return true; // GAP / other kinds carry no span/label obligation
+  });
 
   const linked = crossLinkClaimSources(kept, searchRows);
   const claimIds: string[] = [];
