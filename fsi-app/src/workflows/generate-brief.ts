@@ -55,7 +55,7 @@ async function recordRun(sb: SupabaseClient, itemId: string, label: string, cost
     source_id: it?.source_id ?? null,
     source_url: it?.source_url ?? null,
     fetch_method: `canonical:${label}`,
-    status: ok ? "completed" : "failed",
+    status: ok ? "success" : "error",
     cost_usd_estimated: costUsd,
     ended_at: new Date().toISOString(),
     errors: ok ? [] : [{ step: label, detail }],
