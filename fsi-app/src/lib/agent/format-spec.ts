@@ -32,6 +32,11 @@ export interface SectionDef {
   key: string;
   order: number;
   heading: string;
+  /** Alternate headings the agent may legitimately emit for the SAME section (e.g. the in-progress
+   *  Research S1 "What the Research Is Investigating", or a "(+ forward timing)" suffix variant). The
+   *  extractor tries `heading` first, then each alt — so a valid heading variant is never silently
+   *  dropped (the heading-trap that quarantines good briefs). */
+  headingAlts?: string[];
   conditional: boolean;
 }
 

@@ -15,7 +15,13 @@ export function makeProseExtractor(sections: SectionDef[]) {
     if (!fullBrief) return [];
     const rows: SectionRow[] = [];
     for (const sec of sections) {
-      const got = extractSectionByHeading(fullBrief, sec.heading);
+      // Try the canonical heading first, then any alternates, so a legitimate heading variant the
+      // agent emits (in-progress S1, suffixed S5, …) resolves instead of silently dropping the section.
+      let got = extractSectionByHeading(fullBrief, sec.heading);
+      for (const alt of sec.headingAlts ?? []) {
+        if (got && (got.contentMarkdown || "").trim()) break;
+        got = extractSectionByHeading(fullBrief, alt);
+      }
       const body = (got?.contentMarkdown || "").trim();
       if (!body) continue;
       if (/^\*?no content for this section/i.test(body)) continue; // honest omission note -> no row

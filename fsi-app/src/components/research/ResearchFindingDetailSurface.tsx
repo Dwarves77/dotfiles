@@ -9,35 +9,31 @@
  * Stat / KV / SideCard primitives), but the section content reflects
  * the Research domain rather than the regulation domain.
  *
- * Sections per Phase 5 dispatch:
- *   - Hero card (deck, source attribution, severity pill, theme pill,
- *     published date)
- *   - Summary panel with short ↔ full toggle (short = item.note /
- *     row.summary; full = item.fullBrief markdown when present, else
- *     the same summary echoed for honesty)
- *   - Methodology panel (paragraphs from item.note / summary; documented
- *     fallback when the schema lacks a dedicated methodology column —
- *     see "Methodology section choice" comment below)
- *   - Sources panel with source attribution + local SourceTierLegend
- *   - Related findings panel: items sharing the same theme; falls back
- *     to items from the same source when theme is NULL on most rows
+ * Sprint 4 / author-dispatch: now SECTION-AWARE. When `sections` are
+ * supplied (intelligence_item_sections rows from the canonical pipeline),
+ * the main content panel renders the 6 Research Summary sections via
+ * <ResearchSections> (analogous to <RegulationSections> on the
+ * regulations detail page), replacing the raw full_brief markdown view.
  *
- * Severity + theme vocabularies match ResearchView.tsx exactly so the
- * detail view shows the same pills the index card showed.
+ * The prior raw-markdown fallback (short ↔ full toggle) is preserved and
+ * renders ONLY when sections is empty — honest empty state over silent gap.
  *
- * Methodology section choice (documented per dispatch ambiguity clause):
- *   The intelligence_items schema has no dedicated "methodology" column.
- *   ResearchView's index uses `summary` (item.note in Resource shape)
- *   for the body text. For the detail view's Methodology block we render
- *   item.fullBrief when present (a 6-section Research Summary brief under
- *   the current SKILL contract), and fall back to item.whyMatters /
- *   item.whatIsIt / item.note in that order. When nothing useful exists
- *   the section is omitted (Integrity Rule).
+ * Layout:
+ *   - Hero card (deck, source attribution, severity pill, theme pill, date)
+ *   - Stat strip (Published + Citations)
+ *   - Main panel: ResearchSections (when present) OR short-summary + full-
+ *     brief toggle (legacy fallback)
+ *   - Sources panel (primary source + tier legend)
+ *   - Related findings panel (same theme, else same source)
+ *
+ * Severity + theme vocabularies match ResearchView.tsx exactly.
  */
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
+import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
+import { ProseSection } from "@/components/regulations/sections/ProseSection";
 
 interface RelatedFinding {
   id: string;
@@ -54,6 +50,127 @@ interface Props {
   // stays a plain renderer.
   related: RelatedFinding[];
   relatedReason: "theme" | "source" | "none";
+  /**
+   * Sprint 4: parsed Research Summary sections from intelligence_item_sections.
+   * When non-empty, renders the 6 structured section cards (section-aware mode).
+   * Empty array falls back to the raw full_brief markdown toggle (legacy).
+   */
+  sections?: IntelligenceItemSectionRow[];
+}
+
+// ── Research section-aware renderer (analogous to RegulationSections) ──
+//
+// Renders the 6 Research Summary sections from intelligence_item_sections rows.
+// Section keys "1"–"6" map to the canonical Research Summary headings per
+// analysis-construction-spec SKILL.md §7 and system-prompt.ts lines 213-220.
+// Each section is a SectionCard with a prose body (ProseSection-style inline
+// markdown). The Sources section (key "6") is rendered as a plain source list.
+//
+// Integrity-preserving: rows with empty content_md produce no card. The block
+// returns null when no known-key rows exist, so the parent can fall through to
+// the legacy brief toggle.
+
+const RESEARCH_SECTION_HEADINGS: Record<string, string> = {
+  "1": "What the Research Found",
+  "2": "Why This Finding Matters Operationally and Commercially",
+  "3": "What the Finding Changes for Strategy, Claims, or Decisions",
+  "4": "Client Conversation Talking Points and Public Position",
+  "5": "What the Finding Does Not Resolve",
+  "6": "Sources",
+};
+
+const KNOWN_RESEARCH_KEYS = new Set(["1", "2", "3", "4", "5", "6"]);
+
+function ResearchSections({ rows }: { rows: IntelligenceItemSectionRow[] }) {
+  const known = rows.filter(
+    (r) => KNOWN_RESEARCH_KEYS.has(r.section_key) && (r.content_md || "").trim()
+  );
+  if (known.length === 0) return null;
+
+  return (
+    <div>
+      {known.map((row) => {
+        const heading = RESEARCH_SECTION_HEADINGS[row.section_key] || `Section ${row.section_key}`;
+        return (
+          <ResearchSectionCard
+            key={row.section_key}
+            sectionKey={row.section_key}
+            heading={heading}
+            contentMd={row.content_md}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function ResearchSectionCard({
+  sectionKey,
+  heading,
+  contentMd,
+}: {
+  sectionKey: string;
+  heading: string;
+  contentMd: string;
+}) {
+  return (
+    <section
+      id={`research-section-${sectionKey}`}
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-md, 6px)",
+        marginBottom: 14,
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+      }}
+    >
+      {/* Section header — numbered badge + heading label */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "14px 22px",
+          background: "var(--color-bg-raised)",
+          borderBottom: "1px solid var(--color-border-subtle, var(--color-border))",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 13,
+            fontWeight: 400,
+            letterSpacing: "0.08em",
+            color: "#fff",
+            background: "var(--color-primary)",
+            padding: "4px 10px",
+            borderRadius: 3,
+            minWidth: 36,
+            textAlign: "center",
+            lineHeight: 1.1,
+          }}
+        >
+          S{sectionKey}
+        </span>
+        <span
+          style={{
+            fontSize: 13.5,
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--color-text-primary)",
+          }}
+        >
+          {heading}
+        </span>
+      </div>
+      {/* Section body — shared generic prose renderer (reused, not re-implemented). */}
+      <div style={{ padding: "18px 22px 22px" }}>
+        <ProseSection markdown={contentMd} />
+      </div>
+    </section>
+  );
 }
 
 // ── Severity vocabulary (mirrors ResearchView.tsx, kept local so the
@@ -446,26 +563,21 @@ export function ResearchFindingDetailSurface({
   resource: r,
   related,
   relatedReason,
+  sections = [],
 }: Props) {
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const themeKey = useMemo(() => assignTheme(r), [r]);
   const [briefMode, setBriefMode] = useState<"short" | "full">("short");
 
-  // Summary text. Short = the index-card summary (item.note ← summary
-  // column). Full = the markdown brief if one exists; otherwise the same
-  // short text (the toggle still renders so the affordance is consistent
-  // with /regulations, but the full body is honest rather than padded).
+  // Section-aware mode: sections from intelligence_item_sections take
+  // precedence over raw full_brief when non-empty. The section rows are
+  // already ordered by section_order from the server fetch.
+  const hasSections = sections.length > 0;
+
+  // Legacy fallback values (used when hasSections is false).
   const shortText = r.note || r.whyMatters || r.whatIsIt || "";
   const fullText = r.fullBrief || shortText;
   const hasFull = !!r.fullBrief && r.fullBrief.length > shortText.length;
-
-  // Methodology body. See "Methodology section choice" comment at top of
-  // file — we prefer fullBrief, then whyMatters, then whatIsIt, then
-  // summary. Omitted entirely when none of those have content.
-  const methodologyBody =
-    (r.whyMatters && r.whyMatters.length > 0 ? r.whyMatters : null) ||
-    (r.whatIsIt && r.whatIsIt.length > 0 ? r.whatIsIt : null) ||
-    null;
 
   const tier = r.sourceTier;
   const sourceName = r.sourceName || null;
@@ -624,81 +736,105 @@ export function ResearchFindingDetailSurface({
         `}</style>
 
         <div>
-          {/* Summary */}
-          {shortText && (
-            <BriefSection title="Summary">
-              {hasFull && (
+          {/* Section-aware content: 6 Research Summary sections from the
+              canonical pipeline. Renders when sections are available (Sprint 4).
+              Each section is a numbered card (S1–S6) matching the Research
+              Summary format per analysis-construction-spec SKILL.md §7. */}
+          {hasSections ? (
+            <>
+              <ResearchSections rows={sections} />
+              {/* Honest empty-state affordance when sections are present but
+                  a specific key is missing — the ResearchSections component
+                  silently omits absent/empty rows (integrity-preserving). The
+                  block-level empty state below fires only when ALL rows are
+                  empty, which ResearchSections already handles by returning null. */}
+            </>
+          ) : (
+            <>
+              {/* Legacy fallback: short ↔ full brief toggle. Renders only
+                  when no sections are available yet (pre-generation items or
+                  items that have not been re-processed through the canonical
+                  pipeline). Honest empty state when both shortText and fullText
+                  are absent. */}
+              {shortText ? (
+                <BriefSection title="Summary">
+                  {hasFull && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 0,
+                        marginBottom: 14,
+                        borderBottom: "1px solid var(--color-border-subtle, var(--color-border))",
+                      }}
+                    >
+                      {(["short", "full"] as const).map((m) => {
+                        const active = briefMode === m;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setBriefMode(m)}
+                            style={{
+                              padding: "8px 14px",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                              color: active
+                                ? "var(--color-primary)"
+                                : "var(--color-text-secondary)",
+                              borderBottom: `2px solid ${
+                                active ? "var(--color-primary)" : "transparent"
+                              }`,
+                              cursor: "pointer",
+                              background: "transparent",
+                              border: 0,
+                              borderBottomWidth: 2,
+                              borderBottomStyle: "solid",
+                              borderBottomColor: active
+                                ? "var(--color-primary)"
+                                : "transparent",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            {m === "short" ? "Short" : "Full"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 1.7,
+                      color: "var(--color-text-primary)",
+                      whiteSpace: briefMode === "full" ? "pre-wrap" : "normal",
+                    }}
+                  >
+                    {briefMode === "full" ? fullText : shortText}
+                  </div>
+                </BriefSection>
+              ) : (
+                /* Honest empty: sections not yet generated for this item. */
                 <div
                   style={{
-                    display: "flex",
-                    gap: 0,
                     marginBottom: 14,
-                    borderBottom: "1px solid var(--color-border-subtle, var(--color-border))",
+                    padding: "12px 16px",
+                    background:
+                      "var(--color-surface-raised, var(--color-bg-raised))",
+                    border: "1px solid var(--color-border-subtle, var(--color-border))",
+                    borderLeft: "3px solid var(--color-text-muted)",
+                    borderRadius: "var(--radius-sm, 4px)",
+                    fontSize: 13,
+                    lineHeight: 1.55,
+                    color: "var(--color-text-muted)",
                   }}
                 >
-                  {(["short", "full"] as const).map((m) => {
-                    const active = briefMode === m;
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setBriefMode(m)}
-                        style={{
-                          padding: "8px 14px",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          color: active ? "var(--color-primary)" : "var(--color-text-secondary)",
-                          borderBottom: `2px solid ${active ? "var(--color-primary)" : "transparent"}`,
-                          cursor: "pointer",
-                          background: "transparent",
-                          border: 0,
-                          borderBottomWidth: 2,
-                          borderBottomStyle: "solid",
-                          borderBottomColor: active ? "var(--color-primary)" : "transparent",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        {m === "short" ? "Short" : "Full"}
-                      </button>
-                    );
-                  })}
+                  Detailed sections pending for this finding; brief generation
+                  in progress.
                 </div>
               )}
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: "var(--color-text-primary)",
-                  whiteSpace: briefMode === "full" ? "pre-wrap" : "normal",
-                }}
-              >
-                {briefMode === "full" ? fullText : shortText}
-              </div>
-            </BriefSection>
-          )}
-
-          {/* Methodology — only when at least one usable narrative field
-              has content. Documented choice: the schema lacks a dedicated
-              methodology column; this renders the "Why it matters" body
-              as the closest available substitute, falling back to
-              "What it is", and omits the section when nothing is
-              available (Integrity Rule). */}
-          {methodologyBody && (
-            <BriefSection title="Methodology">
-              <p
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: "var(--color-text-primary)",
-                  margin: 0,
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {methodologyBody}
-              </p>
-            </BriefSection>
+            </>
           )}
 
           {/* Sources */}

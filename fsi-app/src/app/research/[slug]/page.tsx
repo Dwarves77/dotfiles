@@ -18,7 +18,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
-import { fetchIntelligenceItem } from "@/lib/supabase-server";
+import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 
@@ -103,6 +103,13 @@ export default async function ResearchFindingDetailPage({
   }
 
   const { resource: r } = detail;
+
+  // Sprint 4: fetch section rows for section-aware display. Uses the same
+  // id-or-legacy_id slug the item was resolved with. fetchIntelligenceItemSections
+  // handles UUID resolution and provenance gating internally. Returns [] on
+  // any error or when no sections have been generated yet (the surface renders
+  // the legacy brief toggle in that case).
+  const sections = await fetchIntelligenceItemSections(id);
 
   // Related findings — server-side selection.
   //
@@ -225,6 +232,7 @@ export default async function ResearchFindingDetailPage({
         resource={r}
         related={related}
         relatedReason={relatedReason}
+        sections={sections}
       />
     </>
   );
