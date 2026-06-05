@@ -10,7 +10,7 @@ when_to_load:
   - "Borderline: default to load when building, grounding, or displaying any non-regulatory brief. Loads alongside environmental-policy-and-innovation (authoritative for regulatory + shared rules) and caros-ledge-platform-intent."
 ---
 
-# Caro's Ledge, Analysis Construction Spec and Build Contract, v2.1
+# Caro's Ledge, Analysis Construction Spec and Build Contract, v2.2
 Single instruction set for Claude Code. Covers every brief-driven customer surface.
 v2 changes: grounding model added as a fifth, per-section declaration; Operations reframed as a
 gated data-sourcing program; workspace-anchoring clarified as a surface operation; competitive-
@@ -18,6 +18,10 @@ section sparseness calibrated; exemplar reframed as spec validation, not only QA
 v2.1 changes: upstream-classification precondition stated; scope tightened to brief-driven surfaces
 (Community owned by its own workstream); the No-Vacuum Rule promoted to a first-class directional
 principle, paired with the Context Rule.
+v2.2 changes: the Forward-Intelligence Rule gains a fifth point — the workspace's participation /
+engagement pathway is now a durable ACTION + COMPETITIVE-lens output requirement (how to join the
+trial / consortium / consultation, the window, the edge of joining early), not only a JOLT-regen
+behaviour. Reporting who else participates is insufficient; the brief must state how the reader gets in.
 
 ## Why this exists
 The regulatory format already has a detailed construction spec in the brief-formats skill
@@ -149,6 +153,17 @@ update of an existing item, across all formats:
    right time. The brief GENERATES NOW with the forward picture; only the outcome update is deferred
    to the trigger. Sufficiency counts forward intelligence (intent, participants, expected window)
    as CORE grounding — a forward brief that surfaces it scores RICH, not thin.
+5. Surface the WORKSPACE's PARTICIPATION / ENGAGEMENT PATHWAY as a first-class ACTION + COMPETITIVE-lens
+   output. Reporting WHO is already participating (point 1) is not enough. When in-progress work has an
+   OPEN DOOR — a trial recruiting operators, a consortium taking members, a consultation accepting
+   responses, a pilot or standard-setting / working group forming — state HOW the workspace can get in,
+   the WINDOW to do so, and the COMPETITIVE EDGE of joining before rivals (early operational data,
+   shaping the rule before it binds, preferred-supplier signalling to clients). This is the platform's
+   proactive value made actionable: knowing what is coming AND how to be in it early, not merely
+   watching it. When there is no public way in, say so ("no public participation route identified as of
+   [date]") rather than dropping the lens — absence is itself intelligence. (Validated on the JOLT
+   research exemplar: the brief named the trial's operator cohort and the route for an operator to
+   join, emitted as an action-lens move, not buried as background.)
 
 ---
 

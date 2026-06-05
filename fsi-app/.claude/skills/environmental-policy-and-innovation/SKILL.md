@@ -28,7 +28,7 @@ When facts run out, the agent stops. It does not improvise.
 
 If a section has no facts to populate it, the section is omitted with an explanatory note, not filled with plausible-sounding content. If a fact is needed but cannot be confirmed from a primary or reputable secondary source, the fact is labeled unconfirmed or the analysis is flagged as a research gap.
 
-The agent's job is synthesis of verified content, not generation of plausible content. A brief with 6 of 14 sections honestly populated is correct. A brief with all 14 sections populated through invention is wrong.
+The agent's job is synthesis of verified content, not generation of plausible content. A brief with 6 of 15 sections honestly populated is correct. A brief with all 15 sections populated through invention is wrong.
 
 The agent reads as a regulatory analyst who knows what they don't know, not as a content generator that fills space. The reader, a legal counsel or operations lead, must be able to trust every claim. Unsupported claims destroy the value of the entire brief.
 
@@ -42,7 +42,7 @@ Specific applications of the integrity rule:
 - No invented supplier relationships, contract terms, or financing structures. Procurement realities come from supplier announcements, operator press releases, or industry reporting only.
 - No legal interpretation. Items requiring legal review are labeled "Legal Confirmation Required." The agent never presents an inference as confirmed legal fact in a contested or unsettled area. The agent states what the regulation says, where the regulation is silent, and where authoritative guidance addresses the gap. The agent does not fill the gap.
 - No filled cause-and-effect chains where the effect isn't sourced. The chain must be sourced at every link. If the cause is sourced but the effect on a specific cargo vertical isn't, the agent says "effect on [vertical] requires carrier-specific data" rather than inventing the effect.
-- No completion bias. A brief with 8 of 14 sections honestly populated is correct. A brief with all 14 sections populated through invention is wrong.
+- No completion bias. A brief with 8 of 15 sections honestly populated is correct. A brief with all 15 sections populated through invention is wrong.
 - Explicit gap labeling. When facts on a topic don't fully answer the analytical question, the agent presents the facts and states what is unresolved. "The regulation defines X but does not address Y. No authoritative guidance has been published as of [date]." Not "X means Y."
 - No invented anticipated events. The anticipated-guidance section is populated only from announced or scheduled events with sourced dates.
 - Source classification at every claim. The 6-level source hierarchy is applied to every claim, not just the sources list.
@@ -187,7 +187,7 @@ The skill produces four format families plus the regulatory fact document. Each 
 
 ### Format Mapping
 
-- regulation, directive, standard, guidance, framework: Regulatory Fact Document (14 sections, conditional)
+- regulation, directive, standard, guidance, framework: Regulatory Fact Document (15 sections, conditional)
 - technology, innovation, tool: Technology Profile (8 sections)
 - regional_data: Operations Profile (8 sections)
 - market_signal, initiative: Market Signal Brief (8 sections)
@@ -197,9 +197,11 @@ Section counts above are maximums. Sections without grounded content are omitted
 
 ---
 
-## Regulatory Fact Document (14 sections, conditional)
+## Regulatory Fact Document (15 sections, conditional)
 
 For: regulation, directive, standard, guidance, framework
+
+This format has 15 numbered sections: 14 content sections (1–14) plus Section 15 Sources. It was historically labeled "14-section" when Sources was treated as an appendix rather than a numbered section; the canonical count is 15. Most sections are conditional — a brief renders only the sections it can honestly ground, and the integrity rule means a partial brief is correct, not deficient.
 
 The reader question: what does this regulation require, where does the workspace sit in the compliance chain, what is decided versus what is unresolved, and what does the workspace do now?
 
@@ -318,7 +320,7 @@ Each source: title, issuing body, date, URL.
 
 Sections 5, 6, 7, 9, 12, 13 are conditional. They appear only when grounded content exists. Section 8 expands or contracts based on the regulation's substantive scope. Sections 1, 2, 3, 4, 10, 11, 14, 15 are always present.
 
-A new regulation with no authoritative guidance, no anticipated events, no threshold questions in dispute, no workspace-specific products, no exemptions, and no adjacent research, would publish with 8 of 14 sections (1, 2, 3, 4, 8, 10, 11, 14, 15). That is correct. The brief is honest about what is known.
+A new regulation with no authoritative guidance, no anticipated events, no threshold questions in dispute, no workspace-specific products, no exemptions, and no adjacent research, would publish with 9 of the 15 sections (1, 2, 3, 4, 8, 10, 11, 14, 15). That is correct. The brief is honest about what is known.
 
 ---
 
@@ -822,6 +824,8 @@ When the user says "update the skill," the agent:
 8. Delivers as a downloadable file for upload to /mnt/skills/user/environmental-policy-and-innovation/
 
 ## Changelog
+
+2026-06-05: Section-count consistency. The Regulatory Fact Document was labeled "14 sections" in the format header and the integrity-rule examples while the section bodies define Sections 1–15 (Section 15 Sources). The canonical count is 15 (14 content sections 1–14 + Section 15 Sources); the "14" labels were stale (they counted only content sections). Reconciled all count references to 15, and corrected the worked example from "8 of 14 sections (1,2,3,4,8,10,11,14,15)" — which listed 9 numbers — to "9 of the 15 sections." No section was added or removed; only the count labels and the one miscount were fixed.
 
 2026-04-29: Phase B.2.5 — intersection-readiness contract. Extended the YAML emission contract from 9 fields to 13 fields with four new intersection-readiness fields: operational_scenario_tags (open vocabulary, 0-5 tags, ~36-value core glossary across ocean / air / road / customs-trade / carbon-ETS / reporting / packaging-products), compliance_object_tags (closed vocabulary, 0-4 tags, 18 supply-chain roles spanning carriers / vehicle operators / forwarders-intermediaries / cargo principals / infrastructure operators), related_items (UUID array of intelligence_items the agent recognised as related during composition; integrity rule applies — no invented UUIDs), and intersection_summary (≤1500 chars markdown describing how this item interacts with linked items). Added the Intersection Detection section documenting the system feature: pairs sharing ≥1 operational_scenario_tag AND ≥1 compliance_object_tag are detected automatically, ranked by strength score (+3/scenario, +2/compliance object, +5 for explicit related_items linkage, +2 if both items priority CRITICAL/HIGH), canonicalized so each pair appears once. Added 7 Topic Categories closed-vocabulary documentation and Operational Scenario Tags open-vocabulary core glossary. Bumped regeneration_skill_version from "2026-04-28" to "2026-04-29".
 
