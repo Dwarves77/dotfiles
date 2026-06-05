@@ -111,8 +111,9 @@ export async function registerCitedSources(
 }
 
 /** Record citation edges. Each corroborating source (citing) -> the subject source (cited).
- *  Dedupe is at scoring time (aggregateConvergence); edges stay a faithful audit log. The
- *  syndication group (when known) is stored in `context` as `syndication:<key>`. */
+ *  IDEMPOTENT: an edge already present (same citing+cited pair) is skipped, so regenerating a brief
+ *  does not duplicate the audit log. (Convergence scoring dedups too, but the edge log must stay
+ *  faithful across re-gens.) The syndication group (when known) is stored in `context`. */
 export async function recordCitations(
   supabase: SupabaseClient,
   edges: Array<{ citing_source_id: string; cited_source_id: string; syndication_group?: string | null }>
@@ -120,6 +121,9 @@ export async function recordCitations(
   let n = 0;
   for (const e of edges) {
     if (e.citing_source_id === e.cited_source_id) continue; // no self-citation
+    const { data: existing } = await supabase.from("source_citations")
+      .select("id").eq("citing_source_id", e.citing_source_id).eq("cited_source_id", e.cited_source_id).limit(1);
+    if (existing && existing.length) continue; // edge already recorded — idempotent re-gen
     const context = e.syndication_group ? `syndication:${e.syndication_group}` : "brief-citation";
     const { error } = await supabase.from("source_citations").insert({ citing_source_id: e.citing_source_id, cited_source_id: e.cited_source_id, context });
     if (!error) n++;

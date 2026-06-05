@@ -24,14 +24,16 @@ import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedger, crossLinkClaimSources } from "@/lib/agent/parse-output";
 import { extractResearchSections } from "@/lib/agent/extract-research-sections";
-import { growSourcesFromBrief } from "@/lib/sources/source-growth";
+import { growSourcesFromBrief, parseNewSourcesFromBrief } from "@/lib/sources/source-growth";
 
 const REG_FORMATS = new Set(["regulation", "directive", "standard", "guidance", "framework"]);
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
-// Strip markdown emphasis markers (* _ ~) glued to the END of a URL — the synthesis wraps URLs in
-// emphasis (*https://x/*), and the URL-grounding regex (validate_item_provenance criterion 2) would
-// otherwise capture the trailing marker and fail to match the grounded url. Never part of a real URL.
-const stripUrlMarkers = (s: string | null | undefined) => (s == null ? s : String(s).replace(/(https?:\/\/[^\s)\]}"'<>*_~]+)[*_~]+/g, "$1"));
+// Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
+// (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
+// would otherwise capture the trailing marker and fail to match the grounded url. ONLY '*' and the
+// backtick are stripped — '_' and '~' are VALID URL characters (e.g. .../landmark-...-04-11_en) and
+// stripping them would corrupt real URLs.
+const stripUrlMarkers = (s: string | null | undefined) => (s == null ? s : String(s).replace(/(https?:\/\/[^\s)\]}"'<>*`]+)[*`]+/g, "$1"));
 const urlsIn = (md: string) => [...new Set((String(md || "").match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
 
 function svc(): SupabaseClient {
@@ -180,12 +182,26 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
 export async function groundBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url").eq("id", itemId).single();
+  const { data: it } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
   if (!it?.source_id) return { ok: false, detail: "no source_id" };
   const { count: existing } = await sb.from("section_claim_provenance").select("id", { count: "exact", head: true }).eq("intelligence_item_id", itemId);
   if (existing && existing > 0) return { ok: true, detail: "already grounded" };
   const { data: secs } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
   if (!secs?.length) return { ok: false, detail: "no sections" };
+  // Record the brief's surfaced sources as cited-URL searches so criterion-2 URL grounding (EXACT-URL
+  // match) accepts the corroborator URLs the brief cites — they are real, web_search-discovered URLs in
+  // the brief's New Sources table. registerCitedSources (in grow) is host-deduped and would NOT make an
+  // exact path on a known host (iea.org/reports/...) grounded; an exact-URL agent_run_searches row does.
+  // FACT-span grounding (criterion 3) still uses only the FETCHED pool's real content — these stubs are
+  // <200ch so groundBrief's >200 filter excludes them from the span corpus — so a cited-only URL can
+  // never ground a FACT. grow still registers + compounds these sources afterwards.
+  try {
+    for (const cs of parseNewSourcesFromBrief(it.full_brief || "")) {
+      const u = stripUrlMarkers(cs.url) as string;
+      const { data: ex } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", u).limit(1);
+      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-source", result_url: u, result_title: cs.name, result_index: 90, result_content_excerpt: cs.name.slice(0, 280), searched_at: new Date().toISOString() });
+    }
+  } catch { /* non-fatal */ }
   const { data: slots } = await sb.from("item_type_required_slots").select("slot_key, description").eq("item_type", it.item_type);
   const sectionMap = Object.fromEntries(secs.map((s) => [String(s.section_key), s.id]));
   // Grounding corpus = the pool generate already fetched + stored (the SAME content the brief was
