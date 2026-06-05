@@ -9,20 +9,23 @@
  * regulations detail (hero card, stat strip, 2-col grid with right rail,
  * `cl-card` primitives, Anton section headings, semantic tokens).
  *
- * Sections:
- *   - Hero: severity pill + signal-band pill + type pill + published date,
- *           title-area metadata (mode chips, tags), deck/note, source line
- *   - Stat strip: Severity + Signal band (always); Published date if present
- *   - Summary panel: short/full toggle (short = `whatIsIt` or `note`;
- *     full = `fullBrief` markdown via IntelligenceBrief)
- *   - What it changes: r.whyMatters || r.reasoning narrative
- *   - Trajectory: bars rendered ONLY when band === "price". Other bands skip
- *     the section. Per dispatch: signals don't carry explicit trajectory
- *     data on the row today; we surface a stub bar series + an honest
- *     "Trajectory data not yet available" empty-state when the row has no
- *     marketData price snapshot (see code comment near TrajectoryPanel).
- *   - Related signals: items in the same band, max 5
- *   - Sources panel: primary source link + tier badge + SourceTierLegend
+ * Sprint 4 — SECTION-AWARE: when `sections` are supplied (rows from
+ * intelligence_item_sections for this item), the main panel renders the 8
+ * Market Signal Brief sections via <MarketSections>, using the shared
+ * ProseSection primitive (imported from
+ * @/components/regulations/sections/ProseSection). The prior Summary panel
+ * (short/full toggle) renders ONLY when sections is empty — honest empty
+ * state over silent gap.
+ *
+ * No-Vacuum (S3): when the item's `conversionTrigger` or `crossReferences`
+ * callout is populated, a "Linked regulation / trigger" block is shown,
+ * mirroring the S3 No-vacuum rule in analysis-construction-spec SKILL.md §6.
+ *
+ * Corroboration note: if the page passes `convergence` with non-zero
+ * `independent_citers`, a small "Corroboration: N independent sources" note
+ * is rendered in the hero card. When absent or zero, the note is omitted.
+ * The count comes exclusively from sources.independent_citers (the real
+ * source-growth convergence engine — aggregateConvergence). No proxy.
  *
  * Band + severity helpers are re-implemented here (MarketPage's helpers
  * are not exported and the dispatch forbids modifying MarketPage). When
@@ -35,9 +38,11 @@ import { Sparkles } from "lucide-react";
 import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
+import { ProseSection } from "@/components/regulations/sections/ProseSection";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import type { Resource } from "@/types/resource";
+import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 
 interface Props {
   resource: Resource;
@@ -45,6 +50,23 @@ interface Props {
    *  signals in the same band. The parent route fetches via
    *  getMarketIntelItems and passes the result here. */
   relatedPool: Resource[];
+  /**
+   * Sprint 4: parsed Market Signal Brief sections from intelligence_item_sections.
+   * When non-empty, renders the 8 structured section cards (section-aware mode).
+   * Empty array falls back to the legacy summary panel / brief toggle.
+   */
+  sections?: IntelligenceItemSectionRow[];
+  /**
+   * Real source-growth convergence from sources.independent_citers /
+   * sources.confirmation_count (aggregateConvergence output, migration 054
+   * columns). When provided with independent_citers > 0, a small corroboration
+   * note is shown in the hero card. When absent or zero, the note is omitted.
+   * NEVER derived from sources_used.length or any proxy.
+   */
+  convergence?: {
+    independent_citers: number;
+    confirmation_count: number;
+  } | null;
 }
 
 // ── Severity vocabulary (5-label, mirrors MarketPage) ─────────────────
@@ -180,11 +202,150 @@ const TIER_DEFINITIONS = [
   { tier: 5, label: "Trade press", color: "var(--text-2)" },
 ];
 
+// ── Market Signal Brief section headings ─────────────────────────────
+//
+// Keys "1"–"8" map to the canonical Market Signal Brief headings per
+// analysis-construction-spec SKILL.md §6 and system-prompt.ts lines 202–209.
+// These MUST match the headings the system prompt emits so the extractor
+// routes sections correctly.
+
+const MARKET_SECTION_HEADINGS: Record<string, string> = {
+  "1": "What's Moving and What Triggered It",
+  "2": "Who's Driving It and What They Want",
+  "3": "Expected Trajectory and Conversion Triggers",
+  "4": "Operational and Cost Implications If It Materializes",
+  "5": "Competitive Implications",
+  "6": "Client Conversation Talking Points",
+  "7": "What the Workspace Should Do Now",
+  "8": "Sources",
+};
+
+const KNOWN_MARKET_KEYS = new Set(["1", "2", "3", "4", "5", "6", "7", "8"]);
+
+// ── Section-aware renderer (analogous to ResearchSections) ────────────
+//
+// Renders the 8 Market Signal Brief sections from intelligence_item_sections
+// rows. Each section is a numbered card with a prose body rendered via the
+// shared ProseSection (reused, not re-implemented). Rows with empty
+// content_md are silently omitted (integrity-preserving). Returns null when
+// no known-key rows have content, so the parent falls back to the legacy
+// summary panel.
+
+function MarketSectionCard({
+  sectionKey,
+  heading,
+  contentMd,
+}: {
+  sectionKey: string;
+  heading: string;
+  contentMd: string;
+}) {
+  return (
+    <section
+      id={`market-section-${sectionKey}`}
+      style={{
+        background: "var(--color-surface, var(--surface))",
+        border: "1px solid var(--color-border, var(--border))",
+        borderRadius: "var(--radius-md, 6px)",
+        marginBottom: 14,
+        boxShadow: "var(--shadow-card, var(--shadow))",
+        overflow: "hidden",
+      }}
+    >
+      {/* Section header — numbered badge + heading label */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "14px 22px",
+          background: "var(--color-bg-raised, var(--bg))",
+          borderBottom: "1px solid var(--color-border-subtle, var(--border-sub))",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 13,
+            fontWeight: 400,
+            letterSpacing: "0.08em",
+            color: "#fff",
+            background: "var(--color-primary, var(--accent))",
+            padding: "4px 10px",
+            borderRadius: 3,
+            minWidth: 36,
+            textAlign: "center",
+            lineHeight: 1.1,
+          }}
+        >
+          S{sectionKey}
+        </span>
+        <span
+          style={{
+            fontSize: 13.5,
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--color-text-primary, var(--text))",
+          }}
+        >
+          {heading}
+        </span>
+      </div>
+      {/* Section body — shared generic prose renderer (reused, not re-implemented). */}
+      <div style={{ padding: "18px 22px 22px" }}>
+        <ProseSection markdown={contentMd} />
+      </div>
+    </section>
+  );
+}
+
+function MarketSections({ rows }: { rows: IntelligenceItemSectionRow[] }) {
+  const known = rows.filter(
+    (r) => KNOWN_MARKET_KEYS.has(r.section_key) && (r.content_md || "").trim()
+  );
+  if (known.length === 0) return null;
+
+  return (
+    <div>
+      {known.map((row) => {
+        const heading =
+          MARKET_SECTION_HEADINGS[row.section_key] || `Section ${row.section_key}`;
+        return (
+          <MarketSectionCard
+            key={row.section_key}
+            sectionKey={row.section_key}
+            heading={heading}
+            contentMd={row.content_md}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────
 
-export function MarketSignalDetailSurface({ resource: r, relatedPool }: Props) {
+export function MarketSignalDetailSurface({
+  resource: r,
+  relatedPool,
+  sections = [],
+  convergence = null,
+}: Props) {
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const band = useMemo(() => assignBand(r), [r]);
+
+  // Section-aware mode: sections from intelligence_item_sections take
+  // precedence over the legacy summary toggle when non-empty. Rows are
+  // already ordered by section_order from the server fetch.
+  const hasSections = sections.length > 0;
+
+  // Corroboration: render ONLY when convergence carries a real non-zero
+  // independent_citers count from the source-growth engine. Never proxy.
+  const independentCiters =
+    convergence && convergence.independent_citers > 0
+      ? convergence.independent_citers
+      : null;
 
   // Related: same band, exclude self, cap at 5.
   const related = useMemo(() => {
@@ -362,6 +523,32 @@ export function MarketSignalDetailSurface({ resource: r, relatedPool }: Props) {
             ))}
           </div>
         )}
+
+        {/* Corroboration note — rendered ONLY when sources.independent_citers
+            is populated and non-zero (real source-growth convergence from
+            aggregateConvergence / compoundSourceCredibility). Absent or zero
+            → note omitted entirely. No proxy; no sources_used.length. */}
+        {independentCiters !== null && (
+          <div
+            style={{
+              marginTop: 12,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11.5,
+              color: "var(--color-text-muted, var(--muted))",
+              background: "var(--color-bg-raised, var(--bg))",
+              border: "1px solid var(--color-border-subtle, var(--border-sub))",
+              borderRadius: 4,
+              padding: "4px 10px",
+            }}
+          >
+            <span style={{ fontWeight: 700, color: "var(--color-primary, var(--accent))" }}>
+              {independentCiters}
+            </span>
+            {" "}independent source{independentCiters === 1 ? "" : "s"} corroborate this signal
+          </div>
+        )}
       </div>
 
       {/* Stat strip — Severity + Signal band + Published */}
@@ -411,44 +598,123 @@ export function MarketSignalDetailSurface({ resource: r, relatedPool }: Props) {
         `}</style>
 
         <div>
-          {/* Summary panel — short/full toggle */}
-          {(r.whatIsIt || r.note || r.fullBrief) && (
-            <SummaryPanel
-              shortText={r.whatIsIt || r.note || ""}
-              fullBrief={r.fullBrief}
-            />
+          {/* Section-aware content: 8 Market Signal Brief sections from the
+              canonical pipeline. Renders when sections are available (Sprint 4).
+              Each section is a numbered card (S1–S8) matching the Market Signal
+              Brief format per analysis-construction-spec SKILL.md §6. */}
+          {hasSections ? (
+            <>
+              <MarketSections rows={sections} />
+              {/* Honest block-level empty-state fires only when ALL rows are
+                  absent/empty — MarketSections already handles that by returning null.
+                  No duplicate empty-state needed; ResearchFindingDetailSurface uses
+                  the same approach. */}
+              {sections.length > 0 &&
+                sections.every((s) => !(s.content_md || "").trim()) && (
+                  <div
+                    style={{
+                      marginBottom: 14,
+                      padding: "12px 16px",
+                      background: "var(--color-surface-raised, var(--color-bg-raised, var(--surface)))",
+                      border: "1px solid var(--color-border-subtle, var(--border-sub))",
+                      borderLeft: "3px solid var(--color-text-muted, var(--muted))",
+                      borderRadius: "var(--radius-sm, 4px)",
+                      fontSize: 13,
+                      lineHeight: 1.55,
+                      color: "var(--color-text-muted, var(--muted))",
+                    }}
+                  >
+                    Detailed sections pending for this signal; brief generation in
+                    progress.
+                  </div>
+                )}
+            </>
+          ) : (
+            <>
+              {/* Legacy fallback: summary + brief toggle. Renders only when
+                  no sections are available yet (pre-generation items). */}
+              {(r.whatIsIt || r.note || r.fullBrief) && (
+                <SummaryPanel
+                  shortText={r.whatIsIt || r.note || ""}
+                  fullBrief={r.fullBrief}
+                />
+              )}
+
+              {/* What it changes — so-what narrative (legacy fallback only) */}
+              {(r.whyMatters || r.reasoning) && (
+                <BriefSection title="What it changes">
+                  {r.reasoning && (
+                    <div
+                      style={{
+                        borderLeft: "3px solid var(--color-primary, var(--accent))",
+                        paddingLeft: 16,
+                        fontSize: 14.5,
+                        lineHeight: 1.7,
+                        margin: "0 0 16px",
+                        color: "var(--color-text-primary, var(--text))",
+                      }}
+                    >
+                      {r.reasoning}
+                    </div>
+                  )}
+                  {r.whyMatters && (
+                    <p
+                      style={{
+                        fontSize: 14,
+                        lineHeight: 1.7,
+                        margin: 0,
+                        color: "var(--color-text-primary, var(--text))",
+                      }}
+                    >
+                      {r.whyMatters}
+                    </p>
+                  )}
+                </BriefSection>
+              )}
+            </>
           )}
 
-          {/* What it changes — so-what narrative */}
-          {(r.whyMatters || r.reasoning) && (
-            <BriefSection title="What it changes">
-              {r.reasoning && (
-                <div
-                  style={{
-                    borderLeft: "3px solid var(--color-primary, var(--accent))",
-                    paddingLeft: 16,
-                    fontSize: 14.5,
-                    lineHeight: 1.7,
-                    margin: "0 0 16px",
-                    color: "var(--color-text-primary, var(--text))",
-                  }}
-                >
-                  {r.reasoning}
-                </div>
-              )}
-              {r.whyMatters && (
-                <p
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 1.7,
-                    margin: 0,
-                    color: "var(--color-text-primary, var(--text))",
-                  }}
-                >
-                  {r.whyMatters}
-                </p>
-              )}
-            </BriefSection>
+          {/* No-Vacuum (S3): linked-regulation / conversion-trigger block.
+              Per analysis-construction-spec SKILL.md §6, S3 "Expected Trajectory
+              and Conversion Triggers" frequently links a specific Regulation item.
+              Render this block whenever conversionTrigger or crossReferences is
+              present on the row — regardless of section-aware vs legacy mode.
+              These are migration 110 callout columns on intelligence_items,
+              projected to Resource.conversionTrigger / Resource.crossReferences. */}
+          {(r.conversionTrigger || r.crossReferences) && (
+            <div
+              style={{
+                marginBottom: 14,
+                padding: "14px 18px",
+                background: "var(--color-bg-raised, var(--bg))",
+                border: "1px solid var(--color-border, var(--border))",
+                borderLeft: "4px solid var(--color-primary, var(--accent))",
+                borderRadius: "var(--radius-md, 6px)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--color-primary, var(--accent))",
+                  marginBottom: 6,
+                }}
+              >
+                {r.crossReferences ? "Linked regulations" : "Conversion trigger"}
+              </div>
+              <p
+                style={{
+                  fontSize: 13.5,
+                  lineHeight: 1.55,
+                  color: "var(--color-text-primary, var(--text))",
+                  margin: 0,
+                }}
+              >
+                {r.conversionTrigger || r.crossReferences}
+              </p>
+            </div>
           )}
 
           {/* Trajectory — band === "price" ONLY. Per dispatch Phase 5:
