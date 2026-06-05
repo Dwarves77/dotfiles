@@ -23,10 +23,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedger, crossLinkClaimSources } from "@/lib/agent/parse-output";
-import { extractResearchSections } from "@/lib/agent/extract-research-sections";
+import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief } from "@/lib/sources/source-growth";
-
-const REG_FORMATS = new Set(["regulation", "directive", "standard", "guidance", "framework"]);
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 // Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
 // (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
@@ -160,18 +158,18 @@ ${blocks}`;
   return { ok: true, detail: `brief ${body.length}ch synthesised from ${fetched.length} sources (${corroborators.length} discovered via web_search)` };
 }
 
-/** STEP section: format-selected extractor -> upsert intelligence_item_sections. Research wired;
- *  regulatory continues via the existing extract-regulation-sections path (different output shape). */
+/** STEP section: format-selected extractor (via the registry) -> upsert intelligence_item_sections.
+ *  Dispatches by item_type through specForItemType — ONE path for every surface (regulation, research,
+ *  market, technology, operations). Surfaces that render structured components re-parse content_md at
+ *  render time; the rows stored here are format-generic. */
 export async function sectionBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
   const { data: it } = await sb.from("intelligence_items").select("item_type, full_brief").eq("id", itemId).single();
   if (!it?.full_brief) return { ok: false, detail: "no full_brief" };
-  if (it.item_type !== "research_finding") {
-    if (REG_FORMATS.has(it.item_type)) return { ok: false, detail: `regulatory sectioning not wired into canonical pipeline yet (${it.item_type})` };
-    return { ok: false, detail: `no extractor for ${it.item_type}` };
-  }
-  const rows = extractResearchSections(it.full_brief);
-  if (!rows.length) return { ok: false, detail: "no sections extracted" };
+  const spec = specForItemType(it.item_type);
+  if (!spec) return { ok: false, detail: `no format spec for item_type ${it.item_type}` };
+  const rows = spec.extract(it.full_brief);
+  if (!rows.length) return { ok: false, detail: `no sections extracted (${spec.formatType})` };
   // Replace stale sections from a prior generation (a re-gen may emit fewer/renamed sections).
   await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
   for (const s of rows) {
