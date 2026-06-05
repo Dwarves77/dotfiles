@@ -764,7 +764,8 @@ export async function fetchResearchPipelineRows(
       .from("intelligence_items")
       .select("id", { count: "exact", head: true })
       .eq("is_archived", false)
-      .eq("provenance_status", "verified"); // Sprint 4 task 1.10: customer read gate
+      .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
+      .eq("item_type", "research_finding"); // routing contract (migration 125 get_research_items): Research surface is research_finding ONLY
     const total = typeof countQuery.count === "number" ? countQuery.count : 0;
 
     // First page of rows. Same shape as the prior /research fetcher so
@@ -781,6 +782,7 @@ export async function fetchResearchPipelineRows(
       )
       .eq("is_archived", false)
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
+      .eq("item_type", "research_finding") // routing contract: regulations/guidance do NOT belong on /research (was wrong-surface-leaking ~102 non-research items)
       .order("added_date", { ascending: false })
       .limit(cap);
 
