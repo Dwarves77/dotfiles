@@ -1,161 +1,148 @@
 export const meta = {
   name: 'all-surfaces-deepdive-build',
-  description: 'Make the deep dive the default generator for EVERY surface — per-format section extractor, required slots, grounding model, and section-aware display, each built FROM its skill — then prove one exemplar per surface end-to-end through /api/agent/run.',
+  description: 'Make the deep dive the default generator for EVERY surface — author per-format section extractor refinement, required-slots migration, grounding-model adapter (reuse-first), and section-aware display, each FROM its skill, in worktree isolation. The orchestrator then integrates + runs one metered exemplar per surface.',
   phases: [
-    { title: 'Build', detail: 'one worktree agent per surface: extractor + slots migration + grounding wiring + section-aware display + one exemplar' },
-    { title: 'Verify', detail: 'adversarial check per surface: the exemplar actually has rows in intelligence_item_sections, grounded claims, and the display renders sections — not raw markdown' },
+    { title: 'Author', detail: 'one worktree agent per surface authors extractor + slots migration + grounding adapter + section-aware display, from its skill' },
+    { title: 'Review', detail: 'adversarial skill-conformance + reuse-law code review of each surface, read-only' },
   ],
 }
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-// PRECONDITION — Phase 0 (the SHARED dispatch seam) is built INLINE by the orchestrator and committed
-// BEFORE this workflow runs. Phase 0 establishes the FormatSpec interface + the extractor/grounding
-// registry + refactors sectionBrief/groundBrief in src/lib/agent/canonical-pipeline.ts to dispatch
-// through it, and lands STUB per-format modules. Each agent below branches from that commit (worktree)
-// and replaces ONLY its own format's files — disjoint file sets => conflict-free merges. The agents do
-// NOT edit canonical-pipeline.ts or the registry (Phase 0 owns those).
+// EXECUTION MODEL. Phase 0 (the FormatSpec interface + extract-registry + sectionBrief dispatch +
+// per-format spec modules) is ALREADY COMMITTED (de68ba7). Each agent below runs in an ISOLATED git
+// worktree branched from that commit and ONLY AUTHORS FILES (Read skills + existing components, Write
+// new ones). Agents do NOT run code: a fresh worktree has no .env.local and no node_modules, so
+// generation/build can't run there — and that is fine, because the orchestrator owns integration:
+// merge the branches (disjoint file sets + pre-assigned migration numbers => clean), then run ONE
+// metered exemplar per surface through the canonical pipeline (controls the limited Browserless units)
+// and npm build, in the main tree which has env + deps.
 //
-// FormatSpec interface (Phase 0):
-//   export const spec: FormatSpec = {
-//     itemTypes: string[],                       // which item_type values this format owns
-//     formatType: string,                        // format_type value (e.g. 'market_signal_brief')
-//     sections: { key, order, heading, conditional }[],   // the format's section list, headings match the skill
-//     grounding: 'span' | 'corroboration' | 'matrix',     // declared grounding model (transitive is per-section, automatic)
-//     extract(fullBrief: string): SectionRow[],  // clone of extract-research-sections.ts heading-walk
-//   }
-//
-// REUSE LAW (Rule 3 — one way to do each thing; do NOT stand up parallel engines):
-//  • corroboration-count  -> ADAPTER over src/lib/sources/source-growth.ts aggregateConvergence /
-//    growSourcesFromBrief (independent_citers, confirmation_count, trust_score_citation, syndication
-//    dedup). It is ALREADY built this session. Market reads those convergence fields; it does not count.
-//  • matrix               -> a COVERAGE QUERY over existing regional_data rows (group by dimension ×
-//    jurisdiction; gate S3/S4 on >=2 sourced regions per dimension). No new store.
-//  • transitive           -> ALREADY emergent from the claim-ledger + criterion-4 labeling discipline
-//    (the JOLT lesson). Synthesis sections ground LAST; add only a "introduces no new unsourced fact"
-//    guard. No engine.
-// Each agent EXEMPLAR-TESTS its grounding model against existing data/machinery BEFORE writing any new
-// code, and reports if a thin adapter already suffices.
+// REUSE LAW (Rule 3 — one way to do each thing; NO parallel engines):
+//  • corroboration-count -> thin ADAPTER over src/lib/sources/source-growth.ts (aggregateConvergence /
+//    growSourcesFromBrief: independent_citers, confirmation_count, syndication-collapsed). Built this
+//    session. Market reads it; it does not re-count.
+//  • matrix -> a COVERAGE QUERY over existing regional_data rows (dimension x jurisdiction; gate S3/S4
+//    on >=2 sourced regions). No new store.
+//  • transitive -> already emergent from the claim-ledger + criterion-4 labeling (the JOLT lesson). A
+//    "synthesis section introduces no new unsourced fact" guard only.
+// Each agent must EXEMPLAR-TEST (by reading existing code + data shapes) whether existing machinery
+// already suffices BEFORE proposing any net-new code, and SAY SO in its report.
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 
-const INTERFACE = `Build FROM the skill, never from memory. Implement the Phase-0 FormatSpec interface for your format.
-- Section extractor: clone src/lib/agent/extract-research-sections.ts (the proven heading-walk via extractSectionByHeading). Map your format's section headings EXACTLY as the system prompt / skill emits them. Omit absent sections (integrity rule), never invent rows.
-- Required slots: add a migration seeding item_type_required_slots for your item_types (analog of supabase/migrations/113 + 126). Slots = the load-bearing facts criterion 5 checks. Pick 3-4 slot_keys whose tokens will naturally appear in a grounded claim for your format (study the research slots; avoid abstract keys that never appear in claim_text — that is what quarantined the MIT item with 0 FACT claims).
-- Grounding model: obey the REUSE LAW. corroboration -> thin adapter over source-growth.ts; matrix -> coverage query over regional_data; span -> already works; transitive -> add the no-new-unsourced-fact guard only. Exemplar-test FIRST; report if existing machinery already suffices.
-- Section-aware display: render rows from intelligence_item_sections (analog of RegulationDetailSurface's <RegulationSections>). Do NOT leave the surface rendering raw full_brief markdown.
-- Exemplar: pick ONE real in-scope item of your item_type, run it through the canonical pipeline (generate -> section -> ground -> grow) via scripts/canonical-pipeline-proof.mjs or a thin runner, and confirm: brief generated, sections extracted into intelligence_item_sections, grounded (provenance verified OR an HONEST quarantine with a named reason), display renders the sections. Browserless units are limited — ONE exemplar only.
-- npm run build must pass in your worktree before you return.
-Reconcile against the SKILL, not the mockups. Report spec edits your exemplar surfaced (the spec EXPECTS Research S3/S5 edits).`
+const CONTRACT = `You AUTHOR code only — do NOT run npm/node/generation (your worktree has no .env.local or node_modules; the orchestrator runs validation after merge). Build FROM the skill, never from memory.
+
+Deliverables for your surface, touching ONLY your format's files (disjoint by design — do not edit canonical-pipeline.ts, extract-registry.ts, or another surface's files):
+1. Section extractor / spec: refine src/lib/agent/formats/<surface>.ts — verify the section headings EXACTLY match what the skill + src/lib/agent/system-prompt.ts emit for this format. The heading-walk (makeProseExtractor) is already wired; your job is heading accuracy + conditional flags.
+2. Required-slots migration: create supabase/migrations/<YOUR PRE-ASSIGNED NUMBER>_<surface>_required_slots.sql seeding item_type_required_slots for your item_types (analog of migrations 113 + 126). Pick 3-4 slot_keys whose tokens will NATURALLY appear in a grounded claim_text for this format — study the research slots and the MIT 0-FACT failure (abstract slot keys that never appear in claim_text quarantine good briefs). Idempotent INSERT (ON CONFLICT DO NOTHING).
+3. Grounding adapter: obey the REUSE LAW. Read source-growth.ts (Market), the regional_data shape (Operations), and the claim-ledger in canonical-pipeline.ts groundBrief (transitive) FIRST. Author the THIN adapter only; if existing machinery already suffices, author nothing net-new and explain why in your report. If a groundBrief hook is genuinely needed, write the adapter as a function in YOUR module and document the one-line call the orchestrator will add to groundBrief (do not edit groundBrief yourself — that's a shared file).
+4. Section-aware display: render rows from intelligence_item_sections (analog of RegulationDetailSurface's <RegulationSections>). Build/replace ONLY your surface's detail component; do not leave it rendering raw full_brief markdown. New surfaces (Technology, Operations) also need a /<surface>/[slug] route page + (Technology) a get_technology_items RPC migration — use your pre-assigned migration number range.
+5. Reconcile against the SKILL, not the mockups; for Regulations also read the actual design mockup/protocol before deciding display curation (the 7-section display is a prior mockup-lock — flag if it now wants more). Report every spec edit and open question.
+
+Return the structured AUTHOR_REPORT.`
 
 const SURFACES = [
   {
-    key: 'regulations',
-    skill: '.claude/skills/environmental-policy-and-innovation/SKILL.md — "Regulatory Fact Document (14 sections, conditional)" + the shared rules',
+    key: 'regulations', mig: '127',
+    skill: '.claude/skills/environmental-policy-and-innovation/SKILL.md — Regulatory Fact Document (14 sections) + shared rules',
     itemTypes: 'regulation, directive, standard, guidance, framework',
-    work: `Adapt the EXISTING extract-regulation-sections.ts to the FormatSpec interface and ensure all 14 sections (8 always-present + 6 conditional) extract. It is currently NOT wired into canonical-pipeline.ts sectionBrief (returns "not wired") — Phase 0 wires the dispatch; you supply the real extractor. RegulationDetailSurface is already section-aware — verify it renders all 14 sections (some conditional). Grounding: span + transitive (S4 compliance-chain, S13 adjacent research are synthesis). Slots already seeded (effective_date, primary_deadline, jurisdictional_scope, penalty_summary). FINISH Regulations to the full 14 sections — this surface must be complete, nothing deferred.`,
+    work: `Phase 0 already emits all 14 section rows. Your job: (a) verify the 14 headings in formats/regulation.ts match system-prompt.ts emission; (b) decide whether RegulationDetailSurface should render more than the mockup-locked 7 sections — READ the design mockup/protocol + the existing extract-regulation-sections.ts structured parsers before deciding, and FLAG if the lock now wants the full 14 (do not silently override the lock). Slots already seeded — no migration needed unless headings reveal a gap. Grounding span + transitive (S4, S13 synthesis).`,
   },
   {
-    key: 'research',
-    skill: '.claude/skills/analysis-construction-spec/SKILL.md §7 Research Summary (6 sections) + the reg skill for shared rules',
+    key: 'research', mig: '128',
+    skill: '.claude/skills/analysis-construction-spec/SKILL.md §7 Research Summary (6 sections)',
     itemTypes: 'research_finding',
-    work: `Extractor exists + wired; slots seeded. THE GAP is the DISPLAY: ResearchFindingDetailSurface (src/components/research/ResearchFindingDetailSurface.tsx) renders RAW full_brief markdown — make it section-aware off intelligence_item_sections (analog of RegulationSections). Grounding: span + transitive (S2/S3/S5 are synthesis). FIX the real defect found this session: item 88c3a053 (MIT Climate Machine) generated a 24,881ch brief but grounded 0 FACT claims -> quarantined on missing decision_relevance slot. Diagnose why the ledger extracted 0 FACTs (span-match failure? all prose labeled analysis?) and fix so a rich research brief reliably grounds its slots.`,
+    work: `Extractor + slots already wired/seeded. THE GAP is DISPLAY: src/components/research/ResearchFindingDetailSurface.tsx renders RAW full_brief markdown — make it section-aware off intelligence_item_sections (analog of RegulationSections). ALSO fix the real defect: item 88c3a053 (MIT Climate Machine) generated 24,881ch but grounded 0 FACT claims -> quarantined on missing decision_relevance slot. Read groundBrief's ledger prompt + the slot-coverage logic and diagnose why a rich brief grounds 0 FACTs (span-match failure? everything labeled analysis?); author the fix (likely in the ledger system prompt / slot-token guidance) so rich research briefs reliably ground their 4 slots. Document the one-line change if it touches groundBrief.`,
   },
   {
-    key: 'market',
+    key: 'market', mig: '129',
     skill: '.claude/skills/analysis-construction-spec/SKILL.md §6 Market Signal Brief (8 sections)',
     itemTypes: 'market_signal, initiative',
-    work: `BUILD: extract-market-sections.ts (8 sections), slots migration for market_signal+initiative, and the CORROBORATION-COUNT grounding as a THIN ADAPTER over source-growth.ts aggregateConvergence (S1 strength = independent_citers / confirmation_count from the convergence the grow step already computes; syndication-collapsed). Do NOT build a counting engine. No-Vacuum: S3 conversion trigger frequently IS a specific regulation — emit + render the link. DISPLAY: MarketSignalDetailSurface (src/components/pages/MarketSignalDetailSurface.tsx) renders raw markdown -> make section-aware.`,
+    work: `Verify formats/market.ts headings vs system-prompt.ts. Slots migration (market_signal+initiative). CORROBORATION grounding = THIN ADAPTER over source-growth.ts aggregateConvergence (S1 strength = independent_citers/confirmation_count, syndication-collapsed) — read source-growth.ts FIRST and confirm growSourcesFromBrief already computes it; author only the read-side adapter that surfaces convergence on the brief. No-Vacuum: S3 conversion trigger frequently IS a regulation — render the link. DISPLAY: src/components/pages/MarketSignalDetailSurface.tsx renders raw markdown -> section-aware.`,
   },
   {
-    key: 'technology',
+    key: 'technology', mig: '130',
     skill: '.claude/skills/analysis-construction-spec/SKILL.md §8 Technology Profile (8 sections)',
     itemTypes: 'technology, innovation, tool',
-    work: `BUILD: extract-technology-sections.ts (8 sections), slots migration for technology+innovation+tool, grounding span + transitive (S2/S4/S6/S7 synthesis). DISPLAY: NO detail surface exists — build TechnologyDetailSurface (analog of RegulationDetailSurface, section-aware off intelligence_item_sections) and route technology/innovation/tool item_types to it. Note: 3 institutional-body rows are typed 'tool' (known data debt) — they still receive this format; do not special-case.`,
+    work: `Verify formats/technology.ts headings vs system-prompt.ts. Slots migration (technology+innovation+tool). Grounding span + transitive. DISPLAY: NO detail surface exists — author TechnologyDetailSurface (section-aware off intelligence_item_sections, analog of RegulationDetailSurface) + a /technology/[slug] route page + a get_technology_items RPC migration (analog of migration 125's get_research_items, item_type IN technology/innovation/tool, provenance_status='verified'). The 3 institutional-body 'tool' rows still take this format — no special-case.`,
   },
   {
-    key: 'operations',
-    skill: '.claude/skills/analysis-construction-spec/SKILL.md §5 Operations Profile (8 sections, gated data-sourcing program)',
+    key: 'operations', mig: '131',
+    skill: '.claude/skills/analysis-construction-spec/SKILL.md §5 Operations Profile (8 sections, gated data program)',
     itemTypes: 'regional_data',
-    work: `BUILD: extract-operations-sections.ts (8 sections), slots migration for regional_data, and MATRIX grounding as a COVERAGE QUERY over existing regional_data (dimension = topic_tag/cost-line; group by dimension × jurisdiction; S1/S2 are single-region span facts that populate incrementally; S3/S4 comparison sections GATE on >=2 sourced regions per dimension and stay omit-with-note until then). Exemplar-test the coverage gate against the 26 non-archived regional_data items before building. DISPLAY: NO surface exists — build OperationsDetailSurface (section-aware) and route regional_data to it. Build the wiring/infrastructure to completion; the coverage gate lights comparison sections up as data fills, it does not defer the build.`,
+    work: `Verify formats/operations.ts headings vs system-prompt.ts. Slots migration (regional_data). MATRIX grounding = COVERAGE QUERY over existing regional_data (dimension = cost-line/topic_tag; group by dimension x jurisdiction; S1/S2 single-region span facts populate incrementally; S3/S4 GATE on >=2 sourced regions per dimension, omit-with-note until then). Read the regional_data row shape (jurisdictions, topic_tags, region_tags, key_data) and author the coverage-gate helper that decides which comparison sections are eligible — exemplar-test it against the 26 non-archived regional_data rows in your reasoning. DISPLAY: NO surface exists — author OperationsDetailSurface (section-aware, render the per-jurisdiction matrix + coverage state) + a /operations/[slug] route page (get_operations_items RPC already exists in migration 125).`,
   },
 ]
 
-const BUILD_REPORT = {
+const AUTHOR_REPORT = {
   type: 'object',
-  required: ['surface', 'filesAdded', 'filesModified', 'groundingModelReused', 'exemplarItemId', 'sectionsExtracted', 'grounded', 'displaySectionAware', 'buildPasses'],
+  required: ['surface', 'filesAuthored', 'groundingReuse', 'displaySectionAware', 'specEdits', 'openQuestions'],
   properties: {
     surface: { type: 'string' },
-    filesAdded: { type: 'array', items: { type: 'string' } },
-    filesModified: { type: 'array', items: { type: 'string' } },
-    slotsMigration: { type: 'string', description: 'migration filename seeding required slots, or "n/a (already seeded)"' },
-    groundingModelReused: { type: 'string', description: 'what existing machinery was reused (source-growth adapter / regional_data coverage query / claim-ledger transitive) and whether ANY net-new code was needed' },
-    exemplarItemId: { type: 'string' },
-    exemplarTitle: { type: 'string' },
-    sectionsExtracted: { type: 'number', description: 'rows written to intelligence_item_sections for the exemplar' },
-    grounded: { type: 'string', enum: ['verified', 'honest_quarantine', 'failed'], description: 'honest_quarantine is acceptable with a named reason' },
-    groundedReason: { type: 'string' },
-    displaySectionAware: { type: 'boolean', description: 'does the detail surface now render from intelligence_item_sections rather than raw full_brief' },
-    buildPasses: { type: 'boolean' },
+    filesAuthored: { type: 'array', items: { type: 'string' }, description: 'every file created or edited, full path' },
+    slotsMigration: { type: 'string', description: 'migration filename, or "n/a (already seeded)"' },
+    slotKeys: { type: 'array', items: { type: 'string' }, description: 'the slot_keys chosen and WHY their tokens will appear in claim_text' },
+    groundingReuse: { type: 'string', description: 'what existing machinery was reused; whether ANY net-new code was authored and why (Rule 3)' },
+    groundBriefHookNeeded: { type: 'string', description: 'the one-line call the orchestrator must add to groundBrief, or "none"' },
+    displaySectionAware: { type: 'boolean', description: 'does the detail surface now read intelligence_item_sections rather than raw full_brief' },
+    newRoutesOrRpcs: { type: 'array', items: { type: 'string' } },
+    headingsMatchSkill: { type: 'boolean', description: 'verified section headings == system-prompt.ts emission' },
+    specEdits: { type: 'array', items: { type: 'string' }, description: 'edits the skill/spec needs (e.g. Research S3/S5), or design-lock flags (Regulations 7-vs-14)' },
+    openQuestions: { type: 'array', items: { type: 'string' } },
     worktreePath: { type: 'string' },
-    specEditsDiscovered: { type: 'array', items: { type: 'string' } },
-    notes: { type: 'string' },
   },
 }
 
-const VERIFY_REPORT = {
+const REVIEW_REPORT = {
   type: 'object',
-  required: ['surface', 'exemplarConfirmed', 'problems'],
+  required: ['surface', 'conformant', 'problems'],
   properties: {
     surface: { type: 'string' },
-    sectionsInDb: { type: 'number' },
-    groundedClaimsInDb: { type: 'number' },
+    headingsMatchSkill: { type: 'boolean' },
+    reuseLawRespected: { type: 'boolean', description: 'no parallel grounding engine where existing machinery suffices' },
     displayReadsSectionsTable: { type: 'boolean' },
-    rawMarkdownFallbackRemoved: { type: 'boolean' },
-    exemplarConfirmed: { type: 'boolean', description: 'true only if sections rows exist AND display reads them AND grounding is verified-or-honestly-quarantined' },
+    slotKeysGroundable: { type: 'boolean', description: 'will the slot_key tokens actually appear in claim_text (the MIT 0-FACT trap)?' },
+    conformant: { type: 'boolean' },
     problems: { type: 'array', items: { type: 'string' } },
   },
 }
 
-function buildPrompt(s) {
-  return `You are building the deep-dive deliverables for the ${s.key.toUpperCase()} surface of Caro's Ledge (repo cwd = fsi-app). You are in an ISOLATED git worktree branched from the Phase-0 scaffold commit; touch ONLY this surface's files.
+function authorPrompt(s) {
+  return `You author the deep-dive deliverables for the ${s.key.toUpperCase()} surface of Caro's Ledge (work inside the fsi-app/ subtree of your worktree). YOUR PRE-ASSIGNED MIGRATION NUMBER(S) start at ${s.mig} (use ${s.mig}, ${s.mig}b, etc. — never another number, to avoid merge collisions).
 
-STEP 1 — load the skill, never work from memory. Read: fsi-app/${s.skill}. Also skim the Phase-0 FormatSpec interface in src/lib/agent/extract-registry.ts and the proven template src/lib/agent/extract-research-sections.ts.
+STEP 1 — load the skill, never work from memory. Read: fsi-app/${s.skill}. Skim the Phase-0 interface src/lib/agent/format-spec.ts + your module src/lib/agent/formats/${s.key === 'regulations' ? 'regulation' : s.key === 'operations' ? 'operations' : s.key}.ts + the proven section-aware display src/components/regulations/RegulationDetailSurface.tsx.
 
-ITEM TYPES this surface owns: ${s.itemTypes}.
+ITEM TYPES: ${s.itemTypes}.
 
 WORK: ${s.work}
 
 CONTRACT:
-${INTERFACE}
-
-Return the structured BUILD_REPORT. Honesty rule: an HONEST quarantine with a named reason beats a faked verified. Report exactly what you reused vs built net-new (Rule 3).`
+${CONTRACT}`
 }
 
-function verifyPrompt(s, report) {
-  return `Adversarially verify the ${s.key.toUpperCase()} surface build. Default to skeptical: assume the build is incomplete until the ARTIFACT proves otherwise (Rule 4 — the build report is a plumbing flag, the DB rows + the rendered display are the artifact).
+function reviewPrompt(s, rep) {
+  return `Adversarially review the ${s.key.toUpperCase()} surface authoring (read-only; the agent could not run code, so YOU verify by reading). Default skeptical.
 
-The build agent reported exemplar item id = ${report?.exemplarItemId || 'UNKNOWN'}, sectionsExtracted = ${report?.sectionsExtracted}, grounded = ${report?.grounded}, displaySectionAware = ${report?.displaySectionAware}, worktree = ${report?.worktreePath || 'unknown'}.
+Reported: filesAuthored=${JSON.stringify(rep?.filesAuthored || [])}, slotKeys=${JSON.stringify(rep?.slotKeys || [])}, groundingReuse="${rep?.groundingReuse || ''}", displaySectionAware=${rep?.displaySectionAware}, worktree=${rep?.worktreePath || '?'}.
 
-Check, by LOOKING (query Supabase via a node script like scripts/_diag/artifact-check.mjs using .env.local service role; read the display component source in the worktree):
-1. Does intelligence_item_sections actually have rows for the exemplar item? How many?
-2. Does section_claim_provenance have grounded claims (FACT/ANALYSIS/GAP) for it, or is provenance an HONEST quarantine with a stated reason?
-3. Does the ${s.key} detail component now READ from intelligence_item_sections, or does it still fall back to raw full_brief markdown? Quote the lines.
-4. Does the slots migration exist and seed real slot_keys whose tokens can appear in claim_text?
-Set exemplarConfirmed=true ONLY if sections rows exist AND the display reads them AND grounding is verified-or-honestly-quarantined. List every problem found.`
+Read the authored files in the worktree + the relevant skill section and check:
+1. Do the section headings in the format module EXACTLY match the skill + src/lib/agent/system-prompt.ts emission? (A mismatch silently drops the section — the MIT/heading trap.)
+2. REUSE LAW: did they author a parallel grounding engine where source-growth.ts / regional_data coverage / the claim-ledger already suffices? Flag any net-new engine that duplicates existing machinery.
+3. Does the detail component READ from intelligence_item_sections (quote the lines), or still fall back to raw full_brief?
+4. Will the chosen slot_key tokens actually appear in a grounded claim_text (the MIT decision_relevance 0-FACT trap), or are they abstract keys that will quarantine good briefs?
+Set conformant=true only if all four hold. List every problem.`
 }
 
-phase('Build')
-log(`Building deep-dive defaults for ${SURFACES.length} surfaces (worktree-isolated). Each: extractor + slots + grounding (reuse-first) + section-aware display + 1 exemplar.`)
+phase('Author')
+log(`Authoring deep-dive defaults for ${SURFACES.length} surfaces in worktree isolation (author-only; orchestrator integrates + runs metered exemplars).`)
 
-// pipeline: each surface builds, then its exemplar is adversarially verified the moment its build
-// returns — no barrier, so 'market' can verify while 'operations' is still building.
 const results = await pipeline(
   SURFACES,
-  (s) => agent(buildPrompt(s), { label: `build:${s.key}`, phase: 'Build', model: 'sonnet', isolation: 'worktree', schema: BUILD_REPORT }),
-  (report, s) => report
-    ? agent(verifyPrompt(s, report), { label: `verify:${s.key}`, phase: 'Verify', model: 'sonnet', schema: VERIFY_REPORT }).then((v) => ({ surface: s.key, report, verify: v }))
-    : { surface: s.key, report: null, verify: null },
+  (s) => agent(authorPrompt(s), { label: `author:${s.key}`, phase: 'Author', model: 'sonnet', isolation: 'worktree', schema: AUTHOR_REPORT }),
+  (rep, s) => rep
+    ? agent(reviewPrompt(s, rep), { label: `review:${s.key}`, phase: 'Review', model: 'sonnet', schema: REVIEW_REPORT }).then((v) => ({ surface: s.key, mig: s.mig, report: rep, review: v }))
+    : { surface: s.key, mig: s.mig, report: null, review: null },
 )
 
-const confirmed = results.filter((r) => r && r.verify && r.verify.exemplarConfirmed)
-log(`Build complete. ${confirmed.length}/${SURFACES.length} surfaces exemplar-confirmed. Orchestrator merges worktrees + runs Phase-3 generation (gated, separately quoted).`)
+const ok = results.filter((r) => r && r.review && r.review.conformant)
+log(`Authoring complete. ${ok.length}/${SURFACES.length} surfaces conformant on review. Orchestrator merges worktrees, applies groundBrief hooks, runs one metered exemplar per surface, then Phase-3 generation (gated, separately quoted).`)
 return results
