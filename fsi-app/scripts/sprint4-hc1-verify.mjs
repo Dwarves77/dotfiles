@@ -37,9 +37,9 @@ console.log("    a) agent_run_searches populated:");
 console.log("       SELECT count(*) FROM agent_run_searches WHERE intelligence_item_id = '<TEST_ITEM>';   -- expect > 0");
 console.log("    b) section_claim_provenance rows created:");
 console.log("       SELECT count(*) FROM section_claim_provenance WHERE intelligence_item_id = '<TEST_ITEM>';  -- expect > 0");
-console.log("    c) 1.0c step-skeleton checkpoints visible in the workflow run:");
+console.log("    c) canonical step checkpoints visible in the workflow run:");
 console.log("       npx workflow inspect run <RUN_ID>");
-console.log("       -- expect: sourceOrFindForClaim, persistAgentRunSearches, validateItemProvenance, routeOnValidation");
+console.log("       -- expect: preflightStep, generateStep, sectionStep, groundStep, growStep");
 
 console.log("\n[4] ALSO runtime-verify (the write-ahead pieces marked UNVERIFIED-PENDING-RUNTIME):");
 console.log("    - 1.12 tick (HIGHEST RISK): start a workflow for a sentinel CRITICAL/HIGH item with FACT claims,");

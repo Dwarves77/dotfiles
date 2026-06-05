@@ -5,22 +5,22 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { start } from "workflow/api";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
 
-// Sprint 4 Block 1 — task 1.5: thin wrapper over the durable generate-brief
-// workflow (Vercel Workflow DevKit substrate).
+// Thin wrapper over the durable generate-brief workflow (Vercel Workflow DevKit) —
+// the ONE canonical generation path.
 //
 // Pre-Sprint-4, this route inlined the whole pipeline: fetch source -> Sonnet
-// call -> citation extraction -> YAML parse -> validate -> persist to
-// intelligence_items + raw_fetches + source_citations + agent_runs telemetry.
-// That logic now lives in the workflow's named steps in
-// src/workflows/generate-brief.ts (sourceOrFindForClaim, persistAgentRunSearches,
-// validateItemProvenance, routeOnValidation) and is filled with real bodies in
-// Block 4. The DevKit gives us durability, automatic per-step retry, and the
-// createHook/resumeHook human-verify gate for CRITICAL/HIGH items.
+// call -> citation extraction -> YAML parse -> validate -> persist. That logic now
+// lives in the workflow's REAL named steps in src/workflows/generate-brief.ts
+// (budgetGuard -> generate -> section -> ground -> grow), each wrapping a
+// canonical-pipeline lib fn proven by direct execution. The DevKit gives us
+// durability and automatic per-step retry.
 //
-// In Block 1 the step bodies are stubs, so this returns a runId without writing
-// briefs. The prior implementation is preserved in git history (commit before
-// this one) for the Block 4 step-body migration. Master is unaffected until the
-// branch merges post-HARD-CHECKPOINT-1.
+// start() returns a runId immediately and does not wait for completion. The chain
+// then auto-runs: generate the brief, ground it (active sourcing + verbatim
+// span-check + validate_item_provenance; the trigger flips a valid item to
+// verified), and grow source credibility (register cited sources, record
+// citations, compound trust). Callers poll via the workflow inspect/run APIs or the
+// agent_runs cost ledger the steps write.
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
