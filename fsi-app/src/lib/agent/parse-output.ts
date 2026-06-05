@@ -718,7 +718,21 @@ export function parseAgentOutput(rawText: string): ParsedAgentOutput {
   const metadata = parseYamlFrontmatter(block.yaml);
   // Sprint 4 task 1.8: extract the claim ledger (sits before the YAML block)
   // and strip it from the stored body so full_brief stays clean prose.
-  const ledger = locateClaimLedger(rawText);
+  //
+  // The INLINE ledger is ADVISORY at parse time: the grounding step re-extracts
+  // the authoritative ledger with a dedicated call against the fetched source
+  // corpus (groundBrief -> extractClaimLedger). So a malformed inline ledger must
+  // NOT abort body+metadata extraction — that crash (a single FACT claim missing
+  // a source_span) killed a whole batch run on WEO-2025. Tolerate it: fall back to
+  // no inline claims and let grounding do the real work. Callers that REQUIRE a
+  // strict ledger (the persist step) call extractClaimLedger directly, which still
+  // throws.
+  let ledger: { claims: ClaimProvenanceRecord[]; start: number; end: number } | null = null;
+  try {
+    ledger = locateClaimLedger(rawText);
+  } catch {
+    ledger = null;
+  }
   const claims = ledger ? ledger.claims : [];
   let body = rawText.slice(0, block.start);
   if (ledger && ledger.end <= block.start) {
