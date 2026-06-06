@@ -26,8 +26,12 @@ const { data: items } = await sb.from("intelligence_items")
   .select("id,title,item_type,source_url,provenance_status,full_brief")
   .in("item_type", types).eq("is_archived", false).neq("provenance_status", "verified").not("source_url", "is", null)
   .order("priority", { ascending: true }).limit(400);
-const queue = (items || []).filter((r) => isReal(r.source_url)).slice(0, limit);
-console.log(`Phase 3 [${types.join(",")}]: ${queue.length} items queued; est ~$${(queue.length * PER_ITEM).toFixed(2)}; HALT cap $${cap}.\n`);
+// --shard=i/n runs a disjoint slice (every n-th item). Queue is built once from a single ordered
+// query, so concurrent shards started together partition the same snapshot without overlap.
+const [si, sn] = (arg("shard", "0/1")).split("/").map(Number);
+let queue = (items || []).filter((r) => isReal(r.source_url));
+queue = queue.filter((_, idx) => idx % sn === si).slice(0, limit);
+console.log(`Phase 3 [${types.join(",")}] shard ${si}/${sn}: ${queue.length} items queued; est ~$${(queue.length * PER_ITEM).toFixed(2)}; HALT cap $${cap}.\n`);
 
 let spent = 0, verified = 0, quarantined = 0, failed = 0, n = 0;
 for (const it of queue) {
