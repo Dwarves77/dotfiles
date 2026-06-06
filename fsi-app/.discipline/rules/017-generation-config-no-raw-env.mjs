@@ -9,7 +9,25 @@
 
 import { pass, fail } from '../lib/result.mjs';
 
-const ENV_READ_RE = /process\.env\./;
+// Rule 017 targets TUNING KNOBS (behavior-changing config), not CREDENTIALS. Credentials/secrets
+// (API keys, DB URL, tokens) legitimately read from env at point of use and cannot be named
+// constants in a config module — flagging them was an over-broad false-positive (caught in CI on
+// canonical-pipeline.ts credential reads). A line is a violation only if it reads a NON-credential
+// env var (a knob). Credential-shaped names are exempt.
+const ENV_TOKEN_RE = /process\.env(?:\.([A-Z0-9_]+)|\[\s*['"`]([A-Z0-9_]+)['"`]\s*\])/g;
+const CREDENTIAL_RE = /(API_KEY|ANON_KEY|SERVICE_ROLE_KEY|_SECRET|_TOKEN|_PASSWORD|_PASS\b|SUPABASE_URL|^NEXT_PUBLIC_|WORKER_SECRET|DATABASE_URL)/;
+
+// Returns the non-credential (knob) env identifiers read on a line, or [] if none.
+function knobEnvReads(line) {
+  const out = [];
+  ENV_TOKEN_RE.lastIndex = 0;
+  let m;
+  while ((m = ENV_TOKEN_RE.exec(line))) {
+    const ident = m[1] || m[2];
+    if (ident && !CREDENTIAL_RE.test(ident)) out.push(ident);
+  }
+  return out;
+}
 
 // Generation files (mirrors governance/skill-map G entries) — the config module is the ONE
 // place env is allowed to be read and surfaced as named constants.
@@ -54,12 +72,13 @@ export const rule = {
       if (!content) continue;
       const lines = content.split(/\r?\n/);
       for (let i = 0; i < lines.length; i++) {
-        if (ENV_READ_RE.test(lines[i])) violations.push(`${norm(f.path)}:${i + 1}`);
+        const knobs = knobEnvReads(lines[i]);
+        if (knobs.length) violations.push(`${norm(f.path)}:${i + 1} (${knobs.join(', ')})`);
       }
     }
     if (violations.length === 0) return pass();
     return fail({
-      message: `Raw process.env read(s) in generation logic (${violations.length}) — knobs must live in generation-config.ts.`,
+      message: `Raw process.env KNOB read(s) in generation logic (${violations.length}) — tuning knobs must live in generation-config.ts (credentials are exempt).`,
       remediation: [
         'Move the env-driven knob into src/lib/agent/generation-config.ts as a named export, then import it.',
         'This makes a behavior change a reviewable G-diff (an env-only change is invisible to review).',

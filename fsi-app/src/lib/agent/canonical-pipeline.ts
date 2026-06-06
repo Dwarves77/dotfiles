@@ -25,6 +25,7 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief } from "@/lib/sources/source-growth";
+import { BROWSERLESS_FETCH_CONCURRENCY } from "@/lib/agent/generation-config";
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 // Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
 // (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
@@ -43,8 +44,9 @@ async function fetchText(url: string, max = 40000): Promise<string> {
 // Browserless enforces a hard concurrency cap (5 on the current plan). The pool fetch fired ~7
 // sessions per item via Promise.all, and N concurrent batch shards multiplied that — exceeding the cap
 // so Browserless REJECTED most fetches (counted as "no fetchable content", not actually unfetchable).
-// Bound concurrent fetches so (shards x FETCH_CONCURRENCY) stays under the cap. Tune via env.
-const FETCH_CONCURRENCY = Number(process.env.BROWSERLESS_FETCH_CONCURRENCY || 2);
+// Bound concurrent fetches so (shards x FETCH_CONCURRENCY) stays under the cap. Tune via the
+// generation-config knob (rule 017: tuning knobs are named constants, not inline process.env).
+const FETCH_CONCURRENCY = BROWSERLESS_FETCH_CONCURRENCY;
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out = new Array<R>(items.length);
   let i = 0;

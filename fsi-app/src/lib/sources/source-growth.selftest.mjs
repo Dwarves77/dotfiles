@@ -9,7 +9,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-process.loadEnvFile(resolve(ROOT, ".env.local"));
+try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* pure-math selftest; .env.local optional (absent in CI) */ }
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { aggregateConvergence, citationScore } = await jiti.import("./source-growth.ts");
 
