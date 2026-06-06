@@ -132,9 +132,9 @@
 | 128 | 128_research_finding_slot_ledger_fix.sql | Migration 128: research_finding transitive-slot fix — decision_relevance + does_not_resolve descriptions signal GAP-satisfiability so synthesis sections (S3/S5) cover their slots. |
 | 129 | 129_market_required_slots.sql | Migration 129: seed item_type_required_slots for market_signal + initiative (signal_event, driving_parties, conversion_trigger, action_now). |
 | 130 | 130_technology_required_slots.sql | Migration 130: seed item_type_required_slots for technology/innovation/tool (deployment_reality, supplier_access, operational_fit, procurement_window). |
-| 130b | 130b_get_technology_items_rpc.sql | Migration 130b: get_technology_items RPC — clone of get_research_items, item_type IN ('technology','innovation','tool'). |
 | 131 | 131_operations_required_slots.sql | Migration 131: seed item_type_required_slots for regional_data (cost_baseline, feasibility_choice, pending_change, region_jurisdiction). |
 | 132 | 132_operations_slot_gap_satisfiable.sql | Migration 132: cost_baseline + feasibility_choice slots honestly GAP-satisfiable when the fetched content has no verbatim figure/verdict (the migration-128 pattern for regional_data). |
+| 133 | 133_get_technology_items_rpc.sql | Migration 133: get_technology_items RPC — clone of get_research_items, item_type IN ('technology','innovation','tool'). Renamed from 130b to conform to 3-digit (F6) naming. |
 | 134 | 134_fix_research_technology_rpc_columns.sql | Migration 134: fix get_research_items + get_technology_items — join intelligence_items for what_it_changes/does_not_resolve (not exposed by _workspace_active_items); the RPC-error → empty → /research fail-open root. |
 
 ## Maintenance trigger

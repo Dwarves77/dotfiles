@@ -1,4 +1,4 @@
--- Migration 130b: get_technology_items(p_org_id uuid) — Technology surface RPC.
+-- Migration 133: get_technology_items(p_org_id uuid) — Technology surface RPC.
 --
 -- Built EXACTLY like get_research_items in migration 125: same RETURNS signature,
 -- same _workspace_active_items source, same provenance gate (provenance_status =
