@@ -18,10 +18,26 @@
 
 import { rule as rule012 } from './rules/012-hardcoded-user-path.mjs';
 import { rule as rule014 } from './rules/014-inventory-consistency.mjs';
+// Operating-mechanism build (2026-06-06): content-verifier tripwires for the three damage
+// action-classes (G/S/M). These VERIFY AGAINST CODE (012-style), not trailer-attestation —
+// the manifest's own 5e3ae41 lesson ("ceremony rather than enforcement") rules out attestation
+// gates. Each maps to a governing skill via governance/skill-map.mjs (single source of truth).
+import { rule as rule015 } from './rules/015-row-mutation-guarded-path.mjs';
+import { rule as rule016 } from './rules/016-canonical-anthropic-path.mjs';
+import { rule as rule017 } from './rules/017-generation-config-no-raw-env.mjs';
+import { rule as rule018 } from './rules/018-new-surface-five-model.mjs';
+// Source-registration invariant (2026-06-06): source-not-item must be REGISTERED, never raw-archived
+// (the 25-orphan + 5-wrong-archive class fix). Pairs with db.mjs reclassifyToSource() + migration 135.
+import { rule as rule019 } from './rules/019-source-reclassify-not-archive.mjs';
 
 export const rules = [
   rule012,
   rule014,
+  rule015,
+  rule016,
+  rule017,
+  rule018,
+  rule019,
 ];
 
 export function getRuleById(id) {

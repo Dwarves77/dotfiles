@@ -59,6 +59,7 @@ UNTRACKED_CRITICAL=$(git ls-files --others --exclude-standard \
      'fsi-app/.discipline/rules/' \
      'fsi-app/.discipline/fitness/functions/' \
      'fsi-app/.discipline/consistency/checks/' \
+     'fsi-app/.discipline/governance/' \
      2>/dev/null)
 if [ -n "$UNTRACKED_CRITICAL" ]; then
   echo "[discipline pre-push] STEP 1 FAIL: untracked file(s) in critical surfaces:" >&2
@@ -87,12 +88,14 @@ echo "[discipline pre-push] step 2 (consistency runner): OK"
 if ! node --test \
     fsi-app/.discipline/lib/*.test.mjs \
     fsi-app/.discipline/rules/*.test.mjs \
+    fsi-app/.discipline/governance/*.test.mjs \
     fsi-app/.discipline/runner.test.mjs \
     fsi-app/.discipline/install-hooks.test.mjs \
     fsi-app/.discipline/dispatch/*.test.mjs \
     fsi-app/.discipline/fitness/functions/*.test.mjs \
     fsi-app/.discipline/fitness/runner.test.mjs \
     fsi-app/src/lib/credibility/*.test.mjs \
+    fsi-app/scripts/lib/db.test.mjs \
     >/tmp/discipline-prepush-t.log 2>&1; then
   echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
   tail -40 /tmp/discipline-prepush-t.log >&2
@@ -101,6 +104,23 @@ if ! node --test \
 fi
 rm -f /tmp/discipline-prepush-t.log
 echo "[discipline pre-push] step 3 (discipline + fitness tests): OK"
+
+# ---------------------------------------------------------------------------
+# Step 3b: invariant-coverage meta-gate (per-INVARIANT wiring of all 6 skills)
+# ---------------------------------------------------------------------------
+# Fails the push if any skill invariant is neither mechanically enforced (by an
+# enforcement that actually resolves) nor explicitly exempted with a reason, or if
+# any anchor/baseline drifted. This is what makes "wired" non-optional + self-verifying.
+# (Also exercised inside step 3 via governance/*.test.mjs; this prints the readable report.)
+if ! node fsi-app/.discipline/governance/invariant-coverage.mjs >/tmp/discipline-prepush-inv.log 2>&1; then
+  echo "[discipline pre-push] STEP 3b FAIL: invariant-coverage meta-gate reported unwired invariant(s):" >&2
+  cat /tmp/discipline-prepush-inv.log >&2
+  echo "[discipline pre-push] wire the invariant (rule/fitness/audit/migration) OR record an exempt.reason in governance/invariants.mjs, then re-push." >&2
+  rm -f /tmp/discipline-prepush-inv.log
+  exit 1
+fi
+rm -f /tmp/discipline-prepush-inv.log
+echo "[discipline pre-push] step 3b (invariant-coverage meta-gate): OK"
 
 # ---------------------------------------------------------------------------
 # Step 4: TypeScript compile parity (matches F9 / Vercel build path)
