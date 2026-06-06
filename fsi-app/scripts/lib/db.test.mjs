@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, __setWriteClientForTest } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, guardedDelete, __setWriteClientForTest } = await import('./db.mjs');
 
 // Minimal chainable Supabase mock. handler({table, verb, ops}) -> { data, error }. Records calls.
 function makeClient(handler, calls) {
@@ -17,11 +17,14 @@ function makeClient(handler, calls) {
     const state = { table, verb: 'select', ops: [] };
     const settle = () => { calls.push({ table: state.table, verb: state.verb, ops: state.ops.slice() }); return Promise.resolve(handler(state)); };
     const b = {
-      select(c) { if (state.verb !== 'insert' && state.verb !== 'update') state.verb = 'select'; state.ops.push(['select', c]); return b; },
+      select(c) { if (state.verb !== 'insert' && state.verb !== 'update' && state.verb !== 'delete') state.verb = 'select'; state.ops.push(['select', c]); return b; },
       insert(r) { state.verb = 'insert'; state.ops.push(['insert', r]); return b; },
       update(p) { state.verb = 'update'; state.ops.push(['update', p]); return b; },
+      delete() { state.verb = 'delete'; state.ops.push(['delete']); return b; },
       eq(c, v) { state.ops.push(['eq', c, v]); return b; },
       in(c, v) { state.ops.push(['in', c, v]); return b; },
+      order(c) { state.ops.push(['order', c]); return b; },
+      range(a, z) { state.ops.push(['range', a, z]); return settle(); },
       limit() { return settle(); },
       single() { return settle(); },
       then(res, rej) { return settle().then(res, rej); },
@@ -92,6 +95,32 @@ test('registerSource: idempotent — existing active host is reused, no insert',
 test('reclassifyToSource: refuses without a cite (guard intact)', async () => {
   __setWriteClientForTest(() => makeClient(() => ({ data: null, error: null }), []));
   await assert.rejects(() => reclassifyToSource(['i1'], { url: 'https://x.gov' }, {}), /requires \{ cite/);
+});
+
+test('readAll: pages PAST the 1000-row cap (the bug that created 27 dup sources)', async () => {
+  __setWriteClientForTest(() => makeClient((s) => {
+    const rg = s.ops.find((o) => o[0] === 'range');
+    const from = rg ? rg[1] : 0;
+    if (from === 0) return { data: Array.from({ length: 1000 }, (_, i) => ({ id: 'a' + i })), error: null };
+    if (from === 1000) return { data: Array.from({ length: 146 }, (_, i) => ({ id: 'b' + i })), error: null };
+    return { data: [], error: null };
+  }, []));
+  const rows = await readAll('sources', 'id');
+  assert.equal(rows.length, 1146, 'readAll must return ALL rows across pages, not the 1000-row cap');
+});
+
+test('guardedDelete: snapshots then deletes by id; requires cite', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [{ id: 'd1', url: 'https://x' }], error: null };
+    if (s.verb === 'delete') return { data: [{ id: 'd1' }], error: null };
+    return { data: null, error: null };
+  }, calls));
+  const r = await guardedDelete('sources', ['d1'], { cite: { skill: 'remediation-discipline', reason: 'test' } });
+  assert.equal(r.deleted, 1);
+  assert.ok(calls.some((c) => c.verb === 'select'), 'must snapshot (select) before delete');
+  assert.ok(calls.some((c) => c.verb === 'delete'), 'must delete');
+  await assert.rejects(() => guardedDelete('sources', ['d1'], {}), /requires \{ cite/);
 });
 
 test.after(() => __setWriteClientForTest(null)); // restore real client factory

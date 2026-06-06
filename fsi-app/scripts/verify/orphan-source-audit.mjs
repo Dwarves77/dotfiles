@@ -11,25 +11,23 @@
  *  Reads only. Requires env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readClient, SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
+import { readClient, readAll, SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
 
 const host = (u) => { try { return new URL(u).host.replace(/^www\./, "").toLowerCase(); } catch { return ""; } };
 
-const sb = readClient();
-
-const { data: srcs, error: srcErr } = await sb.from("sources").select("url,status").limit(10000);
-if (srcErr) { console.error(`orphan-source-audit: sources read failed: ${srcErr.message}`); process.exit(2); }
+// PAGINATED reads — a capped .limit() under-counts active sources past row 1000 and reports
+// false orphans (the 2026-06-06 incident: 1147 sources, .limit truncated to 1000 → 27 phantom orphans).
+let srcs, arc;
+try {
+  srcs = await readAll("sources", "url,status");
+  arc = await readAll("intelligence_items", "id,legacy_id,title,source_url,archive_reason", {
+    match: (q) => q.eq("is_archived", true).in("archive_reason", SOURCEY_ARCHIVE_REASONS),
+  });
+} catch (e) { console.error(`orphan-source-audit: read failed: ${e.message}`); process.exit(2); }
 const activeHosts = new Set((srcs || []).filter((s) => s.status === "active").map((s) => host(s.url)).filter(Boolean));
-
-const { data: arc, error: arcErr } = await sb.from("intelligence_items")
-  .select("id,legacy_id,title,source_url,archive_reason")
-  .eq("is_archived", true)
-  .in("archive_reason", SOURCEY_ARCHIVE_REASONS)
-  .limit(5000);
-if (arcErr) { console.error(`orphan-source-audit: items read failed: ${arcErr.message}`); process.exit(2); }
 
 const orphans = [];
 for (const it of arc || []) {

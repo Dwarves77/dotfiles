@@ -60,6 +60,29 @@ export function readClient() {
   return writeClient();
 }
 
+/**
+ * Paginated full-table read. CRITICAL: Supabase/PostgREST caps a single response at ~1000 rows
+ * (the `max-rows` setting) REGARDLESS of `.limit(N>1000)` — a silent truncation that made an
+ * orphan-audit under-count active sources and made registerSource's dedup blind (it created 27
+ * duplicates before this was caught, 2026-06-06). Always page tables that can exceed 1000 rows.
+ */
+export async function readAll(table, columns = "*", { match } = {}) {
+  const sb = readClient();
+  const rows = [];
+  let from = 0;
+  for (;;) {
+    let q = sb.from(table).select(columns).order("id").range(from, from + 999);
+    if (match) q = match(q);
+    const { data, error } = await q;
+    if (error) throw new Error(`readAll(${table}) failed: ${error.message}`);
+    if (!data || !data.length) break;
+    rows.push(...data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  return rows;
+}
+
 function requireCite(cite) {
   if (!cite || !cite.skill || !cite.reason) {
     throw new Error(
@@ -93,6 +116,21 @@ export async function guardedUpdate(table, applyMatch, patch, { cite, select = "
   const res = await applyMatch(sb.from(table).update(patch)).select(select);
   if (res.error) throw new Error(`db.mjs update failed: ${res.error.message}`);
   return { updated: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
+}
+
+/** Guarded DELETE — snapshots the rows (reversible) + requires a cite, then deletes by id. Used for
+ *  cleaning up rows a script itself wrongly created (e.g. the 27 duplicate sources from the capped-read
+ *  bug). Snapshot is the reinsert record. */
+export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
+  requireCite(cite);
+  if (!ids || !ids.length) throw new Error("db.mjs guardedDelete: ids required.");
+  const sb = writeClient();
+  const prior = await sb.from(table).select("*").in("id", ids);
+  if (prior.error) throw new Error(`guardedDelete snapshot read failed: ${prior.error.message}`);
+  const snapFile = snapshot(table, prior.data || [], cite, stampIso);
+  const res = await sb.from(table).delete().in("id", ids).select("id");
+  if (res.error) throw new Error(`guardedDelete failed: ${res.error.message}`);
+  return { deleted: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
 }
 
 /** Guarded ARCHIVE — convenience over guardedUpdate (sets is_archived + archive_reason). */
@@ -140,9 +178,9 @@ export async function registerSource(source, { cite, stampIso } = {}) {
   const host = hostOf(source.url);
   if (!host) throw new Error(`db.mjs registerSource: cannot parse host from ${source.url}`);
   const sb = writeClient();
-  const existing = await sb.from("sources").select("id,url,status").limit(5000);
-  if (existing.error) throw new Error(`registerSource read failed: ${existing.error.message}`);
-  const match = (existing.data || []).find((s) => hostOf(s.url) === host);
+  // PAGINATED — a capped .limit() read made this dedup blind beyond 1000 rows and created duplicates.
+  const existing = await readAll("sources", "id,url,status");
+  const match = existing.find((s) => hostOf(s.url) === host);
   if (match) {
     if (match.status !== "active") {
       await guardedUpdate("sources", (qb) => qb.eq("id", match.id), { status: "active" }, { cite, stampIso });
