@@ -66,9 +66,10 @@ export default async function Operations() {
   console.log(
     `[perf] /operations data ${Date.now() - t0}ms (category-routed=${opsItems.total}, fallback=${fallback.resources.length}, coverage_rows=${operationsCoverage.coverage.length}, fact_rows=${operationsCoverage.facts.length})`
   );
-  const initialResources = opsItems.resources.length
-    ? opsItems.resources
-    : fallback.resources;
+  // Fail CLOSED: the ops item list is ONLY the item_type-gated RPC result; never fall through to
+  // the ungated seed on RPC error/empty. (fallback/getResourcesOnly is still fetched above — it
+  // legitimately supplies the regulation cross-references at regulationsByRegion below, NOT this list.)
+  const initialResources = opsItems.resources;
 
   // Build 9 Priority 1: regulatory feasibility by region. Cross-references
   // regulation items from the full workspace payload, grouped per-region
