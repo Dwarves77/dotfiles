@@ -679,6 +679,56 @@ export function extractClaimLedger(rawText: string): ClaimProvenanceRecord[] {
 }
 
 /**
+ * LENIENT ledger extraction for the GROUNDING step. Parses the ledger array and keeps only
+ * well-formed records, SKIPPING malformed ones instead of throwing. A single bad claim (e.g. a FACT
+ * missing its source_span) must NOT reject the whole ledger and quarantine an otherwise-groundable
+ * brief — that all-or-nothing rejection produced the 0-FACT failures on rich synthesised briefs
+ * (Colorado DOT: 1 bad claim in ~30 discarded them all). The downstream kept-filter and
+ * validate_item_provenance still enforce the verbatim-span + label discipline, so leniency here only
+ * drops claims that would have been dropped anyway — it never admits an ungrounded claim. Returns []
+ * when no ledger block is present.
+ */
+export function extractClaimLedgerLenient(rawText: string): ClaimProvenanceRecord[] {
+  const m = CLAIM_LEDGER_RE.exec(rawText);
+  if (!m) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(m[1].trim());
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const out: ClaimProvenanceRecord[] = [];
+  for (const raw of parsed) {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) continue;
+    const o = raw as Record<string, unknown>;
+    const kind = o.claim_kind;
+    if (typeof kind !== "string" || !CLAIM_KIND_VALUES.includes(kind as ClaimKind)) continue;
+    const claimText = typeof o.claim_text === "string" ? o.claim_text : "";
+    if (!claimText.trim()) continue;
+    const sourceSpan = o.source_span == null ? null : String(o.source_span);
+    let sourceId = o.source_id == null ? null : String(o.source_id);
+    const sourceUrl = o.source_url == null ? null : String(o.source_url);
+    const slotKey = o.slot_key == null ? null : String(o.slot_key);
+    // A malformed FACT (no span, or no id/url to ground against) is SKIPPED, not fatal.
+    if (kind === "FACT" && (!sourceSpan || !sourceSpan.trim() || (!sourceId && !sourceUrl))) continue;
+    // A non-UUID source_id is salvageable: null it and let source_url ground the claim.
+    if (sourceId !== null && !CLAIM_UUID_RE.test(sourceId)) sourceId = null;
+    out.push({
+      section: o.section == null ? "" : String(o.section),
+      claim_text: claimText,
+      claim_kind: kind as ClaimKind,
+      source_span: sourceSpan,
+      source_id: sourceId,
+      source_url: sourceUrl,
+      slot_key: slotKey,
+      search_result_id: null,
+    });
+  }
+  return out;
+}
+
+/**
  * Sprint 4 task 1.8: cross-link each claim's grounding source to the
  * agent_run_searches row that surfaced it. For FACT claims grounded by a
  * web_search result (source_url set, source_id often null), match source_url
@@ -718,7 +768,21 @@ export function parseAgentOutput(rawText: string): ParsedAgentOutput {
   const metadata = parseYamlFrontmatter(block.yaml);
   // Sprint 4 task 1.8: extract the claim ledger (sits before the YAML block)
   // and strip it from the stored body so full_brief stays clean prose.
-  const ledger = locateClaimLedger(rawText);
+  //
+  // The INLINE ledger is ADVISORY at parse time: the grounding step re-extracts
+  // the authoritative ledger with a dedicated call against the fetched source
+  // corpus (groundBrief -> extractClaimLedger). So a malformed inline ledger must
+  // NOT abort body+metadata extraction — that crash (a single FACT claim missing
+  // a source_span) killed a whole batch run on WEO-2025. Tolerate it: fall back to
+  // no inline claims and let grounding do the real work. Callers that REQUIRE a
+  // strict ledger (the persist step) call extractClaimLedger directly, which still
+  // throws.
+  let ledger: { claims: ClaimProvenanceRecord[]; start: number; end: number } | null = null;
+  try {
+    ledger = locateClaimLedger(rawText);
+  } catch {
+    ledger = null;
+  }
   const claims = ledger ? ledger.claims : [];
   let body = rawText.slice(0, block.start);
   if (ledger && ledger.end <= block.start) {

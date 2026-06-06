@@ -135,6 +135,29 @@ weighted_sum(source_id) = SUM(
 - T6 = 0.15
 - T7 = 0
 
+### Independence and syndication (corroboration integrity)
+
+Corroboration STRENGTH counts INDEPENDENT corroborators, not raw citation edges. When N outlets
+republish a single underlying announcement (one press release, one wire story), that is ONE
+corroboration, not N — syndication is collapsed to its origin before counting. Two integrity rules
+follow, both load-bearing for any "how well-corroborated is this signal?" judgment (the Market
+surface's corroboration-count grounding model in particular):
+
+1. **Independent over raw.** Count distinct INDEPENDENT corroborators (citers sharing a syndication
+   group collapse to one), never the raw edge count. Raw count rewards a single announcement echoed
+   across an aggregator network, inflating credibility from one source.
+2. **Tier over volume.** A corroborator's weight is its institutional tier (T1 best … T7 = 0), not how
+   often it appears. Ten low-tier echoes do not outweigh one T1/T2 independent confirmation; high
+   citation volume from low-tier sources must not elevate credibility (the Section 1 principle).
+
+Implementation: `src/lib/sources/source-growth.ts` (`aggregateConvergence`) collapses each syndication
+group to one unit at its best tier, then reports `independent_citers` / `confirmation_count` /
+`highest_citing_tier`; the trust citation component (`src/lib/trust.ts`) consumes those, not raw edge
+counts. Distinguish the two measures: the tier-weighted decayed SUM below scores a source's STANDING
+credibility over time (it can grow from many edges); the independent-citer COUNT scores a single
+SIGNAL's corroboration strength right now. A signal is "strongly corroborated" only on independent,
+suitably-tiered confirmation — never on volume alone.
+
 ### Recency decay
 
 `decay_factor(detected_at)` is a half-life curve. Starting parameter: 18-24 months tunable; operator decides exact value (open sub-decision in the decisions doc). Formula:

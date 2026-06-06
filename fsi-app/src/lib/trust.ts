@@ -268,7 +268,7 @@ export function applyRecencyDecay(
 // below; the daily batch recompute will migrate to that path as the
 // source_citations edge table becomes the source of truth.
 
-function computeCitationComponent(metrics: TrustMetrics): number {
+export function computeCitationComponent(metrics: TrustMetrics): number {
   const MAX = 20;
 
   // No citations at all

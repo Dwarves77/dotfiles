@@ -50,9 +50,11 @@ export default async function Market() {
   console.log(
     `[perf] /market data ${Date.now() - t0}ms (category-routed=${marketIntel.total}, fallback=${fallback.resources.length})`
   );
-  const initialResources = marketIntel.resources.length
-    ? marketIntel.resources
-    : fallback.resources;
+  // Fail CLOSED: render ONLY the item_type-gated RPC result. On RPC error/empty the surface
+  // shows its honest empty state; it does NOT fall through to the ungated seed (getResourcesOnly),
+  // which would leak mixed-type items onto /market. Class fix for the fail-open that turned the
+  // routing-RPC bug into the /research leak. (fallback is still fetched for the perf log only.)
+  const initialResources = marketIntel.resources;
 
   // Build 7: per-source citation stats for Q9 chip mounts on Market Intel
   // cards, watchlist rail, and key metrics rows. Mirrors Build 8.1 ResearchView

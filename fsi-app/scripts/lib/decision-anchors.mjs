@@ -107,7 +107,12 @@ export const ANCHORS = Object.freeze([
   { row: 17, short: "approving spec != approving quarantine/spend", kind: "governance", why: "standing-rule reiteration" },
   { row: 18, short: "gate distinguishes FACT/ANALYSIS/LEGAL", kind: "schema", evidence: "section_claim_provenance.claim_kind", present: sig((s) => s.claimKindExists) },
   { row: 19, short: "active sourcing + explicit gap (prompt contract)", kind: "code", evidence: "system-prompt.ts", present: fileHas("src/lib/agent/system-prompt.ts", /active.?sourc|explicit gap|EXPLICIT GAP/i) },
-  { row: 19, short: "active sourcing RUNTIME efficacy", kind: "pending", trigger: "phase4", evidence: "sourceOrFindForClaim body wired", present: fileHas("src/workflows/generate-brief.ts", /sourceOrFindForClaim[\s\S]{0,600}(web_search|browserlessRender|fetch\()/) },
+  // Re-anchored 2026-06-04: the stub step-skeleton (sourceOrFindForClaim etc.) was
+  // retired for the proven canonical path. The SAME decision (active sourcing works
+  // at runtime) is now realized in canonical-pipeline.groundBrief, which fetches the
+  // item + cited URLs and keeps only FACT claims whose span is a verbatim substring
+  // of fetched content. phase4 fired (scpCount>0) and the body IS wired -> IMPLEMENTED.
+  { row: 19, short: "active sourcing RUNTIME efficacy", kind: "pending", trigger: "phase4", evidence: "canonical-pipeline groundBrief fetches item + cited URLs to verify FACT spans", present: fileHas("src/lib/agent/canonical-pipeline.ts", /export async function groundBrief[\s\S]*?fetchText\(/) },
   { row: 20, short: "Addition A+B+D Block 1; C as Block 1.5", kind: "governance", why: "scope assignment" },
   { row: 21, short: "CRITICAL+HIGH gate to pending_human_verify", kind: "schema", evidence: "validate fn", present: fnHas(/pending_human_verify/) },
   { row: 22, short: "span-check 2-3 retries backoff; timeout=UNVERIFIED", kind: "code", evidence: "generate-brief spanCheckClaim", present: fileHas("src/workflows/generate-brief.ts", /spanCheckClaim/) },
@@ -119,7 +124,7 @@ export const ANCHORS = Object.freeze([
   { row: 28, short: "verification queue per-claim tick, NO batch", kind: "code", evidence: "VerificationQueue.tsx", present: fileHas("src/components/admin/VerificationQueue.tsx", /NO batch|per-claim|no batch/i) },
   { row: 29, short: "WDK is the Phase-4 substrate", kind: "code", evidence: "package.json workflow dep", present: fileHas("package.json", /"workflow":\s*"\^?4\./) },
   { row: 30, short: "stability check workflow@4.2.5 PASS", kind: "code", evidence: "package.json version pin", present: fileHas("package.json", /"workflow":\s*"\^?4\.2/) },
-  { row: 31, short: "step-skeleton: named steps with bodies", kind: "code", evidence: "generate-brief named steps", present: fileHas("src/workflows/generate-brief.ts", /sourceOrFindForClaim[\s\S]{0,3000}routeOnValidation/) },
+  { row: 31, short: "step-skeleton: named steps with bodies", kind: "code", evidence: "generate-brief canonical named steps (real bodies)", present: fileHas("src/workflows/generate-brief.ts", /export async function generateStep[\s\S]*?export async function growStep/) },
   { row: 32, short: "build orchestration stays Claude Code; WDK Phase-4 only", kind: "governance", why: "orchestration-boundary process rule" },
   { row: 33, short: "standing rule reiterated (3rd)", kind: "governance", why: "reiteration" },
   { row: 34, short: "framing: no customers yet, pre-launch", kind: "governance", why: "interpretive framing" },

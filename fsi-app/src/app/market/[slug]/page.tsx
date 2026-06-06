@@ -18,7 +18,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
-import { fetchIntelligenceItem } from "@/lib/supabase-server";
+import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { getMarketIntelItems } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketSignalDetailSurface } from "@/components/pages/MarketSignalDetailSurface";
@@ -76,6 +76,51 @@ export default async function MarketSignalDetailPage({
 
   const { resource: r } = detail;
 
+  // Sprint 4: fetch section rows for section-aware display. Mirrors the
+  // pattern in research/[slug]/page.tsx. fetchIntelligenceItemSections
+  // handles UUID resolution and provenance gating internally. Returns []
+  // on any error or when no sections have been generated yet.
+  const sections = await fetchIntelligenceItemSections(id);
+
+  // Sprint 4: fetch real source-growth convergence fields (independent_citers,
+  // confirmation_count) from the item's source row. These are migration 054
+  // columns written by aggregateConvergence / compoundSourceCredibility.
+  // Fetched here so the surface receives real values and never proxies from
+  // sources_used.length or any other derived count.
+  // Soft-fail: convergence is null when the source row is absent or has no
+  // convergence data, in which case the surface omits the corroboration note.
+  let convergence: { independent_citers: number; confirmation_count: number } | null = null;
+  if (
+    r.sourceId &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  ) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false } }
+      );
+      const { data: srcRow } = await supabase
+        .from("sources")
+        .select("independent_citers, confirmation_count")
+        .eq("id", r.sourceId)
+        .maybeSingle();
+      if (
+        srcRow &&
+        typeof srcRow.independent_citers === "number" &&
+        srcRow.independent_citers > 0
+      ) {
+        convergence = {
+          independent_citers: srcRow.independent_citers,
+          confirmation_count: srcRow.confirmation_count ?? srcRow.independent_citers,
+        };
+      }
+    } catch {
+      // Soft-fail — surface omits corroboration note.
+    }
+  }
+
   // Related signals: pull the Market Intel set, find items in the same
   // band as this one, exclude self, cap at 5. Failures degrade to an
   // empty list (the surface renders "no related signals" cleanly).
@@ -122,6 +167,8 @@ export default async function MarketSignalDetailPage({
       <MarketSignalDetailSurface
         resource={r}
         relatedPool={marketIntel.resources}
+        sections={sections}
+        convergence={convergence}
       />
     </>
   );

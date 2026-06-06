@@ -57,11 +57,16 @@ const TIER2_HEADINGS = {
 
 /** Strip a leading "N." or "N) " numeric prefix used by ACF-style numbered
  * H2 headings. Also strips bold/italic markers around the heading text
- * (some briefs emit `## **Heading**` even though the spec says plain). */
+ * (some briefs emit `## **Heading**` even though the spec says plain) and a
+ * leading "Section N —/:/." prefix (the deep-dive synthesis emits
+ * `## Section 1 — What the Research Found`; the heading text after the
+ * prefix is the real section name). */
 function normaliseHeading(raw: string): string {
   let h = raw.trim();
   // Strip surrounding bold/italic markers
   h = h.replace(/^\*+\s*/, "").replace(/\s*\*+$/, "");
+  // Strip leading "Section N <sep> " prefix (em-dash, en-dash, hyphen, colon, dot)
+  h = h.replace(/^section\s+\d+\s*[—–\-:.)]+\s*/i, "");
   // Strip leading "N. " or "N) " numeric prefix
   h = h.replace(/^\d+\s*[.)]\s*/, "");
   return h.trim();

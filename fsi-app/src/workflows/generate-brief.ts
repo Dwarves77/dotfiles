@@ -1,103 +1,137 @@
-// Sprint 4 Block 1 — task 1.0c: generate-brief workflow STEP SKELETON.
+// THE canonical generation path (Sprint 4 — step 2b). ONE path, real bodies.
 //
-// This file stands up the Vercel Workflow DevKit substrate for Phase 4 gated
-// generation. Block 1 ships ONLY the skeleton: each named step is registered
-// and invoked so it appears as a durable checkpoint in
-// `npx workflow inspect run <runId>`, proving the step graph registers and
-// checkpoints correctly. The step BODIES are placeholder stubs — the real
-// active-sourcing / persistence / validation / routing logic lands in Block 4.
+// The four named steps wrap the canonical-pipeline lib fns
+// (src/lib/agent/canonical-pipeline.ts), each PROVEN by direct execution before
+// being wrapped here (scripts/canonical-pipeline-proof.mjs: generate -> section ->
+// ground -> VERIFIED -> grow on a fresh item). The workflow function only
+// ORCHESTRATES; every Node / fetch / Supabase / Anthropic call happens inside a
+// "use step" body (full Node access — the "use workflow" sandbox has none).
 //
-// Substrate primitives (per the Workflow DevKit):
-//   - "use workflow" : makes generateBriefWorkflow durable / replayable.
-//   - "use step"     : each step is a cached, retryable, checkpointed unit.
-//   - createHook     : per-claim human-verification gate (CRITICAL/HIGH).
-//   - DurableAgent   : Block 4 active-sourcing agent (reserved here).
-//   - RetryableError : Block 4 / task 1.14 span-check retry signal (reserved).
-import { RetryableError, getStepMetadata } from "workflow";
-import { DurableAgent } from "@workflow/ai/agent";
+//   budgetGuard -> generate -> section -> ground -> grow
+//
+// /api/agent/run starts THIS workflow, so it is now the real generation path. The
+// prior Block-1 stub step-skeleton and the scripts-as-path are retired (see git
+// history): canonical-pipeline.groundBrief already does active sourcing (fetch the
+// item + cited URLs, keep only FACT claims whose span is a verbatim substring of
+// fetched content) + validate_item_provenance + the manual cleanup-on-invalid
+// rollback; growSources runs the proven growSourcesFromBrief.
+//
+// HC3 spend cap (decision-log row 38): the start() refactor orphaned the old inline
+// b2-runner cap. It is reconstituted HERE, in the substrate, reading the existing
+// agent_runs.cost_usd_estimated ledger. The cap exists to halt a runaway SCALED
+// pass (step 4); a single pull is ~$0.15, far under any sane cap.
+import { RetryableError, FatalError, getStepMetadata } from "workflow";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
+import { isGloballyPaused } from "../lib/api/pause";
+import {
+  generateBrief,
+  sectionBrief,
+  groundBrief,
+  growSources,
+  type StepResult,
+} from "../lib/agent/canonical-pipeline";
 
-// Reserved substrate primitives — wired now, exercised in Block 4. The `void`
-// references keep them genuinely used (the DevKit bundler 500s on unused
-// workflow imports, and tsc may flag unused locals).
-void DurableAgent;
-// RetryableError is now genuinely used in spanCheckClaim (task 1.14).
+// Estimated per-step Claude spend for the cost_usd_estimated ledger. CLAUDE.md
+// baseline is ~$0.15/item: the generate pass and the ground pass each make one
+// Sonnet call; section + grow make none. Honest as an ESTIMATE (the column name is
+// cost_usd_estimated) and adequate for the cap's purpose (count items x est cost).
+const EST_GENERATE_USD = 0.1;
+const EST_GROUND_USD = 0.05;
+// Daily estimated-spend ceiling. Override with GENERATION_DAILY_CAP_USD.
+const DAILY_CAP_USD = Number(process.env.GENERATION_DAILY_CAP_USD ?? 5);
 
-export interface ProvenanceValidationResult {
-  valid: boolean;
-  failures: unknown[];
+function svc(): SupabaseClient {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false },
+  });
 }
 
-export interface ClaimGrounding {
-  source_span: string | null;
-  source_id: string | null;
+// Best-effort cost telemetry — a failed telemetry write must never block generation.
+async function recordRun(sb: SupabaseClient, itemId: string, label: string, costUsd: number, ok: boolean, detail: string) {
+  const { data: it } = await sb.from("intelligence_items").select("source_id, source_url").eq("id", itemId).single();
+  await sb.from("agent_runs").insert({
+    intelligence_item_id: itemId,
+    source_id: it?.source_id ?? null,
+    source_url: it?.source_url ?? null,
+    fetch_method: `canonical:${label}`,
+    status: ok ? "success" : "error",
+    cost_usd_estimated: costUsd,
+    ended_at: new Date().toISOString(),
+    errors: ok ? [] : [{ step: label, detail }],
+  });
 }
 
-// ── Named steps (durable checkpoints) — stub bodies, real logic in Block 4 ──
+// ── Canonical steps (durable checkpoints) — real bodies wrapping the proven lib fns ──
 
-// Active sourcing: if the FACT appears in the item's source_url, return that
-// span + source_id; else web_search for an authoritative (Tier 1-2 for
-// CRITICAL/HIGH) source; else signal an explicit GAP. (Block 4: DurableAgent.)
-export async function sourceOrFindForClaim(
-  itemId: string,
-  claim: unknown,
-): Promise<ClaimGrounding> {
+// PREFLIGHT GUARD — restores the two cost controls the inline route honored before
+// the stub workflow dropped them, REUSING existing infra (no new mechanism):
+//   1. Global pause — isGloballyPaused (src/lib/api/pause.ts), the same flag the
+//      admin GlobalPauseToggle writes. A paused platform must not spend.
+//   2. HC3 spend cap (decision-log row 38) — sum today's estimated Claude spend from
+//      the existing agent_runs.cost_usd_estimated ledger (the same ledger MtdSpendTile
+//      reads); if at/over the daily cap, HALT before any new Sonnet call.
+// FatalError (not Retryable): paused/over-budget is a permanent stop for this run.
+export async function preflightStep(itemId: string): Promise<{ spentUsd: number; capUsd: number }> {
   "use step";
   void itemId;
-  void claim;
-  return { source_span: null, source_id: null };
+  const sb = svc();
+  if (await isGloballyPaused(sb)) {
+    throw new FatalError("generation halted: global_processing_paused is set (admin pause)");
+  }
+  const midnightUtc = new Date(new Date().toISOString().slice(0, 10)).toISOString();
+  const { data } = await sb.from("agent_runs").select("cost_usd_estimated").gte("started_at", midnightUtc);
+  const spent = (data ?? []).reduce((s, r) => s + Number(r.cost_usd_estimated || 0), 0);
+  if (spent >= DAILY_CAP_USD) {
+    throw new FatalError(
+      `generation halted: today's estimated spend $${spent.toFixed(2)} >= cap $${DAILY_CAP_USD.toFixed(2)} (raise GENERATION_DAILY_CAP_USD to proceed)`
+    );
+  }
+  return { spentUsd: spent, capUsd: DAILY_CAP_USD };
 }
 
-// Persist each web_search call (query, result_url, result_title, result_index,
-// result_content_excerpt) to agent_run_searches for this run. Returns row count.
-export async function persistAgentRunSearches(
-  itemId: string,
-  searches: unknown[],
-): Promise<number> {
+// Generate the format-selected brief (Sonnet). Records est. spend to the ledger.
+export async function generateStep(itemId: string): Promise<StepResult> {
   "use step";
-  void itemId;
-  void searches;
-  return 0;
+  const sb = svc();
+  const r = await generateBrief(itemId);
+  await recordRun(sb, itemId, "generate", r.ok ? EST_GENERATE_USD : 0, r.ok, r.detail).catch(() => {});
+  return r;
 }
 
-// Call public.validate_item_provenance(item_id) and return its result.
-export async function validateItemProvenance(
-  itemId: string,
-): Promise<ProvenanceValidationResult> {
+// Format-selected section extraction (no Sonnet call).
+export async function sectionStep(itemId: string): Promise<StepResult> {
   "use step";
-  void itemId;
-  return { valid: false, failures: [] };
+  return sectionBrief(itemId);
 }
 
-// On valid -> write intelligence_items + sections (the set_provenance_status
-// trigger then sets verified / pending_human_verify). On invalid -> write
-// staged_updates with the failures payload. Returns the terminal route taken.
-export async function routeOnValidation(
-  itemId: string,
-  result: ProvenanceValidationResult,
-): Promise<string> {
+// Active-sourcing claim ledger + verbatim span-check + validate_item_provenance
+// (Sonnet). The set_provenance_status trigger flips a valid item to verified.
+export async function groundStep(itemId: string): Promise<StepResult> {
   "use step";
-  void itemId;
-  void result;
-  return "noop";
+  const sb = svc();
+  const r = await groundBrief(itemId);
+  await recordRun(sb, itemId, "ground", r.ok ? EST_GROUND_USD : 0, r.ok, r.detail).catch(() => {});
+  return r;
 }
 
-// NOTE: the task-1.12 per-claim human-verification steps (loadPendingFactClaims,
-// recordClaimVerification, flipToVerifiedIfAllTicked) were REMOVED — promotion is
-// now uniform and fully automated (migration 121): a valid item flips to
-// 'verified' for ALL tiers, no human tick. There is no human backstop.
+// Source growth: register surfaced sources, record citations, compound credibility
+// (the proven growSourcesFromBrief — no Sonnet call). Non-gating.
+export async function growStep(itemId: string): Promise<StepResult> {
+  "use step";
+  return growSources(itemId);
+}
 
-// Task 1.14: span-check fetch step (Component 7). The operator's Component-7 retry
-// contract is made EXPLICIT here, not left to WDK defaults:
+// Task 1.14: span-check fetch step (Component 7) — RESERVED tested utility, not in
+// the canonical orchestration (groundBrief does its own verbatim span-check). Kept
+// because the retry contract is decision-log rows 22 + 45 and is runtime-verified:
 //   - maxRetries PINNED to 3 (4 total attempts). A WDK default change must not be
 //     able to silently alter the retry contract (same invisible-drift lesson as the
 //     jq fail-open hook: pin it, don't depend on a default).
 //   - EXPONENTIAL backoff: retryAfter = attempt^2 seconds, from
 //     getStepMetadata().attempt. A constant retryAfter would not be exponential.
-//   - On retry EXHAUSTION the step throws and the workflow run ends FAILED — the
-//     claim is NOT returned as validated (fail SAFE). The route-to-staging
-//     DESTINATION on exhaustion is Block 4 (routeOnValidation real body + wiring
-//     spanCheckClaim into the generation path); Block 1 guarantees fail-safe only.
+//   - On retry EXHAUSTION the step throws and the run ends FAILED — the claim is NOT
+//     returned as validated (fail SAFE).
 // The timeout/network -> RetryableError throw is unit-verified
 // (scripts/sprint4-114-spancheck-test.mjs); the retry loop + exponential backoff +
 // fail-safe-on-exhaustion are runtime-verified via the worker probe (2026-05-30).
@@ -121,20 +155,31 @@ export async function spanCheckClaim(url: string): Promise<SpanCheckResult> {
 spanCheckClaim.maxRetries = 3;
 
 // ── Workflow orchestration (durable) ──
-export async function generateBriefWorkflow(
-  itemId: string,
-): Promise<{ itemId: string; status: string }> {
+export interface GenerateBriefResult {
+  itemId: string;
+  status: string;
+  steps: Partial<Record<"budget" | "generate" | "section" | "ground" | "grow", unknown>>;
+}
+
+export async function generateBriefWorkflow(itemId: string): Promise<GenerateBriefResult> {
   "use workflow";
 
-  // Invoke each named step so it registers as a durable checkpoint. Stubs only.
-  await sourceOrFindForClaim(itemId, null);
-  await persistAgentRunSearches(itemId, []);
-  const validation = await validateItemProvenance(itemId);
-  const routed = await routeOnValidation(itemId, validation);
+  // Preflight first — halts (FatalError) before any Sonnet spend if paused or over budget.
+  const budget = await preflightStep(itemId);
 
-  // Promotion is fully automated: the set_provenance_status trigger flips a valid
-  // item to 'verified' (migration 121, uniform across all tiers). No per-claim
-  // human-verification hook loop — there is no human backstop.
+  const generate = await generateStep(itemId);
+  if (!generate.ok) return { itemId, status: "generate_failed", steps: { budget, generate } };
 
-  return { itemId, status: routed };
+  const section = await sectionStep(itemId);
+  if (!section.ok) return { itemId, status: "section_failed", steps: { budget, generate, section } };
+
+  const ground = await groundStep(itemId);
+  if (!ground.ok) return { itemId, status: "ground_failed", steps: { budget, generate, section, ground } };
+
+  // Grow is non-gating: source credibility compounds, but a failed grow does not
+  // invalidate an already-verified brief. The set_provenance_status trigger (migration
+  // 121) flipped the item to 'verified' on the grounding writes — no human tick.
+  const grow = await growStep(itemId);
+
+  return { itemId, status: "verified", steps: { budget, generate, section, ground, grow } };
 }
