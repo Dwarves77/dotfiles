@@ -37,6 +37,7 @@ import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { OperationsCoverageData } from "@/lib/supabase-server";
+import { OperationsItemsView } from "@/components/operations/OperationsItemsView";
 
 interface OperationsPageProps {
   initialResources: Resource[];
@@ -532,6 +533,29 @@ export function OperationsPage({
                   />
                 ))}
               </>
+            )}
+
+            {/* Active operations items list — links to /operations/[id] detail pages.
+                Rendered only when the gated RPC (get_operations_items) returns items.
+                Placed after region accordions; does NOT alter D1/regulationsByRegion/coverage. */}
+            {initialResources.length > 0 && (
+              <section style={{ marginTop: 28 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: "var(--color-text-primary)",
+                    paddingBottom: 6,
+                    borderBottom: "1px solid var(--color-text-primary)",
+                    marginBottom: 14,
+                  }}
+                >
+                  Active Operations Items
+                </div>
+                <OperationsItemsView items={initialResources} />
+              </section>
             )}
           </div>
 

@@ -14,6 +14,7 @@ import {
   fetchMarketIntelItems,
   fetchResearchItems,
   fetchOperationsItems,
+  fetchTechnologyItems,
   fetchSourceCitationStatsByIds,
   fetchResearchSourceCoverage,
   SEED_FALLBACK_ERROR,
@@ -686,6 +687,14 @@ const cachedOperations = unstable_cache(
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
+const cachedTechnology = unstable_cache(
+  async (orgId: string | null): Promise<CategoryRoutedResult> => {
+    return fetchTechnologyItems(orgId);
+  },
+  ["technology-items-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
 /**
  * Fetch the /market category-routed row payload. Wraps
  * get_market_intel_items, MINUS the trade-press outlets the skill routes
@@ -733,6 +742,21 @@ export async function getOperationsItems(): Promise<CategoryRoutedResult> {
     return await cachedOperations(orgId);
   } catch (e) {
     console.error("getOperationsItems failed, returning empty:", e);
+    return { resources: [], total: 0 };
+  }
+}
+
+/**
+ * Fetch the /technology category-routed row payload. Wraps
+ * get_technology_items (item_type-gated: technology / innovation / tool,
+ * migration 134).
+ */
+export async function getTechnologyItems(): Promise<CategoryRoutedResult> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    return await cachedTechnology(orgId);
+  } catch (e) {
+    console.error("getTechnologyItems failed, returning empty:", e);
     return { resources: [], total: 0 };
   }
 }

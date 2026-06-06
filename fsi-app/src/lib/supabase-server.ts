@@ -1047,7 +1047,8 @@ async function runCategoryRpc(
   rpcName:
     | "get_market_intel_items"
     | "get_research_items"
-    | "get_operations_items",
+    | "get_operations_items"
+    | "get_technology_items",
   opts: { enrichCitations?: boolean } = {}
 ): Promise<CategoryRoutedResult> {
   if (!isSupabaseConfigured() || !orgId) {
@@ -1138,6 +1139,14 @@ export async function fetchOperationsItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
   return runCategoryRpc(orgId, "get_operations_items", { enrichCitations: true });
+}
+
+// /technology fetcher. RPC filters on item_type IN ('technology',
+// 'innovation', 'tool') — item_type-gated via migration 134.
+export async function fetchTechnologyItems(
+  orgId: string | null
+): Promise<CategoryRoutedResult> {
+  return runCategoryRpc(orgId, "get_technology_items");
 }
 
 // ── Per-source citation stats (Build 7, Q9 chip mounts) ───────
