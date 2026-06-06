@@ -127,6 +127,15 @@
 | 122 | 122_source_institutions.sql | Migration 122: institutions table (WHO published, keyed by registrable_domain) + sources.institution_id FK. A grouping/identity dimension, never a merge key; orthogonal to source_role/category. Source-layer fix, defect (b). |
 | 123 | 123_source_label_derivation.sql | Migration 123: source label is a LIVE derivation — derive_source_category (== migration 084 CASE) + derive_source_intelligence_types + BEFORE INSERT/UPDATE trigger. category + intelligence_types now derive from source_role+name on every write (kills the hardcoded ['GUIDE'] placeholder + drift). See src/lib/sources/classify-source-role.ts. |
 | 124 | 124_monitoring_queue_reconciled_at.sql | Migration 124: monitoring_queue.reconciled_at — claim marker for the reconcile worker (/api/worker/reconcile) so it consumes change_detected=true rows idempotently. Reconcile-loop activation. |
+| 125 | 125_routing_by_item_type.sql | Migration 125: route customer surfaces by item_type → format → surface (get_market_intel_items / get_research_items / get_operations_items by item_type; supersedes source-attribute routing in 084/117). Applied 2026-06-04. |
+| 126 | 126_research_required_slots.sql | Migration 126: seed item_type_required_slots for research_finding (finding, methodology_limits, decision_relevance, does_not_resolve). |
+| 128 | 128_research_finding_slot_ledger_fix.sql | Migration 128: research_finding transitive-slot fix — decision_relevance + does_not_resolve descriptions signal GAP-satisfiability so synthesis sections (S3/S5) cover their slots. |
+| 129 | 129_market_required_slots.sql | Migration 129: seed item_type_required_slots for market_signal + initiative (signal_event, driving_parties, conversion_trigger, action_now). |
+| 130 | 130_technology_required_slots.sql | Migration 130: seed item_type_required_slots for technology/innovation/tool (deployment_reality, supplier_access, operational_fit, procurement_window). |
+| 130b | 130b_get_technology_items_rpc.sql | Migration 130b: get_technology_items RPC — clone of get_research_items, item_type IN ('technology','innovation','tool'). |
+| 131 | 131_operations_required_slots.sql | Migration 131: seed item_type_required_slots for regional_data (cost_baseline, feasibility_choice, pending_change, region_jurisdiction). |
+| 132 | 132_operations_slot_gap_satisfiable.sql | Migration 132: cost_baseline + feasibility_choice slots honestly GAP-satisfiable when the fetched content has no verbatim figure/verdict (the migration-128 pattern for regional_data). |
+| 134 | 134_fix_research_technology_rpc_columns.sql | Migration 134: fix get_research_items + get_technology_items — join intelligence_items for what_it_changes/does_not_resolve (not exposed by _workspace_active_items); the RPC-error → empty → /research fail-open root. |
 
 ## Maintenance trigger
 
