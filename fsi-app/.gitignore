@@ -52,3 +52,6 @@ canonical-flagged.json
 
 # runtime backfill checkpoints/logs (transient state)
 scripts/.a5-sonnet*
+
+# action-time skill-gate audit log (local, secret-safe: tool+decision only)
+.discipline/governance/.gate-audit.log

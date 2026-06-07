@@ -58,6 +58,11 @@ export const rule = {
     const overridden = commitMessageLines(ctx, 'Surface-Decision-Override:').length > 0;
     const violations = [];
     for (const f of relevant(ctx)) {
+      // A staged DELETION (or unreadable file) is NOT a surface being added. In commit-msg/CI mode
+      // the numstat-derived status is always 'M' (git numstat carries no status letter, so deletions
+      // are indistinguishable by f.status), so rely on content absence — getFileContent returns null
+      // for a removed file. Matches the `if (!content) continue` guard rules 015/019 already use.
+      if (ctx.getFileContent(f.path) == null) continue;
       const seg = topSegment(f.path);
       if (seg === null) continue;
       if (!ALLOWED_SEGMENTS.has(seg)) violations.push({ path: norm(f.path), seg });

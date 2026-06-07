@@ -88,10 +88,14 @@ function norm(p) {
 }
 // A file pattern matches if: exact path, OR directory prefix (ends with '/'),
 // OR (for the special 'src/app/' surface case) any descendant.
+// Patterns are repo-relative (e.g. 'fsi-app/src/...'); callers pass EITHER a repo-relative
+// path (commit-time rules) OR an ABSOLUTE path (the PreToolUse hook, e.g. '<abs-checkout>/fsi-app/
+// src/...'). Match on the repo-relative SUFFIX so both forms resolve identically. Every pattern is
+// a multi-segment path, so suffix matching cannot collide.
 function fileMatches(path, pattern) {
   const f = norm(path), pat = norm(pattern);
-  if (pat.endsWith('/')) return f.startsWith(pat);
-  return f === pat;
+  if (pat.endsWith('/')) return f.startsWith(pat) || f.includes('/' + pat);   // directory: relative OR absolute
+  return f === pat || f.endsWith('/' + pat);                                  // exact file: relative OR absolute
 }
 
 // Return the governing entries whose FILE patterns match this path.

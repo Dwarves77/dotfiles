@@ -7,7 +7,7 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import {
   LayoutDashboard, Scale, TrendingUp, Globe,
   GraduationCap, MessageSquare, MapPin, Shield,
-  Menu, X, Cpu,
+  Menu, X,
 } from "lucide-react";
 import { useState } from "react";
 import { UserMenu } from "@/components/auth/UserMenu";
@@ -33,7 +33,6 @@ interface NavItem {
 const PRIMARY_NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/regulations", label: "Regulations", icon: Scale },
-  { href: "/technology", label: "Technology", icon: Cpu },
   { href: "/market", label: "Market Intel", icon: TrendingUp },
   { href: "/research", label: "Research", icon: GraduationCap },
   { href: "/operations", label: "Operations", icon: Globe },
@@ -57,7 +56,6 @@ const ADMIN_NAV: NavItem[] = [
 const NO_PREFETCH_HREFS = new Set<string>([
   "/",
   "/regulations",
-  "/technology",
   "/market",
   "/research",
   "/operations",
