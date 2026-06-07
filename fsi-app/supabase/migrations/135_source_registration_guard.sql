@@ -9,10 +9,10 @@
 --   - orphan-source-audit.mjs      (live-data scan that drives existing orphans to zero)
 -- Together these close the gap that produced 25 orphaned reclassified_to_source archives + 5 wrong ones.
 --
--- APPLICATION NOTE: not auto-applied by this session. Apply AFTER orphan-source-audit.mjs reports 0
--- orphans (the trigger only validates NEW writes; pre-existing orphans are untouched until re-written,
--- but cleaning them first keeps the invariant globally true). Operator applies via Supabase SQL editor
--- or CLI (service_role is flagged for rotation; do not apply with an agent-held credential).
+-- APPLIED 2026-06-06 via supabase/seed/apply-135.mjs (direct pg, SUPABASE_DB_PASSWORD) and fire-tested
+-- live: an archive-as-source with an UNREGISTERED host RAISES; with a REGISTERED active host it passes.
+-- Precondition held at apply time: orphan-source-audit reported 0 (no pre-existing violation to trip on).
+-- The trigger validates NEW writes only; it does not retro-scan existing rows.
 
 -- Host extraction (immutable): strip scheme, take authority up to first '/', drop leading www.
 -- Note: ignores port/userinfo edge cases; matches the JS hostOf() used by db.mjs closely enough
