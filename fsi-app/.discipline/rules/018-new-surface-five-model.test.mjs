@@ -33,4 +33,13 @@ test('018 check: PASS — override trailer (operator-authorized surface)', () =>
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
+test('018 check: PASS — a removed page.tsx (null content) is not flagged (deletion, not a new surface)', () => {
+  const ctx = buildContextFromFixture({
+    message: 'chore: remove dead /events stub',
+    files: [{ path: 'fsi-app/src/app/events/page.tsx', additions: 0, deletions: 14 }],
+    // no fileContents injected → getFileContent returns null, simulating the removed file
+  });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
 test('018: metadata', () => { assert.equal(rule.id, '018'); });

@@ -73,10 +73,51 @@ function normaliseHeading(raw: string): string {
 }
 
 /** Compare two heading strings case-insensitively after normalising
- * whitespace. The heading-text we feed in is already prefix-stripped. */
+ * whitespace. The heading-text we feed in is already prefix-stripped.
+ * ize/ise is normalised so a British-spelled brief heading ("Materialises")
+ * matches the spec's American spelling ("Materializes") — additive tolerance,
+ * never a false positive (governing: analysis-construction-spec — don't falsely
+ * omit a section that is present under a spelling variant). */
 function headingsMatch(a: string, b: string): boolean {
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const norm = (s: string) => s.toLowerCase().replace(/iz/g, "is").replace(/\s+/g, " ").trim();
   return norm(a) === norm(b);
+}
+
+/** Extract the section whose heading carries the NUMBER `key`, regardless of the
+ * heading TEXT. Robust to heading-format heterogeneity ("## 2.", "## Section 2:",
+ * type-word variance "What This Policy Framework Is" vs the spec's "...Regulation Is").
+ * This is the number-first twin of extractSectionByHeading; prose-extractor tries it FIRST.
+ * Additive: it can only RECOVER a section the text-matcher missed, never drop one.
+ * GOVERNING: analysis-construction-spec §1 (sections extracted by their declared position);
+ * env-policy integrity (omit ABSENT sections, never FALSELY omit a present one). */
+function headingNumber(payload: string): string | null {
+  const m = /^(?:section\s+)?0*(\d+)\s*[.):\-—–]/i.exec(payload.trim().replace(/^\*+\s*/, ""));
+  return m ? m[1] : null;
+}
+export function extractSectionByNumber(fullBrief: string, key: string): ExtractedSection | null {
+  if (!fullBrief || key == null) return null;
+  const target = String(key);
+  const lines = fullBrief.split(/\r?\n/);
+  let inFence = false, capturing = false, matchedLevel = 1;
+  const captured: string[] = [];
+  let foundHeading = "";
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) { inFence = !inFence; if (capturing) captured.push(line); continue; }
+    if (inFence) { if (capturing) captured.push(line); continue; }
+    const m = /^(#{1,2})\s+(.+?)\s*#*\s*$/.exec(line);
+    const heading = m ? { level: m[1].length, payload: m[2] } : null;
+    if (!capturing) {
+      if (heading && headingNumber(heading.payload) === target) { capturing = true; matchedLevel = heading.level; foundHeading = normaliseHeading(heading.payload); }
+      continue;
+    }
+    if (heading && heading.level <= matchedLevel) break;
+    captured.push(line);
+  }
+  if (!capturing) return null;
+  const contentMarkdown = captured.join("\n").replace(/^\n+|\n+$/g, "");
+  const firstParagraphs = splitFirstParagraphs(contentMarkdown, 3);
+  const totalLen = firstParagraphs.reduce((sum, p) => sum + p.length, 0);
+  return { heading: foundHeading, contentMarkdown, firstParagraphs, hasContent: firstParagraphs.length > 0 && totalLen > 50 };
 }
 
 /** Detect a markdown heading line at H1 or H2 level. Returns the

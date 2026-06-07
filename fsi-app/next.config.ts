@@ -56,6 +56,15 @@ const nextConfig: NextConfig = {
   //
   // Q1-Q6 resolved in docs/sprint-1/perf-1-design.md; no operator decisions
   // required at PR review.
+  // Config-level redirects. /events is not one of the five customer surfaces — community
+  // events live under /community. The prior src/app/events/page.tsx stub redirected to a
+  // nonexistent /community/events (404); it is removed and this config redirect is the
+  // correct home for the bookmark/crawler catch (a redirect, not a page-surface).
+  async redirects() {
+    return [
+      { source: "/events", destination: "/community", permanent: true },
+    ];
+  },
   async headers() {
     return [
       // ── PERF-1 (2026-05-18): content-aware TTLs per design doc ──
