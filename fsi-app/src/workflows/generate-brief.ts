@@ -122,6 +122,34 @@ export async function growStep(itemId: string): Promise<StepResult> {
   return growSources(itemId);
 }
 
+// research-or-erase: ONE re-research retry on ground failure. Regenerate (discoverCorroborators
+// widens the source pool via web_search) -> re-section -> re-ground, as a DISTINCT step so it is not
+// memoized against the first generate/ground. Spends ~one generate + ground (Browserless + Sonnet).
+export async function reresearchStep(itemId: string): Promise<StepResult> {
+  "use step";
+  const sb = svc();
+  const g = await generateBrief(itemId);
+  if (!g.ok) { await recordRun(sb, itemId, "reresearch", EST_GENERATE_USD, false, `regen: ${g.detail}`).catch(() => {}); return g; }
+  const s = await sectionBrief(itemId);
+  if (!s.ok) { await recordRun(sb, itemId, "reresearch", EST_GENERATE_USD, false, `re-section: ${s.detail}`).catch(() => {}); return s; }
+  const r = await groundBrief(itemId);
+  await recordRun(sb, itemId, "reresearch", r.ok ? EST_GENERATE_USD + EST_GROUND_USD : EST_GENERATE_USD, r.ok, `re-ground: ${r.detail}`).catch(() => {});
+  return r;
+}
+
+// research-or-erase: re-research ALSO failed grounding -> content is ungroundable/fabricated. Erase it
+// (null full_brief + drop sections) so no failure content persists as customer-facing; the item stays
+// quarantined with an erase note. Never leaves a fabricated brief sitting as content.
+export async function eraseStep(itemId: string): Promise<{ erased: boolean }> {
+  "use step";
+  const sb = svc();
+  await sb.from("intelligence_items").update({ full_brief: null, updated_at: new Date().toISOString() }).eq("id", itemId);
+  await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
+  try { await sb.from("integrity_flags").update({ recommended_actions: [{ action: "erased_full_brief", rationale: "re-research failed grounding twice; ungroundable/fabricated content removed" }] }).eq("subject_ref", itemId).eq("status", "open"); } catch { /* best-effort note */ }
+  await recordRun(sb, itemId, "erase", 0, true, "research-or-erase: nulled ungroundable brief").catch(() => {});
+  return { erased: true };
+}
+
 // Task 1.14: span-check fetch step (Component 7) — RESERVED tested utility, not in
 // the canonical orchestration (groundBrief does its own verbatim span-check). Kept
 // because the retry contract is decision-log rows 22 + 45 and is runtime-verified:
@@ -158,7 +186,7 @@ spanCheckClaim.maxRetries = 3;
 export interface GenerateBriefResult {
   itemId: string;
   status: string;
-  steps: Partial<Record<"budget" | "generate" | "section" | "ground" | "grow", unknown>>;
+  steps: Partial<Record<"budget" | "generate" | "section" | "ground" | "grow" | "reresearch" | "erase", unknown>>;
 }
 
 export async function generateBriefWorkflow(itemId: string): Promise<GenerateBriefResult> {
@@ -173,8 +201,16 @@ export async function generateBriefWorkflow(itemId: string): Promise<GenerateBri
   const section = await sectionStep(itemId);
   if (!section.ok) return { itemId, status: "section_failed", steps: { budget, generate, section } };
 
-  const ground = await groundStep(itemId);
-  if (!ground.ok) return { itemId, status: "ground_failed", steps: { budget, generate, section, ground } };
+  let ground = await groundStep(itemId);
+  if (!ground.ok) {
+    // research-or-erase: one re-research retry (widen the pool via web_search, re-section, re-ground).
+    const reresearch = await reresearchStep(itemId);
+    if (!reresearch.ok) {
+      const erase = await eraseStep(itemId);
+      return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, section, ground, reresearch, erase } };
+    }
+    ground = reresearch; // re-research grounded successfully
+  }
 
   // Grow is non-gating: source credibility compounds, but a failed grow does not
   // invalidate an already-verified brief. The set_provenance_status trigger (migration

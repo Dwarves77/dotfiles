@@ -26,6 +26,7 @@ import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } fr
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief } from "@/lib/sources/source-growth";
 import { BROWSERLESS_FETCH_CONCURRENCY } from "@/lib/agent/generation-config";
+import { checkBriefContent } from "@/lib/sources/fetch-quality";
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 // Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
 // (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
@@ -160,6 +161,11 @@ ${blocks}`;
   const parsed = parseAgentOutput(await callSonnet(SYSTEM_PROMPT, user));
   const body = stripUrlMarkers((parsed.body || "").trim()) as string;
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
+  // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist as
+  // customer content (and must not be grounded). Reject before the write so the item stays ungenerated
+  // rather than carrying a failure-explanation brief.
+  const cc = checkBriefContent(body);
+  if (!cc.ok) return { ok: false, detail: `brief_failure_gate: ${cc.reason}` };
   await sb.from("intelligence_items").update({ full_brief: cleanCtl(body), updated_at: new Date().toISOString() }).eq("id", itemId);
 
   // Persist the fetched multi-source pool so grounding verifies FACT spans against the SAME content
