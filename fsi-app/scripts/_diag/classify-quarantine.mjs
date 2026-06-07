@@ -28,7 +28,7 @@ for (const it of targets) {
   const failures = row?.failures || [];
   const reasons = new Set(failures.map((f) => f.reason));
   for (const r of reasons) reasonTotals[r] = (reasonTotals[r] || 0) + 1;
-  const slots = failures.filter((f) => f.reason === "missing_required_slot").map((f) => f.slot || f.detail || "?");
+  const slots = failures.filter((f) => f.reason === "missing_required_slot").map((f) => f.slot_key || "?");
   for (const s of slots) slotTotals[s] = (slotTotals[s] || 0) + 1;
 
   const hasContent = [...reasons].some((r) => CONTENT_REASONS.has(r));
