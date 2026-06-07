@@ -123,6 +123,26 @@ rm -f /tmp/discipline-prepush-inv.log
 echo "[discipline pre-push] step 3b (invariant-coverage meta-gate): OK"
 
 # ---------------------------------------------------------------------------
+# Step 3c: action-time skill-gate wiring (out-of-repo boundary check)
+# ---------------------------------------------------------------------------
+# The PreToolUse skill gate (governance/pretooluse-skill-gate.mjs) only FIRES if
+# ~/.claude/settings.json registers it for every mutating tool (Bash + Edit/Write/
+# MultiEdit/NotebookEdit). That file lives outside the repo, so CI can't enforce it;
+# this step proves it on the operator's machine. SKIPs cleanly when settings.json is
+# absent (e.g. a fresh clone) — hook correctness itself is covered by step 3's
+# governance/*.test.mjs. FAILs if settings.json exists but the gate is only partially wired.
+if ! node fsi-app/.discipline/governance/check-pretooluse-wired.mjs >/tmp/discipline-prepush-gate.log 2>&1; then
+  echo "[discipline pre-push] STEP 3c FAIL: action-time skill gate is not fully wired:" >&2
+  cat /tmp/discipline-prepush-gate.log >&2
+  echo "[discipline pre-push] run: node fsi-app/.discipline/governance/wire-pretooluse-settings.mjs --apply, then re-push." >&2
+  rm -f /tmp/discipline-prepush-gate.log
+  exit 1
+fi
+cat /tmp/discipline-prepush-gate.log
+rm -f /tmp/discipline-prepush-gate.log
+echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
+
+# ---------------------------------------------------------------------------
 # Step 4: TypeScript compile parity (matches F9 / Vercel build path)
 # ---------------------------------------------------------------------------
 # tsc-noEmit is slow (~10-30s); run last so quick failures abort first.
