@@ -219,8 +219,14 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
   const { data: it } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
   if (!it?.source_id) return { ok: false, detail: "no source_id" };
-  const { count: existing } = await sb.from("section_claim_provenance").select("id", { count: "exact", head: true }).eq("intelligence_item_id", itemId);
-  if (existing && existing > 0) return { ok: true, detail: "already grounded" };
+  // Idempotency scoped to VERIFIED (not "any claims exist"). A quarantined/ungrounded item is
+  // re-groundable — the prior guard ("any claims -> already grounded") silently blocked re-grounding a
+  // quarantined item against a new/expanded section set (e.g. after a section backfill) if a partial run
+  // had left claims. Skip only verified; for everything else clear stray claims so the re-ground starts
+  // clean (no duplicate rows), then proceed.
+  const { data: prov } = await sb.from("intelligence_items").select("provenance_status").eq("id", itemId).single();
+  if (prov?.provenance_status === "verified") return { ok: true, detail: "already verified" };
+  await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
   const { data: secs } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
   if (!secs?.length) return { ok: false, detail: "no sections" };
   // Record the brief's surfaced sources as cited-URL searches so criterion-2 URL grounding (EXACT-URL
