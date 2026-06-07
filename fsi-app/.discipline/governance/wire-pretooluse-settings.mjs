@@ -21,7 +21,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SETTINGS = resolve(homedir(), ".claude", "settings.json");
 const HOOK = resolve(dirname(fileURLToPath(import.meta.url)), "pretooluse-skill-gate.mjs");
-const MATCHER = "Bash|Edit|Write|MultiEdit|NotebookEdit";
+// Regex matcher (the "." / "+" force regex mode in Claude Code): the five mutating file/Bash tools,
+// the dispatch tools (Agent/Task/Workflow — gated because subagent tool calls are NOT hook-covered),
+// PLUS every MCP tool (mcp__*), which bypass Bash+git. Anchored so it matches exact tool names.
+const MATCHER = "^(Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Workflow|mcp__.+)$";
 const APPLY = process.argv.includes("--apply");
 
 // Canonical command: run the in-repo hook; if node itself fails to launch, fail CLOSED to `ask`.

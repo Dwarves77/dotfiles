@@ -17,7 +17,22 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 
 const SETTINGS = resolve(homedir(), ".claude", "settings.json");
-const REQUIRED = ["Bash", "Edit", "Write", "MultiEdit", "NotebookEdit"];
+// Every tool path that can mutate the system must route to the hook. Includes representative MCP write
+// tools (which bypass Bash+git) so a matcher that omits mcp coverage FAILs this check.
+const REQUIRED = [
+  "Bash", "Edit", "Write", "MultiEdit", "NotebookEdit",
+  "Agent", "Task", "Workflow", // dispatch tools — subagent calls are not hook-covered, so the dispatch is gated
+  "mcp__github__push_files", "mcp__github__create_or_update_file", "mcp__github__merge_pull_request",
+];
+
+// Mirror Claude Code matcher semantics: "*" or "" matches all; only [A-Za-z0-9_|] -> exact `|`-alternation;
+// anything else -> JS regex.
+function matcherMatches(matcher, tool) {
+  const m = String(matcher || "");
+  if (m === "" || m === "*") return true;
+  if (/^[A-Za-z0-9_|]+$/.test(m)) return m.split("|").map((s) => s.trim()).includes(tool);
+  try { return new RegExp(m).test(tool); } catch { return false; }
+}
 
 if (!existsSync(SETTINGS)) {
   console.log(`skill-gate wiring: SKIP — ${SETTINGS} not present (CI/headless). Correctness covered by the fire-test.`);
@@ -29,13 +44,12 @@ try { s = JSON.parse(readFileSync(SETTINGS, "utf8")); }
 catch (e) { console.error(`skill-gate wiring: FAIL — could not parse settings.json: ${e.message}`); process.exit(1); }
 
 const pre = (s.hooks && Array.isArray(s.hooks.PreToolUse)) ? s.hooks.PreToolUse : [];
-// A tool is "covered" if some PreToolUse entry whose matcher includes that tool name points at the hook.
+// A tool is "covered" if some PreToolUse entry that points at the hook has a matcher matching it.
 const covered = new Set();
 for (const e of pre) {
-  const matcher = String(e.matcher || "");
-  const tools = matcher.split("|").map((t) => t.trim());
   const pointsAtHook = (e.hooks || []).some((h) => (h.command || "").includes("pretooluse-skill-gate"));
-  if (pointsAtHook) for (const t of tools) covered.add(t);
+  if (!pointsAtHook) continue;
+  for (const t of REQUIRED) if (matcherMatches(e.matcher, t)) covered.add(t);
 }
 
 const missing = REQUIRED.filter((t) => !covered.has(t));

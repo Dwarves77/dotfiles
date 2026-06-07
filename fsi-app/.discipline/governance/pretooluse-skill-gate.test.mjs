@@ -1,15 +1,31 @@
 // FIRE-TEST for the action-time skill gate (pretooluse-skill-gate.mjs), wired into `node --test`
-// (pre-push step 3 + CI). Asserts EFFICACY, not existence: feeds real PreToolUse payloads to the hook
-// and checks the permissionDecision. Catches the two regressions that made the gate a silent no-op:
-//   1. skill-map path matching failing on ABSOLUTE paths (the form the hook actually receives), and
-//   2. the Windows `import(C:\...)` ERR_UNSUPPORTED_ESM_URL_SCHEME swallowed by the fail-soft catch.
+// (pre-push step 3 + CI). Asserts EFFICACY, not existence. Catches the regressions that made the gate
+// a silent no-op (absolute-path match failure; Windows ESM import error) AND proves the operator rule:
+// a governed write is BLOCKED unless the governing skill was deliberately LOADED this session.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HOOK = resolve(dirname(fileURLToPath(import.meta.url)), "pretooluse-skill-gate.mjs");
+
+// Fake session transcripts: one WITH explicit Skill invocations, one WITHOUT.
+const TMP = mkdtempSync(join(tmpdir(), "skillgate-"));
+const skillLine = (slug) => `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"${slug}"}}]}}`;
+const LOADED = join(TMP, "loaded.jsonl");
+writeFileSync(LOADED, [
+  skillLine("environmental-policy-and-innovation"),
+  skillLine("analysis-construction-spec"),
+  skillLine("caros-ledge-platform-intent"),
+  skillLine("source-credibility-model"),
+  skillLine("remediation-discipline"),
+  skillLine("sprint-followups-discipline"),
+].join("\n") + "\n");
+const EMPTY = join(TMP, "empty.jsonl");
+writeFileSync(EMPTY, '{"type":"user","message":{"content":"hi"}}\n'); // no Skill invocation
 
 function decide(payload) {
   const r = spawnSync(process.execPath, [HOOK], { input: payload, encoding: "utf8" });
@@ -20,49 +36,57 @@ function reasonOf(payload) {
   const r = spawnSync(process.execPath, [HOOK], { input: payload, encoding: "utf8" });
   try { return JSON.parse(r.stdout).hookSpecificOutput.permissionDecisionReason || ""; } catch { return ""; }
 }
-const P = (o) => JSON.stringify(o);
+const ABS = "/sandbox/checkout"; // synthetic absolute root — exercises abs-path suffix match w/o a hardcoded home (rule 012)
+const P = (tool_name, tool_input, transcript = LOADED) => JSON.stringify({ tool_name, tool_input, transcript_path: transcript });
 
-// Synthetic ABSOLUTE checkout root — exercises the absolute-path suffix-match (a leading slash +
-// multi-segment prefix, the shape the hook actually receives) WITHOUT a hardcoded user-home path
-// (rule 012). The hook resolves governance purely from the repo-relative suffix, so any abs root works.
-const ABS = "/sandbox/checkout";
-const gov = (rel) => `${ABS}/${rel}`;
-
-// [name, expected, payload]
-const CASES = [
-  // Edit/Write on GOVERNED files — must ask (absolute paths = the real hook input shape)
-  ["Edit governed canonical-pipeline (abs)", "ask", P({ tool_name: "Edit", tool_input: { file_path: gov("fsi-app/src/lib/agent/canonical-pipeline.ts") } })],
-  ["Edit governed trust.ts (abs)", "ask", P({ tool_name: "Edit", tool_input: { file_path: gov("fsi-app/src/lib/trust.ts") } })],
-  ["Write new surface page.tsx", "ask", P({ tool_name: "Write", tool_input: { file_path: gov("fsi-app/src/app/newsurface/page.tsx") } })],
-  ["Edit formats/ directory file", "ask", P({ tool_name: "Edit", tool_input: { file_path: gov("fsi-app/src/lib/agent/formats/prose-extractor.ts") } })],
-  ["Edit migration file", "ask", P({ tool_name: "Edit", tool_input: { file_path: gov("fsi-app/supabase/migrations/140_x.sql") } })],
-  ["MultiEdit governed trust.ts", "ask", P({ tool_name: "MultiEdit", tool_input: { file_path: gov("fsi-app/src/lib/trust.ts") } })],
-  ["Edit governed via RELATIVE path", "ask", P({ tool_name: "Edit", tool_input: { file_path: "fsi-app/src/lib/agent/canonical-pipeline.ts" } })],
-  // Ungoverned files — must allow
-  ["Write ungoverned README", "allow", P({ tool_name: "Write", tool_input: { file_path: gov("fsi-app/README.md") } })],
-  ["Edit ungoverned component", "allow", P({ tool_name: "Edit", tool_input: { file_path: gov("fsi-app/src/components/Badge.tsx") } })],
-  // Bash — write/destructive must ask, read-only must allow
-  ["Bash --apply data write", "ask", P({ tool_name: "Bash", tool_input: { command: "node scripts/regen-quarantined.mjs --apply" } })],
-  ["Bash DELETE FROM", "ask", P({ tool_name: "Bash", tool_input: { command: "psql -c \"delete from intelligence_items\"" } })],
-  ["Bash git push", "ask", P({ tool_name: "Bash", tool_input: { command: "git push origin master" } })],
-  ["Bash read-only dry-run", "allow", P({ tool_name: "Bash", tool_input: { command: "node scripts/regen-quarantined.mjs" } })],
-  // Other tools — allow
-  ["Read tool", "allow", P({ tool_name: "Read", tool_input: { file_path: "x" } })],
-  // Fail-closed backstops
-  ["empty payload", "ask", ""],
-  ["unparseable payload", "ask", "{not json"],
+// ── decisions WHEN the governing skill IS loaded ──
+const LOADED_CASES = [
+  ["Edit governed canonical-pipeline → allow (skill loaded)", "allow", P("Edit", { file_path: `${ABS}/fsi-app/src/lib/agent/canonical-pipeline.ts` })],
+  ["Edit governed trust.ts → allow (skill loaded)", "allow", P("Edit", { file_path: `${ABS}/fsi-app/src/lib/trust.ts` })],
+  ["Write new surface page.tsx → allow (skill loaded)", "allow", P("Write", { file_path: `${ABS}/fsi-app/src/app/x/page.tsx` })],
+  ["Edit formats/ file → allow (skill loaded)", "allow", P("Edit", { file_path: `${ABS}/fsi-app/src/lib/agent/formats/prose-extractor.ts` })],
+  ["Edit migration → allow (skill loaded)", "allow", P("Edit", { file_path: `${ABS}/fsi-app/supabase/migrations/140_x.sql` })],
+  ["Edit governed via RELATIVE path → allow (skill loaded)", "allow", P("Edit", { file_path: "fsi-app/src/lib/agent/canonical-pipeline.ts" })],
+  ["Write ungoverned README → allow", "allow", P("Write", { file_path: `${ABS}/fsi-app/README.md` })],
+  ["Edit ungoverned component → allow", "allow", P("Edit", { file_path: `${ABS}/fsi-app/src/components/Badge.tsx` })],
+  ["Bash --apply with skill loaded → ask", "ask", P("Bash", { command: "node scripts/regen-quarantined.mjs --apply" })],
+  ["Bash read-only → allow", "allow", P("Bash", { command: "node scripts/regen-quarantined.mjs" })],
+  ["MCP read (get_file_contents) → allow", "allow", P("mcp__github__get_file_contents", { path: "x" })],
+  ["MCP read (list_commits) → allow", "allow", P("mcp__github__list_commits", {})],
+  ["MCP write (push_files) with skill loaded → ask", "ask", P("mcp__github__push_files", { files: [] })],
+  ["MCP write (merge_pull_request) with skill loaded → ask", "ask", P("mcp__github__merge_pull_request", { pull_number: 1 })],
+  ["Read tool → allow", "allow", P("Read", { file_path: "x" })],
+  // Dispatch tools — always ask (subagent interior is not hook-covered; surface the gap every time)
+  ["Agent dispatch → ask", "ask", P("Agent", { description: "x", prompt: "y" })],
+  ["Task dispatch → ask", "ask", P("Task", { prompt: "y" })],
+  ["Workflow dispatch → ask", "ask", P("Workflow", { script: "..." })],
 ];
-
-for (const [name, expect, payload] of CASES) {
-  test(`decision: ${name} → ${expect}`, () => {
-    assert.equal(decide(payload), expect, `${name}: expected ${expect}`);
-  });
+for (const [name, expect, payload] of LOADED_CASES) {
+  test(name, () => assert.equal(decide(payload), expect));
 }
 
-// EFFICACY: the Bash --apply reason must NAME the real per-op governing skill, proving the skill-map
-// actually loaded (not just the hardcoded fallback string that masked the Windows import failure).
-test("EFFICACY: Bash --apply names the real per-op skill (skill-map loaded, not fallback)", () => {
-  const reason = reasonOf(P({ tool_name: "Bash", tool_input: { command: "node x.mjs --apply update intelligence_items set provenance_status" } }));
-  assert.ok(reason.includes("environmental-policy-and-innovation"), `reason did not name the per-op skill: ${reason}`);
-  assert.ok(!reason.includes("(data write)"), `reason fell back to the generic default (skill-map not loaded): ${reason}`);
+// ── DENY WHEN the governing skill is NOT loaded (the operator rule: no workaround) ──
+const DENY_CASES = [
+  ["Edit governed pipeline, NO skill loaded → deny", "deny", P("Edit", { file_path: `${ABS}/fsi-app/src/lib/agent/canonical-pipeline.ts` }, EMPTY)],
+  ["Bash --apply, NO skill loaded → deny", "deny", P("Bash", { command: "node x.mjs --apply" }, EMPTY)],
+  ["MCP push_files, NO skill loaded → deny", "deny", P("mcp__github__push_files", { files: [] }, EMPTY)],
+  ["Edit governed, NO transcript path → deny (fail closed)", "deny", JSON.stringify({ tool_name: "Edit", tool_input: { file_path: `${ABS}/fsi-app/src/lib/trust.ts` } })],
+];
+for (const [name, expect, payload] of DENY_CASES) {
+  test(name, () => assert.equal(decide(payload), expect));
+}
+
+// ── fail-closed backstops (no transcript needed) ──
+test("empty payload → ask", () => assert.equal(decide(""), "ask"));
+test("unparseable payload → ask", () => assert.equal(decide("{not json"), "ask"));
+
+// ── EFFICACY: deny reason must NAME the missing skill (proves the transcript check ran, not a blanket deny) ──
+test("EFFICACY: deny reason names the missing governing skill", () => {
+  const reason = reasonOf(P("Edit", { file_path: `${ABS}/fsi-app/src/lib/agent/canonical-pipeline.ts` }, EMPTY));
+  assert.ok(reason.includes("environmental-policy-and-innovation"), `deny reason did not name the skill: ${reason}`);
+});
+// ── EFFICACY: Bash --apply (skill loaded) names the real per-op skill (skill-map loaded, not fallback) ──
+test("EFFICACY: Bash --apply names the real per-op skill", () => {
+  const reason = reasonOf(P("Bash", { command: "node x.mjs --apply update intelligence_items set provenance_status" }));
+  assert.ok(reason.includes("environmental-policy-and-innovation"), `reason did not name per-op skill: ${reason}`);
 });
