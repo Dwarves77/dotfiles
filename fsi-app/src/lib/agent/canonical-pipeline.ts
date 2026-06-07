@@ -25,6 +25,7 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief } from "@/lib/sources/source-growth";
+import { BROWSERLESS_FETCH_CONCURRENCY } from "@/lib/agent/generation-config";
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 // Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
 // (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
@@ -39,6 +40,19 @@ function svc(): SupabaseClient {
 }
 async function fetchText(url: string, max = 40000): Promise<string> {
   try { const r = await browserlessFetch(url, { maxTextLength: max }); return (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim(); } catch { return ""; }
+}
+// Browserless enforces a hard concurrency cap (5 on the current plan). The pool fetch fired ~7
+// sessions per item via Promise.all, and N concurrent batch shards multiplied that — exceeding the cap
+// so Browserless REJECTED most fetches (counted as "no fetchable content", not actually unfetchable).
+// Bound concurrent fetches so (shards x FETCH_CONCURRENCY) stays under the cap. Tune via the
+// generation-config knob (rule 017: tuning knobs are named constants, not inline process.env).
+const FETCH_CONCURRENCY = BROWSERLESS_FETCH_CONCURRENCY;
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let i = 0;
+  async function worker() { while (i < items.length) { const idx = i++; out[idx] = await fn(items[idx]); } }
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return out;
 }
 async function callSonnet(system: string, user: string): Promise<string> {
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -122,7 +136,7 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   const corroborators = await discoverCorroborators(it.title, it.source_url, primary);
   // 3. multi-source fetch (primary + discovered), keep only blocks with real content
   const poolUrls = [...new Set([it.source_url, ...corroborators.map((c) => c.url)].filter(Boolean))] as string[];
-  const fetched = (await Promise.all(poolUrls.map(async (u) => ({ url: u, text: await fetchText(u, 14000) })))).filter((b) => b.text.length > 200);
+  const fetched = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
   if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch; ${corroborators.length} discovered, none fetchable)` };
 
   // 4. synthesise the rich brief across the WHOLE pool
@@ -232,7 +246,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
     searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
   } else {
     const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
-    fetched = (await Promise.all(groundUrls.map(async (u) => ({ url: u, text: await fetchText(u, 16000) })))).filter((b) => b.text.length > 200);
+    fetched = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 16000) }))).filter((b) => b.text.length > 200);
     searchRows = [];
     ownSearches = true;
     for (let i = 0; i < fetched.length; i++) {

@@ -136,6 +136,7 @@
 | 132 | 132_operations_slot_gap_satisfiable.sql | Migration 132: cost_baseline + feasibility_choice slots honestly GAP-satisfiable when the fetched content has no verbatim figure/verdict (the migration-128 pattern for regional_data). |
 | 133 | 133_get_technology_items_rpc.sql | Migration 133: get_technology_items RPC — clone of get_research_items, item_type IN ('technology','innovation','tool'). Renamed from 130b to conform to 3-digit (F6) naming. |
 | 134 | 134_fix_research_technology_rpc_columns.sql | Migration 134: fix get_research_items + get_technology_items — join intelligence_items for what_it_changes/does_not_resolve (not exposed by _workspace_active_items); the RPC-error → empty → /research fail-open root. |
+| 135 | 135_source_registration_guard.sql | Migration 135: source-registration invariant DB guard — BEFORE INSERT/UPDATE trigger on intelligence_items refuses archive-as-source (reclassified_to_source/source_not_item/institutional_source/non_regulatory_source/portal_artifact) without a registered active source for the item host. DB twin of rule 019 + db.mjs reclassifyToSource() + orphan-source-audit.mjs. APPLIED 2026-06-06 via apply-135.mjs (fire-tested live: blocks unregistered archive-as-source, allows registered). |
 
 ## Maintenance trigger
 

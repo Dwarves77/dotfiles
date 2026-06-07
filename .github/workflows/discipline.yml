@@ -94,16 +94,24 @@ jobs:
       - name: Run discipline test suite
         # node --test runs each file in its own process and reports TAP.
         # Globs are expanded by the shell, so the runner sees a flat list.
-        # Includes the fitness/ test suite added in Sprint Architecture Phase 4.
+        # Includes the fitness/ test suite added in Sprint Architecture Phase 4
+        # and the governance/ suite (invariant-coverage meta-gate) added 2026-06-06.
         run: |
           set -eu
           node --test \
             fsi-app/.discipline/lib/*.test.mjs \
             fsi-app/.discipline/rules/*.test.mjs \
+            fsi-app/.discipline/governance/*.test.mjs \
             fsi-app/.discipline/runner.test.mjs \
             fsi-app/.discipline/install-hooks.test.mjs \
             fsi-app/.discipline/fitness/functions/*.test.mjs \
-            fsi-app/.discipline/fitness/runner.test.mjs
+            fsi-app/.discipline/fitness/runner.test.mjs \
+            fsi-app/scripts/lib/db.test.mjs
+
+      - name: Invariant-coverage meta-gate (per-invariant wiring of all 6 skills)
+        # Fails CI if any skill invariant is neither enforced (by a resolving mechanism)
+        # nor exempt-with-reason, or if any anchor/baseline drifted. Makes "wired" non-optional.
+        run: node fsi-app/.discipline/governance/invariant-coverage.mjs
 
   fitness-check:
     name: Fitness functions (application-layer enforcement)
