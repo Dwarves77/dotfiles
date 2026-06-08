@@ -27,6 +27,10 @@ import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief } from "@/lib/sources/source-growth";
 import { BROWSERLESS_FETCH_CONCURRENCY } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
+import {
+  toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
+  DB_PRIORITY_VALUES, DB_URGENCY_TIER_VALUES, DB_FORMAT_TYPE_VALUES, DB_SIGNAL_BAND_VALUES,
+} from "@/lib/agent/metadata-vocab";
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 // Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
 // (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
@@ -122,25 +126,16 @@ Search the web and return the JSON list of corroborating / expanding sources.`;
 
 export interface StepResult { ok: boolean; detail: string }
 
-/** STEP generate — the DEEP DIVE (the only generator). Fetch the primary source, web_search for
- *  corroborating/expanding sources, fetch that multi-source pool, then synthesise the format-selected
- *  brief ACROSS the pool (system prompt selects by item_type; Forward-Intelligence + No-Vacuum apply).
- *  A thin primary source is the TRIGGER to research wider, never a reason to emit a thin brief. */
-export async function generateBrief(itemId: string): Promise<StepResult> {
-  const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
-  if (!it) return { ok: false, detail: "item not found" };
-
-  // 1. primary source (thin is fine — it just means the discovery below must carry the weight)
-  const primary = await fetchText(it.source_url, 16000);
-  // 2. DEEP DIVE: discover corroborating/expanding sources via web_search
-  const corroborators = await discoverCorroborators(it.title, it.source_url, primary);
-  // 3. multi-source fetch (primary + discovered), keep only blocks with real content
-  const poolUrls = [...new Set([it.source_url, ...corroborators.map((c) => c.url)].filter(Boolean))] as string[];
-  const fetched = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
-  if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch; ${corroborators.length} discovered, none fetchable)` };
-
-  // 4. synthesise the rich brief across the WHOLE pool
+/** Synthesise the format-selected brief ACROSS a source pool and persist full_brief. SHARED by
+ *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
+ *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
+ *  the pool (fresh-fetch overwrites it; from-stored reuses it). */
+async function synthesiseAndWriteBrief(
+  sb: SupabaseClient,
+  it: { id: string; title: string; item_type: string; source_id: string | null; source_url: string },
+  fetched: { url: string; text: string }[],
+  corroborators: Corroborator[],
+): Promise<StepResult> {
   const blocks = fetched.map((b) => `### SOURCE url=${b.url}\n${b.text.slice(0, 12000)}`).join("\n\n");
   const discoveredHint = corroborators.length
     ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
@@ -161,12 +156,76 @@ ${blocks}`;
   const parsed = parseAgentOutput(await callSonnet(SYSTEM_PROMPT, user));
   const body = stripUrlMarkers((parsed.body || "").trim()) as string;
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
-  // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist as
-  // customer content (and must not be grounded). Reject before the write so the item stays ungenerated
-  // rather than carrying a failure-explanation brief.
+  // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
   const cc = checkBriefContent(body);
   if (!cc.ok) return { ok: false, detail: `brief_failure_gate: ${cc.reason}` };
-  await sb.from("intelligence_items").update({ full_brief: cleanCtl(body), updated_at: new Date().toISOString() }).eq("id", itemId);
+  // Persist the FULL 13-field contract, not just the body. The agent emits the validated YAML metadata
+  // (parseAgentOutput validates severity/format_type/topic_tags vocab); writing only full_brief left
+  // format_type/severity/topic_tags/intersection fields stale — items re-grounded but stayed
+  // non-conformant. (env-policy "every regeneration writes 13 fields".) last_regenerated_at is overridden
+  // with REAL now (the agent's emitted timestamp is unreliable); UUID arrays are filtered to valid UUIDs.
+  const md = parsed.metadata;
+  const nowIso = new Date().toISOString();
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const cleanUuids = (a: unknown) => (Array.isArray(a) ? a.filter((x) => typeof x === "string" && UUID.test(x)) : []);
+  // Map/validate every CHECK-constrained field to its LIVE DB vocabulary BEFORE the write (metadata-vocab
+  // is the single source of truth). severity: skill DISPLAY form ("MONITORING") -> db lowercase_underscore
+  // ("monitoring") — this mismatch silently rejected the WHOLE update before. theme: gate to the live
+  // /research vocab, else null (no force-fit; the dropped value is logged pending the Emergence-Capture
+  // residual store). priority/urgency_tier/format_type/signal_band: defensive assert (the parser already
+  // guarantees these against sets identical to the DB, so a throw here means parser/DB drift — fail LOUD,
+  // named, not a silent whole-row reject).
+  const dbSeverity = toDbSeverity(md.severity);
+  const dbTheme = toDbTheme(md.theme);
+  // capture-not-null (INV-1, migration 136): bank an out-of-vocab theme instead of dropping it.
+  const themeCandidate = toThemeCandidate(md.theme);
+  if (themeCandidate) console.warn(`[canonical-pipeline] theme "${themeCandidate}" out-of-vocab on item ${it.id} -> theme=null, banked in theme_candidate (Emergence-Capture residual)`);
+  assertDbValue("priority", md.priority, DB_PRIORITY_VALUES, /*nullable*/ false);
+  assertDbValue("urgency_tier", md.urgency_tier, DB_URGENCY_TIER_VALUES);
+  assertDbValue("format_type", md.format_type, DB_FORMAT_TYPE_VALUES);
+  assertDbValue("signal_band", md.signal_band, DB_SIGNAL_BAND_VALUES);
+  const { error: writeErr } = await sb.from("intelligence_items").update({
+    full_brief: cleanCtl(body),
+    severity: dbSeverity, priority: md.priority, urgency_tier: md.urgency_tier,
+    format_type: md.format_type, topic_tags: md.topic_tags,
+    signal_band: md.signal_band, theme: dbTheme, theme_candidate: themeCandidate, trajectory_points: md.trajectory_points,
+    what_it_changes: md.what_it_changes, does_not_resolve: md.does_not_resolve,
+    conversion_trigger: md.conversion_trigger, cross_references: md.cross_references,
+    operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
+    related_items: cleanUuids(md.related_items), intersection_summary: md.intersection_summary,
+    sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
+    last_regenerated_at: nowIso, updated_at: nowIso,
+  }).eq("id", it.id);
+  // FAIL LOUD: the prior code dropped `error` here, so a CHECK violation rejected the ENTIRE update
+  // (full_brief + all metadata) while the function still reported ok:true. Surface it with field context
+  // so any future constraint mismatch self-identifies (CLAUDE.md error-swallow post-mortem; Emergence INV-3).
+  if (writeErr) {
+    return { ok: false, detail: `metadata_write_rejected: ${writeErr.message} (sev=${dbSeverity}, fmt=${md.format_type}, theme=${dbTheme ?? "null"}, prio=${md.priority})` };
+  }
+  return { ok: true, detail: `brief ${body.length}ch + 19-field metadata (fmt=${md.format_type}, sev=${dbSeverity}) from ${fetched.length} sources` };
+}
+
+/** STEP generate — the DEEP DIVE (the only generator). Fetch the primary source, web_search for
+ *  corroborating/expanding sources, fetch that multi-source pool, then synthesise the format-selected
+ *  brief ACROSS the pool (system prompt selects by item_type; Forward-Intelligence + No-Vacuum apply).
+ *  A thin primary source is the TRIGGER to research wider, never a reason to emit a thin brief. */
+export async function generateBrief(itemId: string): Promise<StepResult> {
+  const sb = svc();
+  const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  if (!it) return { ok: false, detail: "item not found" };
+
+  // 1. primary source (thin is fine — it just means the discovery below must carry the weight)
+  const primary = await fetchText(it.source_url, 16000);
+  // 2. DEEP DIVE: discover corroborating/expanding sources via web_search
+  const corroborators = await discoverCorroborators(it.title, it.source_url, primary);
+  // 3. multi-source fetch (primary + discovered), keep only blocks with real content
+  const poolUrls = [...new Set([it.source_url, ...corroborators.map((c) => c.url)].filter(Boolean))] as string[];
+  const fetched = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
+  if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch; ${corroborators.length} discovered, none fetchable)` };
+
+  // 4. synthesise across the WHOLE pool (shared with generateBriefFromStored — same skill-bearing prompt)
+  const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
+  if (!r.ok) return r;
 
   // Persist the fetched multi-source pool so grounding verifies FACT spans against the SAME content
   // generate synthesised from — no independent re-fetch that fails on PDF/Cloudflare. Replace any
@@ -188,7 +247,31 @@ ${blocks}`;
     if (!c.url || fetchedUrlSet.has(c.url)) continue;
     await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:discovered-ref", result_url: c.url, result_title: c.name || "discovered reference", result_index: 80, result_content_excerpt: (c.name || c.why || "discovered reference").slice(0, 180), searched_at: new Date().toISOString() });
   }
-  return { ok: true, detail: `brief ${body.length}ch synthesised from ${fetched.length} sources (${corroborators.length} discovered via web_search)` };
+  return { ok: true, detail: `${r.detail} (${corroborators.length} discovered via web_search)` };
+}
+
+/** REBUILD-FROM-STORED: re-synthesise the brief from the SAVED agent_run_searches pool — NO Browserless,
+ *  NO web_search. For the first-build conformance redo: reformat the corpus to the current skills using
+ *  content ALREADY pulled, instead of re-scraping. (Re-scrape stays a SEPARATE future capability for
+ *  freshness/change-detection + new-item discovery.) Returns ok:false (caller falls back to a fresh
+ *  generateBrief) when no usable stored pool exists. Reuses the saved pool as-is — does NOT overwrite it. */
+export async function generateBriefFromStored(itemId: string): Promise<StepResult> {
+  const sb = svc();
+  const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  if (!it) return { ok: false, detail: "item not found" };
+  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query").eq("intelligence_item_id", itemId);
+  const rows = pool ?? [];
+  // generate-pool rows carry the fetched source CONTENT (>200ch); discovered-ref stubs (<200ch) are leads only.
+  const fetched = rows
+    .filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200)
+    .map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
+  if (!fetched.length) return { ok: false, detail: "no usable stored pool (needs a fresh scrape)" };
+  const corroborators: Corroborator[] = rows
+    .filter((r) => r.search_query === "canonical:discovered-ref" && typeof r.result_url === "string")
+    .map((r) => ({ name: typeof r.result_title === "string" ? r.result_title : "discovered reference", url: r.result_url as string, why: "" }));
+  const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
+  if (!r.ok) return r;
+  return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs)` };
 }
 
 /** STEP section: format-selected extractor (via the registry) -> upsert intelligence_item_sections.
