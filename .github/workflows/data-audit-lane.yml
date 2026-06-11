@@ -1,0 +1,49 @@
+name: Data-audit lane
+
+# Nightly CI-with-secrets run of every LIVE-DATA audit (the ones the secret-less pre-push meta-gate
+# cannot run because they need DB credentials). Moves detection of corpus/data drift off the operator:
+#   one-tier-per-host · claims-tier · substrate-agreement · vocab-sync · orphan-source ·
+#   quarantine-disposition · unregistered-span-host (hard) + skill-conformance (soft).
+# A hard failure fails the job; with notifications on (Repo -> Settings -> Notifications, or a required
+# check), the operator is told. Manual run via the Actions tab (workflow_dispatch).
+#
+# SECRETS (repository secrets; never echoed): SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_URL,
+# SUPABASE_DB_PASSWORD. Fork-PR isolation: this lane runs only on schedule + manual dispatch (no
+# pull_request trigger), so a fork PR can never read these secrets (and GitHub withholds secrets from
+# fork-PR runs by default regardless).
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC nightly
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  data-audit-lane:
+    name: Live-data audits
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install fsi-app deps (jiti + pg + supabase-js used by the audits)
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run the data-audit lane
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: node scripts/verify/run-data-audit-lane.mjs
