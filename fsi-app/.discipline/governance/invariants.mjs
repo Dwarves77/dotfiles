@@ -59,10 +59,10 @@ export const MARKER_SOURCE =
 // the 2026-06-06 build; the gate self-reports a mismatch with the exact value to re-seed to.
 export const SKILL_MARKER_BASELINE = {
   'environmental-policy-and-innovation': 16,
-  'source-credibility-model': 5,
+  'source-credibility-model': 6,
   'analysis-construction-spec': 3,
   'caros-ledge-platform-intent': 9,
-  'remediation-discipline': 12,
+  'remediation-discipline': 13,
   'sprint-followups-discipline': 17,
 };
 
@@ -185,6 +185,25 @@ export const INVARIANTS = [
     },
   },
 
+  {
+    id: 'SC-6-one-tier-per-host',
+    skill: 'source-credibility-model',
+    section: 'Canonical Institutional Tier (Phase 0\')',
+    text: 'One canonical institutional tier per host group (registrable domain = institution; documented super-domain exceptions: europa.eu subdomains distinct, legislation.gov.uk distinct from gov.uk); a host with rows at inconsistent base_tier and no explicit tier_override is the duplicate-row defect.',
+    anchor: 'one canonical institutional tier per host group',
+    enforcedBy: ['audit:fsi-app/scripts/verify/one-tier-per-host-audit.mjs'],
+    residual: 'The audit is the live-data guard (CI-with-secrets lane); the meta-gate proves the file is wired (exists + skill-cited) in the secret-less pre-push. Per-row tier_override (section 7 override columns, reason required, default none) is the only sanctioned multi-tier escape. The durable fix (one institutions row, sources FK) is the tracked institutions-table follow-on.',
+  },
+  {
+    id: 'SC-7-claims-tier',
+    skill: 'source-credibility-model',
+    section: 'Canonical Institutional Tier (Phase 0\')',
+    text: 'A FACT claim\'s grounding tier stamp equals the canonical institutional tier of the source containing its span (flagged-override row tier where present; NULL when the span host is unregistered); no constant stamps.',
+    anchor: 'the stamp equals the canonical institutional tier of the source containing the span',
+    enforcedBy: ['audit:fsi-app/scripts/verify/claims-tier-audit.mjs'],
+    residual: 'The audit is the live-data guard; honestly RED until the Phase 1 backfill re-stamps every claim from the resolver (legacy stamps are the constant 2). The meta-gate proves wiring (file exists + skill-cited). Whether the registered institutional tier is itself CORRECT is the Phase 0\' operator-ratification judgment, not mechanized here.',
+  },
+
   // ───────────────────────────── analysis-construction-spec ─────────────────────────────
   {
     id: 'AC-1-section-construction',
@@ -294,6 +313,25 @@ export const INVARIANTS = [
     exempt: {
       reason: 'Judgment threshold applied at remediation-scoping time; not a property of committed code. Carried by the skill.',
     },
+  },
+  {
+    id: 'RD-4-quarantine-disposition',
+    skill: 'remediation-discipline',
+    section: 'Section 2.1: Quarantine Is an Open Investigation (research-or-erase)',
+    text: 'Quarantine is an OPEN INVESTIGATION, never terminal: entering quarantine enqueues research-or-erase; no item may sit live-quarantined past the dwell bound (or without an enqueue record) — it must reach a recorded disposition (recovered / archived / registered / erased).',
+    anchor: 'Quarantine is an open investigation, never a terminal state',
+    enforcedBy: ['audit:fsi-app/scripts/verify/quarantine-disposition-audit.mjs'],
+    residual: 'The audit is the live-data truth-teller (enqueue-present + dwell-bound) that scripts/regen-quarantined.mjs must drive to zero; it runs in the CI-with-secrets / ops lane (DB creds), while the meta-gate proves the file is wired (exists + skill-cited) in the secret-less pre-push. The ENQUEUE half rides the existing set_provenance_status trigger integrity_flag (migration 115); the dwell clock is that flag\'s created_at, which resets on re-quarantine (an item re-processed restarts its disposition SLA — intended). Whether each disposition was the RIGHT one (research thorough enough, archive justified) is remediation judgment (RD-1), not mechanized.',
+  },
+
+  {
+    id: 'RD-5-status-is-a-cache',
+    skill: 'remediation-discipline',
+    section: 'Status is a cache (gate/slot migrations ship revalidation)',
+    text: 'provenance_status is a CACHE of a gate result; any migration that changes the gate (validate_item_provenance) or its inputs (item_type_required_slots, the tier model) MUST ship a corpus revalidation in the SAME change, and stored status must agree with the live gate in BOTH directions (no stale-verified, no stale-quarantined).',
+    anchor: 'status is a cache',
+    enforcedBy: ['audit:fsi-app/scripts/verify/substrate-agreement-audit.mjs'],
+    residual: 'The audit (CI-with-secrets lane) recomputes validate_item_provenance per item and asserts agreement both ways — the live truth-teller for stale status. The meta-gate proves the file is wired (exists + skill-cited) in the secret-less pre-push. The standing rule "a gate/slot migration ships its corpus revalidation" is dispatch-time discipline carried by this skill; the audit catches a violation after the fact.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────

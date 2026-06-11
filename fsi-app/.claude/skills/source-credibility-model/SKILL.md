@@ -107,6 +107,12 @@ Open sub-decision: per-jurisdiction threshold differentials. Today the classifie
 
 Classifier prompts continue to reference "tier 1-7" as the static type taxonomy. They classify `base_tier`. Customer-facing surfaces and agents reference `effective_tier` (the dynamic signal that incorporates network + override + decay). The two are distinct schema fields after Q2 lands; consumer migration is per-consumer (decisions doc Open Sub-Decision).
 
+### Canonical institutional tier (one tier per institution)
+
+Tier is a property of the **institution**, not of a row. The registry MUST hold **one canonical institutional tier per host group** — multiple `sources` rows for the same institution (different pages, ingestion paths, dates) MUST share one `base_tier`. The grouping key is the **registrable domain (eTLD+1) = the institution** by default, with documented super-domain exceptions where a shared government domain hosts distinct bodies: **europa.eu subdomains are institution-distinct** (eur-lex.europa.eu = T1 legal text vs ec.europa.eu = T2 regulator vs eea.europa.eu = T3 agency), and **legislation.gov.uk (T1) is distinct from gov.uk departmental (T2)**. A single deliberate per-row exception is allowed ONLY via the Section 7 override columns (`tier_override` + `override_reason`, default none); absent an override, inconsistent per-row tiers are the duplicate-row defect and MUST be canonicalized. Bulk registration MUST classify (never default a real institution to T7 overflow); the register-as-source path assigns the institution's honest tier at registration.
+
+**Per-claim attribution = the source containing the span.** A FACT claim is attributed to the source whose fetched content actually contains its verbatim span (resolved via the span's pool row), NOT a hardcoded primary. Its grounding-tier stamp is set so that **the stamp equals the canonical institutional tier of the source containing the span** (the flagged-override row tier where present; NULL when that host is unregistered). No constant stamps: a constant masquerading as a resolved tier is fake certification. (Durable form: a single `institutions` table with `sources` referencing it — tracked follow-on; until then the per-host canonical `base_tier` carries the institutional tier.)
+
 ## Section 4: Citation Network Semantics
 
 ### Edge tables
