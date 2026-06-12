@@ -298,13 +298,21 @@ export async function generateBriefFromStored(itemId: string): Promise<StepResul
  *  render time; the rows stored here are format-generic. */
 export async function sectionBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("item_type, full_brief").eq("id", itemId).single();
+  const { data: it } = await sb.from("intelligence_items").select("item_type, full_brief, provenance_status").eq("id", itemId).single();
   if (!it?.full_brief) return { ok: false, detail: "no full_brief" };
+  // F2 SKIP-IF-VERIFIED GUARD (mirrors groundBrief): section_claim_provenance.section_row_id FKs into
+  // intelligence_item_sections ON DELETE CASCADE, so the blanket section delete below would
+  // CASCADE-destroy a verified item's entire claim ledger — and since the set_provenance_status trigger
+  // is AFTER INSERT/UPDATE (not DELETE), the item would stay labeled 'verified' with no claims
+  // (stale-verified = fabricated certification). A verified item is already sectioned + grounded; never
+  // re-section it. Re-sectioning is for fresh/quarantined items only (which carry no certification to lose).
+  if (it.provenance_status === "verified") return { ok: true, detail: "already verified — skip re-section (ledger-preserving)" };
   const spec = specForItemType(it.item_type);
   if (!spec) return { ok: false, detail: `no format spec for item_type ${it.item_type}` };
   const rows = spec.extract(it.full_brief);
   if (!rows.length) return { ok: false, detail: `no sections extracted (${spec.formatType})` };
-  // Replace stale sections from a prior generation (a re-gen may emit fewer/renamed sections).
+  // Replace stale sections from a prior generation (a re-gen may emit fewer/renamed sections). Safe here:
+  // the item is NOT verified (guarded above), so the CASCADE clears only an in-progress/quarantined ledger.
   await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
   for (const s of rows) {
     await sb.from("intelligence_item_sections").insert(
@@ -434,10 +442,15 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   const { data: vrData, error: vrErr } = await sb.rpc("validate_item_provenance", { p_item_id: itemId } as never);
   const vr = (Array.isArray(vrData) ? vrData[0] : vrData) as { valid: boolean; recommended_status: string; failures: unknown } | undefined;
   if (vr?.valid) return { ok: true, detail: `grounded kept=${kept.length} -> ${vr.recommended_status}` };
-  // manual rollback: the brief did not validate (or the RPC failed) — remove the just-inserted rows.
-  if (claimIds.length) await sb.from("section_claim_provenance").delete().in("id", claimIds);
-  // Only delete searches THIS step created (fallback path). The generate-stored pool is left intact
-  // so a re-ground attempt still has the corpus.
+  // B2 RETAIN-ON-FAILURE: do NOT delete the just-inserted claims on a validation failure. Deleting the
+  // ledger erased the evidence of WHY grounding failed (it cost the 45-flip forensics once). The item is
+  // already 'quarantined' (the per-insert set_provenance_status trigger ran validate on each claim and
+  // set the status), so the failed ledger persists as a diagnosable artifact. The NEXT re-ground clears
+  // these stray claims at its start (groundBrief deletes section_claim_provenance for any non-verified
+  // item before re-extracting), so retention never duplicates. claimIds retained intentionally.
+  void claimIds;
+  // Still clean up ONLY the fallback searches THIS step created (no stored pool) so the agent_run_searches
+  // corpus does not accumulate across failed attempts; the generate-stored pool is left intact for re-ground.
   if (ownSearches && searchIds.length) await sb.from("agent_run_searches").delete().in("id", searchIds);
   const why = vrErr ? `rpc error: ${vrErr.message}` : `validation failed: ${JSON.stringify(vr?.failures ?? "no result")}`;
   return { ok: false, detail: why.slice(0, 140) };
