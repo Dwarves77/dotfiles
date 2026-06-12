@@ -33,6 +33,7 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 import { INVARIANTS, SKILL_FILES, SKILL_MARKER_BASELINE, MARKER_SOURCE } from './invariants.mjs';
 import { rules } from '../manifest.mjs';
 import { fitnessFunctions } from '../fitness/manifest.mjs';
@@ -50,8 +51,26 @@ function readRepoFile(rel) {
   try { return readFileSync(join(REPO, rel), 'utf8'); } catch { return null; }
 }
 
+// CI-FAITHFULNESS (class fix, 2026-06-12): CI runs the meta-gate on a fresh checkout = git-TRACKED files
+// ONLY. The gate previously resolved enforcement files with existsSync/readdirSync over the WORKING TREE,
+// so an UNTRACKED enforcement file (e.g. quarantine-disposition-audit.mjs after #132) passed locally but
+// failed in CI — "CI-parity" was false by construction. Resolution now keys on the tracked set, so an
+// untracked enforcement file fails the gate LOCALLY (caught at pre-push), making parity real.
+let TRACKED = null; // null => git unavailable; fall back to disk existence (CI always has git)
+try {
+  TRACKED = new Set(execSync('git ls-files', { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 }).split('\n').filter(Boolean));
+} catch { TRACKED = null; }
+const isTracked = (rel) => (TRACKED ? TRACKED.has(rel.replace(/\\/g, '/')) : existsSync(join(REPO, rel)));
+
+// migration files as CI sees them: tracked basenames under fsi-app/supabase/migrations/ (not readdir,
+// which would include an untracked migration present only in the working tree).
 let migrationFiles = [];
-try { migrationFiles = readdirSync(MIGRATIONS_DIR); } catch { /* none */ }
+if (TRACKED) {
+  const pfx = 'fsi-app/supabase/migrations/';
+  migrationFiles = [...TRACKED].filter((p) => p.startsWith(pfx) && p.endsWith('.sql')).map((p) => p.slice(pfx.length));
+} else {
+  try { migrationFiles = readdirSync(MIGRATIONS_DIR); } catch { /* none */ }
+}
 
 // Resolve a single enforcedBy token. Returns { ok, detail }.
 function resolveToken(tok) {
@@ -65,14 +84,15 @@ function resolveToken(tok) {
     case 'consistency':
       return { ok: consistencyIds.has(locator), detail: `consistency ${locator} ${consistencyIds.has(locator) ? 'registered' : 'NOT registered'}` };
     case 'audit': {
+      if (!isTracked(locator)) return { ok: false, detail: `audit file NOT git-tracked (CI checkout cannot see it): ${locator}` };
       const content = readRepoFile(locator);
       if (content === null) return { ok: false, detail: `audit file missing: ${locator}` };
       if (!/GOVERNING/i.test(content)) return { ok: false, detail: `audit file lacks GOVERNING skill-cite: ${locator}` };
-      return { ok: true, detail: `audit ${locator} exists + skill-cited` };
+      return { ok: true, detail: `audit ${locator} tracked + skill-cited` };
     }
     case 'selftest': {
-      const ok = existsSync(join(REPO, locator));
-      return { ok, detail: `selftest ${locator} ${ok ? 'exists' : 'MISSING'}` };
+      const ok = isTracked(locator);
+      return { ok, detail: `selftest ${locator} ${ok ? 'tracked' : 'NOT git-tracked (CI cannot see it)'}` };
     }
     case 'migration': {
       const re = new RegExp(`^0*${locator}_.*\\.sql$`);
