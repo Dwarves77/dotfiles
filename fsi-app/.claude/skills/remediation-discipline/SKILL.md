@@ -29,6 +29,14 @@ Why this matters: ad-hoc instance patches compound. Each batch script discovers 
 
 The autonomous-loop strategic frame depends on durable resilience primitives. A platform that requires operator intervention on every infrastructure variation cannot operate autonomously. The class-over-instance discipline is how the platform absorbs infrastructure realities instead of failing on them.
 
+### Section 2.1: Quarantine Is an Open Investigation (research-or-erase)
+
+**Binding statement (verbatim):**
+
+> Quarantine is an open investigation, never a terminal state. An item that fails grounding is ENQUEUED for research-or-erase, not parked: research to find the real source and re-ground (RECOVER); if it is valuable but thin-sourced, actively source the real instrument's authoritative material and re-ground; if it is not valuable or genuinely ungroundable, honestly archive or register-as-source. No item may sit in quarantine without a recorded disposition; a quarantined item past the dwell bound with no recorded disposition fails a check.
+
+Why this is a class fix, not an instance one: "research-or-erase" existed as documented design (audit #1) but the failure side was never wired — ground-failure left the item quarantined and nothing re-investigated it, so the quarantine set grew as a silent backlog. That is the documented-not-active failure this skill exists to kill, turned on itself. The mechanical form is the wiring that makes it un-skippable: entering quarantine enqueues an investigation record (the provenance trigger's integrity flag), and a live-data invariant fails when any item sits past the dwell bound or is quarantined without an enqueue record. Understanding the principle is not the fix — the active enqueue plus the invariant is. The disposition vocabulary is recovered / archived / registered / erased; each removes the item from the live-quarantined set, so "still quarantined past the bound" is exactly "no disposition recorded." Before any archive/erase the item must be researched first (investigate-before-discard, Section 2 / RD-1); title-level screening is not investigation. Enforced by `scripts/verify/quarantine-disposition-audit.mjs` (live-data invariant) + the invariant registry; the resolver is `scripts/regen-quarantined.mjs` (research → re-ground, else honest archive/register).
+
 ## Section 3: Recognition Criteria
 
 When a failure surfaces, evaluate five signals:
@@ -116,6 +124,10 @@ Testing:
 - Consumer: integration smoke test (e.g., `--dry-run --limit N` against live state) confirms the refactor preserves behavior.
 
 Reference implementation: `fsi-app/scripts/lib/batch-primitives.mjs` (added 2026-05-20 as the concrete class fix for batch resilience; see Section 7 worked example 1).
+
+## Section 5.6: Status is a cache (gate/slot migrations ship revalidation)
+
+A derived status column (e.g. `provenance_status`) is a CACHE of a gate result, recomputed by a trigger only when the underlying row is written. So **status is a cache** that goes stale the moment you change the GATE (`validate_item_provenance`) or its inputs (`item_type_required_slots`, the tier model) without re-writing the rows: stored `verified` can silently outlive a gate that now says `quarantined` (fabricated certification left on a customer surface), or a recoverable item can sit `quarantined` after the gate would now pass it. **Standing rule:** any migration that changes a gate or a slot/tier input MUST ship a corpus revalidation in the SAME change, and stored status MUST agree with the live gate in both directions. The substrate-agreement audit (EP-8/RD-5) is the standing truth-teller; "ship the revalidation with the migration" is the prevention.
 
 ## Section 6: Discipline Codification Thresholds
 

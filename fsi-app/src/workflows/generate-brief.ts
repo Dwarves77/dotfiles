@@ -26,6 +26,7 @@ import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 import { isGloballyPaused } from "../lib/api/pause";
 import {
   generateBrief,
+  registerBriefSources,
   sectionBrief,
   groundBrief,
   growSources,
@@ -97,6 +98,13 @@ export async function generateStep(itemId: string): Promise<StepResult> {
   const r = await generateBrief(itemId);
   await recordRun(sb, itemId, "generate", r.ok ? EST_GENERATE_USD : 0, r.ok, r.detail).catch(() => {});
   return r;
+}
+
+// Register the brief's corroborator sources BEFORE grounding (canonical order: generate -> register ->
+// section -> ground -> credit). Best-effort + idempotent; no Sonnet call; never gates the run.
+export async function registerStep(itemId: string): Promise<StepResult> {
+  "use step";
+  return registerBriefSources(itemId);
 }
 
 // Format-selected section extraction (no Sonnet call).
@@ -186,7 +194,7 @@ spanCheckClaim.maxRetries = 3;
 export interface GenerateBriefResult {
   itemId: string;
   status: string;
-  steps: Partial<Record<"budget" | "generate" | "section" | "ground" | "grow" | "reresearch" | "erase", unknown>>;
+  steps: Partial<Record<"budget" | "generate" | "register" | "section" | "ground" | "grow" | "reresearch" | "erase", unknown>>;
 }
 
 export async function generateBriefWorkflow(itemId: string): Promise<GenerateBriefResult> {
@@ -198,8 +206,12 @@ export async function generateBriefWorkflow(itemId: string): Promise<GenerateBri
   const generate = await generateStep(itemId);
   if (!generate.ok) return { itemId, status: "generate_failed", steps: { budget, generate } };
 
+  // Register corroborator sources BEFORE grounding so their hosts resolve to a real institutional tier
+  // at stamp time (not NULL). Non-gating: a registration failure never blocks the run.
+  const register = await registerStep(itemId);
+
   const section = await sectionStep(itemId);
-  if (!section.ok) return { itemId, status: "section_failed", steps: { budget, generate, section } };
+  if (!section.ok) return { itemId, status: "section_failed", steps: { budget, generate, register, section } };
 
   let ground = await groundStep(itemId);
   if (!ground.ok) {
@@ -207,7 +219,7 @@ export async function generateBriefWorkflow(itemId: string): Promise<GenerateBri
     const reresearch = await reresearchStep(itemId);
     if (!reresearch.ok) {
       const erase = await eraseStep(itemId);
-      return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, section, ground, reresearch, erase } };
+      return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, reresearch, erase } };
     }
     ground = reresearch; // re-research grounded successfully
   }
@@ -217,5 +229,5 @@ export async function generateBriefWorkflow(itemId: string): Promise<GenerateBri
   // 121) flipped the item to 'verified' on the grounding writes — no human tick.
   const grow = await growStep(itemId);
 
-  return { itemId, status: "verified", steps: { budget, generate, section, ground, grow } };
+  return { itemId, status: "verified", steps: { budget, generate, register, section, ground, grow } };
 }

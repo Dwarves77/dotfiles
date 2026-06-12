@@ -24,9 +24,14 @@ import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
-import { growSourcesFromBrief, parseNewSourcesFromBrief } from "@/lib/sources/source-growth";
+import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources } from "@/lib/sources/source-growth";
+import { buildResolver } from "@/lib/sources/institution";
 import { BROWSERLESS_FETCH_CONCURRENCY } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
+import {
+  toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
+  DB_PRIORITY_VALUES, DB_URGENCY_TIER_VALUES, DB_FORMAT_TYPE_VALUES, DB_SIGNAL_BAND_VALUES,
+} from "@/lib/agent/metadata-vocab";
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 // Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
 // (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
@@ -56,9 +61,13 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
   return out;
 }
 async function callSonnet(system: string, user: string): Promise<string> {
+  // max_tokens 24000 (was 16000): a rich brief + Claim Provenance Ledger + trailing YAML overran the 16k
+  // cap on large-pool items (the singapore-maritime regen truncated before the YAML -> parse failure ->
+  // a billed call wasted). 24000 is the proven prior value (b2-runner). The trailing ledger+YAML are the
+  // first casualties of truncation, so the headroom directly protects metadata persistence.
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 16000, system, messages: [{ role: "user", content: user }] }),
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 24000, system, messages: [{ role: "user", content: user }] }),
   });
   const d = await resp.json();
   if (!resp.ok) throw new Error(`anthropic ${JSON.stringify(d).slice(0, 140)}`);
@@ -122,6 +131,98 @@ Search the web and return the JSON list of corroborating / expanding sources.`;
 
 export interface StepResult { ok: boolean; detail: string }
 
+/** Synthesise the format-selected brief ACROSS a source pool and persist full_brief. SHARED by
+ *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
+ *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
+ *  the pool (fresh-fetch overwrites it; from-stored reuses it). */
+async function synthesiseAndWriteBrief(
+  sb: SupabaseClient,
+  it: { id: string; title: string; item_type: string; source_id: string | null; source_url: string },
+  fetched: { url: string; text: string }[],
+  corroborators: Corroborator[],
+): Promise<StepResult> {
+  const blocks = fetched.map((b) => `### SOURCE url=${b.url}\n${b.text.slice(0, 12000)}`).join("\n\n");
+  const discoveredHint = corroborators.length
+    ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
+    : "";
+  // FORMAT DETERMINISM (2026-06-09): the brief format is f(item_type) by contract (CLAUDE.md format
+  // mapping), NOT an agent free-choice. The agent was emitting the wrong format (e.g. market_signal_brief
+  // for a regulation/framework) → a market brief structurally has no reg slots → criterion-5
+  // missing_required_slot fails every time → quarantine. Pin the format + its section set into the prompt
+  // so the STRUCTURE is right (and override format_type post-parse so metadata cannot drift).
+  const fmtSpec = specForItemType(it.item_type);
+  const formatDirective = fmtSpec
+    ? `\nFORMAT — MANDATORY, do NOT pick another: item_type "${it.item_type}" is a ${fmtSpec.formatType}. Emit exactly "format_type: ${fmtSpec.formatType}" in the YAML and structure the brief with ONLY this format's sections (omit-with-note any you cannot honestly ground; NEVER substitute another format's sections): ${fmtSpec.sections.map((s) => s.heading).join("; ")}.`
+    : "";
+  const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}
+Synthesise ACROSS ALL the source blocks below — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack.
+Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
+Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.
+Ground every FACT claim's source_span as a VERBATIM substring of one of the SOURCE blocks below; set source_url to THAT block's url. HARD RULE: a FACT claim's source_url MUST be one of the SOURCE block urls actually provided below — never a URL you only saw while searching. A source you know of but that is NOT among the blocks below may be listed under "## New Sources Identified" as a lead for later retrieval, but MUST NOT be used as a FACT source_url or source_span; carry its content as a labeled "Analytical inference:" or omit it. Item source_id for the primary FACT source_id: ${it.source_id}.${discoveredHint}
+VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back to quarantine) if violated. Before you finish, RE-READ the WHOLE brief and fix every instance — these two are the dominant rejection causes on long briefs:
+- LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
+- URL discipline: every URL anywhere in the brief body MUST be EITHER (a) copied exactly from a SOURCE block url, OR (b) listed in your "## New Sources Identified" table. A URL that appears in prose but is in NEITHER place WILL REJECT the brief — grounding only recognises SOURCE-block urls and New-Sources-table urls. To reference a source you did not fetch, put it in the New Sources table; never drop a bare/known URL into prose, never invent a path, no markdown emphasis around URLs.
+Follow your output contract exactly: brief body, then the Claim Provenance Ledger, then the YAML frontmatter, including a "## New Sources Identified" table of the corroborating sources you used.
+
+SOURCE CONTENT (copy FACT spans verbatim from here — ${fetched.length} sources):
+${blocks}`;
+  const parsed = parseAgentOutput(await callSonnet(SYSTEM_PROMPT, user));
+  const body = stripUrlMarkers((parsed.body || "").trim()) as string;
+  if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
+  // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
+  const cc = checkBriefContent(body);
+  if (!cc.ok) return { ok: false, detail: `brief_failure_gate: ${cc.reason}` };
+  // Persist the FULL 13-field contract, not just the body. The agent emits the validated YAML metadata
+  // (parseAgentOutput validates severity/format_type/topic_tags vocab); writing only full_brief left
+  // format_type/severity/topic_tags/intersection fields stale — items re-grounded but stayed
+  // non-conformant. (env-policy "every regeneration writes 13 fields".) last_regenerated_at is overridden
+  // with REAL now (the agent's emitted timestamp is unreliable); UUID arrays are filtered to valid UUIDs.
+  const md = parsed.metadata;
+  // FORMAT DETERMINISM (cont.): force format_type to the canonical f(item_type) value regardless of what
+  // the agent emitted — metadata must never drift from item_type (sectionBrief extracts by item_type, so a
+  // mismatched format_type guaranteed criterion-5 failure). The prompt directive above makes the structure
+  // comply; this makes the stored label match.
+  if (fmtSpec) md.format_type = fmtSpec.formatType as typeof md.format_type;
+  const nowIso = new Date().toISOString();
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const cleanUuids = (a: unknown) => (Array.isArray(a) ? a.filter((x) => typeof x === "string" && UUID.test(x)) : []);
+  // Map/validate every CHECK-constrained field to its LIVE DB vocabulary BEFORE the write (metadata-vocab
+  // is the single source of truth). severity: skill DISPLAY form ("MONITORING") -> db lowercase_underscore
+  // ("monitoring") — this mismatch silently rejected the WHOLE update before. theme: gate to the live
+  // /research vocab, else null (no force-fit; the dropped value is logged pending the Emergence-Capture
+  // residual store). priority/urgency_tier/format_type/signal_band: defensive assert (the parser already
+  // guarantees these against sets identical to the DB, so a throw here means parser/DB drift — fail LOUD,
+  // named, not a silent whole-row reject).
+  const dbSeverity = toDbSeverity(md.severity);
+  const dbTheme = toDbTheme(md.theme);
+  // capture-not-null (INV-1, migration 136): bank an out-of-vocab theme instead of dropping it.
+  const themeCandidate = toThemeCandidate(md.theme);
+  if (themeCandidate) console.warn(`[canonical-pipeline] theme "${themeCandidate}" out-of-vocab on item ${it.id} -> theme=null, banked in theme_candidate (Emergence-Capture residual)`);
+  assertDbValue("priority", md.priority, DB_PRIORITY_VALUES, /*nullable*/ false);
+  assertDbValue("urgency_tier", md.urgency_tier, DB_URGENCY_TIER_VALUES);
+  assertDbValue("format_type", md.format_type, DB_FORMAT_TYPE_VALUES);
+  assertDbValue("signal_band", md.signal_band, DB_SIGNAL_BAND_VALUES);
+  const { error: writeErr } = await sb.from("intelligence_items").update({
+    full_brief: cleanCtl(body),
+    severity: dbSeverity, priority: md.priority, urgency_tier: md.urgency_tier,
+    format_type: md.format_type, topic_tags: md.topic_tags,
+    signal_band: md.signal_band, theme: dbTheme, theme_candidate: themeCandidate, trajectory_points: md.trajectory_points,
+    what_it_changes: md.what_it_changes, does_not_resolve: md.does_not_resolve,
+    conversion_trigger: md.conversion_trigger, cross_references: md.cross_references,
+    operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
+    related_items: cleanUuids(md.related_items), intersection_summary: md.intersection_summary,
+    sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
+    last_regenerated_at: nowIso, updated_at: nowIso,
+  }).eq("id", it.id);
+  // FAIL LOUD: the prior code dropped `error` here, so a CHECK violation rejected the ENTIRE update
+  // (full_brief + all metadata) while the function still reported ok:true. Surface it with field context
+  // so any future constraint mismatch self-identifies (CLAUDE.md error-swallow post-mortem; Emergence INV-3).
+  if (writeErr) {
+    return { ok: false, detail: `metadata_write_rejected: ${writeErr.message} (sev=${dbSeverity}, fmt=${md.format_type}, theme=${dbTheme ?? "null"}, prio=${md.priority})` };
+  }
+  return { ok: true, detail: `brief ${body.length}ch + 19-field metadata (fmt=${md.format_type}, sev=${dbSeverity}) from ${fetched.length} sources` };
+}
+
 /** STEP generate — the DEEP DIVE (the only generator). Fetch the primary source, web_search for
  *  corroborating/expanding sources, fetch that multi-source pool, then synthesise the format-selected
  *  brief ACROSS the pool (system prompt selects by item_type; Forward-Intelligence + No-Vacuum apply).
@@ -140,33 +241,9 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   const fetched = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
   if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch; ${corroborators.length} discovered, none fetchable)` };
 
-  // 4. synthesise the rich brief across the WHOLE pool
-  const blocks = fetched.map((b) => `### SOURCE url=${b.url}\n${b.text.slice(0, 12000)}`).join("\n\n");
-  const discoveredHint = corroborators.length
-    ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
-    : "";
-  const user = `Generate the ${it.item_type} brief for: "${it.title}".
-Synthesise ACROSS ALL the source blocks below — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack.
-Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
-Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.
-Ground every FACT claim's source_span as a VERBATIM substring of one of the SOURCE blocks below; set source_url to THAT block's url. HARD RULE: a FACT claim's source_url MUST be one of the SOURCE block urls actually provided below — never a URL you only saw while searching. A source you know of but that is NOT among the blocks below may be listed under "## New Sources Identified" as a lead for later retrieval, but MUST NOT be used as a FACT source_url or source_span; carry its content as a labeled "Analytical inference:" or omit it. Item source_id for the primary FACT source_id: ${it.source_id}.${discoveredHint}
-VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED if violated:
-- Label EVERY analytical / interpretive sentence at its start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". Unlabeled analysis is rejected.
-- In UNLABELED prose do NOT use binding-obligation verbs (must, requires, mandates, obligates, prohibits, "applies to") — they read as ungrounded regulatory assertions. For a research finding use descriptive phrasing ("the study finds", "emissions fall when", "the pathway depends on"); if a prescriptive statement is needed, either quote it VERBATIM from a SOURCE block (so it grounds as a FACT) or prefix it with an analysis label.
-- Every URL anywhere in the brief MUST be copied exactly from a SOURCE block url or the discovered-corroborators list — no wildcards, no markdown emphasis around URLs, no invented paths.
-Follow your output contract exactly: brief body, then the Claim Provenance Ledger, then the YAML frontmatter, including a "## New Sources Identified" table of the corroborating sources you used.
-
-SOURCE CONTENT (copy FACT spans verbatim from here — ${fetched.length} sources):
-${blocks}`;
-  const parsed = parseAgentOutput(await callSonnet(SYSTEM_PROMPT, user));
-  const body = stripUrlMarkers((parsed.body || "").trim()) as string;
-  if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
-  // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist as
-  // customer content (and must not be grounded). Reject before the write so the item stays ungenerated
-  // rather than carrying a failure-explanation brief.
-  const cc = checkBriefContent(body);
-  if (!cc.ok) return { ok: false, detail: `brief_failure_gate: ${cc.reason}` };
-  await sb.from("intelligence_items").update({ full_brief: cleanCtl(body), updated_at: new Date().toISOString() }).eq("id", itemId);
+  // 4. synthesise across the WHOLE pool (shared with generateBriefFromStored — same skill-bearing prompt)
+  const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
+  if (!r.ok) return r;
 
   // Persist the fetched multi-source pool so grounding verifies FACT spans against the SAME content
   // generate synthesised from — no independent re-fetch that fails on PDF/Cloudflare. Replace any
@@ -188,7 +265,31 @@ ${blocks}`;
     if (!c.url || fetchedUrlSet.has(c.url)) continue;
     await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:discovered-ref", result_url: c.url, result_title: c.name || "discovered reference", result_index: 80, result_content_excerpt: (c.name || c.why || "discovered reference").slice(0, 180), searched_at: new Date().toISOString() });
   }
-  return { ok: true, detail: `brief ${body.length}ch synthesised from ${fetched.length} sources (${corroborators.length} discovered via web_search)` };
+  return { ok: true, detail: `${r.detail} (${corroborators.length} discovered via web_search)` };
+}
+
+/** REBUILD-FROM-STORED: re-synthesise the brief from the SAVED agent_run_searches pool — NO Browserless,
+ *  NO web_search. For the first-build conformance redo: reformat the corpus to the current skills using
+ *  content ALREADY pulled, instead of re-scraping. (Re-scrape stays a SEPARATE future capability for
+ *  freshness/change-detection + new-item discovery.) Returns ok:false (caller falls back to a fresh
+ *  generateBrief) when no usable stored pool exists. Reuses the saved pool as-is — does NOT overwrite it. */
+export async function generateBriefFromStored(itemId: string): Promise<StepResult> {
+  const sb = svc();
+  const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  if (!it) return { ok: false, detail: "item not found" };
+  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query").eq("intelligence_item_id", itemId);
+  const rows = pool ?? [];
+  // generate-pool rows carry the fetched source CONTENT (>200ch); discovered-ref stubs (<200ch) are leads only.
+  const fetched = rows
+    .filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200)
+    .map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
+  if (!fetched.length) return { ok: false, detail: "no usable stored pool (needs a fresh scrape)" };
+  const corroborators: Corroborator[] = rows
+    .filter((r) => r.search_query === "canonical:discovered-ref" && typeof r.result_url === "string")
+    .map((r) => ({ name: typeof r.result_title === "string" ? r.result_title : "discovered reference", url: r.result_url as string, why: "" }));
+  const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
+  if (!r.ok) return r;
+  return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs)` };
 }
 
 /** STEP section: format-selected extractor (via the registry) -> upsert intelligence_item_sections.
@@ -272,7 +373,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   const system = `You extract a Claim Provenance Ledger for a brief. Output ONLY the ledger.
 - Emit one block: a line "<<<CLAIM_PROVENANCE_LEDGER", a JSON array, a line "CLAIM_PROVENANCE_LEDGER>>>".
 - Record: {"section","claim_text","claim_kind","source_span","source_id","source_url","slot_key"}.
-- FACT: source_span MUST be VERBATIM copied char-for-char from a SOURCE block; source_id = "${it.source_id}".
+- FACT: source_span MUST be VERBATIM copied char-for-char from a SOURCE block. (source_id is resolved automatically from the SOURCE block that contains the span — do not hardcode it.)
 - ANALYSIS: emit claim_kind "ANALYSIS" ONLY for a statement the brief text EXPLICITLY labels with "Analytical inference:", "Industry interpretation:" or "Operational implication:". Set claim_text to that labeled sentence (so it appears verbatim in the section). NEVER mark unlabeled prose as ANALYSIS — if it has a verbatim source span it is FACT, otherwise omit it.
 - Cover EACH required slot with >=1 FACT or GAP claim (set slot_key):\n${(slots ?? []).map((s) => `- ${s.slot_key}: ${s.description}`).join("\n")}
 - For EVERY section (${secs.map((s) => s.section_key).join(", ")}) with must/requires/shall/applies/mandates/prohibits/obligates, emit >=1 FACT claim with "section" set + a verbatim span.
@@ -301,11 +402,33 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   });
 
   const linked = crossLinkClaimSources(kept, searchRows);
+  // CANONICAL TIER STAMP + HONEST ATTRIBUTION (F1 fix, Phase 0'/Phase 1). No constants, no primary
+  // hardcode. A FACT claim is attributed to the source that CONTAINS ITS SPAN: resolve the span's pool
+  // row (search_result_id -> result_url) to its institution's canonical registered source + tier via the
+  // SINGLE resolver module (src/lib/sources/institution.ts — same code the claims-tier audit certifies).
+  // source_id = the resolved registered source (NULL when the span host is unregistered); the tier stamp
+  // = the resolved canonical institutional tier (NULL when unregistered). Register-before-ground (the
+  // register step in the canonical order) means corroborator hosts are registered by now, so a
+  // corroborator-grounded claim resolves instead of NULL-stamping spuriously. Sources are paginated
+  // (the registry exceeds the 1000-row PostgREST cap).
+  const allSources: Array<{ id: string; url: string; base_tier: number | null; effective_tier: number | null; tier_override: number | null }> = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await sb.from("sources").select("id,url,base_tier,effective_tier,tier_override").order("id").range(from, from + 999);
+    if (!data?.length) break; allSources.push(...(data as typeof allSources)); if (data.length < 1000) break;
+  }
+  const resolver = buildResolver(allSources);
+  const urlBySearchId = new Map(searchRows.map((r) => [r.id, r.result_url]));
   const claimIds: string[] = [];
   for (const c2 of linked) {
     const sectionRowId = sectionMap[String(c2.section)] || secs[0].id;
     const storedText = cleanCtl((["FACT", "GAP"].includes(c2.claim_kind) && c2.slot_key) ? `[${c2.slot_key}] ${c2.claim_text}` : c2.claim_text ?? "");
-    const { data: ins } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: c2.source_id || it.source_id, search_result_id: c2.search_result_id || null, source_tier_at_grounding: c2.claim_kind === "FACT" ? 2 : null }).select("id").single();
+    const isFact = c2.claim_kind === "FACT";
+    const spanUrl = c2.search_result_id ? urlBySearchId.get(c2.search_result_id) : undefined;
+    const res = isFact && spanUrl ? resolver.resolveSpan(spanUrl) : { tier: null, sourceId: null };
+    // FACT: honest per-span attribution (NULL when unregistered). Non-FACT carry no span -> keep the
+    // ledger's source_id (or item primary) and a NULL tier stamp.
+    const sourceId = isFact ? res.sourceId : (c2.source_id || it.source_id);
+    const { data: ins } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: c2.search_result_id || null, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
     if (ins) claimIds.push(ins.id);
   }
   const { data: vrData, error: vrErr } = await sb.rpc("validate_item_provenance", { p_item_id: itemId } as never);
@@ -318,6 +441,28 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   if (ownSearches && searchIds.length) await sb.from("agent_run_searches").delete().in("id", searchIds);
   const why = vrErr ? `rpc error: ${vrErr.message}` : `validation failed: ${JSON.stringify(vr?.failures ?? "no result")}`;
   return { ok: false, detail: why.slice(0, 140) };
+}
+
+/** STEP register (canonical order: generate -> REGISTER -> section -> ground -> credit). Registers the
+ *  brief's "New Sources Identified" corroborators into the sources registry BEFORE grounding, so a
+ *  corroborator-grounded FACT claim's host is registered at stamp time and resolves to a real
+ *  institutional tier instead of NULL-stamping spuriously (the F1 register-before-ground ordering).
+ *  BEST-EFFORT + IDEMPOTENT (registerCitedSources host-dedups; a failure must NOT abort generation) and
+ *  NO crediting here — recordCitations + compoundSourceCredibility stay in growSources (no double-credit). */
+export async function registerBriefSources(itemId: string): Promise<StepResult> {
+  const sb = svc();
+  try {
+    const { data: it } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
+    if (!it?.full_brief) return { ok: true, detail: "no full_brief (skip register)" };
+    const cited = parseNewSourcesFromBrief(it.full_brief);
+    if (!cited.length) return { ok: true, detail: "no new sources to register" };
+    const reg = await registerCitedSources(sb, cited);
+    const newOrExisting = reg.filter((r) => r.source_id).length;
+    return { ok: true, detail: `registered ${newOrExisting}/${cited.length} corroborators (pre-ground)` };
+  } catch (e) {
+    // best-effort: never block generation on a registration failure
+    return { ok: true, detail: `register skipped (non-fatal): ${(e as Error).message.slice(0, 60)}` };
+  }
 }
 
 /** STEP grow: register the brief's surfaced sources, record citations, compound credibility
