@@ -194,7 +194,7 @@ spanCheckClaim.maxRetries = 3;
 export interface GenerateBriefResult {
   itemId: string;
   status: string;
-  steps: Partial<Record<"budget" | "generate" | "register" | "section" | "ground" | "grow" | "reresearch" | "erase", unknown>>;
+  steps: Partial<Record<"budget" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "reresearch" | "erase", unknown>>;
 }
 
 export async function generateBriefWorkflow(itemId: string): Promise<GenerateBriefResult> {
@@ -215,13 +215,24 @@ export async function generateBriefWorkflow(itemId: string): Promise<GenerateBri
 
   let ground = await groundStep(itemId);
   if (!ground.ok) {
-    // research-or-erase: one re-research retry (widen the pool via web_search, re-section, re-ground).
-    const reresearch = await reresearchStep(itemId);
-    if (!reresearch.ok) {
-      const erase = await eraseStep(itemId);
-      return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, reresearch, erase } };
+    // B3 TIERED RETRY: re-roll GROUND ALONE before paying for a full re-research. Grounding is the
+    // stochastic step (the LLM claim-ledger extraction) — a clean re-roll recovers items whose first roll
+    // slipped a label or cited an off-pool URL (proven: g7 only verified on its 2nd ground). groundBrief
+    // clears the prior non-verified ledger at its start, so the re-roll starts clean; no Browserless +
+    // one Sonnet call vs reresearch's generate(Browserless+search)+section+ground. Only escalate to a
+    // full re-research if the cheap re-ground also fails.
+    const reground = await groundStep(itemId);
+    if (reground.ok) {
+      ground = reground;
+    } else {
+      // research-or-erase: one re-research retry (widen the pool via web_search, re-section, re-ground).
+      const reresearch = await reresearchStep(itemId);
+      if (!reresearch.ok) {
+        const erase = await eraseStep(itemId);
+        return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, reground, reresearch, erase } };
+      }
+      ground = reresearch; // re-research grounded successfully
     }
-    ground = reresearch; // re-research grounded successfully
   }
 
   // Grow is non-gating: source credibility compounds, but a failed grow does not
