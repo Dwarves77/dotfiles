@@ -77,3 +77,52 @@ EU/EUR-Lex · IMO · US-state/city · UK-SI · non-EN.
 
 ## Quote-cost-first gate
 Do not run the batch before re-confirming this estimate against the test-pass actuals (C1 in Stage C).
+
+---
+
+## STAGE C EXECUTION STATUS (2026-06-13) — batch DEFERRED (environment network), readiness banked
+
+**The win already holds:** every data audit (claims-tier / substrate / one-tier / quarantine-disposition)
+is GREEN through honest exits — the system can no longer fake-certify. The 30 are honestly quarantined.
+Phase 2 *recovery* (flipping them back to verified) is valuable, not urgent.
+
+**C1 test outcome (honest):** the resolver + register + language-rule discipline WORK — `93c344a1` fetched
+the IMO primary (18k chars), the resolver correctly re-anchored 15 FACTs to IMO T2, and it HONESTLY exited
+(no forced span) on the residual; `d56ca4e1` (NYC LL97) honest-exited because its primary is a PDF that
+extracts to ~245 chars. **No forced spans, audits green.** But the API-heavy run is BLOCKED on the
+execution-environment's outbound network, which fails two ways — transient `TypeError: fetch failed`
+(errors) AND silent HANGS (connected, no response). Bounded-pool undici Agent + heavy retry did not
+overcome it (4 attempts). The runner (`scripts/phase2-reground.mjs`) is idempotent + checkpoint-resumable
+(state in the DB: verified, or an open `phase2_priority_review` flag) and hang-safe (timeout-race) — it
+runs clean in a stable environment / the CI-with-secrets lane. **No state is lost by deferring.**
+
+**Composition probe (read-only, all 30) — the data the method depends on:** 810 FACTs →
+**(i) primary T1-2 = 427 (53%) · (ii) secondary T3-6 = 137 (17%) · (iii) unregistered null = 246 (30%)**.
+0 items verify on re-ground alone (every item has ≥1 in ii/iii).
+
+**KEY FINDING — Step-3 registration sweep yields ≈0 here.** Every one of the 246 null-anchor hosts is
+SECONDARY (law firms `wfw.com`/`lw.com`/`klalaw`/`dlapiper`/`reedsmith`; trade press `dieselnet`/
+`truckinginfo`/`sustainable-bus`; commercial/advisory `cim.io`/`shipzero`/`senken`/`coolset`/`planbe`;
+NGO `climatecatalyst`). The only IGO is `whc.unesco.org` (T3, fails the floor anyway). Unlike the 32→30
+sweep (Texas Register / Hansard), there is **no authoritative-unregistered host to register** — the
+flagships' non-primary facts were synthesized from law-firm briefings + trade press. Registration is a
+dead lever for these 30.
+
+**Method for the deferred batch = layered (operator 2026-06-13):**
+1. **(a) FLOOR** for every item: honest priority-review / quarantine is an acceptable end-state — NEVER a
+   forced span.
+2. **(b)-NARROW recovery, PER-FACT (not per-brief), grounding-layer only (NOT prose re-synthesis):** keep
+   the prose; prefer the primary for facts it contains (working — proven on `93c344a1`); each remaining
+   FACT gets a per-fact disposition — *primary-recoverable* (fact is in the primary, re-anchor → T1-2);
+   *secondary-only* → relabel `Industry interpretation:` ANALYSIS (drops below the FACT authority floor
+   honestly — criterion 4's purpose; requires inserting the **label prefix** into that sentence so the
+   unlabeled-assertion check passes — honest annotation, the ONE prose touch, awaiting operator ack);
+   *nowhere-primary / nowhere-registrable* → drop or flag for counsel.
+   DO NOT re-synthesize prose / force-primary-into-pool + full generateBrief (that optimizes the brief to
+   pass the gate, not to be true — the failure this whole effort killed).
+3. After: items whose surviving FACTs are all ≤T2 flip verified; the rest stay honestly quarantined for
+   counsel-grade work. Re-run the audits; report the verified / relabeled / counsel split across the 30.
+
+**Resume:** `node scripts/phase2-reground.mjs --apply` (idempotent; skips verified + already-dispositioned;
+`--force` to re-test a single item; `--only=` / `--limit=`) once the network is stable, then build + run the
+(b)-NARROW per-fact relabel layer.
