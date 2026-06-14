@@ -191,19 +191,11 @@ The discipline engine was slim-refactored on 2026-05-21 (commit landing this dis
 
 **What remains active:** the core loop-closure protocol (OBS coverage table + DP compliance section in the dispatch report) and the Inventory consistency rule.
 
-**The remaining discipline-engine surface (post-slim):**
+**The remaining discipline-engine surface (post-slim) — POINTER, not a parallel list.**
 
-| Rule / function / check | What it enforces |
-|---|---|
-| Rule 012 (hardcoded user-home path) | Content scan; rejects `C:\Users\` / `/home/jason/` etc in code files |
-| Rule 014 (inventory consistency) | Gates commits touching `docs/inventories/*.md` on the C-check runner passing |
-| F2 (admin-routes-isPlatformAdmin) | Every admin API route must call isPlatformAdmin |
-| F6 (migrations numeric ordering) | Migration filename pattern + no duplicate numbers |
-| F8 (client-server tier boundary) | No `body.tier` / `body.base_tier` / `body.effective_tier` assignment in client code near a fetch/POST |
-| F9 (build compiles) | `tsc --noEmit` must pass |
-| C3 (migrations.md reality) | Disk migrations == inventory entries |
-| C4 (worktrees.md reality) | Live worktrees == inventory entries |
-| Pre-push hook | Runs the four CI-parity checks locally before push (untracked critical-surface gate, consistency runner, tests, tsc) |
+Do NOT maintain a hand-copied table of rules/fitness/consistency checks here; it drifts from the engine. The **single source of truth is the invariant registry** `fsi-app/.discipline/governance/invariants.mjs` (the per-invariant map: every invariant is `enforcedBy` a resolving mechanism — `rule:NNN` / `fitness:FN` / `consistency:CN` / `audit:<path>` / `selftest:` / `migration:NNN` — or `exempt`-with-reason), gated by the meta-gate `invariant-coverage.mjs` (which CI runs, and which resolves enforcement files against the git-TRACKED set so an untracked enforcement file fails locally = real CI parity). The mechanisms it references live in `.discipline/manifest.mjs` (rules), `.discipline/fitness/manifest.mjs` (F-checks), `.discipline/consistency/manifest.mjs` (C-checks). The **pre-push hook** runs the CI-parity checks locally before push (untracked critical-surface gate, consistency runner, discipline+fitness tests + the meta-gate, tsc); per the standing rule, a push is not complete until the GitHub Actions run on that commit is green. To see what's enforced right now, read the registry — not this skill.
+
+For reference only (the registry is authoritative; do NOT re-describe what each enforces here): Rule 012 (hardcoded user-home path), Rule 014 (inventory consistency), F2 (admin-routes-isPlatformAdmin), F6 (migrations numeric ordering), F8 (client-server tier boundary), F9 (build compiles), C3 (migrations.md reality), C4 (worktrees.md reality), and the pre-push hook.
 
 **Behaviors no longer enforced mechanically** but preserved as recommended methodology in this skill body (Anti-Patterns section + worked examples):
 - Sweep-first discipline (glob/schema query before verification) — methodology only

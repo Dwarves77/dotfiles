@@ -59,10 +59,10 @@ export const MARKER_SOURCE =
 // the 2026-06-06 build; the gate self-reports a mismatch with the exact value to re-seed to.
 export const SKILL_MARKER_BASELINE = {
   'environmental-policy-and-innovation': 16,
-  'source-credibility-model': 6,
-  'analysis-construction-spec': 3,
+  'source-credibility-model': 9,
+  'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
-  'remediation-discipline': 13,
+  'remediation-discipline': 14,
   'sprint-followups-discipline': 17,
 };
 

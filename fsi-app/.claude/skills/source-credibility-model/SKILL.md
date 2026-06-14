@@ -81,13 +81,13 @@ The base_tier 1-7 mapping extends the env-policy 6-level Source Type Hierarchy w
 
 | Tier | Type | Operational meaning |
 |---|---|---|
-| 1 | Binding law | Primary legal text. The source IS the rule. Examples: published regulations, statutory text, treaty articles. |
-| 2 | Regulator guidance | Implementation guidance, interpretive bulletins, regulatory FAQs, official compliance manuals from the regulator that issued the underlying rule. |
-| 3 | Intergovernmental body | UN bodies, OECD, IMO, ICAO, intergovernmental industry standards bodies acting in regulatory capacity. |
-| 4 | Industry body | Trade associations, professional standards bodies, industry consortiums acting in advisory or standard-setting capacity. |
-| 5 | News reporting | Factual news coverage of regulatory or industry developments. Reuters, FT, Wall Street Journal in factual reporting mode. |
-| 6 | Analysis and opinion | Analytical commentary, op-eds, sustainability journalism, industry analyst reports. GreenBiz, Edie, Environmental Finance, analyst publications. |
-| 7 | Overflow/uncategorized | Sources that don't fit the 6-level hierarchy. Used sparingly; signals a classification gap to resolve. |
+| 1 | Binding law | Primary legal text. The source IS the rule. Published regulations, statutory text, treaty articles, and the official legal publishers that carry them: **EUR-Lex / the Official Journal, legislation.gov.uk, Federal Register / eCFR**. |
+| 2 | Regulator / regulator guidance | The regulator that issues the binding instrument, plus its implementation guidance, interpretive bulletins, FAQs, compliance manuals. **Instrument-issuing intergovernmental regulators belong HERE, not at T3: IMO** (MARPOL / MEPC resolutions) **and ICAO** (CORSIA) are the maritime/aviation regulators whose adopted instruments are binding; the **European Commission** (implementing / delegated acts, enforcement, official guidance) is the EU executive/regulator; national regulators/ministries. Rationale: a body that ISSUES binding instruments is classified by the act's nature as a regulator, never lumped with analysis bodies. |
+| 3 | Intergovernmental analysis body | Intergovernmental institutions that INFORM but do not issue binding rules: **OECD, IEA, World Bank, UNCTAD, ICAP, IPCC**, UN analytical bodies. Authoritative analysis and data, not primary law — distinct from IMO/ICAO/Commission at T2. |
+| 4 | Industry body / classification society | Trade associations, professional standards bodies, consortiums — and **classification societies (Lloyd's Register, DNV, ClassNK, Bureau Veritas)**. PRECEDENT (class-society cell): a class society's delegated authority attaches to its OFFICIAL ACTS (statutory surveys, certificates), NOT to its website / client briefings; the latter are industry-body publishing — usable as labeled `Industry interpretation:` ANALYSIS, never unlabeled FACT-grade grounding for a CRITICAL/HIGH regulation. The same ruling recurs for **EU MRV / CBAM accredited verifiers**. |
+| 5 | News reporting | Factual news coverage of regulatory or industry developments. Reuters, FT, Wall Street Journal, trade press in factual reporting mode. |
+| 6 | Analysis and opinion | Analytical commentary, op-eds, sustainability journalism, industry analyst reports, law-firm client briefings. GreenBiz, Edie, Environmental Finance, analyst publications. |
+| 7 | Overflow/uncategorized | Sources that don't fit the hierarchy. Used sparingly; signals a classification gap to resolve. Bulk registration MUST classify rather than default to T7 (a real institution defaulted to overflow is the duplicate-row defect). |
 
 ### Tier 7 weight in citation-network scoring
 
