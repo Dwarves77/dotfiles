@@ -138,7 +138,7 @@ review.
 
 ### Rationale
 
-The list is anchored in `CURRENT_SKILL.md` Section "Top sources comparison"
+The list is anchored in `docs/archive/CURRENT_SKILL.md` Section "Top sources comparison"
 plus the broader library section ("Additional authoritative sources"). It
 covers the four operational pressure zones in the source skill (carbon
 pricing & fuel mandates, transport-emissions measurement, trade-embedded
