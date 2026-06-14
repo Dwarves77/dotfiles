@@ -6,7 +6,7 @@ Read all files before writing any code:
 
 1. **`FSI_HANDOFF.md`** — Complete build specification: architecture, database schema, API routes, Claude API prompts, automated worker, deployment guide
 2. **`freight_sustainability_dashboard.jsx`** — **THE SOURCE OF TRUTH.** Working React component (1697 lines) with all 119 seed resources, full interactivity, scoring logic, export system, navigation stack, and every UI behavior. Every feature in this file must exist in the production app.
-3. **`CURRENT_SKILL.md`** — Claude skill file with 80+ regulatory source URLs
+3. **`docs/archive/CURRENT_SKILL.md`** (archived — historical build input, not auto-loaded, stale as of 2026-03-28) — Claude skill file with 80+ regulatory source URLs
 4. **`FSI_DESIGN_SYSTEM_SKILL.md`** — Visual design direction (dark luxury editorial). Use as aesthetic guidance, NOT as a functional spec. The functional spec is the .jsx file.
 
 ---

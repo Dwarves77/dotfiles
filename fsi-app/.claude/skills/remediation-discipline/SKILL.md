@@ -63,6 +63,15 @@ The threshold deliberately favors class-treatment when in doubt. Over-codificati
 
 The pattern applies symmetrically: agent making a preservation argument against operator dispatch (Phase 1.5 dual-write case), and operator making a preservation argument against agent caution (the REPO_ROOT "no risk" case earlier the same day where operator's confident dismissal of investigation triggered the same pattern, different domain). Both produce documentation-survives-but-no-mechanism gaps. Signal 5 covers both.
 
+## Section 3.5: Investigation discipline (before and during a remediation)
+
+Four principles govern HOW a remediation investigates, learned the hard way on the F1 tier work:
+
+- **Probe-first blast radius.** Before any corpus-affecting write, run a READ-ONLY probe that quantifies the blast radius (how many rows, which items, both directions). Author the fix against the probe's numbers, never against an assumption. The F1 work ran the fake-cert probe, the per-item crosstab, the composition probe — each before a single write — and each overturned the prior estimate (32→30 flips; "all null hosts secondary" killed the registration lever).
+- **Stop-and-surface on unstable inputs.** If investigation reveals the inputs to the planned fix are themselves unsound (the per-URL tier rows that made the flip count unstable; the untracked enforcement file), STOP, surface the divergence as findings, and let the operator decide scope — do NOT plow the original plan over contradicting evidence. Stopping is the discipline working, not a failure.
+- **Flag-rate is not defect-rate.** A surge of integrity/quarantine flags (the 30 flips, the 220 open data_quality rows) measures the gate DOING ITS JOB, not the platform breaking. Read a flag spike as detection, then triage; never silence the gate to lower the number.
+- **Clear-flags-when-satisfied.** A flag/condition that has been satisfied MUST be closed when it is satisfied — a flag that rides handoffs after its cause is gone (the rotation flag that lived for weeks; stale quarantine flags on re-verified items) breeds alarm fatigue and hides the live ones. Closing is part of the fix, not optional cleanup.
+
 ## Section 4: Remediation Strategy by Category
 
 Seven confirmed categories with full worked examples in Section 7:

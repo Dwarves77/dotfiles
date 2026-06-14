@@ -101,6 +101,16 @@ Build implication: span is reused; corroboration-count, matrix, and transitive a
 where the real per-format engineering lives. Build the capability before generating the sections
 that need it.
 
+## 2b. Grounding mechanics (GAP claims, slot calibration, format determinism, the span→source→tier chain, the scoped floor)
+
+The grounding contract below is enforced in the database (validate_item_provenance + item_type_required_slots, migrations 112/114/119/121/131/132/137/138); this section is its doctrine so it is not SQL-only.
+
+- **Format is f(item_type), PINNED — never agent-chosen.** Each item_type maps to exactly one format; the agent does not pick. format_type is forced to the canonical f(item_type) value after parse (a market_signal brief has no regulation slots, so an agent that mis-picked the format guaranteed a criterion-5 failure). Generation also pins the format's section set into the prompt.
+- **Required slots are FACT-or-GAP satisfiable.** Each item_type has required slots (`item_type_required_slots`); a slot is covered by ≥1 FACT or GAP claim. Calibration = rewriting the slot DESCRIPTION (the description feeds the grounding prompt); the slot×item_type matrix is an operator spec decision, never an agent default.
+- **A GAP is authorized ONLY by the source's own characterization — never by the item_type label.** A slot may be a GAP only when the fetched source itself states the thing is absent/voluntary (no deadline, non-binding). Migrations 131/132/137 made `penalty_summary` + `primary_deadline` GAP-ok on the NON-BINDING reg-family types (standard/framework/guidance); `regulation`/`directive` stay HARD, and `effective_date` + `jurisdictional_scope` stay HARD on all five. A real deadline/penalty in the source still forces a FACT — the label never licenses the GAP.
+- **Grounding chain = span → source → tier (no constants).** Every FACT claim is a VERBATIM span in fetched content, attributed to the SOURCE that CONTAINS the span, and stamped at THAT source's canonical institutional tier (one tier per institution; per source-credibility-model). The tier stamp is resolved, never a constant — a constant masquerading as a resolved tier is fake certification (the F1 defect).
+- **The CRITICAL/HIGH authority floor (tier 1-2) is REGULATORY-only.** Migration 138: the per-claim floor bites only on the regulatory item-type family, where primary-legal grounding is the right bar; non-regulatory types are EXEMPT — a NAMED exemption (REVISIT), with the per-type non-reg floor value deferred to the research/tech calibration spec pass (ship the settled half, spec the unsettled half). Severity is not source authority: a CRITICAL market signal grounded in tier-5 market data is correctly sourced.
+
 ## 3. The Context Rule (vertical direction, within the item)
 A fact is never presented alone. Every data point renders as:
 

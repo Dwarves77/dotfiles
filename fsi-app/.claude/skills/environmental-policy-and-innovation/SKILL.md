@@ -151,7 +151,7 @@ Rules:
 
 ## Severity Labels
 
-Assign exactly one per item where decision pressure exists. Mandatory on every regulatory fact document, every market signal brief, every technology profile, every operations profile. Optional but encouraged on research summaries when a finding has clear decision-pressure implications.
+Assign a severity label at each DECISION POINT where decision pressure exists — one label per decision point, so a single brief may (and often does) carry MULTIPLE labels. The reg format labels each Section-3 action; a market brief labels each signal. The earlier "exactly one per item" reading is SUPERSEDED — live evidence: 224 of 361 briefs validly carry 2+ labels (the EP-7 exemption records this). Mandatory at the decision points of every regulatory fact document, market signal brief, technology profile, operations profile. Optional but encouraged on research summaries when a finding has clear decision-pressure implications.
 
 - ACTION REQUIRED: the reader needs to do something now
 - COST ALERT: rates or costs are changing
@@ -755,7 +755,7 @@ This convention enables consistent display in the UI and enables a future schema
 
 ## Database Field Emission (YAML frontmatter contract)
 
-Every regeneration writes 13 fields to `intelligence_items`. The `full_brief` column carries the markdown body produced under the format selected above. The other 12 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+Every regeneration writes the **19-field contract** to `intelligence_items` (was 13; the metadata-persist work added `trajectory_points`, `what_it_changes`, `does_not_resolve`, `conversion_trigger`, `cross_references`, `signal_band`, `theme` and the `theme_candidate` capture-not-null companion). The `full_brief` column carries the markdown body produced under the format selected above; the metadata fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code (`synthesiseAndWriteBrief` in `src/lib/agent/canonical-pipeline.ts`, the single write site) parses the YAML, maps each CHECK-constrained field to its live DB vocabulary (`src/lib/agent/metadata-vocab.ts`), and writes the row; an absent/malformed YAML block, or a metadata write rejected by a constraint, is a failed regeneration (fail-loud, never a silent partial write).
 
 Fields:
 
