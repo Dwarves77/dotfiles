@@ -6,6 +6,7 @@ import {
   Inbox,
   XCircle,
   ShieldAlert,
+  FileWarning,
   Link2Off,
   ClipboardCheck,
   MapPinned,
@@ -63,6 +64,7 @@ export function IssuesQueue({ onNavigate }: IssuesQueueProps) {
     staged_updates_pending: 0,
     staged_updates_materialization_failed: 0,
     integrity_flags_unresolved: 0,
+    platform_integrity_flags_open: 0,
     source_attribution_mismatches: 0,
     auto_approved_awaiting_spotcheck: 0,
     coverage_gaps_critical: 0,
@@ -104,6 +106,14 @@ export function IssuesQueue({ onNavigate }: IssuesQueueProps) {
       count: c.integrity_flags_unresolved,
       // Tab shipped by W2.C — fall back to staged-updates view until then.
       targetTab: "integrity-flags",
+    },
+    {
+      key: "platform-integrity",
+      label: "Platform integrity flags open",
+      description: "Quarantine & data-quality flags on the platform integrity_flags table.",
+      icon: FileWarning,
+      count: c.platform_integrity_flags_open,
+      targetTab: "platform-integrity-flags",
     },
     {
       key: "attribution",

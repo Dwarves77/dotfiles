@@ -53,6 +53,9 @@ interface AttentionCounts {
   staged_updates_pending: number;
   staged_updates_materialization_failed: number;
   integrity_flags_unresolved: number;
+  // Platform integrity_flags table (migration 048) open+in_review — added in migration 140 so the
+  // Issues Queue / red-dot no longer reads blind to the platform quarantine backlog.
+  platform_integrity_flags_open: number;
   source_attribution_mismatches: number;
   auto_approved_awaiting_spotcheck: number;
   coverage_gaps_critical: number;
@@ -64,6 +67,7 @@ const EMPTY_COUNTS: AttentionCounts = {
   staged_updates_pending: 0,
   staged_updates_materialization_failed: 0,
   integrity_flags_unresolved: 0,
+  platform_integrity_flags_open: 0,
   source_attribution_mismatches: 0,
   auto_approved_awaiting_spotcheck: 0,
   coverage_gaps_critical: 0,

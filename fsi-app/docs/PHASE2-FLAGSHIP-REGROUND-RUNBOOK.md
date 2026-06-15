@@ -126,3 +126,53 @@ dead lever for these 30.
 **Resume:** `node scripts/phase2-reground.mjs --apply` (idempotent; skips verified + already-dispositioned;
 `--force` to re-test a single item; `--only=` / `--limit=`) once the network is stable, then build + run the
 (b)-NARROW per-fact relabel layer.
+
+---
+
+## (b)-NARROW ANALYSIS RELABEL — BUILT 2026-06-15 (`scripts/phase2-analysis-relabel.mjs`), --apply DEFERRED
+
+The relabel layer is built and dry-run-validated. **The run is deferred** (it gates on the network
+re-ground, which is still env-blocked). Operator-locked guardrail (2026-06-15, rider-1 = **1A ONLY**):
+
+**WHAT IT DOES.** For a reg-family CRITICAL/HIGH item, each FACT claim below the authority floor
+(tier NULL or not in 1,2) is relabel-eligible **iff** its STORED `claim_text` is ALREADY a raw,
+case-insensitive substring of its section's `content_md`, occurring **exactly once**. For an eligible
+claim the ONLY two changes are: (1) `claim_kind` FACT→ANALYSIS (claim_text **byte-identical**, never
+touched); (2) the fixed marker token `*Industry interpretation:* ` inserted at the known offset
+immediately before the existing sentence in `content_md` — a **pure insertion**.
+
+**WHAT IT REFUSES.**
+- **No claim_text editing, ever.** The `--allow-slot-strip` loosening was REJECTED and not shipped:
+  editing the stored fact (even stripping the `[slot] ` admin prefix) to manufacture a substring match
+  is the fake-certification pattern in miniature. If `[slot] ` is junk, that is a SEPARATE source-level
+  data-hygiene fix for ALL claims — never an opportunistic strip inside the one prose-touching path.
+- **Non-locatable facts are NOT dropped.** ~76% of below-floor facts (claim_text is the model's
+  articulation, e.g. a markdown table row like `| 2023-03 | ISO 14083:2023 published |`, with no prose
+  sentence to prefix) stay as the item's honest priority_review residual. A priority_review fact is
+  recoverable; a dropped fact is gone — investigate-before-discard.
+
+**DIFF-ASSERT (asserted on `content_md` DIRECTLY, not just claim_text).** Each marker insert is verified
+by its inverse — removing the marker token at its offset must reproduce the pre-insert string
+byte-for-byte, and the section length delta must equal exactly `N × len(marker)`. A marker insert that
+reflowed a paragraph would pass a naive "claim_text unchanged" check but fail this. Any deviation aborts
+the whole item with NO partial write (per-item transaction, trigger-disabled bulk like the A6 backfill).
+
+**HARD APPLY PRECONDITION (per item, in code — not a note).** `--apply` REFUSES an item unless its
+re-ground pass has completed, proven by `provenance_status='verified'` (reground succeeded; skip) OR an
+open `phase2_priority_review` flag (reground ran + honest-exited). A quarantined item with no such flag
+means reground has NOT run; relabeling then would demote PRIMARY-RECOVERABLE facts to ANALYSIS before
+reground can anchor them T1/2 — refused. DRY-RUN ignores the precondition (projects current state, writes
+nothing).
+
+**DRY-RUN PROJECTION (2026-06-15, pre-reground ceiling, current state):** 383 below-floor FACTs across
+the 30 → **60 mechanically relabelable (1A)** · **323 honest residual** · **0 items flip on relabel-alone**
+(every item retains residual below-floor facts pre-reground). This is the ceiling, not the outcome: the
+real verified/relabel/counsel split is produced by `--apply` AFTER reground, when the below-floor set has
+shrunk to the secondary-only residue reground could not anchor. Matches the operator-stated shape — a
+verified CORE + a large ANALYSIS-labeled layer + a counsel queue, NOT 30 items returning to verified.
+
+**Run order (post-network-stable, stable/CI lane):**
+`node scripts/phase2-reground.mjs --apply` → then `node scripts/phase2-analysis-relabel.mjs --apply`
+(idempotent; skips verified + already-relabeled; refuses non-regrounded items; `--only=`/`--limit=`;
+snapshots prior content_md + claim_kind to `scripts/_snapshots/` for reversibility). Re-run the audits;
+report the verified / relabeled / counsel split across the 30.
