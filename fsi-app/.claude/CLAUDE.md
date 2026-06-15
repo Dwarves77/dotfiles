@@ -289,9 +289,8 @@ The route inventory drifts per commit; query it directly with `find src/app/api 
 
 Each generation writes the **19-field contract** (`full_brief` body + 18 metadata fields, incl. the four intersection-readiness fields), mapped to the live DB vocabularies and written at the single site `synthesiseAndWriteBrief`. See SKILL.md + `src/lib/agent/canonical-pipeline.ts` for the contract. Brief-coverage counts are STATE — read /admin, not here.
 
-Runtime files (do not modify without reading SKILL.md first) — see the Key Files "Agent runtime" block (canonical-pipeline.ts is the single path):
+Runtime files (do not modify without reading SKILL.md first) — see the Key Files "Agent runtime" block (canonical-pipeline.ts is the single path) for the canonical list, including which runners are superseded:
 - API route: `POST /api/agent/run` (starts `src/workflows/generate-brief.ts`)
-- Full-corpus runner: `supabase/seed/b2-runner.mjs`
 
 Cost: ~$0.15 per item generation (Browserless + Sonnet). The eligible-item count is STATE — query /admin or the corpus, not this doc.
 
@@ -320,7 +319,7 @@ All other routes read from the `intelligence_items` table. No live Claude API ca
 - DO NOT make live Claude API calls outside the routes above.
 - DO NOT rebuild the agent runtime files without reading SKILL.md and this section first.
 - DO NOT create duplicate intelligence items. `/api/agent/run` UPDATES the existing row matching `source_url`. `/api/admin/scan` stages new items in `staged_updates` for admin review — never auto-inserts.
-- DO NOT leave any item without a full_brief. Every regeneration must emit the 13-field contract or fail honestly. Failed regenerations retain the older `regeneration_skill_version` and re-run on the next pass; the runner is idempotent.
+- DO NOT leave any item without a full_brief. Every regeneration must emit the 19-field contract or fail honestly. Failed regenerations retain the older `regeneration_skill_version` and re-run on the next pass; the runner is idempotent.
 - DO NOT process provisional sources. Every API call, scrape job, AI pipeline, embedding generation, health check, and search indexing task MUST gate on: `WHERE status = 'active' AND admin_only = false`. Provisional sources get one URL reachability check on insert and nothing more. Activation is a data change (set `status='active'`, `admin_only=false`), not a code change.
 
 ### agent/run error-swallow post-mortem (in force from 2026-05-08)
