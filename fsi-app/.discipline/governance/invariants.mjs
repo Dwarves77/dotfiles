@@ -59,7 +59,7 @@ export const MARKER_SOURCE =
 // the 2026-06-06 build; the gate self-reports a mismatch with the exact value to re-seed to.
 export const SKILL_MARKER_BASELINE = {
   'environmental-policy-and-innovation': 16,
-  'source-credibility-model': 9,
+  'source-credibility-model': 10,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
   'remediation-discipline': 14,
@@ -202,6 +202,15 @@ export const INVARIANTS = [
     anchor: 'the stamp equals the canonical institutional tier of the source containing the span',
     enforcedBy: ['audit:fsi-app/scripts/verify/claims-tier-audit.mjs'],
     residual: 'The audit is the live-data guard; honestly RED until the Phase 1 backfill re-stamps every claim from the resolver (legacy stamps are the constant 2). The meta-gate proves wiring (file exists + skill-cited). Whether the registered institutional tier is itself CORRECT is the Phase 0\' operator-ratification judgment, not mechanized here.',
+  },
+  {
+    id: 'SC-8-authority-floor',
+    skill: 'source-credibility-model',
+    section: 'Section 3 — Per-item-type authority floor',
+    text: 'A CRITICAL/HIGH item\'s FACT claims are held to a per-item-type authority floor (reg-family ≤T2, research_finding ≤T4, technology/innovation/tool ≤T5); market_signal/initiative and regional_data are EXEMPT pending their own gates.',
+    anchor: 'Per-item-type authority floor (provenance gate)',
+    enforcedBy: ['migration:141'],
+    residual: 'NAMED EXEMPTIONS (REVISIT, registered here so neither silently becomes permanent): market_signal/initiative floor is corroboration-count not a tier (Section 4) — the gate is UNBUILT (codifying it now would put unbuilt mechanism in the gate, the migration-113 pattern); regional_data wants a per-SECTION floor (feasibility ≤T3, cost-data any-tier-with-source) — UNBUILT. technology ≤T5 is a FORWARD DEFAULT (0 live items) — REVISIT when the first technology items land. validate_item_provenance (migration 141) enforces the reg/research/tech floors over stored data; whether each ratified tier value is itself correct is operator judgment, not mechanized here.',
   },
 
   // ───────────────────────────── analysis-construction-spec ─────────────────────────────
