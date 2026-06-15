@@ -167,39 +167,53 @@ async function getPlatformFlags(
       ? (statusParam as PlatformStatus)
       : null;
 
-  let query = supabase
-    .from("integrity_flags")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (category) query = query.eq("category", category);
-  if (status) {
-    query = query.eq("status", status);
-  } else {
-    query = query.in("status", ["open", "in_review"]);
+  // PostgREST caps a single response at 1000 rows. Both the visible list AND the counts strip below
+  // must read the FULL set or the operator's find-quarantined surface silently truncates and the chip
+  // badges undercount once the platform integrity_flags backlog crosses 1000 (it is already in the
+  // hundreds — relabel/reground + the skill-conformance redo push it up). Page through with .range()
+  // until a short page. buildQuery yields a FRESH builder per page (a Postgrest builder is single-use).
+  async function fetchAll<T>(
+    buildQuery: () => any,
+    label: string
+  ): Promise<{ rows: T[]; error: string | null }> {
+    const PAGE = 1000;
+    const out: T[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await buildQuery().range(from, from + PAGE - 1);
+      if (error) return { rows: out, error: `${label}: ${error.message}` };
+      const page = (data || []) as T[];
+      out.push(...page);
+      if (page.length < PAGE) break;
+    }
+    return { rows: out, error: null };
   }
 
-  const { data: rows, error } = await query;
+  const { rows, error } = await fetchAll<any>(() => {
+    let q = supabase.from("integrity_flags").select("*").order("created_at", { ascending: false });
+    if (category) q = q.eq("category", category);
+    if (status) q = q.eq("status", status);
+    else q = q.in("status", ["open", "in_review"]);
+    return q;
+  }, "Failed to load platform flags");
 
   if (error) {
-    return NextResponse.json(
-      { error: `Failed to load platform flags: ${error.message}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error }, { status: 500 });
   }
 
   // Counts strip — total per category, total per status. Issued as a
   // separate aggregate query so the chip badges stay accurate even when
-  // the active filter narrows the visible list.
-  const { data: countRows, error: countErr } = await supabase
-    .from("integrity_flags")
-    .select("category, status");
+  // the active filter narrows the visible list. Paginated for the same
+  // >1000 reason as the list query above.
+  const { rows: countRows, error: countErr } = await fetchAll<{
+    category: string;
+    status: string;
+  }>(
+    () => supabase.from("integrity_flags").select("category, status"),
+    "Failed to load flag counts"
+  );
 
   if (countErr) {
-    return NextResponse.json(
-      { error: `Failed to load flag counts: ${countErr.message}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: countErr }, { status: 500 });
   }
 
   const byCategory = Object.fromEntries(
