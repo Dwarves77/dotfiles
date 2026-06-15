@@ -14,6 +14,7 @@ const AUDITS = [
   ["one-tier-per-host", "scripts/verify/one-tier-per-host-audit.mjs", true],
   ["claims-tier", "scripts/verify/claims-tier-audit.mjs", true],
   ["substrate-agreement", "scripts/verify/substrate-agreement-audit.mjs", true],
+  ["ledger-onepass", "scripts/verify/ledger-onepass-audit.mjs", true],
   ["vocab-sync", "scripts/verify/vocab-sync-audit.mjs", true],
   ["orphan-source", "scripts/verify/orphan-source-audit.mjs", true],
   ["quarantine-disposition", "scripts/verify/quarantine-disposition-audit.mjs", true],
