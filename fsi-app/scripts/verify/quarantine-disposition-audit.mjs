@@ -28,6 +28,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readClient, readAll } from "../lib/db.mjs";
+import { isValidDeferral } from "../lib/deferral.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
@@ -42,8 +43,10 @@ try {
   items = await readAll("intelligence_items", "id,legacy_id,title,item_type,provenance_status,updated_at", {
     match: (q) => q.eq("is_archived", false).eq("provenance_status", "quarantined"),
   });
-  // the open investigation records (the enqueue + dwell clock).
-  flags = await readAll("integrity_flags", "subject_ref,created_at,status,created_by,category", {
+  // the open investigation records (the enqueue + dwell clock) AND the open disposition_deferred
+  // records (the deferral payloads). Both are open item flags; recommended_actions carries the
+  // deferral payload { reason, deferred_until, owner, resolution_event }.
+  flags = await readAll("integrity_flags", "subject_ref,created_at,status,created_by,category,recommended_actions", {
     match: (q) => q.eq("subject_type", "item").eq("status", "open"),
   });
 } catch (e) { console.error(`quarantine-disposition-audit: read failed: ${e.message}`); process.exit(2); }
@@ -56,39 +59,92 @@ for (const f of flags || []) {
   if (ex === undefined || t < ex) enqueuedAt.set(f.subject_ref, t);
 }
 
+// VALID-deferral map: item id -> { reason, deferred_until, owner, resolution_event } when the item has an
+// OPEN disposition_deferred flag whose payload passes isValidDeferral AND whose deferred_until is in the
+// FUTURE. Expired deferrals do NOT count (self-resurrection: the item falls back to undispositioned).
+const now = new globalThis.Date();
+const validDeferral = new Map();
+for (const f of flags || []) {
+  if (f.created_by !== "disposition_deferred") continue;
+  // recommended_actions holds the payload as [{ deferral: {...} }] (jsonb). Tolerate either that wrapper
+  // shape or a bare payload object/array element.
+  let payload = null;
+  const ra = f.recommended_actions;
+  if (Array.isArray(ra)) {
+    for (const entry of ra) {
+      if (entry && typeof entry === "object" && entry.deferral) { payload = entry.deferral; break; }
+    }
+    if (!payload && ra.length && ra[0] && typeof ra[0] === "object" && ("reason" in ra[0])) payload = ra[0];
+  } else if (ra && typeof ra === "object") {
+    payload = ra.deferral || (("reason" in ra) ? ra : null);
+  }
+  const verdict = isValidDeferral(payload, now); // also re-checks deferred_until is in the FUTURE
+  if (verdict.ok) {
+    const existing = validDeferral.get(f.subject_ref);
+    // keep the latest deferred_until if multiple valid deferrals exist for one item
+    if (!existing || new globalThis.Date(payload.deferred_until).getTime() > new globalThis.Date(existing.deferred_until).getTime()) {
+      validDeferral.set(f.subject_ref, payload);
+    }
+  }
+}
+
+const SOON_MS = 7 * 24 * 60 * 60 * 1000; // deferrals re-firing within ~7 days = heads-up
+
 const enqueueMissing = [];
-const pastBound = [];
+const undispositioned = []; // past-bound with NO valid deferral — the HARD tripwire
+const deferred = [];        // past-bound WITH a valid deferral — standing, does NOT hard-fail
 const withinBound = [];
 for (const it of items || []) {
   const at = enqueuedAt.get(it.id);
   if (at === undefined) { enqueueMissing.push(it); continue; }
   const ageDays = Math.floor((nowMs() - at) / (24 * 60 * 60 * 1000));
-  if (nowMs() - at > BOUND_MS) pastBound.push({ ...it, ageDays });
-  else withinBound.push({ ...it, ageDays });
+  if (nowMs() - at > BOUND_MS) {
+    const d = validDeferral.get(it.id);
+    if (d) deferred.push({ ...it, ageDays, deferral: d });
+    else undispositioned.push({ ...it, ageDays });
+  } else withinBound.push({ ...it, ageDays });
 }
 
 console.log(`\n===== RESEARCH-OR-ERASE / QUARANTINE-DISPOSITION INVARIANT (read-only) =====`);
-console.log(`live-quarantined: ${(items || []).length}  |  within-bound (≤${DWELL_BOUND_DAYS}d, being worked): ${withinBound.length}  |  PAST-BOUND: ${pastBound.length}  |  ENQUEUE-MISSING: ${enqueueMissing.length}`);
+console.log(`live-quarantined: ${(items || []).length}  |  within-bound (≤${DWELL_BOUND_DAYS}d, being worked): ${withinBound.length}  |  ENQUEUE-MISSING: ${enqueueMissing.length}`);
+console.log(`past-bound split → undispositioned past-bound: ${undispositioned.length} (HARD tripwire)  |  deferred past-bound: ${deferred.length} (standing, reason+window recorded)`);
 
 const byType = {};
-for (const it of pastBound) byType[it.item_type] = (byType[it.item_type] || 0) + 1;
-if (pastBound.length) console.log(`past-bound by item_type: ${JSON.stringify(byType)}`);
+for (const it of undispositioned) byType[it.item_type] = (byType[it.item_type] || 0) + 1;
+if (undispositioned.length) console.log(`undispositioned past-bound by item_type: ${JSON.stringify(byType)}`);
 
 if (enqueueMissing.length) {
   console.log(`\n── ENQUEUE-MISSING (quarantined but no open investigation record) ──`);
   for (const it of enqueueMissing.slice(0, 40)) console.log(`  ${(it.legacy_id || it.id.slice(0, 8)).padEnd(14)} ${it.item_type.padEnd(15)} ${(it.title || "").slice(0, 46)}`);
   if (enqueueMissing.length > 40) console.log(`  … +${enqueueMissing.length - 40} more`);
 }
-if (pastBound.length) {
-  console.log(`\n── PAST-BOUND (sitting > ${DWELL_BOUND_DAYS}d with no disposition — the permanent-quarantine class) ──`);
-  for (const it of pastBound.slice(0, 40)) console.log(`  ${(it.legacy_id || it.id.slice(0, 8)).padEnd(14)} ${String(it.ageDays).padStart(4)}d ${it.item_type.padEnd(15)} ${(it.title || "").slice(0, 42)}`);
-  if (pastBound.length > 40) console.log(`  … +${pastBound.length - 40} more`);
+if (undispositioned.length) {
+  console.log(`\n── UNDISPOSITIONED PAST-BOUND (sitting > ${DWELL_BOUND_DAYS}d, NO valid deferral — the permanent-quarantine class) ──`);
+  for (const it of undispositioned.slice(0, 40)) console.log(`  ${(it.legacy_id || it.id.slice(0, 8)).padEnd(14)} ${String(it.ageDays).padStart(4)}d ${it.item_type.padEnd(15)} ${(it.title || "").slice(0, 42)}`);
+  if (undispositioned.length > 40) console.log(`  … +${undispositioned.length - 40} more`);
+}
+if (deferred.length) {
+  console.log(`\n── DEFERRED PAST-BOUND (valid time-bounded deferral — standing, does NOT fail the lane) ──`);
+  for (const it of deferred.slice(0, 40)) console.log(`  ${(it.legacy_id || it.id.slice(0, 8)).padEnd(14)} until ${String(it.deferral.deferred_until).slice(0, 10)} owner=${String(it.deferral.owner).slice(0, 16).padEnd(16)} ${(it.title || "").slice(0, 30)}`);
+  if (deferred.length > 40) console.log(`  … +${deferred.length - 40} more`);
+  const soon = deferred.filter((it) => {
+    const t = new globalThis.Date(it.deferral.deferred_until).getTime();
+    return t - nowMs() <= SOON_MS;
+  });
+  if (soon.length) {
+    console.log(`\n  HEADS-UP: ${soon.length} deferral(s) re-fire within ~7d (will re-open as undispositioned if not worked):`);
+    for (const it of soon.slice(0, 20)) console.log(`    ${(it.legacy_id || it.id.slice(0, 8)).padEnd(14)} until ${String(it.deferral.deferred_until).slice(0, 10)}`);
+  }
 }
 
-if (enqueueMissing.length || pastBound.length) {
+// Exit 1 ONLY if undispositioned past-bound > 0 (the HARD tripwire) OR ENQUEUE-MISSING > 0.
+// Deferred-count does NOT fail the lane (dispositioned-as-blocked, reason+window recorded).
+if (enqueueMissing.length || undispositioned.length) {
   console.log(`\nDISPOSITION (research-or-erase, never leave sitting): run scripts/regen-quarantined.mjs to`);
-  console.log(`research -> re-ground (RECOVER), else honest ARCHIVE / REGISTER-as-source. Drive this audit to 0.`);
+  console.log(`research -> re-ground (RECOVER), else honest ARCHIVE / REGISTER-as-source, OR record a VALID`);
+  console.log(`time-bounded deferral (reason names blocker + disposition path, future resolution event, owner).`);
+  console.log(`Drive the UNDISPOSITIONED count to 0.`);
   process.exit(1);
 }
-console.log(`invariant holds: every quarantined item is enqueued and within the disposition bound.`);
+console.log(`invariant holds: every quarantined item is enqueued and either within the bound or carries a valid deferral.`);
 process.exit(0);

@@ -37,6 +37,17 @@ The autonomous-loop strategic frame depends on durable resilience primitives. A 
 
 Why this is a class fix, not an instance one: "research-or-erase" existed as documented design (audit #1) but the failure side was never wired — ground-failure left the item quarantined and nothing re-investigated it, so the quarantine set grew as a silent backlog. That is the documented-not-active failure this skill exists to kill, turned on itself. The mechanical form is the wiring that makes it un-skippable: entering quarantine enqueues an investigation record (the provenance trigger's integrity flag), and a live-data invariant fails when any item sits past the dwell bound or is quarantined without an enqueue record. Understanding the principle is not the fix — the active enqueue plus the invariant is. The disposition vocabulary is recovered / archived / registered / erased; each removes the item from the live-quarantined set, so "still quarantined past the bound" is exactly "no disposition recorded." Before any archive/erase the item must be researched first (investigate-before-discard, Section 2 / RD-1); title-level screening is not investigation. Enforced by `scripts/verify/quarantine-disposition-audit.mjs` (live-data invariant) + the invariant registry; the resolver is `scripts/regen-quarantined.mjs` (research → re-ground, else honest archive/register).
 
+### Section 2.2: Deferred vs Undispositioned (a deferral is dispositioning-as-blocked, never silencing)
+
+A past-bound quarantined item (>14d, not archived) splits into two populations, and the distinction is load-bearing: it separates a NEW un-dispositioned SLA crossing (the live alarm) from the growing standing backlog of items that are genuinely blocked. A single past-bound count cannot tell them apart, so the gauge MUST split it.
+
+- **Undispositioned past-bound** — the item has reached no disposition AND carries no valid deferral. This is the HARD tripwire; the audit fails the lane on any undispositioned item.
+- **Deferred past-bound** — the item carries a VALID time-bounded deferral. It is reported as standing backlog but does NOT fail the lane.
+
+A deferral is dispositioning-as-BLOCKED, never silencing. It is valid ONLY when it records the positive finding that produced it: a `reason` that names the specific blocking condition AND the disposition path the item awaits, a named future `resolution_event`, a future `deferred_until`, and a real `owner`. A vague "needs review, owner TBD, until later" deferral is forbidden — that is the silent-backlog shape this invariant exists to kill, and it MUST be rejected. The write-time guard `scripts/lib/deferral.mjs` (`isValidDeferral` / `assertValidDeferral`) enforces this mechanically; the audit applies the same check on the read side.
+
+Expired deferrals do NOT count: when `deferred_until` passes, the item re-opens as undispositioned (anti-silence self-resurrection — a deferral cannot quietly outlive its own clock). Enforced by `scripts/verify/quarantine-disposition-audit.mjs` (the undispositioned count is the live tripwire) + the invariant registry (RD-6).
+
 ## Section 3: Recognition Criteria
 
 When a failure surfaces, evaluate five signals:
