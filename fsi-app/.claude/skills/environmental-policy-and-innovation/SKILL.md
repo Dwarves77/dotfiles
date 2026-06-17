@@ -482,7 +482,7 @@ The research paper, peer review status, related research that converges or contr
 
 ## Resource Taxonomy
 
-Active resources organized into 7 categories. Counts vary as the database grows; this list is a snapshot reference.
+This is a **non-exhaustive snapshot of currently-tracked resources, not a scope boundary** — counts and entries change continuously as the database grows, and the system actively expands beyond this set (surfacing new sources, regulations, and intersections per the Operating Principle above). The resources below are illustrative examples organized into the 7 categories, not the limit of what the platform covers. The governing rule over this inventory is the Operating Principle: creative about WHAT to find, conservative about WHAT to claim.
 
 - Ocean Shipping: IMO GHG Strategy, IMO Net-Zero Framework, FuelEU Maritime, EU ETS Shipping, EU MRV, CII Rating, Getting to Zero Coalition, Poseidon Principles, ESPO, Lloyd's Register Decarbonisation Hub, Global Maritime Forum
 - Air Freight: CORSIA, EU ETS Aviation, ReFuelEU SAF, UK SAF Mandate, IATA CO2 Connect, ICAO SAF Dashboard, Airbus ZEROe
@@ -684,7 +684,7 @@ Always label source type in output. Never present analysis as regulation. The hi
 
 ## Priority Source Registry
 
-When running updates, check these sources:
+These are the **current priority-check sources for the update workflow — a starting set the system grows, not a closed list** (the platform also surfaces and registers new priority sources over time per the Operating Principle: creative about WHAT to find, conservative about WHAT to claim). When running updates, check these sources:
 
 - IMO: imo.org/en/mediacentre, imo.org/en/ourwork/environment
 - EUR-Lex: eur-lex.europa.eu/oj/daily-view
