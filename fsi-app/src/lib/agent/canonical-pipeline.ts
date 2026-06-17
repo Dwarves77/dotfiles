@@ -131,6 +131,12 @@ Search the web and return the JSON list of corroborating / expanding sources.`;
 
 export interface StepResult { ok: boolean; detail: string }
 
+// Sentinel returned by generateBriefFromStored when no reusable pool exists. The cache-checked retry
+// (Edit B) falls back to a fresh fetch ONLY on this exact signal — a synthesis failure on the cached
+// path is retryable FROM CACHE (re-scraping it would defeat the persist-before-process protection), so
+// the fallback must key on "no pool", not on any ok:false.
+export const NO_STORED_POOL = "no usable stored pool (needs a fresh scrape)";
+
 /** Synthesise the format-selected brief ACROSS a source pool and persist full_brief. SHARED by
  *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
  *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
@@ -295,19 +301,25 @@ export async function generateBriefFromStored(itemId: string): Promise<StepResul
   const sb = svc();
   const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (!it) return { ok: false, detail: "item not found" };
-  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query").eq("intelligence_item_id", itemId);
+  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at").eq("intelligence_item_id", itemId);
   const rows = pool ?? [];
   // generate-pool rows carry the fetched source CONTENT (>200ch); discovered-ref stubs (<200ch) are leads only.
-  const fetched = rows
-    .filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200)
-    .map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
-  if (!fetched.length) return { ok: false, detail: "no usable stored pool (needs a fresh scrape)" };
+  const usable = rows.filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200);
+  const fetched = usable.map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
+  if (!fetched.length) return { ok: false, detail: NO_STORED_POOL };
+  // GUARD 3 — staleness visible: the pool's OLDEST fetch date is the age of the grounding bytes being
+  // reused, and fetch date is part of regulatory provenance. Surface it in the detail (-> agent_runs)
+  // so reused-stale-content is a DETECTABLE condition, never invisible. --refresh is the deliberate
+  // force-rescrape lever (Edit B); change-detection is intentionally NOT built here.
+  const stamps = usable.map((r) => r.searched_at).filter((s): s is string => typeof s === "string");
+  const oldest = stamps.length ? stamps.reduce((a, b) => (a < b ? a : b)) : null;
+  const ageNote = oldest ? `, pool fetched ${oldest.slice(0, 10)}` : "";
   const corroborators: Corroborator[] = rows
     .filter((r) => r.search_query === "canonical:discovered-ref" && typeof r.result_url === "string")
     .map((r) => ({ name: typeof r.result_title === "string" ? r.result_title : "discovered reference", url: r.result_url as string, why: "" }));
   const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
   if (!r.ok) return r;
-  return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs)` };
+  return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs${ageNote})` };
 }
 
 /** STEP section: format-selected extractor (via the registry) -> upsert intelligence_item_sections.
