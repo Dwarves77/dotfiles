@@ -131,6 +131,12 @@ Search the web and return the JSON list of corroborating / expanding sources.`;
 
 export interface StepResult { ok: boolean; detail: string }
 
+// Sentinel returned by generateBriefFromStored when no reusable pool exists. The cache-checked retry
+// (Edit B) falls back to a fresh fetch ONLY on this exact signal — a synthesis failure on the cached
+// path is retryable FROM CACHE (re-scraping it would defeat the persist-before-process protection), so
+// the fallback must key on "no pool", not on any ok:false.
+export const NO_STORED_POOL = "no usable stored pool (needs a fresh scrape)";
+
 /** Synthesise the format-selected brief ACROSS a source pool and persist full_brief. SHARED by
  *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
  *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
@@ -241,30 +247,48 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   const fetched = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
   if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch; ${corroborators.length} discovered, none fetchable)` };
 
-  // 4. synthesise across the WHOLE pool (shared with generateBriefFromStored — same skill-bearing prompt)
+  // PERSIST-BEFORE-PROCESS (Edit A — failure-path protection): write the fetched pool to
+  // agent_run_searches BEFORE the synthesis call below, so a synthesis hang/throw (the network-failing
+  // step) never discards the already-paid-for Browserless + web_search bytes. A retry then re-synthesises
+  // from this stored pool (generateBriefFromStored) with zero re-fetch. `fetched` is final here — the
+  // L241 mapLimit has fully resolved — so the reorder is safe.
+  //
+  // GUARD 1 — ALL-OR-NOTHING: the persist is a SINGLE batched INSERT (one Postgres statement, atomic), so
+  // a mid-insert link drop can never leave a PARTIAL pool that the stored-reader later treats as complete
+  // (its >200ch filter is a usability check, not an integrity guarantee against partial writes). A
+  // regeneration replaces the prior pool: DELETE then the one batched INSERT. If the INSERT fails the run
+  // returns generate_failed with no brief written and no partial pool — a clean retry, never a fragment.
+  //
+  // The generate-pool rows carry the fetched source CONTENT. The discovered-ref rows register EVERY
+  // discovered corroborator URL (even those not fetched) as a known, web_search-sourced reference:
+  // criterion-2 URL grounding accepts a URL only if it is the item source, in the fetched pool, in
+  // agent_run_searches, or in the sources registry. A brief that legitimately cites an authoritative
+  // source it FOUND via web_search but could NOT fetch (World Bank / EEA dashboards that block server
+  // fetch) would otherwise quarantine on an "ungrounded_url" — a real URL, not an invented one. The
+  // discovered-ref stubs are <200ch so the >200 grounding-corpus filter excludes them: a discovered-but-
+  // unfetched URL can be CITED but can never source a FACT span (the "discovered real URL is not an
+  // invented URL" distinction, bounded to the web_search-discovered set; arbitrary URLs still fail).
+  const ts = new Date().toISOString();
+  const fetchedUrlSet = new Set(fetched.map((b) => b.url));
+  const poolRows = fetched.map((b, i) => ({
+    intelligence_item_id: itemId, search_query: "canonical:generate-pool", result_url: b.url,
+    result_title: "generate pool source", result_index: i, result_content_excerpt: cleanCtl(b.text), searched_at: ts,
+  }));
+  const refRows = corroborators
+    .filter((c) => c.url && !fetchedUrlSet.has(c.url))
+    .map((c) => ({
+      intelligence_item_id: itemId, search_query: "canonical:discovered-ref", result_url: c.url,
+      result_title: c.name || "discovered reference", result_index: 80,
+      result_content_excerpt: (c.name || c.why || "discovered reference").slice(0, 180), searched_at: ts,
+    }));
+  await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
+  const { error: poolErr } = await sb.from("agent_run_searches").insert([...poolRows, ...refRows]);
+  if (poolErr) return { ok: false, detail: `pool persist failed (pre-synthesis): ${poolErr.message}` };
+
+  // 4. synthesise across the WHOLE pool (shared with generateBriefFromStored — same skill-bearing prompt).
+  // The pool is already durable above; a failure here is resumable from the stored pool, not a re-scrape.
   const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
   if (!r.ok) return r;
-
-  // Persist the fetched multi-source pool so grounding verifies FACT spans against the SAME content
-  // generate synthesised from — no independent re-fetch that fails on PDF/Cloudflare. Replace any
-  // prior pool for this item (a regeneration starts a fresh pool).
-  await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
-  for (let i = 0; i < fetched.length; i++) {
-    await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:generate-pool", result_url: fetched[i].url, result_title: "generate pool source", result_index: i, result_content_excerpt: cleanCtl(fetched[i].text), searched_at: new Date().toISOString() });
-  }
-  // Register EVERY discovered corroborator URL (even those not fetched) as a known, web_search-sourced
-  // reference. Criterion-2 URL grounding accepts a URL only if it is the item source, in the fetched
-  // pool, in agent_run_searches, or in the sources registry. A brief that legitimately cites an
-  // authoritative source it FOUND via web_search but could NOT fetch (World Bank / EEA dashboards that
-  // block server fetch) would otherwise quarantine on an "ungrounded_url" — a real URL, not an invented
-  // one. These stubs are <200ch so the >200 grounding-corpus filter excludes them: a discovered-but-
-  // unfetched URL can be CITED but can never source a FACT span. This is the "discovered real URL is not
-  // an invented URL" distinction, bounded to the web_search-discovered set (arbitrary URLs still fail).
-  const fetchedUrlSet = new Set(fetched.map((b) => b.url));
-  for (const c of corroborators) {
-    if (!c.url || fetchedUrlSet.has(c.url)) continue;
-    await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:discovered-ref", result_url: c.url, result_title: c.name || "discovered reference", result_index: 80, result_content_excerpt: (c.name || c.why || "discovered reference").slice(0, 180), searched_at: new Date().toISOString() });
-  }
   return { ok: true, detail: `${r.detail} (${corroborators.length} discovered via web_search)` };
 }
 
@@ -277,19 +301,25 @@ export async function generateBriefFromStored(itemId: string): Promise<StepResul
   const sb = svc();
   const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (!it) return { ok: false, detail: "item not found" };
-  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query").eq("intelligence_item_id", itemId);
+  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at").eq("intelligence_item_id", itemId);
   const rows = pool ?? [];
   // generate-pool rows carry the fetched source CONTENT (>200ch); discovered-ref stubs (<200ch) are leads only.
-  const fetched = rows
-    .filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200)
-    .map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
-  if (!fetched.length) return { ok: false, detail: "no usable stored pool (needs a fresh scrape)" };
+  const usable = rows.filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200);
+  const fetched = usable.map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
+  if (!fetched.length) return { ok: false, detail: NO_STORED_POOL };
+  // GUARD 3 — staleness visible: the pool's OLDEST fetch date is the age of the grounding bytes being
+  // reused, and fetch date is part of regulatory provenance. Surface it in the detail (-> agent_runs)
+  // so reused-stale-content is a DETECTABLE condition, never invisible. --refresh is the deliberate
+  // force-rescrape lever (Edit B); change-detection is intentionally NOT built here.
+  const stamps = usable.map((r) => r.searched_at).filter((s): s is string => typeof s === "string");
+  const oldest = stamps.length ? stamps.reduce((a, b) => (a < b ? a : b)) : null;
+  const ageNote = oldest ? `, pool fetched ${oldest.slice(0, 10)}` : "";
   const corroborators: Corroborator[] = rows
     .filter((r) => r.search_query === "canonical:discovered-ref" && typeof r.result_url === "string")
     .map((r) => ({ name: typeof r.result_title === "string" ? r.result_title : "discovered reference", url: r.result_url as string, why: "" }));
   const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
   if (!r.ok) return r;
-  return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs)` };
+  return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs${ageNote})` };
 }
 
 /** STEP section: format-selected extractor (via the registry) -> upsert intelligence_item_sections.

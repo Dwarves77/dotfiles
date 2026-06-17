@@ -26,10 +26,12 @@ import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 import { isGloballyPaused } from "../lib/api/pause";
 import {
   generateBrief,
+  generateBriefFromStored,
   registerBriefSources,
   sectionBrief,
   groundBrief,
   growSources,
+  NO_STORED_POOL,
   type StepResult,
 } from "../lib/agent/canonical-pipeline";
 
@@ -92,10 +94,29 @@ export async function preflightStep(itemId: string): Promise<{ spentUsd: number;
 }
 
 // Generate the format-selected brief (Sonnet). Records est. spend to the ledger.
-export async function generateStep(itemId: string): Promise<StepResult> {
+// GUARD 4 — REUSE-DEFAULT: regeneration reuses stored content unless `refresh` is set or no usable pool
+// exists. When not refreshing, try generateBriefFromStored first — it reads the pool persisted BEFORE
+// synthesis (Edit A) and re-synthesises with zero Browserless + zero web_search, so a retry or a resumed
+// run after a mid-batch network death costs one item's Sonnet compute, not a re-scrape of every prior
+// item. The stored-first path NEVER deletes (GUARD 2). Fall back to a fresh fetch ONLY on the explicit
+// no-pool sentinel — a synthesis failure on the cached path stays retryable FROM CACHE (re-scraping it
+// would defeat the protection).
+export async function generateStep(itemId: string, refresh = false): Promise<StepResult> {
   "use step";
   const sb = svc();
-  const r = await generateBrief(itemId);
+  if (!refresh) {
+    const stored = await generateBriefFromStored(itemId);
+    if (stored.ok) {
+      await recordRun(sb, itemId, "generate", EST_GENERATE_USD, true, `${stored.detail} [reused stored pool]`).catch(() => {});
+      return stored;
+    }
+    if (stored.detail !== NO_STORED_POOL) {
+      await recordRun(sb, itemId, "generate", 0, false, `stored-path: ${stored.detail}`).catch(() => {});
+      return stored; // real failure on the cached path — surface it, do NOT re-scrape
+    }
+    // else: no usable stored pool → fall through to a fresh fetch + persist.
+  }
+  const r = await generateBrief(itemId); // fresh fetch (GUARD 2: this path + --refresh are the only deleters)
   await recordRun(sb, itemId, "generate", r.ok ? EST_GENERATE_USD : 0, r.ok, r.detail).catch(() => {});
   return r;
 }
@@ -136,7 +157,20 @@ export async function growStep(itemId: string): Promise<StepResult> {
 export async function reresearchStep(itemId: string): Promise<StepResult> {
   "use step";
   const sb = svc();
-  const g = await generateBrief(itemId);
+  // research-or-erase WIDENS the pool via a fresh web_search, so the FIRST attempt MUST re-fetch —
+  // reusing the stored (narrower) pool would neuter the widen and erase items a wider pool could ground.
+  // On a RETRY of THIS step (attempt > 1, i.e. a network death threw and the WDK re-ran it) the widened
+  // pool was already persisted BEFORE the death (Edit A), so resume from it (stored-first, GUARD 2 — no
+  // delete) rather than paying to re-widen the same item.
+  const meta = getStepMetadata();
+  const attempt = typeof meta?.attempt === "number" ? meta.attempt : 1;
+  let g: StepResult;
+  if (attempt > 1) {
+    g = await generateBriefFromStored(itemId);
+    if (!g.ok && g.detail === NO_STORED_POOL) g = await generateBrief(itemId);
+  } else {
+    g = await generateBrief(itemId); // fresh widen
+  }
   if (!g.ok) { await recordRun(sb, itemId, "reresearch", EST_GENERATE_USD, false, `regen: ${g.detail}`).catch(() => {}); return g; }
   const s = await sectionBrief(itemId);
   if (!s.ok) { await recordRun(sb, itemId, "reresearch", EST_GENERATE_USD, false, `re-section: ${s.detail}`).catch(() => {}); return s; }
@@ -197,13 +231,15 @@ export interface GenerateBriefResult {
   steps: Partial<Record<"budget" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "reresearch" | "erase", unknown>>;
 }
 
-export async function generateBriefWorkflow(itemId: string): Promise<GenerateBriefResult> {
+export async function generateBriefWorkflow(itemId: string, refresh = false): Promise<GenerateBriefResult> {
   "use workflow";
 
   // Preflight first — halts (FatalError) before any Sonnet spend if paused or over budget.
   const budget = await preflightStep(itemId);
 
-  const generate = await generateStep(itemId);
+  // refresh=true is the deliberate force-rescrape lever (GUARD 4): freshness-over-cost. Default false =
+  // reuse stored content when a usable pool exists (resumable, cheap). Change-detection is NOT built here.
+  const generate = await generateStep(itemId, refresh);
   if (!generate.ok) return { itemId, status: "generate_failed", steps: { budget, generate } };
 
   // Register corroborator sources BEFORE grounding so their hosts resolve to a real institutional tier
