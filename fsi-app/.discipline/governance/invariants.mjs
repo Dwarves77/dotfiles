@@ -62,7 +62,7 @@ export const SKILL_MARKER_BASELINE = {
   'source-credibility-model': 10,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
-  'remediation-discipline': 14,
+  'remediation-discipline': 16,
   'sprint-followups-discipline': 17,
 };
 
@@ -341,6 +341,16 @@ export const INVARIANTS = [
     anchor: 'status is a cache',
     enforcedBy: ['audit:fsi-app/scripts/verify/substrate-agreement-audit.mjs'],
     residual: 'The audit (CI-with-secrets lane) recomputes validate_item_provenance per item and asserts agreement both ways — the live truth-teller for stale status. The meta-gate proves the file is wired (exists + skill-cited) in the secret-less pre-push. The standing rule "a gate/slot migration ships its corpus revalidation" is dispatch-time discipline carried by this skill; the audit catches a violation after the fact.',
+  },
+
+  {
+    id: 'RD-6-deferral-vs-undispositioned',
+    skill: 'remediation-discipline',
+    section: 'Section 2.2: Deferred vs Undispositioned (a deferral is dispositioning-as-blocked, never silencing)',
+    text: 'A past-bound quarantined item (>14d) is either disposed (recovered/archived/registered) OR carries a VALID time-bounded deferral (reason names the blocker + the awaited disposition path, a named future resolution event, an owner); expired deferrals re-open as undispositioned. Deferral is dispositioning-as-blocked, never silencing — the undispositioned count is the hard tripwire.',
+    anchor: 'Deferred vs Undispositioned (a deferral is dispositioning-as-blocked, never silencing)',
+    enforcedBy: ['audit:fsi-app/scripts/verify/quarantine-disposition-audit.mjs'],
+    residual: 'The audit (CI-with-secrets / ops lane, DB creds) is the live-data guard: it splits past-bound into undispositioned (HARD tripwire, fails the lane) vs deferred (standing, reported only), applying isValidDeferral on the read side AND re-checking deferred_until is in the future. The write-time guard scripts/lib/deferral.mjs prevents vague deferrals from ever being written (reason must name blocker + disposition path, named future resolution_event, real owner). The meta-gate proves wiring (audit file git-tracked + skill-cited) in the secret-less pre-push. Self-resurrection on expiry is the anti-silence property — a deferral cannot quietly outlive its own clock. NOT mechanized: whether the named blocker is genuinely the real blocker (vs a plausible-sounding one) is remediation judgment (RD-1), not a checkable property.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
