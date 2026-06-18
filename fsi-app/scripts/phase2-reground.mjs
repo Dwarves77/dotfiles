@@ -31,8 +31,7 @@ const ONLY = (() => { const a = process.argv.find((x) => x.startsWith("--only=")
 const LIMIT = (() => { const a = process.argv.find((x) => x.startsWith("--limit=")); return a ? parseInt(a.slice(8), 10) : Infinity; })();
 const sb = readClient();
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { generateBriefFromStored, sectionBrief, groundBrief } = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
-const { browserlessFetch } = await jiti.import("../src/lib/sources/canonical-fetch.mjs");
+const { generateBriefFromStored, sectionBrief, groundBrief, fetchPrimaryDeep } = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
 const { buildResolver } = await jiti.import("../src/lib/sources/institution.ts");
 
 // the 30 flip items, class-tagged, with a curated PRIMARY override where source_url is a portal/secondary.
@@ -111,20 +110,27 @@ async function alreadyDispositioned(id) {
 console.log(`\n===== PHASE 2 RE-GROUND (${APPLY ? "APPLY" : "DRY-RUN"}) — ${targets.length} item(s) =====`);
 if (!APPLY) { for (const t of targets) console.log(`  [${t.cls.padEnd(6)}] ${(t.it.legacy_id || t.it.id.slice(0, 8)).padEnd(20)} primary=${(t.primary || t.it.source_url || "").slice(0, 56)}`); console.log("\nDRY-RUN — pass --apply."); process.exit(0); }
 
+let fallbackFired = 0;
+const summary = { verified: 0, counsel: 0, errors: 0 };
 for (const t of targets) {
   const id = t.it.id, key = t.it.legacy_id || t.it.id.slice(0, 8);
   // 0. idempotent skip
   if (t.it.provenance_status === "verified") { console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} VERIFIED(skip)`); continue; }
   if (!FORCE && await alreadyDispositioned(id)) { console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} priority-review(skip, already dispositioned)`); continue; }
-  const primaryUrl = t.primary || t.it.source_url;
+  const declaredPrimary = t.primary || t.it.source_url;
   try {
-    // 1. fetch primary + augment pool (retry transient fetch failures)
-    let text = "";
-    try { const r = await withRetry(() => browserlessFetch(primaryUrl, { maxTextLength: 30000 }), "fetch-primary"); text = (r.text || "").replace(/\s+/g, " ").trim(); } catch { /* primary unfetchable -> honest exit below */ }
+    // 1. fetch primary WITH the roadblock→official-alternative fallback (bounded — 20s/fetch, ≤3 alts;
+    //    never the 120s×5 hang that burned 10 min on commerce.gov.in). DISCOVERY ONLY: the resolver +
+    //    per-type floor still qualify whatever it returns, so a sub-floor alternative can't ground a reg.
+    let pf = { ok: false, text: "", url: declaredPrimary, fellBack: false, primaryReason: "fallback_error", langRatio: 0, alternatives: [] };
+    try { pf = await fetchPrimaryDeep({ title: t.it.title, primaryUrl: declaredPrimary, itemType: t.it.item_type }); } catch { /* fallback itself failed -> honest exit below */ }
+    if (pf.fellBack) fallbackFired++;
+    const text = pf.ok ? pf.text : "";
+    const usedUrl = pf.url;
     if (text.length > 200) {
-      const { data: ex } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", id).eq("result_url", primaryUrl).limit(1);
+      const { data: ex } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", id).eq("result_url", usedUrl).limit(1);
       if (ex?.length) await sb.from("agent_run_searches").update({ result_content_excerpt: text, search_query: "phase2:primary" }).eq("id", ex[0].id);
-      else await sb.from("agent_run_searches").insert({ intelligence_item_id: id, search_query: "phase2:primary", result_url: primaryUrl, result_title: "phase2 primary source", result_index: 0, result_content_excerpt: text, searched_at: new Date().toISOString() });
+      else await sb.from("agent_run_searches").insert({ intelligence_item_id: id, search_query: "phase2:primary", result_url: usedUrl, result_title: "phase2 primary source", result_index: 0, result_content_excerpt: text, searched_at: new Date().toISOString() });
     }
     // 2. re-ground (tiered, retried on transient network errors)
     await withRetry(() => groundBrief(id), "ground");
@@ -132,16 +138,31 @@ for (const t of targets) {
     // 3. re-synthesise from the augmented pool if re-ground didn't verify
     if (status !== "verified") { const g = await withRetry(() => generateBriefFromStored(id), "regen-stored"); if (g.ok) { await withRetry(() => sectionBrief(id), "section"); await withRetry(() => groundBrief(id), "ground2"); status = await prov(id); } }
     const tiers = await factTiers(id);
-    if (status === "verified") { console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} VERIFIED   tiers=${JSON.stringify(tiers)}  primary_chars=${text.length}`); continue; }
-    // 4. honest exit — priority review (NO forced span). record residual failures.
+    const alts = pf.alternatives.filter((a) => a.role === "alternative").length;
+    if (status === "verified") { summary.verified++; console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} VERIFIED   tiers=${JSON.stringify(tiers)}  via=${pf.fellBack ? "FALLBACK→" + usedUrl.slice(0, 36) : "declared"}`); continue; }
+    // 4. HONEST EXIT — counsel hold (NO forced span, NO relabel of slot-bound facts). SPLIT the result:
+    //    counsel_NO_SOURCE_FOUND    = roadblocked + nothing fetchable (a real, maybe-permanent gap)
+    //    counsel_NO_SOURCE_QUALIFIED = source(s) fetched but all resolved sub-floor (secondary-carried fact)
+    const tierNums = Object.keys(tiers).filter((k) => k !== "null").map(Number);
+    const best_resolved_tier = tierNums.length ? Math.min(...tierNums) : null;
+    const result = pf.ok ? "counsel_NO_SOURCE_QUALIFIED" : "counsel_NO_SOURCE_FOUND";
+    summary.counsel++;
     const { data: vr } = await sb.rpc("validate_item_provenance", { p_item_id: id });
     const failures = (Array.isArray(vr) ? vr[0] : vr)?.failures ?? [];
+    // AUDIT (durable, queryable, lane-auditable): the counsel-hold provenance IS an integrity claim — proof
+    // the search ran + exhausted, not that it never looked. alternatives_tried + best_resolved_tier + the
+    // measured lang_ratio (so an ASCII-ratio misfire is visible) are all recorded.
     await sb.from("integrity_flags").insert({ category: "data_quality", subject_type: "item", subject_ref: id,
-      description: `Phase 2 re-ground could not anchor to a registered T1/T2 primary (primary_chars=${text.length}); honest exit to priority review — no forced span (language rule where non-EN).`,
-      recommended_actions: [{ action: "priority_review", rationale: "needs an EN primary / counsel-grade re-synthesis; do not force a cross-language or paraphrase span" }],
+      description: `Phase 2 re-ground honest exit (${result}): declared primary ${pf.fellBack ? `roadblocked (${pf.primaryReason}) → ${alts} official alternative(s) tried` : "fetched"}; best_resolved_tier=${best_resolved_tier ?? "none"}; lang_ratio=${pf.langRatio}. Slot-bound / below-floor facts → counsel, never relabel or cross-language span (language rule).`,
+      recommended_actions: [{ action: "priority_review", result, best_resolved_tier, primary_roadblock: pf.fellBack ? pf.primaryReason : null, fallback_fired: pf.fellBack, alternatives_tried: pf.alternatives, residual_failures: failures, rationale: "roadblock → bounded official-alternative search exhausted; qualification (resolver+floor) unchanged; counsel-hold not relabel" }],
       status: "open", created_by: "phase2_priority_review" });
-    console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} PRIORITY-REVIEW (honest)  tiers=${JSON.stringify(tiers)}  primary_chars=${text.length}`);
-  } catch (e) { console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} ERROR: ${e.message.slice(0, 70)}`); }
+    console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} COUNSEL (${result})  tiers=${JSON.stringify(tiers)} best=T${best_resolved_tier ?? "-"} alts=${alts} via=${pf.fellBack ? "FALLBACK" : "declared"}`);
+  } catch (e) { summary.errors++; console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} ERROR: ${e.message.slice(0, 70)}`); }
 }
-console.log("\nDONE.");
+console.log(`\nDONE. verified=${summary.verified} counsel=${summary.counsel} errors=${summary.errors}`);
+// ADD 1 — batch-level fallback awareness (REPORTED, not a hard stop): a jurisdiction of roadblocked
+// primaries firing the fallback on every item surfaces a systemic roadblock (whole-jurisdiction outage
+// OR detector misfire) as a finding instead of silent 75s×N slowness.
+const pct = targets.length ? Math.round(fallbackFired / targets.length * 100) : 0;
+console.log(`FALLBACK FIRED on ${fallbackFired}/${targets.length} items (${pct}%)${pct >= 50 ? "  ⚠ SYSTEMIC ROADBLOCK — whole-jurisdiction outage or detector misfire; investigate before trusting the counsel split." : ""}`);
 process.exit(0);

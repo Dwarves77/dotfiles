@@ -21,6 +21,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
+import { fetchPrimaryWithFallback } from "@/lib/sources/primary-fallback.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
@@ -127,6 +128,34 @@ Search the web and return the JSON list of corroborating / expanding sources.`;
     }
     return out;
   } catch { return []; }
+}
+
+// web_search for the OFFICIAL alternative when a declared primary roadblocks. Aims at the issuer's OWN
+// English page / authoritative text (EUR-Lex EN, a regulator's .gov/.go.jp/.gov.in English page, an
+// official press release) — NEVER a summary, explainer, news, or commentary (a summary resolves
+// sub-floor anyway; the per-type floor enforces qualification regardless of what this returns).
+async function webSearchAlternatives(title: string, itemType: string, reason: string): Promise<string[]> {
+  const system = `You locate the OFFICIAL PRIMARY source for a ${itemType}. You return only the issuer's OWN authoritative pages (the regulator / ministry / official body), in English where an official English version exists. You NEVER return summaries, law-firm explainers, news articles, blogs, or third-party commentary.`;
+  const user = `The declared primary source for "${title}" is unreachable (roadblock: ${reason}). Find the OFFICIAL issuer's own English-language page(s) carrying the authoritative text or official announcement (e.g. EUR-Lex EN, an official government English page, a regulator press release). Search the web and return the JSON list { "urls": ["..."] } of up to 5 official-source URLs, most authoritative first. Official issuer pages ONLY — no summaries or commentary.`;
+  let txt: string;
+  try { txt = await callSonnetSearch(system, user, 4); } catch { return []; }
+  return [...new Set((txt.match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
+}
+
+// Browserless fetch returning EXTRACTED+cleaned text, the same normalisation fetchText applies — the
+// roadblock detector runs on this extracted text. No catch here: fetchPrimaryWithFallback's boundedFetch
+// owns the timeout race + error→reason mapping.
+const blFetchClean = async (url: string): Promise<{ text: string }> => {
+  const r = await browserlessFetch(url, { maxTextLength: 30000 });
+  return { text: (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim() };
+};
+
+/** Canonical primary fetch with the roadblock→bounded-alternative-search capability bound to the real
+ *  deps (Browserless + official-alternative web_search). BOTH generateBrief and phase2-reground call this
+ *  so they inherit the fallback uniformly. Returns usable content + the full audit trail (discovery only —
+ *  tier/floor qualification is unchanged downstream). */
+export async function fetchPrimaryDeep(item: { title: string; primaryUrl: string; itemType: string }) {
+  return fetchPrimaryWithFallback(item, { browserlessFetch: blFetchClean, webSearchAlternatives, perFetchMs: 20000, maxAlts: 3 });
 }
 
 export interface StepResult { ok: boolean; detail: string }
@@ -238,14 +267,19 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (!it) return { ok: false, detail: "item not found" };
 
-  // 1. primary source (thin is fine — it just means the discovery below must carry the weight)
-  const primary = await fetchText(it.source_url, 16000);
+  // 1. primary source — with the roadblock→bounded-alternative-search capability: a hanging / blocked /
+  //    wrong-language declared primary is replaced by an OFFICIAL alternative (discovery only — the
+  //    resolver + per-type floor still qualify whatever it returns). A thin REAL primary is kept as-is;
+  //    discovery below carries the weight. Fetched ONCE here (never re-fetched in the pool below).
+  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type });
+  const primaryUrl = pf.url, primary = pf.text;
   // 2. DEEP DIVE: discover corroborating/expanding sources via web_search
-  const corroborators = await discoverCorroborators(it.title, it.source_url, primary);
-  // 3. multi-source fetch (primary + discovered), keep only blocks with real content
-  const poolUrls = [...new Set([it.source_url, ...corroborators.map((c) => c.url)].filter(Boolean))] as string[];
-  const fetched = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
-  if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch; ${corroborators.length} discovered, none fetchable)` };
+  const corroborators = await discoverCorroborators(it.title, primaryUrl, primary);
+  // 3. multi-source fetch (the discovered corroborators), then prepend the already-fetched primary
+  const poolUrls = ([...new Set(corroborators.map((c) => c.url).filter(Boolean))] as string[]).filter((u) => u !== primaryUrl);
+  const fetchedCorr = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
+  const fetched = [...(primary.length > 200 ? [{ url: primaryUrl, text: primary }] : []), ...fetchedCorr];
+  if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch ${pf.fellBack ? `via fallback after ${pf.primaryReason}` : "declared"}; ${corroborators.length} discovered, none fetchable)` };
 
   // PERSIST-BEFORE-PROCESS (Edit A — failure-path protection): write the fetched pool to
   // agent_run_searches BEFORE the synthesis call below, so a synthesis hang/throw (the network-failing

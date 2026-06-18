@@ -62,7 +62,7 @@ export const SKILL_MARKER_BASELINE = {
   'source-credibility-model': 10,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
-  'remediation-discipline': 16,
+  'remediation-discipline': 17,
   'sprint-followups-discipline': 17,
 };
 
@@ -351,6 +351,15 @@ export const INVARIANTS = [
     anchor: 'Deferred vs Undispositioned (a deferral is dispositioning-as-blocked, never silencing)',
     enforcedBy: ['audit:fsi-app/scripts/verify/quarantine-disposition-audit.mjs'],
     residual: 'The audit (CI-with-secrets / ops lane, DB creds) is the live-data guard: it splits past-bound into undispositioned (HARD tripwire, fails the lane) vs deferred (standing, reported only), applying isValidDeferral on the read side AND re-checking deferred_until is in the future. The write-time guard scripts/lib/deferral.mjs prevents vague deferrals from ever being written (reason must name blocker + disposition path, named future resolution_event, real owner). The meta-gate proves wiring (audit file git-tracked + skill-cited) in the secret-less pre-push. Self-resurrection on expiry is the anti-silence property — a deferral cannot quietly outlive its own clock. NOT mechanized: whether the named blocker is genuinely the real blocker (vs a plausible-sounding one) is remediation judgment (RD-1), not a checkable property.',
+  },
+  {
+    id: 'RD-7-roadblock-alternative-search',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 8: Roadblock resilience (source fetch)',
+    text: 'When a declared primary source roadblocks (timeout / <200ch stub / challenge / 403-404 / wrong-language-only), the pipeline runs a BOUNDED search for an OFFICIAL alternative and tries it — but alternative-search widens which sources are TRIED, never which tier QUALIFIES: a found alternative passes the SAME buildResolver tier resolution + the SAME per-type authority floor, so a sub-floor alternative is a corroborator at best and the item still honest-exits/counsel-holds. The roadblocked-vs-partial line (>=200ch in-language = honest partial, NOT a roadblock) and the bounded budget (~20s/fetch, <=3 alts, no retry on a dead URL) are load-bearing.',
+    anchor: 'Roadblock resilience (source fetch)',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/primary-fallback.test.mjs', 'migration:141'],
+    residual: 'The CI unit test (in the discipline node --test glob) gates the PURE detector detectRoadblock — the roadblocked-vs-partial line (>=200ch in-language = honest partial), the challenge/stub/timeout/wrong-language cases, the no-false-challenge on a long article, and the orchestrator bound (no hang past perFetchMs). The same-floor QUALIFICATION is not a new mechanism: it is the UNCHANGED resolver (buildResolver) + per-type floor (migration 141 / validate_item_provenance criterion 3) — a found alternative becomes a primary ONLY by emergently clearing that floor, never by a fallback action, which structurally forecloses the F1 secondary-grounding regression. The counsel-hold audit (durable integrity_flag carrying alternatives_tried + best_resolved_tier + the result split NO_SOURCE_FOUND vs NO_SOURCE_QUALIFIED) makes "searched + exhausted" lane-auditable. NOT mechanized: whether web_search returned the TRULY most-authoritative alternative (vs a plausible one) is discovery judgment; the floor is the backstop that makes a wrong alternative harmless (it resolves sub-floor and is rejected).',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
