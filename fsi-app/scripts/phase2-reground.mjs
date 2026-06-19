@@ -157,7 +157,16 @@ for (const t of targets) {
       recommended_actions: [{ action: "priority_review", result, best_resolved_tier, primary_roadblock: pf.fellBack ? pf.primaryReason : null, fallback_fired: pf.fellBack, alternatives_tried: pf.alternatives, residual_failures: failures, rationale: "roadblock → bounded official-alternative search exhausted; qualification (resolver+floor) unchanged; counsel-hold not relabel" }],
       status: "open", created_by: "phase2_priority_review" });
     console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} COUNSEL (${result})  tiers=${JSON.stringify(tiers)} best=T${best_resolved_tier ?? "-"} alts=${alts} via=${pf.fellBack ? "FALLBACK" : "declared"}`);
-  } catch (e) { summary.errors++; console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} ERROR: ${e.message.slice(0, 70)}`); }
+  } catch (e) {
+    // FATAL (out-of-credits / auth / bad-request) HALTS the batch with the actionable cause — never grind
+    // 30 items each erroring, never mislabel a billing/auth halt as a per-item content outcome.
+    if (e?.fatal || /^ANTHROPIC_(OUT_OF_CREDITS|FATAL)/.test(e?.message || "")) {
+      console.log(`\n⛔ HALTED (fatal, non-retryable): ${e.message}`);
+      console.log(`   ${summary.verified} verified before halt; remaining items untouched and resumable after the cause is fixed (e.g. top up Anthropic credits).`);
+      break;
+    }
+    summary.errors++; console.log(`  [${t.cls.padEnd(6)}] ${key.padEnd(20)} ERROR: ${e.message.slice(0, 90)}`);
+  }
 }
 console.log(`\nDONE. verified=${summary.verified} counsel=${summary.counsel} errors=${summary.errors}`);
 // ADD 1 — batch-level fallback awareness (REPORTED, not a hard stop): a jurisdiction of roadblocked
