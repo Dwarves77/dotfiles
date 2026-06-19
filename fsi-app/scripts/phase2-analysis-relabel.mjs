@@ -156,7 +156,7 @@ const candidates = [
 let client;
 for (const cs of candidates) {
   const c = new pg.Client({ connectionString: cs, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 });
-  try { await c.connect(); client = c; console.log(`connected via ${cs.split("@")[1].split("/")[0]}`); break; } catch { try { await c.end(); } catch {} }
+  try { await c.connect(); client = c; console.log(`connected (pg-direct)`); break; } catch { try { await c.end(); } catch {} }
 }
 if (!client) { console.error("no DB connection"); process.exit(1); }
 
