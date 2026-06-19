@@ -22,6 +22,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { fetchPrimaryWithFallback } from "@/lib/sources/primary-fallback.mjs";
+import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
@@ -70,8 +71,8 @@ async function callSonnet(system: string, user: string): Promise<string> {
     method: "POST", headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 24000, system, messages: [{ role: "user", content: user }] }),
   });
-  const d = await resp.json();
-  if (!resp.ok) throw new Error(`anthropic ${JSON.stringify(d).slice(0, 140)}`);
+  const d = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw anthropicError(resp.status, d);
   return ((d.content as Array<{ type: string; text?: string }>) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
 }
 
@@ -85,8 +86,8 @@ async function callSonnetSearch(system: string, user: string, maxUses = 6): Prom
     headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "anthropic-beta": WEB_SEARCH_BETA },
     body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, tools: [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: maxUses }], system, messages: [{ role: "user", content: user }] }),
   });
-  const d = await resp.json();
-  if (!resp.ok) throw new Error(`anthropic-search ${JSON.stringify(d).slice(0, 140)}`);
+  const d = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw anthropicError(resp.status, d);
   return ((d.content as Array<{ type: string; text?: string }>) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
 }
 
@@ -455,7 +456,12 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // Lenient extraction: a single malformed claim is skipped, not fatal — one bad FACT must not reject
   // the whole ledger (the 0-FACT quarantine on rich synthesised briefs). The kept-filter + the gate
   // below still enforce verbatim-span/label discipline, so nothing ungrounded slips through.
-  try { claims = extractClaimLedgerLenient(await callSonnet(system, user)); } catch (e) { return { ok: false, detail: `ledger call failed: ${(e as Error).message.slice(0, 60)}` }; }
+  // A FATAL anthropic error (out-of-credits / auth / bad-request) is NOT a per-item content failure — it
+  // re-throws so the batch runner HALTS with the actionable cause, instead of mislabeling every remaining
+  // item as "still-quarantined". Only a transient/parse failure degrades to a per-item ok:false (full
+  // message, never truncated — the diagnostic must survive).
+  try { claims = extractClaimLedgerLenient(await callSonnet(system, user)); }
+  catch (e) { if (isFatalAnthropic(e)) throw e; return { ok: false, detail: `ledger call failed: ${(e as Error).message}` }; }
   for (const cl of claims) { if (cl.source_url) cl.source_url = stripUrlMarkers(cl.source_url) as string; }
   // Mirror validate_item_provenance criteria so every INSERTED claim already passes the gate:
   //  - FACT: source_span must be a verbatim substring of fetched content (criterion 3).

@@ -126,7 +126,16 @@ for (const p of plan) {
     const row = Array.isArray(data) ? data[0] : data;
     for (const f of (row?.failures || [])) residual[f.reason] = (residual[f.reason] || 0) + 1;
     console.log(`  ${key.padEnd(48)} still-quarantined (${p.path}) — ${r.why}`);
-  } catch (e) { summary.error.push(key); console.log(`  ${key.padEnd(48)} ERROR: ${e.message.slice(0, 60)}`); }
+  } catch (e) {
+    // FATAL (out-of-credits / auth / bad-request) is NOT a per-item failure — HALT the batch with the
+    // actionable cause rather than mislabeling every remaining item as an error/still-quarantined.
+    if (e?.fatal || /^ANTHROPIC_(OUT_OF_CREDITS|FATAL)/.test(e?.message || "")) {
+      console.log(`\n⛔ HALTED (fatal, non-retryable): ${e.message}`);
+      console.log(`   ${summary.verified.length} verified before halt; remaining items untouched and resumable after the cause is fixed (e.g. top up Anthropic credits).`);
+      break;
+    }
+    summary.error.push(key); console.log(`  ${key.padEnd(48)} ERROR: ${e.message.slice(0, 80)}`);
+  }
 }
 console.log(`\n=== PHASE 3 SPLIT (${plan.length}) ===`);
 console.log(`VERIFIED: ${summary.verified.length} | still-quarantined (relabel/counsel/archive residue): ${summary.stillQ.length} | errors: ${summary.error.length}`);
