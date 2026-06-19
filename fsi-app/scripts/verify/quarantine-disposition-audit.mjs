@@ -88,6 +88,12 @@ for (const f of flags || []) {
   }
 }
 
+// Items that EVER carried a disposition_deferred flag — for RESURRECTION detection. An undispositioned
+// item that previously had a deferral = its clock fired and it self-resurrected (the anti-silence
+// property), which reads DIFFERENTLY from a never-deferred FRESH crossing. Naming the two apart is the
+// Lane-#4 legibility contract: a re-fired deferral is not a new break.
+const everDeferred = new Set((flags || []).filter((f) => f.created_by === "disposition_deferred").map((f) => f.subject_ref));
+
 const SOON_MS = 7 * 24 * 60 * 60 * 1000; // deferrals re-firing within ~7 days = heads-up
 
 const enqueueMissing = [];
@@ -101,13 +107,15 @@ for (const it of items || []) {
   if (nowMs() - at > BOUND_MS) {
     const d = validDeferral.get(it.id);
     if (d) deferred.push({ ...it, ageDays, deferral: d });
-    else undispositioned.push({ ...it, ageDays });
+    else undispositioned.push({ ...it, ageDays, resurrected: everDeferred.has(it.id) });
   } else withinBound.push({ ...it, ageDays });
 }
 
 console.log(`\n===== RESEARCH-OR-ERASE / QUARANTINE-DISPOSITION INVARIANT (read-only) =====`);
 console.log(`live-quarantined: ${(items || []).length}  |  within-bound (≤${DWELL_BOUND_DAYS}d, being worked): ${withinBound.length}  |  ENQUEUE-MISSING: ${enqueueMissing.length}`);
-console.log(`past-bound split → undispositioned past-bound: ${undispositioned.length} (HARD tripwire)  |  deferred past-bound: ${deferred.length} (standing, reason+window recorded)`);
+const resurrected = undispositioned.filter((it) => it.resurrected);
+const freshCrossings = undispositioned.filter((it) => !it.resurrected);
+console.log(`past-bound split → undispositioned past-bound: ${undispositioned.length} (HARD tripwire) [${freshCrossings.length} fresh crossing, ${resurrected.length} resurrected — deferral expired, clock re-fired]  |  deferred past-bound: ${deferred.length} (standing, reason+window recorded)`);
 
 const byType = {};
 for (const it of undispositioned) byType[it.item_type] = (byType[it.item_type] || 0) + 1;
@@ -140,6 +148,13 @@ if (deferred.length) {
 // Exit 1 ONLY if undispositioned past-bound > 0 (the HARD tripwire) OR ENQUEUE-MISSING > 0.
 // Deferred-count does NOT fail the lane (dispositioned-as-blocked, reason+window recorded).
 if (enqueueMissing.length || undispositioned.length) {
+  // Self-explaining FAIL reason (Lane-#4 legibility): name the THREE distinct populations so a re-fire
+  // reads differently from a fresh break at a glance — never an ambiguous red.
+  const kinds = [];
+  if (freshCrossings.length) kinds.push(`${freshCrossings.length} NEW undispositioned crossing(s) [${freshCrossings.slice(0, 5).map((x) => x.legacy_id || x.id.slice(0, 8)).join(", ")}${freshCrossings.length > 5 ? ", …" : ""}]`);
+  if (resurrected.length) kinds.push(`${resurrected.length} RESURRECTED (deferral expired, clock re-fired, disposition still pending)`);
+  if (enqueueMissing.length) kinds.push(`${enqueueMissing.length} enqueue-missing`);
+  console.log(`\nLANE-FAIL REASON: ${kinds.join("; ")}.  Deferred standing (NOT a failure): ${deferred.length}.`);
   console.log(`\nDISPOSITION (research-or-erase, never leave sitting): run scripts/regen-quarantined.mjs to`);
   console.log(`research -> re-ground (RECOVER), else honest ARCHIVE / REGISTER-as-source, OR record a VALID`);
   console.log(`time-bounded deferral (reason names blocker + disposition path, future resolution event, owner).`);
