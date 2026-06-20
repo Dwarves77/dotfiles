@@ -91,7 +91,11 @@ const isTransient = (e) => /fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|net
 // a hard timeout so a hung call becomes a (retryable) error -> the pass FAILS FAST per item instead of
 // hanging the whole run; the idempotent/resumable runner then picks the item up on a later pass.
 const withTimeout = (p, ms, label) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout ${label} (${ms}ms) — fetch failed (hang)`)), ms))]);
-async function withRetry(fn, label, max = 5, perCallMs = 120000) {
+// 720000 (was 120000): callSonnet now STREAMS, and a legitimate 24k-token brief/ledger completion runs
+// ~500s wall-clock (proven 2026-06-19). The 120s cap was killing the streamed call mid-flight. The REAL
+// hang detector now lives INSIDE the stream (a 90s no-progress idle watchdog → fast retryable error); this
+// outer cap is only a generous backstop so a genuinely stuck call can't pin the run open indefinitely.
+async function withRetry(fn, label, max = 5, perCallMs = 720000) {
   for (let i = 1; ; i++) {
     try { return await withTimeout(fn(), perCallMs, label); }
     catch (e) { if (i >= max || !isTransient(e)) throw e; const wait = Math.min(20000, 1000 * 2 ** i); console.error(`  …retry ${label} ${i}/${max} after ${wait}ms (${(e?.cause?.code || e?.message || "").slice(0,40)})`); await new Promise((r) => setTimeout(r, wait)); }

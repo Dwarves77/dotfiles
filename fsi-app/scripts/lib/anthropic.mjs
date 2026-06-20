@@ -10,9 +10,14 @@
  * Caller must have loaded env (process.loadEnvFile) with ANTHROPIC_API_KEY first.
  */
 
+import { streamMessagesText } from "../../src/lib/agent/anthropic-stream.mjs";
+
 const API_URL = "https://api.anthropic.com/v1/messages";
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 const API_VERSION = "2023-06-01";
+// Above this max_tokens a NON-streaming completion can hang (idle socket, no resolve — proven 2026-06-19).
+// Large calls route through the streaming primitive; small calls keep the simple buffered JSON path.
+const STREAM_ABOVE_MAX_TOKENS = 8192;
 
 /**
  * canonicalGenerate — one Messages API call. Returns the parsed JSON response.
@@ -39,6 +44,14 @@ export async function canonicalGenerate({ messages, system, model = DEFAULT_MODE
   const body = { model, max_tokens: maxTokens, messages };
   if (system) body.system = system;
   if (tools) body.tools = tools;
+
+  // Large, non-tool calls stream (avoid the buffered-POST hang) and return a response-shaped object so
+  // textOf() and existing callers are unchanged. Tool calls (web_search) stay on the buffered path — they
+  // are small and their tool_use blocks need the full structured response, not assembled text.
+  if (!tools && maxTokens > STREAM_ABOVE_MAX_TOKENS) {
+    const { text, stopReason } = await streamMessagesText({ apiKey: key, body, betaHeaders: beta });
+    return { content: [{ type: "text", text }], stop_reason: stopReason, model };
+  }
 
   const res = await fetch(API_URL, { method: "POST", headers, body: JSON.stringify(body) });
   if (!res.ok) {

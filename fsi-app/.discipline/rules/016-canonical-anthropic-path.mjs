@@ -25,6 +25,7 @@ const PERMITTED = [
   'fsi-app/src/app/api/admin/sources/recommend-classification/',
   'fsi-app/src/app/api/admin/canonical-sources/',
   'fsi-app/src/lib/agent/canonical-pipeline.ts',       // canonical pipeline (calls the route's model)
+  'fsi-app/src/lib/agent/anthropic-stream.mjs',        // canonical STREAMING call site (used by the above + scripts/lib/anthropic.mjs)
 ];
 
 function norm(p) { return (p || '').replaceAll('\\', '/'); }
