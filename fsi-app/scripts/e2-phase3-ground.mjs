@@ -41,6 +41,13 @@ const APPLY = process.argv.includes("--apply");
 const LIMIT = (() => { const a = process.argv.find((x) => x.startsWith("--limit=")); return a ? parseInt(a.slice(8), 10) : Infinity; })();
 const ONLY = (() => { const a = process.argv.find((x) => x.startsWith("--only=")); return a ? a.slice(7).split(",").map((s) => s.trim()).filter(Boolean) : null; })();
 const RETRIES = (() => { const a = process.argv.find((x) => x.startsWith("--retries=")); return a ? parseInt(a.slice(10), 10) : 1; })();
+// --regen-quarantined: the SECOND pass. The first (default) pass GROUND-ONLY re-grounds existing brief
+// prose; items whose stored brief carries content-format defects (analysis_missing_label_syntax,
+// unlabeled_assertion, missing_required_slot, ungrounded_url) cannot be rescued by re-grounding and stay
+// quarantined. This flag forces those items to REGENERATE from the stored pool (FROM-STORED) under the
+// current contract — which clears the label-syntax class (proven on 6f1e6615). It NEVER touches an
+// already-verified item (target filter below), so a good brief can't be regressed.
+const REGEN_QUARANTINED = process.argv.includes("--regen-quarantined");
 const sb = readClient();
 
 // The 57 confirmed KEEP-GROUND survivors (legacy_id or id-prefix), pinned from the read-only triage
@@ -66,12 +73,13 @@ const realPool = new Map(); for (const s of searches) if ((s.result_content_exce
 
 let targets = KEEP_KEYS.map((k) => byKey.get(k)).filter(Boolean);
 if (ONLY) targets = targets.filter((it) => ONLY.includes(it.legacy_id) || ONLY.some((w) => it.id.startsWith(w)));
+if (REGEN_QUARANTINED) targets = targets.filter((it) => it.provenance_status !== "verified"); // never regen a good brief
 targets = targets.slice(0, LIMIT);
 
 function pathFor(it) {
   const pool = realPool.get(it.id) || 0;
   const secs = secCount.get(it.id) || 0;
-  if (pool > 0 && it.full_brief && secs > 0) return { path: "GROUND-ONLY", sonnet: 1, browserless: 0 };
+  if (!REGEN_QUARANTINED && pool > 0 && it.full_brief && secs > 0) return { path: "GROUND-ONLY", sonnet: 1, browserless: 0 };
   if (pool > 0) return { path: "FROM-STORED", sonnet: 2, browserless: 0 };
   return { path: "FRESH", sonnet: 2, browserless: 7 };
 }
