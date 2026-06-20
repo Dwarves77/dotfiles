@@ -23,6 +23,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { fetchPrimaryWithFallback } from "@/lib/sources/primary-fallback.mjs";
 import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
+import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
@@ -67,13 +68,17 @@ async function callSonnet(system: string, user: string): Promise<string> {
   // cap on large-pool items (the singapore-maritime regen truncated before the YAML -> parse failure ->
   // a billed call wasted). 24000 is the proven prior value (b2-runner). The trailing ledger+YAML are the
   // first casualties of truncation, so the headroom directly protects metadata persistence.
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST", headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 24000, system, messages: [{ role: "user", content: user }] }),
+  // STREAMING (not a buffered POST): a non-streaming 24k-token completion HANGS on some network paths —
+  // the socket idles for the full multi-minute generation and never resolves (proven 2026-06-19; the
+  // identical stream:true call completed). Streaming keeps the socket alive and bounds on NO-PROGRESS,
+  // so a legitimately long brief finishes while a true hang trips the idle watchdog as a retryable error.
+  // anthropicError classification is preserved end-to-end, so the line-463/464 fatal-vs-transient branch
+  // (out-of-credits HALT vs per-item retry) is unchanged.
+  const { text } = await streamMessagesText({
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+    body: { model: "claude-sonnet-4-6", max_tokens: 24000, system, messages: [{ role: "user", content: user }] },
   });
-  const d = await resp.json().catch(() => ({}));
-  if (!resp.ok) throw anthropicError(resp.status, d);
-  return ((d.content as Array<{ type: string; text?: string }>) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  return text;
 }
 
 // Sonnet WITH the server-side web_search tool (Anthropic runs the searches; one round-trip returns
