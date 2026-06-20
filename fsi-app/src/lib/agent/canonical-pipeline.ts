@@ -64,20 +64,28 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
   return out;
 }
 async function callSonnet(system: string, user: string): Promise<string> {
-  // max_tokens 24000 (was 16000): a rich brief + Claim Provenance Ledger + trailing YAML overran the 16k
-  // cap on large-pool items (the singapore-maritime regen truncated before the YAML -> parse failure ->
-  // a billed call wasted). 24000 is the proven prior value (b2-runner). The trailing ledger+YAML are the
-  // first casualties of truncation, so the headroom directly protects metadata persistence.
-  // STREAMING (not a buffered POST): a non-streaming 24k-token completion HANGS on some network paths —
-  // the socket idles for the full multi-minute generation and never resolves (proven 2026-06-19; the
-  // identical stream:true call completed). Streaming keeps the socket alive and bounds on NO-PROGRESS,
-  // so a legitimately long brief finishes while a true hang trips the idle watchdog as a retryable error.
-  // anthropicError classification is preserved end-to-end, so the line-463/464 fatal-vs-transient branch
-  // (out-of-credits HALT vs per-item retry) is unchanged.
-  const { text } = await streamMessagesText({
+  // max_tokens 32000 (was 24000): the largest regs (CSRD, EU-ETS-maritime-class) overran 24000 — the
+  // trailing Claim Provenance Ledger + YAML (and thus the 18-field metadata) are the FIRST casualties of
+  // truncation, so a too-tight cap surfaced as an obscure "YAML frontmatter not found" parse failure that
+  // quarantined the item. The cap is a CEILING not a target (the model stops at end_turn when done), so
+  // normal-size briefs are unaffected; only the genuinely huge regs use the headroom.
+  // STREAMING (not a buffered POST): a non-streaming large completion HANGS on some network paths — the
+  // socket idles for the full multi-minute generation and never resolves (proven 2026-06-19; the identical
+  // stream:true call completed). Streaming keeps the socket alive (so the larger cap is viable), bounds on
+  // NO-PROGRESS, and preserves anthropicError classification end-to-end (out-of-credits HALT unchanged).
+  const { text, stopReason } = await streamMessagesText({
     apiKey: process.env.ANTHROPIC_API_KEY!,
-    body: { model: "claude-sonnet-4-6", max_tokens: 24000, system, messages: [{ role: "user", content: user }] },
+    body: { model: "claude-sonnet-4-6", max_tokens: 32000, system, messages: [{ role: "user", content: user }] },
   });
+  // DETERMINISTIC truncation signal: if the model hit the cap, the ledger+YAML are incomplete. Fail with an
+  // ACTIONABLE error (content-class, fatal=false → per-item failure, not a batch halt) instead of letting
+  // the downstream YAML parse fail obscurely. If this fires, the brief is genuinely too large for one pass
+  // (the 2-pass follow-on: brief, then ledger+YAML separately).
+  if (stopReason === "max_tokens") {
+    const e = new Error("ANTHROPIC output truncated at max_tokens (32000) — brief too large for single-pass generation (needs 2-pass: brief, then ledger+YAML).") as Error & { fatal?: boolean };
+    e.fatal = false;
+    throw e;
+  }
   return text;
 }
 
