@@ -423,19 +423,17 @@ function parseYamlFrontmatter(yaml: string): AgentMetadata {
     throw new AgentOutputParseError(`compliance_object_tags must be a YAML inline array, got: ${compObjRaw.slice(0, 100)}`);
   }
   const compObjInner = compObjRaw.slice(1, -1).trim();
-  const compObjTags: string[] = compObjInner
+  const compObjRawTags: string[] = compObjInner
     ? compObjInner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter((s) => s.length > 0)
     : [];
-  if (compObjTags.length > 4) {
-    throw new AgentOutputParseError(`compliance_object_tags exceeds 4 values: ${compObjTags.join(", ")}`);
-  }
-  for (const tag of compObjTags) {
-    if (!COMPLIANCE_OBJECT_VALUES.includes(tag as any)) {
-      throw new AgentOutputParseError(
-        `compliance_object_tags contains an out-of-vocabulary value: "${tag}". Allowed: ${COMPLIANCE_OBJECT_VALUES.join(", ")}`
-      );
-    }
-  }
+  // DROP out-of-vocabulary / overflow tags instead of rejecting the whole brief (same leniency as the
+  // claim-ledger extraction): one hallucinated tag must not quarantine an otherwise-valid brief.
+  // compliance_object_tags is ADVISORY (drives intersection detection), not a grounded claim — a dropped
+  // bad tag costs an intersection hint; the prior throw cost the whole item (the out-of-vocab "building in
+  // context of owner-..." flagship failure). Keep only vocabulary values, cap at 4.
+  const compObjTags: string[] = compObjRawTags
+    .filter((tag) => COMPLIANCE_OBJECT_VALUES.includes(tag as any))
+    .slice(0, 4);
 
   // Parse related_items (UUID array, may be empty)
   const relRaw = fields.related_items.trim();
