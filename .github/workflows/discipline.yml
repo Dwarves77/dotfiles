@@ -109,7 +109,8 @@ jobs:
             fsi-app/scripts/lib/db.test.mjs \
             fsi-app/src/lib/sources/primary-fallback.test.mjs \
             fsi-app/src/lib/agent/anthropic-error.test.mjs \
-            fsi-app/src/lib/agent/anthropic-stream.test.mjs
+            fsi-app/src/lib/agent/anthropic-stream.test.mjs \
+            fsi-app/src/lib/agent/two-pass-generate.test.mjs
 
       - name: Invariant-coverage meta-gate (per-invariant wiring of all 6 skills)
         # Fails CI if any skill invariant is neither enforced (by a resolving mechanism)

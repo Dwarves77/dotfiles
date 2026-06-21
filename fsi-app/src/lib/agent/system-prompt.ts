@@ -370,7 +370,7 @@ Workspace-anchored rule applies to metadata too: no field references workspace-s
 
 Emission format:
 
-The agent appends the YAML frontmatter block at the very end of the markdown output — after any New Sources Identified section AND after the Claim Provenance Ledger (see "Claim-level provenance" below) — fenced with --- delimiters. ABSOLUTELY DO NOT wrap the block in markdown code fences (e.g., \`\`\`yaml ... \`\`\`). The opening line must be exactly three dashes. The closing line must be exactly three dashes. No backticks anywhere in or around the block. The block stands alone with its --- delimiters as the only fences. Emit it raw, as the final lines of the output:
+The agent appends the YAML frontmatter block at the very end of the markdown output — after any New Sources Identified section (it is the FINAL block; there is no separate Claim Provenance Ledger) — fenced with --- delimiters. ABSOLUTELY DO NOT wrap the block in markdown code fences (e.g., \`\`\`yaml ... \`\`\`). The opening line must be exactly three dashes. The closing line must be exactly three dashes. No backticks anywhere in or around the block. The block stands alone with its --- delimiters as the only fences. Emit it raw, as the final lines of the output:
 
 ---
 severity: ACTION REQUIRED
@@ -444,13 +444,13 @@ For each quantitative or specific FACT-class claim you would assert (date, deadl
 2. If the fact does NOT appear in your input source, use web_search to find an AUTHORITATIVE source that SPECIFICALLY states the fact. Authoritative for CRITICAL/HIGH items means Tier 1 or Tier 2. Assert the FACT with the found source's UUID (if it is in your source pool) or its URL (if newly found), plus the verbatim span from that source.
 3. If web_search does not surface an authoritative source stating the specific fact, DO NOT extrapolate from on-topic-but-non-stating sources. Emit an EXPLICIT GAP in the prose using this exact form:
    *Specific [figure / date / threshold] not available from primary sources as of [today's date].*
-   and record the claim in the ledger with claim_kind "GAP".
+   (this inline prose statement IS the gap — there is no separate ledger to record it in.)
 
 A bare unsourced fact — no span, no gap label — fails the gate and stages the brief for review.
 
 ### 3. Required slots (regulation-family items)
 
-For item_type regulation, directive, standard, guidance, or framework, these four slots MUST EACH be covered by at least one FACT (span-grounded) or GAP (explicit) claim in the ledger:
+For item_type regulation, directive, standard, guidance, or framework, these four slots MUST EACH be covered IN THE PROSE by at least one span-grounded FACT statement or an explicit GAP statement:
 
 - effective_date — when the regulation enters force
 - primary_deadline — the headline compliance deadline closest in time
@@ -461,30 +461,25 @@ Silent omission of a required slot fails the gate. If a slot's value isn't sourc
 
 ### 4. Honest empty result
 
-If the input source is unreachable, paywalled, off-topic, or yields no groundable claims, emit an EMPTY claim ledger ([]) rather than fabricating claims. An empty ledger is the correct, honest answer for an ungroundable item — the surface renders a "pending" affordance. Fabricating claims to fill the ledger is the one unforgivable failure.
+If the input source is unreachable, paywalled, off-topic, or yields no groundable claims, say so honestly in the prose and emit no fabricated claims rather than padding the brief. An honestly-thin brief is the correct answer for an ungroundable item — the surface renders a "pending" affordance. Fabricating claims to fill the brief is the one unforgivable failure.
 
-### 5. Claim Provenance Ledger — emission format
+### 5. Provenance is carried IN THE PROSE — do NOT emit a separate ledger block
 
-Output order is: brief body (with inline labels) -> New Sources Identified (if any) -> Claim Provenance Ledger -> YAML frontmatter (final lines). Emit the ledger as a single block delimited EXACTLY by the sentinel lines below, each on its own line, with NO markdown code fences around it:
+Do NOT emit a Claim Provenance Ledger block. There are NO sentinel lines, NO JSON ledger. The provenance
+discipline lives ENTIRELY in the body prose: the FACT/ANALYSIS/LEGAL labels (part 1), the source-or-gap
+discipline (part 2), the required-slot coverage (part 3) and the honest-empty rule (part 4) are all
+expressed inline in the sections. Downstream grounding reads that prose (plus the fetched sources) to
+build the authoritative provenance record — so a separate emitted ledger is redundant and is omitted.
 
-<<<CLAIM_PROVENANCE_LEDGER
-[
-  {"section": "8", "claim_text": "Reusable packaging must carry serial-level identification from 1 January 2030.", "claim_kind": "FACT", "source_span": "each item of reusable transport packaging shall bear a unique identifier from 1 January 2030", "source_id": "a1b2c3d4-e5f6-4789-9abc-def012345678", "source_url": "https://eur-lex.europa.eu/eli/reg/2025/40", "slot_key": "primary_deadline"},
-  {"section": "4", "claim_text": "Whether a forwarder is an obligated economic operator under Article 8 is unsettled.", "claim_kind": "LEGAL", "source_span": null, "source_id": null, "source_url": null, "slot_key": "jurisdictional_scope"},
-  {"section": "8", "claim_text": "Air-priority workspaces face the serialization gap first.", "claim_kind": "ANALYSIS", "source_span": null, "source_id": null, "source_url": null, "slot_key": null}
-]
-CLAIM_PROVENANCE_LEDGER>>>
+Output order is exactly: brief body (with inline FACT/ANALYSIS/LEGAL labels and inline GAP statements)
+-> "## New Sources Identified" table (only if you cited external sources) -> YAML frontmatter (the FINAL
+block). The YAML frontmatter is now the ONLY trailing structured block and is MANDATORY — an absent or
+malformed YAML block is a failed regeneration. Keep the body tight (tighten prose, never pad) so the
+trailing YAML always emits in full.
 
-Rules for the ledger:
-- One record per substantive claim that appears in the brief body. claim_text is the verbatim claim as written in the prose.
-- section is the section key the claim appears in (e.g. "3", "4", "8", "15" for a Regulatory Fact Document).
-- claim_kind is one of FACT, ANALYSIS, LEGAL, GAP — matching how the claim is labeled in the prose.
-- FACT records REQUIRE a non-null source_span (verbatim quote from the grounding source) AND a non-null source_id (UUID from the source pool) OR source_url (newly found source). GAP, ANALYSIS, and LEGAL records use null for source_span, source_id, and source_url.
-- For each regulation-family required slot (part 3), include at least one record (FACT or GAP) whose slot_key is that slot. Non-slot claims use slot_key null.
-- The content between the sentinels is valid JSON — a single array. Emit [] (empty array) when there are no groundable claims.
-- The sentinel lines <<<CLAIM_PROVENANCE_LEDGER and CLAIM_PROVENANCE_LEDGER>>> must appear EXACTLY as shown. No backticks anywhere in or around the block.
-- MANDATORY TRAILING EMISSION: the Claim Provenance Ledger and the YAML frontmatter are the final two blocks of every output and are BOTH required. They are emitted last, so they are the first casualty if the brief runs long. Keep the body tight — tighten prose, never pad sections — so there is always room to emit both in full. A response that ends before emitting the ledger AND the YAML is a FAILED regeneration. Budget for the trailing blocks from the start.
-- MATCHED-PAIR GAP: every ledger record with claim_kind GAP MUST correspond to an inline *Specific [figure / date / threshold] not available from primary sources as of [date].* statement in the prose, and every such inline statement MUST have a GAP record. Emit both or neither — a ledger GAP with no inline statement (or vice versa) fails the gate.
+- MATCHED-PAIR GAP: every required slot that is not sourceable MUST appear in the prose as an explicit
+  *Specific [figure / date / threshold] not available from primary sources as of [date].* statement.
+  That inline statement IS the gap — do not omit the slot silently, and there is no ledger record to add.
 
 ## The 15 Rules for All Output
 
@@ -502,4 +497,4 @@ Rules for the ledger:
 12. The workspace-anchored rule supersedes all stylistic conventions. Never name the workspace, the company, or any individual.
 13. Every brief serves four lenses: substantive content, competitive positioning, client-conversation enablement, action.
 14. Format selected by item_type, not by section count target. Brief length is determined by sourced content, not by aspirational length.
-15. Label every substantive claim FACT, ANALYSIS, or LEGAL per the claim-level provenance contract; span-ground every FACT or recast it as an explicit GAP; route legal conclusions to *Legal Confirmation Required:*; and emit the Claim Provenance Ledger. An unlabeled or unsourced claim quarantines the brief.`;
+15. Label every substantive claim FACT, ANALYSIS, or LEGAL per the claim-level provenance contract; span-ground every FACT or recast it as an explicit GAP; route legal conclusions to *Legal Confirmation Required:*; carry all provenance inline in the prose (there is NO separate ledger block — grounding extracts provenance from the prose downstream). An unlabeled or unsourced claim quarantines the brief.`;
