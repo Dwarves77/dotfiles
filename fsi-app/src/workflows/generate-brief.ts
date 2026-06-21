@@ -239,6 +239,20 @@ export interface GenerateBriefResult {
   steps: Partial<Record<"budget" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "reresearch" | "erase", unknown>>;
 }
 
+// A DETERMINISTIC ground failure lives in the BRIEF CONTENT (a stray/off-pool URL, a missing required
+// slot, an unlabeled/mislabeled assertion, a below-authority-floor source) — re-grounding the SAME brief
+// re-extracts and hits the IDENTICAL failure, so the cheap re-ground is guaranteed waste (one Sonnet
+// call + minutes, every such item). Only a failure NOT in this set could be a stochastic ledger-extraction
+// slip a re-roll recovers. Reason text comes from groundBrief's detail ("validation failed: [{reason:…}]").
+const DETERMINISTIC_GROUND_FAILURES = [
+  "ungrounded_url", "missing_required_slot", "fact_below_authority_floor",
+  "analysis_missing_label_syntax", "unlabeled_assertion", "legal_not_routed_to_callout",
+];
+function isDeterministicGroundFailure(detail: string | undefined): boolean {
+  const d = detail || "";
+  return DETERMINISTIC_GROUND_FAILURES.some((r) => d.includes(r));
+}
+
 export async function generateBriefWorkflow(itemId: string, refresh = false): Promise<GenerateBriefResult> {
   "use workflow";
 
@@ -259,21 +273,22 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
 
   let ground = await groundStep(itemId);
   if (!ground.ok) {
-    // B3 TIERED RETRY: re-roll GROUND ALONE before paying for a full re-research. Grounding is the
-    // stochastic step (the LLM claim-ledger extraction) — a clean re-roll recovers items whose first roll
-    // slipped a label or cited an off-pool URL (proven: g7 only verified on its 2nd ground). groundBrief
-    // clears the prior non-verified ledger at its start, so the re-roll starts clean; no Browserless +
-    // one Sonnet call vs reresearch's generate(Browserless+search)+section+ground. Only escalate to a
-    // full re-research if the cheap re-ground also fails.
-    const reground = await groundStep(itemId);
-    if (reground.ok) {
+    // B3 TIERED RETRY, REASON-AWARE (cost fix 2026-06-21). The cheap re-ground re-rolls the stochastic
+    // ledger extraction and recovers an item whose FIRST roll slipped a label or cited an off-pool URL
+    // (proven: g7 verified on its 2nd ground). BUT a DETERMINISTIC brief-content failure (the flaw is in
+    // the brief, not the extraction) re-fails IDENTICALLY on a re-ground — so that middle call is pure
+    // waste (it fired on essentially every item, every time). Re-roll ONLY when the failure is not a known
+    // content class; otherwise skip straight to reresearch (regenerate the brief). groundBrief clears the
+    // prior non-verified ledger at its start, so a re-roll still starts clean.
+    const reground = isDeterministicGroundFailure(ground.detail) ? null : await groundStep(itemId);
+    if (reground?.ok) {
       ground = reground;
     } else {
       // research-or-erase: one re-research retry (widen the pool via web_search, re-section, re-ground).
       const reresearch = await reresearchStep(itemId);
       if (!reresearch.ok) {
         const erase = await eraseStep(itemId);
-        return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, reground, reresearch, erase } };
+        return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, ...(reground ? { reground } : {}), reresearch, erase } };
       }
       ground = reresearch; // re-research grounded successfully
     }
