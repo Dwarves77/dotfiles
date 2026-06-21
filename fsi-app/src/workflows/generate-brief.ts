@@ -21,6 +21,14 @@
 // agent_runs.cost_usd_estimated ledger. The cap exists to halt a runaway SCALED
 // pass (step 4); a single pull is ~$0.15, far under any sane cap.
 import { RetryableError, FatalError, getStepMetadata } from "workflow";
+
+// getStepMetadata() throws OUTSIDE the Workflow DevKit runtime (direct/script/test invocation). The two
+// callers already fall back to attempt=1 when metadata is absent — they just need the CALL not to throw,
+// so the workflow is runnable in a script/test harness, not only inside Vercel. Inside the DevKit it
+// returns the real attempt metadata unchanged. (Hoisted function decl → usable at both call sites.)
+function safeStepMetadata(): { attempt?: number } | null {
+  try { return getStepMetadata() as { attempt?: number }; } catch { return null; }
+}
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 import { isGloballyPaused } from "../lib/api/pause";
@@ -162,7 +170,7 @@ export async function reresearchStep(itemId: string): Promise<StepResult> {
   // On a RETRY of THIS step (attempt > 1, i.e. a network death threw and the WDK re-ran it) the widened
   // pool was already persisted BEFORE the death (Edit A), so resume from it (stored-first, GUARD 2 — no
   // delete) rather than paying to re-widen the same item.
-  const meta = getStepMetadata();
+  const meta = safeStepMetadata();
   const attempt = typeof meta?.attempt === "number" ? meta.attempt : 1;
   let g: StepResult;
   if (attempt > 1) {
@@ -207,7 +215,7 @@ export async function eraseStep(itemId: string): Promise<{ erased: boolean }> {
 // fail-safe-on-exhaustion are runtime-verified via the worker probe (2026-05-30).
 export async function spanCheckClaim(url: string): Promise<SpanCheckResult> {
   "use step";
-  const meta = getStepMetadata();
+  const meta = safeStepMetadata();
   try {
     return await spanCheckFetch(url);
   } catch (e) {
