@@ -178,7 +178,7 @@ export class AgentOutputParseError extends Error {
  * Returns the inner YAML text and the index where the opening `---` starts,
  * so the body can be sliced cleanly.
  */
-function findYamlBlock(text: string): { yaml: string; start: number; end: number } | null {
+export function findYamlBlock(text: string): { yaml: string; start: number; end: number } | null {
   // Strip a single trailing ```yaml ... ``` or ``` ... ``` code-fence wrapper
   // if the agent emitted one. The contract forbids it (see system-prompt.ts),
   // but agents sometimes wrap YAML in code fences anyway. Be tolerant.

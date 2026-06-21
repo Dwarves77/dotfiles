@@ -24,8 +24,9 @@ import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { fetchPrimaryWithFallback } from "@/lib/sources/primary-fallback.mjs";
 import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
+import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
-import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources } from "@/lib/agent/parse-output";
+import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources } from "@/lib/sources/source-growth";
 import { buildResolver } from "@/lib/sources/institution";
@@ -77,16 +78,23 @@ async function callSonnet(system: string, user: string): Promise<string> {
     apiKey: process.env.ANTHROPIC_API_KEY!,
     body: { model: "claude-sonnet-4-6", max_tokens: 32000, system, messages: [{ role: "user", content: user }] },
   });
-  // DETERMINISTIC truncation signal: if the model hit the cap, the ledger+YAML are incomplete. Fail with an
-  // ACTIONABLE error (content-class, fatal=false → per-item failure, not a batch halt) instead of letting
-  // the downstream YAML parse fail obscurely. If this fires, the brief is genuinely too large for one pass
-  // (the 2-pass follow-on: brief, then ledger+YAML separately).
+  // DETERMINISTIC truncation signal (content-class, fatal=false → per-item failure, not a batch halt). This
+  // path is now the GROUNDING ledger-extraction call only (generation uses generateBriefText's 2-pass); a
+  // truncated ledger means too many claims for one call — a per-item failure, not an obscure parse crash.
   if (stopReason === "max_tokens") {
-    const e = new Error("ANTHROPIC output truncated at max_tokens (32000) — brief too large for single-pass generation (needs 2-pass: brief, then ledger+YAML).") as Error & { fatal?: boolean };
+    const e = new Error("ANTHROPIC output truncated at max_tokens (32000).") as Error & { fatal?: boolean };
     e.fatal = false;
     throw e;
   }
   return text;
+}
+
+/** Reactive 2-pass brief generation — orchestration in two-pass-generate.mjs (unit-tested via DI). Binds
+ *  the real deps (streaming + YAML-locate). DEFAULT one call (body + New Sources + YAML, NO ledger); splits
+ *  to body-then-YAML ONLY on stop_reason truncation, so the body comes out whole and normal briefs stay 1
+ *  call. */
+async function generateBriefText(system: string, user: string): Promise<string> {
+  return twoPassGenerate({ system, user, stream: streamMessagesText, findYaml: findYamlBlock, apiKey: process.env.ANTHROPIC_API_KEY! });
 }
 
 // Sonnet WITH the server-side web_search tool (Anthropic runs the searches; one round-trip returns
@@ -211,11 +219,11 @@ Ground every FACT claim's source_span as a VERBATIM substring of one of the SOUR
 VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back to quarantine) if violated. Before you finish, RE-READ the WHOLE brief and fix every instance — these two are the dominant rejection causes on long briefs:
 - LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
 - URL discipline: every URL anywhere in the brief body MUST be EITHER (a) copied exactly from a SOURCE block url, OR (b) listed in your "## New Sources Identified" table. A URL that appears in prose but is in NEITHER place WILL REJECT the brief — grounding only recognises SOURCE-block urls and New-Sources-table urls. To reference a source you did not fetch, put it in the New Sources table; never drop a bare/known URL into prose, never invent a path, no markdown emphasis around URLs.
-Follow your output contract exactly: brief body, then the Claim Provenance Ledger, then the YAML frontmatter, including a "## New Sources Identified" table of the corroborating sources you used.
+Follow your output contract exactly: brief body, then a "## New Sources Identified" table of the corroborating sources you used (if any), then the YAML frontmatter as the FINAL block. Do NOT emit a Claim Provenance Ledger — provenance is carried inline in the prose (labels + GAP statements); grounding extracts it downstream.
 
 SOURCE CONTENT (copy FACT spans verbatim from here — ${fetched.length} sources):
 ${blocks}`;
-  const parsed = parseAgentOutput(await callSonnet(SYSTEM_PROMPT, user));
+  const parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user));
   const body = stripUrlMarkers((parsed.body || "").trim()) as string;
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
   // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
