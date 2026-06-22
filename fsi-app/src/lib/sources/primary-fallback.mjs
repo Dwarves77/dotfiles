@@ -23,6 +23,12 @@ export const MIN_LANG_RATIO = 0.6;     // < this target-language (ASCII) ratio =
 export const CHALLENGE_MAX_CHARS = 1500; // a challenge page is short; a real 5000ch article that mentions
                                          // "cloudflare" must NOT trip — so challenge markers only count below this.
 const CHALLENGE_RE = /just a moment|performing security verification|enable javascript|access denied|attention required|cloudflare|captcha|ddos protection/i;
+// SOFT-404: a 200 OK with a real-length, in-language body whose HEAD/title announces "page not found".
+// EUR-Lex returns ~3000ch "Page Not Found - EUR-Lex" for a mis-formed CELEX URL — which previously read as
+// SUCCESS (>200ch, ASCII, no challenge marker), so the fallback never fired and the enacted text never
+// entered the pool (the CSRD root cause: reg facts then grounded on secondary corroborators). Scoped to the
+// head so a real article ABOUT 404s does not trip. Markers are specific, not a bare "not found".
+const SOFT_404_RE = /\b(page not found|404 not found|404 error|error 404|document not found|no documents (?:found|matching)|page (?:does not|doesn'?t) exist|page (?:is )?(?:no longer available|unavailable)|requested (?:page|document|url)(?: was| could)? not (?:be )?found)\b/i;
 
 /** Cheap target-language (English) proxy: fraction of ASCII chars. RECORDED in the audit, never trusted
  *  silently — ASCII-ratio misfires on table/code-heavy English and Latin-script foreign text. */
@@ -52,6 +58,12 @@ export function detectRoadblock(text, { httpStatus = 200, timedOut = false } = {
   if (len < CHALLENGE_MAX_CHARS && CHALLENGE_RE.test(s.slice(0, 600))) {
     return { roadblocked: true, reason: "challenge_stub", len, langRatio };
   }
+  // soft-404: a real-length 200 whose head/title announces "page not found" (EUR-Lex CELEX mis-form). NOT
+  // length-bounded (the EUR-Lex soft-404 is ~3000ch, above CHALLENGE_MAX_CHARS) — the signal is the marker
+  // in the HEAD, where a soft-404 puts its title; a real article does not lead with "Page Not Found".
+  if (SOFT_404_RE.test(s.slice(0, 300))) {
+    return { roadblocked: true, reason: "soft_404", len, langRatio };
+  }
   // substantial but wrong-language-only — can't carry in-language (English) verbatim fact spans.
   if (langRatio < MIN_LANG_RATIO) return { roadblocked: true, reason: "wrong_language_only", len, langRatio };
   // >= 200ch real in-language content = SUCCESS (possibly partial). NOT a roadblock.
@@ -59,6 +71,23 @@ export function detectRoadblock(text, { httpStatus = 200, timedOut = false } = {
 }
 
 const round2 = (n) => Math.round(n * 100) / 100;
+
+/** Rewrite a known primary-registry URL to the FETCHABLE rendering form that returns the ENACTED TEXT.
+ *  EUR-Lex: the bare /legal-content/<LANG>/TXT endpoint soft-404s for many CELEX ids, but /TXT/HTML/ returns
+ *  the actual directive (PROVEN on CSRD CELEX:32022L2464 — bare = 2989ch "Page Not Found", HTML = the
+ *  directive text). PURE; unknown hosts and already-HTML URLs pass through unchanged. This is the enacted-
+ *  text-in-the-pool half of the CSRD fix (its companion is soft-404 detection above). */
+export function renderingUrlForPrimary(url) {
+  try {
+    const u = new URL(String(url));
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    if (host === "eur-lex.europa.eu") {
+      const rewritten = u.pathname.replace(/\/legal-content\/([a-z]{2})\/txt\/?$/i, "/legal-content/$1/TXT/HTML/");
+      if (rewritten !== u.pathname) { u.pathname = rewritten; return u.toString(); }
+    }
+    return url;
+  } catch { return url; }
+}
 
 /** Bounded single fetch: race the injected fetcher against a hard per-fetch timeout. NEVER retries a
  *  roadblocked URL (a roadblock is persistent; re-polling a dead URL is the 120s×5 waste). */
@@ -95,6 +124,9 @@ async function boundedFetch(fetchFn, url, ms) {
  */
 export async function fetchPrimaryWithFallback({ title, primaryUrl, itemType }, deps) {
   const { browserlessFetch, webSearchAlternatives, perFetchMs = 20000, maxAlts = 3 } = deps;
+  // Normalise the declared primary to its fetchable rendering form BEFORE the first fetch (EUR-Lex /TXT
+  // -> /TXT/HTML/), so the enacted text — not a soft-404 — is what we try first.
+  primaryUrl = renderingUrlForPrimary(primaryUrl);
   const alternatives = [];
 
   // 1. declared primary (bounded, no retry).

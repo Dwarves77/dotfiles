@@ -2,7 +2,7 @@
 // alternative-search orchestrator. Pure + dep-injected, no network. CI-gated via discipline.yml.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectRoadblock, fetchPrimaryWithFallback, targetLangRatio, STUB_MIN_CHARS } from "./primary-fallback.mjs";
+import { detectRoadblock, fetchPrimaryWithFallback, targetLangRatio, renderingUrlForPrimary, STUB_MIN_CHARS } from "./primary-fallback.mjs";
 
 const EN = (n) => "The regulation requires covered entities to submit annual emissions reports. ".repeat(Math.ceil(n / 72)).slice(0, n);
 const JP = (n) => "排出量取引制度の対象事業者は年次報告を提出する必要があります。".repeat(Math.ceil(n / 28)).slice(0, n);
@@ -37,6 +37,32 @@ test("detector: wrong-language-only (substantial non-ASCII) → roadblock (drive
   assert.equal(d.roadblocked, true);
   assert.equal(d.reason, "wrong_language_only");
   assert.ok(d.langRatio < 0.6);
+});
+
+test("detector: SOFT-404 — a real-length 200 whose head says 'Page Not Found' → roadblock (the CSRD/EUR-Lex bug)", () => {
+  // EUR-Lex's actual soft-404 body for a mis-formed CELEX url: ~3000ch, 200 OK, leads with "Page Not Found".
+  const eurlexSoft404 = "Page Not Found - EUR-Lex Skip to main content English Select your language " + EN(2900);
+  const d = detectRoadblock(eurlexSoft404, { httpStatus: 200 });
+  assert.equal(d.roadblocked, true, "a 200 'Page Not Found' must trip so the fallback fires (else reg facts ground on secondary corroborators)");
+  assert.equal(d.reason, "soft_404");
+  // a real article that merely MENTIONS '404' deep in the body must NOT trip (marker scoped to the head)
+  const realArticle = EN(2000) + " The server returned a 404 not found error during testing. " + EN(2000);
+  assert.equal(detectRoadblock(realArticle).roadblocked, false, "a '404' mention deep in a real article is not a soft-404");
+});
+
+test("renderingUrlForPrimary: EUR-Lex /TXT → /TXT/HTML/ (enacted text), preserving uri=; others untouched", () => {
+  assert.equal(
+    renderingUrlForPrimary("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32022L2464"),
+    "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022L2464",
+  );
+  // already-HTML form is left alone (idempotent)
+  assert.equal(
+    renderingUrlForPrimary("https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022L2464"),
+    "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022L2464",
+  );
+  // non-EUR-Lex and non-URL inputs pass through unchanged
+  assert.equal(renderingUrlForPrimary("https://www.federalregister.gov/documents/2024/x"), "https://www.federalregister.gov/documents/2024/x");
+  assert.equal(renderingUrlForPrimary("not a url"), "not a url");
 });
 
 test("detector: hard HTTP + timeout", () => {
