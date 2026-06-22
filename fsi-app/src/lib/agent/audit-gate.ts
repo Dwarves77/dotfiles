@@ -18,6 +18,13 @@
 // unit-tested.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildResolver, hostOf, hostInstitution, type SourceRow, type Resolver } from "../sources/institution";
+// The pure cores live in a dependency-free .mjs so the no-npm-ci discipline test job can unit-test them
+// without jiti/.ts loading; here we bind the real institution.ts host helpers + resolver to them.
+import {
+  scoreItemClaims as scoreItemClaimsCore,
+  hostTierViolationCount as hostTierViolationCountCore,
+  hasValidWaiver as hasValidWaiverCore,
+} from "./audit-gate-core.mjs";
 
 // ── Pure cores (unit-tested; no DB) ─────────────────────────────────────────
 
@@ -41,47 +48,13 @@ export function scoreItemClaims(
   searchUrlById: Map<string, string | null>,
   resolver: Resolver,
 ): ItemCrossItemMetrics {
-  let unregisteredSpanFacts = 0;
-  let claimsTierMismatches = 0;
-  const sample: string[] = [];
-  for (const c of claims) {
-    const stored = c.source_tier_at_grounding ?? null;
-    if (c.claim_kind === "FACT") {
-      const url = c.search_result_id ? searchUrlById.get(c.search_result_id) ?? null : null;
-      const expected = url ? resolver.resolveSpan(url).tier : null;
-      // unregistered-span: a FACT grounded on a span whose host resolves to NO institutional tier.
-      if (c.search_result_id && expected == null) {
-        unregisteredSpanFacts++;
-        if (sample.length < 8) sample.push(`unregistered-span FACT ${c.id.slice(0, 8)} host=${hostOf(url || "")}`);
-      }
-      // claims-tier honesty: stored stamp must equal the resolved canonical tier.
-      if (stored !== expected) {
-        claimsTierMismatches++;
-        if (sample.length < 8) sample.push(`claims-tier FACT ${c.id.slice(0, 8)} stored=${stored} expected=${expected ?? "NULL"}`);
-      }
-    } else if (stored !== null) {
-      // non-FACT claims (GAP/ANALYSIS/LEGAL) carry no span grounding and MUST be NULL-stamped.
-      claimsTierMismatches++;
-      if (sample.length < 8) sample.push(`claims-tier ${c.claim_kind} ${c.id.slice(0, 8)} stored=${stored} expected=NULL`);
-    }
-  }
-  return { unregisteredSpanFacts, claimsTierMismatches, sample };
+  return scoreItemClaimsCore(claims, searchUrlById, resolver, { hostOf }) as ItemCrossItemMetrics;
 }
 
-/** Global one-tier-per-host violation count (mirror of one-tier-per-host-audit). Pure: caller supplies the
- *  full sources registry. tier_override rows are exempt (deliberate per-row flag). */
+/** Global one-tier-per-host violation count (mirror of one-tier-per-host-audit). tier_override rows are
+ *  exempt (deliberate per-row flag). */
 export function hostTierViolationCount(sources: SourceRow[]): number {
-  const byInst = new Map<string, Set<number | null>>();
-  for (const s of sources) {
-    if (s.tier_override != null) continue;
-    const k = hostInstitution(hostOf(s.url));
-    if (!k) continue;
-    if (!byInst.has(k)) byInst.set(k, new Set());
-    byInst.get(k)!.add(s.base_tier ?? null);
-  }
-  let v = 0;
-  for (const tiers of byInst.values()) if (tiers.size > 1) v++;
-  return v;
+  return hostTierViolationCountCore(sources, { hostOf, hostInstitution }) as number;
 }
 
 // ── Layer C waiver logic (pure; shared by the preflight disposition gate) ────
@@ -100,15 +73,7 @@ export interface BlockRow {
  *  Time alone never clears it. Returns true iff recommended_actions carries an {action:'waiver', until:DATE}
  *  whose DATE is today or later. */
 export function hasValidWaiver(block: BlockRow | null | undefined, now: Date): boolean {
-  if (!block) return false;
-  const acts = Array.isArray(block.recommended_actions) ? (block.recommended_actions as WaiverAction[]) : [];
-  for (const a of acts) {
-    if (a && a.action === "waiver" && a.until) {
-      const d = new Date(a.until);
-      if (!Number.isNaN(d.getTime()) && d.getTime() >= now.getTime()) return true;
-    }
-  }
-  return false;
+  return hasValidWaiverCore(block, now) as boolean;
 }
 
 // ── DB readers + the gate (used by the runner) ──────────────────────────────

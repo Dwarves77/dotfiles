@@ -99,6 +99,7 @@ jobs:
         run: |
           set -eu
           node --test \
+            fsi-app/.discipline/glob-portability.test.mjs \
             fsi-app/.discipline/lib/*.test.mjs \
             fsi-app/.discipline/rules/*.test.mjs \
             fsi-app/.discipline/governance/*.test.mjs \
