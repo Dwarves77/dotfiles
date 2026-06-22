@@ -42,6 +42,13 @@ import {
   NO_STORED_POOL,
   type StepResult,
 } from "../lib/agent/canonical-pipeline";
+import {
+  crossItemAuditGate,
+  hostTierViolationCount,
+  readAllSources,
+  readOpenDataAuditBlock,
+  hasValidWaiver,
+} from "../lib/agent/audit-gate";
 
 // Estimated per-step Claude spend for the cost_usd_estimated ledger. CLAUDE.md
 // baseline is ~$0.15/item: the generate pass and the ground pass each make one
@@ -89,6 +96,21 @@ export async function preflightStep(itemId: string): Promise<{ spentUsd: number;
   const sb = svc();
   if (await isGloballyPaused(sb)) {
     throw new FatalError("generation halted: global_processing_paused is set (admin pause)");
+  }
+  // LAYER C — BLOCK-NEXT-RUN (enforcement-gap fix, 2026-06-21). The nightly data-audit lane reflects a RED
+  // verdict into ONE open integrity_flags block row (DATA_AUDIT_BLOCK) and resolves it on GREEN. Generation
+  // HALTS here whenever that block is open and carries no current dated waiver — corpus red is cleared ONLY
+  // by a fix (lane goes green -> row resolved) or an explicit, expiring waiver disposition, NEVER by waiting
+  // (the seven-red-nights failure was red sitting un-actioned). There is NO skip flag (no escape hatch): the
+  // only way past is to record a disposition, so a human is no longer the catch and bad state cannot compound
+  // under batch pressure. Fails CLOSED — if the block state cannot be read, generation does not proceed.
+  const block = await readOpenDataAuditBlock(sb);
+  if (block && !hasValidWaiver(block, new Date())) {
+    throw new FatalError(
+      `generation blocked: data-audit lane is RED with no current disposition (integrity_flags ${block.id}). ` +
+        `Clear it by fixing to green, or record a dated waiver in docs/data-audit-dispositions.md and on the flag ` +
+        `(recommended_actions += {action:"waiver", until:"YYYY-MM-DD"}). ${(block.description ?? "").slice(0, 160)}`
+    );
   }
   const midnightUtc = new Date(new Date().toISOString().slice(0, 10)).toISOString();
   const { data } = await sb.from("agent_runs").select("cost_usd_estimated").gte("started_at", midnightUtc);
@@ -159,6 +181,51 @@ export async function growStep(itemId: string): Promise<StepResult> {
   return growSources(itemId);
 }
 
+// LAYER B baseline — captures the GLOBAL one-tier-per-host violation count BEFORE this run registers any
+// source, so the gate (after grow) can tell a conflict THIS write introduced from the corpus's standing
+// violations (which the nightly lane + Layer C disposition own). Read-only.
+export async function auditBaselineStep(itemId: string): Promise<{ hostTierViolations: number }> {
+  "use step";
+  void itemId;
+  const sb = svc();
+  const sources = await readAllSources(sb);
+  return { hostTierViolations: hostTierViolationCount(sources) };
+}
+
+// LAYER B gate — the cross-item / corpus audit in the WRITE PATH. The mig-115 trigger has already verified
+// the item against the per-item criteria; this step enforces the cross-item invariants the trigger cannot
+// see (unregistered-span-host, claims-tier, one-tier-per-host) by re-running them, item-scoped, on the
+// just-written state. Pure check here; the workflow owns the fail-closed action. Non-bypassable: it is an
+// unconditional step on the success path, with no skip flag.
+export async function auditGateStep(itemId: string, baselineHostTierViolations: number): Promise<StepResult> {
+  "use step";
+  const sb = svc();
+  const res = await crossItemAuditGate(sb, itemId, baselineHostTierViolations);
+  return { ok: res.ok, detail: res.detail };
+}
+
+// LAYER B fail-closed record — on a gate failure the brief is erased (-> mig-115 trigger quarantines the
+// item, which sticks because validate_item_provenance now fails) and this records the SPECIFIC cross-item
+// reason as a data_integrity flag, so the quarantine carries the real cause (not the generic erase note).
+export async function recordAuditGateFailureStep(itemId: string, detail: string): Promise<{ recorded: boolean }> {
+  "use step";
+  const sb = svc();
+  try {
+    await sb.from("integrity_flags").insert({
+      category: "data_integrity",
+      subject_type: "item",
+      subject_ref: itemId,
+      description: `Cross-item audit gate failed on the generation write; brief erased and item quarantined. ${detail}`.slice(0, 480),
+      recommended_actions: [{ action: "investigate_cross_item_failure", rationale: detail }],
+      status: "open",
+      created_by: "audit-gate",
+    });
+    return { recorded: true };
+  } catch {
+    return { recorded: false };
+  }
+}
+
 // research-or-erase: ONE re-research retry on ground failure. Regenerate (discoverCorroborators
 // widens the source pool via web_search) -> re-section -> re-ground, as a DISTINCT step so it is not
 // memoized against the first generate/ground. Spends ~one generate + ground (Browserless + Sonnet).
@@ -195,6 +262,12 @@ export async function eraseStep(itemId: string): Promise<{ erased: boolean }> {
   const sb = svc();
   await sb.from("intelligence_items").update({ full_brief: null, updated_at: new Date().toISOString() }).eq("id", itemId);
   await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
+  // Also drop the item's claim-provenance rows. The cross-item audits (unregistered-span-host, claims-tier)
+  // count EVERY section_claim_provenance row regardless of item status — so leaving an erased item's claims
+  // behind would keep its bad-host FACT spans in the corpus tally, defeating "the write does not stand."
+  // Orphan claims after a brief erase are wrong on their own (they reference deleted sections); deleting them
+  // serves both callers (research-or-erase AND the cross-item audit gate).
+  await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
   try { await sb.from("integrity_flags").update({ recommended_actions: [{ action: "erased_full_brief", rationale: "re-research failed grounding twice; ungroundable/fabricated content removed" }] }).eq("subject_ref", itemId).eq("status", "open"); } catch { /* best-effort note */ }
   await recordRun(sb, itemId, "erase", 0, true, "research-or-erase: nulled ungroundable brief").catch(() => {});
   return { erased: true };
@@ -236,7 +309,7 @@ spanCheckClaim.maxRetries = 3;
 export interface GenerateBriefResult {
   itemId: string;
   status: string;
-  steps: Partial<Record<"budget" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "reresearch" | "erase", unknown>>;
+  steps: Partial<Record<"budget" | "auditBaseline" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "auditGate" | "reresearch" | "erase", unknown>>;
 }
 
 // A DETERMINISTIC ground failure lives in the BRIEF CONTENT (a stray/off-pool URL, a missing required
@@ -256,20 +329,25 @@ function isDeterministicGroundFailure(detail: string | undefined): boolean {
 export async function generateBriefWorkflow(itemId: string, refresh = false): Promise<GenerateBriefResult> {
   "use workflow";
 
-  // Preflight first — halts (FatalError) before any Sonnet spend if paused or over budget.
+  // Preflight first — halts (FatalError) before any Sonnet spend if paused, over budget, or if the
+  // data-audit lane is RED with no current disposition (Layer C block-next-run).
   const budget = await preflightStep(itemId);
+
+  // LAYER B baseline — snapshot the global one-tier-per-host violation count BEFORE any registering write,
+  // so the post-write gate can attribute a NEW conflict to this run vs the corpus's standing violations.
+  const auditBaseline = await auditBaselineStep(itemId);
 
   // refresh=true is the deliberate force-rescrape lever (GUARD 4): freshness-over-cost. Default false =
   // reuse stored content when a usable pool exists (resumable, cheap). Change-detection is NOT built here.
   const generate = await generateStep(itemId, refresh);
-  if (!generate.ok) return { itemId, status: "generate_failed", steps: { budget, generate } };
+  if (!generate.ok) return { itemId, status: "generate_failed", steps: { budget, auditBaseline, generate } };
 
   // Register corroborator sources BEFORE grounding so their hosts resolve to a real institutional tier
   // at stamp time (not NULL). Non-gating: a registration failure never blocks the run.
   const register = await registerStep(itemId);
 
   const section = await sectionStep(itemId);
-  if (!section.ok) return { itemId, status: "section_failed", steps: { budget, generate, register, section } };
+  if (!section.ok) return { itemId, status: "section_failed", steps: { budget, auditBaseline, generate, register, section } };
 
   let ground = await groundStep(itemId);
   if (!ground.ok) {
@@ -288,7 +366,7 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
       const reresearch = await reresearchStep(itemId);
       if (!reresearch.ok) {
         const erase = await eraseStep(itemId);
-        return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, ...(reground ? { reground } : {}), reresearch, erase } };
+        return { itemId, status: "reresearch_failed_erased", steps: { budget, auditBaseline, generate, register, section, ground, ...(reground ? { reground } : {}), reresearch, erase } };
       }
       ground = reresearch; // re-research grounded successfully
     }
@@ -299,5 +377,17 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
   // 121) flipped the item to 'verified' on the grounding writes — no human tick.
   const grow = await growStep(itemId);
 
-  return { itemId, status: "verified", steps: { budget, generate, register, section, ground, grow } };
+  // LAYER B GATE — NON-OPTIONAL, FAIL-CLOSED. The item is per-item-verified by the mig-115 trigger; this
+  // enforces the CROSS-item / corpus invariants the trigger cannot see. "Write succeeded" is connected to
+  // "audits green" HERE: on a cross-item failure the write does NOT stand — erase the brief (the mig-115
+  // trigger then quarantines the item, and it sticks because validate_item_provenance now fails) and record
+  // the specific cross-item reason. There is no skip flag; a failed/erroring gate ends the run NOT-verified.
+  const auditGate = await auditGateStep(itemId, auditBaseline.hostTierViolations);
+  if (!auditGate.ok) {
+    const erase = await eraseStep(itemId);
+    await recordAuditGateFailureStep(itemId, String((auditGate as { detail?: string }).detail ?? "cross-item audit failed"));
+    return { itemId, status: "audit_gate_failed_quarantined", steps: { budget, auditBaseline, generate, register, section, ground, grow, auditGate, erase } };
+  }
+
+  return { itemId, status: "verified", steps: { budget, auditBaseline, generate, register, section, ground, grow, auditGate } };
 }

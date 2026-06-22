@@ -133,6 +133,19 @@ export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
   return { deleted: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
 }
 
+/** Guarded INSERT — requires a cite + snapshots the inserted row (the reversal record is "delete the
+ *  returned id"). For rows a script legitimately creates outside the domain helpers (e.g. the Layer C
+ *  data-audit block flag). Inserts stay on the guarded path so rule 015 holds and the write is reversible. */
+export async function guardedInsert(table, row, { cite, select = "*", stampIso } = {}) {
+  requireCite(cite);
+  if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error("db.mjs guardedInsert: a single row object is required.");
+  const sb = writeClient();
+  const res = await sb.from(table).insert(row).select(select).single();
+  if (res.error) throw new Error(`guardedInsert failed: ${res.error.message}`);
+  const snapFile = snapshot(table, [{ _inserted: res.data }], cite, stampIso);
+  return { inserted: res.data, snapshot: snapFile };
+}
+
 /** Guarded ARCHIVE — convenience over guardedUpdate (sets is_archived + archive_reason). */
 export async function archiveRows(table, ids, { cite, archive_reason, stampIso } = {}) {
   if (!archive_reason) throw new Error("db.mjs archiveRows: archive_reason required.");
