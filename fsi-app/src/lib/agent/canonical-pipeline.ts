@@ -438,6 +438,22 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
       if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-source", result_url: u, result_title: cs.name, result_index: 90, result_content_excerpt: cs.name.slice(0, 280), searched_at: new Date().toISOString() });
     }
   } catch { /* non-fatal */ }
+  // CITED-URL completeness (criterion 2): the model cites real sources it found INLINE in the prose
+  // without always ALSO listing them in the New Sources table — an unlisted cited URL failed criterion 2
+  // and ERASED the whole brief over a single trade-press citation (the EU-ETS-maritime safety4sea.com
+  // case, 2026-06-21). Record EVERY URL the brief sections cite (the exact set criterion 2 scans) as a
+  // cited-URL search so the gate accepts it, with an EMPTY excerpt so the >200ch FACT-span corpus EXCLUDES
+  // it — a cited URL can NEVER ground a FACT (criterion 3 still requires a verbatim span in real FETCHED
+  // content). Consistent with how the New-Sources flow above already trusts model-cited URLs; integrity
+  // stays with criterion 3, not URL hygiene. These surface for source-registry review via grow/audits.
+  try {
+    const citedUrls = new Set<string>();
+    for (const s of secs) for (const m of (s.content_md || "").matchAll(/https?:\/\/[^\s)\]}"'<>]+/g)) citedUrls.add(m[0].replace(/[.,;:]+$/, ""));
+    for (const u of citedUrls) {
+      const { data: ex } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", u).limit(1);
+      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-url", result_url: u, result_title: "cited in brief", result_index: 91, result_content_excerpt: "", searched_at: new Date().toISOString() });
+    }
+  } catch { /* non-fatal */ }
   const { data: slots } = await sb.from("item_type_required_slots").select("slot_key, description").eq("item_type", it.item_type);
   const sectionMap = Object.fromEntries(secs.map((s) => [String(s.section_key), s.id]));
   // Grounding corpus = the pool generate already fetched + stored (the SAME content the brief was
@@ -543,8 +559,13 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // Still clean up ONLY the fallback searches THIS step created (no stored pool) so the agent_run_searches
   // corpus does not accumulate across failed attempts; the generate-stored pool is left intact for re-ground.
   if (ownSearches && searchIds.length) await sb.from("agent_run_searches").delete().in("id", searchIds);
-  const why = vrErr ? `rpc error: ${vrErr.message}` : `validation failed: ${JSON.stringify(vr?.failures ?? "no result")}`;
-  return { ok: false, detail: why.slice(0, 140) };
+  // Lead with the DISTINCT failure reasons (not the URL/claim payload), so the workflow's reason-aware
+  // retry can reliably detect a deterministic content class even after truncation (the earlier 140-char
+  // slice put "url" before "reason" and cut "ungrounded_url" off — the reground-skip never fired).
+  const fails = Array.isArray(vr?.failures) ? (vr!.failures as Array<{ reason?: string }>) : [];
+  const reasons = [...new Set(fails.map((f) => f?.reason).filter(Boolean))];
+  const why = vrErr ? `rpc error: ${vrErr.message}` : `validation failed [${reasons.join(",")}]: ${JSON.stringify(vr?.failures ?? "no result").slice(0, 120)}`;
+  return { ok: false, detail: why.slice(0, 220) };
 }
 
 /** STEP register (canonical order: generate -> REGISTER -> section -> ground -> credit). Registers the

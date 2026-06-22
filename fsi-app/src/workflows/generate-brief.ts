@@ -21,6 +21,14 @@
 // agent_runs.cost_usd_estimated ledger. The cap exists to halt a runaway SCALED
 // pass (step 4); a single pull is ~$0.15, far under any sane cap.
 import { RetryableError, FatalError, getStepMetadata } from "workflow";
+
+// getStepMetadata() throws OUTSIDE the Workflow DevKit runtime (direct/script/test invocation). The two
+// callers already fall back to attempt=1 when metadata is absent — they just need the CALL not to throw,
+// so the workflow is runnable in a script/test harness, not only inside Vercel. Inside the DevKit it
+// returns the real attempt metadata unchanged. (Hoisted function decl → usable at both call sites.)
+function safeStepMetadata(): { attempt?: number } | null {
+  try { return getStepMetadata() as { attempt?: number }; } catch { return null; }
+}
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 import { isGloballyPaused } from "../lib/api/pause";
@@ -162,7 +170,7 @@ export async function reresearchStep(itemId: string): Promise<StepResult> {
   // On a RETRY of THIS step (attempt > 1, i.e. a network death threw and the WDK re-ran it) the widened
   // pool was already persisted BEFORE the death (Edit A), so resume from it (stored-first, GUARD 2 — no
   // delete) rather than paying to re-widen the same item.
-  const meta = getStepMetadata();
+  const meta = safeStepMetadata();
   const attempt = typeof meta?.attempt === "number" ? meta.attempt : 1;
   let g: StepResult;
   if (attempt > 1) {
@@ -207,7 +215,7 @@ export async function eraseStep(itemId: string): Promise<{ erased: boolean }> {
 // fail-safe-on-exhaustion are runtime-verified via the worker probe (2026-05-30).
 export async function spanCheckClaim(url: string): Promise<SpanCheckResult> {
   "use step";
-  const meta = getStepMetadata();
+  const meta = safeStepMetadata();
   try {
     return await spanCheckFetch(url);
   } catch (e) {
@@ -231,6 +239,20 @@ export interface GenerateBriefResult {
   steps: Partial<Record<"budget" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "reresearch" | "erase", unknown>>;
 }
 
+// A DETERMINISTIC ground failure lives in the BRIEF CONTENT (a stray/off-pool URL, a missing required
+// slot, an unlabeled/mislabeled assertion, a below-authority-floor source) — re-grounding the SAME brief
+// re-extracts and hits the IDENTICAL failure, so the cheap re-ground is guaranteed waste (one Sonnet
+// call + minutes, every such item). Only a failure NOT in this set could be a stochastic ledger-extraction
+// slip a re-roll recovers. Reason text comes from groundBrief's detail ("validation failed: [{reason:…}]").
+const DETERMINISTIC_GROUND_FAILURES = [
+  "ungrounded_url", "missing_required_slot", "fact_below_authority_floor",
+  "analysis_missing_label_syntax", "unlabeled_assertion", "legal_not_routed_to_callout",
+];
+function isDeterministicGroundFailure(detail: string | undefined): boolean {
+  const d = detail || "";
+  return DETERMINISTIC_GROUND_FAILURES.some((r) => d.includes(r));
+}
+
 export async function generateBriefWorkflow(itemId: string, refresh = false): Promise<GenerateBriefResult> {
   "use workflow";
 
@@ -251,21 +273,22 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
 
   let ground = await groundStep(itemId);
   if (!ground.ok) {
-    // B3 TIERED RETRY: re-roll GROUND ALONE before paying for a full re-research. Grounding is the
-    // stochastic step (the LLM claim-ledger extraction) — a clean re-roll recovers items whose first roll
-    // slipped a label or cited an off-pool URL (proven: g7 only verified on its 2nd ground). groundBrief
-    // clears the prior non-verified ledger at its start, so the re-roll starts clean; no Browserless +
-    // one Sonnet call vs reresearch's generate(Browserless+search)+section+ground. Only escalate to a
-    // full re-research if the cheap re-ground also fails.
-    const reground = await groundStep(itemId);
-    if (reground.ok) {
+    // B3 TIERED RETRY, REASON-AWARE (cost fix 2026-06-21). The cheap re-ground re-rolls the stochastic
+    // ledger extraction and recovers an item whose FIRST roll slipped a label or cited an off-pool URL
+    // (proven: g7 verified on its 2nd ground). BUT a DETERMINISTIC brief-content failure (the flaw is in
+    // the brief, not the extraction) re-fails IDENTICALLY on a re-ground — so that middle call is pure
+    // waste (it fired on essentially every item, every time). Re-roll ONLY when the failure is not a known
+    // content class; otherwise skip straight to reresearch (regenerate the brief). groundBrief clears the
+    // prior non-verified ledger at its start, so a re-roll still starts clean.
+    const reground = isDeterministicGroundFailure(ground.detail) ? null : await groundStep(itemId);
+    if (reground?.ok) {
       ground = reground;
     } else {
       // research-or-erase: one re-research retry (widen the pool via web_search, re-section, re-ground).
       const reresearch = await reresearchStep(itemId);
       if (!reresearch.ok) {
         const erase = await eraseStep(itemId);
-        return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, reground, reresearch, erase } };
+        return { itemId, status: "reresearch_failed_erased", steps: { budget, generate, register, section, ground, ...(reground ? { reground } : {}), reresearch, erase } };
       }
       ground = reresearch; // re-research grounded successfully
     }
