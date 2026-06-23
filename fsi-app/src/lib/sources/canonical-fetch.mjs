@@ -15,7 +15,9 @@ export class BrowserlessError extends Error {
 }
 
 // Render `url` via Browserless /content. Returns { status, html, text, htmlLength,
-// textLength, renderMs, stealth }. Throws BrowserlessError only when BOTH the fast render
+// textLength, fullTextLength, truncated, maxTextLength, renderMs, tier }. `truncated` is true when the
+// stripped text exceeded maxTextLength (so callers can surface a partial collect — no silent truncation);
+// `fullTextLength` is the pre-cap length. Throws BrowserlessError only when BOTH the fast render
 // AND the stealth-mode retry fail. `userAgent` (optional) is set as both userAgent +
 // setExtraHTTPHeaders (SEC fair-access policy); browserless.ts computes it per-host.
 //
@@ -40,14 +42,18 @@ export async function browserlessFetch(url, options = {}) {
   // needs only an env var, not a code change. Defaults to the legacy cloud endpoint (still supports stealth).
   const base = (process.env.BROWSERLESS_BASE_URL || "https://chrome.browserless.io").replace(/\/+$/, "");
 
-  const toText = (html) =>
+  // Strip HTML to text WITHOUT the length cap, so the caller can SEE the full length and know whether the
+  // cap truncated the document (the no-silent-truncation rule — a 458KB page and a naturally-30KB page must
+  // NOT look identical to the caller). The cap is applied at the return site via cap(); `truncated` +
+  // `fullTextLength` are reported alongside the (capped) text so every caller can surface a partial collect.
+  const stripText = (html) =>
     html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, maxTextLength);
+      .trim();
+  const cap = (full) => ({ text: full.slice(0, maxTextLength), fullTextLength: full.length, truncated: full.length > maxTextLength });
 
   // Tier 1/2 — Browserless /content render. stealth=true bypasses many bot/HTTP2 blocks.
   async function render(stealth) {
@@ -69,7 +75,8 @@ export async function browserlessFetch(url, options = {}) {
     });
     if (!res.ok) throw new BrowserlessError(`Browserless ${res.status}${stealth ? " (stealth)" : ""}: ${(await res.text()).slice(0, 160)}`, res.status, Date.now() - start);
     const html = await res.text();
-    return { status: res.status, html, text: toText(html), htmlLength: html.length, textLength: toText(html).length, renderMs: Date.now() - start, tier: stealth ? "stealth" : "plain" };
+    const c = cap(stripText(html));
+    return { status: res.status, html, text: c.text, htmlLength: html.length, textLength: c.text.length, fullTextLength: c.fullTextLength, truncated: c.truncated, maxTextLength, renderMs: Date.now() - start, tier: stealth ? "stealth" : "plain" };
   }
 
   // Tier 3 — Browserless /unblock: the dedicated bot-bypass (residential proxy + challenge solving)
@@ -84,7 +91,8 @@ export async function browserlessFetch(url, options = {}) {
     if (!res.ok) throw new BrowserlessError(`Browserless /unblock ${res.status}: ${(await res.text()).slice(0, 160)}`, res.status, Date.now() - start);
     const data = await res.json();
     const html = typeof data?.content === "string" ? data.content : "";
-    return { status: res.status, html, text: toText(html), htmlLength: html.length, textLength: toText(html).length, renderMs: Date.now() - start, tier: "unblock" };
+    const c = cap(stripText(html));
+    return { status: res.status, html, text: c.text, htmlLength: html.length, textLength: c.text.length, fullTextLength: c.fullTextLength, truncated: c.truncated, maxTextLength, renderMs: Date.now() - start, tier: "unblock" };
   }
 
   // A "soft block" is a 200 that is really a WAF / JS-challenge / empty shell (no throw) — e.g.

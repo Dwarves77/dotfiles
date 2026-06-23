@@ -58,7 +58,7 @@ export const MARKER_SOURCE =
 // Baselines computed mechanically by the meta-gate (node line-count with MARKER_SOURCE). Seeded from
 // the 2026-06-06 build; the gate self-reports a mismatch with the exact value to re-seed to.
 export const SKILL_MARKER_BASELINE = {
-  'environmental-policy-and-innovation': 16,
+  'environmental-policy-and-innovation': 17,
   'source-credibility-model': 10,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
@@ -131,6 +131,17 @@ export const INVARIANTS = [
     anchor: 'Severity Labels',
     exempt: {
       reason: 'DATA-VERIFIED no clean bound exists (checked both, per the standing exemption-process rule). LIVE QUERY of 361 briefs: token-count distribution {0:75, 1:62, 2:57, 3:45, 4:40, 5:25, 6:23, 7:14, 8:12, …}. A CEILING (≤1) would false-flag 224/361 (62%) of VALID briefs — the reg format labels each S3 action, so multiple labels per brief are correct. A FLOOR (≥1) is also invalid (75 briefs correctly carry 0). No brief- or section-level scope yields a zero-false-positive bound because multiple labels per brief are valid by the format spec, and "where decision pressure exists" is irreducibly semantic. (Distinct: the item-level urgency `severity` column IS schema-enforced by migration 004 CHECK — a different vocabulary, not these labels.)',
+    },
+  },
+
+  {
+    id: 'EP-8-qualification-capture',
+    skill: 'environmental-policy-and-innovation',
+    section: 'Section 8 — Qualification capture (mandatory)',
+    text: 'For every regulatory requirement, capture its qualifications — exceptions/carve-outs, calculation basis, defined terms (verbatim from the definitions article), and the per-year trajectory — not just the headline value; matching the workspace to a defined role or deciding an obligation attaches is a legal determination routed to counsel, never asserted.',
+    anchor: 'Qualification capture (mandatory)',
+    exempt: {
+      reason: 'SEMANTIC generation property — same class as EP-6 (cause-effect chain) and the EP-5 lens-quality residual: whether a brief actually captures each requirement\'s exceptions / calculation basis / defined-terms / per-year trajectory, and holds the legal line, is content meaning with no low-false-positive signal. The STRUCTURAL PREREQUISITE is enforced in the pipeline: it now fetches and reads the FULL enacted text (direct-HTTP transport + raised caps + a budget-aware block builder shared by synthesis AND grounding so spans stay matchable) and CANNOT silently truncate — recordTruncation surfaces any DOWNLOAD that exceeds its cap as an integrity_flags coverage_gap (canonical-pipeline.ts + canonical-fetch.mjs {truncated,fullTextLength}). The semantic half is carried by the coverage-forcing prompt (system-prompt.ts regulatory-completeness block, synced to this skill) and PROVEN by the PPWR prove-on-one (efdb3390 quarantined→verified: 2038 ban, per-plant averaging, per-year trajectory, Art-3 defined terms captured, legal line held, zero producer-status assertions). REVISIT: a committed truncation-signal selftest would make the no-silent-truncation half enforcedBy:selftest (mechanizable, deferred for the export/extraction cost).',
     },
   },
 

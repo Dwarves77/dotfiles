@@ -30,7 +30,7 @@ import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, fin
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources } from "@/lib/sources/source-growth";
 import { buildResolver } from "@/lib/sources/institution";
-import { BROWSERLESS_FETCH_CONCURRENCY } from "@/lib/agent/generation-config";
+import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, GROUND_SECTION_MAX_CHARS } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -48,8 +48,98 @@ const urlsIn = (md: string) => [...new Set((String(md || "").match(/https?:\/\/[
 function svc(): SupabaseClient {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 }
+// ── FETCH TRANSPORTS (Part A — full download + no-silent-truncation) ──
+interface FetchResult { text: string; truncated: boolean; fullLength: number; cap: number; transport: string }
+
+// Static-HTML official/legal hosts that serve the ENACTED TEXT to a plain server fetch (no JS render, no
+// bot wall). For these we pull the FULL document DIRECTLY — free, no Browserless units (PROVEN: EUR-Lex
+// returns the full 458KB PPWR text this way). Browserless is the fallback. The URL is already EUR-Lex-
+// normalised before the primary path calls this, and detectRoadblock still runs on the RESULT
+// (fetchPrimaryWithFallback) — the new transport INHERITS every existing safety check, never skips them.
+const DIRECT_FETCH_HOSTS = /(^|\.)(eur-lex\.europa\.eu|europa\.eu|federalregister\.gov|ecfr\.gov|govinfo\.gov|legislation\.gov\.uk|gov\.uk)$/i;
+function directFetchEligible(url: string): boolean {
+  try { return DIRECT_FETCH_HOSTS.test(new URL(url).hostname); } catch { return false; }
+}
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+// DIRECT-HTTP transport. Pulls the full document (no Browserless) for an eligible host; reports truncation
+// against `max` exactly as the Browserless path does. Throws on a non-OK status so the caller's fallback fires.
+async function directFetchClean(url: string, max: number): Promise<FetchResult> {
+  const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" }, redirect: "follow", signal: AbortSignal.timeout(25000) });
+  if (!res.ok) throw new Error(`direct fetch ${res.status}`);
+  const full = htmlToText(await res.text());
+  const text = (cleanCtl(full.slice(0, max)) || "").replace(/\s+/g, " ").trim();
+  return { text, truncated: full.length > max, fullLength: full.length, cap: max, transport: "direct" };
+}
+// Corroborator / ground fetcher: direct-first for eligible hosts, else Browserless. SWALLOWS errors to ""
+// (a failed corroborator is dropped, not fatal) — same contract as the prior fetchText.
+async function fetchMeta(url: string, max: number): Promise<FetchResult> {
+  if (directFetchEligible(url)) {
+    try { const d = await directFetchClean(url, max); if (d.text.length > 200) return d; } catch { /* fall through to Browserless */ }
+  }
+  try {
+    const r = await browserlessFetch(url, { maxTextLength: max });
+    const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
+    return { text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max, transport: r.tier ?? "browserless" };
+  } catch { return { text: "", truncated: false, fullLength: 0, cap: max, transport: "none" }; }
+}
 async function fetchText(url: string, max = 40000): Promise<string> {
-  try { const r = await browserlessFetch(url, { maxTextLength: max }); return (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim(); } catch { return ""; }
+  return (await fetchMeta(url, max)).text;
+}
+
+// NO SILENT TRUNCATION (the must): when a fetch/read hit its cap and did NOT collect the whole document,
+// surface it — one integrity_flags coverage_gap row naming each capped source (url, collected vs full
+// length, cap, transport) PLUS a stderr warn. The operator is told WHAT was not collected and WHY; a
+// partial collect can never again be invisible. Best-effort — the warn is the floor if the insert fails.
+interface TruncEvent { url: string; collected: number; fullLength: number; cap: number; transport: string }
+async function recordTruncation(sb: SupabaseClient, itemId: string, events: TruncEvent[]): Promise<void> {
+  if (!events.length) return;
+  // Announce EVERYTHING (no silent truncation) via warn — the floor, always.
+  for (const e of events) console.warn(`[truncation-guard] item ${itemId}: ${e.url} — collected ${e.collected}/${e.fullLength} chars (cap ${e.cap}; ${e.transport})`);
+  // integrity_flags (the operator queue) ONLY for a genuine coverage gap: a DOWNLOAD that exceeded its cap
+  // ("notify on download" — operator's literal must), or the PRIMARY itself trimmed for synthesis (the law
+  // did not fully fit → chunking case). A CORROBORATOR trimmed by the synthesis budget is EXPECTED operation
+  // (corroborators share the remainder after the full primary) — warned above, never flagged, so the queue
+  // carries real gaps, not a flag on every multi-source brief.
+  const flagEvents = events.filter((e) => !e.transport.startsWith("synthesis-budget") || e.transport === "synthesis-budget(primary)");
+  if (!flagEvents.length) return;
+  const lines = flagEvents.map((e) => `${e.url} — collected ${e.collected}/${e.fullLength} chars (cap ${e.cap}; ${e.transport})`);
+  try {
+    await sb.from("integrity_flags").insert({
+      category: "coverage_gap", subject_type: "item", subject_ref: itemId,
+      description: `Source NOT fully collected for ${flagEvents.length} source(s) — the download exceeded its cap: ${lines.join("; ")}`.slice(0, 480),
+      recommended_actions: flagEvents.map((e) => ({ action: "raise_cap_or_chunk", rationale: `${e.url}: collected ${e.collected}/${e.fullLength} chars (cap ${e.cap}, ${e.transport})` })),
+      status: "open", created_by: "truncation-guard",
+    });
+  } catch { /* best-effort; the warn above is the floor */ }
+}
+
+// BUDGET-AWARE synthesis/grounding block builder (Part C). The PRIMARY (fetched[0]) is included in FULL up
+// to the budget; corroborators share the remainder. A trim is NEVER silent — every trimmed/dropped source
+// is returned as a TruncEvent the caller records. R1 (synthesis) and R2 (grounding) BOTH call this over the
+// SAME pool + SAME budget, so a FACT span written from the primary in synthesis is matchable in grounding
+// (the load-bearing span-grounding coupling — they read the identical window). A primary larger than the
+// whole budget is the rare chunking case: trimmed AND announced here (full map-reduce chunking is the
+// flagged follow-on — never a silent cap).
+function buildSourceBlocks(fetched: { url: string; text: string }[], budget: number): { blocks: string; trims: TruncEvent[] } {
+  const trims: TruncEvent[] = [];
+  if (!fetched.length) return { blocks: "", trims };
+  const [primary, ...corr] = fetched;
+  const primaryText = primary.text.length > budget ? primary.text.slice(0, budget) : primary.text;
+  if (primary.text.length > budget) trims.push({ url: primary.url, collected: budget, fullLength: primary.text.length, cap: budget, transport: "synthesis-budget(primary)" });
+  const parts = [`### SOURCE url=${primary.url}\n${primaryText}`];
+  const remaining = Math.max(0, budget - primaryText.length);
+  const perCorr = corr.length ? Math.floor(remaining / corr.length) : 0;
+  for (const c of corr) {
+    if (perCorr < 200) { trims.push({ url: c.url, collected: 0, fullLength: c.text.length, cap: 0, transport: "synthesis-budget(dropped)" }); continue; }
+    const t = c.text.length > perCorr ? c.text.slice(0, perCorr) : c.text;
+    if (c.text.length > perCorr) trims.push({ url: c.url, collected: perCorr, fullLength: c.text.length, cap: perCorr, transport: "synthesis-budget" });
+    parts.push(`### SOURCE url=${c.url}\n${t}`);
+  }
+  return { blocks: parts.join("\n\n"), trims };
 }
 // Browserless enforces a hard concurrency cap (5 on the current plan). The pool fetch fired ~7
 // sessions per item via Promise.all, and N concurrent batch shards multiplied that — exceeding the cap
@@ -167,9 +257,16 @@ async function webSearchAlternatives(title: string, itemType: string, reason: st
 // Browserless fetch returning EXTRACTED+cleaned text, the same normalisation fetchText applies — the
 // roadblock detector runs on this extracted text. No catch here: fetchPrimaryWithFallback's boundedFetch
 // owns the timeout race + error→reason mapping.
-const blFetchClean = async (url: string): Promise<{ text: string }> => {
-  const r = await browserlessFetch(url, { maxTextLength: 30000 });
-  return { text: (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim() };
+// PRIMARY fetcher (injected into fetchPrimaryWithFallback). Direct-first for eligible legal hosts (full,
+// free), else Browserless. Does NOT swallow a Browserless throw — boundedFetch maps it to status→reason so
+// the existing roadblock / soft-404 detection still fires. Reports truncation up via the FetchResult.
+const blFetchClean = async (url: string): Promise<FetchResult> => {
+  if (directFetchEligible(url)) {
+    try { const d = await directFetchClean(url, PRIMARY_MAX_CHARS); if (d.text.length > 200) return d; } catch { /* fall through to Browserless */ }
+  }
+  const r = await browserlessFetch(url, { maxTextLength: PRIMARY_MAX_CHARS });
+  const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
+  return { text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: PRIMARY_MAX_CHARS, transport: r.tier ?? "browserless" };
 };
 
 /** Canonical primary fetch with the roadblock→bounded-alternative-search capability bound to the real
@@ -198,7 +295,10 @@ async function synthesiseAndWriteBrief(
   fetched: { url: string; text: string }[],
   corroborators: Corroborator[],
 ): Promise<StepResult> {
-  const blocks = fetched.map((b) => `### SOURCE url=${b.url}\n${b.text.slice(0, 12000)}`).join("\n\n");
+  // Part C: build synthesis blocks under the input budget (primary FULL, corroborators trimmed to fit) and
+  // ANNOUNCE every trim (no silent truncation). The SAME builder grounding uses → spans stay matchable.
+  const { blocks, trims } = buildSourceBlocks(fetched, SYNTH_INPUT_BUDGET_CHARS);
+  await recordTruncation(sb, it.id, trims);
   const discoveredHint = corroborators.length
     ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
     : "";
@@ -211,7 +311,20 @@ async function synthesiseAndWriteBrief(
   const formatDirective = fmtSpec
     ? `\nFORMAT — MANDATORY, do NOT pick another: item_type "${it.item_type}" is a ${fmtSpec.formatType}. Emit exactly "format_type: ${fmtSpec.formatType}" in the YAML and structure the brief with ONLY this format's sections (omit-with-note any you cannot honestly ground; NEVER substitute another format's sections): ${fmtSpec.sections.map((s) => s.heading).join("; ")}.`
     : "";
-  const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}
+  // Part D — coverage-forcing for the REGULATORY format only (qualification capture / per-year trajectory /
+  // defined terms verbatim / legal line). Mirrors the env-policy SKILL.md + system-prompt contract; lands in
+  // the same change as those (doctrine-with-mechanism). The pipeline now feeds the FULL enacted text, so the
+  // instruction to READ ALL OF IT and capture qualifications is enforceable, not aspirational.
+  const regCoverage = fmtSpec?.formatType === "regulatory_fact_document"
+    ? `\nREGULATORY COMPLETENESS — you have the FULL enacted text below; READ ALL OF IT, not the opening. For EVERY requirement you state, capture its QUALIFICATIONS, not just the headline number/date:
+- Exceptions / carve-outs / exemptions ("except …", "shall not apply to …") — each a verbatim FACT span.
+- The CALCULATION BASIS and conditions (e.g. "calculated as an average per manufacturing plant and year" — a per-plant-per-year basis is NOT per-unit; state it as written).
+- The DEFINED TERMS the requirement turns on — quote the regulation's OWN definitions article verbatim; never swap in a loose synonym.
+- The PER-YEAR TRAJECTORY — when a threshold changes by date, state the WHOLE time series (e.g. a 2030 floor → a 2035 added requirement → a 2038 restriction/ban), not just the entry-year value; a date-conditioned trigger ("or N years from the implementing act, whichever is later") is part of the requirement.
+A requirement stated with ZERO qualifications is a FLAG that you have not read far enough — return to the source text before asserting it.
+LEGAL LINE — state what the text REQUIRES and whom it falls on AS DEFINED. Do NOT assert that the workspace (or any entity) IS a producer / importer / distributor / manufacturer, or that an obligation attaches: matching an entity to a defined role is a legal determination → route it to a "*Legal Confirmation Required:*" callout.`
+    : "";
+  const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}
 Synthesise ACROSS ALL the source blocks below — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack.
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
 Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.
@@ -295,11 +408,16 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   //    discovery below carries the weight. Fetched ONCE here (never re-fetched in the pool below).
   const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type });
   const primaryUrl = pf.url, primary = pf.text;
+  // NO SILENT TRUNCATION: collect a truncation event if the primary (or, below, any corroborator) hit its cap.
+  const truncEvents: TruncEvent[] = [];
+  if (pf.truncated) truncEvents.push({ url: primaryUrl, collected: primary.length, fullLength: pf.fullLength ?? primary.length, cap: pf.cap ?? PRIMARY_MAX_CHARS, transport: "primary" });
   // 2. DEEP DIVE: discover corroborating/expanding sources via web_search
   const corroborators = await discoverCorroborators(it.title, primaryUrl, primary);
   // 3. multi-source fetch (the discovered corroborators), then prepend the already-fetched primary
   const poolUrls = ([...new Set(corroborators.map((c) => c.url).filter(Boolean))] as string[]).filter((u) => u !== primaryUrl);
-  const fetchedCorr = (await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 14000) }))).filter((b) => b.text.length > 200);
+  const fetchedCorrMeta = await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, ...(await fetchMeta(u, CORROBORATOR_MAX_CHARS)) }));
+  for (const m of fetchedCorrMeta) if (m.truncated) truncEvents.push({ url: m.url, collected: m.text.length, fullLength: m.fullLength, cap: m.cap, transport: m.transport });
+  const fetchedCorr = fetchedCorrMeta.filter((b) => b.text.length > 200).map((b) => ({ url: b.url, text: b.text }));
   const fetched = [...(primary.length > 200 ? [{ url: primaryUrl, text: primary }] : []), ...fetchedCorr];
   if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch ${pf.fellBack ? `via fallback after ${pf.primaryReason}` : "declared"}; ${corroborators.length} discovered, none fetchable)` };
 
@@ -340,6 +458,9 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
   const { error: poolErr } = await sb.from("agent_run_searches").insert([...poolRows, ...refRows]);
   if (poolErr) return { ok: false, detail: `pool persist failed (pre-synthesis): ${poolErr.message}` };
+  // NO SILENT TRUNCATION: announce any source the FETCH could not fully collect, now that the pool (and its
+  // stored excerpts) is durable — the operator sees the partial collect on the item via integrity_flags.
+  await recordTruncation(sb, itemId, truncEvents);
 
   // 4. synthesise across the WHOLE pool (shared with generateBriefFromStored — same skill-bearing prompt).
   // The pool is already durable above; a failure here is resumable from the stored pool, not a re-scrape.
@@ -357,7 +478,7 @@ export async function generateBriefFromStored(itemId: string): Promise<StepResul
   const sb = svc();
   const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (!it) return { ok: false, detail: "item not found" };
-  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at").eq("intelligence_item_id", itemId);
+  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at, result_index").eq("intelligence_item_id", itemId).order("result_index");
   const rows = pool ?? [];
   // generate-pool rows carry the fetched source CONTENT (>200ch); discovered-ref stubs (<200ch) are leads only.
   const usable = rows.filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200);
@@ -459,7 +580,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // Grounding corpus = the pool generate already fetched + stored (the SAME content the brief was
   // synthesised from), so a source that is unfetchable on re-check (PDF/Cloudflare) does not break
   // grounding. Fall back to fetching the section/source URLs only when no stored pool exists.
-  const { data: pool } = await sb.from("agent_run_searches").select("id, result_url, result_content_excerpt").eq("intelligence_item_id", itemId);
+  const { data: pool } = await sb.from("agent_run_searches").select("id, result_url, result_content_excerpt, result_index").eq("intelligence_item_id", itemId).order("result_index");
   let fetched: Array<{ url: string; text: string }>;
   let searchRows: Array<{ id: string; result_url: string }>;
   const searchIds: string[] = [];
@@ -469,7 +590,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
     searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
   } else {
     const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
-    fetched = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, 16000) }))).filter((b) => b.text.length > 200);
+    fetched = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, CORROBORATOR_MAX_CHARS) }))).filter((b) => b.text.length > 200);
     searchRows = [];
     ownSearches = true;
     for (let i = 0; i < fetched.length; i++) {
@@ -488,7 +609,12 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
 - Cover EACH required slot with >=1 FACT or GAP claim (set slot_key):\n${(slots ?? []).map((s) => `- ${s.slot_key}: ${s.description}`).join("\n")}
 - For EVERY section (${secs.map((s) => s.section_key).join(", ")}) with must/requires/shall/applies/mandates/prohibits/obligates, emit >=1 FACT claim with "section" set + a verbatim span.
 - No verbatim span for a slot -> claim_kind "GAP", source_span null. Never invent spans. CLOSE with CLAIM_PROVENANCE_LEDGER>>>.`;
-  const user = `BRIEF SECTIONS:\n${secs.map((s) => `### SECTION ${s.section_key}\n${(s.content_md || "").slice(0, 2200)}`).join("\n\n")}\n\n====\nSOURCE CONTENT (copy spans VERBATIM):\n${fetched.map((b, i) => `### SOURCE ${i + 1} url=${b.url}\n${b.text.slice(0, 16000)}`).join("\n\n")}`;
+  // Part C / R2: show the grounding extractor the FULL source window (SAME budget builder as synthesis, so a
+  // span written from the primary in synthesis is present here too — the atomic span-grounding coupling), and
+  // raise the per-section cap so spans match from the back of a long section. Trims announced (no silent cap).
+  const groundSrc = buildSourceBlocks(fetched, SYNTH_INPUT_BUDGET_CHARS);
+  await recordTruncation(sb, itemId, groundSrc.trims);
+  const user = `BRIEF SECTIONS:\n${secs.map((s) => `### SECTION ${s.section_key}\n${(s.content_md || "").slice(0, GROUND_SECTION_MAX_CHARS)}`).join("\n\n")}\n\n====\nSOURCE CONTENT (copy spans VERBATIM):\n${groundSrc.blocks}`;
   let claims;
   // Lenient extraction: a single malformed claim is skipped, not fatal — one bad FACT must not reject
   // the whole ledger (the 0-FACT quarantine on rich synthesised briefs). The kept-filter + the gate

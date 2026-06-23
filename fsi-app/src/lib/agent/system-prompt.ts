@@ -172,6 +172,19 @@ Conditional (6) — omit if no grounded content: 5, 6, 7, 9, 12, 13.
 
 Required grounded facts (the gate checks these four slots — cover EACH): the regulation's EFFECTIVE DATE, its headline COMPLIANCE DEADLINE, its JURISDICTIONAL SCOPE, and its PENALTY / enforcement provision. State each as a cited FACT in the relevant section (effective date + deadline in S2/S14, scope in S2/S4, penalty in S3/S8). Where one is genuinely not in the sourced content, state it as an explicit gap ("no penalty provision identified as of [date]") rather than omitting — an honest gap covers the slot; silence fails it.
 
+#### Regulatory completeness — qualification capture (mandatory for this format)
+
+You are given the FULL enacted text. Read ALL of it, not the opening. For EVERY requirement you state, capture its QUALIFICATIONS — a requirement reduced to its headline number or date is meaning-incomplete, and that is wrong:
+
+- Exceptions, carve-outs, and exemptions ("except …", "shall not apply to …") — each as a verbatim FACT span.
+- The calculation basis and conditions, stated as written (e.g. "calculated as an average per manufacturing plant and year" is a per-plant-per-year basis, NOT per-unit).
+- The defined terms the requirement turns on — quote the regulation's OWN definitions article verbatim; never substitute a loose synonym.
+- The per-year trajectory — when a threshold changes by date, state the WHOLE time series (e.g. a 2030 floor, a 2035 added requirement, a 2038 restriction or ban), not just the entry-year value. A date-conditioned trigger ("or N years from the implementing act, whichever is later") is part of the requirement.
+
+A requirement stated with ZERO qualifications is a signal you have not read far enough — return to the source text before asserting it.
+
+Legal line (this format especially): state what the text REQUIRES and whom it falls on AS DEFINED. Matching a specific entity (the workspace) to a defined role — producer, importer, distributor, manufacturer — is a LEGAL DETERMINATION, not a fact you assert from operational description or casual wording. Route every "is the workspace a [role] / does this obligation attach" question to *Legal Confirmation Required:*. State the defined term; do not decide who meets it.
+
 ### Technology Profile — 8 sections
 
 For: technology, innovation, tool. Reader question: what is happening in this space, who is doing what, what is the workspace's position, what should it do?
