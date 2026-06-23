@@ -105,6 +105,12 @@ Cost saved across Wave 2: ~40 minutes of net-new component design plus the ongoi
 
 This principle pairs with verification-before-authorization. Investigation surfaces what exists. Reuse adapts what's there. Construction is the last resort, not the first instinct.
 
+### Retrieval before generation — extends reuse to work-products and data (in force from 2026-06-23)
+
+Reuse-before-construction above governs CODE (components, abstractions, utilities). The same default extends to WORK-PRODUCTS and DATA: **before generating, discovering, or re-deriving an answer, first check whether it already exists** — in the data (another column on the row, the item's own `agent_run_searches` pool, `provisional_sources`, the `sources` registry) or in prior work (earlier sessions, prior dispatch artifacts) — use what is found, and generate only the genuine residual. Naming the stores is deliberate: "check whether it exists" alone is too vague to follow; the WHERE-to-look list is what makes the discipline mechanical enough to honor. This binds hardest before any batch that spends.
+
+This is a standing process discipline, registered as invariant RD-8 (exempt, process-class — like RD-2/RD-3, scoped by the meta-gate). It earned a rule because the principle was scoped wrong and slipped: reuse-before-construction covered code, verification-before-authorization framed its read-only-first for dispatch WRITES, and diagnose-before-fixing is general spirit — none said "the answer/data may already exist; check before (re)generating it." Worked example (2026-06-23): the reg corpus's enacted-text URLs were ALREADY discovered by the prior deep-dive generate and stored as corroborators in each item's `agent_run_searches` pool, so the backward re-point operation is PROMOTE-the-stored-URL (near-free), not re-discover (spend). A retrieval check first turned a discovery batch into a promotion. Pairs with the no-silent-truncation rule (the prior pass's output landed somewhere — find it).
+
 ## Design audit framing (in force from 2026-05-07)
 
 **Design audits are commentary on design fidelity. Preview files are design exploration source-of-truth, not architectural authority. When audit findings conflict with intended use, intended use wins.**

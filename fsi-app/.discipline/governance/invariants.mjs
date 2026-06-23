@@ -62,7 +62,7 @@ export const SKILL_MARKER_BASELINE = {
   'source-credibility-model': 10,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
-  'remediation-discipline': 17,
+  'remediation-discipline': 18,
   'sprint-followups-discipline': 17,
 };
 
@@ -371,6 +371,17 @@ export const INVARIANTS = [
     anchor: 'Roadblock resilience (source fetch)',
     enforcedBy: ['selftest:fsi-app/src/lib/sources/primary-fallback.test.mjs', 'migration:141'],
     residual: 'The CI unit test (in the discipline node --test glob) gates the PURE detector detectRoadblock — the roadblocked-vs-partial line (>=200ch in-language = honest partial), the challenge/stub/timeout/wrong-language cases, the no-false-challenge on a long article, and the orchestrator bound (no hang past perFetchMs). The same-floor QUALIFICATION is not a new mechanism: it is the UNCHANGED resolver (buildResolver) + per-type floor (migration 141 / validate_item_provenance criterion 3) — a found alternative becomes a primary ONLY by emergently clearing that floor, never by a fallback action, which structurally forecloses the F1 secondary-grounding regression. The counsel-hold audit (durable integrity_flag carrying alternatives_tried + best_resolved_tier + the result split NO_SOURCE_FOUND vs NO_SOURCE_QUALIFIED) makes "searched + exhausted" lane-auditable. NOT mechanized: whether web_search returned the TRULY most-authoritative alternative (vs a plausible one) is discovery judgment; the floor is the backstop that makes a wrong alternative harmless (it resolves sub-floor and is rejected).',
+  },
+
+  {
+    id: 'RD-8-retrieval-before-generation',
+    skill: 'remediation-discipline',
+    section: 'Section 4.6: Retrieval before generation (check existing work/data before re-deriving)',
+    text: 'Before any generation / discovery / re-derivation step, the first action is a RETRIEVAL CHECK — does this output already exist (another column on the row, the item\'s agent_run_searches pool, provisional_sources, the sources registry, prior-session work)? Exhaust retrieval before generation; generate only the genuine residual. Binds hardest before any batch that spends.',
+    anchor: 'Retrieval before generation (check existing work/data before re-deriving)',
+    exempt: {
+      reason: 'PROCESS discipline applied at planning time (same class as RD-2/RD-3) — "did I check whether this output already exists before (re)generating it?" is judgment exercised when scoping a generation/discovery step, not a checkable property of a committed file or row. No low-false-positive standing signal exists for "this generation re-derived something already persisted": the stores are heterogeneous (a column, the agent_run_searches pool, provisional_sources, the registry, prior sessions), so a mechanical "should have retrieved" detector would be overwhelmingly noisy. Carried by CLAUDE.md Reuse-before-construction doctrine (extended 2026-06-23 to work-products/data) + this skill section + the retrieval-before-generation feedback memory; the backward promote-from-pool operation is its worked example (re-point = promote the already-stored enacted URL, not re-discover). REVISIT: a per-operation retrieval-check attestation could make it dispatch-auditable, deferred — attestation-not-enforcement is the trap the 2026-05-21 slim refactor retired.',
+    },
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────

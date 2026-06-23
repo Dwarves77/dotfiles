@@ -120,6 +120,14 @@ Plus two patterns emerging in this session's corpus that need root-cause investi
 
 Both emerging patterns need systematic investigation before promotion. They are tracked here so future agents apply defensive discipline and surface new instances toward eventual root-cause-investigation dispatch.
 
+## Section 4.6: Retrieval before generation (check existing work/data before re-deriving)
+
+Reuse-before-construction (the platform doctrine) is scoped to CODE. This is its WORK-PRODUCT / DATA sibling, the same class fix one level out: **before any generation, discovery, or re-derivation step, the first action MUST be a retrieval check — does this output already exist?** Check the obvious stores (another column on the row, the item's own `agent_run_searches` pool, `provisional_sources`, the `sources` registry) AND prior-session work; use what is found; generate only the genuine residual. Treat "the prior pass produced this" as a retrieval problem first, a regeneration problem only if retrieval comes up empty. It binds hardest before any batch that SPENDS.
+
+**Why it earned a rule.** It slipped twice in one session (2026-06-23): a backward re-point / re-discovery was proposed for the reg corpus when the enacted-text URLs were ALREADY discovered by the prior deep-dive generate and stored as corroborators in each item's `agent_run_searches` pool — one decision from spending to re-discover URLs already in our own database; and the enacted twins were not checked until a later pass surfaced them. The principle existed but was scoped wrong: reuse-before-construction covered code, verification-before-authorization's read-only-first was framed for dispatch WRITES, diagnose-before-fixing is general spirit — none said "the answer may already exist; check before (re)generating." With no mechanical gate it slipped under execute-the-plan momentum. The class fix is to state it as its own discipline (here) + register it as invariant RD-8 + carry it in CLAUDE.md's Reuse-before-construction doctrine (extended to work-products/data, 2026-06-23).
+
+**Recognition signals fired.** Signal 1 (recurrence: re-point + dedup-twins, two slips one session); signal 4 (reinventing-the-wheel: any future discovery/generation step would re-derive an output already persisted). Class confirmed; the fix is doctrine + invariant, not a primitive — the "retrieval check" is judgment exercised at planning time, not a single extractable function, hence RD-8 is exempt like RD-2/RD-3. The backward promote-from-pool operation is the worked example: re-point = promote the already-stored enacted URL, not re-discover.
+
 ## Section 5: Primitive Extraction Patterns
 
 When primitive extraction is justified:
