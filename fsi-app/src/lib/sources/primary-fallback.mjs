@@ -98,10 +98,10 @@ async function boundedFetch(fetchFn, url, ms) {
       Promise.resolve().then(() => fetchFn(url)),
       new Promise((res) => setTimeout(() => res(TIMEOUT), ms)),
     ]);
-    if (r === TIMEOUT) return { text: "", status: 200, timedOut: true };
-    return { text: (r && r.text) || "", status: (r && r.status) || 200, timedOut: false };
+    if (r === TIMEOUT) return { text: "", status: 200, timedOut: true, truncated: false, fullLength: 0, cap: 0 };
+    return { text: (r && r.text) || "", status: (r && r.status) || 200, timedOut: false, truncated: !!(r && r.truncated), fullLength: (r && (r.fullLength ?? r.fullTextLength)) || ((r && r.text) || "").length, cap: (r && r.cap) || 0 };
   } catch (e) {
-    return { text: "", status: (e && e.status) || 0, timedOut: false, err: String((e && e.message) || e) };
+    return { text: "", status: (e && e.status) || 0, timedOut: false, truncated: false, fullLength: 0, cap: 0, err: String((e && e.message) || e) };
   }
 }
 
@@ -134,7 +134,7 @@ export async function fetchPrimaryWithFallback({ title, primaryUrl, itemType }, 
   const pd = detectRoadblock(p.text, { httpStatus: p.status, timedOut: p.timedOut });
   alternatives.push({ url: primaryUrl, len: pd.len, langRatio: round2(pd.langRatio), reason: pd.reason, role: "declared_primary" });
   if (!pd.roadblocked) {
-    return { ok: true, url: primaryUrl, text: p.text, roadblocked: false, primaryReason: pd.reason, fellBack: false, langRatio: round2(pd.langRatio), alternatives };
+    return { ok: true, url: primaryUrl, text: p.text, roadblocked: false, primaryReason: pd.reason, fellBack: false, langRatio: round2(pd.langRatio), truncated: !!p.truncated, fullLength: p.fullLength || p.text.length, cap: p.cap || 0, alternatives };
   }
 
   // 2. ROADBLOCK → bounded official-alternative search. The query aims at the regulator's OWN English
@@ -148,11 +148,11 @@ export async function fetchPrimaryWithFallback({ title, primaryUrl, itemType }, 
     const d = detectRoadblock(r.text, { httpStatus: r.status, timedOut: r.timedOut });
     alternatives.push({ url: u, len: d.len, langRatio: round2(d.langRatio), reason: d.reason, role: "alternative" });
     if (!d.roadblocked) {
-      return { ok: true, url: u, text: r.text, roadblocked: true, primaryReason: pd.reason, fellBack: true, langRatio: round2(d.langRatio), alternatives };
+      return { ok: true, url: u, text: r.text, roadblocked: true, primaryReason: pd.reason, fellBack: true, langRatio: round2(d.langRatio), truncated: !!r.truncated, fullLength: r.fullLength || r.text.length, cap: r.cap || 0, alternatives };
     }
   }
 
   // 3. no fetchable alternative — caller honest-exits. result split (NO_SOURCE_FOUND vs _QUALIFIED) is
   //    decided by the caller AFTER grounding, from `alternatives` + the post-ground resolved tier.
-  return { ok: false, url: primaryUrl, text: "", roadblocked: true, primaryReason: pd.reason, fellBack: true, langRatio: round2(pd.langRatio), alternatives };
+  return { ok: false, url: primaryUrl, text: "", roadblocked: true, primaryReason: pd.reason, fellBack: true, langRatio: round2(pd.langRatio), truncated: false, fullLength: 0, cap: 0, alternatives };
 }
