@@ -111,6 +111,33 @@ Reuse-before-construction above governs CODE (components, abstractions, utilitie
 
 This is a standing process discipline, registered as invariant RD-8 (exempt, process-class — like RD-2/RD-3, scoped by the meta-gate). It earned a rule because the principle was scoped wrong and slipped: reuse-before-construction covered code, verification-before-authorization framed its read-only-first for dispatch WRITES, and diagnose-before-fixing is general spirit — none said "the answer/data may already exist; check before (re)generating it." Worked example (2026-06-23): the reg corpus's enacted-text URLs were ALREADY discovered by the prior deep-dive generate and stored as corroborators in each item's `agent_run_searches` pool, so the backward re-point operation is PROMOTE-the-stored-URL (near-free), not re-discover (spend). A retrieval check first turned a discovery batch into a promotion. Pairs with the no-silent-truncation rule (the prior pass's output landed somewhere — find it).
 
+## Development-process discipline — Interpretable Context Methodology (DEV PROCESS ONLY; in force from 2026-06-23)
+
+Adapted from ICM (Van Clief & McDermott, arXiv:2603.16021) as sharpenings of HOW WE DEVELOP Caro's Ledge — the Claude + Claude Code + operator relay, staged review, edit-source discipline. Source: `docs/design/icm-dev-process-notes.md`.
+
+**Boundary (non-negotiable).** These govern DEVELOPMENT, NOT how the product RUNS. The product runtime is AUTONOMOUS BY DESIGN — Layer B/C enforcement, audit gates, fail-closed grounding — built so a human is NOT the final correctness catch. ICM's premise (human-in-the-loop at every stage) is the OPPOSITE of the runtime goal. Never apply these to the runtime: do not add human-review gates to the autonomous pipeline, do not restructure generation toward review-at-each-stage. If a proposed "improvement" would make the running product need a human it was built not to need, that is the boundary being crossed — reject it.
+
+### Reference-vs-working-artifact diagnostic (standing diagnostic step)
+
+When an output is wrong (a brief, a generated artifact), FIRST classify the failure before diagnosing:
+
+- **REFERENCE problem** — the rules/skill/prompt that should constrain generation are underspecified. Cure in the SKILL/system-prompt (applies to every future brief). Worked example: the producer-status overstep + the missing 2038-ban were REFERENCE failures — the skill's coverage-forcing didn't demand the qualification.
+- **WORKING-ARTIFACT problem** — the input content was incomplete or mis-delivered to the model. Cure in the PIPELINE/delivery (the bytes that reach the model). Worked example: the truncation defect — the law was truncated before it reached the model; the rules were fine, the input wasn't.
+
+The frame routes the fix before diagnosis. Misrouting wastes the fix — patching the skill when the input was truncated, or re-fetching when the skill was silent. Ask "reference or working-artifact?" first.
+
+### Edit the source, not the output (standing rule)
+
+Editing an OUTPUT patches the binary; editing the SOURCE (skill, prompt, pipeline) fixes the compiler. **A correction made to the SAME output framing across multiple runs is debugging information pointing at a fixable SOURCE-level problem — fix the source, not each output.** Recurring output edits are a BACKLOG of source-level fixes, not a maintenance routine. This is the difference between a system that needs the operator forever and one that improves with use (the autonomy goal). Pairs with retrieval-before-generation / RD-8: before re-deriving, check what exists — and when the re-derivation keeps needing the same correction, that correction belongs in the source. Worked examples: the legal-line + qualification-capture disciplines landed in the SKILL (+ EP-8 invariant), not as per-brief edits; the truncation fix landed in the PIPELINE, not as per-brief re-fetches.
+
+### Scope-down vs full-delivery — know which the task needs
+
+Stage-scoped context (give each stage only what it needs; models degrade on info buried in long contexts — "lost in the middle", Liu et al.) is correct WHEN relevance is pre-identifiable: dev tasks, code stages, skills scoped per task. **But regulatory grounding is the domain exception: relevance is NOT pre-identifiable — the qualifying clause, the carve-out, the per-year trajectory can be ANYWHERE in the law, and a scoping pass would discard exactly the exception that changes the answer.** That is why the truncation fix REMOVED caps and delivers the FULL document + coverage-forcing — the deliberate OPPOSITE of scope-down, and correct domain design. **Standing guard: do NOT "optimize" regulatory grounding by re-introducing scoping/context caps — that re-creates the truncation defect.** Scope-down where relevance is knowable in advance; full-delivery-plus-coverage-forcing where it isn't.
+
+### Observability is sound; traceability is the named gap (design-only, scale-gated)
+
+Validation (no action): our committed migrations, PRs, the disposition ledger, `integrity_flags`, and the prove-on-one artifacts make every intermediate a readable artifact — observability by construction, no separate explanation layer. Keep it. The named GAP is TRACEABILITY: observability = you can read the output; traceability = you can trace a wrong phrase back to the instruction/source that caused it. We have FACT→source traceability (`section_claim_provenance` ties a claim to its span + source); we LACK output-quality→instruction traceability (which prompt discipline / skill section produced a given framing). DESIGN-ONLY, do NOT build at 2-person scale: a lightweight trace of which Part-D discipline / skill section governed a claim's treatment would speed the recurring-edit diagnosis above — a future direction, revisit when scale warrants.
+
 ## Design audit framing (in force from 2026-05-07)
 
 **Design audits are commentary on design fidelity. Preview files are design exploration source-of-truth, not architectural authority. When audit findings conflict with intended use, intended use wins.**
