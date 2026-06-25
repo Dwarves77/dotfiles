@@ -18,6 +18,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeCitationComponent } from "@/lib/trust";
 import type { TrustMetrics } from "@/types/source";
+import { hostOf, hostInstitution, buildResolver, type SourceRow } from "@/lib/sources/institution";
+import { defaultTierForHost } from "@/lib/sources/host-authority";
 
 export interface CitationEdge {
   citer_source_id: string;
@@ -186,6 +188,49 @@ export async function compoundSourceCredibility(
     before: { independent_citers: pre?.independent_citers ?? 0, trust_score_citation: Number(pre?.trust_score_citation ?? 0) },
     after: { ...conv, trust_score_citation: score },
   };
+}
+
+/** Register the item's GROUNDING-POOL corroborator hosts (agent_run_searches) that are not yet in the
+ *  registry, BEFORE grounding, so a FACT span stamped against a pool corroborator resolves to a real
+ *  tier the authority floor can EVALUATE — instead of NULL, which escapes the floor entirely (the
+ *  sub-floor-masking defect: 1034 FACT claims hidden behind NULL). The brief-cited path
+ *  (registerCitedSources) only covers hosts in the brief's "New Sources Identified" table; grounding
+ *  stamps spans against the WIDER pool, so non-cited pool hosts NULL-stamped. We register ONE
+ *  PROVISIONAL row per NULL-resolving institution at its source-TYPE default tier (defaultTierForHost:
+ *  enacted/legal -> T1, gov/official -> T2, else sub-floor) — NOT scanned (auto_run_enabled false),
+ *  registered only so the resolver gives the span a tier. Idempotent: institutions that already
+ *  resolve are skipped (no new row, no one-tier-per-host churn). Go-forward fix; reduces NEW NULL-stamps. */
+export async function registerPoolHostsForGrounding(
+  supabase: SupabaseClient,
+  itemId: string,
+): Promise<{ registered: number; institutions: number }> {
+  const { data: pool } = await supabase
+    .from("agent_run_searches").select("result_url").eq("intelligence_item_id", itemId);
+  if (!pool?.length) return { registered: 0, institutions: 0 };
+  // ALL sources (paginate past the 1000-row PostgREST cap) -> institution-keyed resolver.
+  const sources: SourceRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await supabase.from("sources")
+      .select("id,url,base_tier,effective_tier,tier_override").order("id").range(from, from + 999);
+    if (!data?.length) break;
+    sources.push(...(data as SourceRow[]));
+    if (data.length < 1000) break;
+  }
+  const resolver = buildResolver(sources);
+  const seen = new Set<string>();
+  const toRegister: CitedSourceInput[] = [];
+  for (const r of pool) {
+    const url = (r as { result_url: string | null }).result_url;
+    if (!url) continue;
+    const inst = hostInstitution(hostOf(url));
+    if (!inst || seen.has(inst)) continue;
+    if (resolver.resolveSpan(url).tier != null) continue; // institution already resolves — no action
+    seen.add(inst);
+    toRegister.push({ name: inst, url, tier_estimate: defaultTierForHost(hostOf(url)) });
+  }
+  if (!toRegister.length) return { registered: 0, institutions: 0 };
+  const out = await registerCitedSources(supabase, toRegister);
+  return { registered: out.filter((o) => o.registered === "new_source").length, institutions: toRegister.length };
 }
 
 /** THE source-growth step end-to-end: parse the brief's surfaced sources, register each as a
