@@ -28,7 +28,7 @@ import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
-import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources } from "@/lib/sources/source-growth";
+import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
 import { buildResolver } from "@/lib/sources/institution";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, GROUND_SECTION_MAX_CHARS } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
@@ -702,18 +702,25 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
  *  NO crediting here — recordCitations + compoundSourceCredibility stay in growSources (no double-credit). */
 export async function registerBriefSources(itemId: string): Promise<StepResult> {
   const sb = svc();
+  const parts: string[] = [];
+  // (1) ALWAYS register the GROUNDING-POOL corroborator hosts so a FACT span stamped against a pool
+  //     corroborator resolves to a real tier the floor can EVALUATE — not NULL (which escapes the floor
+  //     entirely, the sub-floor-masking defect). Independent of the brief's New-Sources table, which is
+  //     why it runs even when that table is empty. Best-effort: a failure must NOT abort generation.
+  try {
+    const ph = await registerPoolHostsForGrounding(sb, itemId);
+    parts.push(`pool-hosts +${ph.registered}/${ph.institutions} new`);
+  } catch (e) { parts.push(`pool-hosts skipped: ${(e as Error).message.slice(0, 50)}`); }
+  // (2) Register the brief-CITED corroborators (New-Sources table) for citation/credibility growth.
   try {
     const { data: it } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
-    if (!it?.full_brief) return { ok: true, detail: "no full_brief (skip register)" };
-    const cited = parseNewSourcesFromBrief(it.full_brief);
-    if (!cited.length) return { ok: true, detail: "no new sources to register" };
-    const reg = await registerCitedSources(sb, cited);
-    const newOrExisting = reg.filter((r) => r.source_id).length;
-    return { ok: true, detail: `registered ${newOrExisting}/${cited.length} corroborators (pre-ground)` };
-  } catch (e) {
-    // best-effort: never block generation on a registration failure
-    return { ok: true, detail: `register skipped (non-fatal): ${(e as Error).message.slice(0, 60)}` };
-  }
+    const cited = it?.full_brief ? parseNewSourcesFromBrief(it.full_brief) : [];
+    if (cited.length) {
+      const reg = await registerCitedSources(sb, cited);
+      parts.push(`cited ${reg.filter((r) => r.source_id).length}/${cited.length}`);
+    } else parts.push("cited 0");
+  } catch (e) { parts.push(`cited skipped: ${(e as Error).message.slice(0, 50)}`); }
+  return { ok: true, detail: parts.join("; ") };
 }
 
 /** STEP grow: register the brief's surfaced sources, record citations, compound credibility
