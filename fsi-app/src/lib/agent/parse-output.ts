@@ -272,8 +272,41 @@ export function findYamlBlock(text: string): { yaml: string; start: number; end:
  * Throws AgentOutputParseError on any malformed line, missing required
  * field, or invalid enum value.
  */
-function parseYamlFrontmatter(yaml: string): AgentMetadata {
+/**
+ * Fold YAML BLOCK-list values into the inline `[..]` form the field parsers expect. The agent
+ * occasionally emits an array field as a block list:
+ *   related_items:
+ *     - 260089a9-...
+ *     - e5f6...
+ * instead of the inline `related_items: [260089a9-..., e5f6...]`. Without this, the first colon-less
+ * `- <uuid>` line crashed the WHOLE regeneration (AgentOutputParseError: no colon) — a parser
+ * fragility, not a content error. Only a key whose inline value is empty AND is immediately followed
+ * by one or more `- item` lines is rewritten; a genuinely-empty scalar (no list under it) is untouched.
+ */
+export function foldYamlBlockLists(yaml: string): string {
+  const lines = yaml.split(/\r?\n/);
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const keyEmpty = lines[i].trim().match(/^([A-Za-z0-9_]+):\s*$/);
+    if (keyEmpty) {
+      const items: string[] = [];
+      let j = i + 1;
+      while (j < lines.length) {
+        const lm = lines[j].trim().match(/^-\s+(.*)$/);
+        if (!lm) break;
+        items.push(lm[1].trim().replace(/^["']|["']$/g, ""));
+        j++;
+      }
+      if (items.length) { out.push(`${keyEmpty[1]}: [${items.join(", ")}]`); i = j - 1; continue; }
+    }
+    out.push(lines[i]);
+  }
+  return out.join("\n");
+}
+
+function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   const fields: Record<string, string> = {};
+  const yaml = foldYamlBlockLists(rawYaml);
   const lines = yaml.split(/\r?\n/);
 
   for (const rawLine of lines) {
