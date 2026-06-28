@@ -505,11 +505,12 @@ async function fetchWorkspaceResources(
   // Timelines from the new schema. Key is item.id (UUID), translated to UI id
   // for the lookup map the resource builder consumes.
   const itemUuids = items.map((i: any) => i.id);
-  const { data: timelineRows } = await supabase
+  const { data: timelineRows, error: timelineErr } = await supabase
     .from("item_timelines")
     .select("item_id, milestone_date, label, is_completed, sort_order")
     .in("item_id", itemUuids)
     .order("sort_order");
+  if (timelineErr) console.warn(`[supabase-server] item_timelines read failed (org timelines render empty): ${timelineErr.message}`);
 
   const timelineMap = new Map<string, any[]>();
   (timelineRows || []).forEach((t: any) => {

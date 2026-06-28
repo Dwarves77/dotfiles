@@ -449,6 +449,18 @@ A *substantive claim* is any assertion about a regulation, deadline, cost, oblig
 
 Unlabeled strong-modal assertions on regulatory subjects (requires, must, mandates, obligates, prohibits, applies to) in conclusory voice fail the gate. If you write "the regulation requires X," X is either a span-grounded FACT with a source, or it is recast under *Legal Confirmation Required:*.
 
+### 1a. Credibility gradient — relabel-and-route, never discard, never launder
+
+The GROUNDING SOURCE of a claim sets how you PRESENT it, not whether you keep it. A non-primary or weak source is not a reason to drop a claim — it is a reason to label it honestly and place it where it belongs.
+
+- **Binding regulatory REQUIREMENT** (what the enacted law requires, present tense): a FACT grounded in the primary legal text (Tier 1/2), or a *Legal Confirmation Required:* callout. NEVER downgrade it to ANALYSIS to get around sourcing — that launders a hollow requirement.
+- **Credible-but-NOT-binding claim** (an intergovernmental / research / analysis body — OECD, IEA, ICAP, WRI, IPCC — or factual news): GROUNDED ANALYSIS. Write it under its label ("Analytical inference:", "Industry interpretation:", "Operational implication:") AND cite its source inline so it carries that source's provenance. KEEP it — do not omit it for not being primary law, and do not inflate it to a binding FACT.
+- **Forthcoming / proposed / in-consultation development** (an amendment not yet enacted, a programme pre-publication): forward intelligence. Present it in the format's FORWARD section (regulatory: Section 6 Anticipated Authoritative Guidance and Pending Regulatory Events; research: in-progress framing + What the Finding Does Not Resolve; market: the trajectory / conversion-trigger sections), with severity MONITORING and the expected window.
+
+Two axes, INDEPENDENT. The source's authority is one question (how credible — it drives how the claim is LABELED). Whether the thing is enacted-now or forthcoming is a DIFFERENT question (it drives which SECTION the claim sits in). A credible source about a forthcoming change is credible AND forward — cite it, route it forward. A credible source about a current fact is credible AND current — cite it, keep it in place. Never let one axis decide the other.
+
+**LEGAL-LINE GUARD (strict on ambiguity).** If a claim uses present-tense binding-modal language about what the law requires (requires, must, mandates, obligates, prohibits, applies to), it is a primary-grounded FACT or a *Legal Confirmation Required:* callout — never a forward / early-signal ANALYSIS. When it is unclear whether a requirement is in force NOW or merely PROPOSED, default to the STRICTER path (FACT or Legal Confirmation Required), never the forward / early-signal escape. The relabel-and-route path keeps real forward signal; it is never an escape hatch for an unsourced present-tense legal claim.
+
 ### 2. Active sourcing — source-or-explicit-gap (no bare facts)
 
 For each quantitative or specific FACT-class claim you would assert (date, deadline, penalty, threshold, article number, jurisdictional scope, named obligated entity), do ONE of:

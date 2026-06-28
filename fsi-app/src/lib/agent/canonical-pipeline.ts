@@ -399,8 +399,8 @@ ${blocks}`;
  *  A thin primary source is the TRIGGER to research wider, never a reason to emit a thin brief. */
 export async function generateBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
-  if (!it) return { ok: false, detail: "item not found" };
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
 
   // 1. primary source — with the roadblock→bounded-alternative-search capability: a hanging / blocked /
   //    wrong-language declared primary is replaced by an OFFICIAL alternative (discovery only — the
@@ -476,9 +476,10 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
  *  generateBrief) when no usable stored pool exists. Reuses the saved pool as-is — does NOT overwrite it. */
 export async function generateBriefFromStored(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
-  if (!it) return { ok: false, detail: "item not found" };
-  const { data: pool } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at, result_index").eq("intelligence_item_id", itemId).order("result_index");
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
+  const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at, result_index").eq("intelligence_item_id", itemId).order("result_index");
+  if (poolErr) console.warn(`[canonical] stored-pool read failed for ${itemId}: ${poolErr.message}`);
   const rows = pool ?? [];
   // generate-pool rows carry the fetched source CONTENT (>200ch); discovered-ref stubs (<200ch) are leads only.
   const usable = rows.filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200);
@@ -499,14 +500,66 @@ export async function generateBriefFromStored(itemId: string): Promise<StepResul
   return { ok: true, detail: `${r.detail} (FROM STORED pool — 0 fetches, ${corroborators.length} stored refs${ageNote})` };
 }
 
+/** REFRESH-PRIMARY-INTO-POOL — re-fetch ONLY the full enacted text (the #155 direct-HTTP transport, FREE
+ *  for legal hosts), replace the truncated primary row in the pool, REUSE the existing pool corroborators
+ *  (NO web_search — corroborators were never the gap), then re-synthesise. This is the cheap correct fix
+ *  for the STALE-TRUNCATED-POOL class: items fetched before the #155 truncation fix (2026-06-23) carry a
+ *  primary truncated at ~30k, so the back of the law (penalties, annexes, per-year trajectory) is NOT in
+ *  the pool — and `generateBriefFromStored` can only re-ground what the pool holds, so required-slot facts
+ *  ground to commentary. This refreshes the primary to full text WITHOUT re-running discoverCorroborators
+ *  (the web_search demoted across this work). = generateBrief minus discovery. */
+export async function generateBriefRefreshPrimary(itemId: string): Promise<StepResult> {
+  const sb = svc();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
+  // 1. full primary via the #155 direct-first transport (free for eligible legal hosts; no truncation).
+  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type });
+  const primaryUrl = pf.url, primary = pf.text;
+  if (primary.length < 200) return { ok: false, detail: `refresh-primary: primary too thin (${primary.length}ch${pf.fellBack ? ` via fallback after ${pf.primaryReason}` : ""})` };
+  const truncEvents: TruncEvent[] = [];
+  if (pf.truncated) truncEvents.push({ url: primaryUrl, collected: primary.length, fullLength: pf.fullLength ?? primary.length, cap: pf.cap ?? PRIMARY_MAX_CHARS, transport: "primary" });
+  // 2. REUSE existing pool corroborators (NO web_search) — content rows >200ch (excluding the primary).
+  const { data: priorPool, error: priorPoolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt").eq("intelligence_item_id", itemId);
+  if (priorPoolErr) console.warn(`[canonical] refresh-primary prior-pool read failed for ${itemId}: ${priorPoolErr.message}`);
+  const priorCorr = (priorPool ?? []).filter((r) => typeof r.result_url === "string" && r.result_url !== primaryUrl && (r.result_content_excerpt ?? "").length > 200);
+  const fetchedCorr = priorCorr.map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
+  const fetched = [{ url: primaryUrl, text: primary }, ...fetchedCorr];
+  const corroborators: Corroborator[] = (priorPool ?? [])
+    .filter((r) => typeof r.result_url === "string" && r.result_url !== primaryUrl)
+    .map((r) => ({ name: (typeof r.result_title === "string" ? r.result_title : "discovered reference"), url: r.result_url as string, why: "" }));
+  // 3. re-persist the pool (full primary + reused corroborators) — mirror generateBrief GUARD 1 (delete +
+  //    one batched insert; replaces the prior truncated pool). Discovered-ref stubs preserved for URL grounding.
+  const ts = new Date().toISOString();
+  const fetchedUrlSet = new Set(fetched.map((b) => b.url));
+  const poolRows = fetched.map((b, i) => ({
+    intelligence_item_id: itemId, search_query: "canonical:generate-pool", result_url: b.url,
+    result_title: "generate pool source", result_index: i, result_content_excerpt: cleanCtl(b.text), searched_at: ts,
+  }));
+  const refRows = corroborators
+    .filter((c) => c.url && !fetchedUrlSet.has(c.url))
+    .map((c) => ({
+      intelligence_item_id: itemId, search_query: "canonical:discovered-ref", result_url: c.url,
+      result_title: c.name || "discovered reference", result_index: 80,
+      result_content_excerpt: (c.name || "discovered reference").slice(0, 180), searched_at: ts,
+    }));
+  await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
+  const { error: poolErr } = await sb.from("agent_run_searches").insert([...poolRows, ...refRows]);
+  if (poolErr) return { ok: false, detail: `refresh-primary pool persist failed: ${poolErr.message}` };
+  await recordTruncation(sb, itemId, truncEvents);
+  // 4. synthesise across the refreshed pool (full primary anchors; corroborators carry context). NO web_search.
+  const r = await synthesiseAndWriteBrief(sb, it, fetched, corroborators);
+  if (!r.ok) return r;
+  return { ok: true, detail: `${r.detail} (REFRESH-PRIMARY: full re-fetch ${primary.length}ch${pf.truncated ? " [still truncated!]" : ""}, ${fetchedCorr.length} pool corroborators reused, 0 web_search)` };
+}
+
 /** STEP section: format-selected extractor (via the registry) -> upsert intelligence_item_sections.
  *  Dispatches by item_type through specForItemType — ONE path for every surface (regulation, research,
  *  market, technology, operations). Surfaces that render structured components re-parse content_md at
  *  render time; the rows stored here are format-generic. */
 export async function sectionBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("item_type, full_brief, provenance_status").eq("id", itemId).single();
-  if (!it?.full_brief) return { ok: false, detail: "no full_brief" };
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("item_type, full_brief, provenance_status").eq("id", itemId).single();
+  if (itErr || !it?.full_brief) return { ok: false, detail: `no full_brief${itErr ? `: ${itErr.message}` : ""}` };
   // F2 SKIP-IF-VERIFIED GUARD (mirrors groundBrief): section_claim_provenance.section_row_id FKs into
   // intelligence_item_sections ON DELETE CASCADE, so the blanket section delete below would
   // CASCADE-destroy a verified item's entire claim ledger — and since the set_provenance_status trigger
@@ -533,18 +586,19 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
 export async function groundBrief(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
-  if (!it?.source_id) return { ok: false, detail: "no source_id" };
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
+  if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
   // Idempotency scoped to VERIFIED (not "any claims exist"). A quarantined/ungrounded item is
   // re-groundable — the prior guard ("any claims -> already grounded") silently blocked re-grounding a
   // quarantined item against a new/expanded section set (e.g. after a section backfill) if a partial run
   // had left claims. Skip only verified; for everything else clear stray claims so the re-ground starts
   // clean (no duplicate rows), then proceed.
-  const { data: prov } = await sb.from("intelligence_items").select("provenance_status").eq("id", itemId).single();
+  const { data: prov, error: provErr } = await sb.from("intelligence_items").select("provenance_status").eq("id", itemId).single();
+  if (provErr) console.warn(`[canonical] ground provenance-status read failed for ${itemId}: ${provErr.message}`);
   if (prov?.provenance_status === "verified") return { ok: true, detail: "already verified" };
   await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
-  const { data: secs } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
-  if (!secs?.length) return { ok: false, detail: "no sections" };
+  const { data: secs, error: secsErr } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
+  if (secsErr || !secs?.length) return { ok: false, detail: `no sections${secsErr ? `: ${secsErr.message}` : ""}` };
   // Record the brief's surfaced sources as cited-URL searches so criterion-2 URL grounding (EXACT-URL
   // match) accepts the corroborator URLs the brief cites — they are real, web_search-discovered URLs in
   // the brief's New Sources table. registerCitedSources (in grow) is host-deduped and would NOT make an
@@ -580,7 +634,8 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // Grounding corpus = the pool generate already fetched + stored (the SAME content the brief was
   // synthesised from), so a source that is unfetchable on re-check (PDF/Cloudflare) does not break
   // grounding. Fall back to fetching the section/source URLs only when no stored pool exists.
-  const { data: pool } = await sb.from("agent_run_searches").select("id, result_url, result_content_excerpt, result_index").eq("intelligence_item_id", itemId).order("result_index");
+  const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("id, result_url, result_content_excerpt, result_index").eq("intelligence_item_id", itemId).order("result_index");
+  if (poolErr) console.warn(`[canonical] ground pool read failed for ${itemId}; falling back to section/source URL fetch: ${poolErr.message}`);
   let fetched: Array<{ url: string; text: string }>;
   let searchRows: Array<{ id: string; result_url: string }>;
   const searchIds: string[] = [];
@@ -594,7 +649,8 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
     searchRows = [];
     ownSearches = true;
     for (let i = 0; i < fetched.length; i++) {
-      const { data: r } = await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical ground", result_url: fetched[i].url, result_title: "source", result_index: i, result_content_excerpt: fetched[i].text, searched_at: new Date().toISOString() }).select("id, result_url").single();
+      const { data: r, error: rErr } = await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical ground", result_url: fetched[i].url, result_title: "source", result_index: i, result_content_excerpt: fetched[i].text, searched_at: new Date().toISOString() }).select("id, result_url").single();
+      if (rErr) console.warn(`[canonical] ground fallback search insert failed for ${itemId} (${fetched[i].url}): ${rErr.message}`);
       if (r) { searchIds.push(r.id); searchRows.push({ id: r.id, result_url: r.result_url }); }
     }
   }
@@ -605,7 +661,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
 - Emit one block: a line "<<<CLAIM_PROVENANCE_LEDGER", a JSON array, a line "CLAIM_PROVENANCE_LEDGER>>>".
 - Record: {"section","claim_text","claim_kind","source_span","source_id","source_url","slot_key"}.
 - FACT: source_span MUST be VERBATIM copied char-for-char from a SOURCE block. (source_id is resolved automatically from the SOURCE block that contains the span — do not hardcode it.)
-- ANALYSIS: emit claim_kind "ANALYSIS" ONLY for a statement the brief text EXPLICITLY labels with "Analytical inference:", "Industry interpretation:" or "Operational implication:". Set claim_text to that labeled sentence (so it appears verbatim in the section). NEVER mark unlabeled prose as ANALYSIS — if it has a verbatim source span it is FACT, otherwise omit it.
+- ANALYSIS: a statement the brief text EXPLICITLY labels with "Analytical inference:", "Industry interpretation:", "Operational implication:" or "Per the workspace's reading:". Set claim_text to that labeled sentence (so it appears verbatim in the section). TWO kinds: (a) GROUNDED ANALYSIS — a credible-but-NOT-binding or forthcoming claim that cites a non-primary source (an intergovernmental / research / analysis body or factual news, NOT the binding legal text): set source_span to its VERBATIM supporting span and source_url to that source, EXACTLY like a FACT, so it carries that source's provenance and tier; (b) PURE INFERENCE — the workspace's own reasoning across the brief's facts, citing no single source: leave source_span and source_url null. A sourced-but-NON-BINDING claim is GROUNDED ANALYSIS, NOT FACT — do not force sourced content to FACT. A present-tense BINDING regulatory requirement (the enacted law "requires/must/mandates/prohibits/applies to") is FACT (primary span) or a LEGAL callout, NEVER ANALYSIS.
 - Cover EACH required slot with >=1 FACT or GAP claim (set slot_key):\n${(slots ?? []).map((s) => `- ${s.slot_key}: ${s.description}`).join("\n")}
 - For EVERY section (${secs.map((s) => s.section_key).join(", ")}) with must/requires/shall/applies/mandates/prohibits/obligates, emit >=1 FACT claim with "section" set + a verbatim span.
 - No verbatim span for a slot -> claim_kind "GAP", source_span null. Never invent spans. CLOSE with CLAIM_PROVENANCE_LEDGER>>>.`;
@@ -654,7 +710,12 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // (the registry exceeds the 1000-row PostgREST cap).
   const allSources: Array<{ id: string; url: string; base_tier: number | null; effective_tier: number | null; tier_override: number | null }> = [];
   for (let from = 0; ; from += 1000) {
-    const { data } = await sb.from("sources").select("id,url,base_tier,effective_tier,tier_override").order("id").range(from, from + 999);
+    // B2 FAIL-CLOSED (Phase 0.2): capture the error. A dropped page-read error used to `break` with an
+    // INCOMPLETE resolver — claims whose host sat in the unread page then resolved to NULL tier (spurious
+    // NULL-stamps feeding the claims-tier drift). An incomplete resolver silently mis-certifies, so ABORT
+    // grounding (ok:false is retryable next pass) rather than build the resolver from a partial registry.
+    const { data, error } = await sb.from("sources").select("id,url,base_tier,effective_tier,tier_override").order("id").range(from, from + 999);
+    if (error) return { ok: false, detail: `grounding aborted: sources registry page read failed at offset ${from} (${error.message}); resolver would be incomplete -> spurious NULL-stamps` };
     if (!data?.length) break; allSources.push(...(data as typeof allSources)); if (data.length < 1000) break;
   }
   const resolver = buildResolver(allSources);
@@ -665,11 +726,24 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
     const storedText = cleanCtl((["FACT", "GAP"].includes(c2.claim_kind) && c2.slot_key) ? `[${c2.slot_key}] ${c2.claim_text}` : c2.claim_text ?? "");
     const isFact = c2.claim_kind === "FACT";
     const spanUrl = c2.search_result_id ? urlBySearchId.get(c2.search_result_id) : undefined;
-    const res = isFact && spanUrl ? resolver.resolveSpan(spanUrl) : { tier: null, sourceId: null };
-    // FACT: honest per-span attribution (NULL when unregistered). Non-FACT carry no span -> keep the
-    // ledger's source_id (or item primary) and a NULL tier stamp.
-    const sourceId = isFact ? res.sourceId : (c2.source_id || it.source_id);
-    const { data: ins } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: c2.search_result_id || null, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
+    // R1 (two-kinds-of-ANALYSIS): resolve + stamp the canonical institutional tier whenever the claim
+    // carries a RESOLVABLE SPAN — a FACT (per-span attribution) OR a GROUNDED ANALYSIS (analysis OF a
+    // credible non-binding source, e.g. WRI/ICAP/IEA at T3; span + tier so the surface renders the
+    // "Credible analysis — [source]" register). PURE-INFERENCE ANALYSIS (the workspace's own reasoning
+    // across in-brief facts, no single source) carries no span -> NULL tier -> renders as workspace
+    // analysis with no source-tier label. Tier drives the LABEL only; the SECTION is the orthogonal
+    // temporal axis (forthcoming -> forward section), enforced by the contract, NOT here (R2).
+    const res = spanUrl ? resolver.resolveSpan(spanUrl) : { tier: null, sourceId: null };
+    // FACT path unchanged (res.sourceId, NULL when unregistered/no-span). Grounded ANALYSIS attributes
+    // per-span like FACT; pure-inference / GAP keep the ledger source_id (or item primary).
+    const sourceId = isFact ? res.sourceId : (spanUrl ? (res.sourceId ?? c2.source_id ?? it.source_id) : (c2.source_id || it.source_id));
+    // Phase 4.1 (SC-7 + the "label = render-derived, no stored field" principle): ONLY a FACT carries a
+    // stored grounding-tier stamp (= the render-derived resolver.resolveSpan tier the claims-tier audit
+    // compares stored-against). A non-FACT (grounded ANALYSIS / GAP) stores NULL — its tier LABEL is
+    // render-derived at display from source_id, never a stored field. edit-1 wrongly stamped res.tier on
+    // non-FACT here (the 41-row claims-tier drift, all ANALYSIS); `isFact ? res.tier : null` cures it.
+    const { data: ins, error: insErr } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: c2.search_result_id || null, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
+    if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
     if (ins) claimIds.push(ins.id);
   }
   const { data: vrData, error: vrErr } = await sb.rpc("validate_item_provenance", { p_item_id: itemId } as never);
@@ -713,7 +787,8 @@ export async function registerBriefSources(itemId: string): Promise<StepResult> 
   } catch (e) { parts.push(`pool-hosts skipped: ${(e as Error).message.slice(0, 50)}`); }
   // (2) Register the brief-CITED corroborators (New-Sources table) for citation/credibility growth.
   try {
-    const { data: it } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
+    const { data: it, error: itErr } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
+    if (itErr) console.warn(`[canonical] registerBriefSources full_brief read failed for ${itemId}: ${itErr.message}`);
     const cited = it?.full_brief ? parseNewSourcesFromBrief(it.full_brief) : [];
     if (cited.length) {
       const reg = await registerCitedSources(sb, cited);
@@ -727,8 +802,8 @@ export async function registerBriefSources(itemId: string): Promise<StepResult> 
  *  (the proven growSourcesFromBrief). */
 export async function growSources(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it } = await sb.from("intelligence_items").select("source_id, full_brief").eq("id", itemId).single();
-  if (!it?.source_id || !it.full_brief) return { ok: false, detail: "no source_id/full_brief" };
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("source_id, full_brief").eq("id", itemId).single();
+  if (itErr || !it?.source_id || !it.full_brief) return { ok: false, detail: `no source_id/full_brief${itErr ? `: ${itErr.message}` : ""}` };
   const res = await growSourcesFromBrief(sb, it.source_id, it.full_brief);
   return { ok: true, detail: `registered=${res.registered.length} citations+${res.citationsRecorded} trust_citation=${res.compound.after.trust_score_citation.toFixed(2)}` };
 }

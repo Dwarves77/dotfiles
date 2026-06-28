@@ -5,6 +5,8 @@ import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
 import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
 import { firstFetchClassify } from "@/lib/llm/first-fetch-classify";
 import { urlIsRoot, entityVerdict, ENTITY } from "@/lib/sources/entity-gate.mjs";
+import { pausedResponse, getScrapeState } from "@/lib/api/pause";
+import { scrapeWindowOpen } from "@/lib/sources/scrape-schedule";
 import type { Domain, SourceCategory } from "@/lib/domains";
 
 /**
@@ -360,6 +362,18 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getServiceClient();
+
+  // Phase 0.1 OFF-gate: honor the hold BEFORE draining (queue/trigger must never cause an unattended
+  // fetch while scraping is off). drain previously had NO global-pause check — only per-source flags.
+  const paused = await pausedResponse(supabase);
+  if (paused) return paused;
+
+  // WINDOW-gate (decision C): drain is automated onboarding-fetch — it fires only on a scheduled scrape
+  // day per the global cadence, same as check-sources.
+  const schedule = await getScrapeState(supabase);
+  if (!scrapeWindowOpen(schedule, new Date())) {
+    return NextResponse.json({ message: `Not a scheduled scrape day (cadence=${schedule.cadence}); drain exiting`, drained: 0, succeeded: 0, failed: 0, retried: 0, skipped: 0, results: [] });
+  }
 
   // Pickup query: oldest queued first.
   const { data: pending, error: pickErr } = await supabase

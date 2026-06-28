@@ -33,6 +33,7 @@ import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { pausedResponse } from "@/lib/api/pause";
 
 const HEAD_TIMEOUT_MS = 8000;
 const MAX_ROWS = 500;
@@ -356,6 +357,11 @@ export async function POST(request: NextRequest) {
       { status: 403, headers: rateLimitHeaders(auth.userId) }
     );
   }
+
+  // Phase 0.1 global-pause gate: bulk-import does HEAD/Browserless reachability checks (outbound
+  // fetch) on apply; honor the hold. Lift system_state.global_processing_paused to import.
+  const paused = await pausedResponse(supabase);
+  if (paused) return paused;
 
   let body: BulkImportRequest;
   try {

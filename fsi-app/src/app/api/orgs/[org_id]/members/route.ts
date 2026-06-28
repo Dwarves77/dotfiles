@@ -37,14 +37,17 @@ async function getMembership(
   supabase: SupabaseClient,
   orgId: string,
   userId: string
-): Promise<{ id: string; role: string } | null> {
-  const { data } = await supabase
+): Promise<{ membership: { id: string; role: string } | null; error: string | null }> {
+  const { data, error } = await supabase
     .from("org_memberships")
     .select("id, role")
     .eq("org_id", orgId)
     .eq("user_id", userId)
     .maybeSingle();
-  return (data as { id: string; role: string } | null) ?? null;
+  // RETURN-TYPE (0.5a): the {membership,error} shape STRUCTURALLY forces every caller (current and
+  // future) to handle the DB-error case to reach membership — error -> 500 (DB failure), null -> 403
+  // (not a member). The type makes the split mechanical, not a wrap a future caller must remember.
+  return { membership: (data as { id: string; role: string } | null) ?? null, error: error ? error.message : null };
 }
 
 export async function GET(
@@ -67,7 +70,13 @@ export async function GET(
 
   const service = getServiceClient();
 
-  const callerMembership = await getMembership(service, org_id, auth.userId);
+  const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
+  if (callerErr) {
+    return NextResponse.json(
+      { error: callerErr },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   if (!callerMembership) {
     return NextResponse.json(
       { error: "Not a member of this organization" },
@@ -171,7 +180,13 @@ export async function PATCH(
 
   const service = getServiceClient();
 
-  const callerMembership = await getMembership(service, org_id, auth.userId);
+  const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
+  if (callerErr) {
+    return NextResponse.json(
+      { error: callerErr },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   if (!callerMembership) {
     return NextResponse.json(
       { error: "Not a member of this organization" },
@@ -186,11 +201,18 @@ export async function PATCH(
   }
 
   // Read the target membership inside the same org for the demotion guard.
-  const { data: target } = await service
+  const { data: target, error: targetErr } = await service
     .from("org_memberships")
     .select("id, user_id, role, org_id")
     .eq("id", membershipId)
     .maybeSingle();
+  if (targetErr) {
+    // FAIL-CLOSED: a DB error is not "not found" — a 404 would mask the failure.
+    return NextResponse.json(
+      { error: targetErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   if (!target || target.org_id !== org_id) {
     return NextResponse.json(
       { error: "membership not found in this org" },
@@ -202,12 +224,20 @@ export async function PATCH(
   // patch demotes them, refuse. The org must always have at least one
   // owner.
   if (target.role === "owner" && role !== "owner") {
-    const { count: ownerCount } = await service
+    const { count: ownerCount, error: ownerCountErr } = await service
       .from("org_memberships")
       .select("id", { count: "exact", head: true })
       .eq("org_id", org_id)
       .eq("role", "owner");
-    if ((ownerCount ?? 0) <= 1) {
+    if (ownerCountErr || ownerCount == null) {
+      // FAIL-CLOSED: a swallowed count error + `?? 0` would let the last-owner guard silently pass
+      // and demote the only owner. Refuse on an unverifiable count.
+      return NextResponse.json(
+        { error: ownerCountErr?.message ?? "owner count unavailable" },
+        { status: 500, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+    if (ownerCount <= 1) {
       return NextResponse.json(
         { error: "Cannot demote the only owner. Promote another member to owner first." },
         { status: 409, headers: rateLimitHeaders(auth.userId) }
@@ -264,7 +294,13 @@ export async function DELETE(
 
   const service = getServiceClient();
 
-  const callerMembership = await getMembership(service, org_id, auth.userId);
+  const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
+  if (callerErr) {
+    return NextResponse.json(
+      { error: callerErr },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   if (!callerMembership) {
     return NextResponse.json(
       { error: "Not a member of this organization" },
@@ -278,11 +314,18 @@ export async function DELETE(
     );
   }
 
-  const { data: target } = await service
+  const { data: target, error: targetErr } = await service
     .from("org_memberships")
     .select("id, user_id, role, org_id")
     .eq("id", membershipId)
     .maybeSingle();
+  if (targetErr) {
+    // FAIL-CLOSED: a DB error is not "not found".
+    return NextResponse.json(
+      { error: targetErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   if (!target || target.org_id !== org_id) {
     return NextResponse.json(
       { error: "membership not found in this org" },
@@ -303,12 +346,20 @@ export async function DELETE(
   // If the target is an owner, guard last-owner removal the same way
   // PATCH does.
   if (target.role === "owner") {
-    const { count: ownerCount } = await service
+    const { count: ownerCount, error: ownerCountErr } = await service
       .from("org_memberships")
       .select("id", { count: "exact", head: true })
       .eq("org_id", org_id)
       .eq("role", "owner");
-    if ((ownerCount ?? 0) <= 1) {
+    if (ownerCountErr || ownerCount == null) {
+      // FAIL-CLOSED: a swallowed count error + `?? 0` would let the last-owner guard silently pass
+      // and lock the org out of its only owner. Refuse on an unverifiable count.
+      return NextResponse.json(
+        { error: ownerCountErr?.message ?? "owner count unavailable" },
+        { status: 500, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+    if (ownerCount <= 1) {
       return NextResponse.json(
         { error: "Cannot revoke the only owner. Promote another member to owner first." },
         { status: 409, headers: rateLimitHeaders(auth.userId) }

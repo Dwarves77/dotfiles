@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { isGloballyPaused } from "@/lib/api/pause";
+import { isGloballyPaused, getScrapeState } from "@/lib/api/pause";
+import { scrapeWindowOpen } from "@/lib/sources/scrape-schedule";
 import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { classifyReachability } from "@/lib/sources/reachability.mjs";
@@ -45,8 +46,9 @@ export async function assessAndUpdateSource(
   const isAccessible = decision.isAccessible;
 
   const updates: Record<string, unknown> = {
+    // last_checked stamps "scraped this window" (the batch-coverage marker). next_scheduled_check is
+    // NOT written — per-source scheduling is retired under the global cadence.
     last_checked: new Date().toISOString(),
-    next_scheduled_check: getNextCheck(source.update_frequency),
     consecutive_accessible: decision.consecutive_accessible,
     total_checks: (source.total_checks ?? 0) + 1,
   };
@@ -110,31 +112,38 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceClient();
 
-  // Global pause gate — short-circuits before any DB scan work.
+  // OFF-gate: scraping switched off (cadence 'off' or emergency stop) — exit before any DB scan work.
   if (await isGloballyPaused(supabase)) {
-    return NextResponse.json({ message: "Global processing pause is active; worker exiting", checked: 0 });
+    return NextResponse.json({ message: "Scraping is off (cadence 'off' or emergency stop); worker exiting", checked: 0 });
+  }
+  // WINDOW-gate (decision C): the AUTOMATED worker fires ONLY on a scheduled scrape day per the global
+  // cadence. The hourly cron becomes a "should I run now?" check; off-days no-op. The per-source
+  // update_frequency/next_scheduled_check cadence is RETIRED — the global schedule is the only throttle.
+  const schedule = await getScrapeState(supabase);
+  if (!scrapeWindowOpen(schedule, new Date())) {
+    return NextResponse.json({ message: `Not a scheduled scrape day (cadence=${schedule.cadence}); worker exiting`, checked: 0 });
   }
 
   try {
-    // Step 1: Find sources due for checking. Filter out per-source pause
-    // and the Wave 1a auto_run_enabled kill switch. The cold-start script
-    // flips all 718 active sources to auto_run_enabled=false on first
-    // run; operators re-enable per source after vetting, so by default
-    // the worker has nothing to do until at least one source has been
-    // turned back on.
-    // Phase 1.5: base_tier per system-internal default rule (scheduling
-    // priority is anchored to structural classification, not the dynamic
-    // credibility signal; using effective_tier would re-shuffle the queue
-    // on every Q7 recompute).
+    // Step 1: select the sources to scrape this tick. Option 1 (global cadence): the window-gate above
+    // already decided it's a scrape day, on which the WHOLE system scrapes — there is NO per-source
+    // "due" filter (update_frequency/next_scheduled_check are retired). For throughput, the hourly ticks
+    // BATCH through the corpus using last_checked: a source already checked THIS window (last_checked >=
+    // windowStart) is skipped; the rest are covered across the day's remaining ticks. Next scrape day,
+    // every source's last_checked is < that day's windowStart again, so the whole corpus re-scrapes.
+    // Per-source membership still applies: status='active', not processing_paused, auto_run_enabled
+    // (the per-source include/exclude toggle — orthogonal to the global cadence). base_tier orders the
+    // batch (structural priority; effective_tier would reshuffle on every Q7 recompute).
+    const windowStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate())).toISOString();
     const { data: dueSources, error: queueError } = await supabase
       .from("sources")
-      .select("id, name, url, base_tier, update_frequency, last_checked, access_method, auto_run_enabled, status, consecutive_accessible, successful_checks, total_checks")
+      .select("id, name, url, base_tier, last_checked, access_method, auto_run_enabled, status, consecutive_accessible, successful_checks, total_checks")
       .eq("status", "active")
       .eq("processing_paused", false)
       .eq("auto_run_enabled", true)
-      .or(`next_scheduled_check.is.null,next_scheduled_check.lte.${new Date().toISOString()}`)
+      .or(`last_checked.is.null,last_checked.lt.${windowStart}`)
       .order("base_tier", { ascending: true })
-      .limit(10); // Process 10 sources per run
+      .limit(10); // batch size per hourly tick
 
     if (queueError) {
       return NextResponse.json({ error: queueError.message }, { status: 500 });
@@ -177,19 +186,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getNextCheck(frequency: string): string {
-  const now = Date.now();
-  const intervals: Record<string, number> = {
-    continuous: 3600000,      // 1 hour
-    daily: 86400000,          // 24 hours
-    "business-daily": 86400000,
-    weekly: 604800000,        // 7 days
-    biweekly: 1209600000,     // 14 days
-    monthly: 2592000000,      // 30 days
-    quarterly: 7776000000,    // 90 days
-    annual: 31536000000,      // 365 days
-    "ad-hoc": 604800000,      // Default to weekly for ad-hoc
-  };
-  const interval = intervals[frequency] || 604800000;
-  return new Date(now + interval).toISOString();
-}
+// (getNextCheck retired — per-source update_frequency cadence is superseded by the global scrape
+// schedule; see src/lib/sources/scrape-schedule.ts. next_scheduled_check is no longer computed/written.)

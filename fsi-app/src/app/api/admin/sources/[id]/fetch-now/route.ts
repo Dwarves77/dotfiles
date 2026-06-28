@@ -1,7 +1,10 @@
 // POST /api/admin/sources/[id]/fetch-now
 //
-// Manual on-demand fetch for a single source. Bypasses pause state and
-// the cooldown logic in /api/data/fetch-source — explicit admin action.
+// Manual on-demand fetch for a single source. Bypasses the cooldown logic in
+// /api/data/fetch-source (explicit admin action) but, as of Phase 0.1 (2026-06-28),
+// HONORS the global processing hold: a fetch while paused returns 503; the operator
+// lifts system_state.global_processing_paused to proceed. (Was "bypasses pause state"
+// — superseded; see src/lib/api/pause.ts. Operator override = lift the hold first.)
 // Returns a content preview and a hash so the operator can sanity-check
 // what was retrieved without paging through the full body.
 
@@ -14,6 +17,7 @@ import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { browserlessRender } from "@/lib/sources/browserless";
 import { decideFetchOutcome } from "@/lib/sources/fetch-now-decision.mjs";
+import { pausedResponse } from "@/lib/api/pause";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const NREL_API_KEY = process.env.NREL_API_KEY;
@@ -73,6 +77,11 @@ export async function POST(
       { status: 403, headers: rateLimitHeaders(auth.userId) }
     );
   }
+
+  // Phase 0.1 global-pause gate: honor the global hold even on this explicit manual fetch (was
+  // documented as "bypasses pause state"; superseded). Operator override = lift the hold first.
+  const paused = await pausedResponse(supabase);
+  if (paused) return paused;
 
   const { data: source, error: srcErr } = await supabase
     .from("sources")

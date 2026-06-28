@@ -54,11 +54,12 @@ export async function POST(request: NextRequest) {
 
   for (const row of pending) {
     // The source's active items are the ones whose grounding is now suspect.
-    const { data: items } = await supabase
+    const { data: items, error: itemsErr } = await supabase
       .from("intelligence_items")
       .select("id, source_url")
       .eq("source_id", row.source_id)
       .eq("is_archived", false);
+    if (itemsErr) errors.push(`items read for source ${row.source_id}: ${itemsErr.message}`);
 
     for (const item of items ?? []) {
       const r = await recordSourceChangeTrigger(supabase, { itemId: item.id, sourceUrl: item.source_url });

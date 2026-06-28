@@ -32,7 +32,12 @@ export async function GET(request: NextRequest) {
   // to come from the service role.
   const service = getServiceClient();
   const { data: { user }, error: userErr } = await service.auth.admin.getUserById(auth.userId);
-  if (userErr || !user?.email) {
+  if (userErr) {
+    // FAIL-CLOSED (B10): a lookup error is NOT "no invitations" — an empty list would hide pending
+    // invites behind a transient failure. A user with no email row keeps the honest empty list below.
+    return NextResponse.json({ error: userErr.message }, { status: 500 });
+  }
+  if (!user?.email) {
     return NextResponse.json({ invitations: [] });
   }
   const email = user.email.toLowerCase();
