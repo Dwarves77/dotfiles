@@ -24,6 +24,7 @@ const PERMITTED = [
   'fsi-app/src/app/api/admin/scan/',                   // admin scan route
   'fsi-app/src/app/api/admin/sources/recommend-classification/',
   'fsi-app/src/app/api/admin/canonical-sources/',
+  'fsi-app/src/app/api/admin/spot-check/recurring/',   // monthly calibration spot-check: re-classifies a source sample via the verification Haiku (source classification, sanctioned per CLAUDE.md permitted-routes table — NOT brief generation; mirrors recommend-classification)
   'fsi-app/src/lib/agent/canonical-pipeline.ts',       // canonical pipeline (calls the route's model)
   'fsi-app/src/lib/agent/anthropic-stream.mjs',        // canonical STREAMING call site (used by the above + scripts/lib/anthropic.mjs)
 ];
