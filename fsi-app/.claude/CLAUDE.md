@@ -345,6 +345,7 @@ All other routes read from the `intelligence_items` table. No live Claude API ca
 | `/api/admin/sources/recommend-classification` | claude-haiku-4-5 | Provisional-source AI classification (cached on row) | per-call |
 | `/api/admin/canonical-sources/recommend-classification` | claude-haiku-4-5 | Canonical-source candidate AI classification (cached) | per-call |
 | `/api/admin/canonical-sources/bulk-classify` | claude-haiku-4-5 (concurrency=5) | Batch classification of canonical candidates (≤30/call) | maxDuration 60s |
+| `/api/admin/spot-check/recurring` | claude-haiku-4-5 | Monthly calibration spot-check: re-classifies a 20-source sample via the verification Haiku (`VERIFICATION_HAIKU_SYSTEM_PROMPT`) to detect classifier drift — source classification, NOT brief generation. Worker-secret auth; honors the global scrape off-gate (Phase 0.1). Sanctioned direct-Haiku caller; mirrors recommend-classification. | 4h cooldown; monthly cron (currently disabled) |
 
 ### Non-negotiable rules
 

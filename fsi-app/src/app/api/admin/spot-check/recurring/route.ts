@@ -47,6 +47,7 @@ import {
   __internals,
 } from "@/lib/sources/verification";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
+import { pausedResponse } from "@/lib/api/pause";
 
 const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -261,6 +262,10 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getServiceClient();
+
+  // Phase 0.1 global-pause gate: honor the hold before any reachability render / content fetch.
+  const paused = await pausedResponse(supabase);
+  if (paused) return paused;
 
   // 2) 4h cooldown gate
   const { data: cooldownRow } = await supabase
