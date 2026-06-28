@@ -16,7 +16,7 @@
 // DB — that is the gate this build passes BEFORE it is wired into the canonical workflow path.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { computeCitationComponent } from "@/lib/trust";
+import { computeCitationComponent, recomputeEffectiveTier } from "@/lib/trust";
 import type { TrustMetrics } from "@/types/source";
 import { hostOf, hostInstitution, buildResolver, type SourceRow } from "@/lib/sources/institution";
 import { defaultTierForHost } from "@/lib/sources/host-authority";
@@ -248,7 +248,7 @@ export async function growSourcesFromBrief(
   supabase: SupabaseClient,
   citedSourceId: string,
   brief: string
-): Promise<{ registered: Array<{ url: string; source_id: string | null; registered: string }>; citationsRecorded: number; compound: Awaited<ReturnType<typeof compoundSourceCredibility>> }> {
+): Promise<{ registered: Array<{ url: string; source_id: string | null; registered: string }>; citationsRecorded: number; compound: Awaited<ReturnType<typeof compoundSourceCredibility>>; reputation: { before: number; after: number; changed: boolean } | null }> {
   const cited = parseNewSourcesFromBrief(brief);
   const registered = await registerCitedSources(supabase, cited);
   const edges = registered
@@ -256,5 +256,30 @@ export async function growSourcesFromBrief(
     .map((r) => ({ citing_source_id: r.source_id as string, cited_source_id: citedSourceId }));
   const citationsRecorded = await recordCitations(supabase, edges);
   const compound = await compoundSourceCredibility(supabase, citedSourceId);
-  return { registered, citationsRecorded, compound };
+  // Phase 1 — END-OF-CYCLE REPUTATION RECOMPUTE (replaces the retired q7 nightly cron). recordCitations
+  // above just wrote the FRESH source_citations edges for this subject source; recompute its effective_tier
+  // NOW, over the updated citations, so reputation recomputes exactly when its input changes — coupled to
+  // the generation cycle (which runs on the scrape cadence), never on an independent nightly timer that
+  // recomputed identical input most nights. ORDERING is load-bearing: this runs AFTER recordCitations.
+  // Writes effective_tier ONLY (the dynamic column; base_tier + the compat `tier` are never touched — the
+  // moat). Best-effort: a reputation-write failure must not fail grow (credibility signal, not the integrity
+  // path). A real change also logs a source_trust_events row (audit parity with the old q7 route).
+  let reputation: { before: number; after: number; changed: boolean } | null = null;
+  try {
+    const r = await recomputeEffectiveTier(supabase as unknown as { from: (t: string) => unknown }, citedSourceId);
+    reputation = { before: r.before_tier, after: r.after_tier, changed: r.changed };
+    if (r.changed) {
+      const { error: upErr } = await supabase.from("sources").update({ effective_tier: r.after_tier }).eq("id", citedSourceId);
+      if (upErr) console.warn(`[source-growth] effective_tier write failed for ${citedSourceId}: ${upErr.message}`);
+      else await supabase.from("source_trust_events").insert({
+        source_id: citedSourceId,
+        event_type: r.after_tier < r.before_tier ? "tier_promotion" : "tier_demotion",
+        details: { reputation_cycle: true, before_tier: r.before_tier, after_tier: r.after_tier, weighted_sum: r.weighted_sum, citation_count: r.citation_count, reasoning: r.reasoning },
+        created_by: "reputation-cycle",
+      }).then(() => {}, () => {});
+    }
+  } catch (e) {
+    console.warn(`[source-growth] reputation recompute failed for ${citedSourceId}: ${(e as Error).message}`);
+  }
+  return { registered, citationsRecorded, compound, reputation };
 }

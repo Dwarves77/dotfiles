@@ -1,11 +1,14 @@
 // POST /api/admin/q7-daily-recompute
 //
-// Daily recompute of effective_tier for every source per the Q7 promotion
-// thresholds + tier-weighted decayed citation network sum. Imports
-// recomputeEffectiveTier from src/lib/trust.ts directly (Q7 canonical
-// implementation). This endpoint replaces fsi-app/scripts/cron/q7-daily-recompute.mjs
-// for production cron use; the .mjs script remains available for ad-hoc
-// manual runs (--dry-run, --execute, --half-life-days=N flags).
+// FULL-CORPUS effective_tier recompute (every source) per the Q7 promotion thresholds + tier-weighted
+// decayed citation-network sum. Imports recomputeEffectiveTier from src/lib/trust.ts directly.
+//
+// PHASE 1 (2026-06-28) — NIGHTLY CRON RETIRED (removed from vercel.json). The per-source reputation
+// recompute now runs as an END-OF-CYCLE STEP inside growSourcesFromBrief (src/lib/sources/source-growth.ts),
+// right after recordCitations writes the fresh citation edges — so reputation recomputes exactly when its
+// input (citations) changes, inheriting the scrape cadence, never on an independent nightly timer that
+// recomputed identical input most nights. This endpoint is now MANUAL-ONLY: a full-corpus recompute for
+// admin use (e.g. after a tier-model change). It writes effective_tier (the dynamic column), never base_tier.
 //
 // Closes OBS-Q7-B: this endpoint imports trust.ts directly, eliminating
 // the .mjs script's duplicated Q7 logic. The script's manual-run utility
@@ -146,9 +149,12 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Apply changes. UPDATE sources + INSERT source_trust_events per change.
-  // Pre-Q2: writes `tier`. Post-Q2/Phase 1.5: switch the column name to
-  // `effective_tier` in this update statement.
+  // Apply changes. UPDATE sources.effective_tier + INSERT source_trust_events per change.
+  // Phase 1 (2026-06-28): writes `effective_tier` (the DYNAMIC reputation column), NOT `tier`. The prior
+  // `.update({ tier })` routed through the migration-094 compat-shim trigger into `base_tier` — corrupting
+  // the STATIC authority-origin anchor (the moat) on any real promotion, while `effective_tier` never moved.
+  // Writing `effective_tier` directly leaves base_tier untouched (094 couples only tier<->base_tier), so a
+  // reputation promotion now lands in the dynamic column and the structural anchor is never touched.
   let updateCount = 0;
   let eventInsertCount = 0;
   const writeErrors: string[] = [];
@@ -159,7 +165,7 @@ export async function POST(request: NextRequest) {
 
     const { error: upErr } = await supabase
       .from("sources")
-      .update({ tier: change.after_tier })
+      .update({ effective_tier: change.after_tier })
       .eq("id", change.source_id);
 
     if (upErr) {
