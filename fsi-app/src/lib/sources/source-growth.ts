@@ -92,7 +92,11 @@ export async function registerCitedSources(
   const out: Array<{ url: string; source_id: string | null; registered: "existing" | "new_source" | "candidate" }> = [];
   for (const cs of cited) {
     let host = ""; try { host = new URL(cs.url).host; } catch { /* */ }
-    const { data: existing } = await supabase.from("sources").select("id").ilike("url", `%${host}%`).limit(1);
+    // NOTE (defect, not fixed here): `ilike('%host%')` is a SUBSTRING match — a host that is a
+    // substring of an unrelated registered URL is a false-duplicate risk. Left as-is per scope;
+    // only the swallowed error is hardened here.
+    const { data: existing, error: existingErr } = await supabase.from("sources").select("id").ilike("url", `%${host}%`).limit(1);
+    if (existingErr) console.warn(`[source-growth] dup-source check failed for ${cs.url} (host=${host}): ${existingErr.message}`);
     if (existing && existing.length) { out.push({ url: cs.url, source_id: existing[0].id, registered: "existing" }); continue; }
     if (cs.rejection_reason) {
       await supabase.from("provisional_sources").upsert(
@@ -165,10 +169,13 @@ export async function compoundSourceCredibility(
   supabase: SupabaseClient,
   citedSourceId: string
 ): Promise<{ before: { independent_citers: number; trust_score_citation: number }; after: ConvergenceMetrics & { trust_score_citation: number } }> {
-  const { data: pre } = await supabase.from("sources").select("independent_citers, trust_score_citation").eq("id", citedSourceId).single();
-  const { data: cits } = await supabase.from("source_citations").select("citing_source_id, context").eq("cited_source_id", citedSourceId);
+  const { data: pre, error: preErr } = await supabase.from("sources").select("independent_citers, trust_score_citation").eq("id", citedSourceId).single();
+  if (preErr) console.warn(`[source-growth] convergence pre-read failed for ${citedSourceId}: ${preErr.message}`);
+  const { data: cits, error: citsErr } = await supabase.from("source_citations").select("citing_source_id, context").eq("cited_source_id", citedSourceId);
+  if (citsErr) console.warn(`[source-growth] citation-edge read failed for ${citedSourceId}: ${citsErr.message}`);
   const citerIds = Array.from(new Set((cits ?? []).map((r) => r.citing_source_id)));
-  const { data: citers } = await supabase.from("sources").select("id, base_tier, effective_tier").in("id", citerIds.length ? citerIds : ["00000000-0000-0000-0000-000000000000"]);
+  const { data: citers, error: citersErr } = await supabase.from("sources").select("id, base_tier, effective_tier").in("id", citerIds.length ? citerIds : ["00000000-0000-0000-0000-000000000000"]);
+  if (citersErr) console.warn(`[source-growth] citer-tier read failed for ${citedSourceId}: ${citersErr.message}`);
   const tierById = new Map((citers ?? []).map((s) => [s.id, (s.effective_tier ?? s.base_tier) as number]));
   const edges: CitationEdge[] = (cits ?? []).map((r) => ({
     citer_source_id: r.citing_source_id,
@@ -177,13 +184,14 @@ export async function compoundSourceCredibility(
   }));
   const conv = aggregateConvergence(edges);
   const score = citationScore(conv);
-  await supabase.from("sources").update({
+  const { error: updErr } = await supabase.from("sources").update({
     independent_citers: conv.independent_citers,
     highest_citing_tier: conv.highest_citing_tier,
     confirmation_count: conv.confirmation_count,
     total_citations: conv.total_citations,
     trust_score_citation: score,
   }).eq("id", citedSourceId);
+  if (updErr) console.warn(`[source-growth] credibility update FAILED for ${citedSourceId} (score=${score}): ${updErr.message}`);
   return {
     before: { independent_citers: pre?.independent_citers ?? 0, trust_score_citation: Number(pre?.trust_score_citation ?? 0) },
     after: { ...conv, trust_score_citation: score },

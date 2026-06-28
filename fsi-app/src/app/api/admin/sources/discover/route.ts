@@ -25,6 +25,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
+import { pausedResponse } from "@/lib/api/pause";
 import {
   discoverForJurisdiction,
   DiscoveryError,
@@ -112,6 +113,10 @@ export async function POST(request: NextRequest) {
       { status: 403, headers: rateLimitHeaders(auth.userId) }
     );
   }
+
+  // Phase 0.1 global-pause gate: discovery runs a Sonnet web_search (outbound fetch); honor the hold.
+  const paused = await pausedResponse(supabase);
+  if (paused) return paused;
 
   // ── Discover ──
   const req: DiscoveryRequest = {

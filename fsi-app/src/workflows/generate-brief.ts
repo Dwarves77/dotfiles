@@ -67,7 +67,13 @@ function svc(): SupabaseClient {
 
 // Best-effort cost telemetry — a failed telemetry write must never block generation.
 async function recordRun(sb: SupabaseClient, itemId: string, label: string, costUsd: number, ok: boolean, detail: string) {
-  const { data: it } = await sb.from("intelligence_items").select("source_id, source_url").eq("id", itemId).single();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("source_id, source_url").eq("id", itemId).single();
+  if (itErr) {
+    // SURFACE (B3): recordRun is end-of-run telemetry; a transient read error must NOT fail an
+    // otherwise-complete run. Log so the null source attribution on this agent_runs row is explained
+    // rather than silent (was: error dropped -> silent null source_id/url with no trace).
+    console.warn(`[generate-brief] recordRun: item ${itemId} read failed; recording run with null source attribution: ${itErr.message}`);
+  }
   await sb.from("agent_runs").insert({
     intelligence_item_id: itemId,
     source_id: it?.source_id ?? null,
@@ -113,7 +119,15 @@ export async function preflightStep(itemId: string): Promise<{ spentUsd: number;
     );
   }
   const midnightUtc = new Date(new Date().toISOString().slice(0, 10)).toISOString();
-  const { data } = await sb.from("agent_runs").select("cost_usd_estimated").gte("started_at", midnightUtc);
+  // B1 FAIL-CLOSED (Phase 0.2): capture the error. If today's spend ledger cannot be read, the daily
+  // cost cap cannot be enforced — HALT rather than proceed as if spend were $0 (the prior dropped-error
+  // silently DISABLED the cap on any query failure). Mirrors the block-state fail-closed above.
+  const { data, error } = await sb.from("agent_runs").select("cost_usd_estimated").gte("started_at", midnightUtc);
+  if (error) {
+    throw new FatalError(
+      `generation halted: cannot read today's spend ledger to enforce the daily cost cap (${error.message}); failing closed`
+    );
+  }
   const spent = (data ?? []).reduce((s, r) => s + Number(r.cost_usd_estimated || 0), 0);
   if (spent >= DAILY_CAP_USD) {
     throw new FatalError(
@@ -221,7 +235,8 @@ export async function recordAuditGateFailureStep(itemId: string, detail: string)
       created_by: "audit-gate",
     });
     return { recorded: true };
-  } catch {
+  } catch (e) {
+    console.warn(`[generate-brief] recordAuditGateFailureStep insert failed for item ${itemId}: ${(e as Error).message}`);
     return { recorded: false };
   }
 }
@@ -385,7 +400,10 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
   const auditGate = await auditGateStep(itemId, auditBaseline.hostTierViolations);
   if (!auditGate.ok) {
     const erase = await eraseStep(itemId);
-    await recordAuditGateFailureStep(itemId, String((auditGate as { detail?: string }).detail ?? "cross-item audit failed"));
+    const recorded = await recordAuditGateFailureStep(itemId, String((auditGate as { detail?: string }).detail ?? "cross-item audit failed"));
+    if (!recorded.recorded) {
+      console.warn(`[generate-brief] audit-gate quarantine reason FAILED to persist for item ${itemId}; quarantine carries no recorded cross-item cause`);
+    }
     return { itemId, status: "audit_gate_failed_quarantined", steps: { budget, auditBaseline, generate, register, section, ground, grow, auditGate, erase } };
   }
 

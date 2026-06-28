@@ -21,6 +21,7 @@ import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { asDomain, domainForItemType, type Domain } from "@/lib/domains";
+import { pausedResponse } from "@/lib/api/pause";
 
 // Closed enum from intelligence_items.item_type CHECK constraint
 // (migration 004). Used to validate the per-regulation item_type the
@@ -83,6 +84,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Phase 0.1 global-pause gate: scan uses web_search (outbound fetch); honor the hold even though
+  // it is operator-triggered (the program gates scan explicitly). Lift the hold to run a scan.
+  const paused = await pausedResponse(supabase);
+  if (paused) return paused;
+
   // 4h cooldown gate. Migration 024 must be applied for this to be enforced.
   // If the table is missing (migration not yet applied), the cooldown is silently
   // skipped — the upsert at the end of a successful scan will also no-op.
@@ -111,10 +117,20 @@ export async function POST(request: NextRequest) {
     const { topic, jurisdiction } = await request.json();
 
     // Get ALL existing items + ALL pending staged updates to avoid duplicates
-    const [{ data: existing }, { data: staged }] = await Promise.all([
+    const [{ data: existing, error: existingErr }, { data: staged, error: stagedErr }] = await Promise.all([
       supabase.from("intelligence_items").select("title"),
       supabase.from("staged_updates").select("proposed_changes").in("status", ["pending", "approved"]),
     ]);
+
+    // FAIL-CLOSED (B8): a dropped error here empties existingTitles so EVERY scanned regulation is
+    // treated as new -> the dedup filter is defeated and duplicates get staged. Abort rather than
+    // stage against a false "nothing exists".
+    if (existingErr || stagedErr) {
+      return NextResponse.json(
+        { error: `dedup precheck failed: ${existingErr?.message ?? stagedErr?.message}` },
+        { status: 500 }
+      );
+    }
 
     const existingTitles = new Set([
       ...(existing || []).map((e: any) => e.title.toLowerCase()),

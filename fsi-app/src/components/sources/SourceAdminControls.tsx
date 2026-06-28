@@ -7,88 +7,165 @@ import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface ToastState { kind: "ok" | "err"; message: string }
 
-// ── Global pause banner (top of the dashboard) ──
+// ── Global scrape-schedule control (top of the dashboard) ──
+//
+// The SINGLE source of truth for WHEN the whole system scrapes. Cadence off|weekly|monthly + a start-date
+// anchor (first run + recurrence phase). 'off' = nothing scrapes (the hold). Separate EMERGENCY STOP
+// (global_processing_paused) hard-halts at any time without erasing the saved cadence. Backed by
+// /api/admin/sources/pause-global (GET state + computed next-scrape; POST cadence/start_date and/or paused).
+
+interface ScheduleState {
+  paused: boolean;
+  cadence: "off" | "weekly" | "monthly";
+  start_date: string | null;
+  next_scrape: string | null;
+}
 
 export function GlobalPauseToggle() {
   const supabase = createSupabaseBrowserClient();
-  const [paused, setPaused] = useState<boolean | null>(null);
+  const [state, setState] = useState<ScheduleState | null>(null);
+  const [cadence, setCadence] = useState<"off" | "weekly" | "monthly">("off");
+  const [startDate, setStartDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
+  async function authedFetch(init?: RequestInit) {
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch("/api/admin/sources/pause-global", {
+      ...init,
+      headers: { ...(init?.headers || {}), Authorization: `Bearer ${session?.access_token}` },
+    });
+  }
+
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/sources/pause-global", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
+      const res = await authedFetch();
       if (res.ok) {
-        const payload = await res.json();
-        setPaused(!!payload.paused);
+        const p: ScheduleState = await res.json();
+        setState(p);
+        setCadence(p.cadence ?? "off");
+        setStartDate(p.start_date ?? "");
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function toggle() {
-    if (paused === null) return;
-    setSubmitting(true);
-    const next = !paused;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/sources/pause-global", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ paused: next }),
-      });
-      if (res.ok) {
-        setPaused(next);
-        setToast({ kind: "ok", message: next ? "All processing paused" : "Processing resumed" });
-      } else {
-        const payload = await res.json();
-        setToast({ kind: "err", message: payload.error || "Toggle failed" });
-      }
-    } catch (e: any) {
-      setToast({ kind: "err", message: e.message });
-    } finally {
-      setSubmitting(false);
-      setTimeout(() => setToast(null), 4000);
-    }
+  function flash(kind: "ok" | "err", message: string) {
+    setToast({ kind, message });
+    setTimeout(() => setToast(null), 5000);
   }
 
-  if (paused === null) return null;
+  async function saveSchedule() {
+    setSubmitting(true);
+    try {
+      const body: Record<string, unknown> = { cadence };
+      if (cadence !== "off") body.start_date = startDate || new Date().toISOString().slice(0, 10);
+      const res = await authedFetch({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const p = await res.json();
+      if (res.ok) {
+        setState(p); setCadence(p.cadence); setStartDate(p.start_date ?? "");
+        flash("ok", p.cadence === "off" ? "Scraping set to OFF — nothing will scrape." : `Scraping ${p.cadence} from ${p.start_date} — next run ${p.next_scrape}.`);
+      } else flash("err", p.error || "Save failed");
+    } catch (e: any) { flash("err", e.message); }
+    finally { setSubmitting(false); }
+  }
+
+  async function toggleEmergency() {
+    if (!state) return;
+    setSubmitting(true);
+    const next = !state.paused;
+    try {
+      const res = await authedFetch({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: next }) });
+      const p = await res.json();
+      if (res.ok) { setState(p); flash("ok", next ? "EMERGENCY STOP engaged — saved schedule preserved." : "Emergency stop released."); }
+      else flash("err", p.error || "Toggle failed");
+    } catch (e: any) { flash("err", e.message); }
+    finally { setSubmitting(false); }
+  }
+
+  if (!state) return null;
+  const isOff = state.cadence === "off";
+  const scrapingOn = !isOff && !state.paused;
+  const warn = isOff || state.paused;
 
   return (
     <div className="space-y-2">
       <div
-        className="p-3 rounded-lg border flex items-center gap-3"
+        className="p-3 rounded-lg border space-y-3"
         style={{
-          borderColor: paused ? "var(--color-warning)" : "var(--color-border)",
-          backgroundColor: paused ? "rgba(255,165,0,0.08)" : "var(--color-surface)",
+          borderColor: warn ? "var(--color-warning)" : "var(--color-border)",
+          backgroundColor: warn ? "rgba(255,165,0,0.08)" : "var(--color-surface)",
         }}
       >
-        <button
-          onClick={toggle}
-          disabled={submitting}
-          className="px-3 py-1.5 text-xs font-semibold rounded border disabled:opacity-50"
-          style={{
-            borderColor: paused ? "var(--color-warning)" : "var(--color-border)",
-            color: "var(--color-text-primary)",
-            backgroundColor: paused ? "var(--color-warning)" : "var(--color-surface-raised)",
-          }}
-        >
-          {submitting ? "Saving…" : paused ? "Resume all processing" : "Pause all processing"}
-        </button>
-        <div className="text-xs flex-1" style={{ color: "var(--color-text-secondary)" }}>
-          {paused ? (
-            <>
-              <strong style={{ color: "var(--color-warning)" }}>All automated source processing is paused.</strong>{" "}
-              Manual fetch and regenerate actions still work.
-            </>
+        {/* Status line */}
+        <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+          {state.paused ? (
+            <><strong style={{ color: "var(--color-warning)" }}>EMERGENCY STOP engaged.</strong> Nothing scrapes. Saved schedule: {isOff ? "off" : `${state.cadence} from ${state.start_date}`} (preserved).</>
+          ) : isOff ? (
+            <><strong style={{ color: "var(--color-warning)" }}>Scraping is OFF.</strong> Nothing scrapes — not the automated worker, not manual fetch-now. Set a cadence to turn it on.</>
           ) : (
-            <>Worker scans, agent runs, and trust recomputes are active. Toggle to pause for budget control.</>
+            <><strong style={{ color: "var(--color-success)" }}>Scraping {state.cadence}</strong> from {state.start_date}. Next run: <strong>{state.next_scrape}</strong>. The whole system scrapes on that schedule.</>
           )}
+        </div>
+
+        {/* Schedule editor */}
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>Cadence</span>
+            <select
+              value={cadence}
+              onChange={(e) => setCadence(e.target.value as "off" | "weekly" | "monthly")}
+              disabled={submitting}
+              className="px-2 py-1 text-xs rounded border"
+              style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text-primary)" }}
+            >
+              <option value="off">Not at all (off)</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </label>
+          {cadence !== "off" && (
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+                Start date {cadence === "weekly" ? "(sets the weekday)" : "(sets the day-of-month)"}
+              </span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                disabled={submitting}
+                className="px-2 py-1 text-xs rounded border"
+                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text-primary)" }}
+              />
+            </label>
+          )}
+          <button
+            onClick={saveSchedule}
+            disabled={submitting}
+            className="px-3 py-1.5 text-xs font-semibold rounded border disabled:opacity-50"
+            style={{ borderColor: "var(--color-primary)", backgroundColor: "var(--color-primary)", color: "var(--color-invert-text)" }}
+          >
+            {submitting ? "Saving…" : "Save schedule"}
+          </button>
+        </div>
+
+        {/* Emergency stop (independent of the schedule) */}
+        <div className="flex items-center gap-3 pt-1" style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
+          <button
+            onClick={toggleEmergency}
+            disabled={submitting}
+            className="px-3 py-1.5 text-xs font-semibold rounded border disabled:opacity-50 inline-flex items-center gap-1"
+            style={{
+              borderColor: state.paused ? "var(--color-warning)" : "var(--color-border)",
+              color: "var(--color-text-primary)",
+              backgroundColor: state.paused ? "var(--color-warning)" : "var(--color-surface-raised)",
+            }}
+          >
+            {state.paused ? <Play size={12} /> : <Pause size={12} />}
+            {submitting ? "Saving…" : state.paused ? "Release emergency stop" : "Emergency stop"}
+          </button>
+          <span className="text-[11px] flex-1" style={{ color: "var(--color-text-muted)" }}>
+            Hard-halt all scraping now, regardless of schedule — your saved cadence is preserved and resumes when released. {scrapingOn ? "" : "(Currently nothing scrapes.)"}
+          </span>
         </div>
       </div>
       {toast && (
