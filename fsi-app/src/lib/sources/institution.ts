@@ -51,9 +51,19 @@ export interface SourceRow {
   tier_override?: number | null;
 }
 
-/** canonical institutional tier = base_tier (consistent per institution post-Phase 0'). */
+/** Canonical institutional tier for the REG-FACT / GROUNDING-STAMP path = base_tier ONLY (the static
+ *  authority-origin). THE MOAT: dynamic reputation (effective_tier) must NEVER confer reg-fact grounding
+ *  eligibility. Display/analytical readers consume `effective_tier ?? base_tier` on their OWN inline reads
+ *  (Ask label, source-pool sort, surfaces) — NOT this resolver, which is used solely by buildResolver ->
+ *  the FACT stamp + claims-tier audit + grounding registration.
+ *  Phase-1 PRE-EMPTIVE HARDENING (2026-06-28): the prior `base_tier ?? effective_tier` fallback was inert
+ *  ONLY while effective_tier == base_tier everywhere. Phase 1 wires effective_tier to DIVERGE — which would
+ *  turn that fallback into a live channel: a NULL-base_tier source with a moved effective_tier would stamp
+ *  a FACT span from its REPUTATION tier and pass the authority floor on reputation, not authority-origin.
+ *  Locked to base_tier BEFORE the engine is wired (a NULL base_tier now resolves to NULL = unregistered,
+ *  never reputation). */
 export const tierOfSource = (s: SourceRow | null | undefined): number | null =>
-  s == null ? null : (s.base_tier ?? s.effective_tier ?? null);
+  s == null ? null : (s.base_tier ?? null);
 
 export interface SpanResolution { tier: number | null; sourceId: string | null }
 export interface Resolver { resolveSpan(resultUrl: string): SpanResolution }

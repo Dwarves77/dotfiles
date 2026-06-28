@@ -721,6 +721,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   const resolver = buildResolver(allSources);
   const urlBySearchId = new Map(searchRows.map((r) => [r.id, r.result_url]));
   const claimIds: string[] = [];
+  const citedSourceIds = new Set<string>(); // B#2: the sources this brief grounds against (item->source edges)
   for (const c2 of linked) {
     const sectionRowId = sectionMap[String(c2.section)] || secs[0].id;
     const storedText = cleanCtl((["FACT", "GAP"].includes(c2.claim_kind) && c2.slot_key) ? `[${c2.slot_key}] ${c2.claim_text}` : c2.claim_text ?? "");
@@ -745,6 +746,18 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
     const { data: ins, error: insErr } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: c2.search_result_id || null, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
     if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
     if (ins) claimIds.push(ins.id);
+    if (sourceId) citedSourceIds.add(sourceId);
+  }
+  // B#2 (Phase 1): write the item->source citation edges this brief grounds against into
+  // intelligence_item_citations (origin='agent_extraction') — the table get_source_citation_stats (mig 098)
+  // READS but generation never WROTE, so per-source citation counts were frozen at the mig-089 backfill.
+  // Idempotent (UNIQUE(item,source,origin) -> ignore duplicates on re-ground). Best-effort: an edge-write
+  // failure must NOT fail grounding (claims + validate are the integrity path; this is a credibility signal).
+  if (citedSourceIds.size) {
+    const iicTs = new Date().toISOString();
+    const edges = [...citedSourceIds].map((sid) => ({ intelligence_item_id: itemId, source_id: sid, detected_at: iicTs, origin: "agent_extraction" as const }));
+    const { error: iicErr } = await sb.from("intelligence_item_citations").upsert(edges, { onConflict: "intelligence_item_id,source_id,origin", ignoreDuplicates: true });
+    if (iicErr) console.warn(`[canonical] intelligence_item_citations write failed for ${itemId} (${edges.length} edges): ${iicErr.message}`);
   }
   const { data: vrData, error: vrErr } = await sb.rpc("validate_item_provenance", { p_item_id: itemId } as never);
   const vr = (Array.isArray(vrData) ? vrData[0] : vrData) as { valid: boolean; recommended_status: string; failures: unknown } | undefined;
@@ -805,5 +818,6 @@ export async function growSources(itemId: string): Promise<StepResult> {
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("source_id, full_brief").eq("id", itemId).single();
   if (itErr || !it?.source_id || !it.full_brief) return { ok: false, detail: `no source_id/full_brief${itErr ? `: ${itErr.message}` : ""}` };
   const res = await growSourcesFromBrief(sb, it.source_id, it.full_brief);
-  return { ok: true, detail: `registered=${res.registered.length} citations+${res.citationsRecorded} trust_citation=${res.compound.after.trust_score_citation.toFixed(2)}` };
+  const rep = res.reputation ? `${res.reputation.before}->${res.reputation.after}${res.reputation.changed ? "*" : ""}` : "n/a";
+  return { ok: true, detail: `registered=${res.registered.length} citations+${res.citationsRecorded} trust_citation=${res.compound.after.trust_score_citation.toFixed(2)} reputation=${rep}` };
 }
