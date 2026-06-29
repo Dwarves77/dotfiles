@@ -13,8 +13,11 @@
  *  the JS primitives (e.g. a floor value that lands in one but not the other) is caught here, not in prod.
  *
  *  ASSERTIONS (deterministic):
- *    A. RESOLVER FIDELITY — every FACT claim's stored (source_tier_at_grounding, source_id) equals the
- *       resolver's answer for its span's search_result url; every non-FACT claim carries a NULL tier stamp.
+ *    A. DERIVATION-CONSISTENCY (D1, migration 145) — every FACT claim's stored source_tier_at_grounding
+ *       equals the tier DERIVED from its stored source_id (COALESCE(tier_override, base_tier) —
+ *       base_tier-only/moat-pure, mirroring the live floor); every non-FACT claim carries a NULL tier
+ *       stamp. The "span URL would re-resolve to a different source NOW" count is an INFORMATIONAL growth
+ *       signal (registry growth since grounding → Phase-3 re-ground engine), NOT an audit failure.
  *    B. PER-TYPE FLOOR CONSISTENCY — for each floored item type, no item is stored `verified` while it holds
  *       a CRITICAL/HIGH FACT below its type floor (tier NULL or > floor_max). (A quarantined item may hold
  *       below-floor facts — that is the floor doing its job; the violation is verified-despite-below-floor.)
@@ -43,6 +46,10 @@ const isHigh = (p) => p === "CRITICAL" || p === "HIGH";
 
 const sources = await readAll("sources", "id,url,base_tier,effective_tier,tier_override");
 const resolver = buildResolver(sources);
+const srcById = new Map(sources.map((s) => [s.id, s]));
+// D1 derivation-consistency basis: the stamp + floor derive from the claim's stored source_id ->
+// COALESCE(tier_override, base_tier) (base_tier-only, moat-pure), mirroring migration 145's live floor.
+const derivedTier = (sid) => { if (!sid) return null; const s = srcById.get(sid); return s ? (s.tier_override ?? s.base_tier ?? null) : null; };
 const searches = await readAll("agent_run_searches", "id,result_url");
 const searchById = new Map(searches.map((r) => [r.id, r]));
 const items = await readAll("intelligence_items", "id,legacy_id,item_type,priority,provenance_status", { match: (q) => q.eq("is_archived", false) });
@@ -62,13 +69,17 @@ for (const c of claims) {
     continue;
   }
   factChecked++;
+  // D1: stamp + floor derive from the stored source_id (base_tier-only, moat-pure), mirroring migration 145.
+  const dtier = derivedTier(c.source_id);
+  if (c.source_tier_at_grounding !== dtier) { stampDrift++; if (driftSamples.length < 6) driftSamples.push(`stamp drift: claim ${c.id.slice(0,8)} stored=${c.source_tier_at_grounding} derived=${dtier} source_id=${c.source_id?c.source_id.slice(0,8):"NULL"}`); }
+  // GROWTH SIGNAL (informational, NOT a failure): the span URL would now re-resolve to a different source
+  // than stored — registry growth since grounding, owned by the Phase-3 re-ground engine, not audit drift.
   const sr = searchById.get(c.search_result_id);
-  const { tier, sourceId } = sr ? resolver.resolveSpan(sr.result_url) : { tier: null, sourceId: null };
-  if (c.source_tier_at_grounding !== tier) { stampDrift++; if (driftSamples.length < 6) driftSamples.push(`stamp drift: claim ${c.id.slice(0,8)} stored=${c.source_tier_at_grounding} resolver=${tier} url=${(sr?.result_url||"").slice(0,48)}`); }
-  if ((c.source_id ?? null) !== (sourceId ?? null)) sourceDrift++;
-  // floor verdict from the RESOLVED tier (the canonical one)
+  const reResolved = sr ? resolver.resolveSpan(sr.result_url) : { sourceId: null };
+  if ((c.source_id ?? null) !== (reResolved.sourceId ?? null)) sourceDrift++;
+  // floor verdict from the DERIVED tier (mirrors the live SQL gate, migration 145)
   const fmax = FLOOR_MAX(it.item_type);
-  if (isHigh(it.priority) && fmax != null && (tier == null || tier > fmax))
+  if (isHigh(it.priority) && fmax != null && (dtier == null || dtier > fmax))
     belowByItem.set(it.id, (belowByItem.get(it.id) || 0) + 1);
 }
 // verified-despite-below-floor = the floor-consistency violation
@@ -90,7 +101,7 @@ for (const it of items) {
 console.log("\n===== E1 ONE-PASS LEDGER VERIFIER (deterministic; resolver + per-type floor) =====");
 console.log(`claims ${claims.length} | FACT checked ${factChecked} | items ${items.length}`);
 console.log("\nASSERTION A — resolver fidelity:");
-console.log(`  FACT stamp != resolver tier: ${stampDrift} | FACT source_id != resolver: ${sourceDrift} | non-FACT carrying a stamp: ${nonFactStamped}`);
+console.log(`  FACT stamp != source_id-derived tier: ${stampDrift} | (growth signal, non-failing) source_id != URL-re-resolve: ${sourceDrift} | non-FACT carrying a stamp: ${nonFactStamped}`);
 console.log("\nASSERTION B — per-type floor consistency (no verified item with a below-floor FACT):");
 console.log(`  verified-despite-below-floor violations: ${floorViolations.length}`);
 for (const v of floorViolations.slice(0, 12)) console.log(`    ${v.key.padEnd(32)} ${v.type.padEnd(12)} below=${v.below}`);
