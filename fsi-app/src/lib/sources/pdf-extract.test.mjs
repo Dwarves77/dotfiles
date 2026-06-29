@@ -5,6 +5,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { looksLikePdfUrl, isPdfBytes, classifyBody, pdfToText } from "./pdf-extract.mjs";
 
+// The pure classification helpers are dep-free and run in the depless discipline CI. The pdfToText
+// round-trip needs unpdf; probe for it so those two tests SKIP (not fail) where deps aren't installed
+// (the discipline job runs node --test without `npm ci`). Locally / anywhere deps exist, they run and
+// prove real extraction.
+const unpdfReady = await import("unpdf").then(() => true, () => false);
+
 // A minimal, xref-correct, text-extractable PDF with one Helvetica text run. Same generator proven in the
 // _pdf-probe (pdf.js reads the marker back). Built in-test so there is no binary fixture to drift.
 function minimalPdf(text) {
@@ -55,7 +61,7 @@ test("classifyBody: header OR magic bytes -> pdf (mislabel-proof); html otherwis
   assert.equal(classifyBody("application/pdf", htmlBytes), "pdf");
 });
 
-test("pdfToText: extracts real text, reports pages + fullLength, caps without silent truncation", async () => {
+test("pdfToText: extracts real text, reports pages + fullLength, caps without silent truncation", { skip: unpdfReady ? false : "unpdf not installed (depless CI)" }, async () => {
   const bytes = minimalPdf("Hello PDF GLEC framework");
   const r = await pdfToText(bytes, 100000);
   assert.ok(r.text.includes("Hello PDF GLEC framework"), "marker text round-trips through unpdf");
@@ -66,6 +72,6 @@ test("pdfToText: extracts real text, reports pages + fullLength, caps without si
   assert.ok(capped.fullLength > 5, "fullLength > cap so the caller flags the coverage gap");
 });
 
-test("pdfToText: THROWS on a non-PDF body (so the transport falls back, never silent-empty)", async () => {
+test("pdfToText: THROWS on a non-PDF body (so the transport falls back, never silent-empty)", { skip: unpdfReady ? false : "unpdf not installed (depless CI)" }, async () => {
   await assert.rejects(() => pdfToText(new TextEncoder().encode("not a pdf at all, just text"), 1000));
 });

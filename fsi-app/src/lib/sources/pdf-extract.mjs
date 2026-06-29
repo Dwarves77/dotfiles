@@ -6,9 +6,9 @@
 //
 // unpdf bundles a serverless pdf.js build (zero native deps), so it runs in the Vercel Node function the
 // same as in local node. The classification helpers (URL + magic-byte + content-type) are pure and
-// dep-free (unit-tested); pdfToText is a thin wrapper proven live on the 26-page GLEC whitepaper
-// (1.17 MB -> 57,592 chars across 26 pages).
-import { extractText, getDocumentProxy } from "unpdf";
+// dep-free (unit-tested in the depless discipline CI); pdfToText loads unpdf via a DYNAMIC import so this
+// module imports clean without the dependency present — and so the ~MB pdf.js only loads when a PDF is
+// actually fetched. Proven live on the 26-page GLEC whitepaper (1.17 MB -> 57,592 chars).
 
 // A URL whose PATH ends in .pdf (ignoring ?query / #hash). The transport uses this to route a PDF
 // straight to the byte-fetch path — Browserless renders a PDF as an empty viewer shell, so spending a
@@ -37,6 +37,7 @@ export const classifyBody = (contentType, bytes) =>
 // and surfaces it as a coverage_gap exactly like the HTML path — NO silent truncation. THROWS on an
 // unparseable / non-PDF body so the caller's fallback fires (a corrupt PDF is a roadblock, not content).
 export async function pdfToText(bytes, max) {
+  const { extractText, getDocumentProxy } = await import("unpdf");
   const src = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   // pdf.js TRANSFERS the backing ArrayBuffer to its parse worker. A small Node Buffer is pooled into a
   // SHARED ArrayBuffer that cannot be transferred (DataCloneError "Cannot transfer object of unsupported
