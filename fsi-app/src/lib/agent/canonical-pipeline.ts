@@ -22,6 +22,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { fetchPrimaryWithFallback, detectRoadblock } from "@/lib/sources/primary-fallback.mjs";
+import { looksLikePdfUrl, classifyBody, pdfToText } from "@/lib/sources/pdf-extract.mjs";
 import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
@@ -70,7 +71,17 @@ function htmlToText(html: string): string {
 async function directFetchClean(url: string, max: number): Promise<FetchResult> {
   const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" }, redirect: "follow", signal: AbortSignal.timeout(25000) });
   if (!res.ok) throw new Error(`direct fetch ${res.status}`);
-  const full = htmlToText(await res.text());
+  const u8 = new Uint8Array(await res.arrayBuffer());
+  // PDF-or-HTML by header-or-magic-bytes (codec choice lives in pdf-extract.mjs, pure + unit-tested): a
+  // reachable PDF (the GLEC S3 whitepaper; many wave sources) extracts to text via unpdf; everything else
+  // strips as HTML. truncated/fullLength reported identically for both so the no-silent-truncation guard
+  // fires the same on a capped PDF as on a capped page.
+  if (classifyBody(res.headers.get("content-type"), u8) === "pdf") {
+    const { text: pdfText, fullLength } = await pdfToText(u8, max);
+    const text = (cleanCtl(pdfText) || "").replace(/\s+/g, " ").trim();
+    return { text, truncated: fullLength > max, fullLength, cap: max, transport: "direct-pdf" };
+  }
+  const full = htmlToText(new TextDecoder("utf-8", { fatal: false }).decode(u8));
   const text = (cleanCtl(full.slice(0, max)) || "").replace(/\s+/g, " ").trim();
   return { text, truncated: full.length > max, fullLength: full.length, cap: max, transport: "direct" };
 }
@@ -88,6 +99,12 @@ async function directFetchClean(url: string, max: number): Promise<FetchResult> 
 //      block page); the primary KEEPS it so fetchPrimaryWithFallback's detectRoadblock sees the reason
 //      (cdn_block / soft_404 / ...) and runs the official-alternative web search.
 async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
+  // PDF fast-path: Browserless renders a PDF as an empty viewer shell (a wasted unit + a false roadblock),
+  // so a .pdf URL goes straight to byte-fetch + extract for ANY host. directFetchClean also detects
+  // PDF-by-content-type/magic-bytes, so a PDF served from a non-.pdf URL is still caught on the fallback.
+  if (looksLikePdfUrl(url)) {
+    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* not a usable PDF — fall through to the normal path */ }
+  }
   if (directFetchEligible(url)) {
     try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* fall through */ }
   }
