@@ -50,6 +50,17 @@ test("detector: SOFT-404 — a real-length 200 whose head says 'Page Not Found' 
   assert.equal(detectRoadblock(realArticle).roadblocked, false, "a '404' mention deep in a real article is not a soft-404");
 });
 
+test("detector: CDN/edge block page (CloudFront 'request could not be satisfied', 200-wrapped 403, 553ch) → roadblock", () => {
+  // The exact AWS CloudFront block page that bit us on smartfreightcentre.org via Browserless (datacenter-IP WAF).
+  const cloudfront = "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. " + "x".repeat(300);
+  const d = detectRoadblock(cloudfront, { httpStatus: 200 });
+  assert.equal(d.roadblocked, true, "a 200-wrapped CDN block page (no challenge marker) must trip so try-both + alt-search fire, never ground as content");
+  assert.equal(d.reason, "cdn_block");
+  // a real article that merely mentions the phrase deep in the body must NOT trip (marker scoped to the head)
+  const realArticle = EN(2000) + " The firewall noted the request could not be satisfied during the load test. " + EN(2000);
+  assert.equal(detectRoadblock(realArticle).roadblocked, false, "a 'request could not be satisfied' mention deep in a real article is not a CDN block");
+});
+
 test("renderingUrlForPrimary: EUR-Lex /TXT → /TXT/HTML/ (enacted text), preserving uri=; others untouched", () => {
   assert.equal(
     renderingUrlForPrimary("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32022L2464"),
