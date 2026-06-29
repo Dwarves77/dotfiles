@@ -35,7 +35,6 @@ import { formatRelative, toDate } from "@/lib/relative-time";
 import { PromotePostDialog } from "@/components/community/PromotePostDialog";
 import type {
   PromotePostButtonPost,
-  PromotePostButtonUser,
 } from "@/components/community/PromotePostButton";
 
 interface QueuePost {
@@ -319,13 +318,6 @@ export function CommunityPickupsQueueView() {
               parent_post_id: promoteTarget.parent_post_id,
               promoted_at: promoteTarget.promoted_at,
             } satisfies PromotePostButtonPost
-          }
-          currentUser={
-            {
-              id: currentUserId,
-              isGroupAdmin: false,
-              isPlatformAdmin: true,
-            } satisfies PromotePostButtonUser
           }
           onClose={() => closePromote(true)}
         />

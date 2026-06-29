@@ -112,11 +112,13 @@ accepting `{url, optional note}`, member recorded as finder-provenance only (zer
 verifyCandidate the source; Branch 2 (page is a news LEAD) → find the authoritative primary behind it,
 verifyCandidate THAT (the article gets nothing) — NET-NEW beyond verifyCandidate; Branch 3
 (unresolvable) → notify a real Admin "needs manual research" queue (a producer needing a real
-consumer). Moat holds at every branch. Decide the existing `kind='direct'` promote bypass (intended
-override vs grounding-bypass defect to close).
+consumer). Moat holds at every branch. The `kind='direct'` promote bypass was REMOVED 2026-06-28
+(closed as a grounding-bypass defect): promotions are staged-only — a post never becomes an
+intelligence_item directly; it goes through staged_updates → admin review → grounding. The anchor
+below guards against re-introducing a direct intelligence_items insert.
 ```anchors
 present :: fsi-app/src/lib/sources/verification.ts :: verifyCandidate
-present :: fsi-app/src/app/api/community/posts/[id]/promote/route.ts :: intelligence_items
+absent :: fsi-app/src/app/api/community/posts/[id]/promote/route.ts :: .from("intelligence_items")
 ```
 
 ### phase-map-q2 — Gate Map markers to the regulations domain (live moat-blur defect)

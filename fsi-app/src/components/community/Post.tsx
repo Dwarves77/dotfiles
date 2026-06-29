@@ -29,11 +29,10 @@ interface PostProps {
   currentUserId: string | null;
   isGroupAdmin: boolean;
   isGroupMember: boolean;
-  /** Optional — when true, PromotePostButton offers the kind='direct'
-   * radio (insert straight into intelligence_items). Defaults to false
-   * so Post.tsx is back-compatible with callers that haven't been
-   * widened to thread the platform-admin flag through yet (e.g. C5's
-   * PostList). Group admins/moderators see the button regardless. */
+  /** Optional — platform admins can promote (stage) a post even when not a
+   * group admin/moderator. Defaults to false so callers that haven't been
+   * widened to thread the platform-admin flag through (e.g. C5's PostList)
+   * still type-check; group admins/moderators see the button regardless. */
   isPlatformAdmin?: boolean;
   onDeleted?: (postId: string) => void;
   onError?: (message: string) => void;
