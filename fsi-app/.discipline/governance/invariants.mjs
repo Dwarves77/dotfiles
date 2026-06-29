@@ -212,7 +212,7 @@ export const INVARIANTS = [
     text: 'A FACT claim\'s grounding tier stamp equals the canonical institutional tier of the source containing its span (flagged-override row tier where present; NULL when the span host is unregistered); no constant stamps.',
     anchor: 'the stamp equals the canonical institutional tier of the source containing the span',
     enforcedBy: ['audit:fsi-app/scripts/verify/claims-tier-audit.mjs'],
-    residual: 'The audit is the live-data guard; honestly RED until the Phase 1 backfill re-stamps every claim from the resolver (legacy stamps are the constant 2). The meta-gate proves wiring (file exists + skill-cited). Whether the registered institutional tier is itself CORRECT is the Phase 0\' operator-ratification judgment, not mechanized here.',
+    residual: 'The audit (claims-tier-audit.mjs) verifies DERIVATION-CONSISTENCY (D1, migration 145): the stored stamp equals the tier derived from the claim\'s source_id -> COALESCE(tier_override, base_tier) (base_tier-only, moat-pure); it deliberately does NOT re-resolve the span URL NOW — registry growth after grounding is Phase-3 GROWTH (move the claim positive from baseline), not drift the audit polices. GREEN as of 2026-06-29 (0 mismatches). The meta-gate proves wiring (file exists + skill-cited). Whether a registered institutional tier is itself CORRECT is operator-ratification judgment, not mechanized here.',
   },
   {
     id: 'SC-8-authority-floor',

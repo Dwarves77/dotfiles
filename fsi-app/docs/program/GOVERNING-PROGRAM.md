@@ -25,7 +25,7 @@
 > `absent :: <repo-relative-file> :: <verbatim substring>` (substring MUST NOT exist). C5 reads the
 > ACTIVE phase's block only.
 
-ACTIVE_PHASE: phase-4
+ACTIVE_PHASE: phase-2
 
 ---
 
@@ -69,18 +69,21 @@ Status: shipping in the immune-foundation unit with this mechanism.
 present :: fsi-app/src/lib/sources/institution.ts :: (s.base_tier ?? null)
 ```
 
-### phase-4 — Floor render-derive (D1)  ◀ ACTIVE / next to execute
-Render-derive `source_tier_at_grounding`: the DB floor resolves the FACT tier inline from the claim's
-`source_id → sources.(tier_override ?? base_tier)` instead of reading the stored stamp; the display
-label already render-derives. 41 non-FACT rows → NULL (SC-7). Re-point the audit from
-stored-==-resolver-NOW to derivation-consistency. sinir.gov.br canonicalize + the 1 expired deferral
-re-dispose ride along. The stored column becomes redundant → dropped in phase-7.
-Re-ground anchors (the plan rests on these being TRUE before phase-4 builds):
+### phase-4 — Floor render-derive (D1)  ✅ DONE 2026-06-29 (master pending merge)
+DONE: migration 145 — `validate_item_provenance` criterion-3 floor derives the FACT tier inline from
+`source_id → COALESCE(tier_override, base_tier)` (base_tier-only + sanctioned override, never
+effective_tier — moat-pure; read live — drift-proof). claims-tier audit re-pointed from
+stored-==-resolveSpan(URL)-NOW to **derivation-consistency** (stored == source_id-derived) → lane GREEN.
+**0 blast radius proven**: 0 drift on the source_id basis, 145 output == 143 output for all 658 items
+(the lone confirm-script "flip" was a stale-stored-status false positive — 143 quarantines it
+identically). The "41 non-FACT → NULL" and "264 re-stamp" premises were already cured (0 found) — moot;
+the backfill was NOT re-run. The stored `source_tier_at_grounding` is now a pure cache the floor ignores
+→ drop in phase-7. SEPARATE small follow-ups (not blockers): release the 1 stale-quarantined item
+(50ccd5cc, forgiving direction); the empty-span-URL data-quality note; sinir.gov.br canonicalize + the
+expired deferral.
 ```anchors
-present :: fsi-app/src/lib/agent/canonical-pipeline.ts :: source_tier_at_grounding: isFact ? res.tier : null
+present :: fsi-app/supabase/migrations/145_provenance_floor_inline_derive.sql :: COALESCE(src.tier_override, src.base_tier)
 ```
-> If A1 or any prior phase removes/renames that stamp expression, C5 fails here and phase-4 re-grounds
-> against the new shape before building. (A1 touches the resolver SELECT, not this stamp — no drift expected.)
 
 ### phase-2 — Source → sub-source hierarchy
 Re-parent the multi-page rows as sub-sources under their institution (not collapse, not peers); tier
@@ -99,6 +102,24 @@ hash/diff the rendered body (currently discarded), schedule reconcile under the 
 `item_cross_references` a live writer (real item→item edges) for cross-page linkage. Build fruition
 (temporal signal→fact confirmation edge + detector + a new reputation metric class; widen the
 `source_trust_events.event_type` CHECK). Map Q1 (change-aware spatial render) folds in here.
+
+BASELINE + GROWTH FRAMING (recorded 2026-06-29, from Phase 4 — core to "everything grows"): the system
+is BASELINE + GROWTH. The initial audit/grounding SETS the baseline (the fixed reference a thing is
+grounded against); everything then moves POSITIVE or NEGATIVE from that baseline as intelligence
+accumulates; current state = baseline + accumulated movement, and THE MOVEMENT IS THE INTELLIGENCE
+(which sources trend up/down, which claims strengthen/weaken). Design Phase 3 as "set baseline, then
+grow from it (positive/negative) on new intelligence" — NOT as "store value / prevent drift". Phase 3
+MUST own:
+  • REGISTRY-GROWTH RE-GROUND TRIGGER: when a host becomes registered (or new intelligence bears on a
+    claim), re-ground the related claims — moving them positive from baseline, a NEW grounding event
+    reflecting current knowledge; the old record stays as history (the growth trail). The claims-tier
+    audit DELIBERATELY STOPPED doing registry-growth re-attribution in Phase 4 — so Phase 3 MUST do it,
+    or claims go static (violating the whole point). The audit sets/verifies the baseline; the growth
+    engine moves from it.
+  • Mirrors D1 dynamic reputation: base_tier = the BASELINE (reg-facts anchor to a fixed reference);
+    effective_tier = the CURRENT POSITION (tracks the movement); the GAP between them IS the growth
+    signal. base_tier fixed (the reference), effective_tier fluid (the growth), the gap = the
+    intelligence. Everything fluid except the baseline reference itself.
 ```anchors
 present :: fsi-app/src/app/api/worker/check-sources/route.ts :: change_detected
 present :: fsi-app/src/app/api/worker/reconcile/route.ts :: monitoring_queue
