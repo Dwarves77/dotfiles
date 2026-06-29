@@ -66,6 +66,8 @@ Formula: `effective_tier = COALESCE(tier_override, computed_dynamic_tier, base_t
 
 Where `computed_dynamic_tier` is derived from `base_tier` plus the tier-weighted decayed citation network sum, computed by daily batch recompute.
 
+**The moat (reg-fact eligibility).** The reg-fact grounding-tier stamp derives from static `base_tier` ONLY (with the per-host `tier_override` as the single sanctioned escape); dynamic reputation (effective_tier) and time-in-system never confer reg-fact grounding eligibility — a NULL `base_tier` resolves to NULL, never to a reputation tier. Reputation earns a SIGNAL trust within the signal tier; it never promotes a signal to a fact. The only bridge from signal to fact is verification against the domain's authoritative primary. (Enforced by fitness F12 / invariant SC-9; the resolver `tierOfSource` is `base_tier ?? null`, and the grounding pipeline does not select effective_tier into the resolver rows.)
+
 **Why six elements together, not just static tier.** Each element addresses a failure mode the others cannot:
 
 - Type-based tier alone is static; a tier-6 analytical outlet whose work is consistently cited by tier-1 regulators is doing tier-3-quality work, but static tier misses that signal

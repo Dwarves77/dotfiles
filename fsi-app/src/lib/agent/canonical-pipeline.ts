@@ -708,13 +708,18 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // register step in the canonical order) means corroborator hosts are registered by now, so a
   // corroborator-grounded claim resolves instead of NULL-stamping spuriously. Sources are paginated
   // (the registry exceeds the 1000-row PostgREST cap).
-  const allSources: Array<{ id: string; url: string; base_tier: number | null; effective_tier: number | null; tier_override: number | null }> = [];
+  // A1 MOAT (2026-06-28): effective_tier is NOT selected into the resolver rows. The resolver derives
+  // the FACT stamp from base_tier/tier_override ONLY (institution.ts tierOfSource); fetching
+  // effective_tier here would put reputation within arm's reach of the stamp. Not fetching it makes a
+  // reintroduced `?? effective_tier` fallback inert on this path (no value to fall back to). Guarded
+  // behaviorally by fitness F12 / invariant SC-9.
+  const allSources: Array<{ id: string; url: string; base_tier: number | null; tier_override: number | null }> = [];
   for (let from = 0; ; from += 1000) {
     // B2 FAIL-CLOSED (Phase 0.2): capture the error. A dropped page-read error used to `break` with an
     // INCOMPLETE resolver — claims whose host sat in the unread page then resolved to NULL tier (spurious
     // NULL-stamps feeding the claims-tier drift). An incomplete resolver silently mis-certifies, so ABORT
     // grounding (ok:false is retryable next pass) rather than build the resolver from a partial registry.
-    const { data, error } = await sb.from("sources").select("id,url,base_tier,effective_tier,tier_override").order("id").range(from, from + 999);
+    const { data, error } = await sb.from("sources").select("id,url,base_tier,tier_override").order("id").range(from, from + 999);
     if (error) return { ok: false, detail: `grounding aborted: sources registry page read failed at offset ${from} (${error.message}); resolver would be incomplete -> spurious NULL-stamps` };
     if (!data?.length) break; allSources.push(...(data as typeof allSources)); if (data.length < 1000) break;
   }

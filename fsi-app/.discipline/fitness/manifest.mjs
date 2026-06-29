@@ -13,6 +13,10 @@ import { fitnessFunction as F10 } from './functions/F10-source-credibility-syndi
 // enforced (TIER_WEIGHTS T1=1.0…T7=0 + recency decay) — the operator's "buildable-but-unbuilt is
 // not a valid exemption" rule applied. SQL COALESCE/override half remains a named residual (pgTAP-deferred).
 import { fitnessFunction as F11 } from './functions/F11-trust-tier-weights.mjs';
+// Moat assertion (2026-06-28, A1): F12 enforces invariant SC-9 — the reg-fact resolver is base_tier-
+// ONLY (reputation/effective_tier never confers grounding eligibility). Behavioral selftest fails loud
+// on a reintroduced `?? effective_tier` fallback the corpus audits cannot catch.
+import { fitnessFunction as F12 } from './functions/F12-moat-base-tier.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -21,6 +25,7 @@ export const fitnessFunctions = [
   F9,
   F10,
   F11,
+  F12,
 ];
 
 export function getFunctionById(id) {

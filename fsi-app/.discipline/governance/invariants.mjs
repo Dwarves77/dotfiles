@@ -224,6 +224,16 @@ export const INVARIANTS = [
     residual: 'NAMED EXEMPTIONS (REVISIT, registered here so neither silently becomes permanent): market_signal/initiative floor is corroboration-count not a tier (Section 4) — the gate is UNBUILT (codifying it now would put unbuilt mechanism in the gate, the migration-113 pattern); regional_data wants a per-SECTION floor (feasibility ≤T3, cost-data any-tier-with-source) — UNBUILT. technology ≤T5 is a FORWARD DEFAULT (0 live items) — REVISIT when the first technology items land. validate_item_provenance (migration 141) enforces the reg/research/tech floors over stored data; whether each ratified tier value is itself correct is operator judgment, not mechanized here.',
   },
 
+  {
+    id: 'SC-9-moat-base-tier-only',
+    skill: 'source-credibility-model',
+    section: 'Section 2 — The six-element model (the moat)',
+    text: 'The reg-fact grounding-tier stamp derives from static base_tier ONLY (the per-host tier_override is the only sanctioned escape); dynamic reputation (effective_tier) and time-in-system never confer reg-fact grounding eligibility — a NULL base_tier resolves to NULL, never to a reputation tier.',
+    anchor: 'dynamic reputation (effective_tier) and time-in-system never confer reg-fact grounding eligibility',
+    enforcedBy: ['fitness:F12'],
+    residual: 'F12 runs the pure resolver selftest (institution.selftest.mjs) behaviorally — it catches a reintroduced effective_tier fallback regardless of form, which the corpus claims-tier audit cannot (stamp + audit move together through the same resolver). Defense-in-depth: canonical-pipeline.ts no longer selects effective_tier into the resolver rows.',
+  },
+
   // ───────────────────────────── analysis-construction-spec ─────────────────────────────
   {
     id: 'AC-1-section-construction',
@@ -382,6 +392,15 @@ export const INVARIANTS = [
     exempt: {
       reason: 'PROCESS discipline applied at planning time (same class as RD-2/RD-3) — "did I check whether this output already exists before (re)generating it?" is judgment exercised when scoping a generation/discovery step, not a checkable property of a committed file or row. No low-false-positive standing signal exists for "this generation re-derived something already persisted": the stores are heterogeneous (a column, the agent_run_searches pool, provisional_sources, the registry, prior sessions), so a mechanical "should have retrieved" detector would be overwhelmingly noisy. Carried by CLAUDE.md Reuse-before-construction doctrine (extended 2026-06-23 to work-products/data) + this skill section + the retrieval-before-generation feedback memory; the backward promote-from-pool operation is its worked example (re-point = promote the already-stored enacted URL, not re-discover). REVISIT: a per-operation retrieval-check attestation could make it dispatch-auditable, deferred — attestation-not-enforcement is the trap the 2026-05-21 slim refactor retired.',
     },
+  },
+  {
+    id: 'RG-1-plan-reground',
+    skill: 'remediation-discipline',
+    section: 'Plan re-grounding (re-read the code before each phase, mechanically)',
+    text: 'A multi-phase program re-grounds each phase against the actual code before that phase executes: the governing program doc (docs/program/GOVERNING-PROGRAM.md) declares per-phase the concrete code-dependencies (anchors) the phase plan rests on, and a mechanical gate fails the build when the ACTIVE phase\'s anchors no longer match the code a prior phase changed. The next phase does not proceed on a stale plan.',
+    anchor: 'Plan re-grounding (re-read the code before each phase, mechanically)',
+    enforcedBy: ['consistency:C5'],
+    residual: 'C5 verifies the ACTIVE phase\'s declared present/absent substrings against the real files; a plan-vs-code contradiction surfaces as named drift. It cannot judge whether the rest of the phase plan is sound — the anchors are the operator-declared load-bearing dependencies, and choosing good anchors is the planning judgment C5 makes checkable. Only the ACTIVE phase is checked (between-phase state is ACTIVE_PHASE: none, a no-op).',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────

@@ -29,6 +29,10 @@ Why this matters: ad-hoc instance patches compound. Each batch script discovers 
 
 The autonomous-loop strategic frame depends on durable resilience primitives. A platform that requires operator intervention on every infrastructure variation cannot operate autonomously. The class-over-instance discipline is how the platform absorbs infrastructure realities instead of failing on them.
 
+### Plan re-grounding (re-read the code before each phase, mechanically)
+
+This is the silent-rot failure-class operating one level up, in the PLANNING layer. Every phase of a multi-phase program changes code that a later phase's plan was written against; relying on the agent to re-read the code before each phase is exactly the judgment-time honor-system discipline that this whole effort proved fails (it is why the rollup-insufficiency and the nightly-cadence incoherence slipped — caught only by happening to read the code, not because anything forced it). The class fix is to make the re-read mechanical: a single governing program artifact (`docs/program/GOVERNING-PROGRAM.md`) holds the decided phases, their dependency order, and per-phase the concrete code-dependencies (anchors) each plan rests on; a consistency check (C5, invariant RG-1) re-grounds the ACTIVE phase against the real code and fails the build when an anchor a prior phase invalidated no longer matches, naming the drift. The next phase does not execute on a stale plan. Keep it small — one artifact plus one forced re-ground step, not a planning bureaucracy; if it grows into ceremony it becomes the next bug-surface. The test is only "does it force re-reading the real code before a phase, and flag plan-vs-code drift." Pairs with the class-over-instance principle (this is its plan-layer instance — make the recurring failure impossible) and with edit-the-source-not-the-output (the governing artifact is the source the plan compiles from).
+
 ### Section 2.1: Quarantine Is an Open Investigation (research-or-erase)
 
 **Binding statement (verbatim):**
