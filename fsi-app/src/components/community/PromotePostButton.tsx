@@ -90,7 +90,6 @@ export function PromotePostButton({ post, currentUser }: PromotePostButtonProps)
       {open && (
         <PromotePostDialog
           post={post}
-          currentUser={currentUser}
           onClose={() => setOpen(false)}
         />
       )}

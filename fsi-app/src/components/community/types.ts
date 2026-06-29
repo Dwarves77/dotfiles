@@ -67,9 +67,9 @@ export interface CommunityCurrentUser {
   headshotUrl: string | null;
   employer: string;
   /** True when the user is a platform admin — sourced from
-   * user_profiles.is_platform_admin (migration 027). Read by C6's
-   * PromotePostButton to enable the kind='direct' radio option, and
-   * by C8's ModerationQueue to widen the report set. Optional so
-   * older callers that haven't been updated still type-check. */
+   * user_profiles.is_platform_admin (migration 027). Read by
+   * PromotePostButton to allow promoting (staging) a post, and by C8's
+   * ModerationQueue to widen the report set. Optional so older callers
+   * that haven't been updated still type-check. */
   isPlatformAdmin?: boolean;
 }

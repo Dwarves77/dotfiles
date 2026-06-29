@@ -1,42 +1,30 @@
 // POST /api/community/posts/[id]/promote
 //
-// Promote a community post to platform intelligence.
+// Promote a community post to platform intelligence — ALWAYS staged.
 //
-// Two promotion kinds:
-//   * kind='staged' — write to staged_updates (status='pending'), wait for
-//     admin review and approval. Any member of the post's group may stage.
-//   * kind='direct' — insert directly into intelligence_items. Platform
-//     admin only (user_profiles.is_platform_admin = true).
-//
-// Auth model rationale:
-//   - Anyone in a group already has visibility into its posts (per
-//     migration 030 RLS), so any group member can flag a post as "worth
-//     elevating" by staging it. The platform admin reviews the staged
-//     update before it becomes an intelligence_item.
-//   - 'direct' bypasses staged_updates and writes straight to the
-//     intelligence_items table. This is reserved for platform admins
-//     because it skips the human-review gate that the rest of the
-//     intelligence pipeline relies on (worker proposes → admin approves).
+// Promotion writes to staged_updates (status='pending') and waits for admin
+// review and approval. Any member of the post's group may stage. A post
+// NEVER becomes an intelligence_item directly from here — every promotion
+// goes through the same human-review + grounding gate the rest of the
+// pipeline relies on (worker proposes -> admin approves -> materialize ->
+// ground). The former kind='direct' admin path that wrote straight into
+// intelligence_items (bypassing grounding/provenance) was REMOVED 2026-06-28:
+// a community post is a FINDER/lead, and the moat holds — nothing it points
+// at grounds until it is researched and tiered.
 //
 // Idempotency:
 //   - One promotion per post. If community_posts.promoted_at IS NOT NULL,
-//     return 409 Conflict with the existing promotion id (and the
-//     staged_update_id / intelligence_item_id from the prior promotion).
+//     return 409 Conflict with the existing promotion id.
 //   - The post_promotions table also has a unique index on (post_id) as
 //     defence-in-depth against concurrent requests.
 //
 // Service-role escape rationale:
-//   - intelligence_items.INSERT is service-role only per migration 005
-//     (RLS policy `intelligence_items_admin_insert`). For kind='direct'
-//     we validate platform-admin status first, then use the service-role
-//     client to perform the insert. The validation is done with the
-//     caller's RLS-aware client so user_profiles RLS is enforced.
-//   - staged_updates.INSERT is also service-role only per migration 005
-//     (`staged_updates_admin_write`). Same pattern: validate membership
-//     with the caller's client, write with the service client.
-//   - post_promotions.INSERT is service-role only per migration 041. The
-//     row is the audit trail; it must be written by the same path that
-//     performed the upstream insert so the two stay consistent.
+//   - staged_updates.INSERT is service-role only per migration 005
+//     (`staged_updates_admin_write`). We validate group membership with the
+//     caller's RLS-aware client, then write with the service client.
+//   - post_promotions.INSERT is service-role only per migration 041. The row
+//     is the audit trail; it must be written by the same path that performed
+//     the staged_updates insert so the two stay consistent.
 //
 // Auth: cookie session via requireCommunityAuth.
 // Rate limit: standard 60/min/user.
@@ -48,9 +36,7 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
-import { urgencyScoreFromPriority } from "@/lib/urgency";
 import { asDomain, domainForItemType, ALL_DOMAINS, type Domain } from "@/lib/domains";
-import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 
 // ──────────────────────────────────────────────────────────────
 // Constants and validators
@@ -88,16 +74,15 @@ interface IntelligenceItemPayload {
   jurisdiction_iso?: string[];
   priority?: Priority;
   summary?: string;
-  /** Leakage fix 2026-05-23: explicit destination surface picked by the
-   *  promoter at promotion time. Honoured ONLY for kind='direct' (admin-
-   *  gated below); kind='staged' ignores and derives from item_type so
-   *  the admin queue review remains the authority. NULL or omitted falls
-   *  back to domainForItemType(item_type). */
+  /** Optional proposed destination surface carried into the staged_updates
+   *  payload for the admin reviewer. The admin queue review remains the
+   *  authority (it can override at approval); NULL or omitted falls back to
+   *  domainForItemType(item_type). */
   domain?: Domain | null;
 }
 
 interface PromoteBody {
-  kind: "staged" | "direct";
+  kind: "staged";
   intelligence_item: IntelligenceItemPayload;
   notes?: string;
 }
@@ -122,8 +107,12 @@ function validateBody(raw: unknown): PromoteBody | string {
   if (!raw || typeof raw !== "object") return "Invalid JSON body";
   const b = raw as Record<string, unknown>;
 
-  if (b.kind !== "staged" && b.kind !== "direct") {
-    return "kind must be 'staged' or 'direct'";
+  // Promotion is staged-only. The former 'direct' path (admin insert straight
+  // into intelligence_items, bypassing grounding) was removed; reject it
+  // explicitly so a stale client gets a clear message rather than a silent
+  // re-route.
+  if (b.kind !== undefined && b.kind !== "staged") {
+    return "direct promotion has been removed; promotions are staged for admin review";
   }
 
   if (!b.intelligence_item || typeof b.intelligence_item !== "object") {
@@ -160,9 +149,9 @@ function validateBody(raw: unknown): PromoteBody | string {
   if (ii.summary !== undefined && typeof ii.summary !== "string") {
     return "intelligence_item.summary must be a string";
   }
-  // Optional admin-selected domain. Validated against the 1-7 range; the
-  // admin-only enforcement happens at the handler (kind='direct' is
-  // already platform-admin gated).
+  // Optional proposed domain carried to the staged_updates payload for the
+  // admin reviewer. Validated against the 1-7 range; the admin queue review
+  // remains the authority and can override at approval.
   if (ii.domain !== undefined && ii.domain !== null) {
     if (
       typeof ii.domain !== "number" ||
@@ -177,7 +166,7 @@ function validateBody(raw: unknown): PromoteBody | string {
   }
 
   return {
-    kind: b.kind,
+    kind: "staged",
     intelligence_item: {
       title: ii.title.trim(),
       source_url: ii.source_url,
@@ -261,42 +250,22 @@ export async function POST(
     );
   }
 
-  // ── 6. Authorize promotion kind ────────────────────────────────
-  // For 'staged': caller must be a member of the post's group.
-  // For 'direct': caller must be a platform admin.
-  if (body.kind === "staged") {
-    const { data: membership, error: memErr } = await auth.supabase
-      .from("community_group_members")
-      .select("group_id")
-      .eq("group_id", post.group_id)
-      .eq("user_id", auth.userId)
-      .maybeSingle();
-    if (memErr) {
-      return NextResponse.json({ error: memErr.message }, { status: 500 });
-    }
-    if (!membership) {
-      return NextResponse.json(
-        { error: "Group membership required to stage a promotion" },
-        { status: 403 }
-      );
-    }
-  } else {
-    // body.kind === 'direct'
-    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles.
-    const { data: profile, error: profErr } = await auth.supabase
-      .from("profiles")
-      .select("is_platform_admin")
-      .eq("id", auth.userId)
-      .maybeSingle();
-    if (profErr) {
-      return NextResponse.json({ error: profErr.message }, { status: 500 });
-    }
-    if (!profile?.is_platform_admin) {
-      return NextResponse.json(
-        { error: "Platform admin required for direct promotion" },
-        { status: 403 }
-      );
-    }
+  // ── 6. Authorize — caller must be a member of the post's group to stage a
+  //       promotion. (All promotions are staged; there is no direct path.)
+  const { data: membership, error: memErr } = await auth.supabase
+    .from("community_group_members")
+    .select("group_id")
+    .eq("group_id", post.group_id)
+    .eq("user_id", auth.userId)
+    .maybeSingle();
+  if (memErr) {
+    return NextResponse.json({ error: memErr.message }, { status: 500 });
+  }
+  if (!membership) {
+    return NextResponse.json(
+      { error: "Group membership required to stage a promotion" },
+      { status: 403 }
+    );
   }
 
   // ── 7. Build the canonical intelligence_item shape. The body of the
@@ -308,13 +277,12 @@ export async function POST(
       ? ii.summary.trim()
       : (post.body ?? "").toString().trim();
 
-  // Leakage fix 2026-05-23 (B4 per caros-ledge-platform-intent REC-OBS-G):
-  // domain is resolved from the admin-selected value first (kind='direct'
-  // only, since admin-gated below), then derived from item_type via the
-  // canonical routing helper. NULL when item_type is unrecognized so
-  // promotion does not silently land on /regulations. source.category is
-  // not available on community promotions (no parent source row), so the
-  // helper falls through to the default branches.
+  // domain is resolved from the proposed value first (carried to the staged
+  // payload for the admin reviewer), then derived from item_type via the
+  // canonical routing helper. NULL when item_type is unrecognized so a
+  // promotion does not silently land on /regulations. source.category is not
+  // available on community promotions (no parent source row), so the helper
+  // falls through to the default branches.
   const derivedDomain = domainForItemType(ii.item_type, null);
   const adminDomain = ii.domain ?? null;
   const itemPayload: Record<string, unknown> = {
@@ -323,123 +291,72 @@ export async function POST(
     item_type: ii.item_type,
     source_url: ii.source_url,
     priority: ii.priority ?? "MODERATE",
-    // For staged: admin reviewer overrides at approval time; payload here
-    // is the proposed value (admin pick takes precedence over the
-    // derivation when both present).
-    // For direct: admin pick takes precedence; falls back to derivation.
+    // Proposed value only — the admin reviewer overrides at approval time;
+    // the proposed pick takes precedence over the derivation when present.
     domain: adminDomain ?? derivedDomain,
   };
   if (ii.jurisdiction_iso && ii.jurisdiction_iso.length > 0) {
     // Dual-write during the legacy/ISO transition. Migration 033 added
     // intelligence_items.jurisdiction_iso TEXT[] as the canonical column,
     // but several read paths (FilterBar, scoring, coverage-gaps,
-    // briefing/systemPrompt, the dashboard RPCs) still consume the
-    // legacy `jurisdictions` column. Write to both until those readers
-    // switch and the legacy column can be dropped. Migration 072
-    // installs a normalizer trigger so values land in canonical shape
-    // regardless of which column the writer targets.
+    // briefing/systemPrompt, the dashboard RPCs) still consume the legacy
+    // `jurisdictions` column. Write to both until those readers switch and
+    // the legacy column can be dropped. Migration 072 installs a normalizer
+    // trigger so values land in canonical shape regardless of target column.
     itemPayload.jurisdiction_iso = ii.jurisdiction_iso;
     itemPayload.jurisdictions = ii.jurisdiction_iso;
   }
 
-  // ── 8. Perform the promotion using the service client (writes to
-  //       staged_updates / intelligence_items / post_promotions are all
-  //       service-role-only per RLS).
+  // ── 8. Perform the promotion. ALWAYS staged — write to staged_updates
+  //       (service-role only per RLS); a post never becomes an
+  //       intelligence_item directly from here. update_type='new_item' is
+  //       the canonical marker for a proposed new intelligence_item;
+  //       proposed_changes carries the payload; the admin queue materializes
+  //       it on approval, after which it grounds like any other item.
   const service = getServiceClient();
+  const intelligenceItemId: string | null = null; // never set here (staged-only)
 
-  let stagedUpdateId: string | null = null;
-  let intelligenceItemId: string | null = null;
-
-  if (body.kind === "staged") {
-    // staged_updates.update_type='new_item' is the canonical marker for
-    // a proposed new intelligence_item. proposed_changes carries the
-    // payload; the admin queue (Phase D) materializes it on approval.
-    const { data: staged, error: stagedErr } = await service
-      .from("staged_updates")
-      .insert({
-        update_type: "new_item",
-        proposed_changes: {
-          ...itemPayload,
-          // Provenance — surfaces in admin review UI and lets the
-          // approval handler set community_posts.promoted_to_item_id
-          // when the staged row is materialized.
-          provenance: {
-            kind: "community_post",
-            post_id: postId,
-            group_id: post.group_id,
-            promoted_by: auth.userId,
-          },
+  const { data: staged, error: stagedErr } = await service
+    .from("staged_updates")
+    .insert({
+      update_type: "new_item",
+      proposed_changes: {
+        ...itemPayload,
+        // Provenance — surfaces in admin review UI and lets the approval
+        // handler set community_posts.promoted_to_item_id when materialized.
+        provenance: {
+          kind: "community_post",
+          post_id: postId,
+          group_id: post.group_id,
+          promoted_by: auth.userId,
         },
-        reason: body.notes ?? `Promoted from community post ${postId}`,
-        source_url: ii.source_url,
-        confidence: "MEDIUM",
-        status: "pending",
-      })
-      .select("id")
-      .single();
-    if (stagedErr) {
-      return NextResponse.json(
-        { error: `staged_updates insert failed: ${stagedErr.message}` },
-        { status: 500 }
-      );
-    }
-    stagedUpdateId = staged.id;
-  } else {
-    // body.kind === 'direct' — insert into intelligence_items. domain is
-    // sourced from the admin's destination selector (admin-gated above)
-    // with a fallback derivation via domainForItemType when not supplied.
-    // Leakage fix 2026-05-23 (B4 per caros-ledge-platform-intent
-    // REC-OBS-G): the historical hardcoded `domain: 1` "safe default" is
-    // replaced; admin selects the destination surface at promotion time.
-    // NULL passes through when neither the selector nor the derivation
-    // could produce a value; downstream /regulations strict filter keeps
-    // NULL-domain rows off the surface.
-    // ADR-008 (urgency_score default behavior; accepted 2026-05-21 Option C-bias):
-    // explicit urgency_score derived from priority via PRIORITY_TO_URGENCY_SCORE
-    // mapping. No silent schema default; F4 enforces.
-    // Entity-gate (source != item): a root/portal URL must NOT become an item, even when an
-    // admin promotes a community post that links one. Mirrors staged-updates + drain-first-fetch.
-    if (typeof itemPayload.source_url === "string" && urlIsRoot(itemPayload.source_url)) {
-      return NextResponse.json(
-        { error: `entity-gate: source_url ${itemPayload.source_url} is a portal/landing page (a SOURCE, not an item) — not promoted to an intelligence_item.` },
-        { status: 422 }
-      );
-    }
-    const { data: item, error: itemErr } = await service
-      .from("intelligence_items")
-      .insert({
-        title: itemPayload.title,
-        summary: itemPayload.summary,
-        item_type: itemPayload.item_type,
-        source_url: itemPayload.source_url,
-        priority: itemPayload.priority,
-        urgency_score: urgencyScoreFromPriority(itemPayload.priority as string | null),
-        jurisdictions: itemPayload.jurisdictions ?? [],
-        domain: itemPayload.domain ?? null,
-      })
-      .select("id")
-      .single();
-    if (itemErr) {
-      return NextResponse.json(
-        { error: `intelligence_items insert failed: ${itemErr.message}` },
-        { status: 500 }
-      );
-    }
-    intelligenceItemId = item.id;
+      },
+      reason: body.notes ?? `Promoted from community post ${postId}`,
+      source_url: ii.source_url,
+      confidence: "MEDIUM",
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (stagedErr) {
+    return NextResponse.json(
+      { error: `staged_updates insert failed: ${stagedErr.message}` },
+      { status: 500 }
+    );
   }
+  const stagedUpdateId: string = staged.id;
 
-  // ── 9. Audit row. Same service-role client so a failed insert here
-  //       does not leave behind an orphan staged_update / intelligence_item
-  //       — the unique index on post_promotions(post_id) guarantees that
-  //       at most one of these can ever land. If this insert fails, the
-  //       upstream row is orphaned and surfaced via the admin orphan-staged
-  //       audit (W1B-orphan-staged-updates.json pipeline).
+  // ── 9. Audit row. Same service-role client so a failed insert here does
+  //       not leave behind an orphan staged_update — the unique index on
+  //       post_promotions(post_id) guarantees at most one can ever land. If
+  //       this insert fails, the upstream row is orphaned and surfaced via
+  //       the admin orphan-staged audit (W1B-orphan-staged-updates.json).
   const { data: promo, error: promoErr } = await service
     .from("post_promotions")
     .insert({
       post_id: postId,
       promoted_by: auth.userId,
-      promotion_kind: body.kind,
+      promotion_kind: "staged",
       staged_update_id: stagedUpdateId,
       intelligence_item_id: intelligenceItemId,
       notes: body.notes ?? null,
@@ -460,9 +377,9 @@ export async function POST(
   }
 
   // ── 10. Stamp the post so the 409 idempotency check fires next time.
-  //         For kind='direct' we also link promoted_to_item_id straight
-  //         to the new intelligence_item; for kind='staged' the link is
-  //         deferred until the staged_update is approved.
+  //         promoted_to_item_id stays NULL here — the link to the
+  //         intelligence_item is set when the staged_update is approved and
+  //         materialized.
   await service
     .from("community_posts")
     .update({

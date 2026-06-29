@@ -4,6 +4,11 @@
 // platform intelligence. Renders form, validates, POSTs to
 // /api/community/posts/[id]/promote, dismisses on success.
 //
+// Promotion is ALWAYS staged: the post is added to the staged-updates queue
+// for admin review, then grounded like any other item on approval. The
+// former "Promote directly" admin radio (which inserted straight into
+// intelligence_items, bypassing grounding) was removed 2026-06-28.
+//
 // Light-first design: respects --color-surface, --color-text-primary,
 // --color-border tokens defined in the global theme. No hardcoded hex.
 //
@@ -15,18 +20,12 @@
 //   - Jurisdiction ISO codes (comma-separated, optional)
 //   - Priority (4-value select, default MODERATE)
 //   - Summary (textarea, defaults to post.body if blank server-side)
-//   - Promotion kind (radio): "Stage for admin review" / "Promote
-//     directly". Direct is disabled for non-admins.
 //   - Notes (textarea, optional)
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import type {
-  PromotePostButtonPost,
-  PromotePostButtonUser,
-} from "./PromotePostButton";
-import { DOMAIN_LABELS, type Domain } from "@/lib/domains";
+import type { PromotePostButtonPost } from "./PromotePostButton";
 
 const ITEM_TYPES = [
   { value: "regulation", label: "Regulation" },
@@ -50,32 +49,13 @@ const PRIORITIES = [
   { value: "LOW", label: "Low" },
 ] as const;
 
-// Admin-selectable destination surface for kind='direct' promotions.
-// Leakage fix 2026-05-23: the promote route no longer hardcodes
-// `domain: 1`; admins pick the destination explicitly. The "Auto from
-// item type" option leaves the field unset so the server-side
-// domainForItemType() helper derives the value from item_type. Legacy
-// domain 5 is excluded (the backfill empties it out and new code should
-// never write it).
-const DOMAIN_OPTIONS: Array<{ value: Domain | null; label: string }> = [
-  { value: null, label: "Auto from item type (recommended)" },
-  { value: 1, label: `1 - ${DOMAIN_LABELS[1]}` },
-  { value: 2, label: `2 - ${DOMAIN_LABELS[2]}` },
-  { value: 3, label: `3 - ${DOMAIN_LABELS[3]}` },
-  { value: 4, label: `4 - ${DOMAIN_LABELS[4]}` },
-  { value: 6, label: `6 - ${DOMAIN_LABELS[6]}` },
-  { value: 7, label: `7 - ${DOMAIN_LABELS[7]}` },
-];
-
 interface PromotePostDialogProps {
   post: PromotePostButtonPost;
-  currentUser: PromotePostButtonUser;
   onClose: () => void;
 }
 
 export function PromotePostDialog({
   post,
-  currentUser,
   onClose,
 }: PromotePostDialogProps) {
   const router = useRouter();
@@ -95,13 +75,7 @@ export function PromotePostDialog({
   const [priority, setPriority] =
     useState<(typeof PRIORITIES)[number]["value"]>("MODERATE");
   const [summary, setSummary] = useState(post.body ?? "");
-  const [kind, setKind] = useState<"staged" | "direct">("staged");
   const [notes, setNotes] = useState("");
-  // Admin-only destination-surface selector. Default null = "auto from
-  // item_type" so the existing single-click flow still works for the
-  // non-admin staged path. Only included in the POST payload when the
-  // admin explicitly picked a value.
-  const [domain, setDomain] = useState<Domain | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +124,7 @@ export function PromotePostDialog({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          kind,
+          kind: "staged",
           intelligence_item: {
             title: title.trim(),
             source_url: sourceUrl.trim(),
@@ -158,12 +132,6 @@ export function PromotePostDialog({
             jurisdiction_iso: jurisdictions.length > 0 ? jurisdictions : undefined,
             priority,
             summary: summary.trim() || undefined,
-            // Admin domain selector. Only set when both (a) the admin is
-            // a platform admin AND (b) they picked a specific value.
-            // Server validates the value and enforces admin gating on
-            // kind='direct'. Non-admin staged path always sends null
-            // (server derives from item_type).
-            domain: currentUser.isPlatformAdmin && domain !== null ? domain : undefined,
           },
           notes: notes.trim() || undefined,
         }),
@@ -215,7 +183,8 @@ export function PromotePostDialog({
               Promote post to intelligence
             </h2>
             <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-              Convert this community finding into a platform intelligence item.
+              Add this community finding to the staged-updates queue. A platform
+              admin reviews and grounds it before it goes live.
             </p>
           </div>
           <button
@@ -323,46 +292,6 @@ export function PromotePostDialog({
             </div>
           </div>
 
-          {/* Destination surface (admin-only). Leakage fix 2026-05-23:
-              the promote route no longer hardcodes domain=1; platform
-              admins pick the destination surface here. Non-admins see
-              nothing and the request falls through to the auto-derive
-              path on the server. */}
-          {currentUser.isPlatformAdmin && (
-            <div>
-              <label
-                htmlFor="pp-domain"
-                className="block text-xs font-medium text-[var(--color-text-secondary)]"
-              >
-                Destination surface
-                <span className="ml-1 text-[11px] font-normal text-[var(--color-text-secondary)]">
-                  (admin override)
-                </span>
-              </label>
-              <select
-                id="pp-domain"
-                value={domain === null ? "" : String(domain)}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === "") setDomain(null);
-                  else setDomain(Number(v) as Domain);
-                }}
-                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-              >
-                {DOMAIN_OPTIONS.map((opt) => (
-                  <option key={opt.label} value={opt.value === null ? "" : String(opt.value)}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
-                Leave on Auto to route from item type. Pick explicitly to
-                send to a different surface (admin-gated; only honoured
-                for direct promotions).
-              </p>
-            </div>
-          )}
-
           {/* Jurisdiction */}
           <div>
             <label
@@ -403,64 +332,6 @@ export function PromotePostDialog({
               Defaults to the post body if left empty.
             </p>
           </div>
-
-          {/* Kind */}
-          <fieldset>
-            <legend className="text-xs font-medium text-[var(--color-text-secondary)]">
-              Promotion kind
-            </legend>
-            <div className="mt-2 space-y-2">
-              <label className="flex cursor-pointer items-start gap-2 rounded-md border border-[var(--color-border)] px-3 py-2 hover:border-[var(--color-primary)]">
-                <input
-                  type="radio"
-                  name="pp-kind"
-                  value="staged"
-                  checked={kind === "staged"}
-                  onChange={() => setKind("staged")}
-                  className="mt-0.5"
-                />
-                <span>
-                  <span className="block font-medium text-[var(--color-text-primary)]">
-                    Stage for admin review
-                  </span>
-                  <span className="block text-[11px] text-[var(--color-text-secondary)]">
-                    Adds an entry to the staged updates queue. A platform admin
-                    approves before the item goes live.
-                  </span>
-                </span>
-              </label>
-              <label
-                className={`flex cursor-pointer items-start gap-2 rounded-md border border-[var(--color-border)] px-3 py-2 hover:border-[var(--color-primary)] ${
-                  !currentUser.isPlatformAdmin
-                    ? "cursor-not-allowed opacity-50 hover:border-[var(--color-border)]"
-                    : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="pp-kind"
-                  value="direct"
-                  checked={kind === "direct"}
-                  onChange={() => setKind("direct")}
-                  disabled={!currentUser.isPlatformAdmin}
-                  className="mt-0.5"
-                />
-                <span>
-                  <span className="block font-medium text-[var(--color-text-primary)]">
-                    Promote directly
-                    {!currentUser.isPlatformAdmin && (
-                      <span className="ml-1 text-[11px] font-normal text-[var(--color-text-secondary)]">
-                        (platform admin only)
-                      </span>
-                    )}
-                  </span>
-                  <span className="block text-[11px] text-[var(--color-text-secondary)]">
-                    Inserts the intelligence item immediately. Skips review.
-                  </span>
-                </span>
-              </label>
-            </div>
-          </fieldset>
 
           {/* Notes */}
           <div>
@@ -503,7 +374,7 @@ export function PromotePostDialog({
               className="rounded-md bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-[var(--color-on-primary,white)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-50"
               disabled={submitting}
             >
-              {submitting ? "Promoting…" : "Promote"}
+              {submitting ? "Staging…" : "Stage for review"}
             </button>
           </div>
         </form>
