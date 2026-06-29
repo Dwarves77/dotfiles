@@ -21,7 +21,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
-import { fetchPrimaryWithFallback } from "@/lib/sources/primary-fallback.mjs";
+import { fetchPrimaryWithFallback, detectRoadblock } from "@/lib/sources/primary-fallback.mjs";
 import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
@@ -74,17 +74,39 @@ async function directFetchClean(url: string, max: number): Promise<FetchResult> 
   const text = (cleanCtl(full.slice(0, max)) || "").replace(/\s+/g, " ").trim();
   return { text, truncated: full.length > max, fullLength: full.length, cap: max, transport: "direct" };
 }
-// Corroborator / ground fetcher: direct-first for eligible hosts, else Browserless. SWALLOWS errors to ""
-// (a failed corroborator is dropped, not fatal) — same contract as the prior fetchText.
-async function fetchMeta(url: string, max: number): Promise<FetchResult> {
+// THE ONE transport primitive — the SSOT for direct-vs-Browserless selection + the TRY-BOTH fallback.
+// Both the corroborator fetcher (fetchMeta) and the primary fetcher (blFetchClean) delegate here, so the
+// transport rule lives in ONE place (this removes the fetchMeta-vs-blFetchClean duplication the fetch-path
+// audit flagged — a fix could previously be made in one copy and not the other).
+//   1. direct-HTTP first for eligible legal hosts (full, free) — accept ONLY real, non-roadblocked content.
+//   2. Browserless (escalating plain -> stealth -> unblock).
+//   3. TRY-BOTH (the WAF fix): if Browserless returned a block / roadblock (datacenter-IP WAF refusal, CDN
+//      block page), retry the SAME url via plain direct HTTP for ANY host — plain HTTP reaches datacenter-
+//      IP-WAF'd sites Browserless cannot (and the eligible-host step covers the reverse). Accept the plain
+//      result only if it is real, non-roadblocked content.
+//   4. dropIfBlocked: a corroborator DROPS a still-blocked result (never pollute the pool with a 553ch
+//      block page); the primary KEEPS it so fetchPrimaryWithFallback's detectRoadblock sees the reason
+//      (cdn_block / soft_404 / ...) and runs the official-alternative web search.
+async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
   if (directFetchEligible(url)) {
-    try { const d = await directFetchClean(url, max); if (d.text.length > 200) return d; } catch { /* fall through to Browserless */ }
+    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* fall through */ }
   }
+  let bl: FetchResult | null = null;
   try {
     const r = await browserlessFetch(url, { maxTextLength: max });
     const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
-    return { text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max, transport: r.tier ?? "browserless" };
-  } catch { return { text: "", truncated: false, fullLength: 0, cap: max, transport: "none" }; }
+    bl = { text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max, transport: r.tier ?? "browserless" };
+  } catch { /* Browserless hard-errored across all tiers */ }
+  if (!bl || detectRoadblock(bl.text).roadblocked) {
+    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return { ...d, transport: "direct-fallback" }; } catch { /* plain also failed */ }
+    if (dropIfBlocked) return { text: "", truncated: false, fullLength: 0, cap: max, transport: "none" };
+  }
+  return bl ?? { text: "", truncated: false, fullLength: 0, cap: max, transport: "none" };
+}
+// Corroborator / ground fetcher: drop a still-blocked result (a failed corroborator is dropped, not fatal,
+// and a block page must never enter the pool).
+async function fetchMeta(url: string, max: number): Promise<FetchResult> {
+  return fetchWithTransport(url, max, { dropIfBlocked: true });
 }
 async function fetchText(url: string, max = 40000): Promise<string> {
   return (await fetchMeta(url, max)).text;
@@ -254,20 +276,11 @@ async function webSearchAlternatives(title: string, itemType: string, reason: st
   return [...new Set((txt.match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
 }
 
-// Browserless fetch returning EXTRACTED+cleaned text, the same normalisation fetchText applies — the
-// roadblock detector runs on this extracted text. No catch here: fetchPrimaryWithFallback's boundedFetch
-// owns the timeout race + error→reason mapping.
-// PRIMARY fetcher (injected into fetchPrimaryWithFallback). Direct-first for eligible legal hosts (full,
-// free), else Browserless. Does NOT swallow a Browserless throw — boundedFetch maps it to status→reason so
-// the existing roadblock / soft-404 detection still fires. Reports truncation up via the FetchResult.
-const blFetchClean = async (url: string): Promise<FetchResult> => {
-  if (directFetchEligible(url)) {
-    try { const d = await directFetchClean(url, PRIMARY_MAX_CHARS); if (d.text.length > 200) return d; } catch { /* fall through to Browserless */ }
-  }
-  const r = await browserlessFetch(url, { maxTextLength: PRIMARY_MAX_CHARS });
-  const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
-  return { text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: PRIMARY_MAX_CHARS, transport: r.tier ?? "browserless" };
-};
+// PRIMARY fetcher (injected into fetchPrimaryWithFallback). Delegates to the ONE transport primitive
+// (direct-eligible-first -> Browserless -> try-both plain fallback). KEEPS a still-blocked result (does NOT
+// drop) so fetchPrimaryWithFallback's detectRoadblock sees the reason (cdn_block / soft_404 / ...) and runs
+// the official-alternative web search. Reports truncation up via the FetchResult.
+const blFetchClean = async (url: string): Promise<FetchResult> => fetchWithTransport(url, PRIMARY_MAX_CHARS);
 
 /** Canonical primary fetch with the roadblock→bounded-alternative-search capability bound to the real
  *  deps (Browserless + official-alternative web_search). BOTH generateBrief and phase2-reground call this
