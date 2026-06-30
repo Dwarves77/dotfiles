@@ -58,7 +58,11 @@ export const MARKER_SOURCE =
 // Baselines computed mechanically by the meta-gate (node line-count with MARKER_SOURCE). Seeded from
 // the 2026-06-06 build; the gate self-reports a mismatch with the exact value to re-seed to.
 export const SKILL_MARKER_BASELINE = {
-  'environmental-policy-and-innovation': 17,
+  // 17→18 (2026-06-30): added "analysis in workspace-ACTION sections MUST open with a recognized
+  // label" to Section 3. TRIAGE: not a new rule — an instance of the existing labeling discipline
+  // already enforced by the provenance gate's criterion 4 (validate_item_provenance quarantines an
+  // unlabeled ANALYSIS assertion); covered by the per-claim grounding invariants, no new invariant.
+  'environmental-policy-and-innovation': 18,
   'source-credibility-model': 10,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
