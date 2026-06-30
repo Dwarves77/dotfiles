@@ -88,7 +88,7 @@ export interface IntelligenceItem {
 
   // Status and severity
   status: ItemStatus;
-  severity: "critical" | "high" | "medium" | "low";
+  severity: "critical" | "high" | "moderate" | "low";
   confidence: ConfidenceLevel;
   priority: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
   reasoning: string;
@@ -234,13 +234,13 @@ function mapResourceType(type: string): ItemType {
 
 // ── Helper: Map priority to severity ──
 
-function mapPriorityToSeverity(priority: string): "critical" | "high" | "medium" | "low" {
+function mapPriorityToSeverity(priority: string): "critical" | "high" | "moderate" | "low" {
   switch (priority) {
     case "CRITICAL": return "critical";
     case "HIGH": return "high";
-    case "MODERATE": return "medium";
+    case "MODERATE": return "moderate";
     case "LOW": return "low";
-    default: return "medium";
+    default: return "moderate";
   }
 }
 

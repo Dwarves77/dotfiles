@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { useSourceStore, filterSources } from "@/stores/sourceStore";
 import { SOURCE_TIER_DEFINITIONS } from "@/types/source";
 import type { Source, SourceTier } from "@/types/source";
-import { DOMAINS } from "@/lib/constants";
+import { DOMAIN_LABELS, type Domain } from "@/lib/domains";
 import {
   Database, AlertTriangle, CheckCircle, XCircle,
   Clock, Eye, Search, ChevronDown, ExternalLink,
@@ -146,8 +146,10 @@ function SourceRow({ source }: { source: Source }) {
         {/* Domains */}
         <div className="hidden sm:flex items-center gap-1 shrink-0">
           {source.domains.slice(0, 3).map((d) => {
-            const domain = DOMAINS.find((dm) => dm.id === d);
-            return domain ? (
+            // Canonical domain label = domains.ts DOMAIN_LABELS (the live five-surface map). The stale
+            // constants.ts DOMAINS (retired 7-domain) is gone — it disagreed with this on the same keys.
+            const label = DOMAIN_LABELS[d as Domain];
+            return label ? (
               <span
                 key={d}
                 className="text-[10px] px-1.5 py-0.5 rounded"
@@ -156,7 +158,7 @@ function SourceRow({ source }: { source: Source }) {
                   backgroundColor: "var(--color-surface-raised)",
                 }}
               >
-                {domain.short}
+                {label}
               </span>
             ) : null;
           })}

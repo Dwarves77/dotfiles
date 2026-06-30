@@ -3,17 +3,11 @@ export const APP_NAME = "Caro's Ledge";
 export const APP_TAGLINE = "Freight Sustainability Intelligence";
 
 // ── Intelligence Domains (primary navigation) ──
-export const DOMAINS = [
-  { id: 1, label: "Regulatory & Legislative", short: "Regulations", icon: "Scale" },
-  { id: 2, label: "Energy & Technology Innovation", short: "Technology", icon: "Zap" },
-  { id: 3, label: "Regional Operations Intelligence", short: "Regional", icon: "Globe" },
-  { id: 4, label: "Geopolitical & Market Signals", short: "Geopolitical", icon: "TrendingUp" },
-  { id: 5, label: "Source Intelligence", short: "Sources", icon: "Database" },
-  { id: 6, label: "Warehouse & Facility Optimization", short: "Facilities", icon: "Building" },
-  { id: 7, label: "University & Research Pipeline", short: "Research", icon: "GraduationCap" },
-] as const;
-
-export type DomainId = (typeof DOMAINS)[number]["id"];
+// RETIRED 2026-06-30: the stale 7-domain `DOMAINS` map (and its `DomainId` type) lived here and
+// DISAGREED with the canonical `DOMAIN_LABELS` (src/lib/domains.ts — the live five-surface map) on the
+// same domain 1-7 key (e.g. domain 4 = "Geopolitical" here vs "Market Intel - Price/Signals" canonical).
+// Its only reader (SourceHealthDashboard) now reads DOMAIN_LABELS. domains.ts is the single source for
+// domain labels; do not reintroduce a competing map here.
 
 // ── Transport Modes ──
 export const MODES = [
