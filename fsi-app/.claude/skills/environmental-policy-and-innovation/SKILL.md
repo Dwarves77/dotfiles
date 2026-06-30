@@ -215,7 +215,9 @@ The regulation in plain language: who issued it, what it requires, when it takes
 
 ### Section 3: Issues Requiring Immediate Action
 
-What the workspace must decide or do now or within 30 days. Specific actions, not "be aware of." Each action labeled with severity (ACTION REQUIRED, COST ALERT, WINDOW CLOSING, COMPETITIVE EDGE, MONITORING). Each action lead with the action verb, then cost or consequence, then deadline.
+What the workspace must decide or do now or within 30 days. Specific actions, not "be aware of." Each action labeled with severity (ACTION REQUIRED, COST ALERT, WINDOW CLOSING, COMPETITIVE EDGE, MONITORING). Each action leads with a CONCRETE action verb (Assess, Map, Verify, Commission, Engage, Negotiate, Reconcile), then cost or consequence, then deadline.
+
+Labeling discipline in this and every workspace-ACTION section (also Operational System Requirements, What the Workspace Should Do Now, any "Status:" / readiness line): the analytical judgement that justifies the action — the workspace's EXPOSURE, readiness, interoperability, or the CONSEQUENCE of a gap ("results may not satisfy ISO 14083 scrutiny", "compliance depends on receiving carrier-level activity data") — is ANALYSIS and MUST open with a recognized label (`*Operational implication:*` or `*Analytical inference:*`), cited where a source exists. This is the section's value: KEEP the judgement, LABEL it — never drop, hedge, or soften it to pass the gate. And NEVER lead an action with a bare regulatory modal ("Requires internal assessment", "Must assess", "Status: Requires …"): the provenance gate (criterion 4) reads the bare `requires/must/applies to` in a section with no grounded FACT and no recognized label as an unlabeled assertion and quarantines the brief, regardless that you meant it as an action, not a legal obligation. This is the moat working — analysis must be labeled as analysis, never bare-asserted.
 
 ### Section 4: How the Workspace Sits in the Compliance Chain
 

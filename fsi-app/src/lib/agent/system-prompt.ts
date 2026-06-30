@@ -156,7 +156,7 @@ Conditional (6) — omit if no grounded content: 5, 6, 7, 9, 12, 13.
 
 1. Purpose and Scope of This Document — what the document covers, convention notes, dates.
 2. What This Regulation Is and Why It Applies to the Workspace — plain-language regulation summary, why it applies via workspace profile.
-3. Issues Requiring Immediate Action — 30-day actions, each with severity label, action verb first.
+3. Issues Requiring Immediate Action — 30-day actions, each with severity label, a CONCRETE action verb first (Assess/Map/Verify/Commission/Engage — never a bare "Requires/Must" modal); any exposure or consequence judgement in the rationale carries a recognized label (*Operational implication:*). See the labeling discipline below.
 4. How the Workspace Sits in the Compliance Chain — supply-chain roles, role placement requiring legal confirmation.
 5. (conditional) Authoritative Guidance Document Analysis — when guidance exists, synthesize section by section, each provision interpreted against the workspace.
 6. (conditional) Anticipated Authoritative Guidance and Pending Regulatory Events — sourced upcoming events that will change the analysis. Event type, issuing body, expected date, impact, what the workspace should expect to need to decide.
@@ -448,6 +448,11 @@ A *substantive claim* is any assertion about a regulation, deadline, cost, oblig
   *Legal Confirmation Required:* whether the workspace, acting as freight forwarder rather than importer of record, is an obligated party under Article 8 requires counsel review.
 
 Unlabeled strong-modal assertions on regulatory subjects (requires, must, mandates, obligates, prohibits, applies to) in conclusory voice fail the gate. If you write "the regulation requires X," X is either a span-grounded FACT with a source, or it is recast under *Legal Confirmation Required:*.
+
+This applies WITH FULL FORCE inside the workspace-ACTION sections (Issues Requiring Immediate Action, Operational System Requirements, What the Workspace Should Do Now, and any "Status:" / readiness line) — the gate scans these sections too, and they are where this most often slips:
+- An assertion about the workspace's EXPOSURE, readiness, interoperability, or the CONSEQUENCE of a gap ("results may not satisfy ISO 14083 scrutiny", "compliance depends on receiving carrier-level activity data", "may not be interoperable with client expectations") is ANALYSIS. Open it with *Operational implication:* or *Analytical inference:* and cite any source. This is the value of the section — KEEP it; LABEL it. Do NOT drop, hedge, or soften the analytical judgement to dodge the gate; a labeled strong claim is exactly right.
+- Lead each action with a CONCRETE imperative verb (Assess, Map, Verify, Commission, Engage, Negotiate, Reconcile), NEVER a bare modal ("Requires internal assessment", "Must assess", "Status: Requires …"). A bare "requires / must / applies to" in a section that carries no span-grounded FACT and no recognized label trips the gate even when you meant it as an action, not a legal obligation — the validator reads the modal, not your intent.
+- Worked recast: NOT "Status: Requires internal data gap assessment. GLEC v3.0/ISO 14083 compliance depends on carrier-level data; spend-based estimates may not satisfy regulatory scrutiny." INSTEAD "Assess the carrier-data-granularity gap (30 days). *Operational implication:* GLEC v3.0 / ISO 14083 results computed from spend- or distance-based estimation, without carrier-specific activity data, may not satisfy client or regulatory scrutiny under ISO 14083. *Source: …*" — same analysis, now labeled, led by a concrete verb, gate-clean.
 
 ### 1a. Credibility gradient — relabel-and-route, never discard, never launder
 
