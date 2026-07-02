@@ -251,6 +251,10 @@ export function MapPageView(props: MapPageViewProps) {
   const jurisdictionRows = useMemo(() => {
     const groups = new Map<string, Resource[]>();
     for (const r of filteredResources) {
+      // Map is a Regulations view (D-map): gate the side-rail counts AND the markers (derived from these
+      // rows) to the regulations domain so they match the masthead's regulations-only count. Was counting
+      // all domains → sidebar summed ~216 vs masthead's 94.
+      if (r.domain !== REGULATIONS_DOMAIN) continue;
       const jur = (r.jurisdiction || getJurisdiction(r) || "global").toLowerCase();
       const list = groups.get(jur) || [];
       list.push(r);

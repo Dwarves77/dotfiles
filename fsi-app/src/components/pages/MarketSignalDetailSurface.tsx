@@ -1120,7 +1120,9 @@ function SummaryPanel({
             boxShadow: "var(--shadow-card, var(--shadow))",
           }}
         >
-          <IntelligenceBrief markdown={fullBrief} />
+          {/* Sources dedupe (item 5a): this surface renders a structured Sources card (BriefSection above),
+              so strip the raw "## Sources" section from the full-brief body to avoid a duplicate. */}
+          <IntelligenceBrief markdown={fullBrief} stripSources />
         </div>
       )}
     </div>
@@ -1226,9 +1228,8 @@ function TrajectoryPanel({ resource: r }: { resource: Resource }) {
             fontStyle: "italic",
           }}
         >
-          Trajectory data not yet available for this signal. Per-signal
-          price history will populate when the item_price_history schema
-          (or marketData fields on the row) lands.
+          Trajectory data not yet available for this signal. Historical
+          price data will be added as it becomes available.
         </p>
       )}
     </BriefSection>
@@ -1326,7 +1327,7 @@ function SourceTierLegend() {
           </li>
         ))}
         <li style={{ color: "var(--text-2, var(--muted))", fontStyle: "italic", marginTop: 4 }}>
-          T6 (aggregator) and T7 (unverified) are admin-reviewed and rarely surface here.
+          Sources are curated for reliability and verified before publication.
         </li>
       </ul>
     </div>

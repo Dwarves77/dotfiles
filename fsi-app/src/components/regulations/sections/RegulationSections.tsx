@@ -52,6 +52,9 @@ export function RegulationSections({ rows }: { rows: IntelligenceItemSectionRow[
         const heading = CANONICAL_HEADINGS[key];
         const parsed = parseRegulationSection(key, heading, row.content_md);
         if (!parsed) return null;
+        // Hide-when-empty: a timeline (§14 Confirmed Regulatory Timeline) with no entries renders as a
+        // titled empty box (RegulationTimeline returns null but SectionCard still frames it). Suppress it.
+        if (parsed.kind === "timeline" && parsed.entries.length === 0) return null;
 
         return (
           <SectionCard

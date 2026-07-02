@@ -87,7 +87,7 @@ export async function GET(
   const { data, error } = await service
     .from("org_memberships")
     .select(
-      "id, user_id, role, created_at, user:profiles!user_id(full_name, avatar_url)"
+      "id, user_id, role, created_at, user:profiles!user_id(full_name, display_name, email, avatar_url)"
     )
     .eq("org_id", org_id)
     .order("created_at", { ascending: true });
@@ -108,7 +108,7 @@ export async function GET(
     user_id: string;
     role: string;
     created_at: string;
-    user: { full_name?: string | null; avatar_url?: string | null } | null;
+    user: { full_name?: string | null; display_name?: string | null; email?: string | null; avatar_url?: string | null } | null;
   }>;
 
   return NextResponse.json(
@@ -119,7 +119,7 @@ export async function GET(
         role: r.role,
         joined_at: r.created_at,
         display_name:
-          r.user?.full_name ?? `${String(r.user_id).slice(0, 8)}...`,
+          r.user?.full_name ?? r.user?.display_name ?? r.user?.email ?? `${String(r.user_id).slice(0, 8)}...`,
         avatar_url: r.user?.avatar_url ?? null,
       })),
       caller_role: callerMembership.role,

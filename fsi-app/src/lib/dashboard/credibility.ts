@@ -37,13 +37,18 @@ export interface SourceCredibilityProfile {
   biasTags: Array<{ dimension: BiasDim; tag: string; confidence: number | null }>;
 }
 
-const EMPTY_PROFILE: SourceCredibilityProfile = {
-  baseTier: null,
-  effectiveTier: null,
-  citationCount: null,
-  lastCitedAt: null,
-  biasTags: [],
-};
+// A FRESH profile per source — never a shared constant. The mutable `biasTags` array MUST be its own
+// object per source: the bias-grouping loop below push()es into it, so a shared array cross-contaminates
+// every card. (Do not reintroduce a `const EMPTY_PROFILE` that gets shallow-spread — that WAS the bug.)
+function makeEmptyProfile(): SourceCredibilityProfile {
+  return {
+    baseTier: null,
+    effectiveTier: null,
+    citationCount: null,
+    lastCitedAt: null,
+    biasTags: [],
+  };
+}
 
 export type SourceCredibilityMap = Record<string, SourceCredibilityProfile>;
 
@@ -53,7 +58,7 @@ async function fetchProfiles(sortedKey: string): Promise<SourceCredibilityMap> {
   if (sourceIds.length === 0) return {};
 
   const out: SourceCredibilityMap = {};
-  for (const id of sourceIds) out[id] = { ...EMPTY_PROFILE };
+  for (const id of sourceIds) out[id] = makeEmptyProfile();
 
   try {
     const supabase = getServiceSupabase();
