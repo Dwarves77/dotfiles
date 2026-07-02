@@ -151,6 +151,9 @@ export default async function OperationsDetailPage({
   //   3. If neither yields anything, pass [] (empty state rendered by surface).
   let related: ReturnType<typeof pickRelated>[] = [];
   let relatedReason: "jurisdiction" | "source" | "none" = "none";
+  // item 5b: source-level readability. Behind migration 147 and fails SOFT — a missing column or a null
+  // value leaves this null, and the surface renders exactly as today (the query is in the soft-fail try).
+  let sourceFetchStatus: string | null = null;
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -177,6 +180,19 @@ export default async function OperationsDetailPage({
         .maybeSingle();
 
       if (self) {
+        // item 5b: read the source's fetch_status so the surface can gate an unreadable source link.
+        // Inside the soft-fail try — if the column doesn't exist yet (pre-migration-147) this throws and
+        // sourceFetchStatus stays null (renders as today).
+        if (self.source_id) {
+          const { data: srcMeta } = await supabase
+            .from("sources")
+            .select("fetch_status")
+            .eq("id", self.source_id)
+            .maybeSingle();
+          sourceFetchStatus =
+            (srcMeta as { fetch_status?: string | null } | null)?.fetch_status ?? null;
+        }
+
         // Step 1: jurisdiction match on other regional_data items.
         const selfJurisdictions: string[] = Array.isArray(self.jurisdictions)
           ? self.jurisdictions
@@ -273,6 +289,7 @@ export default async function OperationsDetailPage({
         relatedReason={relatedReason}
         sections={sections}
         matrixEligibility={matrixEligibility}
+        sourceFetchStatus={sourceFetchStatus}
       />
     </>
   );

@@ -68,6 +68,13 @@ interface Props {
    * ineligible — fail-closed is the correct posture.
    */
   matrixEligibility?: MatrixEligibility;
+  /**
+   * item 5b — the source's last transport fetch outcome (sources.fetch_status). When it is a block
+   * value (cdn_block / soft_404 / blocked / error) the source link is suppressed + labelled rather than
+   * shown as a live link the pipeline could not read. null/undefined (incl. pre-migration-147) → render
+   * exactly as today.
+   */
+  sourceFetchStatus?: string | null;
 }
 
 // ── Operations section headings ─────────────────────────────────────────────
@@ -680,6 +687,7 @@ export function OperationsDetailSurface({
   relatedReason,
   sections = [],
   matrixEligibility,
+  sourceFetchStatus,
 }: Props) {
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const [briefMode, setBriefMode] = useState<"short" | "full">("short");
@@ -694,6 +702,11 @@ export function OperationsDetailSurface({
   const tier = r.sourceTier;
   const sourceName = r.sourceName || null;
   const sourceUrl = r.url || r.sourceUrl || null;
+  // item 5b: never render a live link to a source the pipeline flagged unreadable (Cloudflare/CDN block,
+  // soft-404, etc.). null status (incl. pre-migration-147) → sourceUnreadable=false → renders as today.
+  const sourceUnreadable =
+    sourceFetchStatus != null &&
+    ["cdn_block", "soft_404", "blocked", "error"].includes(sourceFetchStatus);
   const jurisdiction = r.jurisdiction || null;
 
   return (
@@ -783,7 +796,7 @@ export function OperationsDetailSurface({
             <span style={{ fontWeight: 700, color: "var(--color-text-primary)" }}>
               Source
             </span>
-            {sourceUrl ? (
+            {sourceUrl && !sourceUnreadable ? (
               <a
                 href={sourceUrl}
                 target="_blank"
@@ -794,7 +807,19 @@ export function OperationsDetailSurface({
               </a>
             ) : (
               <span style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>
-                {sourceName}
+                {sourceName || sourceUrl}
+                {sourceUnreadable && (
+                  <span
+                    style={{
+                      marginLeft: 6,
+                      fontWeight: 500,
+                      fontStyle: "italic",
+                      color: "var(--color-text-muted, var(--muted))",
+                    }}
+                  >
+                    (source currently unreachable)
+                  </span>
+                )}
               </span>
             )}
             {typeof tier === "number" && <SourceTierBadge tier={tier} />}
