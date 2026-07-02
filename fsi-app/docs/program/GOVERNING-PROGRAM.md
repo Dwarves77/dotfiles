@@ -94,10 +94,10 @@ render-derives from it). Moat boundary: extraction writes cross-ref EDGES, never
 unknown-standard → surfaced to `integrity_flags`, never dropped. Bypass-proof: no INSERT into intelligence_items outside `mint-item.ts` (fitness fn, red-then-green). ACTIVE_PHASE flips here as the FINAL build step,
 when these anchors match code (never active-with-failing-anchors):
 ```anchors
-present :: fsi-app/src/lib/intake/mint-item.ts :: export function mintIntelligenceItem
+present :: fsi-app/src/lib/intake/mint-item.ts :: function mintIntelligenceItem
 present :: fsi-app/src/lib/entities/entity-resolve.mjs :: export function resolve
 present :: fsi-app/src/workflows/generate-brief.ts :: linkStep
-absent :: fsi-app/src/workflows/generate-brief.ts :: section_claim_provenance
+present :: fsi-app/src/lib/entities/entity-resolve.mjs :: LINK_ALLOWED_TABLES = ["item_cross_references", "integrity_flags"]
 ```
 
 ### phase-2 — Source → sub-source hierarchy

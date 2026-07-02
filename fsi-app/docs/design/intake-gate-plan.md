@@ -96,10 +96,10 @@ Extraction writes **cross-reference EDGES (`item_cross_references`), NEVER groun
 
 ## Enforcement — C5 phase + invariants
 - Governing-program phase `phase-intake-gate`, ACTIVE **ahead of phase-2** (flipped as the FINAL build step, when the anchors match code — never active-with-failing-anchors). C5 anchors:
-  - `present :: src/lib/intake/mint-item.ts :: export function mintIntelligenceItem` (the chokepoint — where congruence + dedup DECISIONS run)
+  - `present :: src/lib/intake/mint-item.ts :: function mintIntelligenceItem` (the chokepoint — where congruence + dedup DECISIONS run; token omits `async` so it matches the decl)
   - `present :: src/lib/entities/entity-resolve.mjs :: export function resolve`
   - `present :: src/workflows/generate-brief.ts :: linkStep`
-  - `absent  :: src/workflows/generate-brief.ts :: section_claim_provenance` (moat boundary in the link path)
+  - `present :: src/lib/entities/entity-resolve.mjs :: LINK_ALLOWED_TABLES = ["item_cross_references", "integrity_flags"]` (moat boundary — the link path's allow-list is EXACTLY those two tables; adding a grounding table like section_claim_provenance changes the literal and trips this anchor. A plain `absent` string anchor is unusable — every file that *names* section_claim_provenance in a comment/erase-path would false-fire. Runtime guard: `assertMoatBoundary`, with a demonstrated failing mode in the unit test.)
 - Invariants (meta-gate → fitness functions):
   - **Single-mint-chokepoint (dispatch §2):** no `.from("intelligence_items").insert(` outside `mint-item.ts` — the bypass-proof self-test, red-against-simulated-bypass then green.
   - A1 audit CI guard — (1a) no primary-artifact item on a news `source_url` un-reclassified, AND (1b) no `research_finding` whose primary `source_url` is a news/press page left un-surfaced (seek-canonical-study flag open).
