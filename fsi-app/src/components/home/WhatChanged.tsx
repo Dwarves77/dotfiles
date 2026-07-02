@@ -157,6 +157,21 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
           {lastUpdatedLabel}
         </div>
       </div>
+      {/* Honesty stamp (item 4(iii)): item_changelog has no ongoing writer — the "Updated" rows are the
+          last detection pass, NOT live change-detection. Date-stamp rather than imply continuous updates.
+          Remove this note when a changelog writer lands (Phase 3). */}
+      {updatedRows.length > 0 && (
+        <p
+          style={{
+            margin: "0 0 10px",
+            fontSize: 11.5,
+            fontStyle: "italic",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          Update history reflects the last detection pass (2026-06-07); continuous change-detection is not yet live.
+        </p>
+      )}
       <p
         style={{
           fontSize: 13.5,

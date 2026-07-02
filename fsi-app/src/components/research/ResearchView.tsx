@@ -978,7 +978,11 @@ function FindingCard({
   severity: Severity;
   featured?: boolean;
 }) {
-  const tier = item.effectiveTier || item.baseTier;
+  // Tier badge guard (item 4(i)): render ONLY a valid 1-7 tier. The DB is clean (base_tier 1-7) and this
+  // path maps it raw, so a T30/T20-style badge can only come from a stale render or a future bad value —
+  // suppress out-of-range rather than show a garbage (or clamped-wrong) badge.
+  const tierRaw = item.effectiveTier || item.baseTier;
+  const tier = typeof tierRaw === "number" && Number.isInteger(tierRaw) && tierRaw >= 1 && tierRaw <= 7 ? tierRaw : null;
   const recent = isWithinLast7Days(item.addedDate);
   const when = item.addedDate ? formatShortDate(item.addedDate) : "";
   const sevTone = SEVERITY_TONE[severity];
