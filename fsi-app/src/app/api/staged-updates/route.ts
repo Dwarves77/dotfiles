@@ -5,6 +5,7 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { APP_DATA_TAG } from "@/lib/data";
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
+import { mintIntelligenceItem } from "@/lib/intake/mint-item";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -323,27 +324,17 @@ async function applyUpdate(
           );
         }
 
-        // Idempotency: if a prior approval attempt for THIS staged_update
-        // already produced an intel item (legacy_id matches), return it
-        // instead of inserting a duplicate.
-        if (insertData.legacy_id) {
-          const { data: existing } = await supabase
-            .from("intelligence_items")
-            .select("id")
-            .eq("legacy_id", insertData.legacy_id)
-            .maybeSingle();
-          if (existing?.id) {
-            return { success: true, itemId: existing.id };
-          }
-        }
-
-        const { data: inserted, error } = await supabase
-          .from("intelligence_items")
-          .insert(insertData)
-          .select("id")
-          .single();
-        if (error) return { success: false, error: error.message };
-        return { success: true, itemId: inserted?.id };
+        // ── phase-intake-gate — the mint chokepoint owns congruence (1a/1b) + subject-existence dedup +
+        //    the Fork-4 relevance surface + legacy_id/source_url idempotency + the single INSERT. Path B no
+        //    longer performs its own INSERT (mirrors Path A / drain-first-fetch). See src/lib/intake/mint-item.ts.
+        const res = await mintIntelligenceItem(supabase, {
+          seed: insertData,
+          legacyId: (insertData as { legacy_id?: string | null }).legacy_id ?? null,
+          relevance: (insertData as { relevance?: number | null }).relevance ?? null,
+          origin: "staged_materialization",
+        });
+        if (!res.ok) return { success: false, error: res.error };
+        return { success: true, itemId: res.itemId };
       }
       case "update_item": {
         if (!update.item_id)
