@@ -1120,7 +1120,9 @@ function SummaryPanel({
             boxShadow: "var(--shadow-card, var(--shadow))",
           }}
         >
-          <IntelligenceBrief markdown={fullBrief} />
+          {/* Sources dedupe (item 5a): this surface renders a structured Sources card (BriefSection above),
+              so strip the raw "## Sources" section from the full-brief body to avoid a duplicate. */}
+          <IntelligenceBrief markdown={fullBrief} stripSources />
         </div>
       )}
     </div>

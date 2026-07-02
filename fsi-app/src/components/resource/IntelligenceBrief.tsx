@@ -8,6 +8,37 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface IntelligenceBriefProps {
   markdown: string;
+  /** When true, strip a "Sources" section (H1/H2, optionally numbered like `## 15. Sources`) from the
+   *  body before rendering — used by detail surfaces that ALSO render a structured Sources card, so the
+   *  raw body Sources table is not shown a second time. Default false = no change for any other consumer. */
+  stripSources?: boolean;
+}
+
+/** Remove a "Sources" section from brief markdown: from a `#`/`##` heading whose text is "Sources"
+ *  (optionally numbered) through to the next heading at the same-or-higher level (or EOF). Line-based so
+ *  it can't over-match across sibling sections. Used only when a structured Sources card renders separately. */
+export function stripSourcesSection(md: string): string {
+  const lines = md.split(/\r?\n/);
+  const out: string[] = [];
+  let skipping = false;
+  let skipLevel = 0;
+  for (const line of lines) {
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      const level = h[1].length;
+      const title = h[2].replace(/^\s*\d+[.)]\s*/, "").replace(/\*\*/g, "").trim().toLowerCase();
+      if (!skipping && level <= 2 && /^sources\b/.test(title)) {
+        skipping = true;
+        skipLevel = level;
+        continue;
+      }
+      if (skipping && level <= skipLevel) {
+        skipping = false; // next same-or-higher heading ends the skip; keep this line
+      }
+    }
+    if (!skipping) out.push(line);
+  }
+  return out.join("\n").trimEnd();
 }
 
 /** Strip the leading numeric prefix some agent outputs emit on their
@@ -438,10 +469,13 @@ function preprocessMarkdown(md: string): string {
   return result;
 }
 
-export function IntelligenceBrief({ markdown }: IntelligenceBriefProps) {
+export function IntelligenceBrief({ markdown, stripSources = false }: IntelligenceBriefProps) {
   const [tocOpen, setTocOpen] = useState(true);
   const briefId = useId().replace(/:/g, "");
-  const processed = useMemo(() => preprocessMarkdown(markdown), [markdown]);
+  const processed = useMemo(() => {
+    const pre = preprocessMarkdown(markdown);
+    return stripSources ? stripSourcesSection(pre) : pre;
+  }, [markdown, stripSources]);
   const toc = useMemo(() => extractTOC(processed), [processed]);
   const components = useMemo(() => createComponents(briefId), [briefId]);
 
