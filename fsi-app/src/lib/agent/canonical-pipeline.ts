@@ -307,6 +307,38 @@ export async function fetchPrimaryDeep(item: { title: string; primaryUrl: string
   return fetchPrimaryWithFallback(item, { browserlessFetch: blFetchClean, webSearchAlternatives, perFetchMs: 20000, maxAlts: 3 });
 }
 
+// item 5b (unreadable-source flag): map the transport's primary-fetch outcome to a sources.fetch_status
+// value. A blocked primary (fell back to an alternative because the declared source was a cdn_block /
+// soft_404 / challenge) marks the SOURCE unreadable so customer surfaces can gate its link; a readable
+// primary marks it 'ok' (clearing a stale block). Ambiguous → leave unchanged.
+function fetchStatusFromPf(pf: { fellBack?: boolean; primaryReason?: string | null; text?: string }): string | null {
+  const reason = pf.primaryReason || null;
+  if (pf.fellBack && reason) {
+    if (reason === "cdn_block") return "cdn_block";
+    if (reason === "soft_404") return "soft_404";
+    return "blocked"; // challenge_stub / empty_stub / access-denied / etc.
+  }
+  if (!pf.fellBack && typeof pf.text === "string" && pf.text.length > 200) return "ok";
+  return null;
+}
+
+// Write the source-level fetch outcome. Guarded + non-fatal, and BEHIND migration 147: until the
+// fetch_status column exists the update errors and is swallowed (zero behaviour change pre-apply).
+async function recordSourceFetchStatus(
+  sb: SupabaseClient,
+  sourceId: string | null | undefined,
+  pf: { fellBack?: boolean; primaryReason?: string | null; text?: string }
+): Promise<void> {
+  if (!sourceId) return;
+  const status = fetchStatusFromPf(pf);
+  if (!status) return;
+  await sb
+    .from("sources")
+    .update({ fetch_status: status, fetch_status_at: new Date().toISOString() })
+    .eq("id", sourceId)
+    .then(() => {}, () => {});
+}
+
 export interface StepResult { ok: boolean; detail: string }
 
 // Sentinel returned by generateBriefFromStored when no reusable pool exists. The cache-checked retry
@@ -437,6 +469,7 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   //    resolver + per-type floor still qualify whatever it returns). A thin REAL primary is kept as-is;
   //    discovery below carries the weight. Fetched ONCE here (never re-fetched in the pool below).
   const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type });
+  await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
   const primaryUrl = pf.url, primary = pf.text;
   // NO SILENT TRUNCATION: collect a truncation event if the primary (or, below, any corroborator) hit its cap.
   const truncEvents: TruncEvent[] = [];
@@ -544,6 +577,7 @@ export async function generateBriefRefreshPrimary(itemId: string): Promise<StepR
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // 1. full primary via the #155 direct-first transport (free for eligible legal hosts; no truncation).
   const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type });
+  await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
   const primaryUrl = pf.url, primary = pf.text;
   if (primary.length < 200) return { ok: false, detail: `refresh-primary: primary too thin (${primary.length}ch${pf.fellBack ? ` via fallback after ${pf.primaryReason}` : ""})` };
   const truncEvents: TruncEvent[] = [];
