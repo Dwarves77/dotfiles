@@ -112,10 +112,62 @@ function classifyItem(row: ScopeItem): keyof Omit<IntelligenceSurfaceCounts, "to
   }
 }
 
+interface SurfaceCountPair {
+  verified?: number | null;
+  total?: number | null;
+}
+
+/**
+ * Primary count path: get_all_surface_counts (migration 148) returns {verified,total} per surface in
+ * one scan, applying surface_of + the override overlay server-side — so the rail counts the SAME
+ * verified population as the surface headers (closes the rail-vs-aggregates leak). Customer rail
+ * consumes .verified (ruling 1). Returns null when the RPC is absent (pre-apply) or errors, so the
+ * caller fails soft to the classifyItem scan. No behaviour change until the DDL window.
+ */
+async function fetchIntelligenceCountsViaRpc(
+  supabase: ReturnType<typeof getServiceSupabase>,
+  orgId: string
+): Promise<IntelligenceSurfaceCounts | null> {
+  const { data, error } = await supabase.rpc("get_all_surface_counts", { p_org_id: orgId });
+  if (error || !data || typeof data !== "object") {
+    if (error) {
+      console.warn(
+        "[dashboard/surface-coverage] get_all_surface_counts unavailable, using fallback scan:",
+        error.message
+      );
+    }
+    return null;
+  }
+  const obj = data as Record<string, SurfaceCountPair>;
+  const verified = (key: string): number => {
+    const v = obj[key]?.verified;
+    return typeof v === "number" && Number.isFinite(v) ? v : 0;
+  };
+  const counts: IntelligenceSurfaceCounts = {
+    regulations: verified("regulations"),
+    marketIntel: verified("market"),
+    research: verified("research"),
+    operations: verified("operations"),
+    uncategorized: verified("uncategorized"),
+    totalIntelligence: 0,
+  };
+  counts.totalIntelligence =
+    counts.regulations +
+    counts.marketIntel +
+    counts.research +
+    counts.operations +
+    counts.uncategorized;
+  return counts;
+}
+
 async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfaceCounts> {
   if (!isSupabaseConfigured()) return EMPTY_INTEL;
   try {
     const supabase = getServiceSupabase();
+
+    // Primary path: the single-scan RPC. Fail-soft to the classifyItem scan below on absent/error.
+    const viaRpc = await fetchIntelligenceCountsViaRpc(supabase, orgId);
+    if (viaRpc) return viaRpc;
 
     // Pull active item ids + (item_type, domain) for classification. Same
     // active-row scope as 068: items LEFT JOIN this workspace's overrides
