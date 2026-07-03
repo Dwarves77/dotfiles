@@ -66,7 +66,10 @@ export const SKILL_MARKER_BASELINE = {
   'source-credibility-model': 10,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
-  'remediation-discipline': 18,
+  // 18→19 (2026-07-03): added Section 4 category 9 "Producer-consumer orphan (the half-slice defect)"
+  // — "a table the application writes MUST have a consumer, OR be allowlisted…". TRIAGE: new normative
+  // statement, triaged into invariant RD-9 (enforcedBy fitness:F14, the A2 orphan checker).
+  'remediation-discipline': 19,
   'sprint-followups-discipline': 17,
 };
 
@@ -405,6 +408,16 @@ export const INVARIANTS = [
     anchor: 'Plan re-grounding (re-read the code before each phase, mechanically)',
     enforcedBy: ['consistency:C5'],
     residual: 'C5 verifies the ACTIVE phase\'s declared present/absent substrings against the real files; a plan-vs-code contradiction surfaces as named drift. It cannot judge whether the rest of the phase plan is sound — the anchors are the operator-declared load-bearing dependencies, and choosing good anchors is the planning judgment C5 makes checkable. Only the ACTIVE phase is checked (between-phase state is ACTIVE_PHASE: none, a no-op).',
+  },
+
+  {
+    id: 'RD-9-producer-consumer-orphan',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 9: Producer-consumer orphan (the half-slice defect)',
+    text: 'A table the application writes MUST have a consumer, OR be allowlisted as a legitimate terminal sink (append-only audit trail, or a writer preceding a named-later-phase reader) WITH a stated reason + review-by-phase tag; the allowlist is itself audited (a stale entry is reported). The half-slice defect (writer-no-reader / reader-no-writer) is detected mechanically and conservatively — gate on high-confidence zero-reader write-orphans; reader-side findings are reported, not gated.',
+    anchor: 'Producer-consumer orphan (the half-slice defect)',
+    enforcedBy: ['fitness:F14'],
+    residual: 'F14 (producer-consumer-orphan.mjs pure core, negative-tested red-then-green) gates the high-confidence half-slice — a schema table with a CODE writer and ZERO readers of any kind (no code .select, no SQL FROM/JOIN/REFERENCES) — beyond the reason-bearing, phase-tagged terminal-sink allowlist, and fails on a stale allowlist entry. NAMED RESIDUALS: (1) TABLE-level only — field-level "reader of never-written column" is a best-effort INFORMATIONAL pass (insert/update key parsing is high-false-positive), not gated (REVISIT); (2) TRANSITIVE deadness not chased — a table read only inside a dead RPC/view counts as consumed (conservative, avoids false positives), so a dead SQL subgraph can hide an orphan; (3) reader-orphans are reported for Phase-7 scoping, not gated. The first-run report (2026-07-03) grandfathered notification_deliveries / bulk_imports / ingestion_control_log pending Phase 7 disposition — it does not authorize deletion.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────

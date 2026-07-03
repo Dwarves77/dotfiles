@@ -17,6 +17,10 @@ import { fitnessFunction as F11 } from './functions/F11-trust-tier-weights.mjs';
 // ONLY (reputation/effective_tier never confers grounding eligibility). Behavioral selftest fails loud
 // on a reintroduced `?? effective_tier` fallback the corpus audits cannot catch.
 import { fitnessFunction as F12 } from './functions/F12-moat-base-tier.mjs';
+// A2 half-slice detector (2026-07-03): F14 mechanizes the producer-consumer orphan check —
+// a writer with no reader — that every prior audit found by hand. Maps to invariant RD-9.
+// (F13 is reserved by the in-flight intake-gate PR #171; F14 avoids the collision.)
+import { fitnessFunction as F14 } from './functions/F14-producer-consumer-orphan.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -26,6 +30,7 @@ export const fitnessFunctions = [
   F10,
   F11,
   F12,
+  F14,
 ];
 
 export function getFunctionById(id) {
