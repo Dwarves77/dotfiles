@@ -36,25 +36,7 @@ import { unstable_cache } from "next/cache";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server";
 import { APP_DATA_TAG } from "@/lib/data";
-import {
-  REGULATIONS_DOMAIN,
-  MARKET_TECH_DOMAIN,
-  MARKET_SIGNALS_DOMAIN,
-  OPERATIONS_REGIONAL_DOMAIN,
-  OPERATIONS_FACILITY_DOMAIN,
-} from "@/lib/domains";
-
-const REGULATION_ITEM_TYPES = new Set([
-  "regulation",
-  "directive",
-  "standard",
-  "guidance",
-  "framework",
-  "law",
-]);
-const MARKET_ITEM_TYPES = new Set(["technology", "innovation", "market_signal", "initiative"]);
-const RESEARCH_ITEM_TYPES = new Set(["research_finding"]);
-const OPERATIONS_ITEM_TYPES = new Set(["regional_data"]);
+import { surfaceOf } from "@/lib/surface-of.mjs";
 
 export interface IntelligenceSurfaceCounts {
   regulations: number;
@@ -110,16 +92,24 @@ interface ScopeItem {
   domain: number | null;
 }
 
+// Fail-soft fallback ONLY: the rail's primary count source is the get_all_surface_counts RPC
+// (migration 148); this scan runs when that RPC is absent (pre-apply) or errors. Classification
+// delegates to the single SoT surfaceOf (src/lib/surface-of.mjs) so this fallback and the SQL
+// surface_of can never disagree (the vocab-drift guard enforces it). surfaceOf returns the canonical
+// surface key; only the "market" -> "marketIntel" bucket name differs here.
 function classifyItem(row: ScopeItem): keyof Omit<IntelligenceSurfaceCounts, "totalIntelligence"> {
-  const t = row.item_type;
-  const d = row.domain;
-  // Regulations wins first; per skill, regulatory item_types or
-  // REGULATIONS_DOMAIN always sit on /regulations.
-  if (d === REGULATIONS_DOMAIN || (t && REGULATION_ITEM_TYPES.has(t))) return "regulations";
-  if (t === "regional_data" || d === OPERATIONS_REGIONAL_DOMAIN || d === OPERATIONS_FACILITY_DOMAIN) return "operations";
-  if (t && RESEARCH_ITEM_TYPES.has(t)) return "research";
-  if ((t && MARKET_ITEM_TYPES.has(t)) || d === MARKET_TECH_DOMAIN || d === MARKET_SIGNALS_DOMAIN) return "marketIntel";
-  return "uncategorized";
+  switch (surfaceOf(row.item_type, row.domain)) {
+    case "regulations":
+      return "regulations";
+    case "market":
+      return "marketIntel";
+    case "research":
+      return "research";
+    case "operations":
+      return "operations";
+    default:
+      return "uncategorized";
+  }
 }
 
 async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfaceCounts> {
