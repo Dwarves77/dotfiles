@@ -721,6 +721,60 @@ export async function fetchWorkspaceAggregatesScoped(
   }
 }
 
+// ── Per-surface counts (migration 148) ────────────────────────
+//
+// get_surface_counts(org, surface) is the single-SoT successor to the scoped aggregates RPC:
+// classification runs server-side via surface_of() (one vocab home) and the population gates
+// provenance_status='verified' (ruling 1) — closing the rail-vs-aggregates verified-filter leak and
+// the /research empty-scope degrade. Returns the same WorkspaceAggregates shape (the RPC is a superset;
+// by_severity/by_band are additionally present but not consumed here). Returns NULL when the RPC is
+// absent (pre-apply) or errors, so callers fail soft to fetchWorkspaceAggregatesScoped.
+export async function fetchSurfaceCounts(
+  orgId: string | null,
+  surface: string
+): Promise<WorkspaceAggregates | null> {
+  if (!isSupabaseConfigured() || !orgId) return null;
+  try {
+    const supabase = getServiceSupabase();
+    const { data, error } = await supabase.rpc("get_surface_counts", {
+      p_org_id: orgId,
+      p_surface: surface,
+    });
+    if (error || !data) {
+      if (error) {
+        console.warn("fetchSurfaceCounts RPC unavailable, caller will fall back:", error.message);
+      }
+      return null;
+    }
+    type Raw = {
+      total_items?: number;
+      by_priority?: Record<string, number>;
+      by_status?: Record<string, number>;
+      by_jurisdiction?: Record<string, number>;
+      total_jurisdictions?: number;
+      last_updated_at?: string | null;
+    };
+    const raw = data as Raw;
+    const bp = raw.by_priority || {};
+    return {
+      totalItems: Number(raw.total_items ?? 0),
+      byPriority: {
+        CRITICAL: Number(bp.CRITICAL ?? 0),
+        HIGH: Number(bp.HIGH ?? 0),
+        MODERATE: Number(bp.MODERATE ?? 0),
+        LOW: Number(bp.LOW ?? 0),
+      },
+      byStatus: raw.by_status || {},
+      byJurisdiction: raw.by_jurisdiction || {},
+      totalJurisdictions: Number(raw.total_jurisdictions ?? 0),
+      lastUpdatedAt: raw.last_updated_at ?? null,
+    };
+  } catch (e) {
+    console.error("fetchSurfaceCounts failed, returning null (caller fails soft):", e);
+    return null;
+  }
+}
+
 // ── Research pipeline rows (replaces inline anon-key in /research) ──
 //
 // Direct intelligence_items query for the /research surface. Goes through

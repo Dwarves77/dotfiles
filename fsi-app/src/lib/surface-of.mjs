@@ -78,3 +78,24 @@ export function renderSurfaceOfSql() {
   });
   return ["    CASE", ...lines, `      ELSE '${DEFAULT_SURFACE}'`, "    END"].join("\n");
 }
+
+/**
+ * The {item_types, domains} scope filter for a surface, derived from SURFACE_RULES — the single vocab
+ * home. Used as the FAIL-SOFT fallback for the surface pages: when get_surface_counts (migration 148)
+ * is absent (pre-apply), the pages fall back to get_workspace_intelligence_aggregates_scoped (069) with
+ * this filter, instead of the deleted per-page MARKET_SCOPE / RESEARCH_SCOPE={} constants. The 069 RPC
+ * OR-combines the two keys, so this is an APPROXIMATE scope (it ignores surface_of's regulation
+ * precedence); the exact, verified-gated count is the primary get_surface_counts path.
+ * @param {string} surface
+ * @returns {{ item_types: string[], domains: number[] }}
+ */
+export function scopeFilterForSurface(surface) {
+  const item_types = [];
+  const domains = [];
+  for (const rule of SURFACE_RULES) {
+    if (rule.surface !== surface) continue;
+    if (rule.itemTypeIn) item_types.push(...rule.itemTypeIn);
+    if (rule.domainIn) domains.push(...rule.domainIn);
+  }
+  return { item_types, domains };
+}

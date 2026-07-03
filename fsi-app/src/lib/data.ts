@@ -11,6 +11,7 @@ import {
   fetchAwaitingReview,
   fetchWorkspaceAggregates,
   fetchWorkspaceAggregatesScoped,
+  fetchSurfaceCounts,
   fetchMarketIntelItems,
   fetchResearchItems,
   fetchOperationsItems,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { scopeFilterForSurface } from "@/lib/surface-of.mjs";
 import {
   recordSeedFallbackFlag,
   type SeedFallbackTrigger,
@@ -517,6 +519,33 @@ const cachedScopedAggregates = unstable_cache(
   ["workspace-aggregates-scoped-v1"],
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
+
+const cachedSurfaceCounts = unstable_cache(
+  async (orgId: string | null, surface: string): Promise<WorkspaceAggregates | null> => {
+    return fetchSurfaceCounts(orgId, surface);
+  },
+  ["surface-counts-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+/**
+ * Per-surface count bundle for a customer surface page's masthead / StatStrip, from the single
+ * classification + counting SoT (migration 148 get_surface_counts): classification via surface_of,
+ * population gated provenance_status='verified'. Fails soft when the RPC is absent (pre-apply) or
+ * errors — falls back to get_workspace_intelligence_aggregates_scoped (069) over the SURFACE_RULES-
+ * derived scope. This is what deletes the per-page MARKET_SCOPE / RESEARCH_SCOPE={} constants: the
+ * scope now derives from the one vocab home (src/lib/surface-of.mjs), not per-page arrays.
+ */
+export async function getSurfaceCounts(surface: string): Promise<WorkspaceAggregates> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    const primary = await cachedSurfaceCounts(orgId, surface);
+    if (primary) return primary;
+  } catch (e) {
+    console.warn(`getSurfaceCounts(${surface}) primary failed; falling back to scoped aggregates:`, e);
+  }
+  return getScopedWorkspaceAggregates(scopeFilterForSurface(surface));
+}
 
 // ── Research pipeline fetcher (auth-aware, NOT inline anon-key) ──────
 //
