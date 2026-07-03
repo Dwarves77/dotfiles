@@ -1,7 +1,7 @@
 import {
   getMarketIntelItems,
   getResourcesOnly,
-  getScopedWorkspaceAggregates,
+  getSurfaceCounts,
   getSourceCitationStats,
 } from "@/lib/data";
 import { MarketPage } from "@/components/pages/MarketPage";
@@ -14,17 +14,6 @@ import { MarketPage } from "@/components/pages/MarketPage";
 // with the user's cookie-auth context, and category-routing RPCs see
 // a real orgId.
 export const dynamic = "force-dynamic";
-
-// Scope filter for the aggregates RPC must mirror the page-scope intent:
-//   techItems:  r.type === "technology" || r.type === "innovation" || r.domain === 2
-//   priceItems: r.type === "market_signal" || r.domain === 4
-// → item_types ⊇ {technology, innovation, market_signal}, domains ⊇ {2, 4}.
-// Migration 069's RPC OR-combines item_types and domains so this matches
-// the union of both tabs.
-const MARKET_SCOPE = {
-  item_types: ["technology", "innovation", "market_signal"],
-  domains: [2, 4],
-};
 
 export default async function Market() {
   const t0 = Date.now();
@@ -45,7 +34,10 @@ export default async function Market() {
   const [marketIntel, fallback, aggregates] = await Promise.all([
     getMarketIntelItems(),
     getResourcesOnly(),
-    getScopedWorkspaceAggregates(MARKET_SCOPE),
+    // Count-integrity: single classification+counting SoT (migration 148). Classification via
+    // surface_of, population gated verified. Fails soft to scoped aggregates (069) over the
+    // SURFACE_RULES-derived market scope when the RPC is absent (pre-apply). Replaces MARKET_SCOPE.
+    getSurfaceCounts("market"),
   ]);
   console.log(
     `[perf] /market data ${Date.now() - t0}ms (category-routed=${marketIntel.total}, fallback=${fallback.resources.length})`

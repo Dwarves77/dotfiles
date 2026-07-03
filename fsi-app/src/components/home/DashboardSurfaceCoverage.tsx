@@ -195,19 +195,14 @@ export function DashboardSurfaceCoverage({ snapshot }: DashboardSurfaceCoverageP
           </li>
         ))}
       </ul>
-      {intel.uncategorized > 0 && (
-        <p
-          style={{
-            fontSize: 10.5,
-            color: "var(--color-text-muted, #7A6E6C)",
-            margin: "10px 0 0",
-            lineHeight: 1.5,
-          }}
-        >
-          {intel.uncategorized} intelligence item{intel.uncategorized === 1 ? "" : "s"} not yet
-          routed to a surface; tracked via the source-routing pipeline.
-        </p>
-      )}
+      {/*
+        Uncategorized is a DEFECT DETECTOR, not a customer surface (count-integrity binding 4): a
+        nonzero uncategorized count means surface_of could not route an item, a standing integrity
+        signal in the same family as the platform flags queue. It must NOT render customer-side, so the
+        prior "N items not yet routed" note is removed here. The count is exposed for the admin surface
+        via get_all_surface_counts.uncategorized; the admin-rail display + the data_quality
+        integrity_flag on transition-from-zero are QUEUED (they need a stateful non-customer-read host).
+      */}
     </TypesetSection>
   );
 }

@@ -3,7 +3,7 @@ import {
   getResearchItems,
   getResearchPipeline,
   getResearchSourceCoverage,
-  getScopedWorkspaceAggregates,
+  getSurfaceCounts,
 } from "@/lib/data";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
@@ -20,13 +20,6 @@ import {
 // correct here — the new fetcher reads cookies via the authed Supabase
 // server client.
 export const dynamic = "force-dynamic";
-
-// Research scope: the surface presents the horizon-scan slice per
-// environmental-policy-and-innovation Section 3. Pass an empty filter so
-// the scoped aggregates RPC degrades to workspace-wide totals; the
-// category-routing layer (getResearchItems) narrows the row payload to
-// the Research-bound source set.
-const RESEARCH_SCOPE = {};
 
 export default async function Research() {
   const t0 = Date.now();
@@ -53,7 +46,11 @@ export default async function Research() {
   const [pipeline, research, aggregates, sourceCoverage] = await Promise.all([
     getResearchPipeline(),
     getResearchItems(),
-    getScopedWorkspaceAggregates(RESEARCH_SCOPE),
+    // Count-integrity: research-scoped counts from the single SoT (migration 148), gated verified.
+    // DELETES the RESEARCH_SCOPE={} degrade that made the masthead show workspace-wide totals (the 259
+    // leak). Fails soft to scoped aggregates (069) over the SURFACE_RULES-derived research scope when
+    // the RPC is absent (pre-apply) — a correct research scope, not the old empty degrade.
+    getSurfaceCounts("research"),
     // Build 8.5: source coverage matrix from get_research_source_coverage()
     // (migration 100). Pivots active Research-bound sources by
     // (transport_mode x jurisdiction_iso) so the coverage tab renders a

@@ -36,25 +36,7 @@ import { unstable_cache } from "next/cache";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server";
 import { APP_DATA_TAG } from "@/lib/data";
-import {
-  REGULATIONS_DOMAIN,
-  MARKET_TECH_DOMAIN,
-  MARKET_SIGNALS_DOMAIN,
-  OPERATIONS_REGIONAL_DOMAIN,
-  OPERATIONS_FACILITY_DOMAIN,
-} from "@/lib/domains";
-
-const REGULATION_ITEM_TYPES = new Set([
-  "regulation",
-  "directive",
-  "standard",
-  "guidance",
-  "framework",
-  "law",
-]);
-const MARKET_ITEM_TYPES = new Set(["technology", "innovation", "market_signal", "initiative"]);
-const RESEARCH_ITEM_TYPES = new Set(["research_finding"]);
-const OPERATIONS_ITEM_TYPES = new Set(["regional_data"]);
+import { surfaceOf } from "@/lib/surface-of.mjs";
 
 export interface IntelligenceSurfaceCounts {
   regulations: number;
@@ -110,22 +92,82 @@ interface ScopeItem {
   domain: number | null;
 }
 
+// Fail-soft fallback ONLY: the rail's primary count source is the get_all_surface_counts RPC
+// (migration 148); this scan runs when that RPC is absent (pre-apply) or errors. Classification
+// delegates to the single SoT surfaceOf (src/lib/surface-of.mjs) so this fallback and the SQL
+// surface_of can never disagree (the vocab-drift guard enforces it). surfaceOf returns the canonical
+// surface key; only the "market" -> "marketIntel" bucket name differs here.
 function classifyItem(row: ScopeItem): keyof Omit<IntelligenceSurfaceCounts, "totalIntelligence"> {
-  const t = row.item_type;
-  const d = row.domain;
-  // Regulations wins first; per skill, regulatory item_types or
-  // REGULATIONS_DOMAIN always sit on /regulations.
-  if (d === REGULATIONS_DOMAIN || (t && REGULATION_ITEM_TYPES.has(t))) return "regulations";
-  if (t === "regional_data" || d === OPERATIONS_REGIONAL_DOMAIN || d === OPERATIONS_FACILITY_DOMAIN) return "operations";
-  if (t && RESEARCH_ITEM_TYPES.has(t)) return "research";
-  if ((t && MARKET_ITEM_TYPES.has(t)) || d === MARKET_TECH_DOMAIN || d === MARKET_SIGNALS_DOMAIN) return "marketIntel";
-  return "uncategorized";
+  switch (surfaceOf(row.item_type, row.domain)) {
+    case "regulations":
+      return "regulations";
+    case "market":
+      return "marketIntel";
+    case "research":
+      return "research";
+    case "operations":
+      return "operations";
+    default:
+      return "uncategorized";
+  }
+}
+
+interface SurfaceCountPair {
+  verified?: number | null;
+  total?: number | null;
+}
+
+/**
+ * Primary count path: get_all_surface_counts (migration 148) returns {verified,total} per surface in
+ * one scan, applying surface_of + the override overlay server-side — so the rail counts the SAME
+ * verified population as the surface headers (closes the rail-vs-aggregates leak). Customer rail
+ * consumes .verified (ruling 1). Returns null when the RPC is absent (pre-apply) or errors, so the
+ * caller fails soft to the classifyItem scan. No behaviour change until the DDL window.
+ */
+async function fetchIntelligenceCountsViaRpc(
+  supabase: ReturnType<typeof getServiceSupabase>,
+  orgId: string
+): Promise<IntelligenceSurfaceCounts | null> {
+  const { data, error } = await supabase.rpc("get_all_surface_counts", { p_org_id: orgId });
+  if (error || !data || typeof data !== "object") {
+    if (error) {
+      console.warn(
+        "[dashboard/surface-coverage] get_all_surface_counts unavailable, using fallback scan:",
+        error.message
+      );
+    }
+    return null;
+  }
+  const obj = data as Record<string, SurfaceCountPair>;
+  const verified = (key: string): number => {
+    const v = obj[key]?.verified;
+    return typeof v === "number" && Number.isFinite(v) ? v : 0;
+  };
+  const counts: IntelligenceSurfaceCounts = {
+    regulations: verified("regulations"),
+    marketIntel: verified("market"),
+    research: verified("research"),
+    operations: verified("operations"),
+    uncategorized: verified("uncategorized"),
+    totalIntelligence: 0,
+  };
+  counts.totalIntelligence =
+    counts.regulations +
+    counts.marketIntel +
+    counts.research +
+    counts.operations +
+    counts.uncategorized;
+  return counts;
 }
 
 async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfaceCounts> {
   if (!isSupabaseConfigured()) return EMPTY_INTEL;
   try {
     const supabase = getServiceSupabase();
+
+    // Primary path: the single-scan RPC. Fail-soft to the classifyItem scan below on absent/error.
+    const viaRpc = await fetchIntelligenceCountsViaRpc(supabase, orgId);
+    if (viaRpc) return viaRpc;
 
     // Pull active item ids + (item_type, domain) for classification. Same
     // active-row scope as 068: items LEFT JOIN this workspace's overrides
