@@ -1,4 +1,4 @@
-import { getOperationsItems, getResourcesOnly, getScopedWorkspaceAggregates } from "@/lib/data";
+import { getOperationsItems, getResourcesOnly, getSurfaceCounts } from "@/lib/data";
 import { fetchOperationsCoverage } from "@/lib/supabase-server";
 import { OperationsPage } from "@/components/pages/OperationsPage";
 import type { Resource } from "@/types/resource";
@@ -11,17 +11,6 @@ import type { Resource } from "@/types/resource";
 // with the user's cookie-auth context, and category-routing RPCs see
 // a real orgId.
 export const dynamic = "force-dynamic";
-
-// Scope filter for the aggregates RPC must mirror the page-scope intent:
-//   regionalItems: r.type === "regional_data" || r.domain === 3
-//   facilityItems: r.domain === 6
-// → item_types ∋ "regional_data", domains ⊇ {3, 6}.
-// Migration 069's RPC OR-combines item_types and domains so this matches
-// the union of regional + facility tabs.
-const OPERATIONS_SCOPE = {
-  item_types: ["regional_data"],
-  domains: [3, 6],
-};
 
 // Build 9: regulation item_types per the canonical taxonomy in
 // environmental-policy-and-innovation SKILL Section 3. Used to extract
@@ -57,7 +46,11 @@ export default async function Operations() {
   const [opsItems, fallback, aggregates, operationsCoverage] = await Promise.all([
     getOperationsItems(),
     getResourcesOnly(),
-    getScopedWorkspaceAggregates(OPERATIONS_SCOPE),
+    // Count-integrity consistency close-out: operations-scoped counts from the single SoT
+    // (migration 148), gated verified. Fails soft to scoped aggregates (069) over the
+    // SURFACE_RULES-derived operations scope when the RPC is absent (pre-apply). Replaces
+    // OPERATIONS_SCOPE — same pattern as /market and /research.
+    getSurfaceCounts("operations"),
     // Sprint 3 A6.3 (2026-05-27): regions + coverage state + facts from
     // migrations 106 (regions + regional_data_facts) and 109
     // (region_dimension_coverage). Empty arrays when not configured.
