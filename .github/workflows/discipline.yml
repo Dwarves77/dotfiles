@@ -119,7 +119,8 @@ jobs:
             fsi-app/src/lib/agent/floor-attribution.test.mjs \
             fsi-app/src/lib/agent/null-tier-flag.test.mjs \
             fsi-app/src/lib/agent/deterministic-lever.test.mjs \
-            fsi-app/src/lib/agent/url-canon.test.mjs
+            fsi-app/src/lib/agent/url-canon.test.mjs \
+            fsi-app/src/lib/llm/spend-guard.test.mjs
 
       - name: Invariant-coverage meta-gate (per-invariant wiring of all 6 skills)
         # Fails CI if any skill invariant is neither enforced (by a resolving mechanism)

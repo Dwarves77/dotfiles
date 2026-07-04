@@ -49,6 +49,17 @@ test("unexercisedLevers lists only present + exercisable classes", () => {
   assert.deepEqual(levers.map((l) => l.class).sort(), ["fact_below_authority_floor", "fact_span_not_in_source"]);
 });
 
+test("DELETE-disposition item is REJECTED from the paid queue regardless of failure classes", () => {
+  // held dup-loser (d5ee6ab8 / 9c5d1d17) — delete on survivor release, never pay to regenerate.
+  const v = paidQueueVerdict(["missing_required_slot"], { rehomableFacts: 0 }, "DELETE");
+  assert.equal(v.eligible, false);
+  assert.match(v.reason, /disposition is DELETE/);
+  // case-insensitive; and a non-DELETE disposition does not reject a generation-need item
+  assert.equal(paidQueueVerdict(["unlabeled_assertion"], {}, "delete").eligible, false);
+  assert.equal(paidQueueVerdict(["unlabeled_assertion"], {}, "DEFER").eligible, true);
+  assert.equal(paidQueueVerdict(["unlabeled_assertion"], {}, null).eligible, true);
+});
+
 test("class taxonomy: deterministic vs generation-only are disjoint and cover the census classes", () => {
   for (const c of DETERMINISTIC_LEVER_CLASSES) assert.ok(!GENERATION_ONLY_CLASSES.has(c), `${c} must not be in both sets`);
   // the label-bearing classes are generation-only (fix lives in content_md, not claim_kind)
