@@ -68,7 +68,9 @@ export const SKILL_MARKER_BASELINE = {
   // 11→12 (2026-07-03): added the "Floor-first span re-attribution (the attribution half of the moat)"
   // normative line. TRIAGE: new invariant SC-11 (enforcedBy selftests floor-attribution.test.mjs +
   // null-tier-flag.test.mjs). Closes the attribution half the truncation moat (SC-10) left open.
-  'source-credibility-model': 12,
+  // 12→13 (2026-07-04): added the "slot-forcing genuine-support (never fabricate a FACT to clear a
+  // criterion)" normative line. TRIAGE: new invariant SC-12 (enforcedBy selftest slot-forcing.test.mjs).
+  'source-credibility-model': 13,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
   // 18→19 (2026-07-03): added Section 4 category 9 "Producer-consumer orphan (the half-slice defect)"
@@ -266,6 +268,16 @@ export const INVARIANTS = [
     anchor: 'Floor-first span re-attribution (the attribution half of the moat)',
     enforcedBy: ['selftest:fsi-app/src/lib/agent/floor-attribution.test.mjs', 'selftest:fsi-app/src/lib/agent/null-tier-flag.test.mjs'],
     residual: 'The selftests prove the PURE decisions red-then-green: floor-attribution.test.mjs shows a span present in BOTH a floor source and a sub-floor corroborator re-homes to the floor source (RED under the legacy single-URL attribution → fact_below_authority_floor; GREEN under reattributeToFloor) and 4c never-forced (span absent from every floor source → null, no floor stamp); null-tier-flag.test.mjs proves the host-aggregate merge is idempotent per item (re-ground overwrites, never double-counts). The WIRING (groundBrief calls reattributeToFloor at the resolveSpan site over the SAME paginated fail-closed resolver it stamps with; surfaceNullTierHosts upserts the per-host flag) lives in canonical-pipeline.ts — integration residual, not separately unit-asserted. The 4a/4d PROMPT disciplines (synthesis floor-source-span preference; grounding original-language span) ride system-prompt.ts + the grounding extractor prompt (reference-layer, not mechanized). Span-attribution unit, Lane-#4 residual, 2026-07-03.',
+  },
+
+  {
+    id: 'SC-12-slot-forcing-genuine-support',
+    skill: 'source-credibility-model',
+    section: 'Canonical Institutional Tier — slot-forcing genuine-support (never fabricate a FACT to clear a criterion)',
+    text: 'Slot-forcing closes a required-slot / unlabeled-binding-assertion gap by tagging a FACT with slot_key WHERE the prose covers the slot, or emitting the mandated honest GAP where it does not; a FACT is emitted ONLY where the grounding JUDGE confirms the span supports the assertion (word-overlap NOMINATES candidates, it never decides); a judge-failed assertion routes to the 4c label path or an honest GAP and MUST NOT become a FACT — a FACT is never emitted to clear a criterion.',
+    anchor: 'Slot-forcing genuine-support (never fabricate a FACT to clear a criterion)',
+    enforcedBy: ['selftest:fsi-app/src/lib/agent/slot-forcing.test.mjs'],
+    residual: 'The selftest proves the PURE decision red-then-green: an unsupported assertion (judge.supports=false) NEVER becomes a FACT (routes to RELABEL where prose covers it, honest GAP where absent); a judge-confirmed span becomes a slot_key-tagged FACT with its verbatim span; nominateForSlot only nominates pool-present clauses over MIN_NOMINATION_SPAN, best-topic-overlap first. This is the integrity rule (no invented facts) mechanized for slot coverage. The WIRING (groundBrief invokes forceSlotCoverage with a LIVE judge = a spend-client call over the item pool, appends the FACT/GAP claims, routes RELABELs to the 4c prose path) is the proof-sample integration — the judge decisions are quoted in the genuine-support audit. Slot-forcing unit, 2026-07-04.',
   },
 
   // ───────────────────────────── analysis-construction-spec ─────────────────────────────
