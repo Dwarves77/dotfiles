@@ -204,6 +204,10 @@ export async function registerSource(source, { cite, stampIso } = {}) {
     url: source.url,
     name: source.name || host,
     base_tier: source.base_tier ?? 7,
+    // tier_at_creation is NOT NULL on sources — the classifier's tier at registration time. Absent this,
+    // every NEW-source insert on the sanctioned path throws (it only ever bit activations-not-inserts before).
+    // Set it to the same tier being assigned; callers may override via extra.
+    tier_at_creation: source.base_tier ?? 7,
     status: "active",
     admin_only: false,
     ...(source.extra || {}),
