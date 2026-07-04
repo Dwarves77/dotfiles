@@ -46,3 +46,14 @@ export const SYNTH_PRIMARY_HARD_CEILING_CHARS = Number(
 /** Max chars of each brief SECTION shown to the grounding ledger extractor (was 2200 — which hid the
  *  back of every long section from span extraction). */
 export const GROUND_SECTION_MAX_CHARS = Number(process.env.GROUND_SECTION_MAX_CHARS || 12000);
+
+// ── Telemetry (span-attribution unit 4f): cost estimate from real token usage, so the stored path logs
+// actual spend to agent_runs.cost_usd_estimated (no DDL) instead of $0. USD per MILLION tokens for
+// claude-sonnet-4-6; the estimate the MTD spend tile reads. Tunable via env if pricing moves.
+export const SONNET_INPUT_USD_PER_MTOK = Number(process.env.SONNET_INPUT_USD_PER_MTOK || 3);
+export const SONNET_OUTPUT_USD_PER_MTOK = Number(process.env.SONNET_OUTPUT_USD_PER_MTOK || 15);
+
+/** Pure: USD cost estimate from token usage at the configured Sonnet rates. */
+export function sonnetCostUsd(inputTokens: number, outputTokens: number): number {
+  return (inputTokens / 1e6) * SONNET_INPUT_USD_PER_MTOK + (outputTokens / 1e6) * SONNET_OUTPUT_USD_PER_MTOK;
+}

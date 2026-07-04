@@ -34,7 +34,7 @@ import { buildResolver, hostOf, type SourceRow, type Resolver } from "@/lib/sour
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
-import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, GROUND_SECTION_MAX_CHARS } from "@/lib/agent/generation-config";
+import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, GROUND_SECTION_MAX_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -238,6 +238,60 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
   await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
   return out;
 }
+// TELEMETRY LEDGER (span-attribution unit 4f). Module-scoped token accumulator: every Sonnet call on this
+// path (grounding callSonnet + synthesis generateBriefText's streamMessagesText) adds its usage here. The
+// stored-path entry points RESET it at start and read it at end (takeUsageLedger) to attach real spend to
+// their StepResult, which the runner logs to agent_runs.cost_usd_estimated — no DDL, no more $0 stored path.
+// SEQUENTIAL-ONLY: the ledger is per-process; correct for the stored-path runner (one item at a time). The
+// route path (generate-brief workflow) writes its own agent_runs row and does NOT call takeUsageLedger, so
+// this never double-counts there.
+let usageLedger = { inputTokens: 0, outputTokens: 0, calls: 0 };
+function addUsage(u: { input_tokens?: number; output_tokens?: number } | undefined): void {
+  if (!u) return;
+  usageLedger.inputTokens += u.input_tokens || 0;
+  usageLedger.outputTokens += u.output_tokens || 0;
+  usageLedger.calls += 1;
+}
+function resetUsageLedger(): void { usageLedger = { inputTokens: 0, outputTokens: 0, calls: 0 }; }
+export interface UsageTelemetry { inputTokens: number; outputTokens: number; calls: number; costUsd: number }
+function takeUsageLedger(): UsageTelemetry {
+  const l = usageLedger;
+  return { inputTokens: l.inputTokens, outputTokens: l.outputTokens, calls: l.calls, costUsd: sonnetCostUsd(l.inputTokens, l.outputTokens) };
+}
+// Reset the ledger, run a stored-path step, attach the step's real usage to its StepResult (every return
+// path). The caller sums usage across the steps it invokes to write ONE agent_runs cost row per item.
+async function withTelemetry(fn: () => Promise<StepResult>): Promise<StepResult> {
+  resetUsageLedger();
+  const r = await fn();
+  return { ...r, usage: takeUsageLedger() };
+}
+
+// TELEMETRY SINK (span-attribution unit 4f): write ONE stored-path agent_runs row per item from the SUMMED
+// usage across the steps the runner invoked (generateBriefFromStored + groundBrief, each returns its own
+// UsageTelemetry). fetch_method='stored-pool' marks it as the fetch-free path; cost_usd_estimated carries
+// the real spend the MTD tile reads (no more $0 stored path). Service-role via svc(). Called ONLY by the
+// stored-path runner — the /api/agent/run route writes its own agent_runs row, so this never double-counts.
+// Best-effort: a telemetry-write failure must not fail the recovery; it returns ok:false for the caller to log.
+export async function logStoredPathRun(
+  itemId: string,
+  usage: { inputTokens: number; outputTokens: number; calls: number; costUsd: number },
+  status: "success" | "error",
+  sourceUrl?: string | null,
+): Promise<{ ok: boolean; detail: string }> {
+  const sb = svc();
+  try {
+    const nowIso = new Date().toISOString();
+    const { error } = await sb.from("agent_runs").insert({
+      intelligence_item_id: itemId, source_url: sourceUrl ?? null, fetch_method: "stored-pool",
+      started_at: nowIso, ended_at: nowIso, status,
+      cost_usd_estimated: Number(usage.costUsd.toFixed(6)),
+      errors: [{ telemetry: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, sonnet_calls: usage.calls } }],
+    });
+    if (error) return { ok: false, detail: `agent_runs insert failed: ${error.message}` };
+    return { ok: true, detail: `logged $${usage.costUsd.toFixed(4)} (${usage.inputTokens}in/${usage.outputTokens}out, ${usage.calls} calls)` };
+  } catch (e) { return { ok: false, detail: `agent_runs insert threw: ${(e as Error).message}` }; }
+}
+
 async function callSonnet(system: string, user: string): Promise<string> {
   // max_tokens 32000 (was 24000): the largest regs (CSRD, EU-ETS-maritime-class) overran 24000 — the
   // trailing Claim Provenance Ledger + YAML (and thus the 18-field metadata) are the FIRST casualties of
@@ -248,10 +302,11 @@ async function callSonnet(system: string, user: string): Promise<string> {
   // socket idles for the full multi-minute generation and never resolves (proven 2026-06-19; the identical
   // stream:true call completed). Streaming keeps the socket alive (so the larger cap is viable), bounds on
   // NO-PROGRESS, and preserves anthropicError classification end-to-end (out-of-credits HALT unchanged).
-  const { text, stopReason } = await streamMessagesText({
+  const { text, stopReason, usage } = await streamMessagesText({
     apiKey: process.env.ANTHROPIC_API_KEY!,
     body: { model: "claude-sonnet-4-6", max_tokens: 32000, system, messages: [{ role: "user", content: user }] },
   });
+  addUsage(usage);
   // DETERMINISTIC truncation signal (content-class, fatal=false → per-item failure, not a batch halt). This
   // path is now the GROUNDING ledger-extraction call only (generation uses generateBriefText's 2-pass); a
   // truncated ledger means too many claims for one call — a per-item failure, not an obscure parse crash.
@@ -268,7 +323,13 @@ async function callSonnet(system: string, user: string): Promise<string> {
  *  to body-then-YAML ONLY on stop_reason truncation, so the body comes out whole and normal briefs stay 1
  *  call. */
 async function generateBriefText(system: string, user: string): Promise<string> {
-  return twoPassGenerate({ system, user, stream: streamMessagesText, findYaml: findYamlBlock, apiKey: process.env.ANTHROPIC_API_KEY! });
+  // Meter every stream call twoPassGenerate makes (1 normal, 2 on truncation split) into the usage ledger.
+  const meteredStream: typeof streamMessagesText = async (opts) => {
+    const r = await streamMessagesText(opts);
+    addUsage(r.usage);
+    return r;
+  };
+  return twoPassGenerate({ system, user, stream: meteredStream, findYaml: findYamlBlock, apiKey: process.env.ANTHROPIC_API_KEY! });
 }
 
 // Sonnet WITH the server-side web_search tool (Anthropic runs the searches; one round-trip returns
@@ -384,7 +445,7 @@ async function recordSourceFetchStatus(
     .then(() => {}, () => {});
 }
 
-export interface StepResult { ok: boolean; detail: string }
+export interface StepResult { ok: boolean; detail: string; usage?: UsageTelemetry }
 
 // Sentinel returned by generateBriefFromStored when no reusable pool exists. The cache-checked retry
 // (Edit B) falls back to a fresh fetch ONLY on this exact signal — a synthesis failure on the cached
@@ -589,6 +650,9 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
  *  freshness/change-detection + new-item discovery.) Returns ok:false (caller falls back to a fresh
  *  generateBrief) when no usable stored pool exists. Reuses the saved pool as-is — does NOT overwrite it. */
 export async function generateBriefFromStored(itemId: string): Promise<StepResult> {
+  return withTelemetry(() => generateBriefFromStoredImpl(itemId));
+}
+async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
@@ -623,6 +687,9 @@ export async function generateBriefFromStored(itemId: string): Promise<StepResul
  *  ground to commentary. This refreshes the primary to full text WITHOUT re-running discoverCorroborators
  *  (the web_search demoted across this work). = generateBrief minus discovery. */
 export async function generateBriefRefreshPrimary(itemId: string): Promise<StepResult> {
+  return withTelemetry(() => generateBriefRefreshPrimaryImpl(itemId));
+}
+async function generateBriefRefreshPrimaryImpl(itemId: string): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
@@ -700,6 +767,9 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
 export async function groundBrief(itemId: string): Promise<StepResult> {
+  return withTelemetry(() => groundBriefImpl(itemId));
+}
+async function groundBriefImpl(itemId: string): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
