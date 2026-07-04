@@ -32,6 +32,17 @@ export const CORROBORATOR_MAX_CHARS = Number(process.env.CORROBORATOR_MAX_CHARS 
  *  than this is the (rare) chunking case — logged loudly, never silently truncated. */
 export const SYNTH_INPUT_BUDGET_CHARS = Number(process.env.SYNTH_INPUT_BUDGET_CHARS || 560000);
 
+/** Hard per-source context ceiling for a FLOOR-QUALIFYING source (the T1/T2 primary for reg-family, the
+ *  T4 for research, etc.). The moat property (buildSourceBlocks): a floor-qualifying source reaches
+ *  grounding COMPLETE, never truncated — truncation pressure lands tier-ordered on the lowest-tier
+ *  corroborators first. A single floor-qualifying source larger than THIS ceiling is the (rare) chunking
+ *  case: NOT silently sliced — surfaced as a context-ceiling wall (a truncation-guard integrity_flag) and
+ *  the item stays quarantined with a named reason (operator ruling 2026-07-03). Default = the whole input
+ *  budget (a source exceeding the entire budget genuinely cannot be fed whole). */
+export const SYNTH_PRIMARY_HARD_CEILING_CHARS = Number(
+  process.env.SYNTH_PRIMARY_HARD_CEILING_CHARS || SYNTH_INPUT_BUDGET_CHARS,
+);
+
 /** Max chars of each brief SECTION shown to the grounding ledger extractor (was 2200 — which hid the
  *  back of every long section from span extraction). */
 export const GROUND_SECTION_MAX_CHARS = Number(process.env.GROUND_SECTION_MAX_CHARS || 12000);

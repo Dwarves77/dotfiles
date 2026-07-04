@@ -30,8 +30,9 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
-import { buildResolver } from "@/lib/sources/institution";
-import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, GROUND_SECTION_MAX_CHARS } from "@/lib/agent/generation-config";
+import { buildResolver, type SourceRow } from "@/lib/sources/institution";
+import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
+import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, GROUND_SECTION_MAX_CHARS } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -156,29 +157,20 @@ async function recordTruncation(sb: SupabaseClient, itemId: string, events: Trun
   } catch { /* best-effort; the warn above is the floor */ }
 }
 
-// BUDGET-AWARE synthesis/grounding block builder (Part C). The PRIMARY (fetched[0]) is included in FULL up
-// to the budget; corroborators share the remainder. A trim is NEVER silent — every trimmed/dropped source
-// is returned as a TruncEvent the caller records. R1 (synthesis) and R2 (grounding) BOTH call this over the
-// SAME pool + SAME budget, so a FACT span written from the primary in synthesis is matchable in grounding
-// (the load-bearing span-grounding coupling — they read the identical window). A primary larger than the
-// whole budget is the rare chunking case: trimmed AND announced here (full map-reduce chunking is the
-// flagged follow-on — never a silent cap).
-function buildSourceBlocks(fetched: { url: string; text: string }[], budget: number): { blocks: string; trims: TruncEvent[] } {
-  const trims: TruncEvent[] = [];
-  if (!fetched.length) return { blocks: "", trims };
-  const [primary, ...corr] = fetched;
-  const primaryText = primary.text.length > budget ? primary.text.slice(0, budget) : primary.text;
-  if (primary.text.length > budget) trims.push({ url: primary.url, collected: budget, fullLength: primary.text.length, cap: budget, transport: "synthesis-budget(primary)" });
-  const parts = [`### SOURCE url=${primary.url}\n${primaryText}`];
-  const remaining = Math.max(0, budget - primaryText.length);
-  const perCorr = corr.length ? Math.floor(remaining / corr.length) : 0;
-  for (const c of corr) {
-    if (perCorr < 200) { trims.push({ url: c.url, collected: 0, fullLength: c.text.length, cap: 0, transport: "synthesis-budget(dropped)" }); continue; }
-    const t = c.text.length > perCorr ? c.text.slice(0, perCorr) : c.text;
-    if (c.text.length > perCorr) trims.push({ url: c.url, collected: perCorr, fullLength: c.text.length, cap: perCorr, transport: "synthesis-budget" });
-    parts.push(`### SOURCE url=${c.url}\n${t}`);
-  }
-  return { blocks: parts.join("\n\n"), trims };
+// Attach each fetched source's canonical institutional tier (base_tier via buildResolver — the moat
+// resolver, base_tier ONLY). One paginated sources read; reused by both synthesis and grounding so the
+// tier inputs (and therefore the window) are identical.
+async function attachTiers(
+  sb: SupabaseClient,
+  fetched: { url: string; text: string }[],
+): Promise<{ url: string; text: string; tier: number | null }[]> {
+  let rows: SourceRow[] = [];
+  try {
+    const { data } = await sb.from("sources").select("id, url, base_tier, tier_override");
+    rows = (data ?? []) as SourceRow[];
+  } catch { /* best-effort: unresolved → tier null (sub-floor), never blocks synthesis */ }
+  const resolver = buildResolver(rows);
+  return fetched.map((f) => ({ ...f, tier: resolver.resolveSpan(f.url).tier }));
 }
 // Browserless enforces a hard concurrency cap (5 on the current plan). The pool fetch fired ~7
 // sessions per item via Promise.all, and N concurrent batch shards multiplied that — exceeding the cap
@@ -357,10 +349,16 @@ async function synthesiseAndWriteBrief(
   fetched: { url: string; text: string }[],
   corroborators: Corroborator[],
 ): Promise<StepResult> {
-  // Part C: build synthesis blocks under the input budget (primary FULL, corroborators trimmed to fit) and
-  // ANNOUNCE every trim (no silent truncation). The SAME builder grounding uses → spans stay matchable.
-  const { blocks, trims } = buildSourceBlocks(fetched, SYNTH_INPUT_BUDGET_CHARS);
-  await recordTruncation(sb, it.id, trims);
+  // Part C: build synthesis blocks TIER-ORDERED under the input budget — the floor-qualifying source(s)
+  // for this item_type reach the model in FULL (the moat), corroborators share the remainder lowest-tier-
+  // first, and every trim/ceiling-wall is ANNOUNCED (no silent truncation). The SAME builder + tiers + budget
+  // grounding uses → spans stay matchable.
+  const withTier = await attachTiers(sb, fetched);
+  const { blocks, trims, ceilingWalls } = buildSourceBlocks(withTier, SYNTH_INPUT_BUDGET_CHARS, {
+    floorTier: authorityFloorFor(it.item_type),
+    hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
+  });
+  await recordTruncation(sb, it.id, [...trims, ...ceilingWalls]);
   const discoveredHint = corroborators.length
     ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
     : "";
@@ -732,8 +730,12 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // Part C / R2: show the grounding extractor the FULL source window (SAME budget builder as synthesis, so a
   // span written from the primary in synthesis is present here too — the atomic span-grounding coupling), and
   // raise the per-section cap so spans match from the back of a long section. Trims announced (no silent cap).
-  const groundSrc = buildSourceBlocks(fetched, SYNTH_INPUT_BUDGET_CHARS);
-  await recordTruncation(sb, itemId, groundSrc.trims);
+  const groundWithTier = await attachTiers(sb, fetched);
+  const groundSrc = buildSourceBlocks(groundWithTier, SYNTH_INPUT_BUDGET_CHARS, {
+    floorTier: authorityFloorFor(it.item_type),
+    hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
+  });
+  await recordTruncation(sb, itemId, [...groundSrc.trims, ...groundSrc.ceilingWalls]);
   const user = `BRIEF SECTIONS:\n${secs.map((s) => `### SECTION ${s.section_key}\n${(s.content_md || "").slice(0, GROUND_SECTION_MAX_CHARS)}`).join("\n\n")}\n\n====\nSOURCE CONTENT (copy spans VERBATIM):\n${groundSrc.blocks}`;
   let claims;
   // Lenient extraction: a single malformed claim is skipped, not fatal — one bad FACT must not reject
