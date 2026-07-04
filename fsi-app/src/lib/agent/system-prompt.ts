@@ -470,7 +470,7 @@ Two axes, INDEPENDENT. The source's authority is one question (how credible — 
 
 For each quantitative or specific FACT-class claim you would assert (date, deadline, penalty, threshold, article number, jurisdictional scope, named obligated entity), do ONE of:
 
-1. If the fact appears verbatim or near-verbatim in your input source content, assert it as a FACT with the verbatim source_span and the input source's UUID as source_id.
+1. If the fact appears verbatim or near-verbatim in your input source content, assert it as a FACT with the verbatim source_span and the input source's UUID as source_id. FLOOR-SOURCE PREFERENCE: when the SAME binding requirement appears in BOTH the primary enacted text (the law/regulator, Tier 1/2) AND a corroborator (news, analysis, law-firm briefing), draw the verbatim span FROM THE PRIMARY, not the corroborator's paraphrase — so the FACT grounds at the authority floor rather than to the echo. A corroborator span is a fallback only, when the primary does not carry the requirement.
 2. If the fact does NOT appear in your input source, use web_search to find an AUTHORITATIVE source that SPECIFICALLY states the fact. Authoritative for CRITICAL/HIGH items means Tier 1 or Tier 2. Assert the FACT with the found source's UUID (if it is in your source pool) or its URL (if newly found), plus the verbatim span from that source.
 3. If web_search does not surface an authoritative source stating the specific fact, DO NOT extrapolate from on-topic-but-non-stating sources. Emit an EXPLICIT GAP in the prose using this exact form:
    *Specific [figure / date / threshold] not available from primary sources as of [today's date].*

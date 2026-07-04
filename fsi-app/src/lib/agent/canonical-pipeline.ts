@@ -30,8 +30,10 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
-import { buildResolver, type SourceRow } from "@/lib/sources/institution";
+import { buildResolver, hostOf, type SourceRow, type Resolver } from "@/lib/sources/institution";
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
+import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
+import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, GROUND_SECTION_MAX_CHARS } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
@@ -157,20 +159,71 @@ async function recordTruncation(sb: SupabaseClient, itemId: string, events: Trun
   } catch { /* best-effort; the warn above is the floor */ }
 }
 
+// Ruling-5 (span-attribution unit, 2026-07-03): surface FACT spans that ground to an UNREGISTERED host
+// (null tier even after floor-first re-attribution) as ONE host-aggregated integrity_flag per host. Read-
+// modify-write: merge THIS item's contribution into the open flag for the host (idempotent per item), so
+// the flag accumulates item/fact counts across grounding runs — the self-surfacing signal that names the
+// next host to register (how lovdata.no would have been found mechanically). Best-effort: never fails
+// grounding. subject_ref = host is the aggregation key; verifyCandidate consumes these at hold-lift.
+async function surfaceNullTierHosts(
+  sb: SupabaseClient,
+  itemId: string,
+  hosts: Map<string, { factCount: number; samples: string[] }>,
+): Promise<void> {
+  for (const [host, contribution] of hosts) {
+    try {
+      const { data: existing } = await sb.from("integrity_flags")
+        .select("id, recommended_actions")
+        .eq("created_by", "null-tier-host").eq("subject_ref", host).eq("status", "open")
+        .limit(1).maybeSingle();
+      const prior = (existing?.recommended_actions as { aggregate?: { perItemFacts: Record<string, number>; sampleSpans: string[] } }[] | null)?.[0]?.aggregate ?? null;
+      const agg = mergeNullTierAggregate(prior, itemId, contribution);
+      const { itemCount, factCount, description } = summarizeNullTierAggregate(host, agg);
+      const row = {
+        category: "source_issue", subject_type: "source", subject_ref: host,
+        description: description.slice(0, 480),
+        recommended_actions: [{
+          action: "register_source",
+          rationale: `Register ${host} at its canonical institutional tier; ${factCount} FACT span(s) across ${itemCount} item(s) currently wall on fact_below_authority_floor because the host is unregistered.`,
+          aggregate: agg, sample_spans: agg.sampleSpans,
+        }],
+        status: "open", created_by: "null-tier-host",
+      };
+      if (existing?.id) await sb.from("integrity_flags").update(row).eq("id", existing.id);
+      else await sb.from("integrity_flags").insert(row);
+    } catch { /* best-effort; the null-tier stamp on the claim is the durable floor */ }
+  }
+}
+
+// PAGINATED registry read → resolver. The registry EXCEEDS the 1000-row PostgREST cap, so a single
+// unpaginated read silently drops sources past row 1000 — a floor source in the dropped page would resolve
+// to NULL tier and be mis-seen as sub-floor (mis-ordered by the truncation moat AND missed by the
+// floor-first re-attribution). Read ALL pages. Returns null on a page-read error so the caller can decide
+// fail-open (synthesis ordering) vs fail-closed (grounding stamp).
+async function readAllSourcesForResolver(sb: SupabaseClient): Promise<SourceRow[] | null> {
+  const all: SourceRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("sources").select("id, url, base_tier, tier_override").order("id").range(from, from + 999);
+    if (error) return null;
+    if (!data?.length) break;
+    all.push(...(data as SourceRow[]));
+    if (data.length < 1000) break;
+  }
+  return all;
+}
+
 // Attach each fetched source's canonical institutional tier (base_tier via buildResolver — the moat
-// resolver, base_tier ONLY). One paginated sources read; reused by both synthesis and grounding so the
-// tier inputs (and therefore the window) are identical.
+// resolver, base_tier ONLY). Reuses a caller-supplied resolver when given (grounding shares the SAME
+// paginated fail-closed resolver it stamps with, so the truncation window, the floor-first re-attribution,
+// and the stamp all agree); otherwise builds one from a best-effort paginated read (synthesis path —
+// unresolved → tier null degrades ordering, never a false stamp).
 async function attachTiers(
   sb: SupabaseClient,
   fetched: { url: string; text: string }[],
+  resolver?: Resolver,
 ): Promise<{ url: string; text: string; tier: number | null }[]> {
-  let rows: SourceRow[] = [];
-  try {
-    const { data } = await sb.from("sources").select("id, url, base_tier, tier_override");
-    rows = (data ?? []) as SourceRow[];
-  } catch { /* best-effort: unresolved → tier null (sub-floor), never blocks synthesis */ }
-  const resolver = buildResolver(rows);
-  return fetched.map((f) => ({ ...f, tier: resolver.resolveSpan(f.url).tier }));
+  const r = resolver ?? buildResolver((await readAllSourcesForResolver(sb)) ?? []);
+  return fetched.map((f) => ({ ...f, tier: r.resolveSpan(f.url).tier }));
 }
 // Browserless enforces a hard concurrency cap (5 on the current plan). The pool fetch fired ~7
 // sessions per item via Promise.all, and N concurrent batch shards multiplied that — exceeding the cap
@@ -723,16 +776,33 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
 - Emit one block: a line "<<<CLAIM_PROVENANCE_LEDGER", a JSON array, a line "CLAIM_PROVENANCE_LEDGER>>>".
 - Record: {"section","claim_text","claim_kind","source_span","source_id","source_url","slot_key"}.
 - FACT: source_span MUST be VERBATIM copied char-for-char from a SOURCE block. (source_id is resolved automatically from the SOURCE block that contains the span — do not hardcode it.)
+- FACT SOURCE PREFERENCE: when the SAME binding requirement appears in MORE THAN ONE SOURCE block, copy the span from the block that is the PRIMARY ENACTED TEXT / highest-authority source (the official law or regulator), NOT from a commentary/analysis/news block that merely echoes it. Grounding the fact at the primary is the goal; a corroborator echo is a fallback only.
+- WRONG-LANGUAGE PRIMARY (4d): if the brief states a binding FACT in English but the ONLY primary/enacted SOURCE block carrying it is in another language (e.g. a national law in its original language), copy source_span VERBATIM in the ORIGINAL LANGUAGE from that primary block and set source_url to it. The original-language span is the checkable provenance; the surface labels it "translated from [language] original". Do NOT invent an English span that is not present in any source, and do NOT downgrade the fact to a lower-tier English commentary source when the primary carries it in its own language.
 - ANALYSIS: a statement the brief text EXPLICITLY labels with "Analytical inference:", "Industry interpretation:", "Operational implication:" or "Per the workspace's reading:". Set claim_text to that labeled sentence (so it appears verbatim in the section). TWO kinds: (a) GROUNDED ANALYSIS — a credible-but-NOT-binding or forthcoming claim that cites a non-primary source (an intergovernmental / research / analysis body or factual news, NOT the binding legal text): set source_span to its VERBATIM supporting span and source_url to that source, EXACTLY like a FACT, so it carries that source's provenance and tier; (b) PURE INFERENCE — the workspace's own reasoning across the brief's facts, citing no single source: leave source_span and source_url null. A sourced-but-NON-BINDING claim is GROUNDED ANALYSIS, NOT FACT — do not force sourced content to FACT. A present-tense BINDING regulatory requirement (the enacted law "requires/must/mandates/prohibits/applies to") is FACT (primary span) or a LEGAL callout, NEVER ANALYSIS.
 - Cover EACH required slot with >=1 FACT or GAP claim (set slot_key):\n${(slots ?? []).map((s) => `- ${s.slot_key}: ${s.description}`).join("\n")}
 - For EVERY section (${secs.map((s) => s.section_key).join(", ")}) with must/requires/shall/applies/mandates/prohibits/obligates, emit >=1 FACT claim with "section" set + a verbatim span.
 - No verbatim span for a slot -> claim_kind "GAP", source_span null. Never invent spans. CLOSE with CLAIM_PROVENANCE_LEDGER>>>.`;
+  // CANONICAL RESOLVER (built ONCE, PAGINATED, FAIL-CLOSED — the registry exceeds the 1000-row PostgREST
+  // cap). Shared by: the truncation window (groundWithTier tiers), the floor-first re-attribution, and the
+  // FACT stamp — so all three agree on every source's tier. A page-read error ABORTS grounding (ok:false is
+  // retryable) rather than building an INCOMPLETE resolver that mis-stamps hosts in the dropped page.
+  // A1 MOAT (2026-06-28): effective_tier is NOT selected — the stamp is base_tier/tier_override ONLY
+  // (institution.ts tierOfSource); not fetching effective_tier keeps reputation out of arm's reach of the
+  // stamp (a reintroduced `?? effective_tier` fallback stays inert; guarded by fitness F12 / invariant SC-9).
+  const allSources = await readAllSourcesForResolver(sb);
+  if (allSources == null) return { ok: false, detail: "grounding aborted: sources registry page read failed; resolver would be incomplete -> spurious NULL-stamps" };
+  const resolver = buildResolver(allSources);
+  const itemFloor = authorityFloorFor(it.item_type);
   // Part C / R2: show the grounding extractor the FULL source window (SAME budget builder as synthesis, so a
   // span written from the primary in synthesis is present here too — the atomic span-grounding coupling), and
   // raise the per-section cap so spans match from the back of a long section. Trims announced (no silent cap).
-  const groundWithTier = await attachTiers(sb, fetched);
+  const groundWithTier = await attachTiers(sb, fetched, resolver);
+  // Floor-first re-attribution pool: the fetched floor-qualifying sources, best-tier-first (span-attribution
+  // unit, ruling 2026-07-03). A FACT whose extractor-chosen span host is sub-floor but whose verbatim clause
+  // ALSO sits in one of these grounds AT the floor instead of walling. Empty for floor-exempt item types.
+  const floorPool = floorSources(groundWithTier, itemFloor);
   const groundSrc = buildSourceBlocks(groundWithTier, SYNTH_INPUT_BUDGET_CHARS, {
-    floorTier: authorityFloorFor(it.item_type),
+    floorTier: itemFloor,
     hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
   });
   await recordTruncation(sb, itemId, [...groundSrc.trims, ...groundSrc.ceilingWalls]);
@@ -768,31 +838,21 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
   // CANONICAL TIER STAMP + HONEST ATTRIBUTION (F1 fix, Phase 0'/Phase 1). No constants, no primary
   // hardcode. A FACT claim is attributed to the source that CONTAINS ITS SPAN: resolve the span's pool
   // row (search_result_id -> result_url) to its institution's canonical registered source + tier via the
-  // SINGLE resolver module (src/lib/sources/institution.ts — same code the claims-tier audit certifies).
+  // SINGLE `resolver` (built above, paginated + fail-closed) — same code the claims-tier audit certifies.
   // source_id = the resolved registered source (NULL when the span host is unregistered); the tier stamp
-  // = the resolved canonical institutional tier (NULL when unregistered). Register-before-ground (the
-  // register step in the canonical order) means corroborator hosts are registered by now, so a
-  // corroborator-grounded claim resolves instead of NULL-stamping spuriously. Sources are paginated
-  // (the registry exceeds the 1000-row PostgREST cap).
-  // A1 MOAT (2026-06-28): effective_tier is NOT selected into the resolver rows. The resolver derives
-  // the FACT stamp from base_tier/tier_override ONLY (institution.ts tierOfSource); fetching
-  // effective_tier here would put reputation within arm's reach of the stamp. Not fetching it makes a
-  // reintroduced `?? effective_tier` fallback inert on this path (no value to fall back to). Guarded
-  // behaviorally by fitness F12 / invariant SC-9.
-  const allSources: Array<{ id: string; url: string; base_tier: number | null; tier_override: number | null }> = [];
-  for (let from = 0; ; from += 1000) {
-    // B2 FAIL-CLOSED (Phase 0.2): capture the error. A dropped page-read error used to `break` with an
-    // INCOMPLETE resolver — claims whose host sat in the unread page then resolved to NULL tier (spurious
-    // NULL-stamps feeding the claims-tier drift). An incomplete resolver silently mis-certifies, so ABORT
-    // grounding (ok:false is retryable next pass) rather than build the resolver from a partial registry.
-    const { data, error } = await sb.from("sources").select("id,url,base_tier,tier_override").order("id").range(from, from + 999);
-    if (error) return { ok: false, detail: `grounding aborted: sources registry page read failed at offset ${from} (${error.message}); resolver would be incomplete -> spurious NULL-stamps` };
-    if (!data?.length) break; allSources.push(...(data as typeof allSources)); if (data.length < 1000) break;
-  }
-  const resolver = buildResolver(allSources);
+  // = the resolved canonical institutional tier (NULL when unregistered). Register-before-ground means
+  // corroborator hosts are registered by now, so a corroborator-grounded claim resolves instead of
+  // NULL-stamping spuriously.
   const urlBySearchId = new Map(searchRows.map((r) => [r.id, r.result_url]));
+  // Reverse map for floor-first re-attribution: a floor source's fetched URL -> its pool-row id, so a
+  // re-homed FACT re-points search_result_id to the floor source's row (first row wins on dup URLs).
+  const searchIdByUrl = new Map<string, string>();
+  for (const r of searchRows) if (r.result_url && !searchIdByUrl.has(r.result_url)) searchIdByUrl.set(r.result_url, r.id);
   const claimIds: string[] = [];
   const citedSourceIds = new Set<string>(); // B#2: the sources this brief grounds against (item->source edges)
+  // Ruling-5 self-surfacing: FACT spans that resolve to an UNREGISTERED host (null tier) aggregated per host,
+  // upserted as ONE integrity_flag/host after the loop (the next lovdata.no is found mechanically, not by hand).
+  const nullTierHosts = new Map<string, { factCount: number; samples: string[] }>();
   for (const c2 of linked) {
     const sectionRowId = sectionMap[String(c2.section)] || secs[0].id;
     const storedText = cleanCtl((["FACT", "GAP"].includes(c2.claim_kind) && c2.slot_key) ? `[${c2.slot_key}] ${c2.claim_text}` : c2.claim_text ?? "");
@@ -805,16 +865,45 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
     // across in-brief facts, no single source) carries no span -> NULL tier -> renders as workspace
     // analysis with no source-tier label. Tier drives the LABEL only; the SECTION is the orthogonal
     // temporal axis (forthcoming -> forward section), enforced by the contract, NOT here (R2).
-    const res = spanUrl ? resolver.resolveSpan(spanUrl) : { tier: null, sourceId: null };
-    // FACT path unchanged (res.sourceId, NULL when unregistered/no-span). Grounded ANALYSIS attributes
-    // per-span like FACT; pure-inference / GAP keep the ledger source_id (or item primary).
+    let res = spanUrl ? resolver.resolveSpan(spanUrl) : { tier: null, sourceId: null };
+    let effectiveSpanUrl = spanUrl;
+    let effectiveSearchResultId: string | null = c2.search_result_id || null;
+    // 4b FLOOR-FIRST RE-ATTRIBUTION (span-attribution unit, ruling 2026-07-03). A FACT whose
+    // extractor-chosen source is sub-floor (or unregistered) but whose VERBATIM span ALSO sits in a
+    // floor-qualifying source grounds AT the floor instead of walling on fact_below_authority_floor. The
+    // span is re-homed to that floor source (source_id, tier stamp, and search_result_id all re-point).
+    // NEVER FORCED (4c): reattributeToFloor fires ONLY on genuine verbatim presence — a span absent from
+    // every floor source keeps its honest attribution (walls / relabels), never a fabricated floor stamp.
+    // No-op for floor-exempt item types (floorPool empty) and for spans already at/above the floor.
+    if (isFact) {
+      const home = reattributeToFloor(c2.source_span, res.tier, floorPool, itemFloor);
+      if (home) {
+        effectiveSpanUrl = home.url;
+        res = resolver.resolveSpan(home.url);
+        const reSid = searchIdByUrl.get(home.url);
+        if (reSid) effectiveSearchResultId = reSid;
+      }
+    }
+    // FACT path (res.sourceId, NULL when unregistered/no-span). Grounded ANALYSIS attributes per-span like
+    // FACT; pure-inference / GAP keep the ledger source_id (or item primary).
     const sourceId = isFact ? res.sourceId : (spanUrl ? (res.sourceId ?? c2.source_id ?? it.source_id) : (c2.source_id || it.source_id));
+    // Ruling-5: a FACT that STILL resolves to a null tier (host not in the registry even after floor-first
+    // re-attribution) is exactly the "unregistered authoritative host" signal — aggregate it per host.
+    if (isFact && res.tier == null && effectiveSpanUrl) {
+      const host = hostOf(effectiveSpanUrl);
+      if (host) {
+        const agg = nullTierHosts.get(host) ?? { factCount: 0, samples: [] };
+        agg.factCount += 1;
+        if (agg.samples.length < 3 && c2.source_span) agg.samples.push(String(c2.source_span).slice(0, 160));
+        nullTierHosts.set(host, agg);
+      }
+    }
     // Phase 4.1 (SC-7 + the "label = render-derived, no stored field" principle): ONLY a FACT carries a
     // stored grounding-tier stamp (= the render-derived resolver.resolveSpan tier the claims-tier audit
     // compares stored-against). A non-FACT (grounded ANALYSIS / GAP) stores NULL — its tier LABEL is
     // render-derived at display from source_id, never a stored field. edit-1 wrongly stamped res.tier on
     // non-FACT here (the 41-row claims-tier drift, all ANALYSIS); `isFact ? res.tier : null` cures it.
-    const { data: ins, error: insErr } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: c2.search_result_id || null, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
+    const { data: ins, error: insErr } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: effectiveSearchResultId, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
     if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
     if (ins) claimIds.push(ins.id);
     if (sourceId) citedSourceIds.add(sourceId);
@@ -830,6 +919,7 @@ export async function groundBrief(itemId: string): Promise<StepResult> {
     const { error: iicErr } = await sb.from("intelligence_item_citations").upsert(edges, { onConflict: "intelligence_item_id,source_id,origin", ignoreDuplicates: true });
     if (iicErr) console.warn(`[canonical] intelligence_item_citations write failed for ${itemId} (${edges.length} edges): ${iicErr.message}`);
   }
+  if (nullTierHosts.size) await surfaceNullTierHosts(sb, itemId, nullTierHosts);
   const { data: vrData, error: vrErr } = await sb.rpc("validate_item_provenance", { p_item_id: itemId } as never);
   const vr = (Array.isArray(vrData) ? vrData[0] : vrData) as { valid: boolean; recommended_status: string; failures: unknown } | undefined;
   if (vr?.valid) return { ok: true, detail: `grounded kept=${kept.length} -> ${vr.recommended_status}` };

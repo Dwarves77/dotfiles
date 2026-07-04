@@ -65,7 +65,10 @@ export const SKILL_MARKER_BASELINE = {
   'environmental-policy-and-innovation': 18,
   // 10→11 (2026-07-03): added the "Floor-qualifying source reaches grounding COMPLETE (the truncation
   // moat)" normative line. TRIAGE: new invariant SC-10 (enforcedBy selftest source-blocks.test.mjs).
-  'source-credibility-model': 11,
+  // 11→12 (2026-07-03): added the "Floor-first span re-attribution (the attribution half of the moat)"
+  // normative line. TRIAGE: new invariant SC-11 (enforcedBy selftests floor-attribution.test.mjs +
+  // null-tier-flag.test.mjs). Closes the attribution half the truncation moat (SC-10) left open.
+  'source-credibility-model': 12,
   'analysis-construction-spec': 4,
   'caros-ledge-platform-intent': 9,
   // 18→19 (2026-07-03): added Section 4 category 9 "Producer-consumer orphan (the half-slice defect)"
@@ -251,6 +254,16 @@ export const INVARIANTS = [
     anchor: 'Floor-qualifying source reaches grounding COMPLETE (the truncation moat)',
     enforcedBy: ['selftest:fsi-app/src/lib/agent/source-blocks.test.mjs'],
     residual: 'The selftest (in the discipline node --test glob) proves the PURE builder red-then-green: a floor-qualifying source whose fact span sits beyond the old per-corroborator cap is truncated by the order-based logic (RED, fact_below_floor) and COMPLETE under the tier-ordered builder (GREEN); plus the ceiling-wall surfacing and authorityFloorFor (mirrors migration 141 / SC-8). The WIRING (both synthesis R1 and grounding R2 call buildSourceBlocks over the SAME pool/budget/tiers, tiers resolved via buildResolver = base_tier moat) lives in canonical-pipeline.ts; the coupling is by construction (one builder, one call shape), not separately unit-asserted (integration residual). Discovered as the Lane-#4 batch-1 root cause 2026-07-03.',
+  },
+
+  {
+    id: 'SC-11-floor-first-attribution',
+    skill: 'source-credibility-model',
+    section: 'Canonical Institutional Tier — floor-first span re-attribution (the attribution half of the moat)',
+    text: 'When a FACT\'s verbatim span sits in BOTH a floor-qualifying source and a sub-floor corroborator, grounding attributes it to the floor-qualifying source (best-tier-first) so it grounds AT the floor, not the echo; NEVER forced — a span absent from every floor source keeps its honest attribution (walls/relabels/GAP) and is never stamped to a floor source it is not in; a FACT still resolving to an unregistered host is surfaced as one host-aggregated integrity_flag.',
+    anchor: 'Floor-first span re-attribution (the attribution half of the moat)',
+    enforcedBy: ['selftest:fsi-app/src/lib/agent/floor-attribution.test.mjs', 'selftest:fsi-app/src/lib/agent/null-tier-flag.test.mjs'],
+    residual: 'The selftests prove the PURE decisions red-then-green: floor-attribution.test.mjs shows a span present in BOTH a floor source and a sub-floor corroborator re-homes to the floor source (RED under the legacy single-URL attribution → fact_below_authority_floor; GREEN under reattributeToFloor) and 4c never-forced (span absent from every floor source → null, no floor stamp); null-tier-flag.test.mjs proves the host-aggregate merge is idempotent per item (re-ground overwrites, never double-counts). The WIRING (groundBrief calls reattributeToFloor at the resolveSpan site over the SAME paginated fail-closed resolver it stamps with; surfaceNullTierHosts upserts the per-host flag) lives in canonical-pipeline.ts — integration residual, not separately unit-asserted. The 4a/4d PROMPT disciplines (synthesis floor-source-span preference; grounding original-language span) ride system-prompt.ts + the grounding extractor prompt (reference-layer, not mechanized). Span-attribution unit, Lane-#4 residual, 2026-07-03.',
   },
 
   // ───────────────────────────── analysis-construction-spec ─────────────────────────────
