@@ -34,7 +34,12 @@ const EXCLUDE = (() => { const a = process.argv.find((x) => x.startsWith("--excl
 
 const sb = readClient();
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { generateBriefFromStored, sectionBrief, groundBrief, NO_STORED_POOL } = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
+const { generateBriefFromStored, sectionBrief, groundBrief, logStoredPathRun, NO_STORED_POOL } = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
+// Telemetry 4f: sum UsageTelemetry across the steps this runner invokes for an item.
+const sumUsage = (...steps) => steps.reduce((acc, s) => {
+  const u = s?.usage; if (!u) return acc;
+  return { inputTokens: acc.inputTokens + (u.inputTokens || 0), outputTokens: acc.outputTokens + (u.outputTokens || 0), calls: acc.calls + (u.calls || 0), costUsd: acc.costUsd + (u.costUsd || 0) };
+}, { inputTokens: 0, outputTokens: 0, calls: 0, costUsd: 0 });
 
 const HOLD_TYPES = new Set(["research_finding", "technology", "tool", "innovation"]);
 const GROUNDING_CLASS = new Set(["unlabeled_assertion", "ungrounded_url", "fact_below_authority_floor", "fact_span_not_in_source"]);
@@ -55,7 +60,7 @@ function classOf(reasons) {
 }
 
 // target set: non-HOLD quarantined, minus --exclude, filtered by --only, capped by --limit
-const allQ = await readAll("intelligence_items", "id,legacy_id,title,item_type", { match: (q) => q.eq("is_archived", false).eq("provenance_status", "quarantined") });
+const allQ = await readAll("intelligence_items", "id,legacy_id,title,item_type,source_url", { match: (q) => q.eq("is_archived", false).eq("provenance_status", "quarantined") });
 let targets = allQ.filter((it) => !HOLD_TYPES.has(it.item_type));
 targets = targets.filter((it) => !EXCLUDE.some((w) => it.id.startsWith(w) || it.legacy_id === w));
 if (ONLY) targets = targets.filter((it) => ONLY.includes(it.legacy_id) || ONLY.some((w) => it.id.startsWith(w)));
@@ -88,23 +93,34 @@ for (const it of targets.slice(0, LIMIT)) {
   n++;
   const key = it.legacy_id || it.id.slice(0, 8);
   const cls = classOf(await failuresOf(it.id));
+  let gStep = null, groundStep = null;
   try {
     if ((await poolCount(it.id)) === 0) { skipped++; outcomes.push({ key, cls, pass: MODE, outcome: "SKIP(no-pool)" }); console.log(`  ${key.padEnd(14)} [${cls}] SKIP (no stored pool — never fetch)`); continue; }
     if (MODE === "resynth") {
-      const g = await generateBriefFromStored(it.id);
-      if (g.detail === NO_STORED_POOL) { skipped++; outcomes.push({ key, cls, pass: MODE, outcome: "SKIP(no-pool)" }); console.log(`  ${key.padEnd(14)} [${cls}] SKIP (NO_STORED_POOL)`); continue; }
-      if (!g.ok) { still++; outcomes.push({ key, cls, pass: MODE, outcome: "still (gen failed)" }); console.log(`  ${key.padEnd(14)} [${cls}] still-resolving (generateBriefFromStored: ${g.detail.slice(0, 50)})`); continue; }
+      gStep = await generateBriefFromStored(it.id);
+      if (gStep.detail === NO_STORED_POOL) { skipped++; outcomes.push({ key, cls, pass: MODE, outcome: "SKIP(no-pool)" }); console.log(`  ${key.padEnd(14)} [${cls}] SKIP (NO_STORED_POOL)`); continue; }
+      if (!gStep.ok) { still++; outcomes.push({ key, cls, pass: MODE, outcome: "still (gen failed)" }); console.log(`  ${key.padEnd(14)} [${cls}] still-resolving (generateBriefFromStored: ${gStep.detail.slice(0, 50)})`); await logTelemetry(it, gStep, null, "error"); continue; }
       await sectionBrief(it.id);
     }
-    await groundBrief(it.id);
-    if ((await prov(it.id)) === "verified") { released++; outcomes.push({ key, cls, pass: MODE, outcome: "RELEASE" }); console.log(`  ${key.padEnd(14)} [${cls}] RELEASE (verified)  ${(it.title || "").slice(0, 40)}`); }
+    groundStep = await groundBrief(it.id);
+    const verified = (await prov(it.id)) === "verified";
+    if (verified) { released++; outcomes.push({ key, cls, pass: MODE, outcome: "RELEASE" }); console.log(`  ${key.padEnd(14)} [${cls}] RELEASE (verified)  ${(it.title || "").slice(0, 40)}`); }
     else { still++; const res = await failuresOf(it.id); outcomes.push({ key, cls, pass: MODE, outcome: "still", residual: res }); console.log(`  ${key.padEnd(14)} [${cls}] still-resolving  residual=${JSON.stringify(res)}`); }
-  } catch (e) { errored++; outcomes.push({ key, cls, pass: MODE, outcome: `ERROR: ${e.message.slice(0, 60)}` }); console.log(`  ${key.padEnd(14)} [${cls}] ERROR: ${e.message.slice(0, 70)}`); }
+    await logTelemetry(it, gStep, groundStep, verified ? "success" : "error");
+  } catch (e) { errored++; outcomes.push({ key, cls, pass: MODE, outcome: `ERROR: ${e.message.slice(0, 60)}` }); console.log(`  ${key.padEnd(14)} [${cls}] ERROR: ${e.message.slice(0, 70)}`); await logTelemetry(it, gStep, groundStep, "error"); }
+}
+// Write ONE stored-path agent_runs row per item from the summed step usage (service-role, inside the
+// pipeline). This is what makes the stored path's spend visible to the MTD tile + the measured quote below.
+async function logTelemetry(it, gStep, groundStep, status) {
+  const u = sumUsage(gStep, groundStep);
+  if (u.calls === 0) return; // nothing spent (e.g. skipped before any Sonnet call)
+  const r = await logStoredPathRun(it.id, u, status, it.source_url ?? null);
+  if (!r.ok) console.log(`     telemetry: ${r.detail}`);
 }
 const costAfter = ((await sb.from("agent_runs").select("cost_usd_estimated")).data || []).reduce((a, r) => a + (Number(r.cost_usd_estimated) || 0), 0);
 const measured = costAfter - costBefore;
 console.log(`\n=== BATCH DONE (${MODE}) ===`);
 console.log(`items ${n}: RELEASE ${released}  still-resolving ${still}  SKIP ${skipped}  ERROR ${errored}`);
-console.log(`MEASURED SPEND (agent_runs cost delta): $${measured.toFixed(3)}  | per-item ≈ $${n ? (measured / n).toFixed(3) : "0"}  (basis: ground $0.03-0.08, resynth $0.08-0.15)`);
-if (measured < 0.0005) console.log(`  NOTE: ~0 measured — the stored path may not log agent_runs cost; treat spend as basis-estimated.`);
+console.log(`MEASURED SPEND (agent_runs cost delta, stored-path rows logged this run): $${measured.toFixed(3)}  | per-item ≈ $${n ? (measured / n).toFixed(3) : "0"}`);
+if (measured < 0.0005 && (released + still) > 0) console.log(`  NOTE: ~0 measured despite ${released + still} grounded item(s) — telemetry may have failed to write; check the per-item "telemetry:" lines above.`);
 process.exit(0);

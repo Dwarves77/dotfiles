@@ -78,6 +78,24 @@ test("streamMessagesText: happy path returns concatenated text + stopReason", as
   assert.equal(out.stopReason, "end_turn");
 });
 
+test("accumulator + streamMessagesText: captures usage (input from message_start, output from message_delta) — telemetry 4f", async () => {
+  const chunks = [
+    'event: message_start\ndata: {"type":"message_start","message":{"id":"m","usage":{"input_tokens":1200,"output_tokens":1}}}\n\n',
+    textDelta("hi"),
+    'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":345}}\n\n',
+    MSG_STOP,
+  ];
+  const out = await streamMessagesText({ apiKey: "k", body: { messages: [] }, fetchImpl: async () => okRes(chunks) });
+  assert.equal(out.usage.input_tokens, 1200);
+  assert.equal(out.usage.output_tokens, 345); // running total from message_delta wins over the start seed
+});
+
+test("accumulator: usage defaults to 0/0 when no usage frames present (never NaN)", () => {
+  const acc = createSSEAccumulator();
+  for (const c of SSE_OK) acc.feed(c);
+  assert.deepEqual(acc.state.usage, { input_tokens: 0, output_tokens: 0 });
+});
+
 test("streamMessagesText: pre-stream 400 out-of-credits → FATAL classified (the halt path, preserved)", async () => {
   const body = { error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } };
   await assert.rejects(

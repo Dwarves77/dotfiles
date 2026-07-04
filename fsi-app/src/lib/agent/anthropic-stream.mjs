@@ -39,6 +39,11 @@ export function createSSEAccumulator() {
   let stopReason = null;
   let error = null;
   let done = false;
+  // TELEMETRY (span-attribution unit 4f): Anthropic streams usage in two frames — message_start carries
+  // input_tokens (and an initial output_tokens), message_delta carries the running output_tokens. Capture
+  // both so the stored path can log real spend to agent_runs (no DDL). Last output_tokens wins (cumulative).
+  let inputTokens = 0;
+  let outputTokens = 0;
   return {
     feed(chunk) {
       buffer += chunk;
@@ -55,9 +60,15 @@ export function createSSEAccumulator() {
         else if (j.type === "message_delta" && j.delta && j.delta.stop_reason) stopReason = j.delta.stop_reason;
         else if (j.type === "message_stop") done = true;
         else if (j.type === "error") error = j.error || { message: "stream error" };
+        if (j.type === "message_start" && j.message && j.message.usage) {
+          if (typeof j.message.usage.input_tokens === "number") inputTokens = j.message.usage.input_tokens;
+          if (typeof j.message.usage.output_tokens === "number") outputTokens = j.message.usage.output_tokens;
+        } else if (j.type === "message_delta" && j.usage && typeof j.usage.output_tokens === "number") {
+          outputTokens = j.usage.output_tokens;
+        }
       }
     },
-    get state() { return { text, stopReason, error, done }; },
+    get state() { return { text, stopReason, error, done, usage: { input_tokens: inputTokens, output_tokens: outputTokens } }; },
   };
 }
 
@@ -71,7 +82,7 @@ export function createSSEAccumulator() {
  * @param {number} [opts.idleMs]     - no-progress watchdog (default 90000ms)
  * @param {number} [opts.heartbeatMs]- rate-limit between progress beats (default 30000ms; growth is the trigger)
  * @param {typeof fetch} [opts.fetchImpl]
- * @returns {Promise<{text:string, stopReason:(string|null)}>}
+ * @returns {Promise<{text:string, stopReason:(string|null), usage:{input_tokens:number, output_tokens:number}}>}
  */
 export async function streamMessagesText({ apiKey, body, betaHeaders, idleMs = 90000, heartbeatMs = 30000, fetchImpl } = {}) {
   if (!apiKey) throw new Error("ANTHROPIC_FATAL: missing ANTHROPIC_API_KEY");
@@ -132,5 +143,5 @@ export async function streamMessagesText({ apiKey, body, betaHeaders, idleMs = 9
   }
   const st = acc.state;
   if (st.error) throw streamErrorToAnthropic(st.error);
-  return { text: st.text, stopReason: st.stopReason };
+  return { text: st.text, stopReason: st.stopReason, usage: st.usage };
 }
