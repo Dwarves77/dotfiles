@@ -87,3 +87,23 @@ export function account(cost, inputTokens, outputTokens) {
   itemLedger.calls += 1;
   itemLedger.costUsd += cost;
 }
+
+// ── PER-ITEM CIRCUIT BREAKER (operator ruling 2026-07-04, ceiling-correction delta: "unchanged at $3.00") ──
+// Distinct from the program ceiling (runningSpentUsd vs SPEND_CEILING) and the batch buffer: this bounds what a
+// SINGLE item may cost, measured on the PER-ITEM ledger (reset per item), so one runaway item cannot burn the
+// whole headroom. The funded-pass runner resets the item ledger before each item and, after each call, trips
+// the breaker on itemLedger.costUsd — stopping THAT item (not the whole pass) so the anomaly is contained and
+// surfaced. Pure helper (env-free); the runner owns reset-per-item + the stop action.
+export const PER_ITEM_CIRCUIT_BREAKER_USD = 3.0;
+
+/** Has THIS item's accumulated spend reached the per-item breaker? Pure.
+ * @param {number} itemSpentUsd  the current item's ledger cost (takeItemLedger().costUsd)
+ * @param {number} [breakerUsd]  the per-item breaker (default PER_ITEM_CIRCUIT_BREAKER_USD)
+ * @returns {{ tripped: boolean, reason: string }} */
+export function itemBreakerTripped(itemSpentUsd, breakerUsd = PER_ITEM_CIRCUIT_BREAKER_USD) {
+  const spent = Number(itemSpentUsd) || 0;
+  if (spent >= breakerUsd) {
+    return { tripped: true, reason: `PER_ITEM_CIRCUIT_BREAKER: this item spent $${spent.toFixed(4)} >= breaker $${breakerUsd.toFixed(2)} — stop this item and surface (runaway containment).` };
+  }
+  return { tripped: false, reason: `item spend $${spent.toFixed(4)} < breaker $${breakerUsd.toFixed(2)}` };
+}

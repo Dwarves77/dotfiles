@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertTicket, assertBudget, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest } from "./spend-guard.mjs";
+import { assertTicket, assertBudget, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD } from "./spend-guard.mjs";
 
 const CEIL = 10;
 
@@ -57,4 +57,16 @@ test("STANDING CEILING is enforced even when a ticket sets a higher per-call cap
   __addSpendForTest(CEIL + 0.01); // past the standing ceiling
   assert.throws(() => assertBudget({ purpose: "over standing", budgetCapUsd: 1000 }, CEIL), /SPEND_CEILING/);
   __resetSpendForTest();
+});
+
+test("PER-ITEM CIRCUIT BREAKER trips on a single item's spend at $3.00 (ceiling-correction delta)", () => {
+  assert.equal(PER_ITEM_CIRCUIT_BREAKER_USD, 3.0);
+  // ground-only ≈ $1/item measured — well under the breaker; a normal item does NOT trip.
+  assert.equal(itemBreakerTripped(0.98).tripped, false);
+  assert.equal(itemBreakerTripped(2.99).tripped, false);
+  // a runaway item at/over $3.00 trips → stop THIS item and surface (not the whole pass).
+  const trip = itemBreakerTripped(3.0);
+  assert.equal(trip.tripped, true);
+  assert.match(trip.reason, /PER_ITEM_CIRCUIT_BREAKER/);
+  assert.equal(itemBreakerTripped(4.25).tripped, true);
 });

@@ -6,7 +6,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sumCostRows, readProgramTotalPaginated, fitsUnderCeiling } from "./program-total.mjs";
+import { sumCostRows, readProgramTotalPaginated, fitsUnderCeiling, projectBatchFitsBuffer, CEILING_BUFFER_USD } from "./program-total.mjs";
 import { assertBudget, seedSpend, __resetSpendForTest } from "./spend-guard.mjs";
 
 // A synthetic ledger of 1200 rows × $0.01 = $12.00 total. The first 1000-row page sums to $10.00.
@@ -51,4 +51,23 @@ test("fitsUnderCeiling: the pre-paid-call verification (program total + estimate
   assert.equal(fitsUnderCeiling(9.87, 1.5, 11).ok, false);      // would exceed
   assert.equal(fitsUnderCeiling(11.0, 0.01, 11).ok, false);     // already at cap
   assert.match(fitsUnderCeiling(11.0, 0.01, 11).reason, /already >= cap/);
+});
+
+// ── BATCH PRE-FLIGHT BUFFER (ceiling-correction delta 2026-07-04) ──
+test("projectBatchFitsBuffer: STOPS a batch that projects into the $5 buffer under the $85 ceiling", () => {
+  assert.equal(CEILING_BUFFER_USD, 5);
+  const cap = 85; // soft cap = $80
+  // measured ground-only ≈ $1/item. From $10.90, a 60-item batch projects to $70.90 — fits under $80.
+  const ok = projectBatchFitsBuffer(10.90, 1.0, 60, cap);
+  assert.equal(ok.ok, true);
+  assert.equal(Number(ok.softCapUsd.toFixed(2)), 80.0);
+  assert.equal(Number(ok.projectedTotalUsd.toFixed(2)), 70.90);
+  // A 75-item batch from $10.90 projects to $85.90 — PAST the $80 soft cap → STOP before the batch.
+  const stop = projectBatchFitsBuffer(10.90, 1.0, 75, cap);
+  assert.equal(stop.ok, false);
+  assert.match(stop.reason, /STOP before batch/);
+  assert.match(stop.reason, /Fork-B/);
+  // The boundary: projecting exactly TO the soft cap is allowed; one cent past is not.
+  assert.equal(projectBatchFitsBuffer(79.0, 1.0, 1, cap).ok, true);   // → $80.00, == soft cap
+  assert.equal(projectBatchFitsBuffer(79.5, 1.0, 1, cap).ok, false);  // → $80.50, past soft cap
 });

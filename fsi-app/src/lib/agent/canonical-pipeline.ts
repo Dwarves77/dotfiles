@@ -28,7 +28,8 @@ import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 // SPEND CHOKEPOINT (routing, ruling 2026-07-04): the pipeline's model calls route through the spend client
 // (spendStreamRaw = the same streamMessagesText call, ticket-gated + ceiling-enforced + accounted;
 // spendSearch = the web_search call). Behavior-preserving — the streaming body/params are unchanged.
-import { spendStreamRaw, spendSearch } from "@/lib/llm/spend-client";
+import { spendStreamRaw, spendSearch, spendStream } from "@/lib/llm/spend-client";
+import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
@@ -439,7 +440,8 @@ async function recordSourceFetchStatus(
     .then(() => {}, () => {});
 }
 
-export interface StepResult { ok: boolean; detail: string; usage?: UsageTelemetry }
+export interface SlotForcingResult { audit: unknown[]; relabelCandidates: { slot_key: string; section: string; reason: string }[]; judgeCalls: number; factsForced: number; gapsForced: number }
+export interface StepResult { ok: boolean; detail: string; usage?: UsageTelemetry; slotForcing?: SlotForcingResult }
 
 // Sentinel returned by generateBriefFromStored when no reusable pool exists. The cache-checked retry
 // (Edit B) falls back to a fresh fetch ONLY on this exact signal — a synthesis failure on the cached
@@ -763,6 +765,24 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
   return { ok: true, detail: `${rows.length} sections` };
 }
 
+// SLOT-FORCING JUDGE (5c). "Does this candidate span support a binding FACT for the slot?" MOAT ASYMMETRY
+// (binding 3): default NOT CONFIRMED on any uncertainty / parse failure / off-topic / analysis-not-enacted —
+// a false "true" is fabricated provenance (unacceptable); a false "false" is a recoverable honest GAP.
+// Routes through the spend client (Haiku, cheap; ticket + seeded ceiling enforced). Only an explicit true confirms.
+async function judgeSlotSpan(slotKey: string, description: string, nom: { span: string; url: string }): Promise<{ supports: boolean; why?: string }> {
+  const system = `You are a strict grounding judge for a regulatory brief. Decide whether a CANDIDATE SPAN from a source SUPPORTS a binding FACT for a required SLOT. Output ONLY JSON: {"supports": true|false, "why": "<=100 chars"}. DEFAULT to supports=false whenever uncertain, when the span concerns a DIFFERENT matter than the slot, or when it reads as analysis/commentary rather than the enacted requirement. A false "true" is unacceptable (fabricated provenance); a false "false" is a recoverable honest GAP.`;
+  const user = `SLOT: ${slotKey} — ${description}\nCANDIDATE SPAN (from ${nom.url}):\n"""${nom.span.slice(0, 1200)}"""\nDoes the span support a binding FACT for this slot?`;
+  try {
+    const { text } = await spendStream({ system, user, model: "claude-haiku-4-5-20251001", maxTokens: 200 });
+    const m = text.match(/\{[\s\S]*?\}/);
+    if (!m) return { supports: false, why: "no JSON in judge output" };
+    const j = JSON.parse(m[0]) as { supports?: unknown; why?: unknown };
+    return { supports: j.supports === true, why: typeof j.why === "string" ? j.why.slice(0, 100) : undefined };
+  } catch (e) {
+    return { supports: false, why: `judge error: ${(e as Error).message.slice(0, 60)}` };
+  }
+}
+
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
 export async function groundBrief(itemId: string): Promise<StepResult> {
@@ -903,6 +923,42 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
     return true; // GAP / other kinds carry no span/label obligation
   });
 
+  // SLOT-FORCING (5c, ruling 2026-07-04). Required slots the extractor left untagged get a JUDGE-CONFIRMED
+  // FACT or an honest GAP — NEVER a fabricated FACT (SC-12). ONE CLAIM PATH (binding 2): the forced claims are
+  // appended to `kept` and flow through crossLinkClaimSources + the SAME writer + resolver + floor policing
+  // below (identical provenance fields, identical floor stamp). NO content_md writes here (binding 4): a
+  // judge-fail RELABEL is RECORDED for the package's 4c-candidate list, executed separately under its own
+  // ruling. NO-OP when every required slot is already tagged (binding 5): zero judge calls, forward-cost clean.
+  let slotForcing: SlotForcingResult = { audit: [], relabelCandidates: [], judgeCalls: 0, factsForced: 0, gapsForced: 0 };
+  if (slots?.length) {
+    const taggedSlots = new Set(kept.filter((c) => ["FACT", "GAP"].includes(c.claim_kind) && !!c.slot_key).map((c) => c.slot_key));
+    const secSentences = secs.map((s) => ({ key: s.section_key, sentences: String(s.content_md || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()) }));
+    // proseCovers + sectionKey come from the brief prose (GAP-vs-RELABEL + which section the forced claim
+    // belongs to). NOMINATION no longer comes from prose (the 5c fix): a judge-confirmed FACT is nominated as a
+    // VERBATIM span out of the FLOOR pool below, so it grounds at the floor by construction.
+    const uncovered = slots.filter((s) => !taggedSlots.has(s.slot_key)).map((s) => {
+      const want = new Set(String(s.description || s.slot_key).toLowerCase().match(/[a-z]{4,}/g) || []);
+      let proseCovers = false; let sectionKey = secs[0]?.section_key ?? "";
+      for (const sec of secSentences) for (const sent of sec.sentences) {
+        if (sent && [...want].some((w) => sent.toLowerCase().includes(w))) { proseCovers = true; sectionKey = sec.key; }
+      }
+      return { slotKey: s.slot_key, description: s.description ?? s.slot_key, proseCovers, sectionKey };
+    });
+    if (uncovered.length) {
+      const judge = (slotKey: string, nom: { span: string; url: string }) =>
+        judgeSlotSpan(slotKey, uncovered.find((x) => x.slotKey === slotKey)?.description ?? slotKey, nom);
+      // FLOOR-FIRST pool: a FACT for a floor-applicable item is nominated ONLY from floor-qualifying sources
+      // (floorPool, best-tier-first) so a confirmed span grounds AT the floor; a floor-EXEMPT item nominates
+      // from the full tiered pool (any tier grounds). Empty floorPool (no floor source fetched) → no FACT.
+      const slotNomPool = itemFloor == null ? groundWithTier : floorPool;
+      const sc = await forceSlotCoverage(uncovered, slotNomPool.map((f) => ({ url: f.url, text: f.text, tier: f.tier })), judge, MAX_JUDGED_NOMINATIONS);
+      const sectionOf = (slotKey: string) => uncovered.find((x) => x.slotKey === slotKey)?.sectionKey ?? (secs[0]?.section_key ?? "");
+      for (const f of sc.facts) kept.push({ claim_kind: "FACT", claim_text: f.source_span, source_span: f.source_span, source_url: f.source_url, slot_key: f.slot_key, section: sectionOf(f.slot_key), search_result_id: null } as never);
+      for (const g of sc.gaps) kept.push({ claim_kind: "GAP", claim_text: `[${g.slot_key}] not available from primary sources as of grounding`, source_span: null, source_url: null, slot_key: g.slot_key, section: sectionOf(g.slot_key), search_result_id: null } as never);
+      slotForcing = { audit: sc.audit, relabelCandidates: sc.relabels.map((r) => ({ slot_key: r.slot_key, section: sectionOf(r.slot_key), reason: r.reason })), judgeCalls: sc.judgeCalls, factsForced: sc.facts.length, gapsForced: sc.gaps.length };
+    }
+  }
+
   const linked = crossLinkClaimSources(kept, searchRows);
   // CANONICAL TIER STAMP + HONEST ATTRIBUTION (F1 fix, Phase 0'/Phase 1). No constants, no primary
   // hardcode. A FACT claim is attributed to the source that CONTAINS ITS SPAN: resolve the span's pool
@@ -991,7 +1047,7 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   if (nullTierHosts.size) await surfaceNullTierHosts(sb, itemId, nullTierHosts);
   const { data: vrData, error: vrErr } = await sb.rpc("validate_item_provenance", { p_item_id: itemId } as never);
   const vr = (Array.isArray(vrData) ? vrData[0] : vrData) as { valid: boolean; recommended_status: string; failures: unknown } | undefined;
-  if (vr?.valid) return { ok: true, detail: `grounded kept=${kept.length} -> ${vr.recommended_status}` };
+  if (vr?.valid) return { ok: true, detail: `grounded kept=${kept.length} -> ${vr.recommended_status}${slotForcing.judgeCalls ? ` (slot-forcing: +${slotForcing.factsForced}F/+${slotForcing.gapsForced}G, ${slotForcing.relabelCandidates.length} 4c-cand, ${slotForcing.judgeCalls} judge calls)` : ""}`, slotForcing };
   // B2 RETAIN-ON-FAILURE: do NOT delete the just-inserted claims on a validation failure. Deleting the
   // ledger erased the evidence of WHY grounding failed (it cost the 45-flip forensics once). The item is
   // already 'quarantined' (the per-insert set_provenance_status trigger ran validate on each claim and
@@ -1008,7 +1064,7 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   const fails = Array.isArray(vr?.failures) ? (vr!.failures as Array<{ reason?: string }>) : [];
   const reasons = [...new Set(fails.map((f) => f?.reason).filter(Boolean))];
   const why = vrErr ? `rpc error: ${vrErr.message}` : `validation failed [${reasons.join(",")}]: ${JSON.stringify(vr?.failures ?? "no result").slice(0, 120)}`;
-  return { ok: false, detail: why.slice(0, 220) };
+  return { ok: false, detail: why.slice(0, 220), slotForcing };
 }
 
 /** STEP register (canonical order: generate -> REGISTER -> section -> ground -> credit). Registers the

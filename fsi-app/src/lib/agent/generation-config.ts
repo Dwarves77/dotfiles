@@ -70,6 +70,11 @@ export function costUsdForModel(model: string, inputTokens: number, outputTokens
   return (inputTokens / 1e6) * inRate + (outputTokens / 1e6) * outRate;
 }
 
-/** The standing spend ceiling (USD), enforced INSIDE the spend client — the $10-ceiling class stops being
- *  relay discipline. Overridable via env for an operator-authorized raise. */
-export const SPEND_CEILING_USD = Number(process.env.SPEND_CEILING_USD || 10);
+/** The standing spend ceiling (USD), enforced INSIDE the spend client — the ceiling class stops being relay
+ *  discipline. Overridable via env for an operator-authorized raise.
+ *
+ *  STANDING POLICY (operator ruling 2026-07-04, ceiling-correction delta): the code ceiling NEVER exceeds the
+ *  real API account balance. Current: $85 = $10.90 consumed-to-date + $75.00 real remaining balance − margin
+ *  (enforceable headroom ~$74). On a top-up the operator states the NEW balance and the ceiling RESETS to
+ *  (new balance + consumed-to-date) — the ceiling tracks real money, never a notional cap above it. */
+export const SPEND_CEILING_USD = Number(process.env.SPEND_CEILING_USD || 85);
