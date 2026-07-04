@@ -92,35 +92,11 @@ jobs:
           node-version: '24'
 
       - name: Run discipline test suite
-        # node --test runs each file in its own process and reports TAP.
-        # Globs are expanded by the shell, so the runner sees a flat list.
-        # Includes the fitness/ test suite added in Sprint Architecture Phase 4
-        # and the governance/ suite (invariant-coverage meta-gate) added 2026-06-06.
-        run: |
-          set -eu
-          node --test \
-            fsi-app/.discipline/glob-portability.test.mjs \
-            fsi-app/.discipline/vocab-drift-guard.test.mjs \
-            fsi-app/.discipline/lib/*.test.mjs \
-            fsi-app/.discipline/rules/*.test.mjs \
-            fsi-app/.discipline/governance/*.test.mjs \
-            fsi-app/.discipline/runner.test.mjs \
-            fsi-app/.discipline/install-hooks.test.mjs \
-            fsi-app/.discipline/fitness/functions/*.test.mjs \
-            fsi-app/.discipline/fitness/runner.test.mjs \
-            fsi-app/scripts/lib/db.test.mjs \
-            fsi-app/src/lib/sources/primary-fallback.test.mjs \
-            fsi-app/src/lib/sources/pdf-extract.test.mjs \
-            fsi-app/src/lib/agent/anthropic-error.test.mjs \
-            fsi-app/src/lib/agent/anthropic-stream.test.mjs \
-            fsi-app/src/lib/agent/two-pass-generate.test.mjs \
-            fsi-app/src/lib/agent/audit-gate.test.mjs \
-            fsi-app/src/lib/agent/source-blocks.test.mjs \
-            fsi-app/src/lib/agent/floor-attribution.test.mjs \
-            fsi-app/src/lib/agent/null-tier-flag.test.mjs \
-            fsi-app/src/lib/agent/deterministic-lever.test.mjs \
-            fsi-app/src/lib/agent/url-canon.test.mjs \
-            fsi-app/src/lib/llm/spend-guard.test.mjs
+        # PARITY BY CONSTRUCTION (operator ruling 2026-07-04): the test list lives in ONE place —
+        # fsi-app/.discipline/run-test-suite.sh — invoked by BOTH this CI job AND the pre-push hook (step 3),
+        # so they can never drift. (Previously the two lists were maintained separately and a test present in
+        # CI but missing from pre-push let a non-portable import pass locally and only red in CI.)
+        run: bash fsi-app/.discipline/run-test-suite.sh
 
       - name: Invariant-coverage meta-gate (per-invariant wiring of all 6 skills)
         # Fails CI if any skill invariant is neither enforced (by a resolving mechanism)

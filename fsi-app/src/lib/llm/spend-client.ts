@@ -21,14 +21,40 @@ import { anthropicError } from "@/lib/agent/anthropic-error.mjs";
 import { costUsdForModel, SPEND_CEILING_USD } from "@/lib/agent/generation-config";
 import { assertTicket, assertBudget, account, takeItemLedger, resetItemLedger, spentUsd } from "@/lib/llm/spend-guard.mjs";
 
-export type SpendTicket = Parameters<typeof assertTicket>[0];
+export type SpendTicket = NonNullable<Parameters<typeof assertTicket>[0]>;
 export { STANDING_TICKET_CLASSES } from "@/lib/llm/spend-guard.mjs";
 export { resetItemLedger, takeItemLedger, spentUsd };
 
+// CONTEXT TICKET. The runner sets ONE ticket per item (setSpendTicket) before invoking the pipeline; the
+// pipeline's internal call sites (callSonnet / generateBriefText / callSonnetSearch) spend under it without
+// threading it through every signature. The default is a permissive LEGACY ticket so existing callers (the
+// /api/agent/run route path) keep working unchanged — behavior-preserving — while still being budget-checked
+// against the standing ceiling. A runner that wants the necessity gate sets a rich ticket (failureClasses /
+// necessity / disposition / budgetCapUsd / authorizationRef).
+const LEGACY_TICKET: SpendTicket = { purpose: "canonical-pipeline (legacy, pre-ticket-migration)" };
+let currentTicket: SpendTicket = LEGACY_TICKET;
+export function setSpendTicket(ticket: SpendTicket): void { currentTicket = ticket; }
+export function resetSpendTicket(): void { currentTicket = LEGACY_TICKET; }
+export function currentSpendTicket(): SpendTicket { return currentTicket; }
+
+/** LOW-LEVEL streamed call THROUGH the chokepoint, taking the streamMessagesText opts DIRECTLY (the pipeline
+ *  builds its own body). Guards the CONTEXT ticket + budget, streams, accounts. Behavior-identical to a bare
+ *  streamMessagesText call except for the guard + accounting. */
+export async function spendStreamRaw(
+  streamOpts: { apiKey: string; body: Record<string, unknown> },
+): Promise<{ text: string; stopReason: string | null; usage: { input_tokens: number; output_tokens: number } }> {
+  assertTicket(currentTicket);
+  assertBudget(currentTicket, SPEND_CEILING_USD);
+  const r = await streamMessagesText(streamOpts);
+  const model = String((streamOpts.body as { model?: string }).model ?? "claude-sonnet-4-6");
+  account(costUsdForModel(model, r.usage.input_tokens, r.usage.output_tokens), r.usage.input_tokens, r.usage.output_tokens);
+  return r;
+}
+
 /** Streamed Messages call THROUGH the chokepoint. Ticket-gated, budget-enforced, telemetered. */
 export async function spendStream(
-  ticket: NonNullable<SpendTicket>,
   opts: { system: string; user: string; model?: string; maxTokens?: number },
+  ticket: SpendTicket = currentTicket,
 ): Promise<{ text: string; stopReason: string | null; usage: { input_tokens: number; output_tokens: number }; cost: number }> {
   assertTicket(ticket);
   assertBudget(ticket, SPEND_CEILING_USD);
@@ -46,8 +72,8 @@ const WEB_SEARCH_BETA = "web-search-2025-03-05";
 const WEB_SEARCH_TOOL = "web_search_20250305";
 /** Web-search Messages call THROUGH the chokepoint (Anthropic runs the searches). Ticket-gated + budgeted. */
 export async function spendSearch(
-  ticket: NonNullable<SpendTicket>,
   opts: { system: string; user: string; maxUses?: number; model?: string; maxTokens?: number },
+  ticket: SpendTicket = currentTicket,
 ): Promise<string> {
   assertTicket(ticket);
   assertBudget(ticket, SPEND_CEILING_USD);

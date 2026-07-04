@@ -4,13 +4,15 @@
 // retired drift from being reintroduced.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderSurfaceOfSql, surfaceOf, SURFACES } from "../src/lib/surface-of.mjs";
+import { readMigrationSql } from "./lib/read-migration-sql.mjs";
 
 const FSI = resolve(dirname(fileURLToPath(import.meta.url)), ".."); // .discipline -> fsi-app
-const read = (rel) => readFileSync(resolve(FSI, rel), "utf8");
+// CRLF-normalized read (guard-fix 2b): a Windows autocrlf checkout of a migration must not false-fail the
+// byte-identical comparison against renderSurfaceOfSql()'s LF output.
+const read = (rel) => readMigrationSql(resolve(FSI, rel));
 
 // 3a — ONE source for domain labels. The stale constants.ts `DOMAINS` (retired 7-domain) DISAGREED with
 // the canonical domains.ts `DOMAIN_LABELS` (live five-surface) on the same domain 1-7 key. domains.ts wins.

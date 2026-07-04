@@ -33,6 +33,10 @@ let runningSpentUsd = 0;                                    // standing-ceiling 
 let itemLedger = { inputTokens: 0, outputTokens: 0, calls: 0, costUsd: 0 };
 
 export function spentUsd() { return runningSpentUsd; }
+/** Seed the standing-ceiling accumulator with the PROGRAM total (from a paginated agent_runs read) at process
+ *  start, so the per-process ceiling accounts for prior spend ("program total ≤ cap", not per-process). The
+ *  runner MUST call this before the first paid call; a fresh process otherwise starts at $0. @param {number} usd */
+export function seedSpend(usd) { runningSpentUsd = Number(usd) || 0; }
 export function resetItemLedger() { itemLedger = { inputTokens: 0, outputTokens: 0, calls: 0, costUsd: 0 }; }
 export function takeItemLedger() { return { ...itemLedger }; }
 export function __resetSpendForTest() { runningSpentUsd = 0; resetItemLedger(); }

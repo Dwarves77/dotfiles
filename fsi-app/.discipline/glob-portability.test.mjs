@@ -13,23 +13,19 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."); // .discipline -> fsi-app -> repo root
-const YML = resolve(REPO, ".github/workflows/discipline.yml");
+// SINGLE HOME (guard-fix 1, operator ruling 2026-07-04): the test list lives in run-test-suite.sh — invoked
+// by BOTH CI and pre-push. glob-portability reads its source-of-truth from THERE (the list came OUT of
+// discipline.yml entirely, so there is no stale second home). If the resolved list is ever empty (the state
+// this guard just caught when the list moved), that is a STANDING RED — see the assertion in the test.
+const SUITE = resolve(REPO, "fsi-app/.discipline/run-test-suite.sh");
 
-/** Pull the file/glob arguments of the `node --test \ ...` invocation out of discipline.yml. */
-function testGlobFromYml() {
-  const lines = readFileSync(YML, "utf8").split(/\r?\n/);
-  const start = lines.findIndex((l) => /^\s*node\s+--test\b/.test(l)); // the command line, NOT the "# node --test" comment
-  assert.ok(start >= 0, "discipline.yml must contain a `node --test` invocation");
-  const args = [];
-  // the `node --test \` line ends with a backslash; collect following continuation lines until one does not.
-  for (let i = start; i < lines.length; i++) {
-    const raw = lines[i];
-    const continues = /\\\s*$/.test(raw);
-    const tok = raw.replace(/^.*node\s+--test\s*/, "").replace(/\\\s*$/, "").trim();
-    if (tok && /[/.].*\.(test\.)?mjs|\*/.test(tok)) args.push(tok);
-    if (i > start && !continues) break;
-  }
-  assert.ok(args.length > 0, "could not parse any test paths from the `node --test` glob");
+/** Pull every test path/glob token out of run-test-suite.sh (the BASE + FULL_ONLY lists). */
+function testGlobFromSuite() {
+  const src = readFileSync(SUITE, "utf8");
+  // Tokens look like fsi-app/.discipline/lib/*.test.mjs or fsi-app/src/lib/llm/spend-guard.test.mjs.
+  const toks = src.match(/fsi-app\/[^\s"'\\]+/g) || [];
+  const args = [...new Set(toks.filter((t) => t.endsWith(".test.mjs") || t.includes("*")))];
+  assert.ok(args.length > 0, "run-test-suite.sh must list `node --test` files (empty test list = standing red)");
   return args;
 }
 
@@ -68,8 +64,14 @@ function nonPortableSpecifiers(src) {
   return bad;
 }
 
+test("run-test-suite.sh lists a NON-EMPTY test glob (empty source-of-truth is a standing red)", () => {
+  // The permanent guard against the failure this fix was born from: if the test list ever moves/empties,
+  // glob-portability fails LOUDLY instead of silently checking nothing.
+  assert.ok(testGlobFromSuite().length > 0, "run-test-suite.sh resolved to ZERO test paths");
+});
+
 test("every discipline-glob test imports only node: builtins + relative .mjs (portable to the no-npm-ci CI job)", () => {
-  const files = [...new Set(testGlobFromYml().flatMap(expand))];
+  const files = [...new Set(testGlobFromSuite().flatMap(expand))];
   assert.ok(files.length >= 10, `expected the discipline glob to expand to many files, got ${files.length}`);
   const violations = [];
   for (const rel of files) {
