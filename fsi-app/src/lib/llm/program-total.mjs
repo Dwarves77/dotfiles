@@ -60,3 +60,33 @@ export function fitsUnderCeiling(programTotalUsd, estimatedUsd, capUsd) {
   }
   return { ok: true, reason: `fits: $${programTotalUsd.toFixed(4)} + $${estimatedUsd.toFixed(4)} <= $${capUsd.toFixed(2)}`, headroomUsd };
 }
+
+// ── BATCH PRE-FLIGHT BUFFER (operator ruling 2026-07-04, ceiling-correction delta) ──
+// fitsUnderCeiling gates a single paid call right at the ceiling. The batch gate is TIGHTER: it refuses to
+// START a batch whose PROJECTED cost (from the running MEASURED average, not an a-priori estimate) would carry
+// the program total past a SOFT cap = (ceiling − buffer). The $5 buffer keeps a batch from ever landing the
+// program total in the last $5 of real balance. A batch that projects into the buffer STOPS before it starts;
+// its items stay covered by their Fork-B event-bound deferrals (the pass resumes on the next top-up), never
+// silenced. Never start a batch that projects into the buffer.
+export const CEILING_BUFFER_USD = 5;
+
+/**
+ * The BATCH gate: may a batch of `batchSize` items START, given the running MEASURED per-item average?
+ * Projects programTotal + avg×size and compares to the soft cap (cap − buffer). Pure.
+ * @param {number} programTotalUsd   the seeded program total right now
+ * @param {number} measuredAvgUsd    running measured per-item average (NOT an a-priori estimate)
+ * @param {number} batchSize         items the batch would process
+ * @param {number} capUsd            the standing ceiling
+ * @param {number} [bufferUsd]       buffer under the ceiling (default CEILING_BUFFER_USD)
+ * @returns {{ ok: boolean, reason: string, projectedTotalUsd: number, softCapUsd: number }}
+ */
+export function projectBatchFitsBuffer(programTotalUsd, measuredAvgUsd, batchSize, capUsd, bufferUsd = CEILING_BUFFER_USD) {
+  const projectedTotalUsd = programTotalUsd + (Number(measuredAvgUsd) || 0) * (Number(batchSize) || 0);
+  const softCapUsd = capUsd - bufferUsd;
+  if (projectedTotalUsd > softCapUsd) {
+    return { ok: false, projectedTotalUsd, softCapUsd,
+      reason: `STOP before batch: projected total $${projectedTotalUsd.toFixed(4)} (now $${programTotalUsd.toFixed(4)} + avg $${(Number(measuredAvgUsd)||0).toFixed(4)} × ${batchSize}) > soft cap $${softCapUsd.toFixed(2)} (ceiling $${capUsd.toFixed(2)} − buffer $${bufferUsd.toFixed(2)}). Remaining items → Fork-B deferral; resume on top-up.` };
+  }
+  return { ok: true, projectedTotalUsd, softCapUsd,
+    reason: `batch fits: projected $${projectedTotalUsd.toFixed(4)} <= soft cap $${softCapUsd.toFixed(2)}` };
+}
