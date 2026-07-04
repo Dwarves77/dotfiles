@@ -204,6 +204,9 @@ export async function registerSource(source, { cite, stampIso } = {}) {
     url: source.url,
     name: source.name || host,
     base_tier: source.base_tier ?? 7,
+    // tier_at_creation is NOT NULL — mirror base_tier at insert (the classifier's original judgment). A
+    // dropped default made every new-source insert violate the constraint (class fix).
+    tier_at_creation: source.base_tier ?? 7,
     status: "active",
     admin_only: false,
     ...(source.extra || {}),
