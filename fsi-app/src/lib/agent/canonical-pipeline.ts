@@ -757,8 +757,13 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
   // the item is NOT verified (guarded above), so the CASCADE clears only an in-progress/quarantined ledger.
   await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
   for (const s of rows) {
+    // URL-NORMALIZATION write-site fix (ruling 2026-07-04): synthesis wraps some URLs in markdown emphasis
+    // (*https://…*), which the section extraction carries verbatim into content_md. validate_item_provenance
+    // criterion-2 does an EXACT-string compare, so a trailing `*` reads as an ungrounded_url even against an
+    // active registered source — AND the trailing `*` breaks the link a customer clicks. Strip the markers at
+    // the write site (same stripUrlMarkers used for the claim ledger) so new sections carry clean URLs.
     await sb.from("intelligence_item_sections").insert(
-      { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: s.content_md, is_conditional: s.is_conditional }
+      { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: stripUrlMarkers(s.content_md) ?? s.content_md, is_conditional: s.is_conditional }
     );
   }
   return { ok: true, detail: `${rows.length} sections` };

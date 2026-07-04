@@ -57,3 +57,19 @@ export const SONNET_OUTPUT_USD_PER_MTOK = Number(process.env.SONNET_OUTPUT_USD_P
 export function sonnetCostUsd(inputTokens: number, outputTokens: number): number {
   return (inputTokens / 1e6) * SONNET_INPUT_USD_PER_MTOK + (outputTokens / 1e6) * SONNET_OUTPUT_USD_PER_MTOK;
 }
+
+// Haiku 4.5 rates (the sanctioned always-cheap classifier tier — Rule 016 permitted set).
+export const HAIKU_INPUT_USD_PER_MTOK = Number(process.env.HAIKU_INPUT_USD_PER_MTOK || 1);
+export const HAIKU_OUTPUT_USD_PER_MTOK = Number(process.env.HAIKU_OUTPUT_USD_PER_MTOK || 5);
+
+/** Pure: model-aware USD cost estimate. Sonnet models bill at the Sonnet rate; Haiku at the Haiku rate. */
+export function costUsdForModel(model: string, inputTokens: number, outputTokens: number): number {
+  const isHaiku = /haiku/i.test(model || "");
+  const inRate = isHaiku ? HAIKU_INPUT_USD_PER_MTOK : SONNET_INPUT_USD_PER_MTOK;
+  const outRate = isHaiku ? HAIKU_OUTPUT_USD_PER_MTOK : SONNET_OUTPUT_USD_PER_MTOK;
+  return (inputTokens / 1e6) * inRate + (outputTokens / 1e6) * outRate;
+}
+
+/** The standing spend ceiling (USD), enforced INSIDE the spend client — the $10-ceiling class stops being
+ *  relay discipline. Overridable via env for an operator-authorized raise. */
+export const SPEND_CEILING_USD = Number(process.env.SPEND_CEILING_USD || 10);
