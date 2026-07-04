@@ -34,6 +34,10 @@ import { buildResolver, hostOf, type SourceRow, type Resolver } from "@/lib/sour
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
+// stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
+// 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
+// (*https://x/*, `https://x/`); criterion-2's URL match would otherwise capture the trailing marker.
+import { stripUrlMarkers } from "@/lib/agent/url-canon.mjs";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, GROUND_SECTION_MAX_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
@@ -41,12 +45,6 @@ import {
   DB_PRIORITY_VALUES, DB_URGENCY_TIER_VALUES, DB_FORMAT_TYPE_VALUES, DB_SIGNAL_BAND_VALUES,
 } from "@/lib/agent/metadata-vocab";
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
-// Strip markdown markers glued to the END of a URL — the synthesis wraps URLs in emphasis/code
-// (*https://x/*, `https://x/`), and the URL-grounding regex (validate_item_provenance criterion 2)
-// would otherwise capture the trailing marker and fail to match the grounded url. ONLY '*' and the
-// backtick are stripped — '_' and '~' are VALID URL characters (e.g. .../landmark-...-04-11_en) and
-// stripping them would corrupt real URLs.
-const stripUrlMarkers = (s: string | null | undefined) => (s == null ? s : String(s).replace(/(https?:\/\/[^\s)\]}"'<>*`]+)[*`]+/g, "$1"));
 const urlsIn = (md: string) => [...new Set((String(md || "").match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
 
 function svc(): SupabaseClient {
@@ -757,8 +755,13 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
   // the item is NOT verified (guarded above), so the CASCADE clears only an in-progress/quarantined ledger.
   await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
   for (const s of rows) {
+    // URL-NORMALIZATION write-site fix (ruling 2026-07-04): synthesis wraps some URLs in markdown emphasis
+    // (*https://…*), which the section extraction carries verbatim into content_md. validate_item_provenance
+    // criterion-2 does an EXACT-string compare, so a trailing `*` reads as an ungrounded_url even against an
+    // active registered source — AND the trailing `*` breaks the link a customer clicks. Strip the markers at
+    // the write site (same stripUrlMarkers used for the claim ledger) so new sections carry clean URLs.
     await sb.from("intelligence_item_sections").insert(
-      { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: s.content_md, is_conditional: s.is_conditional }
+      { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: stripUrlMarkers(s.content_md) ?? s.content_md, is_conditional: s.is_conditional }
     );
   }
   return { ok: true, detail: `${rows.length} sections` };

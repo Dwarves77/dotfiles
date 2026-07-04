@@ -43,6 +43,10 @@ export function mergeNullTierAggregate(existing, itemId, contribution) {
 export function summarizeNullTierAggregate(host, agg) {
   const itemCount = Object.keys(agg.perItemFacts).length;
   const factCount = Object.values(agg.perItemFacts).reduce((a, b) => a + b, 0);
-  const description = `Unregistered host ${host} carries ${factCount} FACT span(s) across ${itemCount} item(s) that resolve to NULL tier (below the authority floor because the host is not in the sources registry). Register it at its canonical institutional tier so these facts ground at the floor instead of walling.`;
+  // WORDING (ruling 2026-07-04): state the OBSERVABLE fact (unregistered host, null tier), NOT a floor
+  // verdict. The authority floor applies ONLY to CRITICAL/HIGH non-exempt items (validate_item_provenance
+  // v_priority_high + v_floor_max); a null-tier FACT on a LOW/exempt item is NOT "below floor" (no floor
+  // applies). Junk-commentary hosts (the common case) route to 4c relabel, not registration.
+  const description = `Unregistered host ${host}: ${factCount} FACT span(s) across ${itemCount} item(s) resolve to NULL tier (host not in the sources registry). Operator review: register at its canonical institutional tier IF an authoritative primary, else route the facts to 4c relabel (grounded analysis). Floor-subject only for CRITICAL/HIGH non-exempt items.`;
   return { itemCount, factCount, description };
 }
