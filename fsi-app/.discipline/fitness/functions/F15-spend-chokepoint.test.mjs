@@ -26,8 +26,12 @@ test('RED: a direct Anthropic call in a non-allowlisted file is flagged with fil
 });
 
 test('GREEN: the same logic routed through the spend client is clean', () => {
+  // Fixture import is RELATIVE, not "@/lib/llm/spend-client" — the glob-portability guard is TEXTUAL and
+  // flags any bare/`@/` import STRING in a discipline-glob test file (CI runs this suite without npm ci).
+  // F15 only inspects for a direct Anthropic call (DIRECT_API_RE); the import path is cosmetic here. Do NOT
+  // "clean this up" back to the `@/` alias form — it will red the portability guard in CI.
   const clean = [
-    'import { spendStream } from "@/lib/llm/spend-client";',
+    'import { spendStream } from "../../llm/spend-client.mjs";',
     'export async function properSpend(ticket) {',
     '  const { text } = await spendStream(ticket, { system: "s", user: "u" });',
     '  return text;',
