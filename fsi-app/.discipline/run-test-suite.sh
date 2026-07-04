@@ -44,5 +44,6 @@ node --test \
   fsi-app/src/lib/agent/null-tier-flag.test.mjs \
   fsi-app/src/lib/agent/deterministic-lever.test.mjs \
   fsi-app/src/lib/agent/url-canon.test.mjs \
+  fsi-app/src/lib/agent/slot-forcing.test.mjs \
   fsi-app/src/lib/llm/spend-guard.test.mjs \
   fsi-app/src/lib/llm/program-total.test.mjs
