@@ -933,18 +933,25 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   if (slots?.length) {
     const taggedSlots = new Set(kept.filter((c) => ["FACT", "GAP"].includes(c.claim_kind) && !!c.slot_key).map((c) => c.slot_key));
     const secSentences = secs.map((s) => ({ key: s.section_key, sentences: String(s.content_md || "").split(/(?<=[.!?])\s+/).map((x) => x.trim()) }));
+    // proseCovers + sectionKey come from the brief prose (GAP-vs-RELABEL + which section the forced claim
+    // belongs to). NOMINATION no longer comes from prose (the 5c fix): a judge-confirmed FACT is nominated as a
+    // VERBATIM span out of the FLOOR pool below, so it grounds at the floor by construction.
     const uncovered = slots.filter((s) => !taggedSlots.has(s.slot_key)).map((s) => {
       const want = new Set(String(s.description || s.slot_key).toLowerCase().match(/[a-z]{4,}/g) || []);
-      const sentences: string[] = []; let sectionKey = secs[0]?.section_key ?? "";
+      let proseCovers = false; let sectionKey = secs[0]?.section_key ?? "";
       for (const sec of secSentences) for (const sent of sec.sentences) {
-        if (sent && [...want].some((w) => sent.toLowerCase().includes(w))) { sentences.push(sent); sectionKey = sec.key; }
+        if (sent && [...want].some((w) => sent.toLowerCase().includes(w))) { proseCovers = true; sectionKey = sec.key; }
       }
-      return { slotKey: s.slot_key, description: s.description ?? s.slot_key, proseSentences: sentences, proseCovers: sentences.length > 0, sectionKey };
+      return { slotKey: s.slot_key, description: s.description ?? s.slot_key, proseCovers, sectionKey };
     });
     if (uncovered.length) {
       const judge = (slotKey: string, nom: { span: string; url: string }) =>
         judgeSlotSpan(slotKey, uncovered.find((x) => x.slotKey === slotKey)?.description ?? slotKey, nom);
-      const sc = await forceSlotCoverage(uncovered, fetched.map((f) => ({ url: f.url, text: f.text })), judge, MAX_JUDGED_NOMINATIONS);
+      // FLOOR-FIRST pool: a FACT for a floor-applicable item is nominated ONLY from floor-qualifying sources
+      // (floorPool, best-tier-first) so a confirmed span grounds AT the floor; a floor-EXEMPT item nominates
+      // from the full tiered pool (any tier grounds). Empty floorPool (no floor source fetched) → no FACT.
+      const slotNomPool = itemFloor == null ? groundWithTier : floorPool;
+      const sc = await forceSlotCoverage(uncovered, slotNomPool.map((f) => ({ url: f.url, text: f.text, tier: f.tier })), judge, MAX_JUDGED_NOMINATIONS);
       const sectionOf = (slotKey: string) => uncovered.find((x) => x.slotKey === slotKey)?.sectionKey ?? (secs[0]?.section_key ?? "");
       for (const f of sc.facts) kept.push({ claim_kind: "FACT", claim_text: f.source_span, source_span: f.source_span, source_url: f.source_url, slot_key: f.slot_key, section: sectionOf(f.slot_key), search_result_id: null } as never);
       for (const g of sc.gaps) kept.push({ claim_kind: "GAP", claim_text: `[${g.slot_key}] not available from primary sources as of grounding`, source_span: null, source_url: null, slot_key: g.slot_key, section: sectionOf(g.slot_key), search_result_id: null } as never);
