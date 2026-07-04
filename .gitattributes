@@ -1,0 +1,5 @@
+
+# Migrations are parsed byte-for-byte by discipline guards (vocab-drift/148, url-canon/150, authorityFloorFor/141)
+# against LF-generating .mjs SoT. Force LF on checkout so a Windows autocrlf checkout does not false-fail the
+# byte-identical guards (operator ruling 2026-07-04, guard-fix 2a).
+fsi-app/supabase/migrations/**/*.sql text eol=lf

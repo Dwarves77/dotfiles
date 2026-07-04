@@ -83,27 +83,20 @@ rm -f /tmp/discipline-prepush-c.log
 echo "[discipline pre-push] step 2 (consistency runner): OK"
 
 # ---------------------------------------------------------------------------
-# Step 3: discipline + fitness tests
+# Step 3: discipline + fitness tests — the SAME canonical suite CI runs
 # ---------------------------------------------------------------------------
-if ! node --test \
-    fsi-app/.discipline/lib/*.test.mjs \
-    fsi-app/.discipline/rules/*.test.mjs \
-    fsi-app/.discipline/governance/*.test.mjs \
-    fsi-app/.discipline/runner.test.mjs \
-    fsi-app/.discipline/install-hooks.test.mjs \
-    fsi-app/.discipline/dispatch/*.test.mjs \
-    fsi-app/.discipline/fitness/functions/*.test.mjs \
-    fsi-app/.discipline/fitness/runner.test.mjs \
-    fsi-app/src/lib/credibility/*.test.mjs \
-    fsi-app/scripts/lib/db.test.mjs \
-    >/tmp/discipline-prepush-t.log 2>&1; then
+# PARITY BY CONSTRUCTION (operator ruling 2026-07-04): pre-push and the CI "Discipline engine unit tests"
+# job invoke the SAME entrypoint (fsi-app/.discipline/run-test-suite.sh), so the two lists cannot drift.
+# This closed the gap that let a non-portable `@/` import in a discipline-glob test pass locally and only
+# red in CI (glob-portability was in CI's list but not pre-push's).
+if ! sh fsi-app/.discipline/run-test-suite.sh >/tmp/discipline-prepush-t.log 2>&1; then
   echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
   tail -40 /tmp/discipline-prepush-t.log >&2
   rm -f /tmp/discipline-prepush-t.log
   exit 1
 fi
 rm -f /tmp/discipline-prepush-t.log
-echo "[discipline pre-push] step 3 (discipline + fitness tests): OK"
+echo "[discipline pre-push] step 3 (discipline + fitness tests, canonical suite): OK"
 
 # ---------------------------------------------------------------------------
 # Step 3b: invariant-coverage meta-gate (per-INVARIANT wiring of all 6 skills)

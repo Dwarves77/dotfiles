@@ -5,10 +5,10 @@
 // allocation — floor-qualifiers reach the model COMPLETE, corroborators truncate lowest-tier-first.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSourceBlocks, authorityFloorFor } from "./source-blocks.mjs";
+import { readMigrationSql } from "../../../.discipline/lib/read-migration-sql.mjs";
 
 // Reference implementation of the PRE-FIX order-based builder, kept ONLY to demonstrate the RED it produced.
 function legacyOrderBasedBuild(fetched, budget) {
@@ -75,7 +75,7 @@ test("authorityFloorFor: reg-family=2, research=4, tech=5, market/regional exemp
 // divergence that a second floor home would silently reintroduce.
 test("floor vocab has ONE home: authorityFloorFor mirrors migration 141 v_floor_max CASE (no drift)", () => {
   const HERE = dirname(fileURLToPath(import.meta.url));
-  const sql = readFileSync(resolve(HERE, "../../../supabase/migrations/141_per_type_authority_floor.sql"), "utf8");
+  const sql = readMigrationSql(resolve(HERE, "../../../supabase/migrations/141_per_type_authority_floor.sql")); // CRLF-normalized (guard-fix 2b)
   const caseBody = sql.match(/v_floor_max\s*:=\s*CASE([\s\S]*?)END\s*;/i);
   assert.ok(caseBody, "migration 141 must contain the v_floor_max CASE (the floor authority)");
   const expected = new Map(); // item_type -> floor number

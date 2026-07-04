@@ -7,14 +7,14 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { stripUrlMarkers, canonicalizeCitationUrl, POLLUTION_FIXTURES } from "./url-canon.mjs";
+import { readMigrationSql } from "../../../.discipline/lib/read-migration-sql.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MIG = resolve(HERE, "../../../supabase/migrations/150_criterion2_url_canonicalize.sql");
-const sql = readFileSync(MIG, "utf8");
+const sql = readMigrationSql(MIG); // CRLF-normalized (guard-fix 2b) so a Windows checkout does not false-fail
 // isolate the helper body so we assert against IT, not the criterion-2 call sites
 const body = (sql.match(/AS \$canon\$([\s\S]*?)\$canon\$/) || [, ""])[1];
 
