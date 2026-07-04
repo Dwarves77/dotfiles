@@ -41,12 +41,12 @@ export function currentSpendTicket(): SpendTicket { return currentTicket; }
  *  builds its own body). Guards the CONTEXT ticket + budget, streams, accounts. Behavior-identical to a bare
  *  streamMessagesText call except for the guard + accounting. */
 export async function spendStreamRaw(
-  streamOpts: { apiKey: string; body: Record<string, unknown> },
+  streamOpts: Parameters<typeof streamMessagesText>[0],
 ): Promise<{ text: string; stopReason: string | null; usage: { input_tokens: number; output_tokens: number } }> {
   assertTicket(currentTicket);
   assertBudget(currentTicket, SPEND_CEILING_USD);
   const r = await streamMessagesText(streamOpts);
-  const model = String((streamOpts.body as { model?: string }).model ?? "claude-sonnet-4-6");
+  const model = String(((streamOpts?.body ?? {}) as { model?: string }).model ?? "claude-sonnet-4-6");
   account(costUsdForModel(model, r.usage.input_tokens, r.usage.output_tokens), r.usage.input_tokens, r.usage.output_tokens);
   return r;
 }

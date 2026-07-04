@@ -25,6 +25,10 @@ import { fetchPrimaryWithFallback, detectRoadblock } from "@/lib/sources/primary
 import { looksLikePdfUrl, classifyBody, pdfToText } from "@/lib/sources/pdf-extract.mjs";
 import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
+// SPEND CHOKEPOINT (routing, ruling 2026-07-04): the pipeline's model calls route through the spend client
+// (spendStreamRaw = the same streamMessagesText call, ticket-gated + ceiling-enforced + accounted;
+// spendSearch = the web_search call). Behavior-preserving — the streaming body/params are unchanged.
+import { spendStreamRaw, spendSearch } from "@/lib/llm/spend-client";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
@@ -300,7 +304,7 @@ async function callSonnet(system: string, user: string): Promise<string> {
   // socket idles for the full multi-minute generation and never resolves (proven 2026-06-19; the identical
   // stream:true call completed). Streaming keeps the socket alive (so the larger cap is viable), bounds on
   // NO-PROGRESS, and preserves anthropicError classification end-to-end (out-of-credits HALT unchanged).
-  const { text, stopReason, usage } = await streamMessagesText({
+  const { text, stopReason, usage } = await spendStreamRaw({
     apiKey: process.env.ANTHROPIC_API_KEY!,
     body: { model: "claude-sonnet-4-6", max_tokens: 32000, system, messages: [{ role: "user", content: user }] },
   });
@@ -321,28 +325,20 @@ async function callSonnet(system: string, user: string): Promise<string> {
  *  to body-then-YAML ONLY on stop_reason truncation, so the body comes out whole and normal briefs stay 1
  *  call. */
 async function generateBriefText(system: string, user: string): Promise<string> {
-  // Meter every stream call twoPassGenerate makes (1 normal, 2 on truncation split) into the usage ledger.
+  // Route every stream call twoPassGenerate makes (1 normal, 2 on truncation split) through the spend client
+  // (spendStreamRaw = ticket-gated + ceiling-enforced + accounted) AND meter it into the stored-path ledger.
   const meteredStream: typeof streamMessagesText = async (opts) => {
-    const r = await streamMessagesText(opts);
+    const r = await spendStreamRaw(opts);
     addUsage(r.usage);
     return r;
   };
   return twoPassGenerate({ system, user, stream: meteredStream, findYaml: findYamlBlock, apiKey: process.env.ANTHROPIC_API_KEY! });
 }
 
-// Sonnet WITH the server-side web_search tool (Anthropic runs the searches; one round-trip returns
-// the final text). Same tool/beta wiring as src/lib/sources/discovery.ts. Used for source discovery.
-const WEB_SEARCH_BETA = "web-search-2025-03-05";
-const WEB_SEARCH_TOOL = "web_search_20250305";
+// Sonnet WITH the server-side web_search tool — routed through the spend client (spendSearch owns the
+// web_search body/beta wiring + the ticket/ceiling guard). Used for source discovery.
 async function callSonnetSearch(system: string, user: string, maxUses = 6): Promise<string> {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "anthropic-beta": WEB_SEARCH_BETA },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000, tools: [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: maxUses }], system, messages: [{ role: "user", content: user }] }),
-  });
-  const d = await resp.json().catch(() => ({}));
-  if (!resp.ok) throw anthropicError(resp.status, d);
-  return ((d.content as Array<{ type: string; text?: string }>) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  return spendSearch({ system, user, maxUses });
 }
 
 export interface Corroborator { name: string; url: string; type?: string; why: string }
