@@ -12,6 +12,7 @@
 
 /** @typedef {{ span: string, url: string }} Nomination  — a word-overlap candidate, NOT a decision. */
 /** @typedef {{ supports: boolean, why?: string }} JudgeVerdict — the grounding judge's per-assertion call. */
+/** @typedef {{ kind: "FACT"|"GAP"|"RELABEL", slot_key: string, source_span?: string, source_url?: string, reason: string }} SlotClaim */
 
 // A meaningful nomination span must be a real clause, not a coincidental fragment (mirrors floor-attribution).
 export const MIN_NOMINATION_SPAN = 24;
@@ -57,26 +58,42 @@ export function decideSlotClaim({ slotKey, nomination, judgeVerdict, proseCovers
   return { kind: "RELABEL", slot_key: slotKey, reason: "prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT" };
 }
 
+/** Max judged nominations per slot (moat binding: bounded judge calls; K stated in the pre-run log). */
+export const MAX_JUDGED_NOMINATIONS = 3;
+
 /**
- * Force coverage over the required slots the extractor left untagged. For each, nominate → JUDGE → decide.
- * Returns the claims to APPEND (FACT or GAP) plus the RELABEL routes (handled by the 4c path, no FACT here).
- * The judge is injected: async (slotKey, nomination, assertion) => JudgeVerdict.
+ * Force coverage over the required slots the extractor left untagged. For each slot, judge the TOP-K nominated
+ * spans (K <= MAX_JUDGED_NOMINATIONS) — the FIRST judge-confirmed span becomes the FACT; if NONE of the top-K
+ * confirm, the slot routes to an honest GAP (genuinely absent) or a 4c RELABEL candidate (prose covers it but
+ * no span is judge-supported). A FACT is NEVER emitted without a judge confirmation. The judge is injected
+ * (a live spend-client call in prod, a mock in the selftest) and defaults to NOT CONFIRMED under uncertainty.
  * @param {{ slotKey: string, description: string, proseSentences: string[], proseCovers: boolean }[]} uncoveredSlots
  * @param {{ url: string, text: string }[]} pool
  * @param {(slotKey: string, nomination: Nomination) => Promise<JudgeVerdict>} judge
- * @returns {Promise<{ facts: object[], gaps: object[], relabels: object[], audit: object[] }>}
+ * @param {number} [k]  top-K nominations to judge per slot (default MAX_JUDGED_NOMINATIONS, capped at it)
+ * @returns {Promise<{ facts: SlotClaim[], gaps: SlotClaim[], relabels: SlotClaim[], audit: object[], judgeCalls: number }>}
  */
-export async function forceSlotCoverage(uncoveredSlots, pool, judge) {
-  const facts = [], gaps = [], relabels = [], audit = [];
+export async function forceSlotCoverage(uncoveredSlots, pool, judge, k = MAX_JUDGED_NOMINATIONS) {
+  const K = Math.max(1, Math.min(k, MAX_JUDGED_NOMINATIONS));
+  /** @type {SlotClaim[]} */ const facts = []; /** @type {SlotClaim[]} */ const gaps = []; /** @type {SlotClaim[]} */ const relabels = []; const audit = [];
+  let judgeCalls = 0;
   for (const slot of uncoveredSlots || []) {
-    const noms = nominateForSlot(slot.description, pool, slot.proseSentences);
-    const nomination = noms[0] || null;
-    const judgeVerdict = nomination ? await judge(slot.slotKey, nomination) : null;
-    const decision = decideSlotClaim({ slotKey: slot.slotKey, nomination, judgeVerdict, proseCovers: !!slot.proseCovers });
-    audit.push({ slot: slot.slotKey, nominated: !!nomination, judge: judgeVerdict ? judgeVerdict.supports : null, decision: decision.kind, why: judgeVerdict?.why });
+    const noms = nominateForSlot(slot.description, pool, slot.proseSentences).slice(0, K);
+    let confirmed = null, lastVerdict = null;
+    for (const nom of noms) {
+      lastVerdict = await judge(slot.slotKey, nom); judgeCalls += 1;
+      if (lastVerdict && lastVerdict.supports === true) { confirmed = nom; break; } // first confirm wins
+    }
+    const decision = decideSlotClaim({
+      slotKey: slot.slotKey,
+      nomination: confirmed,
+      judgeVerdict: confirmed ? { supports: true } : (lastVerdict || null),
+      proseCovers: !!slot.proseCovers,
+    });
+    audit.push({ slot: slot.slotKey, nominated: noms.length, judgedTopK: noms.length, judgeConfirmed: !!confirmed, decision: decision.kind, why: (confirmed ? "judge-confirmed" : lastVerdict?.why) });
     if (decision.kind === "FACT") facts.push(decision);
     else if (decision.kind === "GAP") gaps.push(decision);
     else relabels.push(decision);
   }
-  return { facts, gaps, relabels, audit };
+  return { facts, gaps, relabels, audit, judgeCalls };
 }

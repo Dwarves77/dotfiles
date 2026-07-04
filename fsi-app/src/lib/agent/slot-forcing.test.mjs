@@ -72,4 +72,30 @@ test("forceSlotCoverage end-to-end (mock judge): FACT where judge confirms, GAP/
   // the audit trail carries the judge decision for every slot (for the genuine-support audit in the proof sample)
   assert.equal(audit.length, 3);
   assert.equal(audit.find((a) => a.slot === "penalty_summary").decision, "RELABEL");
+  assert.equal(audit.length, 3);
+});
+
+test("BINDING top-K≤3: judge the top-K nominations; first confirm wins; NONE confirm → no FACT (bounded calls)", async () => {
+  const span = (n) => `This Order applies to a supplier of ${JURISDICTION_SPAN} clause ${n}`;
+  const pool = [{ url: POOL[0].url, text: `${span(1)}. ${span(2)}. ${span(3)}. ${span(4)}.` }];
+  const uncovered = [{ slotKey: "jurisdictional_scope", description: "the jurisdictional scope", proseSentences: [span(1), span(2), span(3), span(4)], proseCovers: true }];
+  // judge confirms only the 3rd nomination — a FACT is emitted, and no more than K=3 calls are made.
+  let calls = 0;
+  const judge = async (_slot, nom) => { calls += 1; return { supports: nom.span.includes("clause 3") }; };
+  const r = await forceSlotCoverage(uncovered, pool, judge, 3);
+  assert.equal(r.facts.length, 1, "the judge-confirmed 3rd span becomes the FACT");
+  assert.ok(r.judgeCalls <= 3 && calls <= 3, "bounded to top-K=3 judge calls per slot");
+  // NONE confirm within top-K → NO FACT (RELABEL, prose covers)
+  const rNone = await forceSlotCoverage(uncovered, pool, async () => ({ supports: false }), 3);
+  assert.equal(rNone.facts.length, 0, "no judge confirmation in top-K → NEVER a FACT");
+  assert.equal(rNone.relabels.length, 1);
+  assert.ok(rNone.judgeCalls <= 3);
+});
+
+test("BINDING no-op on clean items: zero uncovered slots → ZERO judge calls (forward cost discipline)", async () => {
+  let calls = 0;
+  const r = await forceSlotCoverage([], POOL, async () => { calls += 1; return { supports: true }; });
+  assert.equal(calls, 0, "a fully-tagged item performs NO judge calls");
+  assert.equal(r.judgeCalls, 0);
+  assert.deepEqual([r.facts.length, r.gaps.length, r.relabels.length], [0, 0, 0]);
 });
