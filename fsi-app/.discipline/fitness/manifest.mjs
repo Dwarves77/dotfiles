@@ -21,6 +21,9 @@ import { fitnessFunction as F12 } from './functions/F12-moat-base-tier.mjs';
 // a writer with no reader — that every prior audit found by hand. Maps to invariant RD-9.
 // (F13 is reserved by the in-flight intake-gate PR #171; F14 avoids the collision.)
 import { fitnessFunction as F14 } from './functions/F14-producer-consumer-orphan.mjs';
+// Spend chokepoint (2026-07-04): F15 mechanizes "no Anthropic API call outside the spend client" — the
+// generation-side analog of dedup-before-ground. A2 shrinking allowlist for legacy sites. Maps to RD-10.
+import { fitnessFunction as F15 } from './functions/F15-spend-chokepoint.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -31,6 +34,7 @@ export const fitnessFunctions = [
   F11,
   F12,
   F14,
+  F15,
 ];
 
 export function getFunctionById(id) {

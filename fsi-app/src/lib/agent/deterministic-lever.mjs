@@ -66,14 +66,23 @@ export function unexercisedLevers(failureClasses, evidence) {
 }
 
 /**
- * The GATE. An item with ANY unexercised $0 lever is INELIGIBLE for the paid (generation) queue — the free
- * lever must run first. An item with no exercisable $0 lever (all failures generation-only, or a
- * deterministic class with 0 exercisable matches) is eligible: the paid path is genuinely warranted. Pure.
+ * The GATE. An item is INELIGIBLE for the paid (generation) queue when EITHER (i) its standing disposition is
+ * DELETE — a held dup-loser awaiting deletion on survivor release must never be paid to regenerate — OR
+ * (ii) it has ANY unexercised $0 lever (the free lever must run first). Otherwise eligible: the paid path is
+ * genuinely warranted. Pure.
  * @param {string[]} failureClasses
  * @param {LeverEvidence} evidence
+ * @param {string | null | undefined} [disposition]  standing disposition ("DELETE" = held loser, reject)
  * @returns {{ eligible: boolean, reason: string, levers: {class:string,lever:string,count:number}[] }}
  */
-export function paidQueueVerdict(failureClasses, evidence) {
+export function paidQueueVerdict(failureClasses, evidence, disposition) {
+  if (String(disposition || "").toUpperCase() === "DELETE") {
+    return {
+      eligible: false,
+      reason: "REJECTED from paid queue — standing disposition is DELETE (held dup-loser; delete on survivor release, never pay to regenerate).",
+      levers: [],
+    };
+  }
   const levers = unexercisedLevers(failureClasses, evidence);
   if (levers.length) {
     return {

@@ -27,6 +27,7 @@ const PERMITTED = [
   'fsi-app/src/app/api/admin/spot-check/recurring/',   // monthly calibration spot-check: re-classifies a source sample via the verification Haiku (source classification, sanctioned per CLAUDE.md permitted-routes table — NOT brief generation; mirrors recommend-classification)
   'fsi-app/src/lib/agent/canonical-pipeline.ts',       // canonical pipeline (calls the route's model)
   'fsi-app/src/lib/agent/anthropic-stream.mjs',        // canonical STREAMING call site (used by the above + scripts/lib/anthropic.mjs)
+  'fsi-app/src/lib/llm/spend-client.ts',               // THE spend chokepoint (2026-07-04) — spendStream/spendSearch; F15 enforces routing THROUGH it
 ];
 
 function norm(p) { return (p || '').replaceAll('\\', '/'); }
@@ -40,6 +41,7 @@ function relevant(ctx) {
     if (!isCode(p)) return false;
     if (p.includes('node_modules/')) return false;
     if (p.includes('/scripts/_diag/')) return false;
+    if (p.includes('/.discipline/')) return false;      // the discipline engine references the API pattern to ENFORCE it (F15 + tests), never to call it
     if (isPermitted(p)) return false;
     return true;
   });

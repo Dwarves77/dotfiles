@@ -74,7 +74,9 @@ export const SKILL_MARKER_BASELINE = {
   // 18→19 (2026-07-03): added Section 4 category 9 "Producer-consumer orphan (the half-slice defect)"
   // — "a table the application writes MUST have a consumer, OR be allowlisted…". TRIAGE: new normative
   // statement, triaged into invariant RD-9 (enforcedBy fitness:F14, the A2 orphan checker).
-  'remediation-discipline': 19,
+  // 19→20 (2026-07-04): added Section 4.6 "the spend chokepoint (generation-side dedup-before-ground)"
+  // normative line. TRIAGE: new invariant RD-10 (enforcedBy fitness:F15 + spend-guard.test.mjs selftest).
+  'remediation-discipline': 20,
   'sprint-followups-discipline': 17,
 };
 
@@ -443,6 +445,16 @@ export const INVARIANTS = [
     anchor: 'Producer-consumer orphan (the half-slice defect)',
     enforcedBy: ['fitness:F14'],
     residual: 'F14 (producer-consumer-orphan.mjs pure core, negative-tested red-then-green) gates the high-confidence half-slice — a schema table with a CODE writer and ZERO readers of any kind (no code .select, no SQL FROM/JOIN/REFERENCES) — beyond the reason-bearing, phase-tagged terminal-sink allowlist, and fails on a stale allowlist entry. NAMED RESIDUALS: (1) TABLE-level only — field-level "reader of never-written column" is a best-effort INFORMATIONAL pass (insert/update key parsing is high-false-positive), not gated (REVISIT); (2) TRANSITIVE deadness not chased — a table read only inside a dead RPC/view counts as consumed (conservative, avoids false positives), so a dead SQL subgraph can hide an orphan; (3) reader-orphans are reported for Phase-7 scoping, not gated. The first-run report (2026-07-03) grandfathered notification_deliveries / bulk_imports / ingestion_control_log pending Phase 7 disposition — it does not authorize deletion.',
+  },
+
+  {
+    id: 'RD-10-spend-chokepoint',
+    skill: 'remediation-discipline',
+    section: 'Section 4.6 — the spend chokepoint (generation-side dedup-before-ground)',
+    text: 'Every model call MUST route through the ONE spend client, which requires a SpendTicket; a ticketless call throws, a per-item ticket whose failure set is fully deterministically-resolvable OR whose standing disposition is DELETE is REJECTED, and the budget ceiling is enforced in code. No Anthropic API call / client instantiation may exist outside the spend client and its sanctioned transport, beyond a reason-bearing, review-by-phase-tagged SHRINKING allowlist that is itself audited (a stale entry is RED).',
+    anchor: 'The spend chokepoint (generation-side dedup-before-ground)',
+    enforcedBy: ['fitness:F15', 'selftest:fsi-app/src/lib/llm/spend-guard.test.mjs'],
+    residual: 'F15 (grep-class, red-then-green: a simulated direct-API bypass in a non-allowlisted file is RED with file:line; the A2 allowlist is stale-audited by the test) gates the STRUCTURAL guarantee — no ungated call site. spend-guard.test.mjs proves the PURE guard red-then-green: ticketless throws, deterministically-resolvable rejected (deterministic-lever), DELETE-disposition rejected, ceiling throws. NAMED RESIDUAL: the allowlist is NON-EMPTY at ship (12 legacy sites: canonical-pipeline callSonnetSearch + the Haiku/route classifiers) — each reason-bearing + reviewByPhase-tagged; the shrink plan migrates them to spendStream/spendSearch (classifiers via standingClass). The necessity gate is only as good as the ticket the caller supplies (failureClasses/necessity/disposition); the runner computes them from live provenance. Telemetry single-homed in spend-client.logSpendRun (the 4f relocation).',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
