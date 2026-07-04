@@ -29,15 +29,12 @@ LANGUAGE sql
 IMMUTABLE
 STRICT
 AS $canon$
-  SELECT rtrim(
-    regexp_replace(                                    -- strip a trailing slash
-      regexp_replace(                                  -- strip leading www. after the scheme
-        regexp_replace(lower(btrim(u)), '[*`]+$', ''), -- strip trailing markdown-emphasis markers
-        '^(https?://)www\.', '\1'
-      ),
-      '/+$', ''
+  SELECT regexp_replace(                                -- ONE combined trailing-junk strip: slash + dots +
+    regexp_replace(                                     -- punct, so `…/path/.*` (after marker strip `…/path/.`)
+      regexp_replace(lower(btrim(u)), '[*`]+$', ''),    -- fully normalizes to `…/path`. strip trailing markers,
+      '^(https?://)www\.', '\1'                         -- then leading www., then the combined trailing class.
     ),
-    '.,;:'
+    '[/.,;:]+$', ''
   );
 $canon$;
 
