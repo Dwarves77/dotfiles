@@ -25,7 +25,8 @@ export const SANCTIONED = new Set([
 // Legacy call sites grandfathered pending migration to spendStream/spendSearch. Reason + reviewByPhase per
 // A2. SHRINKS to empty. A stale entry (file no longer has a direct call) is RED (the test asserts it).
 export const LEGACY_ALLOWLIST = [
-  { file: 'fsi-app/src/lib/agent/canonical-pipeline.ts', reason: 'callSonnetSearch web_search fetch — migrates to spendSearch in the pipeline-refactor step', reviewByPhase: 'chokepoint-pipeline-refactor' },
+  // canonical-pipeline.ts MIGRATED (2026-07-04): callSonnet/generateBriefText → spendStreamRaw,
+  // callSonnetSearch → spendSearch. It routes through the chokepoint now — OFF the allowlist (12 → 11).
   { file: 'fsi-app/src/lib/llm/haiku-classify.ts', reason: 'Haiku classifier — standing-ticket class, migrates to spend-client with standingClass', reviewByPhase: 'chokepoint-classifier-migration' },
   { file: 'fsi-app/src/lib/llm/first-fetch-classify.ts', reason: 'first-fetch classify — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
   { file: 'fsi-app/src/lib/sources/recommend-source-tier.ts', reason: 'recommend-classification Haiku — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
