@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+    @media (max-width: 1200px) {
+      #map-grid { grid-template-columns: minmax(0,1fr) !important; }
+    }
+  </style>
+</helmet>
+
+<div data-screen-label="Map" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Regulations</a>
+      <a href="Pages - 04 Market Intel.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Market Intel</a>
+      <a href="Pages - 06 Research.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="Pages - 07 Operations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="padding:26px 36px 22px">
+        <p style="font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Vol IV · No. 27 · Friday</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;letter-spacing:0.02em;text-transform:uppercase;margin:0">Global Regulatory Map</h1>
+        <p style="font-size:13.5px;color:#5A6B67;margin:8px 0 0">Regulations by jurisdiction. Marker size encodes item count; colour encodes urgency · <b style="color:#1A1A1A">29 jurisdictions live</b> · <b style="color:#1A1A1A">94 active items</b> · <b style="color:#DC2626">2 jurisdictions with critical items</b></p>
+      </div>
+    </header>
+
+    <div style="padding:24px 36px 80px">
+
+      <!-- Filter bar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px">
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Modes</span>
+            <sc-for list="{{ modeChips }}" as="m" hint-placeholder-count="4"><button onClick="{{ m.pick }}" style="{{ m.style }}">{{ m.label }}</button></sc-for>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Priority</span>
+            <sc-for list="{{ prioChips }}" as="p" hint-placeholder-count="4"><button onClick="{{ p.pick }}" style="{{ p.style }}">{{ p.label }}</button></sc-for>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Regions</span>
+            <sc-for list="{{ regionChips }}" as="r" hint-placeholder-count="7"><button onClick="{{ r.pick }}" style="{{ r.style }}">{{ r.label }}</button></sc-for>
+          </div>
+        </div>
+        <div style="display:flex;border:1px solid rgba(0,0,0,0.16);border-radius:6px;overflow:hidden">
+          <sc-for list="{{ viewChips }}" as="v" hint-placeholder-count="3"><button onClick="{{ v.pick }}" style="{{ v.style }}">{{ v.label }}</button></sc-for>
+        </div>
+      </div>
+
+      <!-- Honest note when a mode filter is selected -->
+      <sc-if value="{{ modeNote }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:11px 16px;margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <p style="font-size:12px;color:#5A6B67;margin:0"><b style="color:#8A6A2A">Mode view pending.</b> Items on the map are not yet tagged by transport mode — markers show all modes until mode tagging lands. Mode filters work today on the <a href="Pages - 02 Regulations.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">Regulations index</a>.</p>
+          <button onClick="{{ clearMode }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;white-space:nowrap;padding:0">Back to all modes</button>
+        </div>
+      </sc-if>
+
+      <!-- SPLIT / MAP view -->
+      <sc-if value="{{ showMap }}" hint-placeholder-val="{{ true }}">
+        <div id="map-grid" style="{{ gridStyle }}">
+
+          <!-- Map panel -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;position:relative">
+            <div style="padding:11px 18px;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C">Schematic plot · equirectangular</span>
+              <span style="font-size:11px;color:#7A6E6C">{{ visibleSummary }}</span>
+            </div>
+            <div style="position:relative">
+              <svg viewBox="0 0 1000 500" style="display:block;width:100%;height:auto;background:#F3EFE6">
+                <g>
+                  <line x1="0" y1="83" x2="1000" y2="83" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                  <line x1="0" y1="167" x2="1000" y2="167" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                  <line x1="0" y1="250" x2="1000" y2="250" stroke="rgba(0,0,0,0.09)" stroke-width="1"></line>
+                  <line x1="0" y1="333" x2="1000" y2="333" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                  <line x1="0" y1="417" x2="1000" y2="417" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                  <line x1="167" y1="0" x2="167" y2="500" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                  <line x1="333" y1="0" x2="333" y2="500" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                  <line x1="500" y1="0" x2="500" y2="500" stroke="rgba(0,0,0,0.09)" stroke-width="1"></line>
+                  <line x1="667" y1="0" x2="667" y2="500" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                  <line x1="833" y1="0" x2="833" y2="500" stroke="rgba(0,0,0,0.06)" stroke-width="1"></line>
+                </g>
+                <g fill="#E9E3D5" stroke="rgba(0,0,0,0.12)" stroke-width="1">
+                  <path d="M 60,60 L 150,42 L 250,45 L 320,72 L 345,115 L 300,138 L 282,160 L 272,182 L 250,205 L 262,225 L 240,215 L 212,196 L 188,172 L 155,140 L 120,105 L 75,88 Z"></path>
+                  <path d="M 350,40 L 395,32 L 410,55 L 385,75 L 355,65 Z"></path>
+                  <path d="M 285,230 L 318,238 L 342,258 L 347,292 L 332,330 L 312,372 L 300,405 L 288,382 L 292,342 L 276,300 L 268,262 Z"></path>
+                  <path d="M 486,90 L 498,84 L 501,100 L 490,108 Z"></path>
+                  <path d="M 470,102 L 502,88 L 540,84 L 572,94 L 580,112 L 560,126 L 535,132 L 508,140 L 488,126 Z"></path>
+                  <path d="M 495,158 L 540,148 L 578,158 L 598,184 L 592,220 L 570,258 L 552,300 L 540,338 L 524,302 L 506,254 L 490,206 L 487,178 Z"></path>
+                  <path d="M 580,112 L 610,80 L 660,58 L 730,52 L 800,62 L 845,88 L 868,112 L 840,128 L 800,142 L 770,158 L 748,170 L 762,196 L 778,224 L 790,246 L 772,238 L 756,214 L 742,186 L 730,196 L 718,230 L 706,182 L 680,198 L 658,178 L 636,152 L 610,132 Z"></path>
+                  <path d="M 876,128 L 892,142 L 888,166 L 876,150 Z"></path>
+                  <path d="M 838,300 L 888,292 L 912,318 L 898,350 L 858,356 L 832,332 Z"></path>
+                </g>
+                <sc-for list="{{ markers }}" as="mk" hint-placeholder-count="12">
+                  <g onClick="{{ mk.pick }}" opacity="{{ mk.opacity }}" style="cursor:pointer">
+                    <circle cx="{{ mk.x }}" cy="{{ mk.y }}" r="{{ mk.ring }}" fill="none" stroke="{{ mk.ringStroke }}" stroke-width="2" stroke-dasharray="3 3"></circle>
+                    <circle cx="{{ mk.x }}" cy="{{ mk.y }}" r="{{ mk.r }}" fill="{{ mk.fill }}" stroke="#FFFFFF" stroke-width="1.5"></circle>
+                    <text x="{{ mk.x }}" y="{{ mk.ty }}" text-anchor="middle" fill="#FFFFFF" font-family="Anton, sans-serif" font-size="{{ mk.fs }}">{{ mk.countLabel }}</text>
+                  </g>
+                </sc-for>
+              </svg>
+              <div style="position:absolute;left:14px;bottom:14px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:10px 14px">
+                <p style="font-size:9px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 6px">Key</p>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <span style="display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:600;color:#1A1A1A"><span style="width:9px;height:9px;border-radius:50%;background:#DC2626"></span>Critical · 1+ items</span>
+                  <span style="display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:600;color:#1A1A1A"><span style="width:9px;height:9px;border-radius:50%;background:#E8610A"></span>High</span>
+                  <span style="display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:600;color:#1A1A1A"><span style="width:9px;height:9px;border-radius:50%;background:#CA8A04"></span>Moderate</span>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:10.5px;color:#7A6E6C;margin:0;padding:9px 18px;background:#FAFAF8;border-top:1px solid rgba(0,0,0,0.08)">Schematic coastlines — position is indicative, counts and urgency are live. Click a marker or a jurisdiction tile to focus it. <b style="color:#8A6A2A">Engineering note:</b> this schematic plot is a design placeholder only — implementation keeps the production map (real basemap, zoom, fly-to). Adopt the surrounding layout, the marker encoding (size = item count, colour = urgency), and the rail — not this drawing.</p>
+          </div>
+
+          <!-- Rail -->
+          <sc-if value="{{ showRail }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+
+              <div style="background:#FFF7F0;border:1px solid rgba(232,97,10,0.35);border-left:3px solid #DC2626;border-radius:8px;padding:13px 16px">
+                <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#DC2626;margin:0 0 4px">Active heat</p>
+                <p style="margin:0"><span style="font-family:'Anton',sans-serif;font-size:26px;color:#DC2626">2</span> <span style="font-size:12.5px;font-weight:800">jurisdictions with critical</span></p>
+                <p style="font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#7A6E6C;margin:4px 0 2px">5 critical items total</p>
+                <p style="font-size:11.5px;color:#5A6B67;margin:0">EU and Global have critical items in flight.</p>
+              </div>
+
+              <sc-if value="{{ selOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#FFFFFF;border:2px solid #1A1A1A;border-radius:8px;overflow:hidden">
+                  <div style="padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center">
+                    <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0">Focused jurisdiction</p>
+                    <button onClick="{{ clearSel }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:800;color:#5A6B67;background:none;border:none;cursor:pointer;padding:0" style-hover="{&quot;color&quot;:&quot;#1A1A1A&quot;}">Clear ×</button>
+                  </div>
+                  <div style="padding:14px 16px">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+                      <p style="font-family:'Anton',sans-serif;font-size:22px;letter-spacing:0.02em;text-transform:uppercase;margin:0">{{ selName }}</p>
+                      <span style="font-family:'Anton',sans-serif;font-size:22px;color:{{ selHue }}">{{ selCount }}</span>
+                    </div>
+                    <p style="margin:6px 0 8px"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:{{ selHue }};border:1px solid {{ selHue }};border-radius:4px;padding:2px 8px">{{ selPrio }}</span></p>
+                    <p style="font-size:11.5px;color:#5A6B67;margin:0 0 10px">Active themes · {{ selThemes }}</p>
+                    <a href="Pages - 02 Regulations.dc.html" style="display:inline-block;font-size:11.5px;font-weight:800;color:#FFFFFF;background:#E8610A;border-radius:6px;padding:8px 14px;text-decoration:none" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Open in Regulations →</a>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ showGaps }}" hint-placeholder-val="{{ true }}">
+                <div style="background:#FFFFFF;border:1px dashed rgba(0,0,0,0.25);border-radius:8px;overflow:hidden">
+                  <div style="padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+                    <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#8A6A2A;margin:0">Coverage gaps</p>
+                  </div>
+                  <div style="padding:6px 16px 12px">
+                    <div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06)"><p style="font-size:12px;font-weight:800;margin:0">United States (sub-national)</p><p style="font-size:10.5px;color:#7A6E6C;margin:2px 0 0">0 of 56 priority jurisdictions covered · 56 gaps</p></div>
+                    <div style="padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06)"><p style="font-size:12px;font-weight:800;margin:0">EU member states</p><p style="font-size:10.5px;color:#7A6E6C;margin:2px 0 0">0 of 27 priority jurisdictions covered · 27 gaps</p></div>
+                    <div style="padding:8px 0"><p style="font-size:12px;font-weight:800;margin:0">Canada (provinces &amp; territories)</p><p style="font-size:10.5px;color:#7A6E6C;margin:2px 0 0">0 of 13 priority jurisdictions covered · 13 gaps</p></div>
+                    <p style="font-size:10.5px;color:#7A6E6C;line-height:1.55;margin:6px 0 0;border-top:1px solid rgba(0,0,0,0.06);padding-top:8px">Sub-national coverage is a known gap, stated plainly. The state-level cost facts on <a href="Pages - 07 Operations.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">Operations</a> are the first fills.</p>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- Jurisdiction register band — fills the width, no scroll hunting -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:18px 0 0">
+          <div style="padding:11px 18px;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0">By jurisdiction · click to focus</p>
+            <p style="font-size:10.5px;color:#7A6E6C;margin:0">+ 17 more jurisdictions · 18 items — full register on the <a href="Pages - 02 Regulations.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">Regulations index</a></p>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:1px;background:rgba(0,0,0,0.06)">
+            <sc-for list="{{ rows }}" as="j" hint-placeholder-count="12">
+              <button onClick="{{ j.pick }}" style="{{ j.style }}">
+                <span style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0">
+                    <span style="width:8px;height:8px;border-radius:50%;background:{{ j.hue }};flex-shrink:0"></span>
+                    <span style="font-size:12.5px;font-weight:800;color:#1A1A1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ j.name }}</span>
+                  </span>
+                  <span style="{{ j.badgeStyle }}">{{ j.count }}</span>
+                </span>
+                <span style="display:block;font-size:10.5px;color:#7A6E6C;margin:4px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ j.themes }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ bandEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px 18px">
+              <p style="font-size:12.5px;font-weight:700;margin:0 0 2px">No jurisdictions match this filter.</p>
+              <p style="font-size:11.5px;color:#5A6B67;margin:0">Clear the priority or region filter to see the full register. <button onClick="{{ clearAll }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;padding:0">Clear filters</button></p>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- LIST view -->
+      <sc-if value="{{ showList }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+          <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Jurisdiction register</span>
+            <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">{{ visibleSummary }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:44px 1.2fr 1.6fr 0.8fr 0.6fr">
+            <span style="padding:10px 0 10px 20px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)"></span>
+            <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px 10px 0;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Jurisdiction</span>
+            <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Active themes</span>
+            <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Priority</span>
+            <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 20px 10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1);text-align:right">Items</span>
+            <sc-for list="{{ listRows }}" as="lr" hint-placeholder-count="12">
+              <span style="padding:12px 0 12px 20px;border-bottom:1px solid rgba(0,0,0,0.06)"><span style="width:9px;height:9px;border-radius:50%;background:{{ lr.hue }};display:inline-block"></span></span>
+              <span style="font-size:13px;font-weight:800;padding:12px 14px 12px 0;border-bottom:1px solid rgba(0,0,0,0.06)">{{ lr.name }}</span>
+              <span style="font-size:12px;color:#5A6B67;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.06)">{{ lr.themes }}</span>
+              <span style="padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.06)"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:{{ lr.hue }};border:1px solid {{ lr.hue }};border-radius:4px;padding:2px 8px">{{ lr.prio }}</span></span>
+              <span style="font-family:'Anton',sans-serif;font-size:16px;color:{{ lr.hue }};padding:12px 20px 12px 14px;border-bottom:1px solid rgba(0,0,0,0.06);text-align:right">{{ lr.count }}</span>
+            </sc-for>
+          </div>
+          <p style="font-size:11px;color:#7A6E6C;margin:0;padding:10px 20px;background:#FAFAF8">+ 17 more jurisdictions · 18 items. Priority is the highest urgency among a jurisdiction's active items.</p>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 },
+  &quot;defaultView&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;Split&quot;, &quot;options&quot;: [&quot;Split&quot;, &quot;Map&quot;, &quot;List&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Behavior&quot; },
+  &quot;markerScale&quot;: { &quot;editor&quot;: &quot;range&quot;, &quot;default&quot;: 1, &quot;min&quot;: 0.7, &quot;max&quot;: 1.6, &quot;step&quot;: 0.1, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Map&quot; },
+  &quot;showCoverageGaps&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Rail&quot; }
+}">
+class Component extends DCLogic {
+  state = {};
+
+  juris = [
+    { code: 'EU', name: 'EU', count: 21, prio: 'Critical', themes: 'Emissions · Reporting · Digital', lon: 10, lat: 50, regions: ['EU'] },
+    { code: 'US', name: 'United States', count: 17, prio: 'High', themes: 'Transport · Emissions · Reporting', lon: -98, lat: 39, regions: ['US'] },
+    { code: 'GLOBAL', name: 'Global', count: 9, prio: 'Critical', themes: 'Corridors · Reporting · Emissions', lon: -30, lat: 25, regions: ['EU', 'US', 'UK', 'LATAM', 'APAC', 'MEAF'] },
+    { code: 'SG', name: 'SG', count: 5, prio: 'Moderate', themes: 'Infrastructure · Corridors · Fuels', lon: 104, lat: 1.3, regions: ['APAC'] },
+    { code: 'GB', name: 'GB', count: 4, prio: 'High', themes: 'Transport · Reporting · Fuels', lon: -2, lat: 54, regions: ['UK'] },
+    { code: 'US-CA', name: 'US–CA', count: 4, prio: 'Moderate', themes: 'Corridors · Reporting · Transport', lon: -84, lat: 46, regions: ['US'] },
+    { code: 'LATAM', name: 'Latin America (other)', count: 4, prio: 'Moderate', themes: 'Infrastructure · Transport · Emissions', lon: -65, lat: -15, regions: ['LATAM'] },
+    { code: 'JP', name: 'JP', count: 3, prio: 'Moderate', themes: 'Emissions · Transport', lon: 139, lat: 36, regions: ['APAC'] },
+    { code: 'AE', name: 'AE', count: 3, prio: 'Moderate', themes: 'Fuels · Emissions', lon: 54, lat: 24, regions: ['MEAF'] },
+    { code: 'AU', name: 'AU', count: 2, prio: 'High', themes: 'Transport', lon: 134, lat: -25, regions: ['APAC'] },
+    { code: 'BR', name: 'BR', count: 2, prio: 'Moderate', themes: 'Transport · Fuels', lon: -52, lat: -10, regions: ['LATAM'] },
+    { code: 'IN', name: 'IN', count: 2, prio: 'Moderate', themes: 'Emissions', lon: 78, lat: 21, regions: ['APAC'] }
+  ];
+
+  hues = { Critical: '#DC2626', High: '#E8610A', Moderate: '#CA8A04' };
+
+  renderVals() {
+    const mode = this.state.mode ?? 'All';
+    const prio = this.state.prio ?? 'All';
+    const region = this.state.region ?? 'All';
+    const view = this.state.view ?? (this.props.defaultView ?? 'Split');
+    const sel = this.state.sel === undefined ? null : this.state.sel;
+
+    const chip = (on) => on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 800, padding: '6px 13px', borderRadius: '999px', border: '1px solid #1A1A1A', background: '#1A1A1A', color: '#FFFFFF', cursor: 'pointer' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 600, padding: '6px 13px', borderRadius: '999px', border: '1px solid rgba(0,0,0,0.16)', background: '#FFFFFF', color: '#5A6B67', cursor: 'pointer' };
+
+    const modeChips = ['All', 'Ocean', 'Air', 'Road'].map((m) => ({ label: m, style: chip(mode === m), pick: () => this.setState({ mode: m }) }));
+    const prioChips = ['All', 'Critical', 'High', 'Moderate'].map((p) => ({ label: p, style: chip(prio === p), pick: () => this.setState({ prio: prio === p ? 'All' : p }) }));
+    const regionChips = ['All', 'EU', 'US', 'UK', 'LATAM', 'APAC', 'MEAF'].map((r) => ({ label: r, style: chip(region === r), pick: () => this.setState({ region: region === r ? 'All' : r }) }));
+    const seg = (on) => on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 800, padding: '7px 16px', border: 'none', background: '#1A1A1A', color: '#FFFFFF', cursor: 'pointer' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 600, padding: '7px 16px', border: 'none', background: '#FFFFFF', color: '#5A6B67', cursor: 'pointer' };
+    const viewChips = ['Split', 'Map', 'List'].map((v) => ({ label: v, style: seg(view === v), pick: () => this.setState({ view: v }) }));
+
+    const match = (j) => (prio === 'All' || j.prio === prio) && (region === 'All' || j.regions.indexOf(region) >= 0);
+    const scale = this.props.markerScale ?? 1;
+
+    const markers = this.juris.map((j) => {
+      const x = Math.round((j.lon + 180) / 360 * 1000);
+      const y = Math.round((90 - j.lat) / 180 * 500);
+      const r = Math.round((7 + Math.min(j.count, 22) * 0.75) * scale);
+      const on = match(j);
+      const isSel = sel === j.code;
+      return {
+        x, y, r,
+        ty: y + Math.round(r * 0.38),
+        fs: Math.max(9, Math.round(r * 0.9)),
+        fill: this.hues[j.prio],
+        countLabel: r >= 10 ? String(j.count) : '',
+        opacity: on ? 1 : 0.15,
+        ring: isSel ? r + 6 : 0,
+        ringStroke: isSel ? '#1A1A1A' : 'none',
+        pick: () => this.setState({ sel: isSel ? null : j.code })
+      };
+    });
+
+    const rows = this.juris.filter(match).map((j) => ({
+      name: j.name, themes: j.themes, count: String(j.count),
+      hue: this.hues[j.prio],
+      badgeStyle: { fontFamily: "'Anton',sans-serif", fontSize: '14px', color: this.hues[j.prio], border: '1px solid ' + this.hues[j.prio], borderRadius: '4px', padding: '2px 9px', flexShrink: 0 },
+      pick: () => this.setState({ sel: sel === j.code ? null : j.code }),
+      style: {
+        fontFamily: "'Plus Jakarta Sans',sans-serif", cursor: 'pointer', width: '100%',
+        display: 'block', textAlign: 'left', padding: '10px 14px',
+        background: sel === j.code ? '#FFF7F0' : '#FFFFFF', border: 'none',
+        borderLeft: sel === j.code ? '3px solid #E8610A' : '3px solid transparent'
+      }
+    }));
+
+    const listRows = this.juris.filter(match).map((j) => ({ name: j.name, themes: j.themes, prio: j.prio, count: String(j.count), hue: this.hues[j.prio] }));
+
+    const s = this.juris.find((j) => j.code === sel);
+    const visCount = this.juris.filter(match).length;
+    const visItems = this.juris.filter(match).reduce((t, j) => t + j.count, 0);
+
+    return {
+      modeChips, prioChips, regionChips, viewChips,
+      modeNote: mode !== 'All',
+      clearMode: () => this.setState({ mode: 'All' }),
+      showMap: view !== 'List',
+      showRail: view === 'Split',
+      showList: view === 'List',
+      gridStyle: view === 'Split'
+        ? { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: '18px', alignItems: 'start' }
+        : { display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: '18px', alignItems: 'start' },
+      markers, rows, listRows,
+      visibleSummary: (prio === 'All' && region === 'All')
+        ? '12 charted of 29 live · 76 of 94 items'
+        : visCount + ' jurisdictions match · ' + visItems + ' items',
+      selOpen: !!s,
+      selName: s ? s.name : '', selCount: s ? String(s.count) : '',
+      selPrio: s ? s.prio : '', selThemes: s ? s.themes : '',
+      selHue: s ? this.hues[s.prio] : '#1A1A1A',
+      clearSel: () => this.setState({ sel: null }),
+      bandEmpty: rows.length === 0,
+      clearAll: () => this.setState({ prio: 'All', region: 'All' }),
+      showGaps: this.props.showCoverageGaps ?? true
+    };
+  }
+}
+</script>
+</body>
+</html>

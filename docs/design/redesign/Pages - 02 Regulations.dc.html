@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+  </style>
+</helmet>
+
+<div data-screen-label="Regulations index" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Regulations</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Market Intel</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <!-- Masthead -->
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="max-width:1180px;margin:0 auto;padding:26px 36px 22px">
+        <p style="font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Vol IV · No. 27 · Friday</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;letter-spacing:0.02em;text-transform:uppercase;margin:0">Regulations</h1>
+        <p style="font-size:13.5px;color:#5A6B67;margin:8px 0 0">July 3, 2026 · 94 active regulations · 29 jurisdictions · workspace verticals: Live events · Fine art · <span style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#B45309">Last sync · Jun 21</span></p>
+      </div>
+    </header>
+
+    <div style="max-width:1180px;margin:0 auto;padding:28px 36px 80px">
+
+      <!-- Priority stat tiles — jump-filter into their band -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 22px">
+        <a href="#band-immediate" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#DC2626&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#DC2626;margin:0 0 4px">Immediate action</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#DC2626;margin:0">5</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Critical, within 90 days</p>
+          </div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000 33%,#D97706 66%,#DC2626)"></div>
+        </a>
+        <a href="#band-action" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#D97706&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#D97706;margin:0 0 4px">High</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#D97706;margin:0">14</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Action, 6 mo</p>
+          </div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000 50%,#D97706)"></div>
+        </a>
+        <a href="#band-monitor" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#A16207&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#A16207;margin:0 0 4px">Moderate</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#A16207;margin:0">11</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Monitor, 6 to 12 mo</p>
+          </div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000)"></div>
+        </a>
+        <a href="#band-awareness" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#16A34A&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#5A6B67;margin:0 0 4px">Low</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#5A6B67;margin:0">64</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Awareness only</p>
+          </div>
+          <div style="height:5px;background:#16A34A"></div>
+        </a>
+      </div>
+
+      <!-- AI prompt bar -->
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px;margin:0 0 18px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input value="{{ aiText }}" onChange="{{ onAiChange }}" placeholder="Ask anything about your regulations — e.g. What's due in the next 30 days?" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;padding:11px 14px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+          <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:800;padding:11px 20px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Ask</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">
+          <button onClick="{{ chip1 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">What's due in 30 days?</button>
+          <button onClick="{{ chip2 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">What changed this week?</button>
+          <button onClick="{{ chip3 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">CBAM obligations Q2</button>
+        </div>
+      </div>
+
+      <!-- Facet bar — identical controls on every index page -->
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;margin:0 0 26px;overflow:hidden">
+        <div style="display:flex;gap:10px;align-items:center;padding:12px 16px">
+          <input placeholder="Search title, tags, jurisdiction…" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:9px 13px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+          <div style="display:flex;border:1px solid rgba(0,0,0,0.16);border-radius:6px;overflow:hidden">
+            <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;padding:8px 14px;border:none;background:#FFFFFF;color:#5A6B67;cursor:pointer">Newest</button>
+            <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;padding:8px 14px;border:none;background:#1A1A1A;color:#FFFFFF;cursor:pointer">Priority</button>
+            <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;padding:8px 14px;border:none;background:#FFFFFF;color:#5A6B67;cursor:pointer">A → Z</button>
+          </div>
+          <button onClick="{{ toggleFilters }}" style="{{ filtersBtn }}">Filters {{ filtersGlyph }}</button>
+        </div>
+        <sc-if value="{{ filtersOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="border-top:1px solid rgba(0,0,0,0.08);padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:baseline">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Mode</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button style="{{ facetChip }}">Air <b>21</b></button>
+                <button style="{{ facetChip }}">Road <b>29</b></button>
+                <button style="{{ facetChip }}">Ocean <b>30</b></button>
+                <button style="{{ facetChip }}">Rail <b>7</b></button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:baseline">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Priority</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button style="{{ facetChipRed }}">Immediate <b>5</b></button>
+                <button style="{{ facetChipAmber }}">Action 6 mo <b>14</b></button>
+                <button style="{{ facetChipYellow }}">Monitor 6–12 mo <b>11</b></button>
+                <button style="{{ facetChipGreen }}">Awareness <b>64</b></button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:baseline">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Topic</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button style="{{ facetChip }}">Emissions &amp; Carbon Pricing <b>21</b></button>
+                <button style="{{ facetChip }}">Green Transport Standards <b>19</b></button>
+                <button style="{{ facetChip }}">ESG Reporting &amp; Methodology <b>15</b></button>
+                <button style="{{ facetChip }}">Green Corridors &amp; Infrastructure <b>10</b></button>
+                <button style="{{ facetChip }}">Port &amp; Airport Regulations <b>6</b></button>
+                <button style="{{ facetChip }}">Sustainable Fuels &amp; Energy <b>5</b></button>
+                <button style="{{ facetChip }}">Packaging &amp; Circular Economy <b>3</b></button>
+                <button style="{{ facetChip }}">Digital &amp; Data Compliance <b>3</b></button>
+                <button style="{{ facetChip }}">Industry Standards (ISO, IATA) <b>2</b></button>
+              </div>
+            </div>
+            <div style="display:flex;gap:16px;padding-top:4px;border-top:1px solid rgba(0,0,0,0.06)">
+              <a href="#" style="font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none">Save as default</a>
+              <a href="#" style="font-size:11.5px;font-weight:600;color:#5A6B67;text-decoration:none">Reset to my sectors</a>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- ══════════ THE BANDED LEDGER ══════════ -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:0 0 8px;margin:0 0 18px">
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:0.02em;text-transform:uppercase;margin:0">94 regulations</h2>
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Four bands · sorted by next deadline</span>
+      </div>
+
+      <sc-for list="{{ bands }}" as="band" hint-placeholder-count="4">
+        <div id="{{ band.anchor }}" style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 16px">
+          <div style="height:4px;background:{{ band.gradient }}"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 18px;background:{{ band.headBg }};border-bottom:1px solid rgba(0,0,0,0.08)">
+            <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:{{ band.hue }};display:flex;align-items:center;gap:8px">{{ band.label }}<span style="font-weight:600;letter-spacing:0.02em;text-transform:none;color:#7A6E6C">{{ band.sub }}</span></span>
+            <span style="font-family:'Anton',sans-serif;font-size:17px;color:{{ band.hue }}">{{ band.count }}</span>
+          </div>
+          <sc-for list="{{ band.shown }}" as="r" hint-placeholder-count="4">
+            <a href="{{ band.rowHref }}" style="display:grid;grid-template-columns:96px 1fr auto;gap:14px;align-items:center;padding:11px 18px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">{{ r.jur }}</span>
+              <p style="font-size:13.5px;font-weight:700;margin:0;line-height:1.4">{{ r.title }}</p>
+              <div style="display:flex;align-items:center;gap:10px;white-space:nowrap;justify-content:flex-end">
+                <span style="font-size:12px;font-weight:800;color:{{ r.dateHue }}">{{ r.date }}</span>
+                <sc-if value="{{ r.tier }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">{{ r.tier }}</span></sc-if>
+              </div>
+            </a>
+          </sc-for>
+          <sc-if value="{{ band.hasMore }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ band.toggle }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;padding:11px 18px;background:#FFFFFF;border:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:12px;font-weight:800;color:#E8610A">{{ band.toggleLabel }}</span>
+              <span style="font-size:11px;color:#7A6E6C">{{ band.nextNote }}</span>
+            </button>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <p style="font-size:12px;color:#7A6E6C;line-height:1.6;margin:6px 2px 0">Rows show jurisdiction, title, next date, and source tier where classified. Deadlines in red fall within 90 days. Open any regulation for the full brief, sources, and connected intelligence.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 }
+}">
+class Component extends DCLogic {
+  state = { aiText: '', filtersOpen: false, open: {} };
+
+  data = {
+    immediate: {
+      label: 'Immediate', sub: 'critical, within 90 days', hue: '#DC2626', headBg: '#FEF2F2',
+      gradient: 'linear-gradient(90deg,#16A34A,#CFA000 33%,#D97706 66%,#DC2626)', count: 5,
+      rows: [
+        { jur: 'EU', title: 'EU PPWR 2025/40 — packaging, recyclability, circular economy', date: 'Jan 31', dateHue: '#DC2626', tier: 'T2' },
+        { jur: 'EU', title: 'EU ICS2 (Import Control System 2)', date: 'Feb 29', dateHue: '#DC2626', tier: 'T1' },
+        { jur: 'EU', title: 'CSRD — corporate sustainability reporting', date: 'Dec 31', dateHue: '#DC2626', tier: 'T1' },
+        { jur: 'EU', title: 'EU Regulation 2025/40 – Official Journal', date: 'In force', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'GLOBAL', title: 'MEPC.377(80) – IMO Marine Environment Protection Committee Resolution', date: 'In force', dateHue: '#7A6E6C', tier: 'T1' }
+      ]
+    },
+    action: {
+      label: 'Action', sub: 'material impact, within 6 months', hue: '#D97706', headBg: '#FFF7ED',
+      gradient: 'linear-gradient(90deg,#16A34A,#CFA000 50%,#D97706)', count: 14,
+      rows: [
+        { jur: 'EU', title: 'ReFuelEU Aviation — Regulation (EU) 2023/2405', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'EU', title: 'EU 2023/959 — Directive amending the EU Emissions Trading System', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'KR', title: 'South Korea K-Taxonomy for Sustainable Transport Activities', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'AU', title: 'Amendment C376: Sustainable Building Design Planning Requirements for Melbourne', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US', title: 'Iowa DNR Air Quality Programs and Compliance Monitoring Dashboard', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US', title: 'EPA Fast Facts: Transportation Accounts for 28% of U.S. Greenhouse Gas Emissions in 2022', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US-NC', title: 'North Carolina Register – Official Administrative Rulemaking Publication', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US', title: 'TCEQ Current Rules and Environmental Regulations – Texas', date: '', dateHue: '#7A6E6C', tier: '' }
+      ]
+    },
+    monitor: {
+      label: 'Monitor', sub: '6 to 12 months out', hue: '#A16207', headBg: '#FEFCE8',
+      gradient: 'linear-gradient(90deg,#16A34A,#CFA000)', count: 11,
+      rows: [
+        { jur: 'EU', title: 'Polish Chief Environmental Inspectorate (GIOŚ) – Environmental Monitoring and Waste Management Framework', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US-CA', title: 'Port of Los Angeles Environmental Management Policy', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'JP', title: 'Japanese Ministry of Land, Infrastructure, Transport and Tourism Policy Document', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'BR', title: 'National Logistics Plan – Integrated Transport Planning', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US', title: 'NC DEQ Air Quality Division – Programs, Monitoring, and Compliance Resources', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US-KS', title: 'Kansas Register: Official State Publication for Administrative Regulations and Legal Notices', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'AE', title: 'UAE National Hydrogen Strategy – Transport Sector Requirements', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'AE', title: 'UAE National Hydrogen Strategy Implementation Decree for Logistics', date: '', dateHue: '#7A6E6C', tier: '' }
+      ]
+    },
+    awareness: {
+      label: 'Awareness', sub: 'background only', hue: '#16A34A', headBg: '#F0FDF4',
+      gradient: '#16A34A', count: 64,
+      rows: [
+        { jur: 'GLOBAL', title: 'Revision of the Weights and Dimensions Directive (96/53/EC) — zero-emission HGV weight allowances', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'GB', title: 'UK Department for Environment, Food & Rural Affairs: Organizational Overview and Policy Framework', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'MX', title: 'SEMARNAT Challenge Validation Guidance', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'EU', title: 'Slovenia Ministry of Environment, Climate and Energy – National Energy and Climate Plan 2030–2040 Preparation Initiated', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'US', title: 'Maine DEP Mobile Sources Program – Vehicle Emissions Regulations and Guidance', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'GLOBAL', title: 'GRI Standards Download Portal – Cookie Policy and Website Consent Management', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'CA', title: 'New Brunswick Environment and Local Government Department – Climate Action and Water Strategy Resources', date: '', dateHue: '#7A6E6C', tier: '' },
+        { jur: 'SG', title: 'Maritime Singapore Decarbonisation Blueprint: Working Towards 2050', date: '', dateHue: '#7A6E6C', tier: '' }
+      ]
+    }
+  };
+
+  renderVals() {
+    const setText = (t) => this.setState({ aiText: t });
+    const open = this.state.open;
+    const mk = (key, anchor, nextNote) => {
+      const b = this.data[key];
+      const isOpen = !!open[key];
+      const shown = isOpen ? b.rows : b.rows.slice(0, 5);
+      return {
+        anchor, label: b.label, sub: b.sub, hue: b.hue, headBg: b.headBg,
+        gradient: b.gradient, count: String(b.count), shown,
+        rowHref: key === 'immediate' ? 'Pages — 03 Regulation Detail.dc.html' : '#',
+        hasMore: b.rows.length > 5 || b.count > b.rows.length,
+        toggleLabel: isOpen
+          ? 'Show fewer'
+          : 'All ' + b.count + ' ' + b.label.toLowerCase() + ' →',
+        nextNote,
+        toggle: () => this.setState({ open: Object.assign({}, open, { [key]: !isOpen }) })
+      };
+    };
+    const chipBase = { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 600, color: '#5A6B67', background: '#FAFAF8', border: '1px solid rgba(0,0,0,0.14)', borderRadius: '999px', padding: '5px 12px', cursor: 'pointer' };
+    const tinted = (hue, bg) => Object.assign({}, chipBase, { color: hue, background: bg, borderColor: hue + '55' });
+
+    return {
+      aiText: this.state.aiText,
+      onAiChange: (e) => setText(e.target.value),
+      chip1: () => setText("What's due in 30 days?"),
+      chip2: () => setText('What changed this week?'),
+      chip3: () => setText('CBAM obligations Q2'),
+      filtersOpen: this.state.filtersOpen,
+      toggleFilters: () => this.setState({ filtersOpen: !this.state.filtersOpen }),
+      filtersGlyph: this.state.filtersOpen ? '▴' : '▾',
+      filtersBtn: this.state.filtersOpen
+        ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 800, padding: '8px 16px', borderRadius: '6px', border: '1px solid #E8610A', background: '#E8610A', color: '#FFFFFF', cursor: 'pointer', whiteSpace: 'nowrap' }
+        : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 700, padding: '8px 16px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.16)', background: '#FFFFFF', color: '#1A1A1A', cursor: 'pointer', whiteSpace: 'nowrap' },
+      facetChip: chipBase,
+      facetChipRed: tinted('#DC2626', '#FEF2F2'),
+      facetChipAmber: tinted('#D97706', '#FFF7ED'),
+      facetChipYellow: tinted('#A16207', '#FEFCE8'),
+      facetChipGreen: tinted('#16A34A', '#F0FDF4'),
+      bands: [
+        mk('immediate', 'band-immediate', 'next band: Action 6 mo · 14'),
+        mk('action', 'band-action', 'next band: Monitor · 11'),
+        mk('monitor', 'band-monitor', 'next band: Awareness · 64'),
+        mk('awareness', 'band-awareness', 'end of ledger')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

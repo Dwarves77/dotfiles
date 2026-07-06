@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+    @media (max-width: 1200px) {
+      #acct-grid { grid-template-columns: minmax(0,1fr) !important; }
+    }
+  </style>
+</helmet>
+
+<div data-screen-label="Account" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Regulations</a>
+      <a href="Pages - 04 Market Intel.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Market Intel</a>
+      <a href="Pages - 06 Research.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="Pages - 07 Operations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;position:relative">
+      <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;bottom:100%;left:10px;right:10px;margin:0 0 6px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.14);border-radius:8px;overflow:hidden">
+          <div style="padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.08)">
+            <p style="font-size:12px;font-weight:800;margin:0">jasonlosh@hotmail.com</p>
+            <p style="font-size:11px;color:#7A6E6C;margin:2px 0 6px">Dietl / Rockit</p>
+            <span style="font-size:9px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#E8610A;background:rgba(232,97,10,0.09);border:1px solid rgba(232,97,10,0.4);border-radius:4px;padding:2px 7px">Admin</span>
+          </div>
+          <button onClick="{{ goProfile }}" style="font-family:'Plus Jakarta Sans',sans-serif;display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#1A1A1A;background:none;border:none;cursor:pointer;padding:10px 14px" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Workspace profile</button>
+          <a href="Pages - 08 Admin.dc.html" style="display:block;font-size:12.5px;font-weight:600;color:#1A1A1A;text-decoration:none;padding:10px 14px" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Admin panel</a>
+          <button onClick="{{ goSettings }}" style="font-family:'Plus Jakarta Sans',sans-serif;display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#1A1A1A;background:none;border:none;cursor:pointer;padding:10px 14px" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Settings</button>
+          <button onClick="{{ goDark }}" style="font-family:'Plus Jakarta Sans',sans-serif;display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#1A1A1A;background:none;border:none;cursor:pointer;padding:10px 14px" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dark mode</button>
+          <button style="font-family:'Plus Jakarta Sans',sans-serif;display:block;width:100%;text-align:left;font-size:12.5px;font-weight:600;color:#9A3412;background:none;border:none;cursor:pointer;padding:10px 14px;border-top:1px solid rgba(0,0,0,0.08)" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Sign out</button>
+        </div>
+      </sc-if>
+      <div style="padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+        <button onClick="{{ toggleMenu }}" style="font-family:'Plus Jakarta Sans',sans-serif;display:flex;align-items:center;gap:8px;background:rgba(232,97,10,0.09);border:1px solid rgba(232,97,10,0.4);border-radius:999px;padding:4px 12px 4px 4px;cursor:pointer">
+          <span style="width:24px;height:24px;border-radius:50%;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+          <span style="font-size:12px;font-weight:700;color:#1A1A1A">jasonlosh {{ menuGlyph }}</span>
+        </button>
+        <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="padding:26px 36px 0">
+        <p style="font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Personal preferences · Vol IV · No. 27</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;letter-spacing:0.02em;text-transform:uppercase;margin:0">Account</h1>
+        <p style="font-size:13.5px;color:#5A6B67;margin:8px 0 18px">jasonlosh@hotmail.com · Dietl / Rockit · the standard member surface — profile, workspace, and preferences</p>
+        <div style="display:flex;gap:2px">
+          <button onClick="{{ pickProfileTop }}" style="{{ topProfileStyle }}">Profile</button>
+          <button onClick="{{ pickSettingsTop }}" style="{{ topSettingsStyle }}">Settings</button>
+        </div>
+      </div>
+    </header>
+
+    <div style="padding:26px 36px 80px">
+
+      <!-- ════════ PROFILE ════════ -->
+      <sc-if value="{{ showProfile }}" hint-placeholder-val="{{ true }}">
+
+        <div style="background:#FFF7F0;border:1px solid rgba(232,97,10,0.4);border-left:3px solid #E8610A;border-radius:8px;padding:13px 18px;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+          <p style="font-size:12.5px;margin:0"><b>You are Owner of Dietl / Rockit.</b> <span style="color:#5A6B67">Owners control workspace settings, invitations, billing, and platform admin access.</span></p>
+          <a href="Pages - 08 Admin.dc.html" style="font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none;white-space:nowrap">Admin panel →</a>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:13px 16px">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Sectors followed</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;margin:0">6</p>
+            <p style="font-size:11px;color:#5A6B67;margin:5px 0 0">6 highlighted niches</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:13px 16px">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Home jurisdictions</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;margin:0">30</p>
+            <p style="font-size:11px;color:#5A6B67;margin:5px 0 0">EU · Hong Kong · United Kingdom</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:13px 16px">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Member since</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;margin:0">Apr 2026</p>
+            <p style="font-size:11px;color:#5A6B67;margin:5px 0 0">Dietl / Rockit · owner</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #DC2626;border-radius:8px;padding:13px 16px">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#DC2626;margin:0 0 4px">Admin attention</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;color:#DC2626;margin:0">1,328</p>
+            <p style="font-size:11px;color:#5A6B67;margin:5px 0 0"><a href="Pages - 08 Admin.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">items awaiting review →</a></p>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:2px;border-bottom:1px solid rgba(0,0,0,0.12);margin:0 0 18px;flex-wrap:wrap">
+          <sc-for list="{{ profileTabs }}" as="pt" hint-placeholder-count="7">
+            <button onClick="{{ pt.pick }}" style="{{ pt.style }}">{{ pt.label }}</button>
+          </sc-for>
+        </div>
+
+        <!-- Personal -->
+        <sc-if value="{{ pShowPersonal }}" hint-placeholder-val="{{ true }}">
+          <div id="acct-grid" style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start">
+            <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+              <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Personal profile</span>
+                <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">Visible to your workspace</span>
+              </div>
+              <div style="padding:18px 20px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 14px">
+                  <div>
+                    <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 6px">Full name</p>
+                    <input placeholder="Your name" style="width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+                  </div>
+                  <div>
+                    <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 6px">Headshot URL</p>
+                    <input placeholder="https://…" style="width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+                  </div>
+                </div>
+                <div style="margin:0 0 14px">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 6px">Work email</p>
+                  <input value="jasonlosh@hotmail.com" style="width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+                </div>
+                <div style="margin:0 0 16px">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 6px">Bio</p>
+                  <textarea placeholder="A short bio for the community" rows="4" style="width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;padding:10px 12px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8;resize:vertical" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}"></textarea>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <button onClick="{{ saveProfile }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:800;padding:11px 20px;border-radius:6px;border:1px solid #1A1A1A;background:#1A1A1A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#333333&quot;}">Save personal profile</button>
+                  <sc-if value="{{ profileSaved }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;font-weight:700;color:#16A34A">Saved.</span></sc-if>
+                </div>
+              </div>
+            </div>
+            <sc-if value="{{ showQuickLinks }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+                <div style="padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0">Quick links</p>
+                </div>
+                <a href="Pages - 01 Dashboard.dc.html" style="display:block;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.03)&quot;}"><span style="display:block;font-size:12.5px;font-weight:800;color:#1A1A1A">Dashboard</span><span style="display:block;font-size:10.5px;color:#7A6E6C;margin:2px 0 0">Today's intelligence and weekly briefing</span></a>
+                <a href="Pages - 02 Regulations.dc.html" style="display:block;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.03)&quot;}"><span style="display:block;font-size:12.5px;font-weight:800;color:#1A1A1A">Regulations</span><span style="display:block;font-size:10.5px;color:#7A6E6C;margin:2px 0 0">The regulatory intelligence index</span></a>
+                <a href="Pages - 04 Market Intel.dc.html" style="display:block;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.03)&quot;}"><span style="display:block;font-size:12.5px;font-weight:800;color:#1A1A1A">Market intel</span><span style="display:block;font-size:10.5px;color:#7A6E6C;margin:2px 0 0">Carbon prices, fuel mandates, market signals</span></a>
+                <a href="Pages - 09 Map.dc.html" style="display:block;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.03)&quot;}"><span style="display:block;font-size:12.5px;font-weight:800;color:#1A1A1A">Map</span><span style="display:block;font-size:10.5px;color:#7A6E6C;margin:2px 0 0">Geographic view of regulations and sources</span></a>
+                <button onClick="{{ goSettings }}" style="font-family:'Plus Jakarta Sans',sans-serif;display:block;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.06)" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.03)&quot;}"><span style="display:block;font-size:12.5px;font-weight:800;color:#1A1A1A">Settings</span><span style="display:block;font-size:10.5px;color:#7A6E6C;margin:2px 0 0">Notifications, briefings, dashboard sections</span></button>
+                <a href="Pages - 08 Admin.dc.html" style="display:block;padding:11px 16px;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.03)&quot;}"><span style="display:block;font-size:12.5px;font-weight:800;color:#1A1A1A">Admin panel</span><span style="display:block;font-size:10.5px;color:#7A6E6C;margin:2px 0 0">Issues queue, flags, staged updates</span></a>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- Organization -->
+        <sc-if value="{{ pShowOrg }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Organization</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 0.8fr 0.6fr 0.8fr">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px 10px 20px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Name</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Slug</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Plan</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Members</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 20px 10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Last activity</span>
+              <span style="font-size:13px;font-weight:800;padding:12px 14px 12px 20px">Dietl / Rockit</span>
+              <span style="font-size:12px;color:#5A6B67;padding:12px 14px;font-family:monospace">dietl-rockit</span>
+              <span style="padding:12px 14px"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#2563EB;border:1px solid rgba(37,99,235,0.35);border-radius:4px;padding:2px 8px">Enterprise</span></span>
+              <span style="font-size:12.5px;font-weight:700;padding:12px 14px">2 · owner ×2</span>
+              <span style="font-size:12px;color:#5A6B67;padding:12px 20px 12px 14px">May 28, 2026</span>
+            </div>
+            <p style="font-size:11px;color:#7A6E6C;margin:0;padding:10px 20px;background:#FAFAF8">Workspace-scoped settings (briefing schedule, jurisdiction weights) persist to this organization. Billing and plan changes are owner-only.</p>
+          </div>
+        </sc-if>
+
+        <!-- Members & roles -->
+        <sc-if value="{{ pShowMembers }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;max-width:720px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Members &amp; roles</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">2 members · 0 invited</span>
+            </div>
+            <div style="padding:14px 20px">
+              <div style="display:flex;gap:8px;margin:0 0 12px">
+                <input placeholder="Email address" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;padding:9px 12px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+                <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;padding:9px 16px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Invite</button>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.06)">
+                <div style="min-width:0"><p style="font-size:12.5px;font-weight:700;margin:0">2b7d21eb…</p><p style="font-size:11px;color:#7A6E6C;margin:1px 0 0">owner · joined 4/4/2026</p></div>
+                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                  <span style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#E8610A;border:1px solid rgba(232,97,10,0.4);border-radius:4px;padding:2px 8px">Owner ▾</span>
+                  <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#5A6B67;background:none;border:none;cursor:pointer;padding:2px" style-hover="{&quot;color&quot;:&quot;#1A1A1A&quot;}">Remove</button>
+                  <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#9A3412;background:none;border:none;cursor:pointer;padding:2px" style-hover="{&quot;textDecoration&quot;:&quot;underline&quot;}">Ban</button>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.06)">
+                <div style="min-width:0"><p style="font-size:12.5px;font-weight:700;margin:0">a0764ff3…</p><p style="font-size:11px;color:#7A6E6C;margin:1px 0 0">owner · joined 5/28/2026</p></div>
+                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                  <span style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#E8610A;border:1px solid rgba(232,97,10,0.4);border-radius:4px;padding:2px 8px">Owner ▾</span>
+                  <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#5A6B67;background:none;border:none;cursor:pointer;padding:2px" style-hover="{&quot;color&quot;:&quot;#1A1A1A&quot;}">Remove</button>
+                  <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#9A3412;background:none;border:none;cursor:pointer;padding:2px" style-hover="{&quot;textDecoration&quot;:&quot;underline&quot;}">Ban</button>
+                </div>
+              </div>
+              <p style="font-size:10.5px;color:#7A6E6C;line-height:1.55;margin:10px 0 0;border-top:1px solid rgba(0,0,0,0.06);padding-top:10px">Role chip changes role in place (Owner / Member / Viewer). <b>Remove</b> detaches from this workspace; <b>Ban</b> blocks the account platform-wide behind a typed confirmation. The last owner cannot be removed. Same controls as Admin → Workspaces.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Sector profile -->
+        <sc-if value="{{ pShowSectors }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;max-width:720px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Sector profile</span>
+            </div>
+            <div style="padding:16px 20px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px">
+                <span style="font-size:11px;font-weight:700;color:#E8610A;background:rgba(232,97,10,0.07);border:1px solid rgba(232,97,10,0.4);border-radius:999px;padding:6px 13px">Fine Art &amp; Museum Logistics</span>
+                <span style="font-size:11px;font-weight:700;color:#E8610A;background:rgba(232,97,10,0.07);border:1px solid rgba(232,97,10,0.4);border-radius:999px;padding:6px 13px">Live Events &amp; Touring</span>
+                <span style="font-size:11px;font-weight:700;color:#E8610A;background:rgba(232,97,10,0.07);border:1px solid rgba(232,97,10,0.4);border-radius:999px;padding:6px 13px">Luxury Goods &amp; High Value</span>
+                <span style="font-size:11px;font-weight:700;color:#E8610A;background:rgba(232,97,10,0.07);border:1px solid rgba(232,97,10,0.4);border-radius:999px;padding:6px 13px">Film, TV &amp; Media Production</span>
+                <span style="font-size:11px;font-weight:700;color:#E8610A;background:rgba(232,97,10,0.07);border:1px solid rgba(232,97,10,0.4);border-radius:999px;padding:6px 13px">Automotive &amp; Motorsport</span>
+                <span style="font-size:11px;font-weight:700;color:#E8610A;background:rgba(232,97,10,0.07);border:1px solid rgba(232,97,10,0.4);border-radius:999px;padding:6px 13px">Humanitarian &amp; NGO Cargo</span>
+              </div>
+              <p style="font-size:11.5px;color:#5A6B67;margin:0">These six sectors filter your default view, briefings, and urgency scoring. Edit the full list in <button onClick="{{ goSettings }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;padding:0">Settings → Freight sectors</button>.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Jurisdictions -->
+        <sc-if value="{{ pShowJuris }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;max-width:720px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Home jurisdictions</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">30 followed</span>
+            </div>
+            <div style="padding:16px 20px">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px">
+                <span style="font-size:11px;font-weight:700;color:#1A1A1A;border:1px solid rgba(0,0,0,0.2);border-radius:999px;padding:6px 13px">EU</span>
+                <span style="font-size:11px;font-weight:700;color:#1A1A1A;border:1px solid rgba(0,0,0,0.2);border-radius:999px;padding:6px 13px">Hong Kong</span>
+                <span style="font-size:11px;font-weight:700;color:#1A1A1A;border:1px solid rgba(0,0,0,0.2);border-radius:999px;padding:6px 13px">United Kingdom</span>
+                <span style="font-size:11px;font-weight:600;color:#7A6E6C;border:1px dashed rgba(0,0,0,0.25);border-radius:999px;padding:6px 13px">+ 27 more · weighted equally</span>
+              </div>
+              <p style="font-size:11.5px;color:#5A6B67;margin:0">Jurisdiction weighting for the briefing lives in <button onClick="{{ goSettings }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;padding:0">Settings → Briefing schedule</button>.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Verifier badge -->
+        <sc-if value="{{ pShowVerifier }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px;max-width:720px">
+            <p style="font-size:12.5px;font-weight:800;margin:0 0 4px">Not a verifier</p>
+            <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Verifier credentials mark community members whose claims are checked against primary documents before they carry weight in threads. This account holds no verifier badge.</p>
+          </div>
+        </sc-if>
+
+        <!-- Activity -->
+        <sc-if value="{{ pShowActivity }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:8px;background:#FAFAF8;padding:16px 20px;max-width:720px">
+            <p style="font-size:12.5px;font-weight:800;margin:0 0 4px">Activity not yet recorded</p>
+            <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Per-account activity events haven't shipped. When they do, this tab lists briefs read, searches saved, and community posts — the same events that feed the Admin usage overview.</p>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <!-- ════════ SETTINGS ════════ -->
+      <sc-if value="{{ showSettings }}" hint-placeholder-val="{{ false }}">
+
+        <div style="display:flex;gap:2px;border-bottom:1px solid rgba(0,0,0,0.12);margin:0 0 18px;flex-wrap:wrap">
+          <sc-for list="{{ settingsTabs }}" as="st" hint-placeholder-count="5">
+            <button onClick="{{ st.pick }}" style="{{ st.style }}">{{ st.label }}</button>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ sShowGeneral }}" hint-placeholder-val="{{ true }}">
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 16px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Dashboard settings</span>
+            </div>
+            <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:20px 32px">
+              <div>
+                <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Appearance</p>
+                <div style="display:flex;gap:6px">
+                  <sc-for list="{{ appearanceChips }}" as="a" hint-placeholder-count="2"><button onClick="{{ a.pick }}" style="{{ a.style }}">{{ a.label }}</button></sc-for>
+                </div>
+              </div>
+              <div>
+                <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Default sort</p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ sortChips }}" as="s" hint-placeholder-count="4"><button onClick="{{ s.pick }}" style="{{ s.style }}">{{ s.label }}</button></sc-for>
+                </div>
+              </div>
+              <div>
+                <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Default export format</p>
+                <div style="display:flex;gap:6px">
+                  <sc-for list="{{ exportChips }}" as="e" hint-placeholder-count="2"><button onClick="{{ e.pick }}" style="{{ e.style }}">{{ e.label }}</button></sc-for>
+                </div>
+              </div>
+              <div>
+                <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Alert priorities</p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ alertChips }}" as="al" hint-placeholder-count="4"><button onClick="{{ al.pick }}" style="{{ al.style }}">{{ al.label }}</button></sc-for>
+                </div>
+              </div>
+              <div style="grid-column:1 / -1">
+                <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Home sections</p>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 24px">
+                  <sc-for list="{{ homeSections }}" as="h" hint-placeholder-count="6">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+                      <span style="font-size:12px;font-weight:600">{{ h.label }}</span>
+                      <button onClick="{{ h.flip }}" style="{{ h.trackStyle }}"><span style="{{ h.knobStyle }}"></span></button>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 16px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Freight sectors</span>
+              <span style="display:flex;gap:14px;align-items:baseline">
+                <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">{{ sectorCount }} selected</span>
+                <button onClick="{{ selectAllSectors }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;padding:0">Select all</button>
+                <button onClick="{{ clearSectors }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:800;color:#5A6B67;background:none;border:none;cursor:pointer;padding:0" style-hover="{&quot;color&quot;:&quot;#1A1A1A&quot;}">Clear</button>
+              </span>
+            </div>
+            <p style="font-size:11.5px;color:#5A6B67;margin:0;padding:12px 20px 0">Select the sectors your organization operates in. This filters your default view, briefings, and urgency scoring.</p>
+            <div style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px">
+              <sc-for list="{{ sectors }}" as="s" hint-placeholder-count="12">
+                <button onClick="{{ s.flip }}" style="{{ s.style }}">
+                  <span style="{{ s.boxStyle }}">{{ s.mark }}</span>
+                  <span style="font-size:12px;font-weight:600;text-align:left">{{ s.name }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 16px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Notifications</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">In-app channel available now · email and push coming soon</span>
+            </div>
+            <p style="font-size:11.5px;color:#5A6B67;margin:0;padding:12px 20px 0">Choose what gets your attention. Conservative by default — higher-volume notifications are off until you opt in.</p>
+            <div style="padding:10px 20px 14px">
+              <sc-for list="{{ notifRows }}" as="n" hint-placeholder-count="6">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+                  <div style="min-width:0">
+                    <p style="font-size:12.5px;font-weight:800;margin:0">{{ n.label }} {{ n.lock }}</p>
+                    <p style="font-size:11px;color:#7A6E6C;margin:2px 0 0">{{ n.sub }}</p>
+                  </div>
+                  <button onClick="{{ n.flip }}" style="{{ n.trackStyle }}"><span style="{{ n.knobStyle }}"></span></button>
+                </div>
+              </sc-for>
+              <p style="font-size:10.5px;color:#7A6E6C;margin:10px 0 0;text-align:right">Channel: in-app</p>
+            </div>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Briefing schedule</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">Cadence · time · jurisdictions · delivery</span>
+            </div>
+            <div style="padding:16px 20px">
+              <p style="font-size:11.5px;color:#5A6B67;margin:0 0 14px">Tune how often the briefing lands, when, and which jurisdictions it weights. <b>Schedule is workspace-scoped</b> — it persists to Dietl / Rockit.</p>
+              <div style="display:flex;gap:32px;flex-wrap:wrap;margin:0 0 16px">
+                <div>
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Cadence</p>
+                  <div style="display:flex;gap:6px"><sc-for list="{{ cadenceChips }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</button></sc-for></div>
+                </div>
+                <div>
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Day</p>
+                  <div style="display:flex;gap:6px"><sc-for list="{{ dayChips }}" as="d" hint-placeholder-count="5"><button onClick="{{ d.pick }}" style="{{ d.style }}">{{ d.label }}</button></sc-for></div>
+                </div>
+                <div>
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Time (24h, your local timezone)</p>
+                  <input value="08:00" onChange="{{ onTimeChange }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;padding:8px 12px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8;width:80px" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;}">
+                </div>
+              </div>
+              <div style="margin:0 0 16px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 8px">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0">Weight these jurisdictions</p>
+                  <span style="font-size:10.5px;color:#7A6E6C">{{ weightNote }}</span>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ weightChips }}" as="w" hint-placeholder-count="30"><button onClick="{{ w.pick }}" style="{{ w.style }}">{{ w.label }}</button></sc-for>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+                <div style="background:rgba(232,97,10,0.06);border:1px solid rgba(232,97,10,0.4);border-radius:6px;padding:10px 16px">
+                  <p style="font-size:12px;font-weight:800;margin:0">Delivery · in-app</p>
+                  <p style="font-size:10.5px;color:#7A6E6C;margin:2px 0 0">Lands in your dashboard. Email and push follow the notifications channel work.</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <sc-if value="{{ scheduleSaved }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;font-weight:700;color:#16A34A">Saved to Dietl / Rockit.</span></sc-if>
+                  <button onClick="{{ saveSchedule }}" style="{{ saveScheduleStyle }}">Save schedule</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ sShowSaved }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px;max-width:720px">
+            <p style="font-size:12.5px;font-weight:800;margin:0 0 4px">No saved searches yet.</p>
+            <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Save a filter set from the <a href="Pages - 02 Regulations.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">Regulations index</a> to reuse it here and pin it to your dashboard.</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ sShowData }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:8px;background:#FAFAF8;padding:16px 20px;max-width:720px">
+            <p style="font-size:12.5px;font-weight:800;margin:0 0 4px">Data &amp; supersessions</p>
+            <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Supersession records render on the Dashboard's what-changed ledger today. This tab collects them — with your data-export controls — when the supersessions register lands.</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ sShowArchive }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px;max-width:720px">
+            <p style="font-size:12.5px;font-weight:800;margin:0 0 4px">Nothing archived.</p>
+            <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Briefs you archive and items you dismiss collect here, out of the working view but never deleted.</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ sShowHelp }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:8px;background:#FAFAF8;padding:16px 20px;max-width:720px">
+            <p style="font-size:12.5px;font-weight:800;margin:0 0 4px">Help centre pending</p>
+            <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Documentation and contact routes land here. Until then, workspace owners reach the team through the onboarding channel.</p>
+          </div>
+        </sc-if>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 },
+  &quot;defaultTab&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;Profile&quot;, &quot;options&quot;: [&quot;Profile&quot;, &quot;Settings&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Behavior&quot; },
+  &quot;showQuickLinks&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Profile&quot; }
+}">
+class Component extends DCLogic {
+  state = {};
+
+  sectorNames = [
+    'Fine Art & Museum Logistics', 'Live Events & Touring', 'Luxury Goods & High Value', 'Film, TV & Media Production',
+    'Automotive & Motorsport', 'Humanitarian & NGO Cargo', 'Cold Chain & Perishables', 'Pharmaceutical & Life Sciences',
+    'Flowers & Live Plants', 'Wine, Spirits & Beverages', 'E-Commerce & Parcel', 'Textiles, Fashion & Apparel',
+    'Retail & FMCG', 'Furniture & Home Goods', 'Industrial Equipment & Heavy Lift', 'Construction & Building Materials',
+    'Metals & Steel', 'Mining & Minerals', 'Aerospace & Defense', 'Energy & Renewables',
+    'Oil & Gas', 'Chemicals & Hazmat', 'Dangerous Goods (DG)', 'Electronics & Semiconductors',
+    'Medical Devices & Equipment', 'Agriculture & Agri-commodities', 'Live Animals & Livestock', 'Forestry, Timber & Paper',
+    'General Air Freight', 'General Ocean FCL/LCL', 'General Road & Trucking', 'Rail & Intermodal',
+    'Oversized & Out-of-Gauge', 'Personal Effects & Relocation', 'Government & Military', 'Sports & Sporting Events',
+    'Precious Goods & Valuables', 'Nuclear & Radioactive', 'Dry Bulk & Commodity', 'Liquid Bulk & Tanker'
+  ];
+
+  defaultSectors = ['Fine Art & Museum Logistics', 'Live Events & Touring', 'Luxury Goods & High Value', 'Film, TV & Media Production', 'Automotive & Motorsport', 'Humanitarian & NGO Cargo'];
+
+  jurisdictionNames = [
+    'United States', 'Canada', 'Mexico', 'Brazil', 'Argentina', 'Chile', 'Colombia', 'Peru', 'Latin America (other)', 'Caribbean', 'Central America',
+    'EU', 'Germany', 'France', 'Netherlands', 'Belgium', 'Italy', 'Spain', 'Poland', 'Ireland', 'Greece', 'Portugal', 'Romania', 'United Kingdom',
+    'Nordic', 'Switzerland', 'Turkey', 'Ukraine', 'Balkans', 'China', 'Japan', 'South Korea', 'Taiwan', 'Hong Kong', 'India', 'Bangladesh',
+    'Pakistan', 'Sri Lanka', 'Singapore', 'Malaysia', 'Indonesia', 'Thailand', 'Vietnam', 'Philippines', 'ASEAN (other)', 'Asia (other)',
+    'Australia', 'New Zealand', 'Pacific Islands', 'UAE', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'GCC (other)', 'Israel',
+    'Jordan', 'Iraq', 'Iran', 'Middle East (other)', 'Egypt', 'Morocco', 'Tunisia', 'Algeria', 'North Africa (other)', 'South Africa',
+    'Nigeria', 'Kenya', 'Ethiopia', 'Ghana', 'Tanzania', 'West Africa (other)', 'East Africa (other)', 'Central Africa', 'Southern Africa (other)',
+    'Russia', 'CIS (other)', 'Kazakhstan', 'Global', 'IMO', 'ICAO', 'WTO', 'United Nations'
+  ];
+
+  notifDefs = [
+    { key: 'master', label: 'Notifications enabled', sub: "Master switch. Turn this off and nothing is sent except invites you've accepted.", on: true, locked: false },
+    { key: 'mentions', label: 'Someone @mentions you', sub: 'Direct mentions in any thread or group you can see. Recommended on.', on: true, locked: false },
+    { key: 'replies', label: 'Replies in your threads', sub: 'When someone replies to a post you started.', on: true, locked: false },
+    { key: 'groupPosts', label: "New posts in groups you've joined", sub: 'Higher volume. Off by default — opt in for every new post in your groups.', on: false, locked: false },
+    { key: 'promoted', label: 'When a post gets promoted', sub: 'Editorial promoted your post to a wider feed, or a verifier signed off on a disputed entry.', on: true, locked: false },
+    { key: 'invites', label: 'Workspace invitations', sub: 'Always on — you must be reachable when someone adds you to a group or workspace.', on: true, locked: true }
+  ];
+
+  homeSectionNames = ['Summary strip', 'Weekly briefing', 'What changed', 'Top urgency', 'Due this quarter', 'Supersessions'];
+
+  chip(on) {
+    return on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 800, padding: '7px 14px', borderRadius: '6px', border: '2px solid #E8610A', background: '#FFF7F0', color: '#1A1A1A', cursor: 'pointer' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 600, padding: '7px 14px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.16)', background: '#FFFFFF', color: '#5A6B67', cursor: 'pointer' };
+  }
+
+  toggleStyles(on, locked) {
+    return {
+      trackStyle: {
+        fontFamily: "'Plus Jakarta Sans',sans-serif", cursor: locked ? 'default' : 'pointer', flexShrink: 0,
+        width: '36px', height: '20px', borderRadius: '999px', border: 'none', padding: '2px',
+        background: on ? '#E8610A' : 'rgba(0,0,0,0.18)', display: 'inline-flex',
+        justifyContent: on ? 'flex-end' : 'flex-start', opacity: locked ? 0.75 : 1
+      },
+      knobStyle: { width: '16px', height: '16px', borderRadius: '50%', background: '#FFFFFF', display: 'block' }
+    };
+  }
+
+  renderVals() {
+    const top = this.state.top ?? (this.props.defaultTab ?? 'Profile');
+    const pTab = this.state.pTab ?? 'Personal';
+    const sTab = this.state.sTab ?? 'General';
+    const sel = this.state.sectors ?? this.defaultSectors;
+    const notif = this.state.notif ?? {};
+    const home = this.state.home ?? {};
+    const weights = this.state.weights ?? [];
+    const appearance = this.state.appearance ?? 'Light';
+
+    const topStyle = (on) => on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '13px', fontWeight: 800, padding: '12px 22px', border: 'none', borderBottom: '3px solid #E8610A', background: 'transparent', color: '#1A1A1A', cursor: 'pointer' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '13px', fontWeight: 600, padding: '12px 22px', border: 'none', borderBottom: '3px solid transparent', background: 'transparent', color: '#5A6B67', cursor: 'pointer' };
+    const subStyle = (on) => on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 800, padding: '10px 16px', whiteSpace: 'nowrap', border: 'none', borderBottom: '3px solid #E8610A', background: 'transparent', color: '#1A1A1A', cursor: 'pointer' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 600, padding: '10px 16px', whiteSpace: 'nowrap', border: 'none', borderBottom: '3px solid transparent', background: 'transparent', color: '#5A6B67', cursor: 'pointer' };
+
+    const profileTabs = ['Personal', 'Organization', 'Members & roles', 'Sector profile', 'Jurisdictions', 'Verifier badge', 'Activity']
+      .map((t) => ({ label: t, style: subStyle(pTab === t), pick: () => this.setState({ pTab: t }) }));
+    const settingsTabs = ['General', 'Saved searches', 'Data & supersessions', 'Archive', 'Help']
+      .map((t) => ({ label: t, style: subStyle(sTab === t), pick: () => this.setState({ sTab: t }) }));
+
+    const sectors = this.sectorNames.map((name) => {
+      const on = sel.indexOf(name) >= 0;
+      return {
+        name, mark: on ? '✓' : '',
+        flip: () => this.setState({ sectors: on ? sel.filter((x) => x !== name) : sel.concat([name]) }),
+        boxStyle: {
+          width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '11px', fontWeight: 800, color: '#FFFFFF',
+          background: on ? '#E8610A' : '#FFFFFF', border: on ? '1px solid #E8610A' : '1px solid rgba(0,0,0,0.3)'
+        },
+        style: {
+          fontFamily: "'Plus Jakarta Sans',sans-serif", cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px',
+          padding: '9px 12px', borderRadius: '6px', width: '100%',
+          background: on ? '#FFF7F0' : '#FFFFFF', border: on ? '1px solid rgba(232,97,10,0.5)' : '1px solid rgba(0,0,0,0.12)',
+          color: '#1A1A1A'
+        }
+      };
+    });
+
+    const notifRows = this.notifDefs.map((n) => {
+      const on = notif[n.key] ?? n.on;
+      const t = this.toggleStyles(on, n.locked);
+      return {
+        label: n.label, sub: n.sub, lock: n.locked ? '· always on' : '',
+        flip: n.locked ? () => {} : () => this.setState({ notif: Object.assign({}, notif, { [n.key]: !on }) }),
+        trackStyle: t.trackStyle, knobStyle: t.knobStyle
+      };
+    });
+
+    const homeSections = this.homeSectionNames.map((label) => {
+      const on = home[label] ?? true;
+      const t = this.toggleStyles(on, false);
+      return { label, flip: () => this.setState({ home: Object.assign({}, home, { [label]: !on }) }), trackStyle: t.trackStyle, knobStyle: t.knobStyle };
+    });
+
+    const pickChips = (opts, cur, key, dirty) => opts.map((o) => ({
+      label: o, style: this.chip(cur === o),
+      pick: () => this.setState(Object.assign({ [key]: o }, dirty ? { schedDirty: true, scheduleSaved: false } : {}))
+    }));
+
+    const weightChips = this.jurisdictionNames.map((j) => {
+      const on = weights.indexOf(j) >= 0;
+      return {
+        label: j,
+        style: on
+          ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11px', fontWeight: 800, padding: '5px 11px', borderRadius: '999px', border: '1px solid #E8610A', background: '#FFF7F0', color: '#E8610A', cursor: 'pointer' }
+          : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11px', fontWeight: 600, padding: '5px 11px', borderRadius: '999px', border: '1px solid rgba(0,0,0,0.16)', background: '#FFFFFF', color: '#5A6B67', cursor: 'pointer' },
+        pick: () => this.setState({ weights: on ? weights.filter((x) => x !== j) : weights.concat([j]), schedDirty: true, scheduleSaved: false })
+      };
+    });
+
+    const schedDirty = this.state.schedDirty ?? false;
+
+    return {
+      menuOpen: this.state.menuOpen ?? false,
+      menuGlyph: (this.state.menuOpen ?? false) ? '▾' : '▴',
+      toggleMenu: () => this.setState({ menuOpen: !(this.state.menuOpen ?? false) }),
+      goProfile: () => this.setState({ top: 'Profile', menuOpen: false }),
+      goSettings: () => this.setState({ top: 'Settings', sTab: 'General', menuOpen: false }),
+      goDark: () => this.setState({ appearance: 'Dark', top: 'Settings', sTab: 'General', menuOpen: false }),
+
+      showProfile: top === 'Profile',
+      showSettings: top === 'Settings',
+      topProfileStyle: topStyle(top === 'Profile'),
+      topSettingsStyle: topStyle(top === 'Settings'),
+      pickProfileTop: () => this.setState({ top: 'Profile' }),
+      pickSettingsTop: () => this.setState({ top: 'Settings' }),
+
+      profileTabs, settingsTabs,
+      pShowPersonal: pTab === 'Personal',
+      pShowOrg: pTab === 'Organization',
+      pShowMembers: pTab === 'Members & roles',
+      pShowSectors: pTab === 'Sector profile',
+      pShowJuris: pTab === 'Jurisdictions',
+      pShowVerifier: pTab === 'Verifier badge',
+      pShowActivity: pTab === 'Activity',
+      sShowGeneral: sTab === 'General',
+      sShowSaved: sTab === 'Saved searches',
+      sShowData: sTab === 'Data & supersessions',
+      sShowArchive: sTab === 'Archive',
+      sShowHelp: sTab === 'Help',
+
+      showQuickLinks: this.props.showQuickLinks ?? true,
+      saveProfile: () => this.setState({ profileSaved: true }),
+      profileSaved: this.state.profileSaved ?? false,
+
+      appearanceChips: pickChips(['Light', 'Dark'], appearance, 'appearance', false),
+      sortChips: pickChips(['Urgency', 'Priority', 'Alpha', 'Added'], this.state.sort ?? 'Urgency', 'sort', false),
+      exportChips: pickChips(['HTML', 'Slack'], this.state.exportFmt ?? 'HTML', 'exportFmt', false),
+      alertChips: ['Critical', 'High', 'Moderate', 'Low'].map((p) => {
+        const cur = this.state.alerts ?? ['Critical', 'High'];
+        const on = cur.indexOf(p) >= 0;
+        return { label: p, style: this.chip(on), pick: () => this.setState({ alerts: on ? cur.filter((x) => x !== p) : cur.concat([p]) }) };
+      }),
+      homeSections,
+
+      sectors,
+      sectorCount: String(sel.length),
+      selectAllSectors: () => this.setState({ sectors: this.sectorNames.slice() }),
+      clearSectors: () => this.setState({ sectors: [] }),
+
+      notifRows,
+
+      cadenceChips: pickChips(['Daily', 'Weekly', 'Biweekly'], this.state.cadence ?? 'Weekly', 'cadence', true),
+      dayChips: pickChips(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], this.state.day ?? 'Mon', 'day', true),
+      onTimeChange: () => this.setState({ schedDirty: true, scheduleSaved: false }),
+      weightChips,
+      weightNote: weights.length === 0 ? 'All jurisdictions weighted equally' : weights.length + ' weighted — others still included at base weight',
+      saveSchedule: () => schedDirty ? this.setState({ schedDirty: false, scheduleSaved: true }) : null,
+      saveScheduleStyle: schedDirty
+        ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 800, padding: '11px 20px', borderRadius: '6px', border: '1px solid #E8610A', background: '#E8610A', color: '#FFFFFF', cursor: 'pointer' }
+        : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 800, padding: '11px 20px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.14)', background: 'rgba(0,0,0,0.08)', color: '#7A6E6C', cursor: 'default' },
+      scheduleSaved: this.state.scheduleSaved ?? false
+    };
+  }
+}
+</script>
+</body>
+</html>

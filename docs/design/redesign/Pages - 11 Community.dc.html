@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+    @media (max-width: 1200px) {
+      #comm-grid { grid-template-columns: minmax(0,1fr) !important; }
+    }
+  </style>
+</helmet>
+
+<div data-screen-label="Community" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Regulations</a>
+      <a href="Pages - 04 Market Intel.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Market Intel</a>
+      <a href="Pages - 06 Research.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="Pages - 07 Operations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="padding:26px 36px 22px">
+        <p style="font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Vol IV · No. 27 · Friday</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;letter-spacing:0.02em;text-transform:uppercase;margin:0">Community</h1>
+        <p style="font-size:13.5px;color:#5A6B67;margin:8px 0 0">Regional rooms — what's live in each region, who's there, and the discussions that explain what the ledger can't print yet. Peer posts are <b style="color:#B45309">unverified by design</b>; a verifier's sign-off makes them <b style="color:#2563EB">citable</b>.</p>
+      </div>
+    </header>
+
+    <div style="padding:28px 36px 80px">
+
+      <!-- ══ Region rooms — the doors in ══ -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:0 0 8px;margin:0 0 14px">
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:0.02em;text-transform:uppercase;margin:0">Regional rooms</h2>
+        <span style="font-size:12px;color:#5A6B67"><b style="color:#1A1A1A">94 active items</b> across 7 rooms · you're in <b style="color:#E8610A">{{ yourRoomCount }}</b></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin:0 0 22px">
+        <sc-for list="{{ roomTiles }}" as="r" hint-placeholder-count="7">
+          <button onClick="{{ r.pick }}" style="{{ r.style }}">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <span style="font-family:'Anton',sans-serif;font-size:15px;letter-spacing:0.03em;text-transform:uppercase">{{ r.name }}</span>
+              <span style="font-family:'Anton',sans-serif;font-size:20px;color:{{ r.hue }}">{{ r.items }}</span>
+            </div>
+            <p style="font-size:10px;color:#5A6B67;margin:4px 0 0;text-align:left">{{ r.themes }}</p>
+            <div style="display:flex;gap:6px;align-items:center;margin:8px 0 0;flex-wrap:wrap">
+              <sc-if value="{{ r.here }}" hint-placeholder-val="{{ false }}"><span style="font-size:8.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#E8610A;background:rgba(232,97,10,0.09);border:1px solid rgba(232,97,10,0.4);border-radius:4px;padding:2px 6px;white-space:nowrap">You're here</span></sc-if>
+              <span style="font-size:10px;font-weight:700;color:#7A6E6C">{{ r.threadNote }}</span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+
+      <!-- ══ Selected room ══ -->
+      <div id="comm-grid" style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start">
+
+        <div style="min-width:0">
+
+          <!-- Room header -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+            <div style="padding:14px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+              <div>
+                <p style="font-family:'Anton',sans-serif;font-size:22px;letter-spacing:0.02em;text-transform:uppercase;margin:0">{{ roomName }}</p>
+                <p style="font-size:11px;color:#5A6B67;margin:3px 0 0">{{ roomMeta }}</p>
+              </div>
+              <button onClick="{{ toggleJoin }}" style="{{ joinStyle }}">{{ joinLabel }}</button>
+            </div>
+
+            <!-- Live in this region — real ledger items -->
+            <div style="padding:14px 20px">
+              <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">Live in this region · from the ledger</p>
+              <sc-for list="{{ liveItems }}" as="li" hint-placeholder-count="2">
+                <a href="{{ li.href }}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid rgba(0,0,0,0.06);text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.02)&quot;}">
+                  <span style="min-width:0">
+                    <span style="display:block;font-size:13px;font-weight:800;color:#1A1A1A">{{ li.title }}</span>
+                    <span style="display:block;font-size:11px;color:#7A6E6C;margin:2px 0 0">{{ li.meta }}</span>
+                  </span>
+                  <span style="font-size:11.5px;font-weight:800;color:#E8610A;white-space:nowrap">Open →</span>
+                </a>
+              </sc-for>
+              <p style="font-size:10.5px;color:#7A6E6C;margin:8px 0 0">Full regional view on the <a href="Pages - 02 Regulations.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">Regulations index</a> and the <a href="Pages - 09 Map.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">Map</a>.</p>
+            </div>
+          </div>
+
+          <!-- Discussions -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Discussions · {{ roomShort }}</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#B45309;border:1px dashed rgba(180,83,9,0.45);border-radius:4px;padding:2px 8px">Peer signal · unverified until signed off</span>
+            </div>
+            <div style="padding:14px 20px">
+              <div style="display:flex;gap:10px;align-items:center;margin:0 0 10px">
+                <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onKey }}" placeholder="{{ composerHint }}" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;padding:11px 14px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+                <button onClick="{{ post }}" style="{{ postStyle }}">Post</button>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px">
+                <span style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;align-self:center">Open questions this week</span>
+                <sc-for list="{{ starters }}" as="s" hint-placeholder-count="2">
+                  <button onClick="{{ s.pick }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer;text-align:left" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">{{ s.text }}</button>
+                </sc-for>
+              </div>
+
+              <sc-for list="{{ threads }}" as="t" hint-placeholder-count="0">
+                <div style="border-top:1px solid rgba(0,0,0,0.06);padding:12px 0">
+                  <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:0 0 5px">
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#E8610A;background:rgba(232,97,10,0.09);border:1px solid rgba(232,97,10,0.4);border-radius:4px;padding:2px 7px">You · Owner</span>
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#B45309;border:1px dashed rgba(180,83,9,0.45);border-radius:4px;padding:2px 7px">Unverified</span>
+                    <span style="font-size:10.5px;color:#7A6E6C">{{ t.time }}</span>
+                  </div>
+                  <p style="font-size:14px;font-weight:800;line-height:1.45;margin:0 0 7px">{{ t.title }}</p>
+                  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+                    <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#5A6B67;background:none;border:none;cursor:pointer;padding:0" style-hover="{&quot;color&quot;:&quot;#1A1A1A&quot;}">Reply</button>
+                    <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#5A6B67;background:none;border:none;cursor:pointer;padding:0" style-hover="{&quot;color&quot;:&quot;#1A1A1A&quot;}">Cite source</button>
+                    <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#2563EB;background:none;border:none;cursor:pointer;padding:0" style-hover="{&quot;textDecoration&quot;:&quot;underline&quot;}">Request verifier sign-off</button>
+                    <span style="font-size:10.5px;color:#7A6E6C;margin-left:auto">0 replies</span>
+                    <button onClick="{{ t.del }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;color:#9A3412;background:none;border:none;cursor:pointer;padding:0" style-hover="{&quot;textDecoration&quot;:&quot;underline&quot;}">Delete</button>
+                  </div>
+                </div>
+              </sc-for>
+
+              <sc-if value="{{ feedEmpty }}" hint-placeholder-val="{{ true }}">
+                <div style="border-top:1px solid rgba(0,0,0,0.06);padding:14px 0 4px">
+                  <p style="font-size:13px;font-weight:800;margin:0 0 3px">{{ emptyTitle }}</p>
+                  <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">{{ emptyBody }}</p>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rail -->
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0">Who's here · {{ roomShort }}</p>
+              <span style="font-family:'Anton',sans-serif;font-size:17px">{{ presenceCount }}</span>
+            </div>
+            <div style="padding:6px 16px 4px">
+              <sc-if value="{{ youHere }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+                  <span style="font-size:12px;font-weight:700">jasonlosh <span style="color:#7A6E6C;font-weight:600">(you)</span></span>
+                  <span style="font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#E8610A;border:1px solid rgba(232,97,10,0.4);border-radius:4px;padding:2px 7px">Owner</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ nooneHere }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size:11.5px;color:#5A6B67;line-height:1.6;margin:0;padding:8px 0">No member has this as a home region yet.</p>
+              </sc-if>
+            </div>
+            <p style="font-size:10.5px;color:#7A6E6C;margin:0;padding:9px 16px;background:#FAFAF8">Presence comes from profile home jurisdictions — yours are EU · Hong Kong · United Kingdom. The network is 2 members and grows by <a href="Pages - 10 Account.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">workspace invitation</a>.</p>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:13px 16px">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 5px">Why post here</p>
+            <p style="font-size:11.5px;line-height:1.6;color:#5A6B67;margin:0">The ledger prints what's verified. The room holds what operators know first — handler capacity, berth behaviour, what a regulator said on a call. High-engagement posts are picked up by editorial into platform intelligence: post → engagement → <a href="Pages - 08 Admin.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">Admin pickups (0 pending)</a> → platform brief.</p>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:13px 16px">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 5px">Verifier sign-off</p>
+            <p style="font-size:11.5px;line-height:1.6;color:#5A6B67;margin:0">A verifier checks a post's claim against a primary document; signed-off claims earn the platform's verified treatment and become citable. You are <a href="Pages - 10 Account.dc.html" style="color:#E8610A;font-weight:700;text-decoration:none">not a verifier</a>.</p>
+          </div>
+
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:8px;background:#FAFAF8;padding:13px 16px">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#8A6A2A;margin:0 0 5px">Vertical groups · none yet</p>
+            <p style="font-size:11.5px;line-height:1.6;color:#5A6B67;margin:0">Rooms are regional; groups will cut across them by vertical (fine art, live events, automotive…). They form when members create them.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 },
+  &quot;defaultRoom&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;EU&quot;, &quot;options&quot;: [&quot;GLOBAL&quot;, &quot;EU&quot;, &quot;US&quot;, &quot;UK&quot;, &quot;APAC&quot;, &quot;LATAM&quot;, &quot;MEAF&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Behavior&quot; }
+}">
+class Component extends DCLogic {
+  state = {};
+
+  rooms = [
+    {
+      key: 'GLOBAL', name: 'Global', short: 'Global', items: 9, prio: 'Critical', themes: 'Corridors · Reporting · Emissions',
+      meta: '9 active items · critical presence · IMO, ICAO, WTO instruments', home: false,
+      live: [
+        { title: 'IMO Net-Zero Framework — MEPC 84 engagement window open', meta: 'Regulation brief · Global · critical', href: 'Pages - 03 Regulation Detail.dc.html' },
+        { title: 'E–W ocean spot +20–31% in one week', meta: 'Market Intel · The Loadstar · cost alert', href: 'Pages - 04 Market Intel.dc.html' }
+      ],
+      starters: ['MEPC 84 — who is filing comments through their flag state?', 'Routing around the E–W spot spike: what are carriers quoting this week?']
+    },
+    {
+      key: 'EU', name: 'EU', short: 'EU', items: 21, prio: 'Critical', themes: 'Emissions · Reporting · Digital',
+      meta: '21 active items · critical presence · the deepest regulatory stack on the platform', home: true,
+      live: [
+        { title: 'EU regulatory stack — 21 active items', meta: 'Regulations index · emissions, reporting, digital', href: 'Pages - 02 Regulations.dc.html' },
+        { title: 'K-Taxonomy corporate uptake signal', meta: 'Market Intel · corporate/policy band', href: 'Pages - 04 Market Intel.dc.html' }
+      ],
+      starters: ['CBAM returns — who has verified embedded-emissions data from non-EU suppliers?', 'FuelEU exposure — is anyone pooling compliance across charterers?']
+    },
+    {
+      key: 'US', name: 'United States', short: 'US', items: 21, prio: 'High', themes: 'Transport · Emissions · Reporting',
+      meta: '17 US items + 4 on the US–CA corridor · state law is state-level data', home: false,
+      live: [
+        { title: 'EIA crude path — jet fuel doubling pressure', meta: 'Signal detail · WTI $95.96 · Brent $98.29', href: 'Pages - 05 Signal Detail.dc.html' },
+        { title: 'State-level costs — LA $4.183/gal vs NY Harbor $3.969/gal', meta: 'Operations · US region · by state', href: 'Pages - 07 Operations.dc.html' }
+      ],
+      starters: ['SB 253 — which forwarders count as in-scope suppliers?', 'Roadcheck week +6–8% spot — who pre-booked capacity?']
+    },
+    {
+      key: 'UK', name: 'United Kingdom', short: 'UK', items: 4, prio: 'High', themes: 'Transport · Reporting · Fuels',
+      meta: '4 active items · high presence', home: true,
+      live: [
+        { title: 'GB regulatory items — transport, reporting, fuels', meta: 'Regulations index · GB filter', href: 'Pages - 02 Regulations.dc.html' }
+      ],
+      starters: ['GB fuels mandates — what are carriers passing through on BAF?']
+    },
+    {
+      key: 'APAC', name: 'Asia–Pacific', short: 'APAC', items: 12, prio: 'Moderate', themes: 'SG 5 · JP 3 · AU 2 · IN 2',
+      meta: '12 items across four jurisdictions · infrastructure, corridors, fuels', home: true,
+      live: [
+        { title: 'Singapore — infrastructure, corridors, fuels (5 items)', meta: 'Regulations index · SG filter', href: 'Pages - 02 Regulations.dc.html' }
+      ],
+      starters: ['SG green-corridor berths — anyone seen priority handling in practice?', 'HK transshipment — documentation friction moving art via SIN vs HKG?']
+    },
+    {
+      key: 'LATAM', name: 'Latin America', short: 'LATAM', items: 6, prio: 'Moderate', themes: 'Transport · Fuels · Infrastructure',
+      meta: '6 items · Brazil 2 + regional 4', home: false,
+      live: [
+        { title: 'Latin America items — transport, fuels, infrastructure', meta: 'Regulations index · LATAM filter', href: 'Pages - 02 Regulations.dc.html' }
+      ],
+      starters: ['BR fuel mandates — pass-through on domestic legs quoted yet?']
+    },
+    {
+      key: 'MEAF', name: 'Middle East & Africa', short: 'MEAF', items: 3, prio: 'Moderate', themes: 'Fuels · Emissions',
+      meta: '3 items · UAE-led', home: false,
+      live: [
+        { title: 'AE items — fuels and emissions', meta: 'Regulations index · AE filter', href: 'Pages - 02 Regulations.dc.html' }
+      ],
+      starters: ['Dubai transit for live events kit — sustainability documentation asks?']
+    }
+  ];
+
+  hues = { Critical: '#DC2626', High: '#E8610A', Moderate: '#CA8A04' };
+
+  renderVals() {
+    const selKey = this.state.room ?? (this.props.defaultRoom ?? 'EU');
+    const room = this.rooms.find((r) => r.key === selKey) || this.rooms[1];
+    const joined = this.state.joined ?? { EU: true, UK: true, APAC: true };
+    const allThreads = this.state.threads ?? {};
+    const roomThreads = allThreads[room.key] ?? [];
+    const draft = this.state.draft ?? '';
+
+    const roomTiles = this.rooms.map((r) => {
+      const t = (allThreads[r.key] ?? []).length;
+      return {
+        name: r.name, items: String(r.items), themes: r.themes,
+        hue: this.hues[r.prio],
+        here: r.home || (joined[r.key] ?? false),
+        threadNote: t === 0 ? 'no discussions yet' : t + ' discussion' + (t > 1 ? 's' : ''),
+        pick: () => this.setState({ room: r.key }),
+        style: {
+          fontFamily: "'Plus Jakarta Sans',sans-serif", cursor: 'pointer', textAlign: 'left', width: '100%',
+          background: selKey === r.key ? '#FFF7F0' : '#FFFFFF', borderRadius: '8px', padding: '12px 14px',
+          border: selKey === r.key ? '2px solid #E8610A' : '1px solid rgba(0,0,0,0.12)'
+        }
+      };
+    });
+
+    const isJoined = room.home || (joined[room.key] ?? false);
+    const starters = room.starters.map((s) => ({ text: s, pick: () => this.setState({ draft: s }) }));
+    const doPost = () => {
+      if (!draft.trim()) return;
+      const next = Object.assign({}, allThreads);
+      next[room.key] = [{ title: draft.trim(), time: 'Just now' }].concat(roomThreads);
+      this.setState({ threads: next, draft: '' });
+    };
+
+    return {
+      yourRoomCount: String(this.rooms.filter((r) => r.home || (joined[r.key] ?? false)).length),
+      roomTiles,
+      roomName: room.name + ' room',
+      roomShort: room.short,
+      roomMeta: room.meta,
+      toggleJoin: () => this.setState({ joined: Object.assign({}, joined, { [room.key]: !isJoined }) }),
+      joinLabel: isJoined ? 'Joined · leave room' : 'Join room',
+      joinStyle: isJoined
+        ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12px', fontWeight: 800, padding: '10px 18px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.18)', background: '#FFFFFF', color: '#1A1A1A', cursor: 'pointer', whiteSpace: 'nowrap' }
+        : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12px', fontWeight: 800, padding: '10px 18px', borderRadius: '6px', border: '1px solid #E8610A', background: '#E8610A', color: '#FFFFFF', cursor: 'pointer', whiteSpace: 'nowrap' },
+      liveItems: room.live,
+      draft,
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      composerHint: 'Ask the ' + room.short + ' room — a lane observation, a handler question, a document worth sharing',
+      post: doPost,
+      onKey: (e) => { if (e.key === 'Enter') doPost(); },
+      postStyle: { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 800, padding: '11px 20px', borderRadius: '6px', border: '1px solid #E8610A', background: '#E8610A', color: '#FFFFFF', cursor: 'pointer', whiteSpace: 'nowrap' },
+      starters,
+      threads: roomThreads.map((t, i) => Object.assign({}, t, {
+        del: () => {
+          const next = Object.assign({}, allThreads);
+          next[room.key] = roomThreads.filter((x, xi) => xi !== i);
+          this.setState({ threads: next });
+        }
+      })),
+      feedEmpty: roomThreads.length === 0,
+      emptyTitle: 'Be first in the ' + room.short + ' room.',
+      emptyBody: 'No discussions here yet — the network is two operators and growing. Pick an open question above or post what you saw on the ground this week.',
+      presenceCount: String((room.home ? 1 : 0)),
+      youHere: room.home,
+      nooneHere: !room.home
+    };
+  }
+}
+</script>
+</body>
+</html>
