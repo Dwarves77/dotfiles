@@ -35,6 +35,7 @@ node --test \
   fsi-app/scripts/lib/funded-release-plan.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/primary-fallback.test.mjs \
+  fsi-app/src/lib/sources/officialness.test.mjs \
   fsi-app/src/lib/sources/pdf-extract.test.mjs \
   fsi-app/src/lib/sources/fetch-hold.test.mjs \
   fsi-app/src/lib/sources/entity-gate.test.mjs \
