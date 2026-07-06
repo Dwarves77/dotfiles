@@ -150,69 +150,95 @@ function verdict(outcome, extra = {}) {
   };
 }
 
+/** Coarse per-attempt verdict label for the exhaustion record (the seek-more unit reads this). @param {string} cls */
+function verdictLabel(cls) {
+  if (isOk(cls)) return "content";
+  if (isNotFound(cls)) return "not_found";
+  if (isJsShell(cls)) return "js_shell";
+  if (isBlock(cls)) return "block";
+  return cls;
+}
+
 /**
- * The escalation ladder at the single primitive. PURE given its injected transports (no real fetch). Runs the
- * per-failure-class ladder (a)-(f) above and returns a verdict. An error body is NEVER returned as content and
- * NEVER stored (storeRow is true only for outcome 'content').
- * @param {string} url
+ * The escalation ladder at the single primitive. PURE given its injected transports (no real fetch). Accepts the
+ * declared primary URL OR an ARRAY of candidate URLs (the seam for the paired seek-more unit: it generates the
+ * candidate list — CELEX/ELI resolution, gazettes, API endpoints, web-search hits — and hands it here). Each
+ * candidate is tried through the FULL per-failure-class ladder (a)-(f); the FIRST content success wins.
+ *
+ * Returns a verdict whose `attempts` is the per-(candidate × transport) EXHAUSTION RECORD — one row
+ * { url, transport, class, verdict, status, bytes, reason } for EVERY (candidate × transport) tried, not just
+ * the winner. That record is the durable artifact letting an item reach a hold-or-delete call ONLY after PROVEN
+ * exhaustion. An error body is NEVER returned as content and NEVER stored (storeRow is true only for 'content').
+ *
+ * @param {string|string[]} urls  the declared primary URL, or a candidate-URL array (tried in order).
  * @param {{
  *   cacheGet?: (url:string)=>Promise<{text?:string}|null>|{text?:string}|null,
  *   apiFetch?: (url:string)=>Promise<{status?:number,text?:string}|null>|{status?:number,text?:string}|null,
- *   directFetch?: (url:string)=>Promise<{status?:number,text?:string}>|{status?:number,text?:string},
- *   browserlessRender?: (url:string)=>Promise<{status?:number,text?:string}>|{status?:number,text?:string},
+ *   directFetch?: (url:string)=>Promise<{status?:number,text?:string}|null>|{status?:number,text?:string}|null,
+ *   browserlessRender?: (url:string)=>Promise<{status?:number,text?:string}|null>|{status?:number,text?:string}|null,
  *   seekMore?: (url:string)=>Promise<any>|any,
  * }} [deps]
  */
-export async function escalateFetch(url, deps = {}) {
+export async function escalateFetch(urls, deps = {}) {
   const { cacheGet, apiFetch, directFetch, browserlessRender, seekMore } = deps;
+  const candidates = (Array.isArray(urls) ? urls : [urls]).filter((u) => typeof u === "string" && u);
   const attempts = [];
-  const note = (transport, res) => {
+  // note() records ONE exhaustion-record row per (candidate × transport) attempt: url, transport, class, the
+  // coarse verdict label, status, bytes seen, and reason (the class for a non-ok attempt).
+  const note = (url, transport, res) => {
     const r = res || {};
     const cls = classifyTransportResult(r);
-    attempts.push({ transport, class: cls, status: r.status });
+    const bytes = typeof r.text === "string" ? r.text.length : 0;
+    attempts.push({ url, transport, class: cls, verdict: verdictLabel(cls), status: r.status, bytes, reason: isOk(cls) ? null : cls });
     return cls;
   };
-
-  // (a) canonical-URL cache first.
-  if (cacheGet) {
-    const hit = await cacheGet(url);
-    if (hit && hit.text && isOk(note("cache", hit))) {
-      return verdict("content", { url, text: hit.text, transport: "cache", attempts });
-    }
-  }
-
-  // (d) API-transport for API hosts — never the HTML page.
-  if (apiEndpointFor(url) && apiFetch) {
-    const res = await apiFetch(url);
-    if (res && isOk(note("api", res))) {
-      return verdict("content", { url, text: res.text, transport: "api", attempts });
-    }
-  }
-
-  // (b)/(c) HTML ladder: try transports in host order; a block/JS-shell on one → try the other.
-  const impl = { direct: directFetch, render: browserlessRender };
-  const queue = selectTransportOrder(url).filter((t) => t !== "api");
-  const tried = new Set();
+  const seed = candidates[0];
   let notFoundSeen = false;
-  while (queue.length) {
-    const t = queue.shift();
-    if (tried.has(t) || !impl[t]) continue;
-    tried.add(t);
-    const res = (await impl[t](url)) || {};
-    const cls = note(t, res);
-    if (isOk(cls)) return verdict("content", { url, text: res.text, transport: t, attempts });
-    if (isNotFound(cls)) notFoundSeen = true;
-    // (c) a JS-shell from a non-render transport → ensure the render path is tried next (escalation).
-    if (isJsShell(cls) && impl.render && !tried.has("render") && !queue.includes("render")) queue.push("render");
+
+  // Try each candidate through the FULL ladder; the first content success wins (with the complete attempt log).
+  for (const url of candidates) {
+    // (a) canonical-URL cache first.
+    if (cacheGet) {
+      const hit = await cacheGet(url);
+      if (hit && hit.text && isOk(note(url, "cache", hit))) {
+        return verdict("content", { url, text: hit.text, transport: "cache", attempts });
+      }
+    }
+
+    // (d) API-transport for API hosts — never the HTML page.
+    if (apiEndpointFor(url) && apiFetch) {
+      const res = await apiFetch(url);
+      if (res && isOk(note(url, "api", res))) {
+        return verdict("content", { url, text: res.text, transport: "api", attempts });
+      }
+    }
+
+    // (b)/(c) HTML ladder: try transports in host order; a block/JS-shell on one → try the other.
+    const impl = { direct: directFetch, render: browserlessRender };
+    const queue = selectTransportOrder(url).filter((t) => t !== "api");
+    const tried = new Set();
+    while (queue.length) {
+      const t = queue.shift();
+      if (tried.has(t) || !impl[t]) continue;
+      tried.add(t);
+      const res = (await impl[t](url)) || {};
+      const cls = note(url, t, res);
+      if (isOk(cls)) return verdict("content", { url, text: res.text, transport: t, attempts });
+      if (isNotFound(cls)) notFoundSeen = true;
+      // (c) a JS-shell from a non-render transport → ensure the render path is tried next (escalation).
+      if (isJsShell(cls) && impl.render && !tried.has("render") && !queue.includes("render")) queue.push("render");
+    }
+    // this candidate exhausted → fall through to the next candidate in the list.
   }
 
-  // (e) a genuine not-found after the ladder → seek-more (alternate-URL discovery), NEVER a stored body.
+  // (e) all candidates exhausted with a genuine not-found → seek-more (generate/try MORE alternates), NEVER a
+  //     stored body. The seek-more unit consumes the exhaustion record + the seed URL.
   if (notFoundSeen) {
-    const task = seekMore ? await seekMore(url) : { kind: "seek_more_alternate_url", url };
-    return verdict("seek_more", { url, transport: "none", attempts, seekMoreTask: task });
+    const task = seekMore ? await seekMore(seed) : { kind: "seek_more_alternate_url", url: seed };
+    return verdict("seek_more", { url: seed, transport: "none", attempts, seekMoreTask: task });
   }
-  // (f) ladder exhausted on blocks/walls → hold NO_REACHABLE_SOURCE, event-bound.
-  return verdict("no_reachable_source", { url, transport: "none", attempts, holdReason: "NO_REACHABLE_SOURCE" });
+  // (f) exhausted on blocks/walls only → hold NO_REACHABLE_SOURCE, event-bound (proven exhaustion in `attempts`).
+  return verdict("no_reachable_source", { url: seed, transport: "none", attempts, holdReason: "NO_REACHABLE_SOURCE" });
 }
 
 /**

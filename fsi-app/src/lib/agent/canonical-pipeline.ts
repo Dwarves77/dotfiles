@@ -47,7 +47,8 @@ import { stripUrlMarkers } from "@/lib/agent/url-canon.mjs";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
-import { captureForStorage } from "@/lib/sources/transport-escalation.mjs";
+import { captureForStorage, apiEndpointFor } from "@/lib/sources/transport-escalation.mjs";
+import { escalateToFetchResult } from "@/lib/sources/transport-runtime.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -62,15 +63,11 @@ function svc(): SupabaseClient {
 // ── FETCH TRANSPORTS (Part A — full download + no-silent-truncation) ──
 interface FetchResult { text: string; truncated: boolean; fullLength: number; cap: number; transport: string }
 
-// Static-HTML official/legal hosts that serve the ENACTED TEXT to a plain server fetch (no JS render, no
-// bot wall). For these we pull the FULL document DIRECTLY — free, no Browserless units (PROVEN: EUR-Lex
-// returns the full 458KB PPWR text this way). Browserless is the fallback. The URL is already EUR-Lex-
-// normalised before the primary path calls this, and detectRoadblock still runs on the RESULT
-// (fetchPrimaryWithFallback) — the new transport INHERITS every existing safety check, never skips them.
-const DIRECT_FETCH_HOSTS = /(^|\.)(eur-lex\.europa\.eu|europa\.eu|federalregister\.gov|ecfr\.gov|govinfo\.gov|legislation\.gov\.uk|gov\.uk)$/i;
-function directFetchEligible(url: string): boolean {
-  try { return DIRECT_FETCH_HOSTS.test(new URL(url).hostname); } catch { return false; }
-}
+// Direct-vs-render TRANSPORT ORDER is no longer decided here: it is the single home of
+// transport-escalation.selectTransportOrder (RD-14), which the live ladder (escalateToFetchResult) consumes —
+// direct-HTTP first for a static/legal host (free, full enacted text; PROVEN: EUR-Lex returns the full 458KB
+// PPWR text this way), Browserless render for a JS/bot-walled host, either-direction try-both on a block. The
+// prior DIRECT_FETCH_HOSTS/directFetchEligible pair (a SECOND transport-order home) was folded into that SSOT.
 function htmlToText(html: string): string {
   return html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
@@ -95,40 +92,94 @@ async function directFetchClean(url: string, max: number): Promise<FetchResult> 
   const text = (cleanCtl(full.slice(0, max)) || "").replace(/\s+/g, " ").trim();
   return { text, truncated: full.length > max, fullLength: full.length, cap: max, transport: "direct" };
 }
-// THE ONE transport primitive — the SSOT for direct-vs-Browserless selection + the TRY-BOTH fallback.
-// Both the corroborator fetcher (fetchMeta) and the primary fetcher (blFetchClean) delegate here, so the
-// transport rule lives in ONE place (this removes the fetchMeta-vs-blFetchClean duplication the fetch-path
-// audit flagged — a fix could previously be made in one copy and not the other).
-//   1. direct-HTTP first for eligible legal hosts (full, free) — accept ONLY real, non-roadblocked content.
-//   2. Browserless (escalating plain -> stealth -> unblock).
-//   3. TRY-BOTH (the WAF fix): if Browserless returned a block / roadblock (datacenter-IP WAF refusal, CDN
-//      block page), retry the SAME url via plain direct HTTP for ANY host — plain HTTP reaches datacenter-
-//      IP-WAF'd sites Browserless cannot (and the eligible-host step covers the reverse). Accept the plain
-//      result only if it is real, non-roadblocked content.
-//   4. dropIfBlocked: a corroborator DROPS a still-blocked result (never pollute the pool with a 553ch
-//      block page); the primary KEEPS it so fetchPrimaryWithFallback's detectRoadblock sees the reason
-//      (cdn_block / soft_404 / ...) and runs the official-alternative web search.
-async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
-  // PDF fast-path: Browserless renders a PDF as an empty viewer shell (a wasted unit + a false roadblock),
-  // so a .pdf URL goes straight to byte-fetch + extract for ANY host. directFetchClean also detects
-  // PDF-by-content-type/magic-bytes, so a PDF served from a non-.pdf URL is still caught on the fallback.
-  if (looksLikePdfUrl(url)) {
-    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* not a usable PDF — fall through to the normal path */ }
-  }
-  if (directFetchEligible(url)) {
-    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* fall through */ }
-  }
-  let bl: FetchResult | null = null;
+// API TRANSPORT (RD-14 ladder step d): federalregister.gov + eCFR expose OFFICIAL JSON/XML APIs; the HTML page
+// returns "Request Access" to scrapers, so an API host MUST route to its API, never the HTML. Plain HTTP (these
+// APIs are open, not bot-walled — same category as directFetchClean, no Browserless unit). Returns null when no
+// document-specific endpoint can be derived from the URL, so the ladder falls through to the HTML transports
+// (which for these hosts hold — the honest exhaustion path, not a silent success on a wall).
+async function apiFetchForHost(url: string, max: number): Promise<{ status: number; text: string; truncated: boolean; fullLength: number; cap: number } | null> {
+  const apiBase = apiEndpointFor(url);
+  if (!apiBase) return null;
+  const ua = { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" };
+  const clip = (full: string) => { const t = (cleanCtl(full) || "").replace(/\s+/g, " ").trim().slice(0, max); return { status: 200, text: t.length > 200 ? t : "", truncated: full.length > max, fullLength: full.length, cap: max }; };
   try {
-    const r = await browserlessFetch(url, { maxTextLength: max });
-    const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
-    bl = { text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max, transport: r.tier ?? "browserless" };
-  } catch { /* Browserless hard-errored across all tiers */ }
-  if (!bl || detectRoadblock(bl.text).roadblocked) {
-    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return { ...d, transport: "direct-fallback" }; } catch { /* plain also failed */ }
-    if (dropIfBlocked) return { text: "", truncated: false, fullLength: 0, cap: max, transport: "none" };
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "").toLowerCase();
+    if (/(^|\.)federalregister\.gov$/.test(host)) {
+      // /documents/YYYY/MM/DD/{DOC_NUMBER}/slug → /api/v1/documents/{DOC_NUMBER}.json → its raw_text_url.
+      const segs = u.pathname.split("/").filter(Boolean);
+      const i = segs.indexOf("documents");
+      const docNum = i >= 0 && segs.length > i + 4 ? segs[i + 4] : null;
+      if (!docNum) return null;
+      const jr = await fetch(`${apiBase}/documents/${encodeURIComponent(docNum)}.json?fields[]=title&fields[]=abstract&fields[]=raw_text_url`, { headers: ua, redirect: "follow", signal: AbortSignal.timeout(25000) });
+      if (!jr.ok) return { status: jr.status, text: "", truncated: false, fullLength: 0, cap: max };
+      const doc = (await jr.json()) as { title?: string; abstract?: string; raw_text_url?: string };
+      if (doc.raw_text_url) {
+        try {
+          const tr = await fetch(doc.raw_text_url, { headers: ua, redirect: "follow", signal: AbortSignal.timeout(25000) });
+          if (tr.ok) { const c = clip(htmlToText(await tr.text())); if (c.text) return c; }
+        } catch { /* fall through to the title+abstract summary (still official content) */ }
+      }
+      const summary = [doc.title, doc.abstract].filter(Boolean).join(". ").trim();
+      return { status: 200, text: summary.length > 200 ? summary.slice(0, max) : "", truncated: false, fullLength: summary.length, cap: max };
+    }
+    if (/(^|\.)ecfr\.gov$/.test(host)) {
+      // eCFR versioner: full title XML as of a concrete date. /on/YYYY-MM-DD/title-N/... carries the date; a
+      // bare /current/title-N/... has no versioner date → return null (HTML holds; seek-more at hold-lift).
+      const titleM = u.pathname.match(/title-(\d+)/);
+      const dateM = u.pathname.match(/\/on\/(\d{4}-\d{2}-\d{2})\//);
+      if (!titleM || !dateM) return null;
+      const xr = await fetch(`${apiBase}/versioner/v1/full/${dateM[1]}/title-${titleM[1]}.xml`, { headers: ua, redirect: "follow", signal: AbortSignal.timeout(25000) });
+      if (!xr.ok) return { status: xr.status, text: "", truncated: false, fullLength: 0, cap: max };
+      return clip(htmlToText(await xr.text()));
+    }
+    return null;
+  } catch { return null; }
+}
+
+// THE ONE transport primitive — now the LIVE binding of the per-failure-class ESCALATION LADDER (RD-14). It
+// delegates to escalateToFetchResult (transport-runtime.mjs → escalateFetch), so the live path routes PER CLASS
+// exactly as the tested ladder: API hosts → API transport; JS-shell/soft-404 → Browserless render; block/bot-
+// wall on one transport → try the OTHER (either direction, on the 403 class not only cdn_block); a genuine
+// 404/410 → a seek-more task (never a stored body); exhaustion → NO_REACHABLE_SOURCE hold. Both the corroborator
+// fetcher (fetchMeta) and the primary fetcher (blFetchClean) delegate here, so the transport rule lives in ONE
+// place AND the "is this usable" decision is now the ladder classifier's (transport-escalation) single home — no
+// more bare detectRoadblock on the primitive (the fold that eliminates the 600-vs-2500 two-detector leak).
+//   - dropIfBlocked: a corroborator DROPS a non-content outcome (never pollute the pool with a block/404 body);
+//     the primary KEEPS the terminal failure body (as content-shaped text) ONLY so fetchPrimaryWithFallback's
+//     detectRoadblock re-derives the reason (cdn_block / soft_404 / ...) and runs the official-alternative
+//     search — the error body is never STORED (captureForStorage gates the INSERT) and the ladder decided it.
+//   - PDF fast-path is preserved: Browserless renders a PDF as an empty viewer shell, so a .pdf URL byte-fetches
+//     + extracts directly (directFetchClean also detects PDF-by-content-type, covering non-.pdf PDF URLs).
+async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
+  if (looksLikePdfUrl(url)) {
+    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* not a usable PDF — fall through to the ladder */ }
   }
-  return bl ?? { text: "", truncated: false, fullLength: 0, cap: max, transport: "none" };
+  const directFetchLadder = async (u: string) => {
+    try { const d = await directFetchClean(u, max); return { status: 200, text: d.text, truncated: d.truncated, fullLength: d.fullLength, cap: d.cap }; }
+    catch (e) { const m = String((e as Error)?.message || "").match(/direct fetch (\d+)/); return { status: m ? Number(m[1]) : 0, text: "" }; }
+  };
+  const renderLadder = async (u: string) => {
+    try {
+      const r = await browserlessFetch(u, { maxTextLength: max });
+      const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
+      return { status: 200, text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max };
+    } catch { return { status: 0, text: "" }; }
+  };
+  const v = await escalateToFetchResult(url, max, {
+    apiFetch: (u: string) => apiFetchForHost(u, max),
+    directFetch: directFetchLadder,
+    browserlessRender: renderLadder,
+    seekMore: async (u: string) => ({ kind: "seek_more_alternate_url", url: u }),
+  });
+  if (v.outcome === "content") {
+    return { text: v.text, truncated: v.truncated, fullLength: v.fullLength, cap: v.cap, transport: v.transport };
+  }
+  // NON-content (seek_more / no_reachable_source). A corroborator drops it; the primary keeps the terminal
+  // failure body so its detectRoadblock re-derives the roadblock reason and the alternative-search fires.
+  if (dropIfBlocked) return { text: "", truncated: false, fullLength: 0, cap: max, transport: "none" };
+  const carried = v.lastFailureText || "";
+  return { text: carried, truncated: false, fullLength: carried.length, cap: max, transport: v.reason || "none" };
 }
 // Corroborator / ground fetcher: drop a still-blocked result (a failed corroborator is dropped, not fatal,
 // and a block page must never enter the pool).
