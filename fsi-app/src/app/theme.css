@@ -239,6 +239,52 @@
   /* Masthead chrome — 3px navy → red gradient, fixed shell chrome.
      Not part of the oxblood urgency budget. */
   --gradient-masthead: linear-gradient(90deg, var(--accent), var(--critical));
+
+  /* ─────────────────────────────────────────────────────
+     REDESIGN T02 TOKENS (HANDOFF §2 + Regulations index mock)
+     Added additively per feat/redesign-t02-regulations. Values
+     lifted verbatim from HANDOFF §2 and "Pages - 02 Regulations"
+     inline styles — do NOT substitute Tailwind defaults. Semantic
+     tokens only; the T02 components reference these, never raw hex.
+     ───────────────────────────────────────────────────── */
+
+  /* Brand strip — masthead 4px rule, orange → blue (HANDOFF §2 geometry). */
+  --gradient-brand: linear-gradient(90deg, #E8610A 0%, #2563EB 100%);
+
+  /* Accent blue — eyebrow / VOL line / T-tier badges / VERIFIED (HANDOFF §2). */
+  --accent-blue: #2563EB;
+
+  /* Epistemic — unverified / early-signal ink (always paired with a DASHED border). */
+  --epistemic-signal: #B45309;
+
+  /* Brass — pending-frame headers, jurisdiction tags, theme eyebrows (HANDOFF §2). */
+  --brass: #8A6A2A;
+
+  /* Severity spectrum — HANDOFF §2 named values. */
+  --sev-critical: #DC2626;
+  --sev-high: #E8610A;
+  --sev-moderate: #CA8A04;
+  --sev-low: #16A34A;
+
+  /* Banded-ledger per-band hues / tints / 4px gradient strips — lifted
+     verbatim from the "Pages - 02 Regulations" inline styles. The band
+     hues intentionally differ from the §2 severity spectrum above (the
+     mock tunes them per band); the mock is the archetype for this surface. */
+  --reg-band-immediate: #DC2626;
+  --reg-band-immediate-bg: #FEF2F2;
+  --reg-band-immediate-strip: linear-gradient(90deg, #16A34A, #CFA000 33%, #D97706 66%, #DC2626);
+  --reg-band-action: #D97706;
+  --reg-band-action-bg: #FFF7ED;
+  --reg-band-action-strip: linear-gradient(90deg, #16A34A, #CFA000 50%, #D97706);
+  --reg-band-monitor: #A16207;
+  --reg-band-monitor-bg: #FEFCE8;
+  --reg-band-monitor-strip: linear-gradient(90deg, #16A34A, #CFA000);
+  --reg-band-awareness: #16A34A;
+  --reg-band-awareness-bg: #F0FDF4;
+  --reg-band-awareness-strip: #16A34A;
+  /* Low tile eyebrow/numeral render muted-secondary in the mock (only the
+     bottom rule is green) — token keeps that intent explicit. */
+  --reg-tile-low-fig: #5A6B67;
 }
 
 /* ── DARK THEME (opt-in) ── */

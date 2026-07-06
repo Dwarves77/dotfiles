@@ -39,9 +39,11 @@ export function PageMasthead({ eyebrow, title, meta, rightSlot, belowSlot }: Pag
     <header
       className="cl-page-masthead"
       style={{
-        background: "var(--raised)",
-        borderBottom: "1px solid var(--border-sub)",
-        padding: belowSlot ? "30px 36px 34px" : "30px 36px 28px",
+        // Redesign T02 (HANDOFF §5): white masthead beneath the 4px brand
+        // rule, hairline border-bottom.
+        background: "var(--surface)",
+        borderBottom: "1px solid var(--color-border)",
+        padding: belowSlot ? "26px 36px 22px" : "26px 36px 22px",
       }}
     >
       {/* Responsive type ramp + padding step-down per operator dispatch
@@ -94,12 +96,13 @@ export function PageMasthead({ eyebrow, title, meta, rightSlot, belowSlot }: Pag
             <div
               className="cl-page-eyebrow"
               style={{
-                fontSize: "10px",
+                fontSize: "10.5px",
                 fontWeight: 800,
-                letterSpacing: "0.2em",
+                letterSpacing: "0.18em",
                 textTransform: "uppercase",
-                color: "var(--accent)",
-                marginBottom: "8px",
+                // Redesign T02 (HANDOFF §5): blue VOL eyebrow.
+                color: "var(--accent-blue)",
+                marginBottom: "6px",
               }}
             >
               {eyebrow}
