@@ -43,9 +43,10 @@ export const SYNTH_PRIMARY_HARD_CEILING_CHARS = Number(
   process.env.SYNTH_PRIMARY_HARD_CEILING_CHARS || SYNTH_INPUT_BUDGET_CHARS,
 );
 
-/** Max chars of each brief SECTION shown to the grounding ledger extractor (was 2200 — which hid the
- *  back of every long section from span extraction). */
-export const GROUND_SECTION_MAX_CHARS = Number(process.env.GROUND_SECTION_MAX_CHARS || 12000);
+// GROUND_SECTION_MAX_CHARS (the silent 12KB section slice) was RETIRED 2026-07-06 (category-2 fix, size-cap
+// doctrine): it hid the back of every long section from the grounder — a binding fact past 12KB was invisible.
+// Sections now reach the grounder COMPLETE up to a surfaced hard ceiling — see
+// src/lib/agent/section-grounding.mjs (prepareSectionForGrounding + GROUND_SECTION_HARD_CEILING_CHARS).
 
 // ── Telemetry (span-attribution unit 4f): cost estimate from real token usage, so the stored path logs
 // actual spend to agent_runs.cost_usd_estimated (no DDL) instead of $0. USD per MILLION tokens for

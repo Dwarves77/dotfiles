@@ -27,6 +27,10 @@ import { fitnessFunction as F15 } from './functions/F15-spend-chokepoint.mjs';
 // Transport hold gate (2026-07-06): F16 mechanizes "scrape hold LIVE, zero fetches" at the single fetch
 // primitive — assertFetchAllowed() throws while engaged; no raw Browserless fetch may bypass it. Maps to RD-11.
 import { fitnessFunction as F16 } from './functions/F16-transport-hold-gate.mjs';
+// Size-cap doctrine (2026-07-06): F17 is the size-axis analog of F15 — every cap on the grounding path is
+// registered + classified (surfaced or never-binds); a new unregistered/silent cap is RED. Kills the silent-
+// slice class (the GROUND_SECTION_MAX_CHARS=12000 category-2 defect). Maps to RD-12.
+import { fitnessFunction as F17 } from './functions/F17-size-cap-doctrine.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -39,6 +43,7 @@ export const fitnessFunctions = [
   F14,
   F15,
   F16,
+  F17,
 ];
 
 export function getFunctionById(id) {

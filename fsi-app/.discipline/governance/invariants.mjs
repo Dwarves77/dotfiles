@@ -80,7 +80,9 @@ export const SKILL_MARKER_BASELINE = {
   // normative line. TRIAGE: new invariant RD-10 (enforcedBy fitness:F15 + spend-guard.test.mjs selftest).
   // 20→21 (2026-07-06): added Section 4 category 10 "The transport hold gate (fetch-primitive scrape-hold
   // gate)". TRIAGE: new invariant RD-11 (enforcedBy fitness:F16 + fetch-hold.test.mjs selftest).
-  'remediation-discipline': 21,
+  // 21→22 (2026-07-06): added Section 4 category 11 "The size-cap doctrine (no silent slice on the grounding
+  // path)". TRIAGE: new invariant RD-12 (enforcedBy fitness:F17 + section-grounding.test.mjs selftest).
+  'remediation-discipline': 22,
   'sprint-followups-discipline': 17,
 };
 
@@ -479,6 +481,16 @@ export const INVARIANTS = [
     anchor: 'The transport hold gate (fetch-primitive scrape-hold gate)',
     enforcedBy: ['fitness:F16', 'selftest:fsi-app/src/lib/sources/fetch-hold.test.mjs'],
     residual: 'F16 (grep-class, red-then-green: the primitive missing assertFetchAllowed is RED; a raw Browserless /content fetch in a non-sanctioned file is RED with file:line) gates the STRUCTURAL guarantee — the hold gate is present at the single primitive and un-bypassable. fetch-hold.test.mjs proves the PURE core red-then-green: engaged→throws (fetchImpl never called), lifted→passes, canonical cache HIT on url-canon-equivalent URLs, TTL freshness, hold-blocked/hit/miss telemetry. NAMED RESIDUAL: the hold DEFAULTS to LIFTED (prod-preserving) — the build-time zero-fetch posture is held by the runners deleting BROWSERLESS_API_KEY as belt-and-suspenders + the operator engaging SCRAPE_HOLD; lifting the hold (SCRAPE_HOLD=off) is the operator cadence ruling. The cache store is per-run in-memory (a durable/DB-backed cache is a future extension); TTL table is a small curated host list + a 24h default (REVISIT as sources are added).',
+  },
+
+  {
+    id: 'RD-12-size-cap-doctrine',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',
+    text: 'Every size cap on the capture→synthesis→grounding→judge path is either sized so it never binds in normal operation, or fails LOUD (surfaced wall — recordTruncation → coverage_gap flag + item held with a named reason) when it binds. Silent slicing is forbidden (the GROUND_SECTION_MAX_CHARS=12000 category-2 defect that hid the back of every long section from the grounder). Every path cap is enumerated + classified; a new unregistered/silent cap is RED.',
+    anchor: 'The size-cap doctrine (no silent slice on the grounding path)',
+    enforcedBy: ['fitness:F17', 'selftest:fsi-app/src/lib/agent/section-grounding.test.mjs'],
+    residual: 'F17 (grep-class, red-then-green: a new unregistered *_MAX_CHARS/*_BUDGET_CHARS/*_CEILING_CHARS on the path is RED; a registry entry marked silent-grounding is RED) gates the STRUCTURAL guarantee — no silent cap slips onto the path unclassified. section-grounding.test.mjs proves the fix red-then-green: a binding fact beyond the old 12KB boundary is invisible to the old slice(0,12000) and reaches the grounder complete post-fix; a pathological over-ceiling section is SURFACED (truncated=true + fullLength), never silent. NAMED RESIDUALS: (1) the classify-path excerpt caps (haiku-classify ~6000, first-fetch ~6000, recommend-tier 4000) are SILENT binders on the CLASSIFICATION path (tier/type/portal), not the fact-grounding path — LOW risk (source nature is evident early), registered in the cap-inventory as REVISIT, not converted now; (2) F17 registers cap CONSTANTS on generation-config + section-grounding — an inline `.slice(0, N)` re-introduced elsewhere on the path is caught by review + the section-grounding selftest, not by F17 grep (the constant-declaration form is the robust signal). Full inventory: docs/design/cap-inventory-2026-07-06.md.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
