@@ -44,7 +44,8 @@ import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/
 // 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
 // (*https://x/*, `https://x/`); criterion-2's URL match would otherwise capture the trailing marker.
 import { stripUrlMarkers } from "@/lib/agent/url-canon.mjs";
-import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, GROUND_SECTION_MAX_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
+import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
+import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -903,7 +904,12 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
     hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
   });
   await recordTruncation(sb, itemId, [...groundSrc.trims, ...groundSrc.ceilingWalls]);
-  const user = `BRIEF SECTIONS:\n${secs.map((s) => `### SECTION ${s.section_key}\n${(s.content_md || "").slice(0, GROUND_SECTION_MAX_CHARS)}`).join("\n\n")}\n\n====\nSOURCE CONTENT (copy spans VERBATIM):\n${groundSrc.blocks}`;
+  // CATEGORY-2 FIX (size-cap doctrine, 2026-07-06): the section reaches the grounder COMPLETE (the old
+  // GROUND_SECTION_MAX_CHARS=12000 SILENTLY hid the back of every long section — a binding fact past 12KB was
+  // invisible). A pathological section OVER the hard ceiling is SURFACED (coverage_gap flag), never silent.
+  const preparedSecs = secs.map((s) => ({ s, p: prepareSectionForGrounding(s.content_md) }));
+  await recordTruncation(sb, itemId, preparedSecs.filter((x) => x.p.truncated).map((x) => ({ url: `section:${x.s.section_key}`, collected: x.p.cap, fullLength: x.p.fullLength, cap: x.p.cap, transport: "section-ceiling" })));
+  const user = `BRIEF SECTIONS:\n${preparedSecs.map(({ s, p }) => `### SECTION ${s.section_key}\n${p.text}`).join("\n\n")}\n\n====\nSOURCE CONTENT (copy spans VERBATIM):\n${groundSrc.blocks}`;
   let claims;
   // Lenient extraction: a single malformed claim is skipped, not fatal — one bad FACT must not reject
   // the whole ledger (the 0-FACT quarantine on rich synthesised briefs). The kept-filter + the gate
