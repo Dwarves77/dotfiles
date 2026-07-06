@@ -46,13 +46,17 @@ const K = 3;
 // genuinely fixes — so a clean batch validates the nomination fix. l1 EXCLUDED (verified — necessity gate).
 // Floor-only (7a0ead55) + unlabeled-only (c8) are the WRONG tool for ground-only (they route to the free 4b
 // re-home lever / 4c respectively) — deferred to their own passes, not paid here.
-const BATCH = [
-  { key: "782878c0", cohort: "FRESH", note: "flaw-exposing (SAF Order) — nomination-fix validation" },
-  { key: "f0833999", cohort: "FRESH", note: "CSRD survivor — release unlocks the 9c5d1d17 deletion (item-1 gate)", survivor: true },
-  { key: "4ff5cf56", cohort: "COLD",  note: "COLD reg (LOW), pure missing_required_slot" },
-  { key: "g18",      cohort: "COLD",  note: "COLD reg (LOW), pure missing_required_slot" },
-  { key: "388b2ce8", cohort: "COLD",  note: "COLD research_finding (LOW) — cross-format validation" },
-];
+// FUNDED_BATCH env override (comma-separated keys) — a targeted batch (e.g. the cat-2 re-ground set). Falls
+// back to the batch-1 validation set. --cascade auto-selects the whole eligible set (ignores this).
+const BATCH = process.env.FUNDED_BATCH
+  ? process.env.FUNDED_BATCH.split(",").map((k) => ({ key: k.trim(), cohort: "TARGET", note: "targeted re-ground (FUNDED_BATCH)" }))
+  : [
+    { key: "782878c0", cohort: "FRESH", note: "flaw-exposing (SAF Order) — nomination-fix validation" },
+    { key: "f0833999", cohort: "FRESH", note: "CSRD survivor — release unlocks the 9c5d1d17 deletion (item-1 gate)", survivor: true },
+    { key: "4ff5cf56", cohort: "COLD",  note: "COLD reg (LOW), pure missing_required_slot" },
+    { key: "g18",      cohort: "COLD",  note: "COLD reg (LOW), pure missing_required_slot" },
+    { key: "388b2ce8", cohort: "COLD",  note: "COLD research_finding (LOW) — cross-format validation" },
+  ];
 
 const sb = readClient();
 const items = await readAll("intelligence_items", "id,legacy_id,item_type,priority,source_url,provenance_status,instrument_identifier,is_archived", { match: (q) => q.eq("is_archived", false) });
