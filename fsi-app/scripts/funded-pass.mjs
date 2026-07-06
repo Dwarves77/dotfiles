@@ -27,6 +27,12 @@ try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
 delete process.env.BROWSERLESS_API_KEY;
 if (process.env.BROWSERLESS_API_KEY) { console.error("REFUSING: BROWSERLESS_API_KEY still set."); process.exit(2); }
 const APPLY = process.argv.includes("--apply");
+// CASCADE mode (--cascade): auto-select the whole ground-only-ELIGIBLE quarantine set instead of the hardcoded
+// validation BATCH. Eligible = quarantined + has missing_required_slot + NOT counsel-held + has a usable pool
+// (counsel-held / floor-only / unlabeled-only are excluded — wrong tool / seek-more, not paid ground). The
+// per-item stops (breaker, ceiling, 2x-measured) + a judge-fail-cohort stop bound the spend.
+const CASCADE = process.argv.includes("--cascade");
+const COHORT_WINDOW = 8; // judge-fail-cohort stop: this many consecutive judge-engaged holds with 0 flips → stop
 
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { groundBrief } = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
@@ -36,21 +42,43 @@ const { readProgramTotalPaginated, fitsUnderCeiling, projectBatchFitsBuffer, CEI
 const { costUsdForModel, SPEND_CEILING_USD } = await jiti.import("../src/lib/agent/generation-config.ts");
 const K = 3;
 
-// BATCH 1 (validation): flaw-item + survivor + 2 COLD + floor-only. cohort/notes for the report.
+// BATCH 1 (flip-focused validation). ALL are PURE missing_required_slot — the class ground-only (slot-forcing)
+// genuinely fixes — so a clean batch validates the nomination fix. l1 EXCLUDED (verified — necessity gate).
+// Floor-only (7a0ead55) + unlabeled-only (c8) are the WRONG tool for ground-only (they route to the free 4b
+// re-home lever / 4c respectively) — deferred to their own passes, not paid here.
 const BATCH = [
-  { key: "782878c0", cohort: "FRESH", note: "flaw-exposing item (all 3 failure classes)" },
-  { key: "f0833999", cohort: "FRESH", note: "CSRD survivor — release triggers held-loser deletion (standing gate)", survivor: true },
-  { key: "c8",       cohort: "COLD",  note: "COLD standard" },
-  { key: "l1",       cohort: "COLD",  note: "COLD reg (HIGH)" },
-  { key: "7a0ead55", cohort: "FRESH", note: "floor-only (fact_below_authority_floor)" },
+  { key: "782878c0", cohort: "FRESH", note: "flaw-exposing (SAF Order) — nomination-fix validation" },
+  { key: "f0833999", cohort: "FRESH", note: "CSRD survivor — release unlocks the 9c5d1d17 deletion (item-1 gate)", survivor: true },
+  { key: "4ff5cf56", cohort: "COLD",  note: "COLD reg (LOW), pure missing_required_slot" },
+  { key: "g18",      cohort: "COLD",  note: "COLD reg (LOW), pure missing_required_slot" },
+  { key: "388b2ce8", cohort: "COLD",  note: "COLD research_finding (LOW) — cross-format validation" },
 ];
 
 const sb = readClient();
 const items = await readAll("intelligence_items", "id,legacy_id,item_type,priority,source_url,provenance_status,instrument_identifier,is_archived", { match: (q) => q.eq("is_archived", false) });
-const resolved = BATCH.map((s) => {
-  const it = items.find((x) => x.legacy_id === s.key || x.id.slice(0, 8) === s.key);
-  return it ? { ...s, id: it.id, type: it.item_type, priority: it.priority, sourceUrl: it.source_url, instrument: it.instrument_identifier } : { ...s, id: null };
-}).filter((s) => s.id);
+let resolved;
+if (CASCADE) {
+  // build the eligible set live (mirrors scripts/_diag/_cascade-scope.mjs)
+  const counselHeld = new Set((await readAll("integrity_flags", "subject_ref", { match: (q) => q.eq("subject_type", "item").eq("status", "open").eq("created_by", "phase2_priority_review") })).map((f) => f.subject_ref));
+  const quar = items.filter((x) => x.provenance_status === "quarantined");
+  resolved = [];
+  for (const it of quar) {
+    if (counselHeld.has(it.id)) continue;
+    const { data } = await sb.rpc("validate_item_provenance", { p_item_id: it.id });
+    const r = Array.isArray(data) ? data[0] : data;
+    const reasons = [...new Set((r?.failures || []).map((f) => f.reason))];
+    if (!reasons.includes("missing_required_slot")) continue;
+    const pool = await readAll("agent_run_searches", "result_content_excerpt", { match: (q) => q.eq("intelligence_item_id", it.id) });
+    if (pool.reduce((a, x) => a + (x.result_content_excerpt || "").length, 0) < 500) continue;
+    resolved.push({ key: it.legacy_id || it.id.slice(0, 8), cohort: "CASCADE", note: `${it.item_type}/${it.priority}`, id: it.id, type: it.item_type, priority: it.priority, sourceUrl: it.source_url, instrument: it.instrument_identifier });
+  }
+  console.log(`\n=== CASCADE === auto-selected ${resolved.length} ground-only-eligible items (counsel-held excluded: ${counselHeld.size})`);
+} else {
+  resolved = BATCH.map((s) => {
+    const it = items.find((x) => x.legacy_id === s.key || x.id.slice(0, 8) === s.key);
+    return it ? { ...s, id: it.id, type: it.item_type, priority: it.priority, sourceUrl: it.source_url, instrument: it.instrument_identifier } : { ...s, id: null };
+  }).filter((s) => s.id);
+}
 
 // ── SEED the program total (paginated) ──
 const fetchPage = async (offset, ps) => (await sb.from("agent_runs").select("cost_usd_estimated").order("id").range(offset, offset + ps - 1)).data || [];
@@ -126,6 +154,12 @@ for (const p of plan) {
   if (breaker.tripped) { console.log(`  STOP: ${breaker.reason}`); break; }
   const measured = spentUsd() - program.total;
   if (measured > 2 * restated) { console.log(`  STOP: measured $${measured.toFixed(4)} > 2x restated $${(2 * restated).toFixed(4)}.`); break; }
+  // judge-fail-cohort stop: COHORT_WINDOW consecutive judge-ENGAGED items with 0 flips ⇒ the remaining pool is
+  // exhausted of groundable FACTs (paying more only produces holds) — stop and let the rest ride to seek-more.
+  const tail = results.filter((x) => !x.skipped && !x.stopped).slice(-COHORT_WINDOW);
+  if (tail.length >= COHORT_WINDOW && tail.every((x) => !x.valid && (x.sf?.judgeCalls || 0) > 0)) {
+    console.log(`  STOP: judge-fail cohort dominance — last ${COHORT_WINDOW} judge-engaged items all held (0 flips); pool set exhausted of groundable FACTs. Remaining items ride to seek-more.`); break;
+  }
 }
 resetSpendTicket();
 assertLedgerDrained();
