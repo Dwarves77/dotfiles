@@ -39,6 +39,7 @@ import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, r
 import { buildResolver, hostOf, type SourceRow, type Resolver } from "@/lib/sources/institution";
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
+import { officialnessOf } from "@/lib/sources/officialness.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
 // stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
 // 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
@@ -1003,7 +1004,27 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   // Floor-first re-attribution pool: the fetched floor-qualifying sources, best-tier-first (span-attribution
   // unit, ruling 2026-07-03). A FACT whose extractor-chosen span host is sub-floor but whose verbatim clause
   // ALSO sits in one of these grounds AT the floor instead of walling. Empty for floor-exempt item types.
-  const floorPool = floorSources(groundWithTier, itemFloor);
+  //
+  // 4d OFFICIALNESS GATE (officialness.mjs, distinct from floor-attribution.mjs's SYSTEM-PROMPT "4d" — the
+  // wrong-language original-span rule; two collided numberings, kept apart). The order at this site is:
+  // detectRoadblock (usable content at all — above/in the fetch) -> 4d (is this the OFFICIAL instrument PAST
+  // the nav?) -> 4b floor re-home -> 4c relabel. 4d does two things to the floor pool:
+  //   (1) DROPS path-b sources (portal / explainer / chrome body) so a non-primary page can NEVER be a
+  //       primary FACT re-home target (the moat: never PROMOTE a non-official page for topical fit).
+  //   (2) Replaces each surviving (path-a) source's matched text with its CLEAN, past-the-nav body, so 4b's
+  //       reattributeToFloor `.includes(needle)` can NEVER fire on nav chrome (the false-stamp defect) — the
+  //       url + tier are preserved, only the CHROME is removed (never DOWNGRADE a real instrument for chrome).
+  // Host authority-origin tier is INJECTED (s.tier, already the resolver-canonical tier — floorSources has
+  // already filtered to tier <= floor, so hostQualifies holds; 4d adds the instrument-body gate). The pool
+  // here carries stripText output (stored excerpts), not raw html, so 4d's structural strip is a graceful
+  // no-op and the marker+host+length path gate is the operative defense; the full chrome-strip engages when
+  // raw html is present and is exercised red-green by officialness.test.mjs.
+  const floorPool = floorSources(groundWithTier, itemFloor)
+    .map((s) => {
+      const off = officialnessOf(s.text, hostOf(s.url), { hostTier: s.tier, floorTier: itemFloor });
+      return { ...s, text: off.cleanBody || s.text, officialnessPath: off.path };
+    })
+    .filter((s) => s.officialnessPath === "a");
   const groundSrc = buildSourceBlocks(groundWithTier, SYNTH_INPUT_BUDGET_CHARS, {
     floorTier: itemFloor,
     hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,
