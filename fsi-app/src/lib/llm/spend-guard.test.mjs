@@ -31,6 +31,16 @@ test("DELETE-disposition item is REJECTED (held dup-loser, never pay to regenera
   assert.throws(() => assertTicket({ purpose: "regen loser", itemId: "9c5d1d17", disposition: "delete" }), /disposition is DELETE/);
 });
 
+test("VERIFIED item is REJECTED from any paid re-ground queue (the l1 class — never pay to re-ground a clean item)", () => {
+  assert.throws(
+    () => assertTicket({ purpose: "re-ground l1", itemId: "l1", provenanceStatus: "verified", failureClasses: [], necessity: { rehomableFacts: 0 } }),
+    /SPEND_REJECTED[\s\S]*already provenance_status=verified/,
+  );
+  // case-insensitive; a non-verified status does not trip this gate
+  assert.throws(() => assertTicket({ purpose: "re-ground", provenanceStatus: "VERIFIED" }), /already provenance_status=verified/);
+  assert.doesNotThrow(() => assertTicket({ purpose: "re-ground q", provenanceStatus: "quarantined", failureClasses: ["missing_required_slot"], necessity: { rehomableFacts: 0 } }));
+});
+
 test("GENERATION-need item PASSES the necessity gate (no $0 lever, not DELETE)", () => {
   assert.doesNotThrow(() =>
     assertTicket({ purpose: "regen Y", itemId: "y", failureClasses: ["unlabeled_assertion", "missing_required_slot"], necessity: { rehomableFacts: 0 } }),

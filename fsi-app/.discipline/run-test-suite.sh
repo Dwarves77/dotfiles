@@ -32,6 +32,7 @@ node --test \
   fsi-app/.discipline/fitness/functions/*.test.mjs \
   fsi-app/.discipline/fitness/runner.test.mjs \
   fsi-app/scripts/lib/db.test.mjs \
+  fsi-app/scripts/lib/funded-release-plan.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/primary-fallback.test.mjs \
   fsi-app/src/lib/sources/pdf-extract.test.mjs \

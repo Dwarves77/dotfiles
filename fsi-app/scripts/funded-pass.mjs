@@ -8,14 +8,19 @@
  *  ZERO fetches (scrape hold live — BROWSERLESS_API_KEY deleted; groundBrief reuses the stored pool). ZERO
  *  mints (re-grounds existing briefs in place; never inserts an intelligence_items row).
  *
- *  BATCH 1 validates the nomination fix (a curated 5: the flaw-exposing item + the survivor + 2 COLD + a
- *  floor-only). On each item that flips to verified, its disposition_deferred flag(s) RESOLVE (guarded RELEASE).
- *  Prints the per-cohort flip table + the genuine-support audit (judge decisions) + measured cost +
- *  clean-verdict. DRY-RUN default (seed + restated estimate + batch-gate, NO spend); --apply = the paid run. */
+ *  BATCH 1 validates the nomination fix (the flaw-exposing item + the CSRD survivor + COLD + a floor-only;
+ *  l1 EXCLUDED — already verified). On each item that flips to verified, this runner EMITS a release/deletion
+ *  PLAN (binding 3b: loader context judges/reads/proposes ONLY — ZERO guardedUpdate here); a pure-node applier
+ *  (apply-funded-releases.mjs) re-verifies LIVE and does every write with byte-compare read-back. A survivor's
+ *  disposition_deferred flags RELEASE; an identifier-exact held dup-loser is DELETED — both through the applier.
+ *  Prints the per-cohort flip table + genuine-support audit + measured cost + clean-verdict. DRY-RUN default
+ *  (seed + restated estimate + batch-gate, NO spend); --apply = the paid run + plan emit. */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { createJiti } from "jiti";
-import { readClient, readAll, guardedUpdate } from "./lib/db.mjs";
+import { readClient, readAll } from "./lib/db.mjs";
+import { buildReleaseDeletionPlan, normUrl } from "./lib/funded-release-plan.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
@@ -25,7 +30,7 @@ const APPLY = process.argv.includes("--apply");
 
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { groundBrief } = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
-const { setSpendTicket, resetSpendTicket, spentUsd, logSpendRun } = await jiti.import("../src/lib/llm/spend-client.ts");
+const { setSpendTicket, resetSpendTicket, spentUsd, logSpendRun, assertLedgerDrained } = await jiti.import("../src/lib/llm/spend-client.ts");
 const { seedSpend, resetItemLedger, takeItemLedger, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD } = await jiti.import("../src/lib/llm/spend-guard.mjs");
 const { readProgramTotalPaginated, fitsUnderCeiling, projectBatchFitsBuffer, CEILING_BUFFER_USD } = await jiti.import("../src/lib/llm/program-total.mjs");
 const { costUsdForModel, SPEND_CEILING_USD } = await jiti.import("../src/lib/agent/generation-config.ts");
@@ -41,10 +46,10 @@ const BATCH = [
 ];
 
 const sb = readClient();
-const items = (await sb.from("intelligence_items").select("id,legacy_id,item_type,priority,source_url,provenance_status").eq("is_archived", false)).data || [];
+const items = await readAll("intelligence_items", "id,legacy_id,item_type,priority,source_url,provenance_status,instrument_identifier,is_archived", { match: (q) => q.eq("is_archived", false) });
 const resolved = BATCH.map((s) => {
   const it = items.find((x) => x.legacy_id === s.key || x.id.slice(0, 8) === s.key);
-  return it ? { ...s, id: it.id, type: it.item_type, priority: it.priority, sourceUrl: it.source_url } : { ...s, id: null };
+  return it ? { ...s, id: it.id, type: it.item_type, priority: it.priority, sourceUrl: it.source_url, instrument: it.instrument_identifier } : { ...s, id: null };
 }).filter((s) => s.id);
 
 // ── SEED the program total (paginated) ──
@@ -79,18 +84,31 @@ if (!APPLY) { console.log(`\nDRY-RUN — pass --apply to run the paid batch.`); 
 // ── PAID RUN ──
 console.log(`\n=== PAID RUN (through spend-client, seeded ceiling $${SPEND_CEILING_USD}) ===`);
 const failuresOf = async (id) => { const { data } = await sb.rpc("validate_item_provenance", { p_item_id: id }); const r = Array.isArray(data) ? data[0] : data; return { valid: !!r?.valid, reasons: [...new Set((r?.failures || []).map((f) => f.reason))] }; };
-async function releaseDeferral(itemId, key) {
-  const flags = await readAll("integrity_flags", "id", { match: (q) => q.eq("subject_type", "item").eq("subject_ref", itemId).eq("status", "open").eq("created_by", "disposition_deferred") });
-  for (const f of flags) await guardedUpdate("integrity_flags", (qb) => qb.eq("id", f.id), { status: "resolved" }, { cite: { skill: "remediation-discipline", reason: `funded-pass RELEASE: ${key} flipped to verified — resolve blocked-on-re-ground deferral` } });
-  return flags.length;
+// Loader context READS ONLY — the flip data becomes a PLAN a pure-node applier writes (binding 3b: zero
+// guardedUpdate from loader context for releases/deletion). Collect each flipped item's open
+// disposition_deferred flag ids + (for a survivor) its live held-loser candidates (same url/instrument,
+// quarantined, not archived) — the plan-builder's isDeletableLoser gate decides; the applier re-checks live.
+const openDeferredFlagIds = async (id) => (await readAll("integrity_flags", "id", { match: (q) => q.eq("subject_type", "item").eq("subject_ref", id).eq("status", "open").eq("created_by", "disposition_deferred") })).map((f) => f.id);
+// a live counsel / seek-more hold = an OPEN phase2_priority_review flag (the counsel_NO_SOURCE_QUALIFIED /
+// seek-more honest-exit writer). A held loser is deletion-ineligible regardless of pairing (binding 1b-iii).
+const hasLiveHold = async (id) => ((await readAll("integrity_flags", "id", { match: (q) => q.eq("subject_type", "item").eq("subject_ref", id).eq("status", "open").eq("created_by", "phase2_priority_review") })).length > 0);
+async function loserCandidatesFor(survivorRow) {
+  const su = normUrl(survivorRow.source_url), si = survivorRow.instrument_identifier;
+  const rows = items.filter((x) => x.id !== survivorRow.id && x.provenance_status !== "verified" && !x.is_archived &&
+    ((su && normUrl(x.source_url) === su) || (si && x.instrument_identifier === si)));
+  const out = [];
+  for (const row of rows) out.push({ row, loserHasHold: await hasLiveHold(row.id) });
+  return out;
 }
 const results = [];
+const flippedForPlan = [];
 for (const p of plan) {
   const before = await failuresOf(p.id);
+  if (before.valid) { console.log(`  ${p.key.padEnd(12)} ${p.cohort.padEnd(6)} already VERIFIED — no re-ground (skip, avoid needless thinning risk)`); results.push({ ...p, skipped: "already-verified", valid: true }); continue; }
   const fit = fitsUnderCeiling(spentUsd(), p.est, SPEND_CEILING_USD);
   if (!fit.ok) { console.log(`  ${p.key}: PRE-FLIGHT CEILING STOP — ${fit.reason}`); results.push({ ...p, stopped: "ceiling" }); break; }
   resetItemLedger();
-  setSpendTicket({ purpose: `funded-pass ground-only: ${p.key}`, itemId: p.id, failureClasses: before.reasons, necessity: { rehomableFacts: 0 }, disposition: null, budgetCapUsd: SPEND_CEILING_USD, authorizationRef: "funded-pass-$85" });
+  setSpendTicket({ purpose: `funded-pass ground-only: ${p.key}`, itemId: p.id, failureClasses: before.reasons, necessity: { rehomableFacts: 0 }, disposition: null, provenanceStatus: items.find((x) => x.id === p.id)?.provenance_status, budgetCapUsd: SPEND_CEILING_USD, authorizationRef: "funded-pass-$85" });
   let r;
   try { r = await groundBrief(p.id); }
   catch (e) { console.log(`  ${p.key}: CEILING/ERROR — ${e.message.slice(0, 100)}`); results.push({ ...p, stopped: e.message.slice(0, 100) }); break; }
@@ -99,15 +117,30 @@ for (const p of plan) {
   await logSpendRun(p.id, r.ok ? "success" : "error", p.sourceUrl);
   const after = await failuresOf(p.id);
   const sf = r.slotForcing || {};
-  let released = 0;
-  if (after.valid) released = await releaseDeferral(p.id, p.key);
-  results.push({ ...p, before: before.reasons, after: after.reasons, valid: after.valid, cost: itemCost, sf, released, breakerTripped: breaker.tripped, detail: r.detail });
-  console.log(`  ${p.key.padEnd(12)} ${p.cohort.padEnd(6)} $${itemCost.toFixed(4)} valid=${after.valid} rel=${released} | SF: +${sf.factsForced || 0}F/+${sf.gapsForced || 0}G ${(sf.relabelCandidates || []).length}rl ${sf.judgeCalls || 0}j | after=[${after.reasons.join(",") || "CLEAR"}]`);
+  if (after.valid) {
+    const survivorRow = { ...items.find((x) => x.id === p.id), provenance_status: "verified" };
+    flippedForPlan.push({ itemId: p.id, itemKey: p.key, survivor: p.survivor ? survivorRow : null, survivorHasPrimaryGrounding: true, deferredFlagIds: await openDeferredFlagIds(p.id), loserCandidates: p.survivor ? await loserCandidatesFor(survivorRow) : [] });
+  }
+  results.push({ ...p, before: before.reasons, after: after.reasons, valid: after.valid, cost: itemCost, sf, breakerTripped: breaker.tripped, detail: r.detail });
+  console.log(`  ${p.key.padEnd(12)} ${p.cohort.padEnd(6)} $${itemCost.toFixed(4)} valid=${after.valid} | SF: +${sf.factsForced || 0}F/+${sf.gapsForced || 0}G ${(sf.relabelCandidates || []).length}rl ${sf.judgeCalls || 0}j | after=[${after.reasons.join(",") || "CLEAR"}]`);
   if (breaker.tripped) { console.log(`  STOP: ${breaker.reason}`); break; }
   const measured = spentUsd() - program.total;
   if (measured > 2 * restated) { console.log(`  STOP: measured $${measured.toFixed(4)} > 2x restated $${(2 * restated).toFixed(4)}.`); break; }
 }
 resetSpendTicket();
+assertLedgerDrained();
+
+// ── EMIT the release/deletion PLAN (no writes here — the pure-node applier applies it) ──
+const releasePlan = buildReleaseDeletionPlan(flippedForPlan);
+const plansDir = resolve(ROOT, "scripts", "_plans");
+mkdirSync(plansDir, { recursive: true });
+const planFile = resolve(plansDir, `funded-releases-${new globalThis.Date().toISOString().replace(/[:.]/g, "-")}.json`);
+writeFileSync(planFile, JSON.stringify({ meta: { emittedAt: new globalThis.Date().toISOString(), flipped: flippedForPlan.map((f) => f.itemKey) }, ...releasePlan }, null, 2));
+console.log(`\n=== RELEASE/DELETION PLAN EMITTED === ${releasePlan.releases.length} release(s), ${releasePlan.deletionProposals.length} deletion proposal(s), ${releasePlan.ambiguous.length} ambiguous(→surface), ${releasePlan.skipped.length} skipped(topical)`);
+for (const d of releasePlan.deletionProposals) console.log(`  DELETE-PROPOSAL loser ${d.loserKey} on survivor ${d.survivorKey} [${d.bucket}] — ${d.reason}`);
+for (const a of releasePlan.ambiguous) console.log(`  AMBIGUOUS ${a.loserKey} (survivor ${a.survivorKey}) — SURFACE, no delete: ${a.reason}`);
+for (const s of releasePlan.skipped) console.log(`  SKIP(topical) ${s.loserKey} (survivor ${s.survivorKey}) — ${s.reason}`);
+console.log(`  plan: ${planFile}\n  APPLY: node scripts/apply-funded-releases.mjs "${planFile}" --apply`);
 const measuredTotal = spentUsd() - program.total;
 console.log(`\n=== DONE === measured batch spend: $${measuredTotal.toFixed(4)} | program total now: $${spentUsd().toFixed(4)} / $${SPEND_CEILING_USD}`);
 
