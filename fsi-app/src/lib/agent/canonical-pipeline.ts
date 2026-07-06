@@ -30,6 +30,7 @@ import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 // spendSearch = the web_search call). Behavior-preserving — the streaming body/params are unchanged.
 import { spendStreamRaw, spendSearch, spendStream } from "@/lib/llm/spend-client";
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
+import { isThinningRegression } from "@/lib/agent/thinning-guard.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
@@ -800,6 +801,13 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   const { data: prov, error: provErr } = await sb.from("intelligence_items").select("provenance_status").eq("id", itemId).single();
   if (provErr) console.warn(`[canonical] ground provenance-status read failed for ${itemId}: ${provErr.message}`);
   if (prov?.provenance_status === "verified") return { ok: true, detail: "already verified" };
+  // THINNING GUARD (ruling 2026-07-04): snapshot the prior grounding BEFORE the delete so a re-extract that
+  // drastically thins the ledger (batch-1: 782878c0 24->1) can be caught and the prior grounding RESTORED,
+  // rather than silently replacing rich grounding with thin grounding. The columns mirror the insert below.
+  const { data: priorClaims } = await sb.from("section_claim_provenance")
+    .select("section_row_id, intelligence_item_id, claim_text, claim_kind, source_span, source_id, search_result_id, source_tier_at_grounding")
+    .eq("intelligence_item_id", itemId);
+  const priorClaimCount = priorClaims?.length ?? 0;
   await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
   const { data: secs, error: secsErr } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
   if (secsErr || !secs?.length) return { ok: false, detail: `no sections${secsErr ? `: ${secsErr.message}` : ""}` };
@@ -1032,6 +1040,19 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
     if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
     if (ins) claimIds.push(ins.id);
     if (sourceId) citedSourceIds.add(sourceId);
+  }
+  // THINNING GUARD (ruling 2026-07-04): if the re-extract collapsed the grounded-claim count vs the prior
+  // grounding (782878c0: 24->1 when a big capped pool's spans failed the verbatim filter), do NOT silently
+  // replace rich grounding with thin grounding. Drop the thin new set, RESTORE the prior claims, and return a
+  // LOUD ok:false so the coverage is kept and the thinning surfaces for investigation (re-runs next pass).
+  if (isThinningRegression(priorClaimCount, claimIds.length)) {
+    await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
+    if (priorClaims?.length) {
+      const restore = priorClaims.map((c) => ({ ...c, intelligence_item_id: itemId }));
+      const { error: restoreErr } = await sb.from("section_claim_provenance").insert(restore);
+      if (restoreErr) console.warn(`[canonical] thinning-guard restore failed for ${itemId}: ${restoreErr.message}`);
+    }
+    return { ok: false, detail: `re-extract THINNED grounding ${priorClaimCount} -> ${claimIds.length} claims; restored prior grounding (coverage-loss guard). Investigate the pool/extraction before re-grounding this item.`, slotForcing };
   }
   // B#2 (Phase 1): write the item->source citation edges this brief grounds against into
   // intelligence_item_citations (origin='agent_extraction') — the table get_source_citation_stats (mig 098)
