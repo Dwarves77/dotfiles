@@ -41,6 +41,15 @@ test("VERIFIED item is REJECTED from any paid re-ground queue (the l1 class — 
   assert.doesNotThrow(() => assertTicket({ purpose: "re-ground q", provenanceStatus: "quarantined", failureClasses: ["missing_required_slot"], necessity: { rehomableFacts: 0 } }));
 });
 
+test("JUNK-POOL item is REJECTED (remaining failures need content only behind failed-fetch captures)", () => {
+  assert.throws(
+    () => assertTicket({ purpose: "re-ground junk", itemId: "j1", junkPool: true, provenanceStatus: "quarantined", failureClasses: ["missing_required_slot"], necessity: { rehomableFacts: 0 } }),
+    /SPEND_REJECTED[\s\S]*junk-pool[\s\S]*unwinnable until re-collection/,
+  );
+  // a NON-junk quarantined item with a real generation need still passes
+  assert.doesNotThrow(() => assertTicket({ purpose: "re-ground ok", itemId: "ok", junkPool: false, provenanceStatus: "quarantined", failureClasses: ["missing_required_slot"], necessity: { rehomableFacts: 0 } }));
+});
+
 test("GENERATION-need item PASSES the necessity gate (no $0 lever, not DELETE)", () => {
   assert.doesNotThrow(() =>
     assertTicket({ purpose: "regen Y", itemId: "y", failureClasses: ["unlabeled_assertion", "missing_required_slot"], necessity: { rehomableFacts: 0 } }),

@@ -46,6 +46,7 @@ import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/
 import { stripUrlMarkers } from "@/lib/agent/url-canon.mjs";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
+import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -854,7 +855,24 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   const searchIds: string[] = [];
   let ownSearches = false;
   if (pool && pool.length) {
-    fetched = pool.map((r) => ({ url: r.result_url as string, text: (r.result_content_excerpt as string) || "" })).filter((b) => b.text.length > 200);
+    // ERROR-BODY GROUNDABILITY GATE (item 1, 2026-07-06): a failed-fetch capture (bot wall / 403 / 404 /
+    // Request-Access block / nav shell) stored as source content NEVER enters grounding input, the floor pool,
+    // or slot-forcing nomination — all three derive from `fetched`, so gating it here gates all three. Grounding
+    // a FACT to a 404 body is the fabricate-via-error-page moat breach. Excluded captures are SURFACED, never
+    // silently dropped. isErrorBody computes at read time (render-derive; no DDL).
+    const pooled = pool.map((r) => ({ url: r.result_url as string, text: (r.result_content_excerpt as string) || "" })).filter((b) => b.text.length > 200);
+    const { usable, errorBodies } = partitionErrorBodies(pooled);
+    fetched = usable as Array<{ url: string; text: string }>;
+    if (errorBodies.length) {
+      for (const e of errorBodies) console.warn(`[error-body-gate] item ${itemId}: excluded failed-fetch capture from grounding — ${e.url}`);
+      try {
+        await sb.from("integrity_flags").insert({
+          category: "source_issue", subject_type: "item", subject_ref: itemId, status: "open", created_by: "error-body-gate",
+          description: `${errorBodies.length} stored capture(s) excluded from grounding as failed fetches (bot wall / 403 / 404 / nav shell): ${errorBodies.map((e) => e.url).filter(Boolean).slice(0, 6).join("; ")}`.slice(0, 480),
+          recommended_actions: errorBodies.slice(0, 8).map((e) => ({ action: "refetch_source", rationale: `${e.url}: stored capture is a failed fetch (isErrorBody) — re-fetch the real source at hold-lift, re-ground` })),
+        });
+      } catch { /* best-effort; the warn above is the floor */ }
+    }
     searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
   } else {
     const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];

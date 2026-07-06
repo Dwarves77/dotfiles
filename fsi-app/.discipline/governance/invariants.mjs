@@ -82,7 +82,9 @@ export const SKILL_MARKER_BASELINE = {
   // gate)". TRIAGE: new invariant RD-11 (enforcedBy fitness:F16 + fetch-hold.test.mjs selftest).
   // 21→22 (2026-07-06): added Section 4 category 11 "The size-cap doctrine (no silent slice on the grounding
   // path)". TRIAGE: new invariant RD-12 (enforcedBy fitness:F17 + section-grounding.test.mjs selftest).
-  'remediation-discipline': 22,
+  // 22→23 (2026-07-06): added Section 4 category 12 "The error-body groundability gate (never ground a FACT to
+  // a failed fetch)". TRIAGE: new invariant RD-13 (enforcedBy entity-gate.test.mjs + spend-guard.test.mjs).
+  'remediation-discipline': 23,
   'sprint-followups-discipline': 17,
 };
 
@@ -491,6 +493,16 @@ export const INVARIANTS = [
     anchor: 'The size-cap doctrine (no silent slice on the grounding path)',
     enforcedBy: ['fitness:F17', 'selftest:fsi-app/src/lib/agent/section-grounding.test.mjs'],
     residual: 'F17 (grep-class, red-then-green: a new unregistered *_MAX_CHARS/*_BUDGET_CHARS/*_CEILING_CHARS on the path is RED; a registry entry marked silent-grounding is RED) gates the STRUCTURAL guarantee — no silent cap slips onto the path unclassified. section-grounding.test.mjs proves the fix red-then-green: a binding fact beyond the old 12KB boundary is invisible to the old slice(0,12000) and reaches the grounder complete post-fix; a pathological over-ceiling section is SURFACED (truncated=true + fullLength), never silent. NAMED RESIDUALS: (1) the classify-path excerpt caps (haiku-classify ~6000, first-fetch ~6000, recommend-tier 4000) are SILENT binders on the CLASSIFICATION path (tier/type/portal), not the fact-grounding path — LOW risk (source nature is evident early), registered in the cap-inventory as REVISIT, not converted now; (2) F17 registers cap CONSTANTS on generation-config + section-grounding — an inline `.slice(0, N)` re-introduced elsewhere on the path is caught by review + the section-grounding selftest, not by F17 grep (the constant-declaration form is the robust signal). Full inventory: docs/design/cap-inventory-2026-07-06.md.',
+  },
+
+  {
+    id: 'RD-13-error-body-groundability-gate',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 12: The error-body groundability gate (never ground a FACT to a failed fetch)',
+    text: 'A failed-fetch capture (bot wall / 403 / 404 / Request-Access block / nav shell) stored as source content MUST NEVER enter grounding input, the floor pool, or slot-forcing nomination — grounding a FACT to a 404 body is the fabricate-via-error-page moat breach. The single-home isErrorBody gates the grounding pool at its origin (partitionErrorBodies); excluded captures are surfaced, never silently dropped. The necessity gate additionally REJECTS a paid re-ground whose remaining failures can only be satisfied by content behind a failed fetch (junk-pool, event-bound to re-collection).',
+    anchor: 'The error-body groundability gate (never ground a FACT to a failed fetch)',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/entity-gate.test.mjs', 'selftest:fsi-app/src/lib/llm/spend-guard.test.mjs'],
+    residual: 'entity-gate.test.mjs proves the gate red-then-green with REAL corpus fixtures: a EUR-Lex 404, a Cloudflare bot wall, and a 403 block are error bodies EXCLUDED from the pool that feeds grounding input + floor pool + nomination; a real law body is NOT over-excluded. spend-guard.test.mjs proves the junk-pool necessity rejection. The gate is a single filter on the shared `fetched` pool in groundBrief, so all three downstream consumers (buildSourceBlocks, floorSources, forceSlotCoverage) are gated at once. NAMED RESIDUALS: (1) isErrorBody is CONSERVATIVE — it misses a mid-size (>1500ch, <2-marker) 404 like the two EUR-Lex "Page Not Found" pages (2989ch); those were caught by human adjudication + the named-breach fix, and the durable fix is migration 147 sources.fetch_status (persist the transport-layer verdict so the gate reads a column, not a heuristic); (2) the gate prevents FUTURE junk-grounding — the EXISTING 51+ error-grounded FACTs across 27 items are flagged (error-body-gate / error-page-breach integrity_flags) and fixed by re-fetch+re-ground at hold-lift, status changing on evidence (no preemptive re-quarantine); (3) render-derive at read time until the DDL window lands migration 147.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
