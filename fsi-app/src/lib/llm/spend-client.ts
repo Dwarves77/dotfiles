@@ -19,11 +19,11 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 import { anthropicError } from "@/lib/agent/anthropic-error.mjs";
 import { costUsdForModel, SPEND_CEILING_USD } from "@/lib/agent/generation-config";
-import { assertTicket, assertBudget, account, takeItemLedger, resetItemLedger, spentUsd } from "@/lib/llm/spend-guard.mjs";
+import { assertTicket, assertBudget, account, markCallLogged, takeItemLedger, resetItemLedger, spentUsd, assertLedgerDrained, unloggedCallCount } from "@/lib/llm/spend-guard.mjs";
 
 export type SpendTicket = NonNullable<Parameters<typeof assertTicket>[0]>;
 export { STANDING_TICKET_CLASSES } from "@/lib/llm/spend-guard.mjs";
-export { resetItemLedger, takeItemLedger, spentUsd };
+export { resetItemLedger, takeItemLedger, spentUsd, assertLedgerDrained, unloggedCallCount };
 
 // CONTEXT TICKET. The runner sets ONE ticket per item (setSpendTicket) before invoking the pipeline; the
 // pipeline's internal call sites (callSonnet / generateBriefText / callSonnetSearch) spend under it without
@@ -47,7 +47,9 @@ export async function spendStreamRaw(
   assertBudget(currentTicket, SPEND_CEILING_USD);
   const r = await streamMessagesText(streamOpts);
   const model = String(((streamOpts?.body ?? {}) as { model?: string }).model ?? "claude-sonnet-4-6");
-  account(costUsdForModel(model, r.usage.input_tokens, r.usage.output_tokens), r.usage.input_tokens, r.usage.output_tokens);
+  const cost = costUsdForModel(model, r.usage.input_tokens, r.usage.output_tokens);
+  account(cost, r.usage.input_tokens, r.usage.output_tokens);
+  await recordSpendCall(model, r.usage.input_tokens, r.usage.output_tokens, cost, currentTicket);
   return r;
 }
 
@@ -65,6 +67,7 @@ export async function spendStream(
   });
   const cost = costUsdForModel(model, usage.input_tokens, usage.output_tokens);
   account(cost, usage.input_tokens, usage.output_tokens);
+  await recordSpendCall(model, usage.input_tokens, usage.output_tokens, cost, ticket);
   return { text, stopReason, usage, cost };
 }
 
@@ -86,7 +89,9 @@ export async function spendSearch(
   const d = await resp.json().catch(() => ({}));
   if (!resp.ok) throw anthropicError(resp.status, d);
   const usage = (d as { usage?: { input_tokens?: number; output_tokens?: number } }).usage;
-  account(costUsdForModel(model, usage?.input_tokens || 0, usage?.output_tokens || 0), usage?.input_tokens || 0, usage?.output_tokens || 0);
+  const sCost = costUsdForModel(model, usage?.input_tokens || 0, usage?.output_tokens || 0);
+  account(sCost, usage?.input_tokens || 0, usage?.output_tokens || 0);
+  await recordSpendCall(model, usage?.input_tokens || 0, usage?.output_tokens || 0, sCost, ticket);
   return ((d.content as Array<{ type: string; text?: string }>) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
 }
 
@@ -94,26 +99,37 @@ function svc(): SupabaseClient {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 }
 
+/** AUTOMATIC PER-CALL TELEMETRY (dispatch item 1, 2026-07-06). Writes ONE agent_runs row for THIS spend call
+ *  and marks it logged in the guard. Called INSIDE every spend function right after account() — telemetry is
+ *  client-internal, never caller-remembered. On a write failure it does NOT markCallLogged(), so the guard's
+ *  unloggedCalls stays > 0 and the NEXT assertBudget throws (unlogged spend is mechanically impossible). */
+async function recordSpendCall(model: string, inputTokens: number, outputTokens: number, cost: number, ticket: SpendTicket): Promise<void> {
+  try {
+    const nowIso = new Date().toISOString();
+    const { error } = await svc().from("agent_runs").insert({
+      intelligence_item_id: ticket.itemId ?? null, source_url: null, fetch_method: "spend-call",
+      started_at: nowIso, ended_at: nowIso, status: "success",
+      cost_usd_estimated: Number(cost.toFixed(6)),
+      errors: [{ telemetry: { model, inputTokens, outputTokens, purpose: ticket.purpose, authorizationRef: ticket.authorizationRef ?? null } }],
+    });
+    if (error) { console.warn(`[spend] per-call ledger write FAILED (${error.message}) — call stays UNLOGGED; next spend will be refused.`); return; }
+    markCallLogged();
+  } catch (e) { console.warn(`[spend] per-call ledger write threw (${(e as Error).message}) — call stays UNLOGGED.`); }
+}
+
 /** TELEMETRY SINGLE-HOME (4f relocated): write ONE stored-path agent_runs row per item from the item ledger.
  *  fetch_method='stored-pool'; cost_usd_estimated = real spend the MTD tile reads. Called by the stored-path
  *  runner after each item. Best-effort. NO-DDL: token detail rides errors[].telemetry until the DDL window
  *  lands proper columns (known wrong-home, queued). */
 export async function logSpendRun(
-  itemId: string,
-  status: "success" | "error",
-  sourceUrl?: string | null,
+  _itemId: string,
+  _status: "success" | "error",
+  _sourceUrl?: string | null,
 ): Promise<{ ok: boolean; detail: string }> {
+  // RETIRED (dispatch item 1, 2026-07-06): telemetry is now written PER CALL inside recordSpendCall (client-
+  // internal, mechanically un-skippable). Writing an aggregate row here too would DOUBLE-COUNT. This is kept as
+  // a no-op that only drains the per-item ledger, so existing callers (funded-pass, proof-sample) keep working.
   const l = takeItemLedger();
-  if (l.calls === 0) return { ok: true, detail: "no spend to log" };
-  try {
-    const nowIso = new Date().toISOString();
-    const { error } = await svc().from("agent_runs").insert({
-      intelligence_item_id: itemId, source_url: sourceUrl ?? null, fetch_method: "stored-pool",
-      started_at: nowIso, ended_at: nowIso, status,
-      cost_usd_estimated: Number(l.costUsd.toFixed(6)),
-      errors: [{ telemetry: { inputTokens: l.inputTokens, outputTokens: l.outputTokens, sonnet_calls: l.calls } }],
-    });
-    if (error) return { ok: false, detail: `agent_runs insert failed: ${error.message}` };
-    return { ok: true, detail: `logged $${l.costUsd.toFixed(4)} (${l.inputTokens}in/${l.outputTokens}out, ${l.calls} calls)` };
-  } catch (e) { return { ok: false, detail: `agent_runs insert threw: ${(e as Error).message}` }; }
+  resetItemLedger();
+  return { ok: true, detail: `per-call telemetry is automatic; item ledger drained ($${l.costUsd.toFixed(4)}, ${l.calls} calls)` };
 }

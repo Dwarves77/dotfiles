@@ -27,12 +27,24 @@ const ALL_LABELS_RE = new RegExp(`(${Object.values(ANALYSIS_LABELS).map((s) => s
 // The criterion-4 binding-verb trigger (kept in sync with migration 145's regex).
 export const BINDING_VERB_RE = /\b(requires|must|mandates|obligates|prohibits|applies to)\b/i;
 
-/** Sentences in content_md that TRIGGER criterion-4: a binding verb AND not already labeled. Pure. @param {string} contentMd @returns {string[]} */
+// A relabelable assertion is genuine PROSE, not markdown structure. A binding verb inside a table row, a
+// heading, or an unpunctuated block is NOT a prose assertion — prepending a label there would corrupt the
+// markdown AND mis-characterize structured content. Such a section is HELD (its requirement needs grounding,
+// not labeling), never relabeled.
+const MAX_ASSERTION_LEN = 600; // an unpunctuated block longer than this is structural, not one prose assertion
+
+/** Sentences in content_md that TRIGGER criterion-4 AND are relabelable prose: a binding verb, not already
+ *  labeled, not a markdown table row / heading / oversized structural block. Pure. @param {string} contentMd @returns {string[]} */
 export function bindingSentences(contentMd) {
   return String(contentMd || "")
     .split(/(?<=[.!?])\s+/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && BINDING_VERB_RE.test(s) && !ALL_LABELS_RE.test(s));
+    .filter((s) =>
+      s.length > 0 && s.length <= MAX_ASSERTION_LEN &&
+      BINDING_VERB_RE.test(s) && !ALL_LABELS_RE.test(s) &&
+      !/(?:^|\n)\s*\|/.test(s) &&   // not a markdown table row/blob
+      !/(?:^|\n)\s*#{1,6}\s/.test(s) && // not a markdown heading
+      !/\|\s*-{3,}/.test(s));       // not a table separator row
 }
 
 /**
