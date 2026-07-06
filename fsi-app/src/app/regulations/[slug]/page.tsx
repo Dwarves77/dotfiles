@@ -18,11 +18,9 @@
  * fallback if Supabase isn't reachable.
  */
 
-import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
@@ -186,51 +184,48 @@ export default async function RegulationDetailPage({
         r.jurisdiction ||
         "Global";
 
+  // Redesign T03: the hero (breadcrumb + title + deck + actions + tabs)
+  // now lives inside RegulationDetailSurface per the approved mock
+  // (Pages - 03 Regulation Detail). The prior EditorialMasthead + separate
+  // back-link are replaced by the in-hero breadcrumb. We compute the
+  // breadcrumb middle segment ("Global · IMO") and the deck sub-line here
+  // (server-side) from real fields and pass them down.
+  const publisher = r.enforcementBody || r.sourceName || null;
+  const groupLabel = publisher ? `${jurisLabel} · ${publisher}` : jurisLabel;
+
   const effective = r.complianceDeadline
     ? `Effective ${formatDate(r.complianceDeadline)}`
     : null;
   const reviewed = r.lastVerifiedDate ? `Reviewed ${formatDate(r.lastVerifiedDate)}` : null;
-  const metaParts = [effective, reviewed].filter(Boolean) as string[];
+  const modesLabel =
+    r.modes && r.modes.length > 0
+      ? r.modes.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(" · ")
+      : null;
+  const deck = [
+    r.legalInstrument || publisher,
+    effective,
+    reviewed,
+    jurisLabel,
+    modesLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   console.log(`[perf] /regulations/${id} data ${Date.now() - t0}ms`);
 
   return (
-    <>
-      <div style={{ padding: "10px 32px 0" }}>
-        {/* perf round 3 (2026-05-09): layout-level breadcrumb back to the
-            regulations index. Auto-prefetched on every detail-page mount,
-            re-firing the regulations index RSC fetch (~3 Supabase queries
-            via getResourcesOnly) even when the user is reading the detail
-            and never going back. prefetch={false} preserves click latency
-            via Next's in-flight RSC dedupe. */}
-        <Link
-          href="/regulations"
-          prefetch={false}
-          style={{
-            color: "var(--muted)",
-            fontSize: 12,
-            textDecoration: "none",
-          }}
-        >
-          ← Regulations
-        </Link>
-      </div>
-      <EditorialMasthead
-        eyebrow={`Regulations · ${jurisLabel}`}
-        title={r.title}
-        meta={metaParts.join(" · ")}
-      />
-      <RegulationDetailSurface
-        resource={r}
-        changelog={changelog}
-        dispute={dispute}
-        supersessions={supersessions}
-        xrefIds={xrefIds}
-        refByIds={refByIds}
-        resourceLookup={resourceLookup}
-        sections={sections}
-      />
-    </>
+    <RegulationDetailSurface
+      resource={r}
+      changelog={changelog}
+      dispute={dispute}
+      supersessions={supersessions}
+      xrefIds={xrefIds}
+      refByIds={refByIds}
+      resourceLookup={resourceLookup}
+      sections={sections}
+      groupLabel={groupLabel}
+      deck={deck}
+    />
   );
 }
 
