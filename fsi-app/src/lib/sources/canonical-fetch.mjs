@@ -4,6 +4,12 @@
 // the ~10 fetch sites cannot diverge into aligned copies again — the exact duplicated-
 // and-diverged defect D1 + D3 exist to kill. browserless.ts re-exports BrowserlessError
 // so `e instanceof BrowserlessError` is the SAME class across the TS and .mjs worlds.
+//
+// TRANSPORT HOLD GATE (item 6, 2026-07-06): every fetch through this single primitive is gated by the scrape
+// hold — assertFetchAllowed() throws FetchHoldError while SCRAPE_HOLD is engaged, so "scrape hold LIVE, zero
+// fetches" is mechanical (not silent key-absence). Because this is THE single home, gating it gates all ~10
+// call sites at once (enforced by fitness F16).
+import { assertFetchAllowed } from "./fetch-hold.mjs";
 
 export class BrowserlessError extends Error {
   constructor(message, status, renderMs) {
@@ -28,6 +34,7 @@ export class BrowserlessError extends Error {
 // stealth. Verified: McKinsey sustainability page fails plain (HTTP2) and renders 207k chars
 // under stealth.
 export async function browserlessFetch(url, options = {}) {
+  assertFetchAllowed(url); // TRANSPORT HOLD GATE — throws FetchHoldError while the scrape hold is engaged (item 6)
   const key = process.env.BROWSERLESS_API_KEY;
   if (!key) throw new BrowserlessError("BROWSERLESS_API_KEY not configured");
 

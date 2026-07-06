@@ -36,6 +36,7 @@ node --test \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/primary-fallback.test.mjs \
   fsi-app/src/lib/sources/pdf-extract.test.mjs \
+  fsi-app/src/lib/sources/fetch-hold.test.mjs \
   fsi-app/src/lib/agent/anthropic-error.test.mjs \
   fsi-app/src/lib/agent/anthropic-stream.test.mjs \
   fsi-app/src/lib/agent/two-pass-generate.test.mjs \
