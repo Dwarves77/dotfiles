@@ -88,16 +88,16 @@ export const consistencyCheck = {
     // to the same path under EITHER format count as a match. This mirrors
     // the bidirectional intent of the existence check above.
     //
-    // Worktrees under `.worktrees/` are EXEMPT from both directions of
-    // the check. The `.worktrees/` directory is developer-local transient
-    // state per the FaDB convention; parallel-agent worktrees created
-    // there exist only on the developer machine and disappear after
-    // FaDB cleanup. Forcing inventory tracking on every ephemeral
-    // worktree creates a local-state-vs-CI drift exactly like the
+    // Worktrees under `.worktrees/` (FaDB convention) OR `.claude/worktrees/`
+    // (the Claude Code agent-harness convention) are EXEMPT from both directions
+    // of the check. Both are developer-local / harness-local transient state;
+    // parallel-agent worktrees created there exist only on the developer or agent
+    // machine and disappear after cleanup. Forcing inventory tracking on every
+    // ephemeral worktree creates a local-state-vs-CI drift exactly like the
     // migration 067 incident (file exists locally, missing in CI checkout).
     for (const livePath of liveWorktrees) {
       const normalized = livePath.replace(/\\/g, '/');
-      if (normalized.includes('/.worktrees/')) continue; // ephemeral by convention
+      if (normalized.includes('/.worktrees/') || normalized.includes('/.claude/worktrees/')) continue; // ephemeral by convention
       const basename = livePath.split(/[\\/]/).pop();
       const historicalForm = basename === 'dotfiles' ? 'dotfiles' : `dotfiles-${basename}`;
       const matched = inventoryPaths.has(basename) || inventoryPaths.has(historicalForm);

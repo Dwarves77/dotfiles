@@ -47,6 +47,7 @@ import { stripUrlMarkers } from "@/lib/agent/url-canon.mjs";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
+import { captureForStorage } from "@/lib/sources/transport-escalation.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -161,6 +162,23 @@ async function recordTruncation(sb: SupabaseClient, itemId: string, events: Trun
       description: `Source NOT fully collected for ${flagEvents.length} source(s) — the download exceeded its cap: ${lines.join("; ")}`.slice(0, 480),
       recommended_actions: flagEvents.map((e) => ({ action: "raise_cap_or_chunk", rationale: `${e.url}: collected ${e.collected}/${e.fullLength} chars (cap ${e.cap}, ${e.transport})` })),
       status: "open", created_by: "truncation-guard",
+    });
+  } catch { /* best-effort; the warn above is the floor */ }
+}
+
+// WRITE-SIDE ERROR-BODY CAPTURE GATE (RD-14, the class kill): surface captures EXCLUDED from storage as
+// failed fetches (bot wall / 403 / 404 / Request-Access wall / nav shell / JS shell). The complement to
+// RD-13's READ-side gate — an error body is never STORED into agent_run_searches in the first place, so the
+// junk-pool cannot form. Excluded captures are SURFACED (a source_issue integrity_flag naming the failed-fetch
+// URLs for re-fetch at hold-lift), never silently dropped. Best-effort — the warn is the floor.
+async function surfaceCaptureExclusions(sb: SupabaseClient, itemId: string, excluded: Array<{ url?: string; text: string }>): Promise<void> {
+  if (!excluded.length) return;
+  for (const e of excluded) console.warn(`[error-body-gate:write] item ${itemId}: refused to STORE a failed-fetch capture — ${e.url ?? "(no url)"}`);
+  try {
+    await sb.from("integrity_flags").insert({
+      category: "source_issue", subject_type: "item", subject_ref: itemId, status: "open", created_by: "error-body-gate-write",
+      description: `${excluded.length} fetched capture(s) refused at STORE time as failed fetches (bot wall / 403 / 404 / Request-Access / nav shell): ${excluded.map((e) => e.url).filter(Boolean).slice(0, 6).join("; ")}`.slice(0, 480),
+      recommended_actions: excluded.slice(0, 8).map((e) => ({ action: "refetch_source", rationale: `${e.url ?? "(no url)"}: capture was a failed fetch — re-fetch the real source at hold-lift (transport escalation), then re-ground` })),
     });
   } catch { /* best-effort; the warn above is the floor */ }
 }
@@ -592,8 +610,16 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   const fetchedCorrMeta = await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, ...(await fetchMeta(u, CORROBORATOR_MAX_CHARS)) }));
   for (const m of fetchedCorrMeta) if (m.truncated) truncEvents.push({ url: m.url, collected: m.text.length, fullLength: m.fullLength, cap: m.cap, transport: m.transport });
   const fetchedCorr = fetchedCorrMeta.filter((b) => b.text.length > 200).map((b) => ({ url: b.url, text: b.text }));
-  const fetched = [...(primary.length > 200 ? [{ url: primaryUrl, text: primary }] : []), ...fetchedCorr];
-  if (!fetched.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch ${pf.fellBack ? `via fallback after ${pf.primaryReason}` : "declared"}; ${corroborators.length} discovered, none fetchable)` };
+  const fetchedRaw = [...(primary.length > 200 ? [{ url: primaryUrl, text: primary }] : []), ...fetchedCorr];
+  if (!fetchedRaw.length) return { ok: false, detail: `no fetchable source content (primary ${primary.length}ch ${pf.fellBack ? `via fallback after ${pf.primaryReason}` : "declared"}; ${corroborators.length} discovered, none fetchable)` };
+  // WRITE-SIDE ERROR-BODY GATE (RD-14): an error body (bot wall / 403 / 404 / Request-Access wall / nav shell)
+  // is NEVER stored as source content — the complement to RD-13's read-side gate. Gated here so BOTH synthesis
+  // AND the pool INSERT below use only real content; a junk-only capture HOLDS with NO_REACHABLE_SOURCE
+  // (event-bound to re-collection at hold-lift), never a fabricated brief over an error page.
+  const cap = captureForStorage(fetchedRaw);
+  const fetched = cap.store as Array<{ url: string; text: string }>;
+  if (cap.excluded.length) await surfaceCaptureExclusions(sb, itemId, cap.excluded);
+  if (!fetched.length) return { ok: false, detail: `NO_REACHABLE_SOURCE: all ${cap.excluded.length} fetched capture(s) were failed fetches (bot wall / 403 / 404 / nav shell); primary ${primary.length}ch ${pf.fellBack ? `via fallback after ${pf.primaryReason}` : "declared"} — held for re-fetch at hold-lift` };
 
   // PERSIST-BEFORE-PROCESS (Edit A — failure-path protection): write the fetched pool to
   // agent_run_searches BEFORE the synthesis call below, so a synthesis hang/throw (the network-failing
@@ -704,7 +730,12 @@ async function generateBriefRefreshPrimaryImpl(itemId: string): Promise<StepResu
   if (priorPoolErr) console.warn(`[canonical] refresh-primary prior-pool read failed for ${itemId}: ${priorPoolErr.message}`);
   const priorCorr = (priorPool ?? []).filter((r) => typeof r.result_url === "string" && r.result_url !== primaryUrl && (r.result_content_excerpt ?? "").length > 200);
   const fetchedCorr = priorCorr.map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
-  const fetched = [{ url: primaryUrl, text: primary }, ...fetchedCorr];
+  // WRITE-SIDE ERROR-BODY GATE (RD-14): drop any error-body capture (a junk re-fetch primary OR a stale junk
+  // corroborator inherited from the prior pool) so it is never re-stored; a junk-only set HOLDS NO_REACHABLE_SOURCE.
+  const cap = captureForStorage([{ url: primaryUrl, text: primary }, ...fetchedCorr]);
+  const fetched = cap.store as Array<{ url: string; text: string }>;
+  if (cap.excluded.length) await surfaceCaptureExclusions(sb, itemId, cap.excluded);
+  if (!fetched.length) return { ok: false, detail: `NO_REACHABLE_SOURCE: refresh-primary produced only failed-fetch captures (${cap.excluded.length}) — held for re-fetch at hold-lift` };
   const corroborators: Corroborator[] = (priorPool ?? [])
     .filter((r) => typeof r.result_url === "string" && r.result_url !== primaryUrl)
     .map((r) => ({ name: (typeof r.result_title === "string" ? r.result_title : "discovered reference"), url: r.result_url as string, why: "" }));
@@ -876,7 +907,12 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
     searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
   } else {
     const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
-    fetched = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, CORROBORATOR_MAX_CHARS) }))).filter((b) => b.text.length > 200);
+    const groundFetchedRaw = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, CORROBORATOR_MAX_CHARS) }))).filter((b) => b.text.length > 200);
+    // WRITE-SIDE ERROR-BODY GATE (RD-14): the fallback path FETCHES fresh URLs and stores them — gate before
+    // the INSERT so a failed-fetch capture never enters agent_run_searches here either (mirrors the read gate above).
+    const gcap = captureForStorage(groundFetchedRaw);
+    fetched = gcap.store as Array<{ url: string; text: string }>;
+    if (gcap.excluded.length) await surfaceCaptureExclusions(sb, itemId, gcap.excluded);
     searchRows = [];
     ownSearches = true;
     for (let i = 0; i < fetched.length; i++) {
