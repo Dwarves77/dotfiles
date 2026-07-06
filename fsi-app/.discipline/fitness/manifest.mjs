@@ -24,6 +24,9 @@ import { fitnessFunction as F14 } from './functions/F14-producer-consumer-orphan
 // Spend chokepoint (2026-07-04): F15 mechanizes "no Anthropic API call outside the spend client" — the
 // generation-side analog of dedup-before-ground. A2 shrinking allowlist for legacy sites. Maps to RD-10.
 import { fitnessFunction as F15 } from './functions/F15-spend-chokepoint.mjs';
+// Transport hold gate (2026-07-06): F16 mechanizes "scrape hold LIVE, zero fetches" at the single fetch
+// primitive — assertFetchAllowed() throws while engaged; no raw Browserless fetch may bypass it. Maps to RD-11.
+import { fitnessFunction as F16 } from './functions/F16-transport-hold-gate.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -35,6 +38,7 @@ export const fitnessFunctions = [
   F12,
   F14,
   F15,
+  F16,
 ];
 
 export function getFunctionById(id) {
