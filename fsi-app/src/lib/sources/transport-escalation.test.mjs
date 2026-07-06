@@ -150,6 +150,61 @@ test("(a) cache hit short-circuits the ladder with real content", async () => {
   assert.equal(directCalls, 0, "a fresh cache hit never re-fetches");
 });
 
+// ── (4b) CANDIDATE-ARRAY + EXHAUSTION-RECORD SEAMS (for the paired seek-more unit) ───────────────────────────
+
+test("candidate array: each candidate is tried through the FULL ladder; the first content success wins", async () => {
+  const bodies = {
+    "https://eur-lex.europa.eu/dead": EURLEX_404_BODY,           // 404 on both transports
+    "https://reg.example.gov/blocked": SFC_403,                  // block on both transports
+    "https://reg.example.gov/good": REAL_LAW,                    // real content — the winner
+    "https://reg.example.gov/unused": REAL_LAW_2,                // never reached (win short-circuits)
+  };
+  let unusedTouched = false;
+  const v = await escalateFetch(
+    ["https://eur-lex.europa.eu/dead", "https://reg.example.gov/blocked", "https://reg.example.gov/good", "https://reg.example.gov/unused"],
+    {
+      directFetch: async (u) => { if (u.endsWith("/unused")) unusedTouched = true; return { status: bodies[u] === EURLEX_404_BODY ? 404 : 200, text: bodies[u] ?? "" }; },
+      browserlessRender: async (u) => ({ status: bodies[u] === EURLEX_404_BODY ? 404 : 200, text: bodies[u] ?? "" }),
+      seekMore: async () => { throw new Error("a candidate succeeded — must NOT seek-more"); },
+    },
+  );
+  assert.equal(v.outcome, "content");
+  assert.equal(v.url, "https://reg.example.gov/good", "the first candidate that yields real content wins");
+  assert.equal(v.text, REAL_LAW);
+  assert.equal(unusedTouched, false, "candidates after the winner are never fetched");
+});
+
+test("exhaustion record: attempts carry {url, transport, verdict, bytes|reason} for EVERY (candidate × transport)", async () => {
+  const v = await escalateFetch(
+    ["https://eur-lex.europa.eu/a", "https://sfc.org/b"],
+    {
+      directFetch: async (u) => (u.includes("eur-lex") ? { status: 404, text: EURLEX_404_BODY } : { status: 403, text: SFC_403 }),
+      browserlessRender: async (u) => (u.includes("eur-lex") ? { status: 404, text: EURLEX_404_BODY } : { status: 403, text: SFC_403 }),
+      seekMore: async (u) => ({ kind: "seek_more_alternate_url", url: u }),
+    },
+  );
+  // a 404 candidate present → seek-more (go find MORE); the record proves exhaustion across BOTH candidates.
+  assert.equal(v.outcome, "seek_more");
+  // every attempt row is a full exhaustion record, tagged with its candidate URL + a coarse verdict + bytes/reason
+  for (const a of v.attempts) {
+    assert.ok(typeof a.url === "string" && a.url, "each attempt names its candidate URL");
+    assert.ok(["content", "not_found", "js_shell", "block"].includes(a.verdict) || typeof a.verdict === "string");
+    assert.ok(typeof a.transport === "string");
+    assert.ok(typeof a.bytes === "number");
+  }
+  // both candidates appear in the record (proven exhaustion of the whole list, not just the first)
+  const urls = new Set(v.attempts.map((a) => a.url));
+  assert.ok(urls.has("https://eur-lex.europa.eu/a") && urls.has("https://sfc.org/b"), "the record spans every candidate tried");
+  assert.ok(v.attempts.some((a) => a.verdict === "not_found") && v.attempts.some((a) => a.verdict === "block"));
+});
+
+test("single-URL back-compat: a bare string is normalized to a one-candidate list", async () => {
+  const v = await escalateFetch("https://gov.uk/act", { directFetch: async () => ({ status: 200, text: REAL_LAW }) });
+  assert.equal(v.outcome, "content");
+  assert.equal(v.url, "https://gov.uk/act");
+  assert.ok(v.attempts.every((a) => a.url === "https://gov.uk/act"));
+});
+
 // ── (5) THE WRITE-SIDE CAPTURE GATE (the class kill) ─────────────────────────────────────────────────────
 
 test("captureForStorage: error bodies are NEVER stored; only real content is", () => {

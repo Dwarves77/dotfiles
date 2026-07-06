@@ -39,6 +39,7 @@ node --test \
   fsi-app/src/lib/sources/fetch-hold.test.mjs \
   fsi-app/src/lib/sources/entity-gate.test.mjs \
   fsi-app/src/lib/sources/transport-escalation.test.mjs \
+  fsi-app/src/lib/sources/transport-runtime.test.mjs \
   fsi-app/src/lib/agent/anthropic-error.test.mjs \
   fsi-app/src/lib/agent/anthropic-stream.test.mjs \
   fsi-app/src/lib/agent/two-pass-generate.test.mjs \

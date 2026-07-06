@@ -16,6 +16,14 @@
 // gate). fetchPrimaryWithFallback is dep-injected (browserlessFetch + webSearchAlternatives) so it is
 // testable without network. GOVERNING: remediation-discipline (Section 4 — roadblock resilience) +
 // source-credibility-model (qualification) + env-policy (find replacements).
+//
+// TWO-HOMES FOLD (RD-14, 2026-07-06): detectRoadblock shares the transport classifier's error-body home
+// (isErrorBody, entity-gate.mjs) as its final backstop, so the primary-fetch detector and the ladder
+// classifier (transport-escalation.classifyTransportResult, which composes THIS function) can no longer
+// DISAGREE on an error body whose markers sit PAST this detector's ~600ch head window but inside
+// isErrorBody's 2500ch scan — the exact 600-vs-2500 leak that stored the junk. One detection home.
+
+import { isErrorBody } from "./entity-gate.mjs";
 
 // Thresholds (DEFAULTS, tunable). One bar, not two: the stub bar == the pool's existing usability bar.
 export const STUB_MIN_CHARS = 200;     // < this extracted text = stub/roadblock (matches pool >200ch usability)
@@ -81,6 +89,13 @@ export function detectRoadblock(text, { httpStatus = 200, timedOut = false } = {
   }
   // substantial but wrong-language-only — can't carry in-language (English) verbatim fact spans.
   if (langRatio < MIN_LANG_RATIO) return { roadblocked: true, reason: "wrong_language_only", len, langRatio };
+  // TWO-HOMES FOLD (RD-14): the classifier's error-body backstop (isErrorBody, 2500ch scan, >=2 distinct
+  // markers) shared HERE as the final gate — a nav shell / error body whose markers sit PAST the ~600ch
+  // head windows above (soft_404/cdn_block/challenge are head-scoped) but inside isErrorBody's scan is
+  // caught, so this detector and transport-escalation.classifyTransportResult can never disagree on it.
+  // isErrorBody is conservative (a long real article carries no 2+ distinct error markers), so a genuine
+  // partial is not over-flagged. This is the leak that stored the junk (600-vs-2500 disagreement) — closed.
+  if (isErrorBody(s.slice(0, 2500))) return { roadblocked: true, reason: "error_body", len, langRatio };
   // >= 200ch real in-language content = SUCCESS (possibly partial). NOT a roadblock.
   return { roadblocked: false, reason: "ok", len, langRatio };
 }

@@ -76,6 +76,21 @@ test("renderingUrlForPrimary: EUR-Lex /TXT → /TXT/HTML/ (enacted text), preser
   assert.equal(renderingUrlForPrimary("not a url"), "not a url");
 });
 
+test("TWO-HOMES FOLD (RD-14): a nav shell whose error markers sit PAST char 600 is now caught (was 'ok')", () => {
+  // A long nav shell whose 403/forbidden/access-denied markers sit past the ~600ch head windows the
+  // head-scoped detectors (soft_404 slice(0,300), cdn_block slice(0,300), challenge slice(0,600)) miss,
+  // but inside isErrorBody's 2500ch scan (>=2 distinct markers). BEFORE the fold this read as roadblocked:false
+  // ("ok") to the primary path and was stored; the transport classifier (isErrorBody, 2500ch) called it junk —
+  // the exact 600-vs-2500 disagreement that stored the junk. The shared isErrorBody backstop closes it.
+  const deepShell = "Home About Contact Menu Navigation " + "nav ".repeat(220) + " 403 Forbidden. Access denied. You do not have permission.";
+  assert.ok(deepShell.length > 600 && deepShell.length < 1500);
+  const d = detectRoadblock(deepShell, { httpStatus: 200 });
+  assert.equal(d.roadblocked, true, "the deep-marker nav shell the old 600ch window missed is now a roadblock");
+  assert.equal(d.reason, "error_body");
+  // and a real, long article carrying at most one incidental marker is NOT over-flagged (fold stays conservative)
+  assert.equal(detectRoadblock(EN(6000)).roadblocked, false);
+});
+
 test("detector: hard HTTP + timeout", () => {
   assert.equal(detectRoadblock(EN(5000), { httpStatus: 404 }).reason, "http_404");
   assert.equal(detectRoadblock("", { timedOut: true }).reason, "timeout");
