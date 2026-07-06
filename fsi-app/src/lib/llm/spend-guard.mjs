@@ -9,10 +9,13 @@ import { paidQueueVerdict } from "../agent/deterministic-lever.mjs";
 /**
  * @typedef {{ purpose: string, itemId?: string|null, failureClasses?: string[],
  *   necessity?: { rehomableFacts?: number, repointableSpans?: number },
- *   disposition?: string|null, provenanceStatus?: string|null, budgetCapUsd?: number, authorizationRef?: string, standingClass?: string }} SpendTicket
+ *   disposition?: string|null, provenanceStatus?: string|null, junkPool?: boolean, budgetCapUsd?: number, authorizationRef?: string, standingClass?: string }} SpendTicket
  * disposition — the item's standing disposition; "DELETE" (held dup-loser) is REJECTED from the paid queue.
  * provenanceStatus — the item's live provenance_status; "verified" is REJECTED (no paid re-ground of a
  *   verified item — l1 is the live example: re-grounding a clean item only risks the thinning guard for $0 gain).
+ * junkPool — true when the item's remaining failure classes can only be satisfied by content that exists ONLY
+ *   behind failed-fetch captures (bot wall / 403 / 404 / nav shell). REJECTED: paying to re-ground an unwinnable
+ *   junk pool is deterministic-first waste; the item is event-bound to re-collection at hold-lift.
  */
 
 /** Rule 016 permitted always-cheap classifiers — named, not exempted. Each still counts against the budget. */
@@ -80,6 +83,11 @@ export function assertTicket(ticket) {
   // gain, and re-extraction only risks the thinning guard). This is the l1 class — a clean item never pays.
   if (String(ticket.provenanceStatus || "").toLowerCase() === "verified") {
     throw new SpendError(`SPEND_REJECTED (${ticket.itemId ?? "?"}): item is already provenance_status=verified — no paid re-ground of a verified item (mechanical necessity gate).`);
+  }
+  // JUNK-POOL gate (2026-07-06): the item's remaining failures can only be satisfied by content behind failed-
+  // fetch captures — re-grounding an unwinnable junk pool is deterministic-first waste. Event-bound to re-collect.
+  if (ticket.junkPool === true) {
+    throw new SpendError(`SPEND_REJECTED (${ticket.itemId ?? "?"}): junk-pool — the item's remaining failure classes can only be satisfied by content behind failed-fetch captures (bot wall / 403 / 404 / nav shell); paid re-ground is unwinnable until re-collection at hold-lift.`);
   }
   // necessity gate: DELETE-disposition items are rejected even with no failure-class evidence supplied.
   const verdict = paidQueueVerdict(ticket.failureClasses ?? [], ticket.necessity ?? {}, ticket.disposition);

@@ -91,3 +91,18 @@ export function isErrorBody(text) {
   if (hits >= 2) return true;                              // multiple distinct markers = error page
   return false;
 }
+
+/**
+ * ERROR-BODY GROUNDABILITY GATE (2026-07-06): split a fetched pool into { usable, errorBodies }. A failed-fetch
+ * capture (bot wall / 403 / 404 / Request-Access block / nav shell) stored as "source content" must NEVER enter
+ * grounding input, the floor pool, or slot-forcing nomination — grounding a FACT to a 404 body is the
+ * fabricate-via-error-page moat breach. Pure, reuses the single-home isErrorBody. The caller SURFACES the
+ * excluded set (a per-item note), never silently drops it.
+ * @param {Array<{url?:string,text:string}>} pool
+ * @returns {{ usable: Array<{url?:string,text:string}>, errorBodies: Array<{url?:string,text:string}> }}
+ */
+export function partitionErrorBodies(pool) {
+  const usable = [], errorBodies = [];
+  for (const b of pool || []) (isErrorBody(b && b.text) ? errorBodies : usable).push(b);
+  return { usable, errorBodies };
+}
