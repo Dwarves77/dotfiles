@@ -38,6 +38,19 @@ test("bindingSentences finds criterion-4 triggers and skips already-labeled ones
   assert.ok(BINDING_VERB_RE.test("this applies to all operators"));
 });
 
+test("bindingSentences EXCLUDES markdown structure (table rows, headings, oversized blocks) — no corruption", () => {
+  // a table with a binding verb is NOT a relabelable prose assertion (whole-section holds instead)
+  const table = "| Date | Event | What the Workspace Must Have Done |\n|---|---|---|\n| 2025 | start | must file |";
+  assert.deepEqual(bindingSentences(table), [], "no table row/blob is nominated for relabeling");
+  // a heading with a binding verb is excluded
+  assert.deepEqual(bindingSentences("## What the workspace must do"), []);
+  // an oversized unpunctuated block (structural) is excluded
+  const huge = "The workspace must " + "x ".repeat(400);
+  assert.deepEqual(bindingSentences(huge), []);
+  // a genuine prose assertion is still found
+  assert.ok(bindingSentences("The Order requires suppliers to blend SAF from 2025.").length === 1);
+});
+
 test("applyLabelToContent prepends the label at the START of the sentence (label home), verbatim-safe + idempotent", () => {
   const sent = "The Order requires suppliers to blend SAF from 2025.";
   const md = `Intro. ${sent} Outro.`;

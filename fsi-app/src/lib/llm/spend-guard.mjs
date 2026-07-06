@@ -32,14 +32,31 @@ export class SpendError extends Error {
 let runningSpentUsd = 0;                                    // standing-ceiling accumulator (never reset)
 let itemLedger = { inputTokens: 0, outputTokens: 0, calls: 0, costUsd: 0 };
 
+// ── AUTOMATIC-TELEMETRY INVARIANT (operator ruling 2026-07-06, dispatch item 1). Every account()ed spend call
+// MUST leave a ledger row. account() increments unloggedCalls; the spend client decrements it via
+// markCallLogged() ONLY after the agent_runs row is written. assertBudget (run before EVERY spend call) THROWS
+// if a prior call went unlogged, and assertLedgerDrained() catches the final one at close-out. RATIONALE ON
+// RECORD: $0.41 of 4c judge spend ran UNMETERED — unlogged spend corrupts every future seed (the ceiling
+// derives from the agent_runs SUM) and stop conditions cannot fire on spend they never see. This makes an
+// unlogged spend mechanically IMPOSSIBLE (the next call throws; the last is asserted). ──
+let unloggedCalls = 0;
+
 export function spentUsd() { return runningSpentUsd; }
+/** The spend client calls this AFTER the per-call agent_runs row is written — never the caller. */
+export function markCallLogged() { if (unloggedCalls > 0) unloggedCalls -= 1; }
+/** Count of account()ed calls not yet confirmed logged (a telemetry gap when > 0). */
+export function unloggedCallCount() { return unloggedCalls; }
+/** Close-out assertion: THROWS if any accounted spend never got a ledger row. */
+export function assertLedgerDrained() {
+  if (unloggedCalls > 0) throw new SpendError(`SPEND_LEDGER_UNLOGGED: ${unloggedCalls} accounted spend call(s) left no agent_runs row — unlogged spend corrupts the seeded ceiling and blinds the stop conditions.`);
+}
 /** Seed the standing-ceiling accumulator with the PROGRAM total (from a paginated agent_runs read) at process
  *  start, so the per-process ceiling accounts for prior spend ("program total ≤ cap", not per-process). The
  *  runner MUST call this before the first paid call; a fresh process otherwise starts at $0. @param {number} usd */
 export function seedSpend(usd) { runningSpentUsd = Number(usd) || 0; }
 export function resetItemLedger() { itemLedger = { inputTokens: 0, outputTokens: 0, calls: 0, costUsd: 0 }; }
 export function takeItemLedger() { return { ...itemLedger }; }
-export function __resetSpendForTest() { runningSpentUsd = 0; resetItemLedger(); }
+export function __resetSpendForTest() { runningSpentUsd = 0; resetItemLedger(); unloggedCalls = 0; }
 /** @param {number} usd */
 export function __addSpendForTest(usd) { runningSpentUsd += usd; }
 
@@ -69,6 +86,12 @@ export function assertTicket(ticket) {
  * @param {number} standingCeilingUsd
  */
 export function assertBudget(ticket, standingCeilingUsd) {
+  // Automatic-telemetry gate: refuse a new spend call while a PRIOR one has no ledger row. This is what makes
+  // "a ledger row per call" mechanical rather than caller-remembered — you cannot spend again until the last
+  // spend was written.
+  if (unloggedCalls > 0) {
+    throw new SpendError(`SPEND_LEDGER_UNLOGGED: ${unloggedCalls} prior spend call(s) left no agent_runs row — refusing further spend (unlogged spend corrupts the seed + blinds stop conditions).`);
+  }
   const cap = ticket.budgetCapUsd ?? standingCeilingUsd;
   if (runningSpentUsd >= cap) {
     throw new SpendError(`SPEND_CEILING: running total $${runningSpentUsd.toFixed(4)} has reached the cap $${cap.toFixed(2)} (ticket "${ticket.purpose}"). No further spend without a fresh ceiling.`);
@@ -86,6 +109,7 @@ export function account(cost, inputTokens, outputTokens) {
   itemLedger.outputTokens += outputTokens || 0;
   itemLedger.calls += 1;
   itemLedger.costUsd += cost;
+  unloggedCalls += 1;                                        // this call now OWES a ledger row (see the invariant)
 }
 
 // ── PER-ITEM CIRCUIT BREAKER (operator ruling 2026-07-04, ceiling-correction delta: "unchanged at $3.00") ──

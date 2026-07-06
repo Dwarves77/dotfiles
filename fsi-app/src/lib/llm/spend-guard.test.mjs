@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertTicket, assertBudget, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD } from "./spend-guard.mjs";
+import { assertTicket, assertBudget, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD, account, markCallLogged, unloggedCallCount, assertLedgerDrained } from "./spend-guard.mjs";
 
 const CEIL = 10;
 
@@ -56,6 +56,23 @@ test("STANDING CEILING is enforced even when a ticket sets a higher per-call cap
   __resetSpendForTest();
   __addSpendForTest(CEIL + 0.01); // past the standing ceiling
   assert.throws(() => assertBudget({ purpose: "over standing", budgetCapUsd: 1000 }, CEIL), /SPEND_CEILING/);
+  __resetSpendForTest();
+});
+
+test("AUTOMATIC TELEMETRY: an accounted spend that leaves NO ledger row is RED (unlogged spend impossible)", () => {
+  __resetSpendForTest();
+  const ticket = { purpose: "judge call" };
+  // RED: account() a call but never markCallLogged() → the NEXT assertBudget refuses (prior call unlogged),
+  // and the close-out assertion throws. This is the $0.41-unmetered class made mechanically impossible.
+  account(0.0014, 300, 40);
+  assert.equal(unloggedCallCount(), 1);
+  assert.throws(() => assertBudget(ticket, 85), /SPEND_LEDGER_UNLOGGED/);
+  assert.throws(() => assertLedgerDrained(), /SPEND_LEDGER_UNLOGGED/);
+  // GREEN: the spend client marks it logged AFTER writing the agent_runs row → next spend allowed, drained.
+  markCallLogged();
+  assert.equal(unloggedCallCount(), 0);
+  assert.doesNotThrow(() => assertBudget(ticket, 85));
+  assert.doesNotThrow(() => assertLedgerDrained());
   __resetSpendForTest();
 });
 
