@@ -20,7 +20,7 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
 
-**Ephemeral parallel-agent worktrees under `.worktrees/`** (e.g., `wt-build-7`, `wt-linkedin`) are NOT listed here. The `.worktrees/` directory is developer-local transient state per the FaDB convention; C4 ignores it on both sides (live + inventory). Track only the main repo + historical preserved state.
+**Ephemeral parallel-agent worktrees under `.worktrees/`** (FaDB convention, e.g., `wt-build-7`, `wt-linkedin`) **or `.claude/worktrees/`** (the Claude Code agent-harness convention, e.g., `agent-<id>`) are NOT listed here. Both are developer-local / harness-local transient state; C4 ignores them on both sides (live + inventory). Track only the main repo + historical preserved state.
 
 ## Preserved branches (worktree dirs removed; branches alive)
 

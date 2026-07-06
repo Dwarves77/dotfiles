@@ -84,7 +84,10 @@ export const SKILL_MARKER_BASELINE = {
   // path)". TRIAGE: new invariant RD-12 (enforcedBy fitness:F17 + section-grounding.test.mjs selftest).
   // 22→23 (2026-07-06): added Section 4 category 12 "The error-body groundability gate (never ground a FACT to
   // a failed fetch)". TRIAGE: new invariant RD-13 (enforcedBy entity-gate.test.mjs + spend-guard.test.mjs).
-  'remediation-discipline': 23,
+  // 23→24 (2026-07-06): added Section 4 category 13 "The transport escalation ladder + write-side error-body
+  // gate (transport failure is never terminal, never stored)". TRIAGE: new invariant RD-14 (enforcedBy
+  // selftests transport-escalation.test.mjs + entity-gate.test.mjs).
+  'remediation-discipline': 24,
   'sprint-followups-discipline': 17,
 };
 
@@ -503,6 +506,16 @@ export const INVARIANTS = [
     anchor: 'The error-body groundability gate (never ground a FACT to a failed fetch)',
     enforcedBy: ['selftest:fsi-app/src/lib/sources/entity-gate.test.mjs', 'selftest:fsi-app/src/lib/llm/spend-guard.test.mjs'],
     residual: 'entity-gate.test.mjs proves the gate red-then-green with REAL corpus fixtures: a EUR-Lex 404, a Cloudflare bot wall, and a 403 block are error bodies EXCLUDED from the pool that feeds grounding input + floor pool + nomination; a real law body is NOT over-excluded. spend-guard.test.mjs proves the junk-pool necessity rejection. The gate is a single filter on the shared `fetched` pool in groundBrief, so all three downstream consumers (buildSourceBlocks, floorSources, forceSlotCoverage) are gated at once. NAMED RESIDUALS: (1) isErrorBody is CONSERVATIVE — it misses a mid-size (>1500ch, <2-marker) 404 like the two EUR-Lex "Page Not Found" pages (2989ch); those were caught by human adjudication + the named-breach fix, and the durable fix is migration 147 sources.fetch_status (persist the transport-layer verdict so the gate reads a column, not a heuristic); (2) the gate prevents FUTURE junk-grounding — the EXISTING 51+ error-grounded FACTs across 27 items are flagged (error-body-gate / error-page-breach integrity_flags) and fixed by re-fetch+re-ground at hold-lift, status changing on evidence (no preemptive re-quarantine); (3) render-derive at read time until the DDL window lands migration 147.',
+  },
+
+  {
+    id: 'RD-14-transport-escalation-write-gate',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 13: The transport escalation ladder + write-side error-body gate',
+    text: 'RD-13 gates READ-side consumption; RD-14 is the WRITE-side complement + the per-failure-class escalation ladder. The capture layer MUST NEVER store an error body (bot wall / 403 / 404 / Request-Access wall / nav shell / JS shell) as source content into agent_run_searches — isErrorBody (single home) at CAPTURE time, plus the capture-time superset that also refuses the Request-Access wall + JS shell isErrorBody misses. The ladder at the single primitive: (a) canonical-URL cache first; (b) block/bot-wall on one transport → try the OTHER, either direction (fires on the 403 class, not only cdn_block); (c) JS-shell/soft-404 → Browserless render path; (d) API hosts (federalregister.gov + eCFR) → official JSON API, never HTML; (e) genuine 404/410 after the ladder → seek-more task, never a stored error body; (f) exhausted → record the verdict + item HOLDS with the named reason NO_REACHABLE_SOURCE, event-bound. Transport failure is never terminal and never stored.',
+    anchor: 'The transport escalation ladder + write-side error-body gate (transport failure is never terminal, never stored)',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/transport-escalation.test.mjs', 'selftest:fsi-app/src/lib/sources/entity-gate.test.mjs'],
+    residual: 'transport-escalation.test.mjs proves the PURE decision logic red-then-green with the FOUR real adjudicated fixtures (SFC 403 on render → plain-HTTP salvage GREEN; EUR-Lex 404 both transports → seek-more, ZERO stored; customs.go.jp JS shell on direct → render path chosen; federalregister Request-Access → API route chosen, HTML never touched) plus both-directions try-other, ladder-exhausted → NO_REACHABLE_SOURCE hold, cache short-circuit, the classifier per failure class incl. the two-detector gap, and captureForStorage (error bodies NEVER stored; all-junk capture holds). entity-gate.test.mjs proves the single-home isErrorBody the write gate reuses. The WIRING (generateBrief + generateBriefRefreshPrimary + groundBrief fallback call captureForStorage before the agent_run_searches INSERT; surfaceCaptureExclusions emits the source_issue flag) lives in canonical-pipeline.ts — integration residual, not separately unit-asserted (the pure captureForStorage decision IS unit-asserted). NAMED RESIDUALS: (1) captureForStorage inherits isErrorBody\'s conservatism on the mid-size EUR-Lex 404 class — the classifier superset catches Request-Access + JS-shell but the >1500ch <2-marker soft-404 remains a named RD-13 residual until migration 147 sources.fetch_status persists the transport verdict; (2) escalateFetch is the tested DECISION module (transports dep-injected) — it is not yet the runtime fetch path (fetchWithTransport remains the live primitive; the write-side capture gate IS wired live). The seek-more (e) + fetch_status verdict (f) durable homes land with the hold-lift re-fetch batch + migration 147.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
