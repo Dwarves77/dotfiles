@@ -1,0 +1,129 @@
+/** FUNDED PASS, BATCHED (PAID — standing dispatch item 3, ruling 2026-07-04). Runs the ground-only re-ground
+ *  (groundBrief = re-extract + pool-source floor-first slot-forcing, the PR #184 nomination fix) over a batch
+ *  of quarantined items THROUGH the spend chokepoint, under FOUR stacked stop-layers:
+ *    1. per-call ceiling  — SPEND_CEILING_USD (seeded with the program total so history counts).
+ *    2. per-batch buffer  — projectBatchFitsBuffer: refuse to START a batch that projects past the $80 soft cap.
+ *    3. per-item breaker  — itemBreakerTripped: stop THIS item if it spends >= $3.00 (runaway containment).
+ *    4. stop conditions   — measured > 2x restated (batch), ceiling throw, breaker trip.
+ *  ZERO fetches (scrape hold live — BROWSERLESS_API_KEY deleted; groundBrief reuses the stored pool). ZERO
+ *  mints (re-grounds existing briefs in place; never inserts an intelligence_items row).
+ *
+ *  BATCH 1 validates the nomination fix (a curated 5: the flaw-exposing item + the survivor + 2 COLD + a
+ *  floor-only). On each item that flips to verified, its disposition_deferred flag(s) RESOLVE (guarded RELEASE).
+ *  Prints the per-cohort flip table + the genuine-support audit (judge decisions) + measured cost +
+ *  clean-verdict. DRY-RUN default (seed + restated estimate + batch-gate, NO spend); --apply = the paid run. */
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createJiti } from "jiti";
+import { readClient, readAll, guardedUpdate } from "./lib/db.mjs";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+delete process.env.BROWSERLESS_API_KEY;
+if (process.env.BROWSERLESS_API_KEY) { console.error("REFUSING: BROWSERLESS_API_KEY still set."); process.exit(2); }
+const APPLY = process.argv.includes("--apply");
+
+const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
+const { groundBrief } = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
+const { setSpendTicket, resetSpendTicket, spentUsd, logSpendRun } = await jiti.import("../src/lib/llm/spend-client.ts");
+const { seedSpend, resetItemLedger, takeItemLedger, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD } = await jiti.import("../src/lib/llm/spend-guard.mjs");
+const { readProgramTotalPaginated, fitsUnderCeiling, projectBatchFitsBuffer, CEILING_BUFFER_USD } = await jiti.import("../src/lib/llm/program-total.mjs");
+const { costUsdForModel, SPEND_CEILING_USD } = await jiti.import("../src/lib/agent/generation-config.ts");
+const K = 3;
+
+// BATCH 1 (validation): flaw-item + survivor + 2 COLD + floor-only. cohort/notes for the report.
+const BATCH = [
+  { key: "782878c0", cohort: "FRESH", note: "flaw-exposing item (all 3 failure classes)" },
+  { key: "f0833999", cohort: "FRESH", note: "CSRD survivor — release triggers held-loser deletion (standing gate)", survivor: true },
+  { key: "c8",       cohort: "COLD",  note: "COLD standard" },
+  { key: "l1",       cohort: "COLD",  note: "COLD reg (HIGH)" },
+  { key: "7a0ead55", cohort: "FRESH", note: "floor-only (fact_below_authority_floor)" },
+];
+
+const sb = readClient();
+const items = (await sb.from("intelligence_items").select("id,legacy_id,item_type,priority,source_url,provenance_status").eq("is_archived", false)).data || [];
+const resolved = BATCH.map((s) => {
+  const it = items.find((x) => x.legacy_id === s.key || x.id.slice(0, 8) === s.key);
+  return it ? { ...s, id: it.id, type: it.item_type, priority: it.priority, sourceUrl: it.source_url } : { ...s, id: null };
+}).filter((s) => s.id);
+
+// ── SEED the program total (paginated) ──
+const fetchPage = async (offset, ps) => (await sb.from("agent_runs").select("cost_usd_estimated").order("id").range(offset, offset + ps - 1)).data || [];
+const program = await readProgramTotalPaginated(fetchPage, 1000);
+seedSpend(program.total);
+console.log(`\n=== SEED === program total (paginated, ${program.rows} rows): $${program.total.toFixed(4)} | ceiling $${SPEND_CEILING_USD} | headroom $${(SPEND_CEILING_USD - program.total).toFixed(2)} | soft-cap $${SPEND_CEILING_USD - CEILING_BUFFER_USD}`);
+
+// ── RESTATED per-item estimate (pool tokens → ground call + slots×K Haiku judge) ──
+const REQ_SLOTS = (await sb.from("item_type_required_slots").select("item_type, slot_key")).data || [];
+let restated = 0; const plan = [];
+for (const s of resolved) {
+  const pool = (await sb.from("agent_run_searches").select("result_content_excerpt").eq("intelligence_item_id", s.id)).data || [];
+  const poolChars = Math.min(560000, pool.reduce((a, r) => a + (r.result_content_excerpt || "").length, 0));
+  const groundCost = costUsdForModel("claude-sonnet-4-6", Math.round(poolChars / 4), 8000);
+  const nSlots = REQ_SLOTS.filter((r) => r.item_type === s.type).length;
+  const judgeCost = costUsdForModel("claude-haiku-4-5", nSlots * K * 300, nSlots * K * 40);
+  const est = groundCost + judgeCost;
+  restated += est; plan.push({ ...s, poolChars, nSlots, est });
+}
+const restatedAvg = restated / (plan.length || 1);
+console.log(`\n=== RESTATED BATCH ESTIMATE === ${plan.length} items, avg $${restatedAvg.toFixed(4)}, total $${restated.toFixed(4)} (2x-stop $${(2 * restated).toFixed(4)})`);
+for (const p of plan) console.log(`  ${p.key.padEnd(12)} ${p.cohort.padEnd(6)} pool≈${(p.poolChars / 1000).toFixed(0)}KB slots=${p.nSlots} est $${p.est.toFixed(4)}${p.survivor ? "  [survivor]" : ""}  — ${p.note}`);
+
+// ── BATCH GATE (stop-layer 2): does the batch project under the soft cap (from the estimate here)? ──
+const batchGate = projectBatchFitsBuffer(program.total, restatedAvg, plan.length, SPEND_CEILING_USD);
+console.log(`\n=== BATCH GATE === ${batchGate.reason}`);
+if (!batchGate.ok) { console.log(`STOP: batch projects into the buffer. Remaining items stay Fork-B deferred; resume on top-up.`); process.exit(0); }
+
+if (!APPLY) { console.log(`\nDRY-RUN — pass --apply to run the paid batch.`); process.exit(0); }
+
+// ── PAID RUN ──
+console.log(`\n=== PAID RUN (through spend-client, seeded ceiling $${SPEND_CEILING_USD}) ===`);
+const failuresOf = async (id) => { const { data } = await sb.rpc("validate_item_provenance", { p_item_id: id }); const r = Array.isArray(data) ? data[0] : data; return { valid: !!r?.valid, reasons: [...new Set((r?.failures || []).map((f) => f.reason))] }; };
+async function releaseDeferral(itemId, key) {
+  const flags = await readAll("integrity_flags", "id", { match: (q) => q.eq("subject_type", "item").eq("subject_ref", itemId).eq("status", "open").eq("created_by", "disposition_deferred") });
+  for (const f of flags) await guardedUpdate("integrity_flags", (qb) => qb.eq("id", f.id), { status: "resolved" }, { cite: { skill: "remediation-discipline", reason: `funded-pass RELEASE: ${key} flipped to verified — resolve blocked-on-re-ground deferral` } });
+  return flags.length;
+}
+const results = [];
+for (const p of plan) {
+  const before = await failuresOf(p.id);
+  const fit = fitsUnderCeiling(spentUsd(), p.est, SPEND_CEILING_USD);
+  if (!fit.ok) { console.log(`  ${p.key}: PRE-FLIGHT CEILING STOP — ${fit.reason}`); results.push({ ...p, stopped: "ceiling" }); break; }
+  resetItemLedger();
+  setSpendTicket({ purpose: `funded-pass ground-only: ${p.key}`, itemId: p.id, failureClasses: before.reasons, necessity: { rehomableFacts: 0 }, disposition: null, budgetCapUsd: SPEND_CEILING_USD, authorizationRef: "funded-pass-$85" });
+  let r;
+  try { r = await groundBrief(p.id); }
+  catch (e) { console.log(`  ${p.key}: CEILING/ERROR — ${e.message.slice(0, 100)}`); results.push({ ...p, stopped: e.message.slice(0, 100) }); break; }
+  const itemCost = takeItemLedger().costUsd;
+  const breaker = itemBreakerTripped(itemCost);
+  await logSpendRun(p.id, r.ok ? "success" : "error", p.sourceUrl);
+  const after = await failuresOf(p.id);
+  const sf = r.slotForcing || {};
+  let released = 0;
+  if (after.valid) released = await releaseDeferral(p.id, p.key);
+  results.push({ ...p, before: before.reasons, after: after.reasons, valid: after.valid, cost: itemCost, sf, released, breakerTripped: breaker.tripped, detail: r.detail });
+  console.log(`  ${p.key.padEnd(12)} ${p.cohort.padEnd(6)} $${itemCost.toFixed(4)} valid=${after.valid} rel=${released} | SF: +${sf.factsForced || 0}F/+${sf.gapsForced || 0}G ${(sf.relabelCandidates || []).length}rl ${sf.judgeCalls || 0}j | after=[${after.reasons.join(",") || "CLEAR"}]`);
+  if (breaker.tripped) { console.log(`  STOP: ${breaker.reason}`); break; }
+  const measured = spentUsd() - program.total;
+  if (measured > 2 * restated) { console.log(`  STOP: measured $${measured.toFixed(4)} > 2x restated $${(2 * restated).toFixed(4)}.`); break; }
+}
+resetSpendTicket();
+const measuredTotal = spentUsd() - program.total;
+console.log(`\n=== DONE === measured batch spend: $${measuredTotal.toFixed(4)} | program total now: $${spentUsd().toFixed(4)} / $${SPEND_CEILING_USD}`);
+
+// ── genuine-support audit (judge decisions) ──
+console.log(`\n=== GENUINE-SUPPORT AUDIT (per forced slot: nominated / judged / decision) ===`);
+for (const r of results.filter((x) => x.sf)) {
+  for (const a of (r.sf.audit || [])) console.log(`  ${r.key.padEnd(12)} ${String(a.slot).padEnd(24)} nom=${a.nominated} judged=${a.judgedTopK} confirmed=${a.judgeConfirmed} -> ${a.decision}${a.why ? ` (${String(a.why).slice(0, 60)})` : ""}`);
+}
+// ── clean-verdict for the batch-1 gate ──
+const ran = results.filter((r) => !r.stopped);
+const flipped = ran.filter((r) => r.valid);
+const improved = ran.filter((r) => !r.valid && (r.before || []).length > (r.after || []).length);
+const engaged = ran.filter((r) => (r.sf?.judgeCalls || 0) > 0 || (r.sf?.factsForced || 0) > 0);
+const costOk = measuredTotal <= 2 * restated;
+const noBreaker = !results.some((r) => r.breakerTripped);
+console.log(`\n=== CLEAN-VERDICT === ran=${ran.length} flipped=${flipped.length} improved=${improved.length} nomination-engaged=${engaged.length} costOk=${costOk} noBreaker=${noBreaker}`);
+const summary = results.map((r) => ({ key: r.key, cohort: r.cohort, cost: r.cost, valid: r.valid, released: r.released, before: r.before, after: r.after, factsForced: r.sf?.factsForced, gapsForced: r.sf?.gapsForced, judgeCalls: r.sf?.judgeCalls, relabels: r.sf?.relabelCandidates, audit: r.sf?.audit, stopped: r.stopped, breakerTripped: r.breakerTripped }));
+console.log(`RESULTS_JSON ` + JSON.stringify(summary));
+process.exit(0);
