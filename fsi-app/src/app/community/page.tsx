@@ -17,6 +17,7 @@ import {
   type RoomKey,
 } from "@/lib/community/rooms";
 import type { Resource } from "@/types/resource";
+import { VERTICALS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -166,6 +167,35 @@ export default async function CommunityPage() {
   }
   const roomGroupIds = Array.from(groupBySlug.values()).map((g) => g.id);
   const seeded = roomGroupIds.length > 0;
+
+  // ── Member-created vertical groups (cross-regional; vertical IS NOT NULL) ──
+  const { data: verticalGroupsRaw, error: vgErr } = await supabase
+    .from("community_groups")
+    .select("id, name, slug, vertical, description, member_count, owner_user_id")
+    .not("vertical", "is", null)
+    .order("last_active_at", { ascending: false })
+    .limit(60);
+  if (vgErr) console.warn("community: vertical groups read failed", vgErr.message);
+  const verticalLabelById = new Map(VERTICALS.map((v) => [v.id, v.label]));
+  const verticalGroups = ((verticalGroupsRaw ?? []) as Array<{
+    id: string;
+    name: string;
+    slug: string;
+    vertical: string | null;
+    description: string | null;
+    member_count: number | null;
+    owner_user_id: string | null;
+  }>).map((g) => ({
+    id: g.id,
+    slug: g.slug,
+    name: g.name,
+    vertical: g.vertical ?? "",
+    verticalLabel: verticalLabelById.get(g.vertical ?? "") ?? (g.vertical ?? ""),
+    description: g.description,
+    memberCount: g.member_count ?? 0,
+    youOwn: g.owner_user_id === user.id,
+  }));
+  const verticalOptions = VERTICALS.map((v) => ({ id: v.id, label: v.label }));
 
   // ── Parallel reads: verified ledger, memberships, room threads, roster, pickups ──
   const [
@@ -443,6 +473,8 @@ export default async function CommunityPage() {
         verifierStatus={me.verifier_status ?? "none"}
         networkMemberCount={networkMemberCount}
         pendingPickups={pickupsRes.count ?? 0}
+        verticalGroups={verticalGroups}
+        verticalOptions={verticalOptions}
       />
     </>
   );
