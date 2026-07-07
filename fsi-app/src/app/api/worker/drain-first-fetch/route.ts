@@ -9,6 +9,7 @@ import { mintIntelligenceItem } from "@/lib/intake/mint-item";
 import { pausedResponse, getScrapeState } from "@/lib/api/pause";
 import { scrapeWindowOpen } from "@/lib/sources/scrape-schedule";
 import type { Domain, SourceCategory } from "@/lib/domains";
+import { workerAuthGuard } from "@/lib/api/worker-auth";
 
 /**
  * POST /api/worker/drain-first-fetch
@@ -47,7 +48,6 @@ import type { Domain, SourceCategory } from "@/lib/domains";
  * Design reference: dotfiles/docs/registry-to-ingestion-handoff-design-2026-05-10.md
  */
 
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const DEFAULT_DRAIN_LIMIT = 5;
 const MAX_RETRY_ATTEMPTS = 3;
@@ -332,10 +332,8 @@ export async function seedStubIntelligenceItem(
 
 export async function POST(request: NextRequest) {
   // Worker-secret auth.
-  const secret = request.headers.get("x-worker-secret");
-  if (secret !== WORKER_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = workerAuthGuard(request);
+  if (denied) return denied;
 
   // Optional body: { limit?: number }
   let limit = DEFAULT_DRAIN_LIMIT;

@@ -17,8 +17,7 @@ import {
 } from "@/lib/trust";
 import type { TrustMetrics, SourceTier } from "@/types/source";
 import { isGloballyPaused } from "@/lib/api/pause";
-
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
+import { workerAuthGuard } from "@/lib/api/worker-auth";
 
 function getServiceClient() {
   return createClient(
@@ -28,10 +27,8 @@ function getServiceClient() {
 }
 
 export async function POST(request: NextRequest) {
-  const secret = request.headers.get("x-worker-secret");
-  if (secret !== WORKER_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = workerAuthGuard(request);
+  if (denied) return denied;
 
   const supabase = getServiceClient();
 

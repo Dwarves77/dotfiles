@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { APP_DATA_TAG } from "@/lib/data";
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { mintIntelligenceItem } from "@/lib/intake/mint-item";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -26,6 +27,17 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = getServiceClient();
+    // Platform-admin gate (DEEP-AUDIT S1-2 / P0-2). This route lives OUTSIDE
+    // /api/admin/* and previously checked only requireAuth, so any authenticated
+    // customer could list/approve/reject/materialize staged intelligence into
+    // production via the service-role client. Gate on profiles.is_platform_admin.
+    const admin = await isPlatformAdmin(auth.userId, supabase);
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Platform admin access required" },
+        { status: 403, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
     const { data, error } = await supabase
       .from("staged_updates")
       .select("*")
@@ -89,6 +101,17 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getServiceClient();
+
+    // Platform-admin gate (DEEP-AUDIT S1-2 / P0-2): approve/reject/materialize
+    // is admin-only. Without this, any authenticated customer could push staged
+    // intelligence into production. Mirrors /api/admin/users.
+    const admin = await isPlatformAdmin(auth.userId, supabase);
+    if (!admin) {
+      return NextResponse.json(
+        { error: "Platform admin access required" },
+        { status: 403, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
 
     const { data: update, error: fetchError } = await supabase
       .from("staged_updates")
