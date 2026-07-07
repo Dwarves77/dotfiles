@@ -336,6 +336,30 @@
   --res-sev-monitor-bd: rgba(161, 98, 7, 0.4);
   --res-sev-background: var(--reg-band-awareness);
   --res-sev-background-bd: rgba(22, 163, 74, 0.4);
+
+  /* ─────────────────────────────────────────────────────
+     REDESIGN T07 TOKENS (HANDOFF §6.7 + "Pages - 07 Operations")
+     Added additively per feat/redesign-t07-operations. Values lifted
+     verbatim from the mock inline styles / renderVals sevMeta. The
+     Operations severity spectrum (tiles, region chips, key figures)
+     reuses the --reg-band-* hues + tints above (identical hex in the
+     mock); the tokens below cover the values the reg set did not carry.
+     ───────────────────────────────────────────────────── */
+
+  /* Selected/active tint — dimension chip + spotlighted dimension cell
+     (mock: background '#FFF7F0' with a 2px orange border). */
+  --accent-tint: #FFF7F0;
+
+  /* Region severity-chip borders (mock sevMeta `bd`; translucent, so not
+     carried by the solid --*-bd reg tokens). Critical reuses --critical-bd. */
+  --ops-critical-bd: #FECACA;
+  --ops-high-bd: rgba(217, 119, 6, 0.4);
+  --ops-moderate-bd: rgba(161, 98, 7, 0.4);
+  --ops-low-bd: rgba(22, 163, 74, 0.4);
+
+  /* Honest-state dashed frame (HANDOFF §4: `1px dashed rgba(0,0,0,0.25)`,
+     bg `#FAFAF8`). Pending dimension cells + By-state pending frame. */
+  --honest-dashed: rgba(0, 0, 0, 0.25);
 }
 
 /* ── DARK THEME (opt-in) ── */
