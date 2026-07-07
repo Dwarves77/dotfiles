@@ -1,0 +1,57 @@
+[
+ {
+  "key": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+  "id": "007104ed-b4e4-4735-b7ac-c16bc214c1eb",
+  "type": "regulation",
+  "path": "stored",
+  "genOk": true,
+  "sectionOk": true,
+  "groundOk": false,
+  "detail": "brief 35153ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 sources (FROM STORED pool — 0 fetches, 0 stored refs)",
+  "grd": "validation failed: [{\"url\":\"https://www.ssa.org.sg/mpa-ssa-briefing-unites-harbo"
+ },
+ {
+  "key": "007f42b1",
+  "id": "007f42b1-265a-4504-8bd1-ea1557d410ad",
+  "type": "framework",
+  "path": "stored",
+  "genOk": true,
+  "sectionOk": true,
+  "groundOk": false,
+  "detail": "brief 18271ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources (FROM STORED pool — 0 fetches, 0 stored refs)",
+  "grd": "validation failed: [{\"claim\":\"Analytical inference: The dual mandate — FAST Act "
+ },
+ {
+  "key": "a5",
+  "id": "01126119-5005-4617-b7a5-0f1e37f1bedb",
+  "type": "initiative",
+  "path": "stored",
+  "genOk": true,
+  "sectionOk": true,
+  "groundOk": true,
+  "detail": "brief 22271ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources (FROM STORED pool — 0 fetches, 0 stored refs)",
+  "grd": "grounded kept=21 -> verified"
+ },
+ {
+  "key": "03b5f234",
+  "id": "03b5f234-3624-4fef-acec-922bd75bb46e",
+  "type": "regulation",
+  "path": "stored",
+  "genOk": true,
+  "sectionOk": true,
+  "groundOk": true,
+  "detail": "brief 39857ch + 19-field metadata (fmt=regulatory_fact_document, sev=action_required) from 12 sources (FROM STORED pool — 0 fetches, 0 stored refs)",
+  "grd": "grounded kept=42 -> verified"
+ },
+ {
+  "key": "0587f0b7",
+  "id": "0587f0b7-4132-4572-99e6-713de3f60356",
+  "type": "market_signal",
+  "path": "stored",
+  "genOk": true,
+  "sectionOk": true,
+  "groundOk": true,
+  "detail": "brief 37139ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources (FROM STORED pool — 0 fetches, 1 stored refs)",
+  "grd": "grounded kept=28 -> verified"
+ }
+]

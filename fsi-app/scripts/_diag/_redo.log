@@ -1,0 +1,166 @@
+
+===== CONFORMANCE REDO (DRY-RUN) =====
+open flags: 245; processing this run: 245
+by item_type: regulation=50, framework=13, initiative=26, market_signal=61, regional_data=21, research_finding=42, guidance=22, standard=1, directive=9
+
+DRY-RUN — pass --apply [--limit=N]. stored-first -> fresh-fallback; circuit-break after 6 same-failures. Resolve flags via auditor --apply.
+
+===== CONFORMANCE REDO (APPLY) =====
+open flags: 245; processing this run: 8 (--limit=8)
+by item_type: regulation=3, framework=1, initiative=1, market_signal=2, regional_data=1
+
+===== CONFORMANCE REDO (APPLY) =====
+open flags: 245; processing this run: 240
+by item_type: regulation=50, framework=13, initiative=26, market_signal=59, regional_data=21, research_finding=42, guidance=19, standard=1, directive=9
+  singapore-maritime-decarbonisation-blueprint-implementation-regulations stored gen=false section=null ground=null :: YAML frontmatter block not found at end of output. Expected `---` opening and closing fenc
+  007f42b1       stored gen=false section=null ground=null :: anthropic {"type":"error","error":{"type":"invalid_request_error","message":"Your credit b
+  a5             stored gen=false section=null ground=null :: anthropic {"type":"error","error":{"type":"invalid_request_error","message":"Your credit b
+  03b5f234       stored gen=false section=null ground=null :: anthropic {"type":"error","error":{"type":"invalid_request_error","message":"Your credit b
+  0587f0b7       stored gen=false section=null ground=null :: anthropic {"type":"error","error":{"type":"invalid_request_error","message":"Your credit b
+  g7             stored gen=false section=null ground=null :: anthropic {"type":"error","error":{"type":"invalid_request_error","message":"Your credit b
+  dubai-uae-regional-operations-profile stored gen=false section=null ground=null :: anthropic {"type":"error","error":{"type":"invalid_request_error","message":"Your credit b
+
+!! CIRCUIT-BREAKER: 6 consecutive generate-failures with signature "anthropic {"type":"error","error":{"type". STOPPING.
+
+===== CONFORMANCE REDO (APPLY) =====
+open flags: 245; processing this run: 5 (--limit=5)
+by item_type: regulation=2, framework=1, initiative=1, market_signal=1
+  singapore-maritime-decarbonisation-blueprint-implementation-regulations stored gen=true section=true ground=false :: brief 35153ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  007f42b1       stored gen=true section=true ground=false :: brief 18271ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  a5             stored gen=true section=true ground=true :: brief 22271ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  03b5f234       stored gen=true section=true ground=true :: brief 39857ch + 19-field metadata (fmt=regulatory_fact_document, sev=action_required) from
+  0587f0b7       stored gen=true section=true ground=true :: brief 37139ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+
+SUMMARY: metadata-persisted 5/5  (verified 3, ground-deferred 2)  | generate-failed 0
+Next: run `node scripts/audit-skill-conformance.mjs --apply` to resolve now-conformant flags. Re-run this to retry the generate-failed (resumable).
+
+===== CONFORMANCE REDO (APPLY) =====
+open flags: 240; processing this run: 235
+by item_type: framework=13, regulation=48, regional_data=21, market_signal=58, initiative=25, research_finding=41, guidance=19, standard=1, directive=9
+  007f42b1       stored gen=true section=true ground=false :: brief 19367ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  g7             stored gen=true section=true ground=false :: brief 15568ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 4 so
+  dubai-uae-regional-operations-profile stored gen=true section=true ground=false :: brief 23163ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 3 sources 
+  0a8b8ef0       stored gen=true section=true ground=true :: brief 26038ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  0af6afdf       stored gen=true section=true ground=false :: brief 23322ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  r9             stored gen=true section=true ground=false :: brief 9616ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (FR
+  r16            stored gen=true section=true ground=true :: brief 18256ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  0ea6a710       stored gen=true section=true ground=true :: brief 42813ch + 19-field metadata (fmt=regulatory_fact_document, sev=action_required) from
+  0f2e42ed       stored gen=true section=true ground=true :: brief 23207ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  0f46aabf       stored gen=true section=true ground=true :: brief 19995ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  0f70a032       stored gen=true section=true ground=false :: brief 21210ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  0ff5f197       stored gen=true section=true ground=true :: brief 19306ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  10f3d5b0       stored gen=true section=true ground=false :: brief 17793ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  11794ed7       stored gen=true section=true ground=true :: brief 19180ch + 19-field metadata (fmt=market_signal_brief, sev=cost_alert) from 4 sources
+  120529b8       stored gen=true section=true ground=true :: brief 9639ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 5 sou
+  13af7040       stored gen=true section=true ground=true :: brief 20520ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  156ec17c       stored gen=true section=true ground=true :: brief 8824ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 sou
+  eu_ets_directive_2023_959 stored gen=false section=null ground=null :: fetch failed
+  1c68ba4c       stored gen=true section=true ground=true :: brief 23479ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  brazil-national-policy-on-alternative-fuels-pnca stored gen=true section=true ground=false :: brief 33086ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  1e27cdcc       stored gen=true section=true ground=false :: brief 20685ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  australia-national-electric-vehicle-strategy stored gen=true section=true ground=false :: brief 34639ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  237b3cc1       stored gen=true section=true ground=true :: brief 26292ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  2473ece6       stored gen=true section=true ground=false :: brief 28992ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 4 sources
+  2648d4ad       stored gen=true section=true ground=false :: brief 24333ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  27dfbe4c       stored gen=false section=null ground=null :: fetch failed
+  282e480c       stored gen=true section=true ground=false :: brief 25209ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 5 sources 
+  2943632e       stored gen=true section=true ground=true :: brief 25401ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  2a61e051       stored gen=true section=true ground=false :: brief 36491ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 8 so
+  2c45cae1       stored gen=true section=true ground=false :: brief 29979ch + 19-field metadata (fmt=regulatory_fact_document, sev=action_required) from
+  2f4dc1f8       stored gen=true section=true ground=true :: brief 17722ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  r15            stored gen=true section=true ground=false :: brief 18830ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  3105da5c       stored gen=true section=false ground=true :: brief 4058ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 6 sources (
+  319f785d       stored gen=true section=true ground=false :: brief 29368ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 7 sources (F
+  31b18416       stored gen=true section=true ground=false :: brief 24179ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  3373d06e       stored gen=true section=true ground=false :: brief 23932ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  340ddf31       stored gen=true section=true ground=true :: brief 22211ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 4 sources
+  355af9e8       stored gen=true section=true ground=true :: brief 26508ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 4 so
+  388b2ce8       stored gen=true section=true ground=false :: brief 21408ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 4 sources (F
+  39b5dc20       stored gen=true section=true ground=true :: brief 31020ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 6 so
+  3ae89ce6       stored gen=false section=null ground=null :: fetch failed
+  china-s-national-carbon-market-extension-to-transportation-sector stored gen=true section=true ground=false :: brief 30009ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 4 so
+  3ed4f908       stored gen=true section=true ground=false :: brief 28106ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 4 sources
+  3f11f1fc       stored gen=true section=true ground=false :: brief 22946ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 5 sources 
+  japan-s-green-transformation-gx-league-transport-requirements stored gen=true section=true ground=false :: brief 31118ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 6 so
+  402d311f       stored gen=true section=true ground=false :: brief 19886ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 7 sources (F
+  432a5042       stored gen=true section=true ground=true :: brief 19246ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 4 sources
+  43fd4d25       stored gen=true section=true ground=false :: brief 17906ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  singapore-green-finance-incentive-scheme-for-maritime-decarbonisation stored gen=true section=true ground=true :: brief 23791ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  45006684       stored gen=true section=true ground=false :: brief 19379ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  45f85547       stored gen=true section=true ground=true :: brief 31056ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  46914062       stored gen=true section=true ground=true :: brief 22955ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 7 sources 
+  t4             stored gen=true section=true ground=false :: brief 24155ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  474ab4cd       stored gen=true section=true ground=false :: brief 41169ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 10 s
+  4929e6a9       stored gen=true section=true ground=true :: brief 33676ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  496340f0       stored gen=true section=true ground=false :: brief 24049ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 7 sources 
+  49e7f4ac       stored gen=true section=true ground=false :: brief 15598ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  4c81cebd       stored gen=true section=true ground=false :: brief 30139ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  4d240f75       stored gen=true section=true ground=true :: brief 26654ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  4ff5cf56       stored gen=true section=true ground=false :: brief 27590ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 2 so
+  50ccd5cc       fresh  gen=true section=true ground=false :: brief 19507ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 7 sources (6
+  5351d10b       stored gen=true section=true ground=true :: brief 25027ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  537b8131       stored gen=true section=true ground=true :: brief 27584ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  538c2774       stored gen=true section=true ground=true :: brief 17903ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  54b1082b       stored gen=true section=true ground=false :: brief 21355ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  5511a87f       fresh  gen=true section=true ground=false :: brief 64936ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  55f90df0       stored gen=true section=true ground=true :: brief 35198ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 14 s
+  576554b3       stored gen=true section=true ground=false :: brief 29573ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 12 source
+  5803219e       stored gen=true section=true ground=true :: brief 23095ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 6 sources 
+  595117e9       stored gen=true section=false ground=true :: brief 14404ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 3 sources 
+  canada-clean-fuel-regulations-phase-2 stored gen=true section=true ground=false :: brief 31423ch + 19-field metadata (fmt=regulatory_fact_document, sev=cost_alert) from 5 so
+  5b37050b       fresh  gen=true section=true ground=true :: brief 31504ch + 19-field metadata (fmt=market_signal_brief, sev=cost_alert) from 7 sources
+  5b9b05c7       stored gen=true section=true ground=false :: brief 29914ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 10 s
+  5cc10a6d       stored gen=false section=null ground=null :: fetch failed
+  5d2e7616       stored gen=true section=true ground=true :: brief 19782ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  t7             stored gen=true section=true ground=false :: brief 22771ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  5f1095c9       stored gen=true section=true ground=false :: brief 20539ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  r13            stored gen=true section=true ground=true :: brief 24260ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  5fc45237       stored gen=true section=true ground=false :: brief 22408ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 3 sources
+  5fec12c6       stored gen=true section=true ground=false :: brief 25830ch + 19-field metadata (fmt=market_signal_brief, sev=cost_alert) from 7 sources
+  605a2d06       stored gen=true section=true ground=false :: brief 18312ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  r4             stored gen=true section=true ground=true :: brief 22076ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  62ba40b0       stored gen=true section=true ground=true :: brief 32766ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 3 so
+  sustainable-aviation-fuel-saf-production-pricing stored gen=true section=true ground=false :: brief 27879ch + 19-field metadata (fmt=market_signal_brief, sev=cost_alert) from 4 sources
+  646dda2d       fresh  gen=false section=null ground=null :: no fetchable source content (primary 0ch; 0 discovered, none fetchable)
+  sg-singapore-green-finance-incentive-scheme-for-maritime-decarbonisation stored gen=true section=true ground=true :: brief 22633ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  652b39e1       stored gen=true section=false ground=false :: brief 27128ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  6627ef8b       fresh  gen=true section=true ground=false :: brief 25487ch + 19-field metadata (fmt=market_signal_brief, sev=cost_alert) from 7 sources
+  6662ebeb       fresh  gen=true section=true ground=false :: brief 26028ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 4 sources (6
+  67c6e313       fresh  gen=true section=true ground=false :: brief 15811ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  68af10b5       stored gen=true section=true ground=true :: brief 19364ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  6961f625       stored gen=true section=true ground=true :: brief 26703ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  6a8036a0       stored gen=true section=true ground=true :: brief 22888ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  6a857887       stored gen=false section=null ground=null :: fetch failed
+  6af04bf0       stored gen=true section=true ground=true :: brief 15350ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  6b0939a5       stored gen=true section=true ground=true :: brief 31890ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 5 so
+  6b55b53d       stored gen=true section=true ground=true :: brief 21932ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  6f1e6615       stored gen=true section=true ground=false :: brief 23822ch + 19-field metadata (fmt=regulatory_fact_document, sev=cost_alert) from 4 so
+  solar-battery-energy-storage-for-warehouses stored gen=true section=true ground=false :: brief 19258ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 1 sources 
+  70c108a2       stored gen=true section=true ground=true :: brief 34314ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 11 source
+  7115c978       stored gen=true section=true ground=false :: brief 27650ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 4 sources
+  7126e83b       stored gen=true section=true ground=false :: brief 21494ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  autonomous-connected-freight-technology stored gen=true section=true ground=true :: brief 20309ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  71b03469       stored gen=true section=true ground=true :: brief 22364ch + 19-field metadata (fmt=operations_profile, sev=cost_alert) from 5 sources 
+  7227b685       stored gen=true section=true ground=false :: brief 20813ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 4 sources 
+  74a54415       stored gen=true section=true ground=false :: brief 22666ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  7820e673       stored gen=true section=true ground=true :: brief 27777ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 7 so
+  782878c0       stored gen=false section=null ground=null :: fetch failed
+  78b711f5       stored gen=true section=true ground=true :: brief 28067ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 14 source
+  79e73a30       stored gen=true section=true ground=true :: brief 23160ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 7 sources
+  7a0ead55       stored gen=false section=null ground=null :: fetch failed
+  7aa19423       stored gen=true section=true ground=true :: brief 21827ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 6 sources
+  7ae06612       stored gen=true section=true ground=true :: brief 27218ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 4 sources
+  7ae2adb0       stored gen=true section=true ground=false :: brief 31834ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 15 source
+  r25            stored gen=true section=true ground=false :: brief 19903ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 3 sources
+  7d5bd5a1       stored gen=true section=true ground=false :: brief 22188ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  7e43c296       stored gen=true section=true ground=true :: brief 17724ch + 19-field metadata (fmt=operations_profile, sev=monitoring) from 5 sources 
+  7e4f2b36       stored gen=true section=true ground=true :: brief 19581ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 3 sources (F
+  7fd6fbf1       stored gen=true section=true ground=true :: brief 16587ch + 19-field metadata (fmt=market_signal_brief, sev=cost_alert) from 1 sources
+  82f09535       stored gen=true section=true ground=true :: brief 42561ch + 19-field metadata (fmt=regulatory_fact_document, sev=action_required) from
+  r30            stored gen=true section=true ground=false :: brief 22525ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 1 sources
+  battery-electric-vehicle-technology stored gen=true section=true ground=true :: brief 42407ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F
+  85a7a629       stored gen=true section=true ground=false :: brief 13968ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 2 sources (F
+  878294c8       stored gen=true section=true ground=false :: brief 19774ch + 19-field metadata (fmt=market_signal_brief, sev=monitoring) from 5 sources
+  87ed781c       stored gen=true section=true ground=true :: brief 20788ch + 19-field metadata (fmt=regulatory_fact_document, sev=monitoring) from 5 so
+  88a2918c       fresh  gen=true section=true ground=true :: brief 24276ch + 19-field metadata (fmt=market_signal_brief, sev=cost_alert) from 7 sources
+  88c3a053       stored gen=true section=true ground=true :: brief 21588ch + 19-field metadata (fmt=research_summary, sev=monitoring) from 5 sources (F

@@ -1,0 +1,31 @@
+
+=== SEED === program total (paginated, 1530 rows): $28.8862 | ceiling $85 | headroom $56.11 | soft-cap $80
+
+=== RESTATED BATCH ESTIMATE === 1 items, avg $0.3428, total $0.3428 (2x-stop $0.6857)
+  6a857887     TARGET pool≈289KB slots=4 est $0.3428  — targeted re-ground (FUNDED_BATCH)
+
+=== BATCH GATE === batch fits: projected $29.2290 <= soft cap $80.00
+
+=== PAID RUN (through spend-client, seeded ceiling $85) ===
+  …streaming +5400 chars (5400 total)
+  …streaming +5821 chars (11221 total)
+  …streaming +5833 chars (17054 total)
+  …streaming +5771 chars (22825 total)
+  …streaming +6078 chars (28903 total)
+  …streaming +5702 chars (34605 total)
+  …streaming +6299 chars (40904 total)
+  …streaming +6507 chars (47411 total)
+  6a857887     TARGET $0.6321 valid=false | SF: +0F/+0G 2rl 0j | after=[fact_below_authority_floor,unlabeled_assertion,missing_required_slot]
+
+=== RELEASE/DELETION PLAN EMITTED === 0 release(s), 0 deletion proposal(s), 0 ambiguous(→surface), 0 skipped(topical)
+  plan: C:\Users\jason\dotfiles\fsi-app\scripts\_plans\funded-releases-2026-07-07T00-08-47-586Z.json
+  APPLY: node scripts/apply-funded-releases.mjs "C:\Users\jason\dotfiles\fsi-app\scripts\_plans\funded-releases-2026-07-07T00-08-47-586Z.json" --apply
+
+=== DONE === measured batch spend: $0.6321 | program total now: $29.5184 / $85
+
+=== GENUINE-SUPPORT AUDIT (per forced slot: nominated / judged / decision) ===
+  6a857887     primary_deadline         nom=0 judged=0 confirmed=false -> RELABEL
+  6a857887     penalty_summary          nom=0 judged=0 confirmed=false -> RELABEL
+
+=== CLEAN-VERDICT === ran=1 flipped=0 improved=0 nomination-engaged=0 costOk=true noBreaker=true
+RESULTS_JSON [{"key":"6a857887","cohort":"TARGET","cost":0.6321330000000001,"valid":false,"before":["fact_below_authority_floor","unlabeled_assertion","missing_required_slot"],"after":["fact_below_authority_floor","unlabeled_assertion","missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":0,"relabels":[{"slot_key":"primary_deadline","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"},{"slot_key":"penalty_summary","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"primary_deadline","nominated":0,"judgedTopK":0,"judgeConfirmed":false,"decision":"RELABEL"},{"slot":"penalty_summary","nominated":0,"judgedTopK":0,"judgeConfirmed":false,"decision":"RELABEL"}],"breakerTripped":false}]

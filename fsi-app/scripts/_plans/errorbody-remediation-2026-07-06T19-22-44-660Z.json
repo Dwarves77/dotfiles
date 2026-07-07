@@ -1,0 +1,423 @@
+{
+  "plan": [
+    {
+      "claimId": "09f1cd3c-c3ed-48be-80b3-3aa983b0f2b0",
+      "itemId": "7e4f2b36-81a0-4769-85ae-e70e475076cd",
+      "itemKey": "7e4f2b36",
+      "action": "invalidate",
+      "errHost": "iopscience.iop.org",
+      "span": "Radware Bot Manager Captcha We apologize for the inconvenien"
+    },
+    {
+      "claimId": "1c28593e-a3b8-4d79-b8d0-c6c5c936af5f",
+      "itemId": "67c6e313-e501-48ec-82be-944296aad8db",
+      "itemKey": "67c6e313",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Error 1005 Ray ID: a0872dec5c998fc5 • 2026-06-08 10:23:08 UT"
+    },
+    {
+      "claimId": "2c9c6dae-5e32-4fdb-bc41-c7d9a47b9c67",
+      "itemId": "d136c88c-8816-4727-b15d-a80b96f0f57b",
+      "itemKey": "d136c88c",
+      "action": "invalidate",
+      "errHost": "bennettinstitute.cam.ac.uk",
+      "span": "Page not found"
+    },
+    {
+      "claimId": "2e313b34-c7f7-46a1-848d-7c7f4041266e",
+      "itemId": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+      "itemKey": "d131224a",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "37596362-32e3-4596-b780-c522786ccf34",
+      "itemId": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "itemKey": "b2193d25",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "39593190-5f5c-48be-9c01-d573512e2e8e",
+      "itemId": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+      "itemKey": "68af10b5",
+      "action": "invalidate",
+      "errHost": "publications.iadb.org",
+      "span": "Just a moment... publications.iadb.org Performing security v"
+    },
+    {
+      "claimId": "3d78b13e-819a-468c-89b6-01e98062d978",
+      "itemId": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+      "itemKey": "autonomous-connected-freight-technology",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Just a moment... itf-oecd.org Performing security verificati"
+    },
+    {
+      "claimId": "3f15370d-6f70-4d3b-af7f-d8b5414d843a",
+      "itemId": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "itemKey": "b94cd283",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Access denied | www.adb.org used Cloudflare to restrict acce"
+    },
+    {
+      "claimId": "40bd3a39-e89b-4a18-8ab5-9f97bb4cc216",
+      "itemId": "595117e9-a35f-414c-8182-53ef5b34c647",
+      "itemKey": "595117e9",
+      "action": "invalidate",
+      "errHost": "federalregister.gov",
+      "span": "Your request has been flagged as potentially automated."
+    },
+    {
+      "claimId": "438520a4-17d0-4cdd-b1c0-a39679c90ef3",
+      "itemId": "67c6e313-e501-48ec-82be-944296aad8db",
+      "itemKey": "67c6e313",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Error 1005 Ray ID: a0872cf59aa4c68c • 2026-06-08 10:22:28 UT"
+    },
+    {
+      "claimId": "4707707b-6cce-40ad-87cb-03aa9eb90c3a",
+      "itemId": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+      "itemKey": "d131224a",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "4806d793-e233-46a4-8e12-056d577a70d3",
+      "itemId": "ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+      "itemKey": "ee8f4e71",
+      "action": "invalidate",
+      "errHost": "ilo.org",
+      "span": "Just a moment... www.ilo.org Performing security verificatio"
+    },
+    {
+      "claimId": "4a68bae8-2ae5-4f1e-b2a3-092b57ded22d",
+      "itemId": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+      "itemKey": "605a2d06",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Just a moment... www.itf-oecd.org Performing security verifi"
+    },
+    {
+      "claimId": "4b3b5934-02bc-4ed9-ad10-814bc7688e93",
+      "itemId": "af277afd-b925-4583-852a-eaa6db310888",
+      "itemKey": "af277afd",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "4d91080d-f069-4154-8cbb-21eb5a042628",
+      "itemId": "67c6e313-e501-48ec-82be-944296aad8db",
+      "itemKey": "67c6e313",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "The owner of this website (www.adb.org) has banned the auton"
+    },
+    {
+      "claimId": "550a52a0-e1e7-45a5-b503-08e444c2b5b8",
+      "itemId": "45006684-2f39-4107-934a-e8420c7fbbbb",
+      "itemKey": "45006684",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Just a moment... www.itf-oecd.org Performing security verifi"
+    },
+    {
+      "claimId": "66759a8c-6149-4355-999b-50f2422bfc02",
+      "itemId": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+      "itemKey": "605a2d06",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Performing security verification This website uses a securit"
+    },
+    {
+      "claimId": "6f5962f7-d459-42c0-b6f8-040f474d5003",
+      "itemId": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+      "itemKey": "industrial-electricity-tariff-benchmarks-by-jurisdiction",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "704396bb-d3a2-44b0-9b18-fd304ff9064d",
+      "itemId": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "itemKey": "b94cd283",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Access denied | www.adb.org used Cloudflare to restrict acce"
+    },
+    {
+      "claimId": "755defe0-0fd2-44eb-84b2-55c0c05e5037",
+      "itemId": "595117e9-a35f-414c-8182-53ef5b34c647",
+      "itemKey": "595117e9",
+      "action": "invalidate",
+      "errHost": "federalregister.gov",
+      "span": "Due to aggressive automated scraping of FederalRegister.gov "
+    },
+    {
+      "claimId": "75ed34d4-cddc-435d-beea-a9e00892a0b5",
+      "itemId": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "itemKey": "b94cd283",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Access denied | www.adb.org used Cloudflare to restrict acce"
+    },
+    {
+      "claimId": "7d074315-b7da-49bc-8f37-9a4a0e4767c2",
+      "itemId": "ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+      "itemKey": "ad4cc6c6",
+      "action": "invalidate",
+      "errHost": "customs.go.jp",
+      "span": "The amendment has come into force on 1st February 2007."
+    },
+    {
+      "claimId": "83a01403-c1d0-4b74-a6f4-effeaa2d72ae",
+      "itemId": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+      "itemKey": "68af10b5",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Just a moment... www.itf-oecd.org Performing security verifi"
+    },
+    {
+      "claimId": "88464b8f-77b0-4e63-83d0-e68f29c0d4f4",
+      "itemId": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "itemKey": "b2193d25",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "8bbcf959-d41f-439a-974f-deb797614eb0",
+      "itemId": "67c6e313-e501-48ec-82be-944296aad8db",
+      "itemKey": "67c6e313",
+      "action": "invalidate",
+      "errHost": "blogs.adb.org",
+      "span": "Error 1005 Ray ID: a0872e6059908dfa • 2026-06-08 10:23:26 UT"
+    },
+    {
+      "claimId": "900d3016-b64d-4aac-b689-3d30dfdd3d45",
+      "itemId": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "itemKey": "b94cd283",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Access denied | www.adb.org used Cloudflare to restrict acce"
+    },
+    {
+      "claimId": "93e787ed-5075-4a25-abbd-050a3a6be346",
+      "itemId": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+      "itemKey": "autonomous-connected-freight-technology",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Performing security verification This website uses a securit"
+    },
+    {
+      "claimId": "98fea51c-e446-4495-8c5d-82d7036139b1",
+      "itemId": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+      "itemKey": "battery-electric-vehicle-technology",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "a09bb4c2-7379-4c47-abea-f3019496994a",
+      "itemId": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+      "itemKey": "3f11f1fc",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "af7af39b-f4f9-4320-a74a-2a71628f973c",
+      "itemId": "c1cab7e2-606f-45f1-a229-46c0e7002dfa",
+      "itemKey": "r3",
+      "action": "invalidate",
+      "errHost": "smartfreightcentre.org",
+      "span": "ERROR: The request could not be satisfied 403 ERROR"
+    },
+    {
+      "claimId": "b10f6daa-eeb4-4a56-b210-fb5d3e8324cf",
+      "itemId": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "itemKey": "b2193d25",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "b3e5141c-f135-4f98-94fa-406f4b019e5d",
+      "itemId": "67c6e313-e501-48ec-82be-944296aad8db",
+      "itemKey": "67c6e313",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Error 1005 Ray ID: a0872d6e9a95cf15 • 2026-06-08 10:22:48 UT"
+    },
+    {
+      "claimId": "b48a7160-d41e-403a-ab9a-5b466dbe8244",
+      "itemId": "02ad37c7-8a11-434b-8626-55e92087fbc9",
+      "itemKey": "02ad37c7",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Just a moment... www.itf-oecd.org Performing security verifi"
+    },
+    {
+      "claimId": "b77a76d2-d394-4034-9a70-c4f61b456af8",
+      "itemId": "af277afd-b925-4583-852a-eaa6db310888",
+      "itemKey": "af277afd",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "b949da3c-37c4-41c3-8a45-ecb41d570164",
+      "itemId": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "itemKey": "b94cd283",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Access denied | www.adb.org used Cloudflare to restrict acce"
+    },
+    {
+      "claimId": "b9e487cf-23d0-4e6a-8aad-996309092802",
+      "itemId": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+      "itemKey": "la-eweo-existing-buildings-energy-water-efficiency",
+      "action": "invalidate",
+      "errHost": "energy.ca.gov",
+      "span": "Page not found Page Not Found This page does not exist or it"
+    },
+    {
+      "claimId": "ba951569-b014-4691-9ba0-a9ec1376c7a1",
+      "itemId": "67c6e313-e501-48ec-82be-944296aad8db",
+      "itemKey": "67c6e313",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Error 1005 Ray ID: a0872de71a3449d2 • 2026-06-08 10:23:07 UT"
+    },
+    {
+      "claimId": "bd82866b-a737-4cce-b80c-a950aae6fbfa",
+      "itemId": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+      "itemKey": "r27",
+      "action": "invalidate",
+      "errHost": "airproducts.com",
+      "span": "ERROR: The request could not be satisfied 403 ERROR The requ"
+    },
+    {
+      "claimId": "c0de03dd-4389-4a3d-8cc5-05107b509931",
+      "itemId": "c28b567f-7bd0-4448-b5f0-e3be42334bb6",
+      "itemKey": "c28b567f",
+      "action": "invalidate",
+      "errHost": "federalregister.gov",
+      "span": "Due to aggressive automated scraping of FederalRegister.gov "
+    },
+    {
+      "claimId": "c4781547-ff08-4803-94a4-ce72e9446759",
+      "itemId": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+      "itemKey": "120529b8",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Performing security verification This website uses a securit"
+    },
+    {
+      "claimId": "d354e02b-8e75-4219-b96e-b89264dc1bf1",
+      "itemId": "595117e9-a35f-414c-8182-53ef5b34c647",
+      "itemKey": "595117e9",
+      "action": "invalidate",
+      "errHost": "federalregister.gov",
+      "span": "Due to aggressive automated scraping of FederalRegister.gov "
+    },
+    {
+      "claimId": "d64bfa37-b452-4f23-b861-64129a7e8623",
+      "itemId": "ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+      "itemKey": "ad4cc6c6",
+      "action": "invalidate",
+      "errHost": "customs.go.jp",
+      "span": "The amendment has come into force on 1st February 2007."
+    },
+    {
+      "claimId": "d795fb2f-1e66-4580-baab-fa2dc9c81ee9",
+      "itemId": "af277afd-b925-4583-852a-eaa6db310888",
+      "itemKey": "af277afd",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "dddd2d3a-7fe8-47d2-b903-6d803357be19",
+      "itemId": "947e08f3-0136-423d-8f62-03bb071bad49",
+      "itemKey": "947e08f3",
+      "action": "invalidate",
+      "errHost": "iea.org",
+      "span": "Just a moment... www.iea.org Performing security verificatio"
+    },
+    {
+      "claimId": "dfe183b3-1e9a-4500-bcc2-8dee07d74144",
+      "itemId": "c1cab7e2-606f-45f1-a229-46c0e7002dfa",
+      "itemKey": "r3",
+      "action": "invalidate",
+      "errHost": "smartfreightcentre.org",
+      "span": "ERROR: The request could not be satisfied 403 ERROR The requ"
+    },
+    {
+      "claimId": "e323354f-c38e-4966-b998-df72d306f9b9",
+      "itemId": "67c6e313-e501-48ec-82be-944296aad8db",
+      "itemKey": "67c6e313",
+      "action": "invalidate",
+      "errHost": "adb.org",
+      "span": "Error 1005 Ray ID: a0872d7fae8533ed • 2026-06-08 10:22:50 UT"
+    },
+    {
+      "claimId": "eb6f8993-6f11-43b6-a388-ec7ef5324052",
+      "itemId": "7e4f2b36-81a0-4769-85ae-e70e475076cd",
+      "itemKey": "7e4f2b36",
+      "action": "invalidate",
+      "errHost": "iopscience.iop.org",
+      "span": "Radware Bot Manager Captcha We apologize for the inconvenien"
+    },
+    {
+      "claimId": "f25570f2-a681-437a-af01-483aaac0e682",
+      "itemId": "02ad37c7-8a11-434b-8626-55e92087fbc9",
+      "itemKey": "02ad37c7",
+      "action": "invalidate",
+      "errHost": "itf-oecd.org",
+      "span": "Just a moment... www.itf-oecd.org Performing security verifi"
+    },
+    {
+      "claimId": "f8c7052f-8b6c-4ea0-b291-f0e9bc123497",
+      "itemId": "db8577c6-96e3-4cfa-8bd6-daf538ac3dc5",
+      "itemKey": "db8577c6",
+      "action": "invalidate",
+      "errHost": "federalregister.gov",
+      "span": "Due to aggressive automated scraping of FederalRegister.gov "
+    }
+  ],
+  "items": [
+    "7e4f2b36-81a0-4769-85ae-e70e475076cd",
+    "67c6e313-e501-48ec-82be-944296aad8db",
+    "d136c88c-8816-4727-b15d-a80b96f0f57b",
+    "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+    "b2193d25-f7de-4efb-a816-9d5532e08b44",
+    "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+    "7169c9ac-8a1d-43af-ad97-224c7456464a",
+    "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+    "595117e9-a35f-414c-8182-53ef5b34c647",
+    "ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+    "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+    "af277afd-b925-4583-852a-eaa6db310888",
+    "45006684-2f39-4107-934a-e8420c7fbbbb",
+    "d2b343b4-334d-401e-b93c-962bd8ac9932",
+    "ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+    "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+    "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+    "c1cab7e2-606f-45f1-a229-46c0e7002dfa",
+    "02ad37c7-8a11-434b-8626-55e92087fbc9",
+    "d031e36e-e7b2-4b62-b295-4288fb17067f",
+    "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "c28b567f-7bd0-4448-b5f0-e3be42334bb6",
+    "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+    "947e08f3-0136-423d-8f62-03bb071bad49",
+    "db8577c6-96e3-4cfa-8bd6-daf538ac3dc5"
+  ]
+}

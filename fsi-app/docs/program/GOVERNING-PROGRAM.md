@@ -25,7 +25,7 @@
 > `absent :: <repo-relative-file> :: <verbatim substring>` (substring MUST NOT exist). C5 reads the
 > ACTIVE phase's block only.
 
-ACTIVE_PHASE: phase-2
+ACTIVE_PHASE: phase-intake-gate
 
 ---
 

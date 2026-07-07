@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "emittedAt": "2026-07-06T19:35:59.432Z",
+    "flipped": [
+      "576554b3"
+    ]
+  },
+  "releases": [
+    {
+      "flagId": "9efed96b-908c-4f65-928c-5cd225bd4819",
+      "itemId": "576554b3-7e69-431c-aa4f-474131458b14",
+      "itemKey": "576554b3"
+    }
+  ],
+  "deletionProposals": [],
+  "ambiguous": [],
+  "skipped": []
+}

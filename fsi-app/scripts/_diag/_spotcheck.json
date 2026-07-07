@@ -1,0 +1,97 @@
+[
+ {
+  "key": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+  "type": "regulation",
+  "snapshotLen": 0,
+  "stored": {
+   "ok": true,
+   "detail": "brief 50452ch synthesised from 8 sources (FROM STORED pool — 0 fetches, 0 stored refs)",
+   "len": 50452,
+   "prov": "verified",
+   "claims": 35,
+   "fmt": null,
+   "sev": null,
+   "topics": []
+  },
+  "fresh": {
+   "ok": true,
+   "detail": "brief 36749ch synthesised from 7 sources (6 discovered via web_search)",
+   "len": 36749,
+   "prov": "verified",
+   "claims": 38,
+   "fmt": null,
+   "sev": null,
+   "topics": []
+  }
+ },
+ {
+  "key": "007f42b1",
+  "type": "framework",
+  "snapshotLen": 22798,
+  "stored": {
+   "ok": true,
+   "detail": "brief 25698ch synthesised from 5 sources (FROM STORED pool — 0 fetches, 1 stored refs)",
+   "len": 25698,
+   "prov": "quarantined",
+   "claims": 0,
+   "fmt": null,
+   "sev": "monitoring",
+   "topics": [
+    "freight_planning",
+    "transportation_infrastructure",
+    "supply_chain",
+    "logistics",
+    "texas_statewide_planning",
+    "truck_parking",
+    "border_transportation",
+    "maritime_ports",
+    "multimodal_transportation"
+   ]
+  },
+  "fresh": {
+   "ok": true,
+   "detail": "brief 23614ch synthesised from 6 sources (6 discovered via web_search)",
+   "len": 23614,
+   "prov": "verified",
+   "claims": 15,
+   "fmt": null,
+   "sev": "monitoring",
+   "topics": [
+    "freight_planning",
+    "transportation_infrastructure",
+    "supply_chain",
+    "logistics",
+    "texas_statewide_planning",
+    "truck_parking",
+    "border_transportation",
+    "maritime_ports",
+    "multimodal_transportation"
+   ]
+  }
+ },
+ {
+  "key": "a5",
+  "type": "initiative",
+  "snapshotLen": 25817,
+  "stored": {
+   "ok": true,
+   "detail": "brief 21988ch synthesised from 6 sources (FROM STORED pool — 0 fetches, 0 stored refs)",
+   "len": 21988,
+   "prov": "verified",
+   "claims": 14,
+   "fmt": null,
+   "sev": null,
+   "topics": []
+  },
+  "fresh": {
+   "ok": true,
+   "detail": "brief 24164ch synthesised from 6 sources (6 discovered via web_search)",
+   "len": 24164,
+   "prov": "verified",
+   "claims": 16,
+   "fmt": null,
+   "sev": null,
+   "topics": []
+  }
+ }
+]

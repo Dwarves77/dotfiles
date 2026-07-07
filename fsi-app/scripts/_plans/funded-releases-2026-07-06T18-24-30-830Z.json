@@ -1,0 +1,114 @@
+{
+  "meta": {
+    "emittedAt": "2026-07-06T18:24:30.830Z",
+    "flipped": [
+      "5b9b05c7",
+      "r28",
+      "l10",
+      "sustainable-aviation-fuel-saf-production-pricing",
+      "g18",
+      "w4_ca_ab1305",
+      "7115c978",
+      "g34",
+      "uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+      "g1",
+      "w4_ca_acf",
+      "g17",
+      "o1",
+      "de7f09fc",
+      "c3",
+      "c7",
+      "a3"
+    ]
+  },
+  "releases": [
+    {
+      "flagId": "a3c9192d-2c9a-465e-b340-6178022270c6",
+      "itemId": "5b9b05c7-2c73-4a08-9c98-0a86cba95e43",
+      "itemKey": "5b9b05c7"
+    },
+    {
+      "flagId": "ddde8a29-0a31-4f22-9677-9f20dc477e7c",
+      "itemId": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+      "itemKey": "r28"
+    },
+    {
+      "flagId": "6f8b5217-c5b2-46ba-a7c6-d397697836dc",
+      "itemId": "5f218fc4-8cc0-4b35-87a1-616da962322a",
+      "itemKey": "l10"
+    },
+    {
+      "flagId": "95506ba7-7283-4ac4-9cd1-4971a30f143b",
+      "itemId": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+      "itemKey": "sustainable-aviation-fuel-saf-production-pricing"
+    },
+    {
+      "flagId": "b9c18f15-0fc9-478e-91ef-cf781cd3deac",
+      "itemId": "68e05861-c953-485d-b081-cb6777dcfd99",
+      "itemKey": "g18"
+    },
+    {
+      "flagId": "50fa6274-0d29-44e3-b29b-f787dded68a9",
+      "itemId": "69d5dacb-b0a0-4b27-9784-4967e5759c1f",
+      "itemKey": "w4_ca_ab1305"
+    },
+    {
+      "flagId": "84017c97-b0ab-4140-9162-aca16c5572e9",
+      "itemId": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+      "itemKey": "7115c978"
+    },
+    {
+      "flagId": "dde8064c-bf3d-4072-9ae8-b40ea05c2080",
+      "itemId": "7aaecc81-b065-4f32-934b-d4c981269e8b",
+      "itemKey": "g34"
+    },
+    {
+      "flagId": "8d28225e-8e1e-4780-8fe2-8d050ebf9f44",
+      "itemId": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+      "itemKey": "uk-streamlined-energy-and-carbon-reporting-secr-amendment"
+    },
+    {
+      "flagId": "79307f9f-397d-47f7-8c8c-efb190fff3eb",
+      "itemId": "bf54dc59-ad47-4e2e-9984-cc4cd0206435",
+      "itemKey": "g1"
+    },
+    {
+      "flagId": "469e4a43-30b0-4640-a52f-29410a5b1407",
+      "itemId": "ccee10a4-da4a-4a65-810e-51142ec3b753",
+      "itemKey": "w4_ca_acf"
+    },
+    {
+      "flagId": "95dda314-f743-4fb9-bedd-fc6e760fc4f5",
+      "itemId": "cec7d711-13b2-41f0-8016-76c988f116ab",
+      "itemKey": "g17"
+    },
+    {
+      "flagId": "b8f2cd79-3cc5-48ce-8f5f-a82c60c1d9ac",
+      "itemId": "daecac87-8af7-4d9c-90d8-fc6f5a7bfbff",
+      "itemKey": "o1"
+    },
+    {
+      "flagId": "15db451d-4901-4601-b82f-b1a619c6bb87",
+      "itemId": "de7f09fc-b66e-41d2-a3a9-876aeda6a7e1",
+      "itemKey": "de7f09fc"
+    },
+    {
+      "flagId": "e9c7d71b-53b5-446a-a591-d3638282f405",
+      "itemId": "e9723d32-6006-42d2-bbdd-02f191629b5e",
+      "itemKey": "c3"
+    },
+    {
+      "flagId": "bd3111bf-8fce-4869-bafc-fe5ece288325",
+      "itemId": "ee129098-5f10-4c22-9c7f-95082f8650ac",
+      "itemKey": "c7"
+    },
+    {
+      "flagId": "3b5cae13-99d4-4a1a-8773-e49b3461e5be",
+      "itemId": "f2269121-4e10-4bdc-99bf-1e9c6a1b35e4",
+      "itemKey": "a3"
+    }
+  ],
+  "deletionProposals": [],
+  "ambiguous": [],
+  "skipped": []
+}

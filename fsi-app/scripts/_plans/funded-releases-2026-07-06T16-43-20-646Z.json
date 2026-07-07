@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "emittedAt": "2026-07-06T16:43:20.646Z",
+    "flipped": [
+      "4ff5cf56",
+      "388b2ce8"
+    ]
+  },
+  "releases": [
+    {
+      "flagId": "e3a6f03b-6c8c-4eff-a4fd-8b0608fbb92a",
+      "itemId": "4ff5cf56-1a02-4889-9192-39838fb96857",
+      "itemKey": "4ff5cf56"
+    },
+    {
+      "flagId": "16dccff2-1eb6-4991-92d7-62d748e1dc50",
+      "itemId": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+      "itemKey": "388b2ce8"
+    },
+    {
+      "flagId": "e0e6cbe1-cd12-4566-8319-0183cf3e666e",
+      "itemId": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+      "itemKey": "388b2ce8"
+    }
+  ],
+  "deletionProposals": [],
+  "ambiguous": [],
+  "skipped": []
+}

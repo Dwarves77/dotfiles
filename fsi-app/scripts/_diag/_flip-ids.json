@@ -1,0 +1,227 @@
+[
+ {
+  "id": "007f42b1-265a-4504-8bd1-ea1557d410ad",
+  "key": "007f42b1",
+  "type": "framework"
+ },
+ {
+  "id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+  "key": "japan-s-green-transformation-gx-league-transport-requirements",
+  "type": "framework"
+ },
+ {
+  "id": "4c81cebd-6921-40ef-8c4a-89961d1e1d83",
+  "key": "4c81cebd",
+  "type": "guidance"
+ },
+ {
+  "id": "576554b3-7e69-431c-aa4f-474131458b14",
+  "key": "576554b3",
+  "type": "guidance"
+ },
+ {
+  "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+  "key": "0af6afdf",
+  "type": "initiative"
+ },
+ {
+  "id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+  "key": "1e27cdcc",
+  "type": "initiative"
+ },
+ {
+  "id": "2473ece6-c48d-4561-be99-b4958bb34ffe",
+  "key": "2473ece6",
+  "type": "initiative"
+ },
+ {
+  "id": "49e7f4ac-7b95-497f-a510-d95c08da36f8",
+  "key": "49e7f4ac",
+  "type": "initiative"
+ },
+ {
+  "id": "5f1095c9-4098-4b62-99b3-cf54a6b1e3aa",
+  "key": "5f1095c9",
+  "type": "initiative"
+ },
+ {
+  "id": "7ae2adb0-352c-494d-acf1-45fc6540f735",
+  "key": "7ae2adb0",
+  "type": "initiative"
+ },
+ {
+  "id": "7ae77ef8-211a-4f20-ad88-341c8dcdae65",
+  "key": "r25",
+  "type": "initiative"
+ },
+ {
+  "id": "878294c8-ebc3-4cae-9644-4e931bc6549f",
+  "key": "878294c8",
+  "type": "initiative"
+ },
+ {
+  "id": "10f3d5b0-9814-490b-ae23-35feb93bfc1b",
+  "key": "10f3d5b0",
+  "type": "market_signal"
+ },
+ {
+  "id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+  "key": "r15",
+  "type": "market_signal"
+ },
+ {
+  "id": "3ed4f908-cc26-4bdd-ad6f-64cfb6b49cbe",
+  "key": "3ed4f908",
+  "type": "market_signal"
+ },
+ {
+  "id": "46c528f5-c366-4738-98f5-db9accea8780",
+  "key": "t4",
+  "type": "market_signal"
+ },
+ {
+  "id": "54b1082b-e9da-439e-8d46-dc909f6be686",
+  "key": "54b1082b",
+  "type": "market_signal"
+ },
+ {
+  "id": "5e0af336-e997-47ae-a235-b7b155d742bb",
+  "key": "t7",
+  "type": "market_signal"
+ },
+ {
+  "id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+  "key": "5fc45237",
+  "type": "market_signal"
+ },
+ {
+  "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+  "key": "sustainable-aviation-fuel-saf-production-pricing",
+  "type": "market_signal"
+ },
+ {
+  "id": "67c6e313-e501-48ec-82be-944296aad8db",
+  "key": "67c6e313",
+  "type": "market_signal"
+ },
+ {
+  "id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+  "key": "7115c978",
+  "type": "market_signal"
+ },
+ {
+  "id": "7126e83b-4c96-4daa-8391-f49f970ce193",
+  "key": "7126e83b",
+  "type": "market_signal"
+ },
+ {
+  "id": "7d5bd5a1-07db-4271-81c8-d9f6e177bc77",
+  "key": "7d5bd5a1",
+  "type": "market_signal"
+ },
+ {
+  "id": "0658844a-5f65-4444-89fb-bf73a22bafc6",
+  "key": "dubai-uae-regional-operations-profile",
+  "type": "regional_data"
+ },
+ {
+  "id": "282e480c-3d79-4ab8-8f60-b4c77fa3b228",
+  "key": "282e480c",
+  "type": "regional_data"
+ },
+ {
+  "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+  "key": "3f11f1fc",
+  "type": "regional_data"
+ },
+ {
+  "id": "496340f0-1dbf-47f9-bc7d-c5e3f452c107",
+  "key": "496340f0",
+  "type": "regional_data"
+ },
+ {
+  "id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+  "key": "solar-battery-energy-storage-for-warehouses",
+  "type": "regional_data"
+ },
+ {
+  "id": "05e2d1c1-7e87-443a-9178-a475d4d6c3b9",
+  "key": "g7",
+  "type": "regulation"
+ },
+ {
+  "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+  "key": "australia-national-electric-vehicle-strategy",
+  "type": "regulation"
+ },
+ {
+  "id": "2a61e051-2c18-4464-9080-52c6b2964edf",
+  "key": "2a61e051",
+  "type": "regulation"
+ },
+ {
+  "id": "474ab4cd-c157-4451-8c7f-f9c9ab0015b6",
+  "key": "474ab4cd",
+  "type": "regulation"
+ },
+ {
+  "id": "4ff5cf56-1a02-4889-9192-39838fb96857",
+  "key": "4ff5cf56",
+  "type": "regulation"
+ },
+ {
+  "id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+  "key": "canada-clean-fuel-regulations-phase-2",
+  "type": "regulation"
+ },
+ {
+  "id": "5b9b05c7-2c73-4a08-9c98-0a86cba95e43",
+  "key": "5b9b05c7",
+  "type": "regulation"
+ },
+ {
+  "id": "6f1e6615-2394-440b-bd4c-88b7bf711c72",
+  "key": "6f1e6615",
+  "type": "regulation"
+ },
+ {
+  "id": "0d59991d-2c66-44f5-bcb8-713e8cd03b3a",
+  "key": "r9",
+  "type": "research_finding"
+ },
+ {
+  "id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+  "key": "319f785d",
+  "type": "research_finding"
+ },
+ {
+  "id": "3373d06e-22a6-4287-8aac-173169159177",
+  "key": "3373d06e",
+  "type": "research_finding"
+ },
+ {
+  "id": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+  "key": "388b2ce8",
+  "type": "research_finding"
+ },
+ {
+  "id": "402d311f-ea4a-4bfa-8bda-93a64076898d",
+  "key": "402d311f",
+  "type": "research_finding"
+ },
+ {
+  "id": "45006684-2f39-4107-934a-e8420c7fbbbb",
+  "key": "45006684",
+  "type": "research_finding"
+ },
+ {
+  "id": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+  "key": "605a2d06",
+  "type": "research_finding"
+ },
+ {
+  "id": "85a7a629-744d-4e59-9b9a-959cf76e5226",
+  "key": "85a7a629",
+  "type": "research_finding"
+ }
+]

@@ -1,0 +1,122 @@
+
+=== CASCADE === auto-selected 15 ground-only-eligible items (counsel-held excluded: 19)
+
+=== SEED === program total (paginated, 1460 rows): $26.0324 | ceiling $85 | headroom $58.97 | soft-cap $80
+
+=== RESTATED BATCH ESTIMATE === 15 items, avg $0.1817, total $2.7259 (2x-stop $5.4517)
+  g33          CASCADE pool≈230KB slots=4 est $0.2989  — regulation/CRITICAL
+  w4_ca_sb261  CASCADE pool≈17KB slots=4 est $0.1386  — regulation/CRITICAL
+  w4_ca_sb253  CASCADE pool≈26KB slots=4 est $0.1453  — regulation/CRITICAL
+  l6           CASCADE pool≈80KB slots=4 est $0.1859  — regulation/HIGH
+  595117e9     CASCADE pool≈6KB slots=4 est $0.1303  — regional_data/LOW
+  g20          CASCADE pool≈41KB slots=4 est $0.1566  — framework/HIGH
+  solar-battery-energy-storage-for-warehouses CASCADE pool≈14KB slots=4 est $0.1368  — regional_data/LOW
+  eu-net-zero-industry-act-2024-1735 CASCADE pool≈154KB slots=4 est $0.2418  — regulation/LOW
+  85a7a629     CASCADE pool≈12KB slots=4 est $0.1351  — research_finding/LOW
+  ab362011     CASCADE pool≈48KB slots=4 est $0.1622  — market_signal/LOW
+  c28b567f     CASCADE pool≈44KB slots=4 est $0.1587  — market_signal/MODERATE
+  o4           CASCADE pool≈95KB slots=4 est $0.1973  — regulation/HIGH
+  a1           CASCADE pool≈66KB slots=4 est $0.1756  — framework/HIGH
+  db8577c6     CASCADE pool≈59KB slots=4 est $0.1704  — framework/LOW
+  o2           CASCADE pool≈222KB slots=4 est $0.2924  — regulation/HIGH
+
+=== BATCH GATE === batch fits: projected $28.7583 <= soft cap $80.00
+
+=== PAID RUN (through spend-client, seeded ceiling $85) ===
+  …streaming +7101 chars (7101 total)
+  …streaming +7364 chars (14465 total)
+  …streaming +7347 chars (21812 total)
+  …streaming +7638 chars (29450 total)
+  g33          CASCADE $0.3049 valid=false | SF: +0F/+0G 1rl 3j | after=[missing_required_slot]
+  …streaming +8469 chars (8469 total)
+  …streaming +9173 chars (17642 total)
+  …streaming +10113 chars (27755 total)
+  w4_ca_sb261  CASCADE $0.1617 valid=false | SF: +0F/+0G 1rl 3j | after=[missing_required_slot]
+  …streaming +7835 chars (7835 total)
+  …streaming +8726 chars (16561 total)
+  …streaming +8765 chars (25326 total)
+  …streaming +7825 chars (33151 total)
+  w4_ca_sb253  CASCADE $0.2051 valid=false | SF: +0F/+0G 1rl 3j | after=[unlabeled_assertion,missing_required_slot]
+[error-body-gate] item 4d5670cb-b40f-41fa-b28d-39378d0b7f69: excluded failed-fetch capture from grounding — https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3*
+[error-body-gate] item 4d5670cb-b40f-41fa-b28d-39378d0b7f69: excluded failed-fetch capture from grounding — https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3
+  …streaming +7599 chars (7599 total)
+  …streaming +8084 chars (15683 total)
+  l6           CASCADE $0.2276 valid=false | SF: +0F/+0G 0rl 0j | after=[unlabeled_assertion]
+[error-body-gate] item 595117e9-a35f-414c-8182-53ef5b34c647: excluded failed-fetch capture from grounding — https://www.federalregister.gov/documents/2026/02/24/2026-03648/guidance-on-multimodal-state-freight-plans-and-state-freight-advisory-committees
+  …streaming +7738 chars (7738 total)
+  595117e9     CASCADE $0.0668 valid=false | SF: +0F/+0G 0rl 0j | after=[unlabeled_assertion]
+  …streaming +6446 chars (6446 total)
+  …streaming +7105 chars (13551 total)
+  …streaming +6534 chars (20085 total)
+  g20          CASCADE $0.1532 valid=false | SF: +0F/+0G 1rl 3j | after=[unlabeled_assertion,missing_required_slot]
+  …streaming +10612 chars (10612 total)
+  solar-battery-energy-storage-for-warehouses CASCADE $0.1007 valid=false | SF: +0F/+0G 1rl 3j | after=[missing_required_slot]
+  …streaming +5893 chars (5893 total)
+  …streaming +6986 chars (12879 total)
+  …streaming +7364 chars (20243 total)
+  …streaming +7086 chars (27329 total)
+  eu-net-zero-industry-act-2024-1735 CASCADE $0.2736 valid=true | SF: +1F/+0G 0rl 3j | after=[CLEAR]
+  …streaming +6244 chars (6244 total)
+  85a7a629     CASCADE $0.0606 valid=false | SF: +0F/+0G 1rl 0j | after=[missing_required_slot]
+[error-body-gate] item ab362011-bea5-4cc3-95b2-c185ced3c2de: excluded failed-fetch capture from grounding — https://thebrakereport.com/cvsa-2026-international-roadcheck-underway-targeting-eld-and-cargo-securement/
+  …streaming +6698 chars (6698 total)
+  …streaming +8148 chars (14846 total)
+  …streaming +7259 chars (22105 total)
+  ab362011     CASCADE $0.1613 valid=false | SF: +0F/+0G 1rl 3j | after=[missing_required_slot]
+[error-body-gate] item c28b567f-7bd0-4448-b5f0-e3be42334bb6: excluded failed-fetch capture from grounding — https://www.federalregister.gov/documents/2026/02/24/2026-03648/guidance-on-multimodal-state-freight-plans-and-state-freight-advisory-committees
+  …streaming +7079 chars (7079 total)
+  …streaming +9361 chars (16440 total)
+  …streaming +8616 chars (25056 total)
+  c28b567f     CASCADE $0.1709 valid=false | SF: +0F/+0G 4rl 12j | after=[missing_required_slot]
+  …streaming +6846 chars (6846 total)
+  …streaming +7540 chars (14386 total)
+  o4           CASCADE $0.1797 valid=false | SF: +0F/+0G 1rl 3j | after=[unlabeled_assertion,missing_required_slot]
+[error-body-gate] item cc0958fb-6453-4163-8363-27515817597f: excluded failed-fetch capture from grounding — https://www.iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-corsia/
+  …streaming +6752 chars (6752 total)
+  …streaming +8659 chars (15411 total)
+  …streaming +8200 chars (23611 total)
+  …streaming +7537 chars (31148 total)
+  a1           CASCADE $0.2511 valid=false | SF: +0F/+0G 1rl 3j | after=[fact_below_authority_floor,missing_required_slot]
+[error-body-gate] item db8577c6-96e3-4cfa-8bd6-daf538ac3dc5: excluded failed-fetch capture from grounding — https://www.dot.ga.gov/InvestSmart/Freight/GeorgiaFreight/HB617_FY2024_AnnualReport.pdf
+[error-body-gate] item db8577c6-96e3-4cfa-8bd6-daf538ac3dc5: excluded failed-fetch capture from grounding — https://www.federalregister.gov/documents/2026/02/24/2026-03648/guidance-on-multimodal-state-freight-plans-and-state-freight-advisory-committees
+  …streaming +7398 chars (7398 total)
+  …streaming +7420 chars (14818 total)
+  …streaming +9125 chars (23943 total)
+  …streaming +6882 chars (30825 total)
+  db8577c6     CASCADE $0.2230 valid=false | SF: +0F/+0G 2rl 6j | after=[missing_required_slot]
+  …streaming +5819 chars (5819 total)
+  …streaming +6731 chars (12550 total)
+  …streaming +6794 chars (19344 total)
+  …streaming +6828 chars (26172 total)
+  o2           CASCADE $0.3135 valid=false | SF: +1F/+0G 3rl 10j | after=[missing_required_slot]
+
+=== RELEASE/DELETION PLAN EMITTED === 1 release(s), 0 deletion proposal(s), 0 ambiguous(→surface), 0 skipped(topical)
+  plan: C:\Users\jason\dotfiles\fsi-app\scripts\_plans\funded-releases-2026-07-06T22-47-26-331Z.json
+  APPLY: node scripts/apply-funded-releases.mjs "C:\Users\jason\dotfiles\fsi-app\scripts\_plans\funded-releases-2026-07-06T22-47-26-331Z.json" --apply
+
+=== DONE === measured batch spend: $2.8538 | program total now: $28.8862 / $85
+
+=== GENUINE-SUPPORT AUDIT (per forced slot: nominated / judged / decision) ===
+  g33          penalty_summary          nom=3 judged=3 confirmed=false -> RELABEL (Span describes cost recovery by Member States, not penalties)
+  w4_ca_sb261  jurisdictional_scope     nom=3 judged=3 confirmed=false -> RELABEL (Span defines exclusions from 'covered entity' scope, not whe)
+  w4_ca_sb253  primary_deadline         nom=3 judged=3 confirmed=false -> RELABEL (Span describes a future review/update obligation (2029–2030))
+  g20          effective_date           nom=3 judged=3 confirmed=false -> RELABEL (Span contains only publication metadata (dates, file info, f)
+  solar-battery-energy-storage-for-warehouses pending_change           nom=3 judged=3 confirmed=false -> RELABEL (Span describes solar physics/performance variation, not pend)
+  eu-net-zero-industry-act-2024-1735 jurisdictional_scope     nom=3 judged=3 confirmed=true -> FACT (judge-confirmed)
+  85a7a629     decision_relevance       nom=0 judged=0 confirmed=false -> RELABEL
+  ab362011     signal_event             nom=3 judged=3 confirmed=false -> RELABEL (Span is a headline/commentary framing, not a named triggerin)
+  c28b567f     signal_event             nom=3 judged=3 confirmed=false -> RELABEL (Span is boilerplate language selection UI text, contains no )
+  c28b567f     driving_parties          nom=3 judged=3 confirmed=false -> RELABEL (Span lists program/document titles only. Names no parties, t)
+  c28b567f     conversion_trigger       nom=3 judged=3 confirmed=false -> RELABEL (Span is boilerplate website disclaimer unrelated to conversi)
+  c28b567f     action_now               nom=3 judged=3 confirmed=false -> RELABEL (Span is a navigation menu/index listing only. Contains no ac)
+  o4           penalty_summary          nom=3 judged=3 confirmed=false -> RELABEL (Span is navigation menu/boilerplate only; contains no penalt)
+  a1           primary_deadline         nom=3 judged=3 confirmed=false -> RELABEL (Span addresses administrative coordination, not a compliance)
+  db8577c6     effective_date           nom=3 judged=3 confirmed=false -> RELABEL (Span describes welcome centers, safety resources, and traffi)
+  db8577c6     jurisdictional_scope     nom=3 judged=3 confirmed=false -> RELABEL (Span describes toolkit purpose/scope, not the jurisdictional)
+  o2           effective_date           nom=3 judged=3 confirmed=false -> RELABEL (Span is recital/commentary about administrative best practic)
+  o2           primary_deadline         nom=3 judged=3 confirmed=true -> FACT (judge-confirmed)
+  o2           jurisdictional_scope     nom=3 judged=3 confirmed=false -> RELABEL (Span addresses energy accounting for outermost regions, not )
+  o2           penalty_summary          nom=3 judged=3 confirmed=false -> RELABEL (Span describes risks to biodiversity from indirect land-use )
+
+=== CLEAN-VERDICT === ran=15 flipped=1 improved=3 nomination-engaged=12 costOk=true noBreaker=true
+RESULTS_JSON [{"key":"g33","cohort":"CASCADE","cost":0.304888,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"penalty_summary","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"penalty_summary","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span describes cost recovery by Member States, not penalties/risks to workspace for non-compliance."}],"breakerTripped":false},{"key":"w4_ca_sb261","cohort":"CASCADE","cost":0.16170900000000002,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"jurisdictional_scope","section":"14","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"jurisdictional_scope","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span defines exclusions from 'covered entity' scope, not where regulation applies. It clarifies WHO "}],"breakerTripped":false},{"key":"w4_ca_sb253","cohort":"CASCADE","cost":0.205128,"valid":false,"before":["unlabeled_assertion","missing_required_slot"],"after":["unlabeled_assertion","missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"primary_deadline","section":"14","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"primary_deadline","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span describes a future review/update obligation (2029–2030), not an enacted primary compliance dead"}],"breakerTripped":false},{"key":"l6","cohort":"CASCADE","cost":0.22763099999999997,"valid":false,"before":["analysis_missing_label_syntax","unlabeled_assertion","missing_required_slot"],"after":["unlabeled_assertion"],"factsForced":0,"gapsForced":0,"judgeCalls":0,"relabels":[],"audit":[],"breakerTripped":false},{"key":"595117e9","cohort":"CASCADE","cost":0.06681000000000001,"valid":false,"before":["unlabeled_assertion","missing_required_slot"],"after":["unlabeled_assertion"],"factsForced":0,"gapsForced":0,"judgeCalls":0,"relabels":[],"audit":[],"breakerTripped":false},{"key":"g20","cohort":"CASCADE","cost":0.153172,"valid":false,"before":["fact_below_authority_floor","unlabeled_assertion","missing_required_slot"],"after":["unlabeled_assertion","missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"effective_date","section":"14","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"effective_date","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span contains only publication metadata (dates, file info, footer links). No enacted effective date "}],"breakerTripped":false},{"key":"solar-battery-energy-storage-for-warehouses","cohort":"CASCADE","cost":0.100701,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"pending_change","section":"8","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"pending_change","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span describes solar physics/performance variation, not pending regulatory, infrastructure, market, "}],"breakerTripped":false},{"key":"eu-net-zero-industry-act-2024-1735","cohort":"CASCADE","cost":0.273629,"valid":true,"before":["unlabeled_assertion","missing_required_slot"],"after":[],"factsForced":1,"gapsForced":0,"judgeCalls":3,"relabels":[],"audit":[{"slot":"jurisdictional_scope","nominated":3,"judgedTopK":3,"judgeConfirmed":true,"decision":"FACT","why":"judge-confirmed"}],"breakerTripped":false},{"key":"85a7a629","cohort":"CASCADE","cost":0.060557999999999994,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":0,"relabels":[{"slot_key":"decision_relevance","section":"5","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"decision_relevance","nominated":0,"judgedTopK":0,"judgeConfirmed":false,"decision":"RELABEL"}],"breakerTripped":false},{"key":"ab362011","cohort":"CASCADE","cost":0.16131500000000001,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"signal_event","section":"8","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"signal_event","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span is a headline/commentary framing, not a named triggering event. No specific announcement, polic"}],"breakerTripped":false},{"key":"c28b567f","cohort":"CASCADE","cost":0.17094499999999999,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":12,"relabels":[{"slot_key":"signal_event","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"},{"slot_key":"driving_parties","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"},{"slot_key":"conversion_trigger","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"},{"slot_key":"action_now","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"signal_event","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span is boilerplate language selection UI text, contains no signal event, triggering development, an"},{"slot":"driving_parties","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span lists program/document titles only. Names no parties, their interests, or leverage. Navigation "},{"slot":"conversion_trigger","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span is boilerplate website disclaimer unrelated to conversion triggers, regulatory obligations, or "},{"slot":"action_now","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span is a navigation menu/index listing only. Contains no actionable requirement, positioning move, "}],"breakerTripped":false},{"key":"o4","cohort":"CASCADE","cost":0.179676,"valid":false,"before":["unlabeled_assertion","missing_required_slot"],"after":["unlabeled_assertion","missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"penalty_summary","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"penalty_summary","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span is navigation menu/boilerplate only; contains no penalty information or binding requirements."}],"breakerTripped":false},{"key":"a1","cohort":"CASCADE","cost":0.251133,"valid":false,"before":["fact_below_authority_floor","missing_required_slot"],"after":["fact_below_authority_floor","missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":3,"relabels":[{"slot_key":"primary_deadline","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"primary_deadline","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span addresses administrative coordination, not a compliance deadline. No date or temporal requireme"}],"breakerTripped":false},{"key":"db8577c6","cohort":"CASCADE","cost":0.22296599999999997,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":0,"gapsForced":0,"judgeCalls":6,"relabels":[{"slot_key":"effective_date","section":"14","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"},{"slot_key":"jurisdictional_scope","section":"14","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"effective_date","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span describes welcome centers, safety resources, and traffic info services. Contains no information"},{"slot":"jurisdictional_scope","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span describes toolkit purpose/scope, not the jurisdictional scope (geographic or legal) where a fra"}],"breakerTripped":false},{"key":"o2","cohort":"CASCADE","cost":0.31354899999999997,"valid":false,"before":["missing_required_slot"],"after":["missing_required_slot"],"factsForced":1,"gapsForced":0,"judgeCalls":10,"relabels":[{"slot_key":"effective_date","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"},{"slot_key":"jurisdictional_scope","section":"15","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"},{"slot_key":"penalty_summary","section":"14","reason":"prose covers it but the span is not judge-supported as a binding FACT — route to 4c label (grounded analysis), NOT a forced FACT"}],"audit":[{"slot":"effective_date","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span is recital/commentary about administrative best practices, not an enacted effective date requir"},{"slot":"primary_deadline","nominated":3,"judgedTopK":3,"judgeConfirmed":true,"decision":"FACT","why":"judge-confirmed"},{"slot":"jurisdictional_scope","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span addresses energy accounting for outermost regions, not where regulation applies. It's a carve-o"},{"slot":"penalty_summary","nominated":3,"judgedTopK":3,"judgeConfirmed":false,"decision":"RELABEL","why":"Span describes risks to biodiversity from indirect land-use change, not penalties/sanctions for work"}],"breakerTripped":false}]

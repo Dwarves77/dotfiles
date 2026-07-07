@@ -1,0 +1,123 @@
+{
+ "id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+ "source_url": "https://eur-lex.europa.eu/eli/reg/2023/1805/oj/eng",
+ "status": "quarantined",
+ "cl": [
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": null
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 1
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": null
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": null
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": null
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": null
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 4
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  },
+  {
+   "claim_kind": "FACT",
+   "source_tier_at_grounding": 2
+  }
+ ]
+}
