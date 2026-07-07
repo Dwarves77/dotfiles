@@ -117,6 +117,22 @@ committed files until Jason's apply window.
 - **WON'T-FIX (proposed): 0.**
 - **Silent drops (map to NO phase): 0.** Every registered finding has a row and a gate.
 
+## Disposition updates — 2026-07-07 (later same day; operator delegated applies/merges to the agent)
+
+- **S1-03** → **FIXED + APPLIED**: migration 157 applied + verified at both layers (pg_policies
+  read-back; anon PostgREST smoke: staged/provisional/quarantined/unverified all 0, verified 283
+  visible; service-role unaffected).
+- **S1-12** → definer view **APPLIED** (security_invoker=on, read-back); **leaked-password
+  protection ENABLED** (Management API PATCH + read-back). Residual: 165-fn search_path stays a
+  reviewed companion migration (break-risky ruling — never a live-prod sweep).
+- **S4-01** → **FIXED (DB side)**: ledger repaired — 136–157 recorded after per-migration signature
+  verification (all 21 confirmed live); three sources of truth converge. Residual: C3-compares-
+  against-DB code change stays a later-block item.
+- **S1-04 (deploy half)** → verified live: `WORKER_SECRET` present in GHA secrets AND confirmed in
+  Vercel prod behaviorally (wrong-secret probe → 401 from the new fail-closed guard, not 500).
+- **S2-05** → **FIXED**: NotesField persists to `workspace_item_overrides.notes` (server-read
+  initial value + debounced authed POST; localStorage removed; label now true).
+
 ## Standing rule (codified here, going forward)
 
 **Any future page/surface audit lands as a findings register FIRST** (stable IDs + surface + severity
