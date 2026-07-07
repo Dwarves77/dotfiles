@@ -264,6 +264,9 @@
      chips (HANDOFF §2). Text-only destructive register, never a filled pill. */
   /* Destructive-quiet — Ban/Delete text actions + the "does not resolve" rust
      rule on Research findings (HANDOFF §2). */
+  /* Destructive-quiet — Ban / Delete text actions (HANDOFF §2). Destructive
+     actions are WORDS, never icons; this ink names the "Ban" verb in the
+     Admin member rows. Distinct from --sev-critical (used for alarm counts). */
   --destructive-quiet: #9A3412;
 
   /* Severity spectrum — HANDOFF §2 named values. */
@@ -473,6 +476,10 @@
   --color-text-link: #60A5FA;
   --color-text-inverse: #111210;
   --color-text-accent: #F07030;
+
+  /* Destructive-quiet (dark) — lighter tonal variant so the Ban verb keeps
+     AA contrast on the dark surface. */
+  --destructive-quiet: #F0855A;
 
   /* Shadows (dark) */
   --shadow-card: 0 1px 3px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.20);
