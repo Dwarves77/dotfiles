@@ -4,6 +4,14 @@
 > audit documents. Ordered by severity, most important first. Every entry: what it is, where it
 > lives, why it matters, and a fix scoped small enough to execute as a single task.
 >
+> **⚠️ SUPERSEDED IN PART (later same day).** This was a top-down pass. A subsequent line-by-line
+> functional audit reconciled against the **live production database** produced
+> [DEEP-AUDIT-2026-07-07.md](DEEP-AUDIT-2026-07-07.md) + [MASTER-PLAN.md](MASTER-PLAN.md). Where
+> they disagree, the deep audit wins (it has live-DB proof). Live corrections to this file:
+> (a) migrations 146–153 in #11 are **actually APPLIED** — the schema is at 153; the ledger/inventory
+> are wrong, not the DB; (b) #10 understated it — `/api/staged-updates` has **no admin gate**;
+> (c) #4's anon-read exposure is **live-confirmed**.
+>
 > Verify current state before acting on any entry — this repo changes fast, and some June-audit
 > findings were already fixed by July (those are listed in §"Recently closed" at the bottom so
 > they don't get re-reported).
