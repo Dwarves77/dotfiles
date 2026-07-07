@@ -17,9 +17,12 @@ import { fitnessFunction as F11 } from './functions/F11-trust-tier-weights.mjs';
 // ONLY (reputation/effective_tier never confers grounding eligibility). Behavioral selftest fails loud
 // on a reintroduced `?? effective_tier` fallback the corpus audits cannot catch.
 import { fitnessFunction as F12 } from './functions/F12-moat-base-tier.mjs';
+// phase-intake-gate (2026-07-01, dispatch §2): F13 makes the single-mint-chokepoint claim an INVARIANT.
+// Every intelligence_items INSERT must go through mintIntelligenceItem(); a direct INSERT bypasses the
+// congruence + dedup + relevance gate (the drain-first-fetch direct-mint that produced the 38 polluters).
+import { fitnessFunction as F13 } from './functions/F13-single-mint-chokepoint.mjs';
 // A2 half-slice detector (2026-07-03): F14 mechanizes the producer-consumer orphan check —
 // a writer with no reader — that every prior audit found by hand. Maps to invariant RD-9.
-// (F13 is reserved by the in-flight intake-gate PR #171; F14 avoids the collision.)
 import { fitnessFunction as F14 } from './functions/F14-producer-consumer-orphan.mjs';
 // Spend chokepoint (2026-07-04): F15 mechanizes "no Anthropic API call outside the spend client" — the
 // generation-side analog of dedup-before-ground. A2 shrinking allowlist for legacy sites. Maps to RD-10.
@@ -40,6 +43,7 @@ export const fitnessFunctions = [
   F10,
   F11,
   F12,
+  F13,
   F14,
   F15,
   F16,

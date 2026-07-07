@@ -33,7 +33,7 @@ const CONTENT_MAX_CHARS = 6_000;
 //   - migration 101 CASE expression (lines 130-161)
 //   - fsi-app/src/lib/domains.ts domainForItemType()
 // Any change to the rule lands in all three places simultaneously.
-const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
+const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"relevance":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
 
 entity_verdict: specific_document | portal | uncertain — THE FIRST DECISION. Is this page a SPECIFIC regulatory document/finding (a particular regulation, directive, rule, ruling, report) that should become one intelligence item, OR a PORTAL / navigational homepage / institution landing / index / "latest news" hub (e.g. a ministry or legislature home page) that is a SOURCE, not an item? Return "portal" for navigational/institution-landing content; "specific_document" only when the excerpt is one specific instrument or finding; "uncertain" when you genuinely cannot tell. NEVER guess "specific_document" to be safe — an honest "uncertain" is correct and required.
 
@@ -62,6 +62,8 @@ domain: integer 1-7 selecting the customer-facing surface for this item. Use thi
 
 If you cannot confidently assign a domain in 1-7 per this rule, return null. Never default to 1.
 
+relevance: integer 0-100 — how directly this content bears on freight-forwarding sustainability (regulations, emissions, fuels/energy, supply-chain, logistics costs, transport labor, batteries/EV, ports/corridors). 100 = core; 0 = unrelated (e.g. a residential apartment lottery, a generic cookie policy). This is a SURFACE-ONLY honesty signal used to flag off-vertical content for review — it NEVER blocks classification. Be honest; do not inflate.
+
 Output JSON only.`;
 
 export interface FirstFetchClassifyInput {
@@ -87,6 +89,9 @@ export interface FirstFetchClassifyOutput {
    *  classifier could not route. Insert sites MUST pass NULL through to
    *  the column (no silent coercion to 1). */
   domain: Domain | null;
+  /** Fork-4 freight-sustainability relevance 0-100, or null if the model omitted it.
+   *  SURFACE-ONLY: the mint chokepoint flags low values, it never blocks a mint. */
+  relevance: number | null;
   severity: string;
   priority: string;
   urgency_tier: string;
@@ -139,6 +144,7 @@ export async function firstFetchClassify(
         entity_verdict: "uncertain",
         item_type: null,
         domain: null,
+        relevance: null,
         severity: "monitoring",
         priority: "LOW",
         urgency_tier: "informational",
@@ -245,6 +251,9 @@ Output the JSON object only.`;
   if (domain === null && item_type) {
     domain = domainForItemType(item_type, input.source_category ?? null);
   }
+  const relevance = typeof parsed.relevance === "number" && isFinite(parsed.relevance)
+    ? Math.max(0, Math.min(100, Math.round(parsed.relevance)))
+    : null;
   const severity = typeof parsed.severity === "string" ? parsed.severity : "MONITORING";
   const priority = typeof parsed.priority === "string" ? parsed.priority : "MODERATE";
   const urgency_tier = typeof parsed.urgency_tier === "string" ? parsed.urgency_tier : "stable";
@@ -266,6 +275,7 @@ Output the JSON object only.`;
       entity_verdict,
       item_type,
       domain,
+      relevance,
       severity,
       priority,
       urgency_tier,

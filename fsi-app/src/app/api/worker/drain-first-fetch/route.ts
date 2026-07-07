@@ -5,6 +5,7 @@ import { apiFetch, ApiFetchError } from "@/lib/sources/api-fetch";
 import { rssFetch, RssFetchError } from "@/lib/sources/rss-fetch";
 import { firstFetchClassify } from "@/lib/llm/first-fetch-classify";
 import { urlIsRoot, entityVerdict, ENTITY } from "@/lib/sources/entity-gate.mjs";
+import { mintIntelligenceItem } from "@/lib/intake/mint-item";
 import { pausedResponse, getScrapeState } from "@/lib/api/pause";
 import { scrapeWindowOpen } from "@/lib/sources/scrape-schedule";
 import type { Domain, SourceCategory } from "@/lib/domains";
@@ -231,6 +232,7 @@ async function preFetchAndClassify(
       urgency_tier: cls.result.urgency_tier,
       item_type: cls.result.item_type,
       domain: cls.result.domain,
+      relevance: cls.result.relevance,
       topic_tags: cls.result.topic_tags,
       jurisdictions: cls.result.jurisdictions,
       cost_usd_estimated: cls.result.cost_usd_estimated,
@@ -260,6 +262,8 @@ interface HaikuEnrichment {
    *  pass NULL through to the column instead of the historical hardcoded
    *  1 default. */
   domain: Domain | null;
+  /** Fork-4 freight-sustainability relevance 0-100 (or null). SURFACE-ONLY at the chokepoint. */
+  relevance: number | null;
   topic_tags: string[];
   jurisdictions: string[];
   cost_usd_estimated: number;
@@ -278,19 +282,9 @@ export async function seedStubIntelligenceItem(
   source: SourceRow,
   enrichment: HaikuEnrichment | null
 ): Promise<{ ok: boolean; itemId?: string; error?: string }> {
-  // Defensive: if a row already exists for this source_url, the agent
-  // route will pick it up. Re-check here so we do not insert a
-  // duplicate row.
-  const { data: existing } = await supabase
-    .from("intelligence_items")
-    .select("id")
-    .eq("source_url", source.url)
-    .maybeSingle();
-
-  if (existing?.id) {
-    return { ok: true, itemId: existing.id };
-  }
-
+  // Existence-dedup + congruence + subject-existence dedup + the INSERT itself all belong to the mint
+  // chokepoint (mintIntelligenceItem) — Path A no longer performs its own INSERT (phase-intake-gate).
+  //
   // Leakage fix 2026-05-23 (B4 per caros-ledge-platform-intent REC-OBS-G):
   // domain is sourced from the classifier output (enrichment.domain) which
   // is itself validated to 1-7 by asDomain() and falls back to
@@ -327,16 +321,13 @@ export async function seedStubIntelligenceItem(
     seedRow.title = source.name || source.url;
   }
 
-  const { data, error } = await supabase
-    .from("intelligence_items")
-    .insert(seedRow)
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { ok: false, error: error?.message || "insert returned no data" };
-  }
-  return { ok: true, itemId: data.id };
+  const res = await mintIntelligenceItem(supabase, {
+    seed: seedRow,
+    relevance: enrichment?.relevance ?? null,
+    origin: "first_fetch",
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  return { ok: true, itemId: res.itemId };
 }
 
 export async function POST(request: NextRequest) {

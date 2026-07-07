@@ -623,7 +623,7 @@ ${blocks}`;
     what_it_changes: md.what_it_changes, does_not_resolve: md.does_not_resolve,
     conversion_trigger: md.conversion_trigger, cross_references: md.cross_references,
     operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
-    related_items: cleanUuids(md.related_items), intersection_summary: md.intersection_summary,
+    intersection_summary: md.intersection_summary,
     sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
     last_regenerated_at: nowIso, updated_at: nowIso,
   }).eq("id", it.id);
@@ -632,6 +632,16 @@ ${blocks}`;
   // so any future constraint mismatch self-identifies (CLAUDE.md error-swallow post-mortem; Emergence INV-3).
   if (writeErr) {
     return { ok: false, detail: `metadata_write_rejected: ${writeErr.message} (sev=${dbSeverity}, fmt=${md.format_type}, theme=${dbTheme ?? "null"}, prio=${md.priority})` };
+  }
+  // related_items is READ-DERIVED from item_cross_references (migration 146, Option A: related_items_derived()
+  // + item_related_items_derived view — NO write-back trigger; the provenance guard stays untouched). Route the
+  // agent's semantic intersections to edges (origin=agent_semantic), never to the column. FK-safe, never self.
+  const relTargets = cleanUuids(md.related_items).filter((t) => t && t !== it.id);
+  if (relTargets.length) {
+    const { data: existing } = await sb.from("intelligence_items").select("id").in("id", relTargets);
+    const valid = new Set((existing ?? []).map((x: { id: string }) => x.id));
+    const edges = relTargets.filter((t) => valid.has(t)).map((t) => ({ source_item_id: it.id, target_item_id: t, relationship: "related", origin: "agent_semantic" }));
+    if (edges.length) await sb.from("item_cross_references").upsert(edges, { onConflict: "source_item_id,target_item_id", ignoreDuplicates: true });
   }
   return { ok: true, detail: `brief ${body.length}ch + 19-field metadata (fmt=${md.format_type}, sev=${dbSeverity}) from ${fetched.length} sources` };
 }

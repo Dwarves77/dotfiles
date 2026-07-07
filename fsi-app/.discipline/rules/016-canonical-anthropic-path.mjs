@@ -25,6 +25,7 @@ const PERMITTED = [
   'fsi-app/src/app/api/admin/sources/recommend-classification/',
   'fsi-app/src/app/api/admin/canonical-sources/',
   'fsi-app/src/app/api/admin/spot-check/recurring/',   // monthly calibration spot-check: re-classifies a source sample via the verification Haiku (source classification, sanctioned per CLAUDE.md permitted-routes table — NOT brief generation; mirrors recommend-classification)
+  'fsi-app/src/lib/llm/first-fetch-classify.ts',       // shared first-fetch Haiku CLASSIFIER for the drain worker (~$0.001/call, wave1b investigation 2026-05-11): source classification/enrichment, NOT brief generation and never populates source_citations — same sanctioned Haiku-classifier class as recommend-classification/spot-check. Enumerated 2026-07-01 (phase-intake-gate) when the file was first re-committed under rule 016.
   'fsi-app/src/lib/agent/canonical-pipeline.ts',       // canonical pipeline (calls the route's model)
   'fsi-app/src/lib/agent/anthropic-stream.mjs',        // canonical STREAMING call site (used by the above + scripts/lib/anthropic.mjs)
   'fsi-app/src/lib/llm/spend-client.ts',               // THE spend chokepoint (2026-07-04) — spendStream/spendSearch; F15 enforces routing THROUGH it
