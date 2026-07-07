@@ -9,11 +9,12 @@
  * The last-owner / self-revoke guards are enforced server-side (same
  * controls as Admin → Workspaces).
  *
- * Ban is a KNOWN NEW BACKEND action (HANDOFF §7) — the platform-wide ban
- * is NOT yet built. Rather than fake it, the Ban control opens a typed
- * confirmation that renders the honest-pending state: the design's typed
- * confirm is shown, but the destructive action is disabled until the
- * member-management backend ships.
+ * Ban is ORG-SCOPED (operator ruling 2026-07-07 — NOT a platform-wide
+ * account ban): it removes the member AND records a block-rejoin so the
+ * account cannot re-join THIS workspace (enforced in accept_invitation,
+ * migration 156). The Ban control opens a typed confirmation and POSTs to
+ * /api/orgs/[org_id]/members. The account is unaffected in every other
+ * workspace.
  *
  * Member identity renders the server-resolved display_name
  * (full_name ?? display_name ?? email ?? short id) — never a raw UUID.
@@ -141,6 +142,30 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
       if (!res.ok) flash("err", payload?.error || `HTTP ${res.status}`);
       else {
         flash("ok", `Removed ${member.display_name}`);
+        await load();
+      }
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function ban(member: Member) {
+    if (!orgId) return;
+    setPendingId(member.id);
+    try {
+      const res = await fetch(`/api/orgs/${orgId}/members`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membership_id: member.id }),
+      });
+      const payload = await res.json();
+      if (!res.ok) flash("err", payload?.error || `HTTP ${res.status}`);
+      else {
+        flash("ok", `Banned ${member.display_name} from this workspace`);
+        setBanTarget(null);
         await load();
       }
     } catch (e) {
@@ -379,7 +404,7 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
                       type="button"
                       onClick={() => setBanTarget(m)}
                       disabled={isSelf}
-                      title={isSelf ? "You cannot ban yourself" : "Ban platform-wide"}
+                      title={isSelf ? "You cannot ban yourself" : "Ban from this workspace"}
                       style={{
                         fontFamily: "var(--font-sans)",
                         fontSize: 11,
@@ -412,21 +437,37 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
           }}
         >
           The role chip changes role in place (Owner / Admin / Member / Viewer). <b>Remove</b> detaches the
-          member from this workspace; <b>Ban</b> blocks the account platform-wide behind a typed confirmation.
-          The last owner cannot be removed. Same controls as Admin → Workspaces.
+          member from this workspace; <b>Ban</b> removes them <i>and</i> blocks the account from re-joining
+          this workspace, behind a typed confirmation. The last owner cannot be removed or banned. Same
+          controls as Admin → Workspaces.
         </p>
       </AccountCard>
 
       {banTarget && (
-        <BanDialog member={banTarget} onClose={() => setBanTarget(null)} />
+        <BanDialog
+          member={banTarget}
+          pending={pendingId === banTarget.id}
+          onConfirm={() => ban(banTarget)}
+          onClose={() => setBanTarget(null)}
+        />
       )}
     </>
   );
 }
 
-// ── Ban dialog — honest-pending (§7 member-management backend) ──────────────
+// ── Ban dialog — org-scoped ban (typed confirmation → POST) ─────────────────
 
-function BanDialog({ member, onClose }: { member: Member; onClose: () => void }) {
+function BanDialog({
+  member,
+  pending,
+  onConfirm,
+  onClose,
+}: {
+  member: Member;
+  pending: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
   const [typed, setTyped] = useState("");
   const matches = typed.trim() === member.display_name;
   return (
@@ -457,34 +498,19 @@ function BanDialog({ member, onClose }: { member: Member; onClose: () => void })
         }}
       >
         <p style={{ fontSize: 15, fontWeight: 800, margin: "0 0 8px", color: "var(--destructive-quiet, #9A3412)" }}>
-          Ban {member.display_name} platform-wide
+          Ban {member.display_name} from this workspace
         </p>
         <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: "0 0 14px" }}>
-          A platform-wide ban blocks this account across every workspace — a heavier action than removing them
-          from this one. It requires typed confirmation.
+          This removes {member.display_name} from the workspace <b>and</b> blocks the account from re-joining
+          it — a fresh invitation will not let them back in until the ban is lifted. Their account is
+          unaffected in every other workspace. Requires typed confirmation.
         </p>
         <p style={{ fontSize: "9.5px", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
           Type “{member.display_name}” to confirm
         </p>
         <TextInput value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={member.display_name} />
 
-        <div
-          style={{
-            fontSize: 11,
-            lineHeight: 1.55,
-            color: "var(--brass, #8A6A2A)",
-            background: "var(--color-background)",
-            border: "1px dashed rgba(0,0,0,0.25)",
-            borderRadius: 6,
-            padding: "10px 12px",
-            margin: "12px 0 14px",
-          }}
-        >
-          <b>Ban is not available yet.</b> The platform-wide ban action ships with the member-management
-          backend (HANDOFF §7). Removing the member from this workspace works today.
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14 }}>
           <button
             type="button"
             onClick={onClose}
@@ -504,9 +530,10 @@ function BanDialog({ member, onClose }: { member: Member; onClose: () => void })
           </button>
           <button
             type="button"
-            disabled
-            aria-disabled="true"
-            title="Available when the member-management backend ships"
+            disabled={!matches || pending}
+            aria-disabled={!matches || pending}
+            onClick={onConfirm}
+            title={matches ? "Ban from this workspace" : "Type the name to confirm"}
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: "12.5px",
@@ -514,13 +541,13 @@ function BanDialog({ member, onClose }: { member: Member; onClose: () => void })
               padding: "9px 16px",
               borderRadius: 6,
               border: "1px solid var(--destructive-quiet, #9A3412)",
-              background: matches ? "rgba(154,52,18,0.08)" : "transparent",
-              color: "var(--destructive-quiet, #9A3412)",
-              cursor: "not-allowed",
-              opacity: 0.6,
+              background: matches ? "var(--destructive-quiet, #9A3412)" : "transparent",
+              color: matches ? "#FFFFFF" : "var(--destructive-quiet, #9A3412)",
+              cursor: !matches || pending ? "not-allowed" : "pointer",
+              opacity: !matches || pending ? 0.6 : 1,
             }}
           >
-            Ban {member.display_name.split(" ")[0]}
+            {pending ? "Banning…" : `Ban ${member.display_name.split(" ")[0]}`}
           </button>
         </div>
       </div>
