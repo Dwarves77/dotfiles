@@ -362,6 +362,35 @@
   /* Honest-state dashed frame (HANDOFF §4: `1px dashed rgba(0,0,0,0.25)`,
      bg `#FAFAF8`). Pending dimension cells + By-state pending frame. */
   --honest-dashed: rgba(0, 0, 0, 0.25);
+  /* Market Intel severity — five tiles (eyebrow/numeral + 5px bottom rule)
+     and severity-banded ledger (head hue/tint + card left edge + key figure).
+     Lifted verbatim from the "Pages - 04 Market Intel" inline styles
+     (tileDefs + sevMeta). Note the Competitive-edge split is the mock's own:
+     the TILE renders accent-blue (--mi-edge-tile) while the LEDGER band + key
+     figure render green (--mi-edge) — preserved for fidelity, not normalized.
+     Like the reg-band tokens these are not dark-overridden (light-first). */
+  --mi-action: #DC2626;
+  --mi-action-bg: #FEF2F2;
+  --mi-action-bd: #FECACA;
+  --mi-action-strip: linear-gradient(90deg, #16A34A, #CFA000 33%, #D97706 66%, #DC2626);
+  --mi-cost: #D97706;
+  --mi-cost-bg: #FFF7ED;
+  --mi-cost-bd: rgba(217, 119, 6, 0.4);
+  --mi-cost-strip: linear-gradient(90deg, #16A34A, #CFA000 50%, #D97706);
+  --mi-window: #A16207;
+  --mi-window-bg: #FEFCE8;
+  --mi-window-bd: rgba(161, 98, 7, 0.4);
+  --mi-window-strip: linear-gradient(90deg, #16A34A, #CFA000);
+  --mi-edge: #16A34A;        /* ledger band hue + key figure (sevMeta) */
+  --mi-edge-tile: #2563EB;   /* tile eyebrow/numeral + solid strip (tileDefs) */
+  --mi-edge-bg: #F0FDF4;
+  --mi-edge-bd: rgba(22, 163, 74, 0.4);
+  --mi-monitor: #5A6B67;
+  --mi-monitor-bg: #FFFFFF;
+  --mi-monitor-bd: rgba(0, 0, 0, 0.2);
+  --mi-monitor-strip: #16A34A;
+  /* Key figure ink when a signal carries no sourced price dimension (em-dash). */
+  --mi-fig-empty: #7A6E6C;
 }
 
 /* ── DARK THEME (opt-in) ── */

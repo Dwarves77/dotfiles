@@ -443,3 +443,55 @@ rail were adopted around it.
 - **Why:** The screenshot verifies the redesigned chrome, the production Leaflet basemap + zoom +
   severity legend (do-not-revert), the filter bar, rail, and honest-empty states. A populated,
   authenticated capture is best confirmed by the operator on the Vercel preview.
+
+---
+
+## TEMPLATE 04 — Market Intel index (`feat/redesign-t04-market-intel`)
+
+Note: this template RESOLVES D02-1's deferral for the Market surface — the five severity tiles bind
+`get_surface_counts('market').by_severity` and the three-band strip binds `.by_band` **directly**
+(migrations 148 + 149 are applied to prod). That wiring is the intended binding, not a deviation.
+
+### D04-1 · Key figure renders the honest em-dash on every card (no live price feed)
+- **What:** The mock hard-codes a per-signal key figure ($89/bbl, $3.07/MMBtu, +20–31%, …). In
+  production the figure binds `marketData.currentPrice` (a real sourced field); `market_signal` rows
+  carry no such value and no commodity-price feed is connected, so the figure renders the honest
+  em-dash `—` with a muted "no price dimension" reason on essentially every card.
+- **Why:** No-invented-data (§1) and honest-state (§4) forbid rendering the mock's snapshot numbers as
+  if live. When a price source is wired (or a per-signal figure field lands), the same slot fills from
+  the real field with no shape change. Matches the surface-honesty posture already shipped on this page
+  (price snapshot / trajectory / sources roster are all honest-empty).
+
+### D04-2 · Expander notes textarea + "Your note" chip omitted
+- **What:** The mock's expanded card includes a localStorage-backed notes textarea labelled "visible to
+  your workspace" plus a blue "Your note" head chip. Both are omitted; the expander ships the three
+  panels the §6.4 spec lists (Trajectory / What it changes / Conversion trigger).
+- **Why:** (a) §6.4 enumerates only those three panels; (b) a device-local `localStorage` note labelled
+  "visible to your workspace" would be an integrity violation (claims workspace visibility it does not
+  have). Real workspace-visible notes need a backend write (`workspace_item_overrides.notes`), which is
+  out of this read-surface template's scope and gated by the no-write hold. **Proposed** as a follow-up
+  once a notes write path exists.
+
+### D04-3 · Competitive-edge colour split preserved verbatim from the mock (tile blue / ledger green)
+- **What:** The mock renders the Competitive-edge TILE in accent-blue (`#2563EB`) but its ledger band
+  head and key figure in green (`#16A34A`). This per-context split is reproduced exactly (tokens
+  `--mi-edge-tile` vs `--mi-edge`).
+- **Why:** "Match the mock to the pixel" (§8.1). The split looks like a mock authoring slip (the §2
+  token table pairs Competitive edge with accent-blue); surfaced here in case the operator wants the
+  ledger band + figure normalised to blue. No change made unprompted.
+
+### D04-4 · Full ledger rendered (no mock "88 monitoring rows in the full ledger" split)
+- **What:** The mock shows 6 detailed cards and defers "the other 88 signals" to a separate "Open full
+  ledger →" view. Production renders the full verified, category-routed market set as signal cards
+  grouped by severity; there is no separate monitoring-rows store or "Open full ledger" footer.
+- **Why:** The 6-vs-88 split was mock scaffolding for a snapshot. The live `get_market_intel_items`
+  RPC returns the real verified rows; rendering them all is more honest than inventing a hidden tail.
+  The authoritative per-severity tile/band counts still come from the RPC, with a "N shown" disclosure
+  beside a group header only when the rendered cards differ from the authoritative count.
+
+### D04-5 · 1440px screenshot to be captured from the authenticated Vercel preview
+- **What:** The per-template acceptance screenshot is not committed from local capture.
+- **Why:** `/market` is `force-dynamic` and auth/DB-gated; the build environment for this branch has no
+  browser automation and no authenticated session, so a faithful populated capture isn't reproducible
+  locally (an unauthenticated local render shows only the honest empty state). The screenshot is to be
+  taken from the authenticated Vercel preview linked in the PR.

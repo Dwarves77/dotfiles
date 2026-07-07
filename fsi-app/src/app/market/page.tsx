@@ -1,71 +1,65 @@
-import {
-  getMarketIntelItems,
-  getResourcesOnly,
-  getSurfaceCounts,
-  getSourceCitationStats,
-} from "@/lib/data";
-import { MarketPage } from "@/components/pages/MarketPage";
+/**
+ * Market Intel index (`/market`) — server component.
+ *
+ * Redesign TEMPLATE 04. Composes:
+ *   - <EditorialMasthead> — 4px brand rule (shell) + blue VOL eyebrow +
+ *     Anton "Market Intelligence" title + a muted sub-line whose key counts
+ *     are bold ink (HANDOFF §5). Market signals are unverified by design, so
+ *     the sub-line states that plainly.
+ *   - <MarketIntelLedger> — five severity tiles → three-band strip → Ask bar
+ *     → severity-banded signal ledger (HANDOFF §6.4). Reuses the TEMPLATE 02
+ *     index archetype.
+ *
+ * COUNTS (binding — THE severity card-swap): the tiles read
+ * get_surface_counts('market').by_severity, the band strip reads .by_band,
+ * and the masthead + header total read .total_items — migrations 148 + 149
+ * are applied to prod so these are the live primary path. The ledger renders
+ * ONLY the verified, category-routed market rows (fail CLOSED — never falls
+ * through to the ungated seed). Counts are fail-soft (the ledger derives from
+ * the loaded rows if the RPC bundle is absent) but never throw and are never
+ * hard-coded to the mock snapshot.
+ */
+
+import { getMarketIntelItems, getSurfaceCounts } from "@/lib/data";
+import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
-// generation at build time has no cookies; resolveOrgIdFromCookies
-// returns null; runCategoryRpc early-returns empty (supabase-server.ts
-// :1018-1020); static HTML bakes in total: 0 + seed fallback.
-// Force-dynamic skips static generation so the page renders on request
-// with the user's cookie-auth context, and category-routing RPCs see
-// a real orgId.
+// generation at build time has no cookies; resolveOrgIdFromCookies returns
+// null; the category RPC early-returns empty and the static HTML would bake
+// in total: 0. Force-dynamic renders on request with the cookie-auth context.
 export const dynamic = "force-dynamic";
 
+const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
+
 export default async function Market() {
-  const t0 = Date.now();
-  // Sprint 2 Build 4: category routing wiring (OBS-26 / REC-OBS-G).
-  // Previously this page received the unfiltered slim payload via
-  // getResourcesOnly and relied on client-side item_type / domain filters,
-  // which left /market and /operations sharing essentially the same payload
-  // (alignment audit Section B). Now it pulls getMarketIntelItems, which
-  // wraps get_market_intel_items and applies the skill Section 3 routing
-  // rules (trade-press outlets routed to Research are excluded; see
-  // supabase-server.ts "Category-Aware Routing Fetchers" block).
-  //
-  // getResourcesOnly still runs in parallel to supply the seed-fallback
-  // surface (e.g. archived / overrides) the MarketPage chrome consumes
-  // from its initialResources shape. If the category RPC is empty (anon /
-  // misconfigured), we fall back to the slim payload so the page is
-  // never blank.
-  const [marketIntel, fallback, aggregates] = await Promise.all([
+  // Category-routed verified market rows (fail CLOSED) + the single-SoT
+  // verified count bundle (by_severity tiles / by_band bands / total_items).
+  const [marketIntel, aggregates] = await Promise.all([
     getMarketIntelItems(),
-    getResourcesOnly(),
-    // Count-integrity: single classification+counting SoT (migration 148). Classification via
-    // surface_of, population gated verified. Fails soft to scoped aggregates (069) over the
-    // SURFACE_RULES-derived market scope when the RPC is absent (pre-apply). Replaces MARKET_SCOPE.
     getSurfaceCounts("market"),
   ]);
-  console.log(
-    `[perf] /market data ${Date.now() - t0}ms (category-routed=${marketIntel.total}, fallback=${fallback.resources.length})`
-  );
-  // Fail CLOSED: render ONLY the item_type-gated RPC result. On RPC error/empty the surface
-  // shows its honest empty state; it does NOT fall through to the ungated seed (getResourcesOnly),
-  // which would leak mixed-type items onto /market. Class fix for the fail-open that turned the
-  // routing-RPC bug into the /research leak. (fallback is still fetched for the perf log only.)
-  const initialResources = marketIntel.resources;
 
-  // Build 7: per-source citation stats for Q9 chip mounts on Market Intel
-  // cards, watchlist rail, and key metrics rows. Mirrors Build 8.1 ResearchView
-  // pattern. Fans out a single RPC call across the distinct source_ids on the
-  // page; failures degrade to no chips (empty map).
-  const distinctSourceIds = Array.from(
-    new Set(
-      initialResources
-        .map((r) => r.sourceId)
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
-    )
+  const totalSignals = aggregates.totalItems || marketIntel.resources.length;
+  const today = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
+
+  const meta = (
+    <span>
+      {today} · <span style={boldInk}>{totalSignals}</span> active{" "}
+      {totalSignals === 1 ? "signal" : "signals"} · <span style={boldInk}>{BAND_VOCAB_SIZE}</span> signal
+      bands · signals are unverified by design — timely first, confirmed later
+    </span>
   );
-  const citationStats = await getSourceCitationStats(distinctSourceIds);
 
   return (
-    <MarketPage
-      initialResources={initialResources}
-      aggregates={aggregates}
-      citationStats={citationStats}
-    />
+    <>
+      <EditorialMasthead title="Market Intelligence" meta={meta} />
+      <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} />
+    </>
   );
 }
