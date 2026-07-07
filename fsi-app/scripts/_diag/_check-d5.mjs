@@ -1,0 +1,14 @@
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+process.loadEnvFile(resolve(ROOT, ".env.local"));
+const { readClient } = await import("../lib/db.mjs");
+const sb = readClient();
+const { data } = await sb.from("integrity_flags").select("recommended_actions,description").eq("id","46883e9d-76f2-490d-a0ea-2d99c0d58036").single();
+const ra = data.recommended_actions;
+const d = (ra && ra[0] && ra[0].deferral) || {};
+console.log("DESC:", data.description.slice(0,90));
+console.log("has counsel_NO_SOURCE_QUALIFIED in reason:", /counsel_NO_SOURCE_QUALIFIED/.test(d.reason||""));
+console.log("deferred_until:", d.deferred_until, "| owner:", d.owner);
+console.log("resolution_event starts:", (d.resolution_event||"").slice(0,60));
+console.log("JSONB key order in deferral:", Object.keys(d).join(","));

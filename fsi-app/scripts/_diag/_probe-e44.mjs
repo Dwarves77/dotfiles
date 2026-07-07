@@ -1,0 +1,23 @@
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { readClient, readAll } from "../lib/db.mjs";
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
+const sb = readClient();
+const items = await readAll("intelligence_items","id,legacy_id,title,item_type,priority,provenance_status,source_id,source_url,is_archived",{match:(q)=>q.eq("is_archived",false)});
+const it = items.find((x)=>x.id.slice(0,8)==="e44a5408" || x.legacy_id==="e44a5408");
+console.log("ITEM:", JSON.stringify({id:it.id.slice(0,8),legacy:it.legacy_id,title:(it.title||"").slice(0,60),type:it.item_type,prio:it.priority,status:it.provenance_status,src:it.source_id?"set":"NULL",url:(it.source_url||"").slice(0,50)}));
+const { data: vr } = await sb.rpc("validate_item_provenance",{p_item_id: it.id});
+const v = Array.isArray(vr)?vr[0]:vr;
+console.log("VALIDATE:", JSON.stringify(v.recommended_status), "valid:", v.valid);
+const fails = v.failures||[];
+const byReason = {}; for (const f of fails) byReason[`c${f.criterion}:${f.reason}`]=(byReason[`c${f.criterion}:${f.reason}`]||0)+1;
+console.log("FAILURES by reason:", JSON.stringify(byReason));
+const secs = await readAll("intelligence_item_sections","id,content_md",{match:(q)=>q.eq("item_id",it.id)});
+console.log("sections:", secs.length, "| with content:", secs.filter((s)=>(s.content_md||"").trim()).length);
+const cl = await readAll("section_claim_provenance","claim_kind",{match:(q)=>q.eq("intelligence_item_id",it.id)});
+const ck={}; for(const c of cl) ck[c.claim_kind]=(ck[c.claim_kind]||0)+1;
+console.log("claims:", JSON.stringify(ck));
+const flags = await readAll("integrity_flags","status,created_by,created_at",{match:(q)=>q.eq("subject_ref",it.id)});
+console.log("flags:", JSON.stringify(flags.map((f)=>({s:f.status,by:f.created_by,at:(f.created_at||"").slice(0,10)}))));
+process.exit(0);

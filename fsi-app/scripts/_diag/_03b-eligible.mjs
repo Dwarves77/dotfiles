@@ -1,0 +1,17 @@
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+process.loadEnvFile(resolve(ROOT, ".env.local"));
+const { readClient, readAll } = await import("../lib/db.mjs");
+const sb = readClient();
+const items = await readAll("intelligence_items","id,legacy_id",{match:(q)=>q.eq("is_archived",false)});
+const it = items.find(x=>x.id.slice(0,8)==="03b5f234");
+const { data } = await sb.rpc("validate_item_provenance",{p_item_id:it.id});
+const r = Array.isArray(data)?data[0]:data;
+const reasons=[...new Set((r?.failures||[]).map(f=>f.reason))];
+const flags = await readAll("integrity_flags","created_by,status",{match:(q)=>q.eq("subject_type","item").eq("subject_ref",it.id).eq("status","open")});
+const counsel = flags.some(f=>f.created_by==="phase2_priority_review");
+const pool = await readAll("agent_run_searches","result_content_excerpt",{match:(q)=>q.eq("intelligence_item_id",it.id)});
+const poolChars = pool.reduce((a,x)=>a+(x.result_content_excerpt||"").length,0);
+console.log(`03b5f234: reasons=[${reasons}] counselHeld=${counsel} poolChars=${poolChars} openFlags=[${flags.map(f=>f.created_by)}]`);
+console.log(`WOULD be in cascade eligible set? ${reasons.includes("missing_required_slot") && !counsel && poolChars>=500}`);

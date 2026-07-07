@@ -1,0 +1,2675 @@
+{
+  "generatedAt": "2026-07-06",
+  "counts": {
+    "cat1": 7,
+    "cat2": 17,
+    "cat3": 206
+  },
+  "cat1": [
+    {
+      "id": "51b2c91e-776f-42f5-a799-a957312d4e56",
+      "key": "t1",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "rows": [
+        {
+          "url": "https://www.cambridge.org/core/journals/international-and-comparative-law-quarterly/article/securing-compatibility-of-carbon-border-adjustments-with-the-multilateral-climate-and-trade-regimes/00B48BAF52561A00A2DBE1EBFAF71756",
+          "len": 60000,
+          "cap": 60000
+        }
+      ]
+    },
+    {
+      "id": "e2e03e1b-b466-4c11-987e-38a7fc279ff6",
+      "key": "e2e03e1b",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "rows": [
+        {
+          "url": "https://infox.com/blog/ics2-filing-compliance-non-eu-exporters-2026",
+          "len": 32000,
+          "cap": 32000
+        }
+      ]
+    },
+    {
+      "id": "a212b2ab-c394-49f7-9527-9c94a4bf700f",
+      "key": "a212b2ab",
+      "type": "framework",
+      "pri": "MODERATE",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "portoflosangeles.org",
+      "rows": [
+        {
+          "url": "https://portoflosangeles.org/references/2025-news-releases/news_101625_air_emissions",
+          "len": 12003,
+          "cap": 12000
+        }
+      ]
+    },
+    {
+      "id": "efdb3390-7530-44e5-b99d-9b20157ae186",
+      "key": "g2",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "rows": [
+        {
+          "url": "https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng",
+          "len": 60000,
+          "cap": 60000
+        }
+      ]
+    },
+    {
+      "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+      "key": "120529b8",
+      "type": "guidance",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "itf-oecd.org",
+      "rows": [
+        {
+          "url": "https://www.itf-oecd.org/about-itf",
+          "len": 11979,
+          "cap": 12000
+        }
+      ]
+    },
+    {
+      "id": "7ae06612-5467-40ca-a9b3-e6dc14601b44",
+      "key": "7ae06612",
+      "type": "initiative",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "initiatives.weforum.org",
+      "rows": [
+        {
+          "url": "https://www.weforum.org/stories/2026/01/first-movers-coalition-decarbonization-through-demand/",
+          "len": 11957,
+          "cap": 12000
+        }
+      ]
+    },
+    {
+      "id": "c2af2fc0-6792-443f-8c24-ce24f9665aa4",
+      "key": "g31",
+      "type": "research_finding",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "oecd.org",
+      "rows": [
+        {
+          "url": "https://www.itf-oecd.org/southeast-asia-freight-connectivity",
+          "len": 11993,
+          "cap": 12000
+        }
+      ]
+    }
+  ],
+  "cat2": [
+    {
+      "id": "9d18608f-269e-405a-9ad8-afa638dda928",
+      "key": "9d18608f",
+      "type": "initiative",
+      "pri": "HIGH",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "sustainablepackaging.org",
+      "sections": [
+        {
+          "section_key": "7",
+          "len": 18934
+        }
+      ]
+    },
+    {
+      "id": "e2e03e1b-b466-4c11-987e-38a7fc279ff6",
+      "key": "e2e03e1b",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 21998
+        }
+      ]
+    },
+    {
+      "id": "bd9a1a6b-2966-41df-b595-63ccad090f90",
+      "key": "bd9a1a6b",
+      "type": "regional_data",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "thegef.org",
+      "sections": [
+        {
+          "section_key": "4",
+          "len": 13396
+        }
+      ]
+    },
+    {
+      "id": "ca6fa630-e8d3-4948-b0a8-20856cd17343",
+      "key": "ca6fa630",
+      "type": "market_signal",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "cepal.org",
+      "sections": [
+        {
+          "section_key": "15",
+          "len": 14746
+        },
+        {
+          "section_key": "8",
+          "len": 14746
+        }
+      ]
+    },
+    {
+      "id": "15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050",
+      "key": "eu_ets_directive_2023_959",
+      "type": "directive",
+      "pri": "HIGH",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 15718
+        }
+      ]
+    },
+    {
+      "id": "efdb3390-7530-44e5-b99d-9b20157ae186",
+      "key": "g2",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 20752
+        }
+      ]
+    },
+    {
+      "id": "03b5f234-3624-4fef-acec-922bd75bb46e",
+      "key": "03b5f234",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "regjeringen.no",
+      "sections": [
+        {
+          "section_key": "5",
+          "len": 16887
+        }
+      ]
+    },
+    {
+      "id": "5511a87f-2bba-485a-9f54-6911ef385a63",
+      "key": "5511a87f",
+      "type": "framework",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "dec.ny.gov",
+      "sections": [
+        {
+          "section_key": "15",
+          "len": 22348
+        }
+      ]
+    },
+    {
+      "id": "5cc10a6d-b671-425e-abdb-8b3ba41678b3",
+      "key": "5cc10a6d",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 24235
+        }
+      ]
+    },
+    {
+      "id": "576554b3-7e69-431c-aa4f-474131458b14",
+      "key": "576554b3",
+      "type": "guidance",
+      "pri": "LOW",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "gov.uk",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 12407
+        }
+      ]
+    },
+    {
+      "id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+      "key": "7a0ead55",
+      "type": "regulation",
+      "pri": "HIGH",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 15618
+        }
+      ]
+    },
+    {
+      "id": "b11cccc4-fdb6-4008-b76c-1ff6632c2657",
+      "key": "b11cccc4",
+      "type": "research_finding",
+      "pri": "MODERATE",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "iml.fraunhofer.de",
+      "sections": [
+        {
+          "section_key": "1",
+          "len": 16806
+        }
+      ]
+    },
+    {
+      "id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+      "key": "27dfbe4c",
+      "type": "regulation",
+      "pri": "LOW",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "cciced.eco",
+      "sections": [
+        {
+          "section_key": "15",
+          "len": 32228
+        }
+      ]
+    },
+    {
+      "id": "51b2c91e-776f-42f5-a799-a957312d4e56",
+      "key": "t1",
+      "type": "regulation",
+      "pri": "CRITICAL",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "eur-lex.europa.eu",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 14837
+        }
+      ]
+    },
+    {
+      "id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+      "key": "bfb6a9fe",
+      "type": "guidance",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "imo.org",
+      "sections": [
+        {
+          "section_key": "15",
+          "len": 16762
+        }
+      ]
+    },
+    {
+      "id": "d5ee6ab8-ebf0-4903-89b5-3e1d4d3d47de",
+      "key": "d5ee6ab8",
+      "type": "directive",
+      "pri": "CRITICAL",
+      "status": "quarantined",
+      "verified": false,
+      "flippedThisSession": false,
+      "host": "commission.europa.eu",
+      "sections": [
+        {
+          "section_key": "8",
+          "len": 18446
+        }
+      ]
+    },
+    {
+      "id": "4b342a31-623c-41e8-8b0b-0792101c8886",
+      "key": "a4",
+      "type": "regulation",
+      "pri": "LOW",
+      "status": "verified",
+      "verified": true,
+      "flippedThisSession": false,
+      "host": "assets.publishing.service.gov.uk",
+      "sections": [
+        {
+          "section_key": "15",
+          "len": 18391
+        }
+      ]
+    }
+  ],
+  "cat3": [
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "key": "67c6e313",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/multimedia/partnership-report2024/our-numbers/",
+      "host": "adb.org",
+      "len": 669,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a0872de71a3449d2 • 2026-06-08 10:23:07 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "08b0a1b3-ff0f-4bcb-9b8e-bc05a7c2cb47",
+      "key": "g27",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://unece.org/transport/transport-and-sustainable-development-goals",
+      "host": "unece.org",
+      "len": 758,
+      "preview": "Attention Required! | Cloudflare Please enable cookies. Sorry, you have been blocked You are unable to access unece.org Why have I been blocked? This website is using a security service to protect itself from online attacks. The action you just performed triggered the security solution. There are several actions that c"
+    },
+    {
+      "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+      "key": "l6",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+      "key": "green-building-certification-standards-for-logistics",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.usgbc.org/projects",
+      "host": "usgbc.org",
+      "len": 221,
+      "preview": "USGBC By clicking logout button below, you will be logged out of all the USGBC and GBCI applications in this browser. Click the logout button below to continue logging out or cancel button to stay logged in. Logout Cancel"
+    },
+    {
+      "id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+      "key": "japan-green-transformation-gx-freight-transport-standards",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.meti.go.jp/english/press/2023/pdf/0210_003b.pdf",
+      "host": "meti.go.jp",
+      "len": 1720,
+      "preview": "Page Not Found / METI Ministry of Economy, Trade and Industry Advanced Search Contact Us Japanese Site Map Main Content Font size S M L Easy Web Browsing News Releases Speeches Statistics Policies Policie --> Policy Index METI Councils White Papers &amp; Reports Data Reports METI related Laws METI Quick Reads Meet METI"
+    },
+    {
+      "id": "87493612-1be4-4434-af30-e7f32b3bd48b",
+      "key": "c1",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://eur-lex.europa.eu",
+      "host": "eur-lex.europa.eu",
+      "len": 1008,
+      "preview": "EUR-Lex — Access to European Union law — choose your language EUR-Lex. europa.eu bg Достъп до правото на Европейския съюз es El acceso al Derecho de la Unión Europea cs Přístup k právu Evropské unie da Adgang til EU-lovgivningen de Der Zugang zum EU-Recht et Juurdepääs Euroopa Liidu õigusaktidele el Πρόσβαση στο δίκαιο"
+    },
+    {
+      "id": "2648d4ad-eac5-406b-888c-d551d5e1d403",
+      "key": "2648d4ad",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.itf-oecd.org/decarbonising-transport",
+      "host": "itf-oecd.org",
+      "len": 386,
+      "preview": "Just a moment... www.itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.itf-oecd.org to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+      "key": "uae-national-hydrogen-strategy-transport-sector-requirements",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S2949823625001151",
+      "host": "sciencedirect.com",
+      "len": 798,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a078ea3c0afd1fa8 IP Address: 64.23.232.196 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Hea"
+    },
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "key": "67c6e313",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/what-we-do/topics/transport/overview",
+      "host": "adb.org",
+      "len": 668,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a0872d6e9a95cf15 • 2026-06-08 10:22:48 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+      "key": "388b2ce8",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.commercialmotor.com/news/article/smes-trial-electric-hgvs-in-dp-world-and-project-jolt-partnership",
+      "host": "commercialmotor.com",
+      "len": 768,
+      "preview": "Attention Required! | Cloudflare Please enable cookies. Sorry, you have been blocked You are unable to access commercialmotor.com Why have I been blocked? This website is using a security service to protect itself from online attacks. The action you just performed triggered the security solution. There are several acti"
+    },
+    {
+      "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+      "key": "a7",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/calculate-report-glec-framework/",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+      "key": "1e27cdcc",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.arabianbusiness.com/business/energy/mohammed-bin-rashid-al-maktoum-solar-park-reaches-record-3860-mw-capacity",
+      "host": "arabianbusiness.com",
+      "len": 734,
+      "preview": "Human Verification Temporary error. Please try again. Before proceeding to your request, you need to solve a puzzle, and the puzzle requires Google Translate to be disabled. Please disable Google Translate and retry. Let's confirm you are human Complete the security check before continuing. This step verifies that you "
+    },
+    {
+      "id": "d136c88c-8816-4727-b15d-a80b96f0f57b",
+      "key": "d136c88c",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://ctl.mit.edu/news/2025-state-of-supply-chain-sustainability-report-world-wide-coverage",
+      "host": "ctl.mit.edu",
+      "len": 706,
+      "preview": "Page not found | Center for Transportation and Logistics Skip to main content Log in User account menu Subscribe Log in Main navigation Toggle sub-menu About Contact Us Job Opportunities Media Relations People Visit Us Toggle sub-menu Education Online Education On-Campus Degrees Workforce &amp; Leadership Development E"
+    },
+    {
+      "id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+      "key": "g15",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible/",
+      "host": "mintransporte.gov.co",
+      "len": 292,
+      "preview": "The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information. URL: mintransporte.gov.co/publicaciones/10754/transporte-sostenible/ Client IP: 64.23.168.154 Attack ID: 20000051 Message ID: 001178884959"
+    },
+    {
+      "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+      "key": "0ea6a710",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.dot.ny.gov/divisions/operating/osss/repository/HHG%20Binder-%20Updated%202-28-24.pdf.*",
+      "host": "dot.ny.gov",
+      "len": 1510,
+      "preview": "Error Untitled Document Your browser does not support iFrames Navigation menu Department of Transportation Travel Overview 511NY Travel Information Business Overview Doing Business with NYSDOT Forms Publications &amp; Guidance Webcasts Projects Employment About Overview A-Z Index Commissioner Contact Us --> News &amp; "
+    },
+    {
+      "id": "fc47cf4d-1762-41ed-abcb-494445323e9c",
+      "key": "fc47cf4d",
+      "item_type": "directive",
+      "status": "verified",
+      "verified": true,
+      "url": "https://ksrevisor.gov/statutes/chapters/ch75/075_004_0034.html",
+      "host": "ksrevisor.gov",
+      "len": 1679,
+      "preview": "75-434 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; K ANSAS O FFICE of &nbsp;&nbsp;R EVISOR of S TATUTES --> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; K ANSAS O FFICE of &nbsp;&nbsp;R EVISOR of S TATUTES Home &nbsp; &nbsp; About Us &nbsp"
+    },
+    {
+      "id": "956bad5c-80b0-411b-8fd5-726cc0d4a333",
+      "key": "l7",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+      "key": "r27",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.airproducts.com/company/news-center/2025/12/1208-air-products-and-yara-advanced-negotiations-on-low-emission-ammonia-projects",
+      "host": "airproducts.com",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "b8da154a-149e-483a-9198-7039850006fc",
+      "key": "lng-natural-gas-price-intelligence",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.spglobal.com/energy/en/commodity/natural-gas/lng",
+      "host": "spglobal.com",
+      "len": 245,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.spglobal.com/energy/en/commodity/natural-gas/lng\" on this server. Reference #18.1f4e4317.1780686981.31dd2bbe https://errors.edgesuite.net/18.1f4e4317.1780686981.31dd2bbe"
+    },
+    {
+      "id": "595117e9-a35f-414c-8182-53ef5b34c647",
+      "key": "595117e9",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2026/02/24/2026-03648/guidance-on-multimodal-state-freight-plans-and-state-freight-advisory-committees",
+      "host": "federalregister.gov",
+      "len": 1117,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+      "key": "3f11f1fc",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/reports/electricity-2026/prices",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a09293c"
+    },
+    {
+      "id": "d56ca4e1-5f68-4bf8-9c88-47ecfee986f0",
+      "key": "d56ca4e1",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.nyc.gov/assets/buildings/pdf/dn_userguide.pdf",
+      "host": "nyc.gov",
+      "len": 242,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.nyc.gov/assets/buildings/pdf/dn_userguide.pdf\" on this server. Reference #18.56c90b17.1780500988.51355fc2 https://errors.edgesuite.net/18.56c90b17.1780500988.51355fc2"
+    },
+    {
+      "id": "237b3cc1-9971-46d6-a4ef-07fd65b05eed",
+      "key": "237b3cc1",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",
+      "host": "mot.gov.sg",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "708e0b02-6663-42ee-b138-74c80898291e",
+      "key": "r32",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://espo.be/publications/espo-green-guide-2021-a-manual-for-european-ports-",
+      "host": "espo.be",
+      "len": 368,
+      "preview": "Just a moment... espo.be Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for espo.be to respond Enable JavaScript and cookies to continue Ray ID: a07219e28d5a3c3"
+    },
+    {
+      "id": "b813d0a5-211b-4b56-9cee-503087c11486",
+      "key": "b813d0a5",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.commercialmotor.com/news/article/smes-trial-electric-hgvs-in-dp-world-and-project-jolt-partnership",
+      "host": "commercialmotor.com",
+      "len": 768,
+      "preview": "Attention Required! | Cloudflare Please enable cookies. Sorry, you have been blocked You are unable to access commercialmotor.com Why have I been blocked? This website is using a security service to protect itself from online attacks. The action you just performed triggered the security solution. There are several acti"
+    },
+    {
+      "id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+      "key": "a4153234",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://nyc.gov/site/sustainability/index.page",
+      "host": "nyc.gov",
+      "len": 811,
+      "preview": "Home - Mayor's Office of Climate &amp; Environmental Justice Skip Header | Mayor's Office of Climate &amp; Environmental Justice 311 Search all NYC.gov --> Search Search We prepare New York City for the impacts of climate change and address remediation efforts from an equity and public health perspective. Contact Us St"
+    },
+    {
+      "id": "3af75490-8356-4a13-a9ba-7a6318daff70",
+      "key": "o6",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://eur-lex.europa.eu",
+      "host": "eur-lex.europa.eu",
+      "len": 1008,
+      "preview": "EUR-Lex — Access to European Union law — choose your language EUR-Lex. europa.eu bg Достъп до правото на Европейския съюз es El acceso al Derecho de la Unión Europea cs Přístup k právu Evropské unie da Adgang til EU-lovgivningen de Der Zugang zum EU-Recht et Juurdepääs Euroopa Liidu õigusaktidele el Πρόσβαση στο δίκαιο"
+    },
+    {
+      "id": "43fd4d25-dd75-4f60-803f-5c20a44ef65f",
+      "key": "43fd4d25",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.cbc.ca/news/canada/north/line-21-pipeline-reopens-1.4837921",
+      "host": "cbc.ca",
+      "len": 398,
+      "preview": "www.cbc.ca This site can’t be reached The webpage at https://www.cbc.ca/news/canada/north/line-21-pipeline-reopens-1.4837921 might be temporarily down or it may have moved permanently to a new web address. ERR_HTTP2_PROTOCOL_ERROR The webpage at https://www.cbc.ca/news/canada/north/line-21-pipeline-reopens-1.4837921 mi"
+    },
+    {
+      "id": "5b07f503-8dbc-4bb4-b801-6359b5ab6018",
+      "key": "logistics-labor-cost-availability-benchmarks",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://ilostat.ilo.org/topics/labour-costs",
+      "host": "ilostat.ilo.org",
+      "len": 1062,
+      "preview": "Page not found - ILOSTAT Skip to content Open toolbar Accessibility Tools Accessibility Tools Increase Text Increase Text Decrease Text Decrease Text Grayscale Grayscale High Contrast High Contrast Negative Contrast Negative Contrast Light Background Light Background Links Underline Links Underline Readable Font Readab"
+    },
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "key": "67c6e313",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/news/adb-celebrates-partnership-europe-highlights-private-sector-opportunities",
+      "host": "adb.org",
+      "len": 669,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a0872cf59aa4c68c • 2026-06-08 10:22:28 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+      "key": "industrial-electricity-tariff-benchmarks-by-jurisdiction",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.globalpetrolprices.com/map/electricity_industrial/",
+      "host": "globalpetrolprices.com",
+      "len": 1389,
+      "preview": "Electricity prices for the industry: world map | GlobalPetrolPrices.com EN DE ES FR More PL - Polski TR - Türkçe SRB - Srpski BG - Български RU - Руский IT - Italiano FI - Suomi RO - Română PT - Português GR - Ελληνικά NL - Nederlands DK - Dansk NO - Norsk ZH - 简体中文 AR - العربية Home Countries Gasoline prices Diesel pr"
+    },
+    {
+      "id": "7820e673-c984-44e6-95e0-d3884d7128c4",
+      "key": "7820e673",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2026/04/09/2026-06808/reconsideration-of-standards-of-performance-for-new-reconstructed-and-modified-sources-and-emissions",
+      "host": "federalregister.gov",
+      "len": 1117,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "4929e6a9-5f55-4eec-9c97-1e14caa75a52",
+      "key": "4929e6a9",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://regulations.justia.com/states/california/title-13/division-2/chapter-6-5/article-6/section-1233/",
+      "host": "regulations.justia.com",
+      "len": 398,
+      "preview": "Just a moment... regulations.justia.com Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for regulations.justia.com to respond Enable JavaScript and cookies to co"
+    },
+    {
+      "id": "de2df788-acca-42ed-b621-864db48da109",
+      "key": "de2df788",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://portal.ct.gov/office-of-the-governor/news/press-releases/2022/07-2022/governor-lamont-announces-landmark-new-climate-law-that-will-help-reduce-greenhouse-gas-emissions",
+      "host": "portal.ct.gov",
+      "len": 1628,
+      "preview": "404 Error Page webpages 404 Error Page --> If you are viewing this version of CT.gov, you are using an unsupported browser or you are in Internet Explorer 9 using compatibility mode. This means that the design and layout of the site is not fully supported, however the content of the site is still fully accessible and f"
+    },
+    {
+      "id": "ed63f522-96bd-4aac-b828-a216f34b90a9",
+      "key": "ed63f522",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.spglobal.com/energy/en/news-research/topics/commodities-2026",
+      "host": "spglobal.com",
+      "len": 255,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.spglobal.com/energy/en/news-research/topics/commodities-2026\" on this server. Reference #18.5a7cb17.1780712375.2c2cf456 https://errors.edgesuite.net/18.5a7cb17.1780712375.2c2cf456"
+    },
+    {
+      "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+      "key": "120529b8",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.itf-oecd.org/sites/default/files/docs/revised_general_rules_text_2019.pdf",
+      "host": "itf-oecd.org",
+      "len": 386,
+      "preview": "Just a moment... www.itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.itf-oecd.org to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "595117e9-a35f-414c-8182-53ef5b34c647",
+      "key": "595117e9",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://latransportationplan.la.gov/freight-mobility-plan/",
+      "host": "latransportationplan.la.gov",
+      "len": 1428,
+      "preview": "Freight Mobility Plan - HNTB DOTD Plan Skip to main content Statewide Transportation Plan The Plan Previous Plans The Modal Plans Aviation Rail Freight Engage with Us Events and Documents Library of Documents Calendar of Events Statewide Transportation Plan The Plan Previous Plans The Modal Plans Aviation Rail Freight "
+    },
+    {
+      "id": "cee5aa6b-a4f8-4f14-ae6e-91484eb1f768",
+      "key": "g8",
+      "item_type": "standard",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+      "key": "68af10b5",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.itf-oecd.org/dtla",
+      "host": "itf-oecd.org",
+      "len": 386,
+      "preview": "Just a moment... www.itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.itf-oecd.org to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "d2da85da-0912-497a-b645-31e4ca73cd18",
+      "key": "uae-national-net-zero-by-2050-transport-sector-roadmap",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S2589004225026094",
+      "host": "sciencedirect.com",
+      "len": 798,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a073b9293a24cc7e IP Address: 64.23.239.117 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Hea"
+    },
+    {
+      "id": "ab362011-bea5-4cc3-95b2-c185ced3c2de",
+      "key": "ab362011",
+      "item_type": "market_signal",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://thebrakereport.com/cvsa-2026-international-roadcheck-underway-targeting-eld-and-cargo-securement/",
+      "host": "thebrakereport.com",
+      "len": 689,
+      "preview": "Access denied | thebrakereport.com used Cloudflare to restrict access | thebrakereport.com | Cloudflare Please enable cookies. Error 1005 Ray ID: a0782fba0e652fe9 • 2026-06-06 14:42:55 UTC Access denied What happened? The owner of this website (thebrakereport.com) has banned the autonomous system number (ASN) your IP a"
+    },
+    {
+      "id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+      "key": "r15",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.undp.org/sites/g/files/zskgke326/files/publications/Executive%20Summary%20-%20Env%20Finance%20Tools.pdf",
+      "host": "undp.org",
+      "len": 300,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.undp.org/sites/g/files/zskgke326/files/publications/Executive%20Summary%20-%20Env%20Finance%20Tools.pdf\" on this server. Reference #18.a7b2d517.1781144000.356e487f https://errors.edgesuite.net/18.a7b2d517.1781144000.356e487f"
+    },
+    {
+      "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+      "key": "l6",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3*",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "3581c084-9486-4085-82cc-b650380bd83d",
+      "key": "c5",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/calculate-report-glec-framework/",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "5b9b05c7-2c73-4a08-9c98-0a86cba95e43",
+      "key": "5b9b05c7",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2025/07/07/2025-12602",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "key": "g21",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/documents/sustainable-transport-initiative-operational-plan",
+      "host": "adb.org",
+      "len": 669,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a071ae9a7b5e67af • 2026-06-05 19:46:12 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+      "key": "australia-national-electric-vehicle-strategy",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://infrastructure.gov.au/sites/default/files/documents/national-electric-vehicle-strategy.pdf",
+      "host": "infrastructure.gov.au",
+      "len": 498,
+      "preview": "Your request has been blocked. Here are some possible reasons why your information cannot be processed, and some tips on how to solve the issue: A high volume of simultaneous submissions from your network have been made to this website and the security tools used to protect this website have interpreted this as a possi"
+    },
+    {
+      "id": "66835398-477c-470a-a9a5-7e6d22cf4ad7",
+      "key": "singapore-regional-operations-profile",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility",
+      "host": "mot.gov.sg",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+      "key": "japan-s-green-transformation-gx-league-transport-requirements",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.meti.go.jp/english/press/2023/pdf/0210_003b.pdf",
+      "host": "meti.go.jp",
+      "len": 1720,
+      "preview": "Page Not Found / METI Ministry of Economy, Trade and Industry Advanced Search Contact Us Japanese Site Map Main Content Font size S M L Easy Web Browsing News Releases Speeches Statistics Policies Policie --> Policy Index METI Councils White Papers &amp; Reports Data Reports METI related Laws METI Quick Reads Meet METI"
+    },
+    {
+      "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+      "key": "a7",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iata.org/en/services/data/environment-sustainability/co2-connect/for-cargo/",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a092b"
+    },
+    {
+      "id": "88927b29-7af5-467d-a0c0-f5ff3069b8a5",
+      "key": "r18",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.scmp.com/news/china/science/article/3355989/china-proposes-nuclear-powered-floating-island-to-reshape-global-shipping",
+      "host": "scmp.com",
+      "len": 986,
+      "preview": "Page Not Found :( 404 The page you were looking for appears to have moved or never existed. Try searching for what you're looking for or browse some of our favourites below: Search SCMP Stories you may have missed China says jailed aerospace engineer was lured into spying for foreign agency Yerba mate has lots of healt"
+    },
+    {
+      "id": "3105da5c-0afd-403c-98c5-4099a9e14beb",
+      "key": "3105da5c",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://rsa.ed.gov/grantee/american-samoa/american-samoa-office-vocational-rehabilitation",
+      "host": "rsa.ed.gov",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "5f218fc4-8cc0-4b35-87a1-616da962322a",
+      "key": "l10",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2025/07/15/2025-13219/national-freight-strategic-plan-2025-update-request-for-information",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "41b43061-e8cd-4257-be32-8a15c12a1d00",
+      "key": "r36",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://maritimecarbonintelligence.com/contact-us",
+      "host": "maritimecarbonintelligence.com",
+      "len": 1269,
+      "preview": "Contact us | Maritime Carbon Intelligence Maritime Carbon Intelligence Maritime Carbon Intelligence Home CCS Regulations Webinars Fuels CO2 shipping Carbon markets Sustainability Finance Technology Insurance Ports and harbours Maritime Carbon Intelligence Maritime Carbon Intelligence Home CCS Regulations Webinars Fuels"
+    },
+    {
+      "id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+      "key": "a4153234",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://climate.cityofnewyork.us/wp-content/uploads/2024/04/PlaNYC-2024-Progress-Report.pdf",
+      "host": "climate.cityofnewyork.us",
+      "len": 928,
+      "preview": "Home - Mayor's Office of Climate &amp; Environmental Justice Skip Header | Mayor's Office of Climate &amp; Environmental Justice 311 Search all NYC.gov --> Powered by Translate Search Search We prepare New York City for the impacts of climate change and address remediation efforts from an equity and public health persp"
+    },
+    {
+      "id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+      "key": "7a0ead55",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://eur-lex.europa.eu",
+      "host": "eur-lex.europa.eu",
+      "len": 1008,
+      "preview": "EUR-Lex — Access to European Union law — choose your language EUR-Lex. europa.eu bg Достъп до правото на Европейския съюз es El acceso al Derecho de la Unión Europea cs Přístup k právu Evropské unie da Adgang til EU-lovgivningen de Der Zugang zum EU-Recht et Juurdepääs Euroopa Liidu õigusaktidele el Πρόσβαση στο δίκαιο"
+    },
+    {
+      "id": "b0cf862e-a95a-41a9-8d97-ab2c03b3342b",
+      "key": "b0cf862e",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://ww2.arb.ca.gov/our-work/programs/california-sustainable-freight-action-plan",
+      "host": "ww2.arb.ca.gov",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "9e70b75b-48be-405e-9c1f-41f7c3b5538b",
+      "key": "9e70b75b",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.nik.gov.pl/en/news/messy-waste.html",
+      "host": "nik.gov.pl",
+      "len": 220,
+      "preview": "Strona internetowa została zablokowana Strona nie może zostać wyświetlona. Skontaktuj się z administratorem w celu uzyskania dodatkowych informacji. Adres: www.nik.gov.pl/en/news/messy-waste.html Adres IP: 143.198.109.32"
+    },
+    {
+      "id": "4547e8c5-a43f-4fb7-ac37-2b9547fb4a35",
+      "key": "c2",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://eur-lex.europa.eu",
+      "host": "eur-lex.europa.eu",
+      "len": 1008,
+      "preview": "EUR-Lex — Access to European Union law — choose your language EUR-Lex. europa.eu bg Достъп до правото на Европейския съюз es El acceso al Derecho de la Unión Europea cs Přístup k právu Evropské unie da Adgang til EU-lovgivningen de Der Zugang zum EU-Recht et Juurdepääs Euroopa Liidu õigusaktidele el Πρόσβαση στο δίκαιο"
+    },
+    {
+      "id": "58bf0406-3be9-45bd-a2c8-b7c9d0b5c1a4",
+      "key": "l5",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://clean-trucking.eu/about-us",
+      "host": "clean-trucking.eu",
+      "len": 771,
+      "preview": "About us - European Clean Trucking Alliance | ECTA Go to the main content Menu Homepage Main menu About us About us Who we are What we do Our members Activities Our activities Publications Events Media Media Press releases Media resources Newsletter Glossary Contact About us &nbsp; &nbsp; Home Homepage The network for "
+    },
+    {
+      "id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+      "key": "g15",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://especiales.mintransporte.gov.co/SemanaMovilidadCO/movilidad-ambientalmente-sostenible.php",
+      "host": "especiales.mintransporte.gov.co",
+      "len": 318,
+      "preview": "The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information. URL: especiales.mintransporte.gov.co/SemanaMovilidadCO/movilidad-ambientalmente-sostenible.php Client IP: 209.38.71.144 Attack ID: 20000051 Message ID: 001178884980"
+    },
+    {
+      "id": "ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+      "key": "ee8f4e71",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.ilo.org/sites/default/files/2024-11/GWR2024_English_ExecutiveSummary_WEB.pdf",
+      "host": "ilo.org",
+      "len": 376,
+      "preview": "Just a moment... www.ilo.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.ilo.org to respond Enable JavaScript and cookies to continue Ray ID: a071c4f"
+    },
+    {
+      "id": "007104ed-b4e4-4735-b7ac-c16bc214c1eb",
+      "key": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/policies/28030-maritime-singapore-green-initiative-msgi",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a091d4b"
+    },
+    {
+      "id": "01126119-5005-4617-b7a5-0f1e37f1bedb",
+      "key": "a5",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.aircargonews.net/policy/environment/delta-cargo-joins-sustainable-air-freight-alliance/",
+      "host": "aircargonews.net",
+      "len": 394,
+      "preview": "Just a moment... www.aircargonews.net Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.aircargonews.net to respond Enable JavaScript and cookies to contin"
+    },
+    {
+      "id": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+      "key": "388b2ce8",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://jolt.eco/",
+      "host": "jolt.eco",
+      "len": 1741,
+      "preview": "Project JOLT – Joint Operator Logistic Trial Skip to content Home About Us Partners Contact Navigation Menu Navigation Menu Home About Us Partners Contact Joint Operators Logistics Trial Project JOLT is an ambitious initiative aimed at accelerating the electrification of the UK’s heavy goods vehicles. Spearheaded by Th"
+    },
+    {
+      "id": "9546c01a-dec6-46cc-88d7-56c7f30a7764",
+      "key": "r26",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S136403212300494X",
+      "host": "sciencedirect.com",
+      "len": 798,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a0788784db7258ac IP Address: 64.23.171.249 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Hea"
+    },
+    {
+      "id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "key": "b2193d25",
+      "item_type": "research_finding",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.iea.org/reports/global-hydrogen-review-2025/trade-and-infrastructure",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a06f93d"
+    },
+    {
+      "id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "key": "b2193d25",
+      "item_type": "research_finding",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.iea.org/reports/global-hydrogen-review-2025/investment-and-innovation",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a06f93d"
+    },
+    {
+      "id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+      "key": "g15",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible",
+      "host": "mintransporte.gov.co",
+      "len": 293,
+      "preview": "The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information. URL: mintransporte.gov.co/publicaciones/10754/transporte-sostenible Client IP: 146.190.134.224 Attack ID: 20000051 Message ID: 001178884954"
+    },
+    {
+      "id": "d136c88c-8816-4727-b15d-a80b96f0f57b",
+      "key": "d136c88c",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.bennettinstitute.cam.ac.uk/publications/biodiversity-loss-sovereign-credit-ratings/",
+      "host": "bennettinstitute.cam.ac.uk",
+      "len": 1236,
+      "preview": "Page not found - Bennett School of Public Policy Research at Cambridge Study at Cambridge About the University --> Search --> About us About Bennett School Our team Affiliated researchers Visitors Careers Diversity, equity and inclusion Research Research projects Publications Policy Resources Study with us Study with u"
+    },
+    {
+      "id": "2943632e-cca4-412c-8e89-487b301692ce",
+      "key": "2943632e",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://cleanairactionplan.org/",
+      "host": "cleanairactionplan.org",
+      "len": 1888,
+      "preview": "Clean Air Action Plan ­ --> Original text Rate this translation Your feedback will be used to help improve Google Translate Search for: About the Plan 2017 Clean Air Action Plan Update Stakeholder Advisory Group Strategies Ships Trucks Trains Cargo-Handling Equipment Harbor Craft Energy TAP Application Resources TAP Gu"
+    },
+    {
+      "id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+      "key": "japan-green-transformation-gx-freight-transport-standards",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.cas.go.jp/jp/seisaku/gx_jikkou_kaigi/pdf/kihon_en.pdf",
+      "host": "cas.go.jp",
+      "len": 643,
+      "preview": "お探しのページが見つかりませんでした。｜内閣官房ホームページ 内閣官房について 組織図・事務概要 幹部紹介 内閣官房組織等英文名称一覧 採用情報 会見・発表 内閣官房長官記者会見 報道発表 政策・制度 政府の基本方針・計画等 各種本部・会議等の活動情報 所管法令 国会提出法案 予算・決算 その他情報 情報提供 首相官邸ホームページ パブリックコメント等 調達情報 災害備蓄食品の有効活用 情報公開・公文書管理 個人情報保護 ソーシャルメディア トップページ &gt; お探しのページが見つかりませんでした。 お探しのページが見つかりませんでした。 リニューアル等に伴い、ページのURLが変更された、または、削除された可能性があります。 お"
+    },
+    {
+      "id": "ac349a70-606d-4eb3-ac19-5a4a0facd07c",
+      "key": "eu-battery-regulation-2023-1542",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://unece.org/sites/default/files/2024-10/4_EU_Rev.1.pdf",
+      "host": "unece.org",
+      "len": 372,
+      "preview": "Just a moment... unece.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for unece.org to respond Enable JavaScript and cookies to continue Ray ID: a071e0237e3"
+    },
+    {
+      "id": "0587f0b7-4132-4572-99e6-713de3f60356",
+      "key": "0587f0b7",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://committees.parliament.uk/publications/47928/documents/250705/default",
+      "host": "committees.parliament.uk",
+      "len": 402,
+      "preview": "Just a moment... committees.parliament.uk Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for committees.parliament.uk to respond Enable JavaScript and cookies t"
+    },
+    {
+      "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+      "key": "3f11f1fc",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/reports/electricity-2025/executive-summary",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a09293c"
+    },
+    {
+      "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+      "key": "australia-national-electric-vehicle-strategy",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.dcceew.gov.au/sites/default/files/documents/national-electric-vehicle-strategy-annual-update-2024-25.pdf",
+      "host": "dcceew.gov.au",
+      "len": 498,
+      "preview": "Your request has been blocked. Here are some possible reasons why your information cannot be processed, and some tips on how to solve the issue: A high volume of simultaneous submissions from your network have been made to this website and the security tools used to protect this website have interpreted this as a possi"
+    },
+    {
+      "id": "663f593c-8834-45c9-bddd-05c334538c54",
+      "key": "maritime-chokepoint-monitoring",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/data-and-statistics/data-tools/middle-east-maritime-chokepoints-shipping-monitor",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a071d6d"
+    },
+    {
+      "id": "d2b343b4-334d-401e-b93c-962bd8ac9932",
+      "key": "industrial-electricity-tariff-benchmarks-by-jurisdiction",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/data-and-statistics/data-product/energy-prices",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a071c20"
+    },
+    {
+      "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "key": "b94cd283",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/news/speeches/ero-30th-anniversary-kick-event-masato-kanda",
+      "host": "adb.org",
+      "len": 667,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a07289c0bf6e77a8 • 2026-06-05 22:15:48 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "6b0939a5-30fe-4afe-88d5-26d6b96bb752",
+      "key": "6b0939a5",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/policies/27375-regulation-eu-20231804-alternative-fuels-infrastructure-regulation",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a07212c"
+    },
+    {
+      "id": "8a9af9ef-0fe5-40c8-b8f4-dd97a316a574",
+      "key": "8a9af9ef",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://portwatch.imf.org/datasets/42132aa4e2fc4d41bdaf9a445f688931_0/about",
+      "host": "portwatch.imf.org",
+      "len": 1514,
+      "preview": "PortWatch --> --> Skip Navigation Close Sign In Explore Data Documents Apps &amp; Maps Recent Downloads --> IMF-PortWatch@IMF.org --> --> --> Due to a disruption in incoming AIS data, we were unable to update the PortWatch data in December. We will resume the data update in January when the data feed will be restored. "
+    },
+    {
+      "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "key": "g21",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+      "host": "adb.org",
+      "len": 667,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a071ae9ec9e0a6c4 • 2026-06-05 19:46:12 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "50ccd5cc-d278-43ad-98c1-596153c1d714",
+      "key": "50ccd5cc",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iso.org/standard/78864.html",
+      "host": "iso.org",
+      "len": 376,
+      "preview": "Just a moment... www.iso.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iso.org to respond Enable JavaScript and cookies to continue Ray ID: a116ccd"
+    },
+    {
+      "id": "05e2d1c1-7e87-443a-9178-a475d4d6c3b9",
+      "key": "g7",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S0967070X25001969",
+      "host": "sciencedirect.com",
+      "len": 800,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a08e5c1729a6237a IP Address: 137.184.225.117 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) H"
+    },
+    {
+      "id": "6d2ec398-6dea-4fd8-ad65-53c7cda2520d",
+      "key": "g29",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/policies/about",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a0786d0"
+    },
+    {
+      "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+      "key": "a7",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "39b5dc20-54a4-4211-a291-2d188cb4edc2",
+      "key": "39b5dc20",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2023/12/07/2023-26019/national-performance-management-measures-assessing-performance-of-the-national-highway-system",
+      "host": "federalregister.gov",
+      "len": 1118,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "282e480c-3d79-4ab8-8f60-b4c77fa3b228",
+      "key": "282e480c",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.railjournal.com/policy/brazil-launches-new-freight-concessions-programme/",
+      "host": "railjournal.com",
+      "len": 392,
+      "preview": "Just a moment... www.railjournal.com Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.railjournal.com to respond Enable JavaScript and cookies to continue"
+    },
+    {
+      "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "key": "g21",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/what-we-do/topics/transport/overview",
+      "host": "adb.org",
+      "len": 668,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a071aea48c1ac68c • 2026-06-05 19:46:13 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+      "key": "120529b8",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://itf-oecd.org/general-rules-international-transport-forum-2019",
+      "host": "itf-oecd.org",
+      "len": 378,
+      "preview": "Just a moment... itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for itf-oecd.org to respond Enable JavaScript and cookies to continue Ray ID: a0745"
+    },
+    {
+      "id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+      "key": "d131224a",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S0301420725002971",
+      "host": "sciencedirect.com",
+      "len": 797,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a06f658edeeeeb2c IP Address: 161.35.232.6 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Head"
+    },
+    {
+      "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "key": "g21",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/multimedia/partnership-report2024/our-stories/driving-development-through-sustainable-transport/",
+      "host": "adb.org",
+      "len": 668,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a071ae9a2e15228b • 2026-06-05 19:46:12 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "3105da5c-0afd-403c-98c5-4099a9e14beb",
+      "key": "3105da5c",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.un.org/en/observances/autism-day/2025",
+      "host": "un.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "cea40062-fead-407a-bf9d-3bf0a666ba00",
+      "key": "cea40062",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S0048969724025804",
+      "host": "sciencedirect.com",
+      "len": 799,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a078d2cbde1cc6bb IP Address: 146.190.114.39 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) He"
+    },
+    {
+      "id": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+      "key": "68af10b5",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://publications.iadb.org/en/decarbonising-transport-latin-american-cities-assessing-scenarios-2050",
+      "host": "publications.iadb.org",
+      "len": 396,
+      "preview": "Just a moment... publications.iadb.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for publications.iadb.org to respond Enable JavaScript and cookies to cont"
+    },
+    {
+      "id": "3105da5c-0afd-403c-98c5-4099a9e14beb",
+      "key": "3105da5c",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.americansamoa.gov/vocrehab",
+      "host": "americansamoa.gov",
+      "len": 1166,
+      "preview": "--> VOCATIONAL REHABILITATION | AMERICAN SAMOA top of page americansamoa.gov Social Media Youtube Instagram&nbsp; &nbsp;Facebook HOME GOVERNOR &amp; LT. GOVERNOR GOVERNOR PULAALI'I NIKOLAO PULA LIEUTENANT GOVERNOR HC PULU AE AE JR. GOVERNMENT CABINET OTHER AGENCIES PRESS / MEDIA PRESS RELEASES GENERAL MEMORANDUMS EXECU"
+    },
+    {
+      "id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+      "key": "crude-oil-jet-fuel-price-intelligence",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-fuel/",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a0784"
+    },
+    {
+      "id": "ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+      "key": "ad4cc6c6",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.customs.go.jp/english/procedures/advance_e/index_e.htm",
+      "host": "customs.go.jp",
+      "len": 1325,
+      "preview": "Advance Filing Rules on Cargo, Crew and Passenger Information(the Pre-arrival filing) : Japan Customs This page uses Javascript. Please enable Javascript in your browser. Skip to Content Menu Home Passenger Export / Import Enforcement Trade Statistics Customs Answer(FAQ) Regional Customs Hakodate Tokyo Yokohama Nagoya "
+    },
+    {
+      "id": "0f2e42ed-89e2-45b1-bab2-f28b6e6d8e58",
+      "key": "0f2e42ed",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://gob.mx/semarnat",
+      "host": "gob.mx",
+      "len": 1528,
+      "preview": "Secretaría de Medio Ambiente y Recursos Naturales | Gobierno | gob.mx Saltar al contenido principal Interruptor de Navegación Trámites Gobierno English semarnat Blog Álbum de fotos Prensa Agenda Acciones y Programas Documentos Transparencia --> Contacto Sitio de Secretaría de Medio Ambiente y Recursos Naturales Aa+ Aa-"
+    },
+    {
+      "id": "db8577c6-96e3-4cfa-8bd6-daf538ac3dc5",
+      "key": "db8577c6",
+      "item_type": "framework",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.federalregister.gov/documents/2026/02/24/2026-03648/guidance-on-multimodal-state-freight-plans-and-state-freight-advisory-committees",
+      "host": "federalregister.gov",
+      "len": 1116,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+      "key": "autonomous-connected-freight-technology",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://itf-oecd.org/managing-transition-driverless-road-freight-transport",
+      "host": "itf-oecd.org",
+      "len": 378,
+      "preview": "Just a moment... itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for itf-oecd.org to respond Enable JavaScript and cookies to continue Ray ID: a0716"
+    },
+    {
+      "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "key": "b94cd283",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/where-we-work/ero",
+      "host": "adb.org",
+      "len": 669,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a07289c22f4cb1b4 • 2026-06-05 22:15:48 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+      "key": "3f11f1fc",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/reports/electricity-mid-year-update-2025/executive-summary",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a092944"
+    },
+    {
+      "id": "c28b567f-7bd0-4448-b5f0-e3be42334bb6",
+      "key": "c28b567f",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2026/02/24/2026-03648/guidance-on-multimodal-state-freight-plans-and-state-freight-advisory-committees",
+      "host": "federalregister.gov",
+      "len": 1117,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+      "key": "ed6c5c76",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.commercialmotor.com/news/article/project-jolt-enters-next-phase-as-four-ehgvs-begin-full-operational-trials",
+      "host": "commercialmotor.com",
+      "len": 765,
+      "preview": "Attention Required! | Cloudflare Please enable cookies. Sorry, you have been blocked You are unable to access commercialmotor.com Why have I been blocked? This website is using a security service to protect itself from online attacks. The action you just performed triggered the security solution. There are several acti"
+    },
+    {
+      "id": "5f218fc4-8cc0-4b35-87a1-616da962322a",
+      "key": "l10",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://federalregister.gov/documents/2025/07/15/2025-13219/national-freight-strategic-plan-2025-update-request-for-information",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+      "key": "japan-green-transformation-gx-freight-transport-standards",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.meti.go.jp/english/press/2023/pdf/0210_003c.pdf",
+      "host": "meti.go.jp",
+      "len": 1720,
+      "preview": "Page Not Found / METI Ministry of Economy, Trade and Industry Advanced Search Contact Us Japanese Site Map Main Content Font size S M L Easy Web Browsing News Releases Speeches Statistics Policies Policie --> Policy Index METI Councils White Papers &amp; Reports Data Reports METI related Laws METI Quick Reads Meet METI"
+    },
+    {
+      "id": "007104ed-b4e4-4735-b7ac-c16bc214c1eb",
+      "key": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",
+      "host": "mot.gov.sg",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+      "key": "0ea6a710",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+      "host": "dot.ny.gov",
+      "len": 317,
+      "preview": "404 Not Found Not Found The requested URL /divisions/operating/osss/truck/regulations was not found on this server. Additionally, a 404 Not Found error was encountered while trying to use an ErrorDocument to handle the request. Oracle-Application-Server-10g/10.1.2.2.0 Oracle-HTTP-Server Server at nysdot.gov Port 443"
+    },
+    {
+      "id": "87ed781c-5916-417d-9bfd-feefa3c095bb",
+      "key": "87ed781c",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2026/02/24/2026-03648/guidance-on-multimodal-state-freight-plans-and-state-freight-advisory-committees",
+      "host": "federalregister.gov",
+      "len": 1118,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "947e08f3-0136-423d-8f62-03bb071bad49",
+      "key": "947e08f3",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/reports/electricity-mid-year-update-2025",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a0715e6"
+    },
+    {
+      "id": "45006684-2f39-4107-934a-e8420c7fbbbb",
+      "key": "45006684",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.itf-oecd.org/decarbonising-transport",
+      "host": "itf-oecd.org",
+      "len": 386,
+      "preview": "Just a moment... www.itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.itf-oecd.org to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "de7f09fc-b66e-41d2-a3a9-876aeda6a7e1",
+      "key": "de7f09fc",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.fmcsa.dot.gov/sites/fmcsa.dot.gov/files/2023-09/Alaska%20FY23%20CVSP%20Final.pdf",
+      "host": "fmcsa.dot.gov",
+      "len": 277,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.fmcsa.dot.gov/sites/fmcsa.dot.gov/files/2023-09/Alaska%20FY23%20CVSP%20Final.pdf\" on this server. Reference #18.52c90b17.1780761489.136a88b6 https://errors.edgesuite.net/18.52c90b17.1780761489.136a88b6"
+    },
+    {
+      "id": "56031fd3-d7ae-45e5-a1d0-bde3e3c30383",
+      "key": "a2",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://eur-lex.europa.eu",
+      "host": "eur-lex.europa.eu",
+      "len": 1008,
+      "preview": "EUR-Lex — Access to European Union law — choose your language EUR-Lex. europa.eu bg Достъп до правото на Европейския съюз es El acceso al Derecho de la Unión Europea cs Přístup k právu Evropské unie da Adgang til EU-lovgivningen de Der Zugang zum EU-Recht et Juurdepääs Euroopa Liidu õigusaktidele el Πρόσβαση στο δίκαιο"
+    },
+    {
+      "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+      "key": "a7",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "93366a82-dd93-4f72-9397-3db9e52b12f9",
+      "key": "r12",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.corepower.energy/news/maersk-joins-nuclear-box-ship-study",
+      "host": "corepower.energy",
+      "len": 1901,
+      "preview": "Not found | CORE POWER × This website stores cookies on your computer. These cookies are used to collect information about how you interact with our website and allow us to remember you. We use this information in order to improve and customize your browsing experience and for analytics and metrics about our visitors b"
+    },
+    {
+      "id": "1cda60cd-971a-4294-b90f-fdef2d7ef6da",
+      "key": "brazil-national-policy-on-alternative-fuels-pnca",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.epe.gov.br/sites-en/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-276/NT-EPE-DPG-SDB-2025-06_Biofuels%20Current%20Outlook_Year%202024.pdf",
+      "host": "epe.gov.br",
+      "len": 389,
+      "preview": "The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information. URL: www.epe.gov.br/sites-en/publicacoes-dados-abertos/publicacoes/PublicacoesArquivos/publicacao-276/NT-EPE-DPG-SDB-2025-06_Biofuels Current Outlook_Year 2024.pdf Cl"
+    },
+    {
+      "id": "cc0958fb-6453-4163-8363-27515817597f",
+      "key": "a1",
+      "item_type": "framework",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-corsia/",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a0784"
+    },
+    {
+      "id": "beae0a7e-1088-4d35-b89f-362aade1d1a8",
+      "key": "india-s-national-logistics-policy-carbon-intensity-standards",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.dpiit.gov.in/static/uploads/2025/07/b6c9db15ce083fd10caa9787bf8a281f.pdf",
+      "host": "dpiit.gov.in",
+      "len": 269,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.dpiit.gov.in/static/uploads/2025/07/b6c9db15ce083fd10caa9787bf8a281f.pdf\" on this server. Reference #18.6c55d117.1780713242.3000d795 https://errors.edgesuite.net/18.6c55d117.1780713242.3000d795"
+    },
+    {
+      "id": "c0eab829-5402-4c8a-8c0c-60954e88cc52",
+      "key": "c0eab829",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://arpa-e.energy.gov/news-and-media/press-releases/us-department-energy-announces-9-million-projects-modeling-optimal",
+      "host": "arpa-e.energy.gov",
+      "len": 1012,
+      "preview": "News &amp; Insights | ARPA-E Skip to main content An official website of the United States government Here’s how you know Here’s how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( ) or https:// means you’ve "
+    },
+    {
+      "id": "cfcf9e4c-6562-4c2e-8463-0cc6e5cb0bad",
+      "key": "uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S2949823625001151",
+      "host": "sciencedirect.com",
+      "len": 799,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a078a8c89e881d99 IP Address: 143.110.229.10 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) He"
+    },
+    {
+      "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+      "key": "0ea6a710",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.dot.ny.gov/divisions/operating/osss/repository/Part%20820%20text-%20amended.pdf",
+      "host": "dot.ny.gov",
+      "len": 1510,
+      "preview": "Error Untitled Document Your browser does not support iFrames Navigation menu Department of Transportation Travel Overview 511NY Travel Information Business Overview Doing Business with NYSDOT Forms Publications &amp; Guidance Webcasts Projects Employment About Overview A-Z Index Commissioner Contact Us --> News &amp; "
+    },
+    {
+      "id": "de2df788-acca-42ed-b621-864db48da109",
+      "key": "de2df788",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2024/07/15/2024-15225/air-plan-approval-connecticut-low-emissions-vehicles-program",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "708e0b02-6663-42ee-b138-74c80898291e",
+      "key": "r32",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.ecoports.com/publications/espo-green-guide-2021-a-manual-for-european-ports-towards-a-green-future",
+      "host": "ecoports.com",
+      "len": 874,
+      "preview": "ESPO Green Guide 2021, a Manual for European Ports Towards a Green Future - EcoPorts | ESPO ABOUT NETWORK TOOLS NEWS PUBLICATIONS CONTACT SEARCH LOGIN JOIN NOW EcoPorts Publications ESPO Green Guide 2021, a Manual for European Ports Towards a Green Future Sep, 20 2021 The ESPO Green Guide 2021 provides Europe’s ports w"
+    },
+    {
+      "id": "50ccd5cc-d278-43ad-98c1-596153c1d714",
+      "key": "50ccd5cc",
+      "item_type": "framework",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.smartfreightcentre.org/en/about-sfc/news/new-iso-14083-standard-a-globally-recognized-methodology-to-calculate-ghg-emissions/",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+      "key": "ad4cc6c6",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.customs.go.jp/english/law/index.htm",
+      "host": "customs.go.jp",
+      "len": 1042,
+      "preview": "Outline of Customs and Tariff Policy Amendment : Japan Customs This page uses Javascript. Please enable Javascript in your browser. Skip to Content Menu Home Passenger Export / Import Enforcement Trade Statistics Customs Answer(FAQ) Regional Customs Hakodate Tokyo Yokohama Nagoya Osaka Kobe Moji Nagasaki Okinawa Site M"
+    },
+    {
+      "id": "ff4064ab-9489-4fc4-b3cc-f0f157e71db5",
+      "key": "eu-emissions-trading-system-ets-extension-to-maritime-transport",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S0967070X2500071X",
+      "host": "sciencedirect.com",
+      "len": 799,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a0f34eff5a8fef9b IP Address: 147.182.255.73 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) He"
+    },
+    {
+      "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+      "key": "australia-national-electric-vehicle-strategy",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.dcceew.gov.au/energy/transport/national-electric-vehicle-strategy",
+      "host": "dcceew.gov.au",
+      "len": 498,
+      "preview": "Your request has been blocked. Here are some possible reasons why your information cannot be processed, and some tips on how to solve the issue: A high volume of simultaneous submissions from your network have been made to this website and the security tools used to protect this website have interpreted this as a possi"
+    },
+    {
+      "id": "5fec12c6-23be-4a7f-b2d3-4b8e9faadc22",
+      "key": "5fec12c6",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-sustainable-aviation-fuels/",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a0783"
+    },
+    {
+      "id": "7820e673-c984-44e6-95e0-d3884d7128c4",
+      "key": "7820e673",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.ecfr.gov/current/title-40/chapter-I/subchapter-C/part-60/subpart-OOOOc",
+      "host": "ecfr.gov",
+      "len": 1116,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "abd83595-cb54-4ccc-b80b-2f9421596465",
+      "key": "r5",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "44906e93-07a5-4b4c-8b3d-508b39ae605b",
+      "key": "singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.mas.gov.sg/schemes-and-initiatives/sustainable-loan-grant-scheme",
+      "host": "mas.gov.sg",
+      "len": 653,
+      "preview": "Maintenance A Singapore Government Agency Website Home Sorry, this service is currently unavailable. Please try accessing the page using a different device or internet browser, or by clearing your browser cache. If the issue continues, kindly reach out to us at contact us and provide the ID number 0.5160d017.1780860585"
+    },
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "key": "67c6e313",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://adb.org/what-we-do/topics/transport/overview",
+      "host": "adb.org",
+      "len": 669,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a0872cf89fa48462 • 2026-06-08 10:22:29 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+      "key": "b2193d25",
+      "item_type": "research_finding",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.iea.org/reports/breakthrough-agenda-report-2025/hydrogen",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a06f93d"
+    },
+    {
+      "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+      "key": "a7",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iata.org/en/programs/cargo/sustainability/carbon-footprint/",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a092b"
+    },
+    {
+      "id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+      "key": "d131224a",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/reports/global-supply-chains-of-ev-batteries",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a06f659"
+    },
+    {
+      "id": "c54cd5f2-779a-4a74-9614-ea38a0e6d55f",
+      "key": "c54cd5f2",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://hlpf.un.org/2024/programme/sdg-13-and-interlinkages-with-other-sdgs-climate-action",
+      "host": "hlpf.un.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "7d5bd5a1-07db-4271-81c8-d9f6e177bc77",
+      "key": "7d5bd5a1",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.undp.org/sites/g/files/zskgke326/files/2024-07/GEF%20Instrument%20Amendment%20-%20Note%20UNDP%20Administrator%20to%20EB.pdf",
+      "host": "undp.org",
+      "len": 320,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.undp.org/sites/g/files/zskgke326/files/2024-07/GEF%20Instrument%20Amendment%20-%20Note%20UNDP%20Administrator%20to%20EB.pdf\" on this server. Reference #18.4955d117.1780763624.94fa015d https://errors.edgesuite.net/18.4955d117.1780763624.94fa015d"
+    },
+    {
+      "id": "7820e673-c984-44e6-95e0-d3884d7128c4",
+      "key": "7820e673",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2024/03/08/2024-00366/standards-of-performance-for-new-reconstructed-and-modified-sources-and-emissions-guidelines-for",
+      "host": "federalregister.gov",
+      "len": 1118,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "bd9a1a6b-2966-41df-b595-63ccad090f90",
+      "key": "bd9a1a6b",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.stapgef.org/about",
+      "host": "stapgef.org",
+      "len": 1922,
+      "preview": "About Skip to main content About Chair's Reports News Events Publications Search About Chair's Reports News Events Publications Search About The Scientific and Technical Advisory Panel (STAP) provides independent scientific and technical advice to the Global Environment Facility (GEF), ensuring that its investments are"
+    },
+    {
+      "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+      "key": "0ea6a710",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.ecfr.gov/cgi-bin/retrieveECFR?gp=1&ty=HTML&h=L&mc=true&n=pt49.5.390",
+      "host": "ecfr.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "663f593c-8834-45c9-bddd-05c334538c54",
+      "key": "maritime-chokepoint-monitoring",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.congress.gov/crs-product/R45281",
+      "host": "congress.gov",
+      "len": 761,
+      "preview": "Attention Required! | Cloudflare Please enable cookies. Sorry, you have been blocked You are unable to access congress.gov Why have I been blocked? This website is using a security service to protect itself from online attacks. The action you just performed triggered the security solution. There are several actions tha"
+    },
+    {
+      "id": "af277afd-b925-4583-852a-eaa6db310888",
+      "key": "af277afd",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/reports/global-ev-outlook-2024",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a0717e2"
+    },
+    {
+      "id": "cea7bd1b-cb28-4087-968e-31729c32cb3d",
+      "key": "cea7bd1b",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://peistatusofwomen.ca/purple-ribbon-campaign/family-violence-prevention-week/",
+      "host": "peistatusofwomen.ca",
+      "len": 1578,
+      "preview": "Family Violence Prevention Week | PEIACSW News Media Releases &amp; Opinions Recent Videos Annual Reports Archived Publications List Community Events Bursaries Special Programs International Women’s Day Women’s History Month Policy Research Equality Report Card Past Advice to Government Purple Ribbon Campaign Resources"
+    },
+    {
+      "id": "e0c0151c-734d-4a82-81b8-5ee203669afe",
+      "key": "l2",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://eur-lex.europa.eu",
+      "host": "eur-lex.europa.eu",
+      "len": 1008,
+      "preview": "EUR-Lex — Access to European Union law — choose your language EUR-Lex. europa.eu bg Достъп до правото на Европейския съюз es El acceso al Derecho de la Unión Europea cs Přístup k právu Evropské unie da Adgang til EU-lovgivningen de Der Zugang zum EU-Recht et Juurdepääs Euroopa Liidu õigusaktidele el Πρόσβαση στο δίκαιο"
+    },
+    {
+      "id": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+      "key": "605a2d06",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.itf-oecd.org/ai-machine-learning-and-regulation-case-automated-vehicles",
+      "host": "itf-oecd.org",
+      "len": 386,
+      "preview": "Just a moment... www.itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.itf-oecd.org to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+      "key": "3f11f1fc",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/data-and-statistics/charts/estimated-final-electricity-price-for-large-industrial-customers-in-energy-intensive-industries-2019-2025",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a092937"
+    },
+    {
+      "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+      "key": "0af6afdf",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.c40.org/what-we-do/scaling-up-climate-action/ports-and-shipping/green-shipping-corridors/",
+      "host": "c40.org",
+      "len": 376,
+      "preview": "Just a moment... www.c40.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.c40.org to respond Enable JavaScript and cookies to continue Ray ID: a09cf3f"
+    },
+    {
+      "id": "66835398-477c-470a-a9a5-7e6d22cf4ad7",
+      "key": "singapore-regional-operations-profile",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",
+      "host": "mot.gov.sg",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "de2df788-acca-42ed-b621-864db48da109",
+      "key": "de2df788",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://portal.ct.gov/Office-of-the-Governor/News/Press-Releases/2023/07-2023/Governor-Lamont-Announces-Connecticut-Adopting-Clean-Air-Car-and-Truck-Emission-Standards",
+      "host": "portal.ct.gov",
+      "len": 1628,
+      "preview": "404 Error Page webpages 404 Error Page --> If you are viewing this version of CT.gov, you are using an unsupported browser or you are in Internet Explorer 9 using compatibility mode. This means that the design and layout of the site is not fully supported, however the content of the site is still fully accessible and f"
+    },
+    {
+      "id": "b88753be-8ed4-4392-9cee-9f472c208513",
+      "key": "warehouse-solar-bess-roi-analysis",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S2352152X25010709",
+      "host": "sciencedirect.com",
+      "len": 800,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a071cc15fbbacea4 IP Address: 159.223.206.203 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) H"
+    },
+    {
+      "id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+      "key": "d131224a",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/reports/ev-battery-supply-chain-sustainability",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a06f659"
+    },
+    {
+      "id": "2648d4ad-eac5-406b-888c-d551d5e1d403",
+      "key": "2648d4ad",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.itf-oecd.org/sites/default/files/sipa-methodology-decarbonisation.pdf",
+      "host": "itf-oecd.org",
+      "len": 386,
+      "preview": "Just a moment... www.itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.itf-oecd.org to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "01126119-5005-4617-b7a5-0f1e37f1bedb",
+      "key": "a5",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iata.org/en/programs/cargo/sustainability/carbon-footprint/",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a0824"
+    },
+    {
+      "id": "7820e673-c984-44e6-95e0-d3884d7128c4",
+      "key": "7820e673",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2025/07/31/2025-14531/extension-of-deadlines-in-standards-of-performance-for-new-reconstructed-and-modified-sources-and",
+      "host": "federalregister.gov",
+      "len": 1116,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "646dda2d-f039-4a55-90e2-900dbca4b185",
+      "key": "646dda2d",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://transportesostenible.mintransporte.gov.co/normatividad-2",
+      "host": "transportesostenible.mintransporte.gov.co",
+      "len": 247,
+      "preview": "transportesostenible.mintransporte.gov.co This site can’t be reached Check if there is a typo in transportesostenible.mintransporte.gov.co . DNS_PROBE_FINISHED_NXDOMAIN Reload Check if there is a typo in transportesostenible.mintransporte.gov.co ."
+    },
+    {
+      "id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+      "key": "eu_clean_trucking_2024_1610",
+      "item_type": "regulation",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://climatepolicydatabase.org/policies/regulation-eu-20241610-heavy-duty-vehicle-emission-standard",
+      "host": "climatepolicydatabase.org",
+      "len": 1432,
+      "preview": "Regulation (EU) 2024/1610 on heavy-duty vehicle emission standard | Climate Policy Database Home Policies Countries Analysis G20 policy coverage Methodology About &amp; Legal Home Policies Regulation (EU) 2024/1610 On Heavy-duty Vehicle Emission Standard Download Heavy duty vehicle emission standard European Union The "
+    },
+    {
+      "id": "02ad37c7-8a11-434b-8626-55e92087fbc9",
+      "key": "02ad37c7",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.itf-oecd.org/sites/default/files/sipa-methodology-decarbonisation.pdf",
+      "host": "itf-oecd.org",
+      "len": 386,
+      "preview": "Just a moment... www.itf-oecd.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.itf-oecd.org to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+      "key": "bec305e1",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "0c2c1ec1-abc9-40df-b6ed-e8eee6bdee29",
+      "key": "mit-center-for-transportation-logistics-sustainable-trucking",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://ctl.mit.edu/pub/paper/load-asymptotics-and-dynamic-speed-optimization-greenest-path-problem-comprehensive",
+      "host": "ctl.mit.edu",
+      "len": 706,
+      "preview": "Page not found | Center for Transportation and Logistics Skip to main content Log in User account menu Subscribe Log in Main navigation Toggle sub-menu About Contact Us Job Opportunities Media Relations People Visit Us Toggle sub-menu Education Online Education On-Campus Degrees Workforce &amp; Leadership Development E"
+    },
+    {
+      "id": "6373df1e-1461-478e-b480-70dee471d597",
+      "key": "g14",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://dieselnet.com/standards/mx/",
+      "host": "dieselnet.com",
+      "len": 1402,
+      "preview": "Emission Standards: Mexico DieselNet News Directory Standards Technology Resources Log in | Subscribe | Preferences Emission Standards Mexico Regulatory Background Mexican emission requirements for new vehicles and engines are adopted by the Secretaria de Medio Ambiente y Recursos Naturales ( SEMARNAT ). Emission compl"
+    },
+    {
+      "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+      "key": "sustainable-aviation-fuel-saf-production-pricing",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iata.org/en/programs/sustainability/sustainable-aviation-fuel-saf/",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a0714"
+    },
+    {
+      "id": "c3fa4cc2-f168-4784-bf78-dda5c022843e",
+      "key": "o8",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.sciencedirect.com/science/article/pii/S1361920925003128",
+      "host": "sciencedirect.com",
+      "len": 799,
+      "preview": "ScienceDirect ScienceDirect Help There was a problem providing the content you requested Please contact our support team for more information and provide the details below. Reference number: a07442509e7bc710 IP Address: 137.184.45.185 User Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) He"
+    },
+    {
+      "id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+      "key": "5b37050b",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://aircargonews.net/",
+      "host": "aircargonews.net",
+      "len": 386,
+      "preview": "Just a moment... aircargonews.net Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for aircargonews.net to respond Enable JavaScript and cookies to continue Ray I"
+    },
+    {
+      "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+      "key": "0af6afdf",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.spglobal.com/market-intelligence/en/news-insights/research/2025/11/series-of-new-green-shipping-corridors-emerge-despite-imo-regulatory-setback",
+      "host": "spglobal.com",
+      "len": 340,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.spglobal.com/market-intelligence/en/news-insights/research/2025/11/series-of-new-green-shipping-corridors-emerge-despite-imo-regulatory-setback\" on this server. Reference #18.1e4e4317.1781142510.71b2fd59 https://errors.edgesuite.net/18.1e4e4317"
+    },
+    {
+      "id": "c1cab7e2-606f-45f1-a229-46c0e7002dfa",
+      "key": "r3",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+      "key": "3f11f1fc",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/data-and-statistics/data-product/energy-prices",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a092941"
+    },
+    {
+      "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+      "key": "sustainable-aviation-fuel-saf-production-pricing",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-fuel",
+      "host": "iata.org",
+      "len": 378,
+      "preview": "Just a moment... www.iata.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iata.org to respond Enable JavaScript and cookies to continue Ray ID: a0714"
+    },
+    {
+      "id": "ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+      "key": "ee8f4e71",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://ilo.org/resource/other/global-wage-report-series",
+      "host": "ilo.org",
+      "len": 376,
+      "preview": "Just a moment... www.ilo.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.ilo.org to respond Enable JavaScript and cookies to continue Ray ID: a071c4f"
+    },
+    {
+      "id": "b4811af8-d45e-4e4f-b7ca-1f94451cc91e",
+      "key": "b4811af8",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.oag-bvg.gc.ca/internet/English/nun_201803_e_42874.html",
+      "host": "oag-bvg.gc.ca",
+      "len": 905,
+      "preview": "We couldn't find that Web page (Error 404) / Nous ne pouvons trouver cette page Web (Erreur 404) Office of the Auditor General of Canada We couldn't find that Web page Error 404 We're sorry you ended up here. Sometimes a page gets moved or deleted, but hopefully we can help you find what you're looking for. What next? "
+    },
+    {
+      "id": "b8da154a-149e-483a-9198-7039850006fc",
+      "key": "lng-natural-gas-price-intelligence",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://naturalgasintel.com/news/daily-gas-price-index/",
+      "host": "naturalgasintel.com",
+      "len": 734,
+      "preview": "Human Verification Temporary error. Please try again. Before proceeding to your request, you need to solve a puzzle, and the puzzle requires Google Translate to be disabled. Please disable Google Translate and retry. Let's confirm you are human Complete the security check before continuing. This step verifies that you "
+    },
+    {
+      "id": "537b8131-280b-47c8-b9fe-5a96070917b7",
+      "key": "537b8131",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2023/02/28/2023-03500/national-electric-vehicle-infrastructure-standards-and-requirements",
+      "host": "federalregister.gov",
+      "len": 1118,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "3581c084-9486-4085-82cc-b650380bd83d",
+      "key": "c5",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.smartfreightcentre.org/en/about-sfc/news/new-iso-14083-standard-a-globally-recognized-methodology-to-calculate-ghg-emissions/",
+      "host": "smartfreightcentre.org",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+      "key": "bec305e1",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2024/06/17/2024-13196/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3-correction",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+      "key": "68af10b5",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://cloud.mail.iadb.org/Transport2050",
+      "host": "cloud.mail.iadb.org",
+      "len": 1140,
+      "preview": "Transportation 2050: Pathways to Decarbonization and Climate Resilience in Latin America and the Caribbean Download&nbsp;&nbsp; También puedes descargar nuestra publicación directamente --> Accounting for 40% of GHG emissions in the region, transport has a key role to play in fighting climate change. Transport infrastr"
+    },
+    {
+      "id": "d02b40cc-193a-4248-82bb-1a88953ccfbc",
+      "key": "d02b40cc",
+      "item_type": "initiative",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.zawya.com/en/projects/utilities/shams-dubai-rooftop-solar-capacity-reaches-725-mw-across-8430-buildings-bknli98c",
+      "host": "zawya.com",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "7e4f2b36-81a0-4769-85ae-e70e475076cd",
+      "key": "7e4f2b36",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iopscience.iop.org/article/10.1088/2634-4505/ad097a",
+      "host": "iopscience.iop.org",
+      "len": 384,
+      "preview": "Radware Bot Manager Captcha We apologize for the inconvenience... To ensure we keep this website safe, please can you confirm you are a human by ticking the box below. If you are unable to complete the above request please contact us using the below link, providing a screenshot of your experience. https://ioppublishing"
+    },
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "key": "67c6e313",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/what-we-do/private-sector-financing/financial-products",
+      "host": "adb.org",
+      "len": 668,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a0872dec5c998fc5 • 2026-06-08 10:23:08 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "a7d9bc29-1514-4ee9-9177-a4408426498c",
+      "key": "a7d9bc29",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2023/01/24/2023-00928/air-plan-approval-ia-electronic-submittal-of-air-quality-information",
+      "host": "federalregister.gov",
+      "len": 1116,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+      "key": "3f11f1fc",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/data-and-statistics/charts/estimated-final-electricity-price-for-large-industrial-customers-in-energy-intensive-industries-2019-2024",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a092937"
+    },
+    {
+      "id": "b4811af8-d45e-4e4f-b7ca-1f94451cc91e",
+      "key": "b4811af8",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://gov.nu.ca/environment",
+      "host": "gov.nu.ca",
+      "len": 380,
+      "preview": "Just a moment... www.gov.nu.ca Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.gov.nu.ca to respond Enable JavaScript and cookies to continue Ray ID: a07"
+    },
+    {
+      "id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+      "key": "green-building-certification-standards-for-logistics",
+      "item_type": "standard",
+      "status": "verified",
+      "verified": true,
+      "url": "https://energy.ec.europa.eu",
+      "host": "energy.ec.europa.eu",
+      "len": 321,
+      "preview": "Language selection | Energy Skip to main content bg български es español cs čeština da dansk de Deutsch et eesti el ελληνικά en English fr français ga Gaeilge hr hrvatski it italiano lv latviešu lt lietuvių hu magyar mt Malti nl Nederlands pl polski pt português ro română sk slovenčina sl slovenščina fi suomi sv svensk"
+    },
+    {
+      "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+      "key": "battery-electric-vehicle-technology",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://iea.org/reports/global-ev-outlook-2024/trends-in-electric-vehicle-batteries",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a0716fd"
+    },
+    {
+      "id": "2f4dc1f8-155c-4eb2-a371-3f2eb2a01d03",
+      "key": "2f4dc1f8",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.equiterre.org/en/initiatives/decarbonizing-urban-freight-transport",
+      "host": "equiterre.org",
+      "len": 276,
+      "preview": "Vercel Security Checkpoint We're verifying your browser Website owner? Click here to fix Vercel Security Checkpoint | sfo1::1780714677-l3sZHPXTrVckCBH4K9gkOeKWj7QfqLAS Enable JavaScript to continue Vercel Security Checkpoint | sfo1::1780714677-l3sZHPXTrVckCBH4K9gkOeKWj7QfqLAS"
+    },
+    {
+      "id": "0c2c1ec1-abc9-40df-b6ed-e8eee6bdee29",
+      "key": "mit-center-for-transportation-logistics-sustainable-trucking",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.uni.lu/fdef-en/research-projects/city-logistics-freight-lab/",
+      "host": "uni.lu",
+      "len": 553,
+      "preview": "ERROR: The request could not be satisfied 403 ERROR The request could not be satisfied. Request blocked. We can't connect to the server for this app or website at this time. There might be too much traffic or a configuration error. Try again later, or contact the app or website owner. If you provide content to customer"
+    },
+    {
+      "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "key": "b94cd283",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://adb.org/documents/sustainable-transport-initiative-operational-plan",
+      "host": "adb.org",
+      "len": 668,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a07289c67adb7851 • 2026-06-05 22:15:49 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "key": "67c6e313",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://blogs.adb.org/blog/six-strategies-drive-decarbonization-asian-transport",
+      "host": "blogs.adb.org",
+      "len": 675,
+      "preview": "Access denied | blogs.adb.org used Cloudflare to restrict access | blogs.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a0872e6059908dfa • 2026-06-08 10:23:26 UTC Access denied What happened? The owner of this website (blogs.adb.org) has banned the autonomous system number (ASN) your IP address is in (1"
+    },
+    {
+      "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "key": "b94cd283",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+      "host": "adb.org",
+      "len": 668,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a07289c0c86225c3 • 2026-06-05 22:15:48 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "ee2cfe81-afc8-492f-b03b-2ed9c94400cc",
+      "key": "ee2cfe81",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.novascotia.ca/government/environment-and-climate-change",
+      "host": "novascotia.ca",
+      "len": 1422,
+      "preview": "Department of Environment and Climate Change - Government of Nova Scotia Skip to main content Search Search Programs and services Topics Government News Contact us Department of Environment and Climate Change The Department of Environment and Climate Change supports a clean and healthy environment for the wellbeing and"
+    },
+    {
+      "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+      "key": "b94cd283",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/news/adb-celebrates-partnership-europe-highlights-private-sector-opportunities",
+      "host": "adb.org",
+      "len": 668,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a07289c18d63fae7 • 2026-06-05 22:15:48 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "99de93a3-da2c-4e8c-85e2-f37cd3fa1860",
+      "key": "99de93a3",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://beaches.mdeq.ms.gov/",
+      "host": "beaches.mdeq.ms.gov",
+      "len": 332,
+      "preview": "Mississippi Beach Monitoring Program Mississippi Beach Monitoring Program More Info Historical Data Historical Bacterial Results Historical Advisories/Closures Stay Informed Click here for details Powered by Esri Loading... Loading Map&nbsp; Developed by The Geospatial Group © 2026 - Mississippi Department of Environme"
+    },
+    {
+      "id": "91534b5a-d112-41d7-898b-71846600e5b4",
+      "key": "o3",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://eur-lex.europa.eu",
+      "host": "eur-lex.europa.eu",
+      "len": 1008,
+      "preview": "EUR-Lex — Access to European Union law — choose your language EUR-Lex. europa.eu bg Достъп до правото на Европейския съюз es El acceso al Derecho de la Unión Europea cs Přístup k právu Evropské unie da Adgang til EU-lovgivningen de Der Zugang zum EU-Recht et Juurdepääs Euroopa Liidu õigusaktidele el Πρόσβαση στο δίκαιο"
+    },
+    {
+      "id": "fc7cdcd7-ebdf-4e08-82df-a4ce9c6f8d00",
+      "key": "fc7cdcd7",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://nyassembly.gov/leg/",
+      "host": "nyassembly.gov",
+      "len": 631,
+      "preview": "Bill Search and Legislative Information | New York State Assembly Skip to main content New York State Assembly Speaker Carl E. Heastie --> --> --> Assembly Members Legislative Info Public Hearings Speaker's Press Assembly Reports Committees &amp; More Bill Search Home Laws Legislative Calendar Public Hearing Schedule A"
+    },
+    {
+      "id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+      "key": "g15",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://mintransporte.gov.co/publicaciones/11339/mintransporte-liderara-pacto-por-una-movilidad-sostenible-segura-y-saludable-en-colombia/",
+      "host": "mintransporte.gov.co",
+      "len": 361,
+      "preview": "The URL you requested has been blocked block Web Page Blocked! The page cannot be displayed. Please contact the administrator for additional information. URL: mintransporte.gov.co/publicaciones/11339/mintransporte-liderara-pacto-por-una-movilidad-sostenible-segura-y-saludable-en-colombia/ Client IP: 146.190.148.104 Att"
+    },
+    {
+      "id": "bd7c3f5a-a877-4800-b973-e208ddfd82df",
+      "key": "bd7c3f5a",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    },
+    {
+      "id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+      "key": "r31",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://cleanairactionplan.org/",
+      "host": "cleanairactionplan.org",
+      "len": 1771,
+      "preview": "Clean Air Action Plan --> Search for: About the Plan 2017 Clean Air Action Plan Update Stakeholder Advisory Group Strategies Ships Trucks Trains Cargo-Handling Equipment Harbor Craft Energy TAP Application Resources TAP Guidelines and Funding Opportunities Projects in Demonstration Reports Results Emission Reductions R"
+    },
+    {
+      "id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+      "key": "55f90df0",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.classnk.com/hp/pdf/activities/statutory/seemp/seemp-rec175new.pdf*",
+      "host": "classnk.com",
+      "len": 449,
+      "preview": "ClassNK ClassNK Unable to locate page We're sorry, but the page you have requested was not found. The page may have been removed, its name may have changed, or access may be temporarily disabled. Please try to open the Home Page or the Site Map to look for links to the information you are looking for. Enquiries Terms &"
+    },
+    {
+      "id": "42a0ebd5-0bbf-4afa-8a7c-9b5e1da817ad",
+      "key": "eu-core-markets-regional-operations-profile",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.iea.org/reports/electricity-2026/prices",
+      "host": "iea.org",
+      "len": 376,
+      "preview": "Just a moment... www.iea.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.iea.org to respond Enable JavaScript and cookies to continue Ray ID: a071ad9"
+    },
+    {
+      "id": "4929e6a9-5f55-4eec-9c97-1e14caa75a52",
+      "key": "4929e6a9",
+      "item_type": "guidance",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.fmcsa.dot.gov/sites/fmcsa.dot.gov/files/2023-09/California%20FY23%20CVSP%20Final.pdf",
+      "host": "fmcsa.dot.gov",
+      "len": 281,
+      "preview": "Access Denied Access Denied You don't have permission to access \"http://www.fmcsa.dot.gov/sites/fmcsa.dot.gov/files/2023-09/California%20FY23%20CVSP%20Final.pdf\" on this server. Reference #18.52c90b17.1780861496.16cee85e https://errors.edgesuite.net/18.52c90b17.1780861496.16cee85e"
+    },
+    {
+      "id": "d4dd6677-8ff8-4445-b818-5ed6f8d3c911",
+      "key": "d4dd6677",
+      "item_type": "regional_data",
+      "status": "verified",
+      "verified": true,
+      "url": "https://asean2026.gov.ph/",
+      "host": "asean2026.gov.ph",
+      "len": 284,
+      "preview": "ASEAN 2026 Homepage Media Registration Media Registration Page Not Found Oops! It looks like the page you're trying to access doesn't exist, has been moved, or the URL might be incorrect. Please check the URL and try again, or return to the homepage to continue browsing. Go Back Home"
+    },
+    {
+      "id": "432a5042-1a51-4713-bfa0-8aca3fbfee62",
+      "key": "432a5042",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.unescap.org/kp/2023/sustainable-freight-transport-asean-challenges-and-opportunities",
+      "host": "unescap.org",
+      "len": 384,
+      "preview": "Just a moment... www.unescap.org Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot. Verification successful. Waiting for www.unescap.org to respond Enable JavaScript and cookies to continue Ray ID:"
+    },
+    {
+      "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+      "key": "australia-national-electric-vehicle-strategy",
+      "item_type": "regulation",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.infrastructure.gov.au/infrastructure-transport-vehicles/towards-net-zero-transport-and-infrastructure",
+      "host": "infrastructure.gov.au",
+      "len": 498,
+      "preview": "Your request has been blocked. Here are some possible reasons why your information cannot be processed, and some tips on how to solve the issue: A high volume of simultaneous submissions from your network have been made to this website and the security tools used to protect this website have interpreted this as a possi"
+    },
+    {
+      "id": "67c6e313-e501-48ec-82be-944296aad8db",
+      "key": "67c6e313",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.adb.org/documents/partnership-report-2025",
+      "host": "adb.org",
+      "len": 669,
+      "preview": "Access denied | www.adb.org used Cloudflare to restrict access | www.adb.org | Cloudflare Please enable cookies. Error 1005 Ray ID: a0872d7fae8533ed • 2026-06-08 10:22:50 UTC Access denied What happened? The owner of this website (www.adb.org) has banned the autonomous system number (ASN) your IP address is in (14061) "
+    },
+    {
+      "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+      "key": "g21",
+      "item_type": "research_finding",
+      "status": "verified",
+      "verified": true,
+      "url": "https://sdgs.un.org/publications/sustainable-transport-initiative-operational-plan-17233",
+      "host": "sdgs.un.org",
+      "len": 1991,
+      "preview": "Sustainable Transport Initiative Operational Plan | Department of Economic and Social Affairs Sorry, you need to enable JavaScript to visit this website. Skip to main content Welcome to the United Nations عربي 中文 English Français Русский Español Department of Economic and Social Affairs Sustainable Development Primary "
+    },
+    {
+      "id": "537b8131-280b-47c8-b9fe-5a96070917b7",
+      "key": "537b8131",
+      "item_type": "market_signal",
+      "status": "verified",
+      "verified": true,
+      "url": "https://www.congress.gov/crs-product/IN12556",
+      "host": "congress.gov",
+      "len": 761,
+      "preview": "Attention Required! | Cloudflare Please enable cookies. Sorry, you have been blocked You are unable to access congress.gov Why have I been blocked? This website is using a security service to protect itself from online attacks. The action you just performed triggered the security solution. There are several actions tha"
+    },
+    {
+      "id": "cee5aa6b-a4f8-4f14-ae6e-91484eb1f768",
+      "key": "g8",
+      "item_type": "standard",
+      "status": "quarantined",
+      "verified": false,
+      "url": "https://www.federalregister.gov/documents/2025/07/15/2025-13219/national-freight-strategic-plan-2025-update-request-for-information",
+      "host": "federalregister.gov",
+      "len": 1180,
+      "preview": "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit FederalRegister.gov API documentation or eCFR.gov API documentation to learn more about how to"
+    }
+  ]
+}

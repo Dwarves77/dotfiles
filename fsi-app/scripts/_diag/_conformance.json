@@ -1,0 +1,2970 @@
+[
+ {
+  "key": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 45273,
+  "failed": []
+ },
+ {
+  "key": "007f42b1",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 33588,
+  "failed": []
+ },
+ {
+  "key": "a5",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22271,
+  "failed": []
+ },
+ {
+  "key": "02ad37c7",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 17429,
+  "failed": []
+ },
+ {
+  "key": "03b5f234",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 64025,
+  "failed": []
+ },
+ {
+  "key": "0587f0b7",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 37139,
+  "failed": []
+ },
+ {
+  "key": "g7",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 34803,
+  "failed": []
+ },
+ {
+  "key": "dubai-uae-regional-operations-profile",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27491,
+  "failed": []
+ },
+ {
+  "key": "g27",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 41137,
+  "failed": []
+ },
+ {
+  "key": "crude-oil-jet-fuel-price-intelligence",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 22521,
+  "failed": []
+ },
+ {
+  "key": "o7",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 20490,
+  "failed": []
+ },
+ {
+  "key": "0a8b8ef0",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 26038,
+  "failed": []
+ },
+ {
+  "key": "0af6afdf",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 34587,
+  "failed": []
+ },
+ {
+  "key": "mit-center-for-transportation-logistics-sustainable-trucking",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 16673,
+  "failed": []
+ },
+ {
+  "key": "r16",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 18256,
+  "failed": []
+ },
+ {
+  "key": "0ea6a710",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 52658,
+  "failed": []
+ },
+ {
+  "key": "0f2e42ed",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23207,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "0f46aabf",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 19995,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "0f70a032",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 43839,
+  "failed": []
+ },
+ {
+  "key": "0ff5f197",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 19306,
+  "failed": []
+ },
+ {
+  "key": "india-regional-operations-profile",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 21965,
+  "failed": []
+ },
+ {
+  "key": "11794ed7",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 19180,
+  "failed": []
+ },
+ {
+  "key": "120529b8",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 9639,
+  "failed": []
+ },
+ {
+  "key": "13af7040",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 20520,
+  "failed": []
+ },
+ {
+  "key": "o9",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 34237,
+  "failed": []
+ },
+ {
+  "key": "156ec17c",
+  "type": "standard",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 8824,
+  "failed": [
+   "sections"
+  ]
+ },
+ {
+  "key": "eu_ets_directive_2023_959",
+  "type": "directive",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 65101,
+  "failed": []
+ },
+ {
+  "key": "g32",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 23541,
+  "failed": []
+ },
+ {
+  "key": "1c68ba4c",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23479,
+  "failed": []
+ },
+ {
+  "key": "uk-mees-commercial-building-minimum-energy-efficiency",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 33747,
+  "failed": []
+ },
+ {
+  "key": "brazil-national-policy-on-alternative-fuels-pnca",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 33988,
+  "failed": []
+ },
+ {
+  "key": "1e27cdcc",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 32933,
+  "failed": []
+ },
+ {
+  "key": "g33",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 67674,
+  "failed": []
+ },
+ {
+  "key": "australia-national-electric-vehicle-strategy",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 32179,
+  "failed": []
+ },
+ {
+  "key": "237b3cc1",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 26292,
+  "failed": []
+ },
+ {
+  "key": "critical-minerals-ev-supply-chain",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26659,
+  "failed": []
+ },
+ {
+  "key": "2648d4ad",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 24976,
+  "failed": []
+ },
+ {
+  "key": "27dfbe4c",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 82980,
+  "failed": []
+ },
+ {
+  "key": "282e480c",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 29478,
+  "failed": []
+ },
+ {
+  "key": "g5",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26220,
+  "failed": []
+ },
+ {
+  "key": "2943632e",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 25401,
+  "failed": []
+ },
+ {
+  "key": "2a61e051",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 39612,
+  "failed": []
+ },
+ {
+  "key": "g11",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 24235,
+  "failed": []
+ },
+ {
+  "key": "w4_ca_sb261",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 30146,
+  "failed": []
+ },
+ {
+  "key": "2f4dc1f8",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 17722,
+  "failed": []
+ },
+ {
+  "key": "r15",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23738,
+  "failed": []
+ },
+ {
+  "key": "3105da5c",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 4058,
+  "failed": [
+   "sections"
+  ]
+ },
+ {
+  "key": "319f785d",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 29368,
+  "failed": []
+ },
+ {
+  "key": "3373d06e",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 26134,
+  "failed": []
+ },
+ {
+  "key": "340ddf31",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22211,
+  "failed": []
+ },
+ {
+  "key": "355af9e8",
+  "type": "directive",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 26508,
+  "failed": []
+ },
+ {
+  "key": "c5",
+  "type": "standard",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 15382,
+  "failed": []
+ },
+ {
+  "key": "c8",
+  "type": "standard",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 34841,
+  "failed": []
+ },
+ {
+  "key": "388b2ce8",
+  "type": "research_finding",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 21408,
+  "failed": []
+ },
+ {
+  "key": "39b5dc20",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 31020,
+  "failed": []
+ },
+ {
+  "key": "3ae89ce6",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 64418,
+  "failed": []
+ },
+ {
+  "key": "o6",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27439,
+  "failed": []
+ },
+ {
+  "key": "china-s-national-carbon-market-extension-to-transportation-sector",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 45153,
+  "failed": []
+ },
+ {
+  "key": "g15",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 22841,
+  "failed": []
+ },
+ {
+  "key": "3ed4f908",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 31746,
+  "failed": []
+ },
+ {
+  "key": "3f11f1fc",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22431,
+  "failed": []
+ },
+ {
+  "key": "japan-s-green-transformation-gx-league-transport-requirements",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 43039,
+  "failed": []
+ },
+ {
+  "key": "40c05a1e",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 41857,
+  "failed": []
+ },
+ {
+  "key": "r36",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26395,
+  "failed": []
+ },
+ {
+  "key": "eu-core-markets-regional-operations-profile",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 29380,
+  "failed": []
+ },
+ {
+  "key": "w4_ca_sb253",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 26795,
+  "failed": []
+ },
+ {
+  "key": "432a5042",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 19246,
+  "failed": []
+ },
+ {
+  "key": "43fd4d25",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 17824,
+  "failed": []
+ },
+ {
+  "key": "singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23791,
+  "failed": []
+ },
+ {
+  "key": "45006684",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 24974,
+  "failed": []
+ },
+ {
+  "key": "c2",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 23757,
+  "failed": []
+ },
+ {
+  "key": "r8",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 20372,
+  "failed": []
+ },
+ {
+  "key": "45f85547",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 31056,
+  "failed": []
+ },
+ {
+  "key": "46914062",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22955,
+  "failed": []
+ },
+ {
+  "key": "t4",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 28876,
+  "failed": []
+ },
+ {
+  "key": "474ab4cd",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 34060,
+  "failed": []
+ },
+ {
+  "key": "4929e6a9",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 33676,
+  "failed": []
+ },
+ {
+  "key": "a7",
+  "type": "standard",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 36540,
+  "failed": []
+ },
+ {
+  "key": "a4",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 43259,
+  "failed": []
+ },
+ {
+  "key": "4c81cebd",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 40286,
+  "failed": []
+ },
+ {
+  "key": "4d240f75",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 26654,
+  "failed": []
+ },
+ {
+  "key": "l6",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 23506,
+  "failed": []
+ },
+ {
+  "key": "r14",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 23004,
+  "failed": []
+ },
+ {
+  "key": "4ff5cf56",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 27590,
+  "failed": []
+ },
+ {
+  "key": "r7",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 19456,
+  "failed": []
+ },
+ {
+  "key": "50ccd5cc",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 45476,
+  "failed": []
+ },
+ {
+  "key": "t1",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 67303,
+  "failed": []
+ },
+ {
+  "key": "5351d10b",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 25027,
+  "failed": []
+ },
+ {
+  "key": "537b8131",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27584,
+  "failed": []
+ },
+ {
+  "key": "538c2774",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 17903,
+  "failed": []
+ },
+ {
+  "key": "54b1082b",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 20984,
+  "failed": []
+ },
+ {
+  "key": "5511a87f",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 64936,
+  "failed": []
+ },
+ {
+  "key": "55f90df0",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 35198,
+  "failed": []
+ },
+ {
+  "key": "a2",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 29623,
+  "failed": []
+ },
+ {
+  "key": "576554b3",
+  "type": "guidance",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 52392,
+  "failed": []
+ },
+ {
+  "key": "5803219e",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23095,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "l5",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 34378,
+  "failed": []
+ },
+ {
+  "key": "595117e9",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 14404,
+  "failed": []
+ },
+ {
+  "key": "logistics-labor-cost-availability-benchmarks",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 21040,
+  "failed": []
+ },
+ {
+  "key": "canada-clean-fuel-regulations-phase-2",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 31423,
+  "failed": []
+ },
+ {
+  "key": "5b37050b",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 31504,
+  "failed": []
+ },
+ {
+  "key": "packaging-material-input-costs",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 22519,
+  "failed": []
+ },
+ {
+  "key": "5b9b05c7",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 29914,
+  "failed": []
+ },
+ {
+  "key": "g6",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 28656,
+  "failed": []
+ },
+ {
+  "key": "5cc10a6d",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 72831,
+  "failed": []
+ },
+ {
+  "key": "5d2e7616",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 19782,
+  "failed": []
+ },
+ {
+  "key": "t7",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 33204,
+  "failed": []
+ },
+ {
+  "key": "r28",
+  "type": "initiative",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 19563,
+  "failed": []
+ },
+ {
+  "key": "l10",
+  "type": "framework",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 19530,
+  "failed": []
+ },
+ {
+  "key": "r13",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 24260,
+  "failed": []
+ },
+ {
+  "key": "5fc45237",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22408,
+  "failed": []
+ },
+ {
+  "key": "5fec12c6",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27928,
+  "failed": []
+ },
+ {
+  "key": "605a2d06",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22767,
+  "failed": []
+ },
+ {
+  "key": "r4",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22076,
+  "failed": []
+ },
+ {
+  "key": "62ba40b0",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 32766,
+  "failed": []
+ },
+ {
+  "key": "melbourne-nabers-victorian-building-efficiency-standards",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 18663,
+  "failed": []
+ },
+ {
+  "key": "g14",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 28337,
+  "failed": []
+ },
+ {
+  "key": "sustainable-aviation-fuel-saf-production-pricing",
+  "type": "market_signal",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 23698,
+  "failed": []
+ },
+ {
+  "key": "646dda2d",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 3003,
+  "failed": [
+   "citations",
+   "sections"
+  ]
+ },
+ {
+  "key": "sg-singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22633,
+  "failed": []
+ },
+ {
+  "key": "652b39e1",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 34529,
+  "failed": []
+ },
+ {
+  "key": "t6",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 29202,
+  "failed": []
+ },
+ {
+  "key": "maritime-chokepoint-monitoring",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 25498,
+  "failed": []
+ },
+ {
+  "key": "singapore-regional-operations-profile",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 27077,
+  "failed": []
+ },
+ {
+  "key": "67c6e313",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 15630,
+  "failed": []
+ },
+ {
+  "key": "68af10b5",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 19364,
+  "failed": []
+ },
+ {
+  "key": "g18",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 19491,
+  "failed": []
+ },
+ {
+  "key": "6961f625",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 26703,
+  "failed": []
+ },
+ {
+  "key": "w4_ca_ab1305",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 27628,
+  "failed": []
+ },
+ {
+  "key": "6a8036a0",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22888,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "6a857887",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 64466,
+  "failed": []
+ },
+ {
+  "key": "6af04bf0",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 15350,
+  "failed": []
+ },
+ {
+  "key": "6b0939a5",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 31890,
+  "failed": []
+ },
+ {
+  "key": "6b55b53d",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 21932,
+  "failed": []
+ },
+ {
+  "key": "g20",
+  "type": "framework",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 22376,
+  "failed": []
+ },
+ {
+  "key": "g29",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26547,
+  "failed": []
+ },
+ {
+  "key": "r11",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 25627,
+  "failed": []
+ },
+ {
+  "key": "6f1e6615",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27359,
+  "failed": []
+ },
+ {
+  "key": "solar-battery-energy-storage-for-warehouses",
+  "type": "regional_data",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 23015,
+  "failed": []
+ },
+ {
+  "key": "r32",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 23153,
+  "failed": []
+ },
+ {
+  "key": "70c108a2",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 34314,
+  "failed": []
+ },
+ {
+  "key": "7115c978",
+  "type": "market_signal",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 27650,
+  "failed": []
+ },
+ {
+  "key": "autonomous-connected-freight-technology",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 20309,
+  "failed": []
+ },
+ {
+  "key": "71b03469",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22364,
+  "failed": []
+ },
+ {
+  "key": "7227b685",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 20979,
+  "failed": []
+ },
+ {
+  "key": "74a54415",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 39285,
+  "failed": []
+ },
+ {
+  "key": "tyndall-centre-for-climate-research-transport-decarbonisation",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 23673,
+  "failed": []
+ },
+ {
+  "key": "77b2b073",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 33727,
+  "failed": []
+ },
+ {
+  "key": "7820e673",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27777,
+  "failed": []
+ },
+ {
+  "key": "782878c0",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 52948,
+  "failed": []
+ },
+ {
+  "key": "78b711f5",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 28067,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "79e73a30",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23160,
+  "failed": []
+ },
+ {
+  "key": "7a0ead55",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 62552,
+  "failed": []
+ },
+ {
+  "key": "7aa19423",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 21827,
+  "failed": []
+ },
+ {
+  "key": "g34",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 30034,
+  "failed": []
+ },
+ {
+  "key": "7ae06612",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27218,
+  "failed": []
+ },
+ {
+  "key": "r25",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 18630,
+  "failed": []
+ },
+ {
+  "key": "c4",
+  "type": "standard",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 25758,
+  "failed": []
+ },
+ {
+  "key": "7d5bd5a1",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23849,
+  "failed": []
+ },
+ {
+  "key": "7e43c296",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 17724,
+  "failed": []
+ },
+ {
+  "key": "7e4f2b36",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 19581,
+  "failed": []
+ },
+ {
+  "key": "7fd6fbf1",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 16587,
+  "failed": []
+ },
+ {
+  "key": "82f09535",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 49708,
+  "failed": []
+ },
+ {
+  "key": "r30",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22525,
+  "failed": []
+ },
+ {
+  "key": "battery-electric-vehicle-technology",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 42407,
+  "failed": []
+ },
+ {
+  "key": "eu-net-zero-industry-act-2024-1735",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 35414,
+  "failed": []
+ },
+ {
+  "key": "a8",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26121,
+  "failed": []
+ },
+ {
+  "key": "85a7a629",
+  "type": "research_finding",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 12841,
+  "failed": []
+ },
+ {
+  "key": "c1",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 24889,
+  "failed": []
+ },
+ {
+  "key": "878294c8",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22908,
+  "failed": []
+ },
+ {
+  "key": "87ed781c",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 20788,
+  "failed": []
+ },
+ {
+  "key": "r18",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 21191,
+  "failed": []
+ },
+ {
+  "key": "88a2918c",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 24276,
+  "failed": []
+ },
+ {
+  "key": "88c3a053",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 21588,
+  "failed": []
+ },
+ {
+  "key": "89656109",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "8a9af9ef",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 22166,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "l9",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 24224,
+  "failed": []
+ },
+ {
+  "key": "g30",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 20302,
+  "failed": []
+ },
+ {
+  "key": "eu_clean_trucking_2024_1610",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 66360,
+  "failed": []
+ },
+ {
+  "key": "g13",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 35419,
+  "failed": []
+ },
+ {
+  "key": "r6",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 28619,
+  "failed": []
+ },
+ {
+  "key": "8fb37a9e",
+  "type": "directive",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "g26",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 9338,
+  "failed": [
+   "sections",
+   "integrity"
+  ]
+ },
+ {
+  "key": "uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 39788,
+  "failed": []
+ },
+ {
+  "key": "9118aab6",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 29132,
+  "failed": []
+ },
+ {
+  "key": "o3",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 34673,
+  "failed": []
+ },
+ {
+  "key": "924731b1",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 18254,
+  "failed": []
+ },
+ {
+  "key": "r12",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 29832,
+  "failed": []
+ },
+ {
+  "key": "g22",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 9862,
+  "failed": []
+ },
+ {
+  "key": "93c344a1",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 37178,
+  "failed": []
+ },
+ {
+  "key": "947e08f3",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 24933,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "r26",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26306,
+  "failed": []
+ },
+ {
+  "key": "l7",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 24510,
+  "failed": []
+ },
+ {
+  "key": "south-korea-k-taxonomy-for-sustainable-transport-activities",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 24535,
+  "failed": [
+   "contract",
+   "format",
+   "severity"
+  ]
+ },
+ {
+  "key": "9622fa5d",
+  "type": "directive",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "japan-s-updated-top-runner-program-for-heavy-duty-vehicles",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 37057,
+  "failed": []
+ },
+ {
+  "key": "974550f4",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 25181,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "97d22488",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 18423,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "99de93a3",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 16070,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "r23",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 20196,
+  "failed": []
+ },
+ {
+  "key": "eu-corporate-sustainability-reporting-directive-csrd-transport-provisions",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 0,
+  "failed": [
+   "citations",
+   "sections"
+  ]
+ },
+ {
+  "key": "9d18608f",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 36348,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "r33",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 19589,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "green-building-certification-standards-for-logistics",
+  "type": "standard",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26406,
+  "failed": []
+ },
+ {
+  "key": "9e70b75b",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 30932,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "uae-national-hydrogen-strategy-transport-sector-requirements",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 29053,
+  "failed": [
+   "contract",
+   "format",
+   "severity"
+  ]
+ },
+ {
+  "key": "a1fd9574",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 25333,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "a212b2ab",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 25331,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "a4153234",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 22572,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "a7d9bc29",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 38434,
+  "failed": []
+ },
+ {
+  "key": "a7fd2700",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 17491,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "o5",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 31797,
+  "failed": []
+ },
+ {
+  "key": "r22",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 18685,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "ab362011",
+  "type": "market_signal",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 24571,
+  "failed": []
+ },
+ {
+  "key": "l1",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 26219,
+  "failed": []
+ },
+ {
+  "key": "abd29144",
+  "type": "research_finding",
+  "prov": "quarantined",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "r5",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 18222,
+  "failed": []
+ },
+ {
+  "key": "eu-battery-regulation-2023-1542",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 40284,
+  "failed": []
+ },
+ {
+  "key": "ad4cc6c6",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 57929,
+  "failed": []
+ },
+ {
+  "key": "g24",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 22038,
+  "failed": []
+ },
+ {
+  "key": "ae628786",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 24633,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "c6",
+  "type": "standard",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 27945,
+  "failed": []
+ },
+ {
+  "key": "af277afd",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 19650,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "marine-fuel-decarbonisation-pathways",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 26988,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "b040b08c",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 45382,
+  "failed": []
+ },
+ {
+  "key": "b0cf862e",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 25494,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "g25",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 27949,
+  "failed": []
+ },
+ {
+  "key": "b11cccc4",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 30241,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "b2193d25",
+  "type": "research_finding",
+  "prov": "quarantined",
+  "ver": "(none)",
+  "briefLen": 19461,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "g19",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 38538,
+  "failed": []
+ },
+ {
+  "key": "b3b32236",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22124,
+  "failed": []
+ },
+ {
+  "key": "b4710002",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 20034,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "b4811af8",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 21285,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "g16",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 38051,
+  "failed": []
+ },
+ {
+  "key": "b6b7eb7d",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 35621,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "b6fd00bf",
+  "type": "research_finding",
+  "prov": "quarantined",
+  "ver": "(none)",
+  "briefLen": 23134,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "eu-hdv-co2-standards-2019-1242",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 24526,
+  "failed": []
+ },
+ {
+  "key": "b813d0a5",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 20478,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "warehouse-solar-bess-roi-analysis",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 23052,
+  "failed": []
+ },
+ {
+  "key": "lng-natural-gas-price-intelligence",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 24100,
+  "failed": []
+ },
+ {
+  "key": "b94cd283",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 14177,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "bd7c3f5a",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "bd9a1a6b",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 21374,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "r20",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 15813,
+  "failed": []
+ },
+ {
+  "key": "india-s-national-logistics-policy-carbon-intensity-standards",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 34841,
+  "failed": []
+ },
+ {
+  "key": "bec305e1",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 39429,
+  "failed": []
+ },
+ {
+  "key": "g1",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 38465,
+  "failed": []
+ },
+ {
+  "key": "bfb6a9fe",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 46190,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "o11",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 29058,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "c0eab829",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 17575,
+  "failed": []
+ },
+ {
+  "key": "c113dd5d",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 23106,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "r3",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 21372,
+  "failed": []
+ },
+ {
+  "key": "carbon-allowance-price-intelligence",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 27091,
+  "failed": []
+ },
+ {
+  "key": "c28b567f",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 31681,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "g31",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 17987,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "c3004aa0",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 21240,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "o8",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 22255,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "c54cd5f2",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 23941,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "o4",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 25893,
+  "failed": []
+ },
+ {
+  "key": "c6e7abe3",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 20500,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "c828810c",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 27688,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "l8",
+  "type": "initiative",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 20479,
+  "failed": []
+ },
+ {
+  "key": "ca6fa630",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 33505,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "a1",
+  "type": "framework",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 35716,
+  "failed": []
+ },
+ {
+  "key": "w4_ca_acf",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 22372,
+  "failed": []
+ },
+ {
+  "key": "cd5c84e3",
+  "type": "directive",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 45544,
+  "failed": []
+ },
+ {
+  "key": "cda44a7d",
+  "type": "directive",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "cea40062",
+  "type": "framework",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 23158,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "cea7bd1b",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 11158,
+  "failed": []
+ },
+ {
+  "key": "g17",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 16919,
+  "failed": []
+ },
+ {
+  "key": "g8",
+  "type": "standard",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 23996,
+  "failed": []
+ },
+ {
+  "key": "uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 30869,
+  "failed": [
+   "contract",
+   "format",
+   "severity"
+  ]
+ },
+ {
+  "key": "d012bc20",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 21888,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "d02b40cc",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 22349,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "la-eweo-existing-buildings-energy-water-efficiency",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 27235,
+  "failed": []
+ },
+ {
+  "key": "d131224a",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 20201,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "d136c88c",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 17425,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "industrial-electricity-tariff-benchmarks-by-jurisdiction",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 22051,
+  "failed": []
+ },
+ {
+  "key": "uae-national-net-zero-by-2050-transport-sector-roadmap",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 24546,
+  "failed": [
+   "contract",
+   "format",
+   "severity"
+  ]
+ },
+ {
+  "key": "d4dd6677",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 23266,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "d56ca4e1",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "d5ee6ab8",
+  "type": "directive",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 69092,
+  "failed": []
+ },
+ {
+  "key": "d6a9889f",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 23704,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "d779efe4",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 20340,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "india-green-credit-programme-for-transport",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 29996,
+  "failed": [
+   "contract",
+   "format",
+   "severity"
+  ]
+ },
+ {
+  "key": "d935e112",
+  "type": "guidance",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 55935,
+  "failed": []
+ },
+ {
+  "key": "daaa7e3a",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 12756,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "o1",
+  "type": "framework",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 21720,
+  "failed": []
+ },
+ {
+  "key": "db8577c6",
+  "type": "framework",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 40849,
+  "failed": []
+ },
+ {
+  "key": "de2df788",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 45202,
+  "failed": []
+ },
+ {
+  "key": "de368414",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 23140,
+  "failed": []
+ },
+ {
+  "key": "de7f09fc",
+  "type": "guidance",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 41231,
+  "failed": []
+ },
+ {
+  "key": "l2",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 25089,
+  "failed": []
+ },
+ {
+  "key": "o13",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 21755,
+  "failed": []
+ },
+ {
+  "key": "e2e03e1b",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 69888,
+  "failed": []
+ },
+ {
+  "key": "r27",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 20857,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "g28",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 29461,
+  "failed": []
+ },
+ {
+  "key": "o2",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 39065,
+  "failed": []
+ },
+ {
+  "key": "e5c17fac",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 25303,
+  "failed": []
+ },
+ {
+  "key": "nashville-building-energy-programs",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 40670,
+  "failed": []
+ },
+ {
+  "key": "united-kingdom-regional-operations-profile",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 25971,
+  "failed": []
+ },
+ {
+  "key": "c3",
+  "type": "standard",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 23619,
+  "failed": []
+ },
+ {
+  "key": "japan-regional-operations-profile",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 20056,
+  "failed": []
+ },
+ {
+  "key": "eb6641da",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 23465,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "r31",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 21768,
+  "failed": []
+ },
+ {
+  "key": "ece93c54",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 18694,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "ed63f522",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 20873,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "ed6c5c76",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 22074,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "c7",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 25810,
+  "failed": []
+ },
+ {
+  "key": "ee2cfe81",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 23257,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "ee8f4e71",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 19572,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "efcc9f45",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 18380,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "g2",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 73387,
+  "failed": []
+ },
+ {
+  "key": "eu-corporate-sustainability-reporting-directive-csrd-transport-sector-implementa",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-05-27",
+  "briefLen": 56482,
+  "failed": []
+ },
+ {
+  "key": "a3",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 29873,
+  "failed": []
+ },
+ {
+  "key": "f3510df3",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 31295,
+  "failed": []
+ },
+ {
+  "key": "r29",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 15868,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "japan-green-transformation-gx-freight-transport-standards",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 43744,
+  "failed": []
+ },
+ {
+  "key": "hydrogen-ammonia-as-maritime-fuel",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 27781,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "nyc-local-law-97-building-carbon-emissions-caps",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 23945,
+  "failed": []
+ },
+ {
+  "key": "f72155a2",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 0,
+  "failed": [
+   "contract",
+   "format",
+   "citations",
+   "sections",
+   "topics"
+  ]
+ },
+ {
+  "key": "united-states-regional-operations-profile",
+  "type": "regional_data",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 29554,
+  "failed": []
+ },
+ {
+  "key": "f92fab46",
+  "type": "initiative",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 21655,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "t2",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 28439,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "fabda0e7",
+  "type": "guidance",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 31187,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "fb86ee11",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 12741,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "fc47cf4d",
+  "type": "directive",
+  "prov": "verified",
+  "ver": "(none)",
+  "briefLen": 38037,
+  "failed": [
+   "contract",
+   "format",
+   "topics"
+  ]
+ },
+ {
+  "key": "fc7cdcd7",
+  "type": "market_signal",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 17017,
+  "failed": []
+ },
+ {
+  "key": "g21",
+  "type": "research_finding",
+  "prov": "verified",
+  "ver": "2026-04-29",
+  "briefLen": 13201,
+  "failed": [
+   "format"
+  ]
+ },
+ {
+  "key": "eu-emissions-trading-system-ets-extension-to-maritime-transport",
+  "type": "regulation",
+  "prov": "verified",
+  "ver": "2026-05-27",
+  "briefLen": 49778,
+  "failed": []
+ },
+ {
+  "key": "eu-alternative-fuels-infrastructure-regulation-afir",
+  "type": "regulation",
+  "prov": "quarantined",
+  "ver": "2026-04-29",
+  "briefLen": 25201,
+  "failed": [
+   "format",
+   "severity"
+  ]
+ }
+]

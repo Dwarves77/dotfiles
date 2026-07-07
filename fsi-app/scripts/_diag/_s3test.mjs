@@ -1,0 +1,11 @@
+const U = "https://smart-freight-centre-media.s3.amazonaws.com/documents/240129_EV_Emissions_reporting_v3.0_FINAL.pdf";
+const res = await fetch(U, { redirect: "follow", signal: AbortSignal.timeout(30000) });
+console.log(`status: ${res.status} ${res.statusText}`);
+console.log(`content-type: ${res.headers.get("content-type")}`);
+console.log(`content-length: ${res.headers.get("content-length")} bytes (${Math.round((+res.headers.get("content-length")||0)/1024)} KB)`);
+const buf = Buffer.from(await res.arrayBuffer());
+const magic = buf.subarray(0, 5).toString("latin1");
+console.log(`first bytes: ${JSON.stringify(magic)} -> ${magic.startsWith("%PDF") ? "REAL PDF" : "NOT a PDF"}`);
+console.log(`downloaded: ${buf.length} bytes`);
+const sample = buf.subarray(0, 6000).toString("latin1").replace(/[^\x20-\x7E]/g, " ").replace(/\s+/g, " ").trim();
+console.log(`raw head sniff: ${sample.slice(0, 240)}`);

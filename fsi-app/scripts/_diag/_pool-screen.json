@@ -1,0 +1,2902 @@
+[
+ {
+  "key": "singapore-maritime-decarbonisation-blueprint-implementation-regulations",
+  "id": "007104ed-b4e4-4735-b7ac-c16bc214c1eb",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 56309,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "007f42b1",
+  "id": "007f42b1-265a-4504-8bd1-ea1557d410ad",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 33124,
+  "maxCh": 9972,
+  "failHits": 2
+ },
+ {
+  "key": "a5",
+  "id": "01126119-5005-4617-b7a5-0f1e37f1bedb",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 52697,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "02ad37c7",
+  "id": "02ad37c7-8a11-434b-8626-55e92087fbc9",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 84386,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "03b5f234",
+  "id": "03b5f234-3624-4fef-acec-922bd75bb46e",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 12,
+  "totalCh": 146738,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "0587f0b7",
+  "id": "0587f0b7-4132-4572-99e6-713de3f60356",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 48153,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "g7",
+  "id": "05e2d1c1-7e87-443a-9178-a475d4d6c3b9",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 18052,
+  "maxCh": 5856,
+  "failHits": 0
+ },
+ {
+  "key": "dubai-uae-regional-operations-profile",
+  "id": "0658844a-5f65-4444-89fb-bf73a22bafc6",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 26813,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "crude-oil-jet-fuel-price-intelligence",
+  "id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 73608,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "0a8b8ef0",
+  "id": "0a8b8ef0-0c6c-406c-a5b5-321709fa5237",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 96233,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "0af6afdf",
+  "id": "0af6afdf-cfba-4562-87ce-ea4e012f7889",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 41194,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "mit-center-for-transportation-logistics-sustainable-trucking",
+  "id": "0c2c1ec1-abc9-40df-b6ed-e8eee6bdee29",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 9704,
+  "maxCh": 6046,
+  "failHits": 2
+ },
+ {
+  "key": "r9",
+  "id": "0d59991d-2c66-44f5-bcb8-713e8cd03b3a",
+  "type": "research_finding",
+  "cls": "moderate",
+  "contentRows": 5,
+  "totalCh": 7434,
+  "maxCh": 4651,
+  "failHits": 4
+ },
+ {
+  "key": "r16",
+  "id": "0e6e82cb-84fc-49ab-8078-c6500e13ee82",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 50724,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "0ea6a710",
+  "id": "0ea6a710-5dc0-4f31-b857-5c0bf6825770",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 16,
+  "totalCh": 199709,
+  "maxCh": 40000,
+  "failHits": 3
+ },
+ {
+  "key": "0f2e42ed",
+  "id": "0f2e42ed-89e2-45b1-bab2-f28b6e6d8e58",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 58555,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "0f46aabf",
+  "id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 60756,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "0f70a032",
+  "id": "0f70a032-df9e-459c-b46b-2d3667d50f9d",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 56774,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "0ff5f197",
+  "id": "0ff5f197-c391-4858-b1db-37759d769fd6",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 61819,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "10f3d5b0",
+  "id": "10f3d5b0-9814-490b-ae23-35feb93bfc1b",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 68871,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "11794ed7",
+  "id": "11794ed7-7a03-4819-a1c6-85125e8eff90",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 38461,
+  "maxCh": 13223,
+  "failHits": 0
+ },
+ {
+  "key": "120529b8",
+  "id": "120529b8-bcfb-4430-ae9e-537538c0fcdb",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 37839,
+  "maxCh": 13619,
+  "failHits": 2
+ },
+ {
+  "key": "13af7040",
+  "id": "13af7040-0f00-4ea1-8c2e-40acaf646635",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 48650,
+  "maxCh": 12880,
+  "failHits": 0
+ },
+ {
+  "key": "156ec17c",
+  "id": "156ec17c-9be4-48b8-92f7-f00aed7bc91b",
+  "type": "standard",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 97998,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "eu_ets_directive_2023_959",
+  "id": "15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 17,
+  "totalCh": 392958,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "g32",
+  "id": "1883001c-0e70-401d-8f51-9b8adbfebc80",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 90855,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "1c68ba4c",
+  "id": "1c68ba4c-8f35-4a13-9a7e-03e24ec9b21a",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 41891,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "brazil-national-policy-on-alternative-fuels-pnca",
+  "id": "1cda60cd-971a-4294-b90f-fdef2d7ef6da",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 72512,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "1e27cdcc",
+  "id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 48339,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "g33",
+  "id": "1e80067a-7789-4e68-9589-b3bb71fd58ed",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 8028,
+  "maxCh": 7020,
+  "failHits": 0
+ },
+ {
+  "key": "australia-national-electric-vehicle-strategy",
+  "id": "219945bb-eb7a-4885-8118-acfeef4a3f24",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 19679,
+  "maxCh": 8520,
+  "failHits": 0
+ },
+ {
+  "key": "237b3cc1",
+  "id": "237b3cc1-9971-46d6-a4ef-07fd65b05eed",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 56820,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "2473ece6",
+  "id": "2473ece6-c48d-4561-be99-b4958bb34ffe",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 43665,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "2648d4ad",
+  "id": "2648d4ad-eac5-406b-888c-d551d5e1d403",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 46462,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "27dfbe4c",
+  "id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 9,
+  "totalCh": 121257,
+  "maxCh": 26970,
+  "failHits": 0
+ },
+ {
+  "key": "282e480c",
+  "id": "282e480c-3d79-4ab8-8f60-b4c77fa3b228",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 64552,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "2943632e",
+  "id": "2943632e-cca4-412c-8e89-487b301692ce",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 75287,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "2a61e051",
+  "id": "2a61e051-2c18-4464-9080-52c6b2964edf",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 8,
+  "totalCh": 168231,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "2c45cae1",
+  "id": "2c45cae1-cbf7-4517-a4c5-a81d8f8f0de3",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 40867,
+  "maxCh": 12376,
+  "failHits": 0
+ },
+ {
+  "key": "w4_ca_sb261",
+  "id": "2d2cd311-d026-457c-bbd0-9b65a8f6cf60",
+  "type": "regulation",
+  "cls": "moderate",
+  "contentRows": 1,
+  "totalCh": 16695,
+  "maxCh": 16695,
+  "failHits": 0
+ },
+ {
+  "key": "2f4dc1f8",
+  "id": "2f4dc1f8-155c-4eb2-a371-3f2eb2a01d03",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 38369,
+  "maxCh": 13078,
+  "failHits": 1
+ },
+ {
+  "key": "r15",
+  "id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 48885,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "3105da5c",
+  "id": "3105da5c-0afd-403c-98c5-4099a9e14beb",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 30874,
+  "maxCh": 11280,
+  "failHits": 2
+ },
+ {
+  "key": "319f785d",
+  "id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 67763,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "31b18416",
+  "id": "31b18416-9059-4294-96dd-38666468ecf8",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 63568,
+  "maxCh": 14000,
+  "failHits": 4
+ },
+ {
+  "key": "3373d06e",
+  "id": "3373d06e-22a6-4287-8aac-173169159177",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 46023,
+  "maxCh": 13999,
+  "failHits": 0
+ },
+ {
+  "key": "340ddf31",
+  "id": "340ddf31-e533-4e2d-b2a6-5b6b1b70e470",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 44295,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "355af9e8",
+  "id": "355af9e8-d6e0-4bf5-8b9c-27edc914c25f",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 33591,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "c5",
+  "id": "3581c084-9486-4085-82cc-b650380bd83d",
+  "type": "standard",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 12912,
+  "maxCh": 6329,
+  "failHits": 2
+ },
+ {
+  "key": "388b2ce8",
+  "id": "388b2ce8-1740-4e61-b3c6-a890ab4bdd03",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 25165,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "39b5dc20",
+  "id": "39b5dc20-54a4-4211-a291-2d188cb4edc2",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 57158,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "3ae89ce6",
+  "id": "3ae89ce6-2f4f-43ed-a7ab-ee930e6dd1a8",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 11,
+  "totalCh": 186661,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "o6",
+  "id": "3af75490-8356-4a13-a9ba-7a6318daff70",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 56799,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "china-s-national-carbon-market-extension-to-transportation-sector",
+  "id": "3e756291-f79e-487e-84d5-efc535cfef27",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 47291,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "3ed4f908",
+  "id": "3ed4f908-cc26-4bdd-ad6f-64cfb6b49cbe",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 53634,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "3f11f1fc",
+  "id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 43408,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "japan-s-green-transformation-gx-league-transport-requirements",
+  "id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 35780,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "402d311f",
+  "id": "402d311f-ea4a-4bfa-8bda-93a64076898d",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 36567,
+  "maxCh": 11337,
+  "failHits": 1
+ },
+ {
+  "key": "eu-core-markets-regional-operations-profile",
+  "id": "42a0ebd5-0bbf-4afa-8a7c-9b5e1da817ad",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 19829,
+  "maxCh": 12269,
+  "failHits": 1
+ },
+ {
+  "key": "w4_ca_sb253",
+  "id": "42b8bfee-92ea-4cde-bfe9-a25eb7cb49d9",
+  "type": "regulation",
+  "cls": "moderate",
+  "contentRows": 1,
+  "totalCh": 25523,
+  "maxCh": 25523,
+  "failHits": 0
+ },
+ {
+  "key": "432a5042",
+  "id": "432a5042-1a51-4713-bfa0-8aca3fbfee62",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 28072,
+  "maxCh": 9691,
+  "failHits": 1
+ },
+ {
+  "key": "43fd4d25",
+  "id": "43fd4d25-dd75-4f60-803f-5c20a44ef65f",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 52653,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+  "id": "44906e93-07a5-4b4c-8b3d-508b39ae605b",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 53590,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "45006684",
+  "id": "45006684-2f39-4107-934a-e8420c7fbbbb",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 56355,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "45f85547",
+  "id": "45f85547-bcd4-40d2-8138-ac7c8000dd73",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 62966,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "46914062",
+  "id": "46914062-4bb6-4e5e-89ae-fb794787f8b3",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 79286,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "t4",
+  "id": "46c528f5-c366-4738-98f5-db9accea8780",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 72912,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "474ab4cd",
+  "id": "474ab4cd-c157-4451-8c7f-f9c9ab0015b6",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 10,
+  "totalCh": 168157,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "4929e6a9",
+  "id": "4929e6a9-5f55-4eec-9c97-1e14caa75a52",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 55210,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "a7",
+  "id": "4939b133-cb0d-49c1-b7d3-da9c087cdeb1",
+  "type": "standard",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 37569,
+  "maxCh": 13999,
+  "failHits": 2
+ },
+ {
+  "key": "496340f0",
+  "id": "496340f0-1dbf-47f9-bc7d-c5e3f452c107",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 50610,
+  "maxCh": 12744,
+  "failHits": 0
+ },
+ {
+  "key": "49e7f4ac",
+  "id": "49e7f4ac-7b95-497f-a510-d95c08da36f8",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 32108,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "a4",
+  "id": "4b342a31-623c-41e8-8b0b-0792101c8886",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 65076,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "4c81cebd",
+  "id": "4c81cebd-6921-40ef-8c4a-89961d1e1d83",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 56444,
+  "maxCh": 12194,
+  "failHits": 0
+ },
+ {
+  "key": "4d240f75",
+  "id": "4d240f75-1d06-4d94-912c-4c7449e95deb",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 69078,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "l6",
+  "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 8,
+  "totalCh": 79923,
+  "maxCh": 40000,
+  "failHits": 2
+ },
+ {
+  "key": "4ff5cf56",
+  "id": "4ff5cf56-1a02-4889-9192-39838fb96857",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 14009,
+  "maxCh": 10398,
+  "failHits": 0
+ },
+ {
+  "key": "50ccd5cc",
+  "id": "50ccd5cc-d278-43ad-98c1-596153c1d714",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 30479,
+  "maxCh": 14000,
+  "failHits": 4
+ },
+ {
+  "key": "t1",
+  "id": "51b2c91e-776f-42f5-a799-a957312d4e56",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 68176,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "5351d10b",
+  "id": "5351d10b-62e7-42ec-98bf-c18595a9c20d",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 51354,
+  "maxCh": 13481,
+  "failHits": 1
+ },
+ {
+  "key": "537b8131",
+  "id": "537b8131-280b-47c8-b9fe-5a96070917b7",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 49751,
+  "maxCh": 13999,
+  "failHits": 2
+ },
+ {
+  "key": "538c2774",
+  "id": "538c2774-e271-4e8f-b03d-2385b705b862",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 73746,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "54b1082b",
+  "id": "54b1082b-e9da-439e-8d46-dc909f6be686",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 59131,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "5511a87f",
+  "id": "5511a87f-2bba-485a-9f54-6911ef385a63",
+  "type": "framework",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "55f90df0",
+  "id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 14,
+  "totalCh": 267335,
+  "maxCh": 40000,
+  "failHits": 1
+ },
+ {
+  "key": "a2",
+  "id": "56031fd3-d7ae-45e5-a1d0-bde3e3c30383",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 87639,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "576554b3",
+  "id": "576554b3-7e69-431c-aa4f-474131458b14",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 12,
+  "totalCh": 180645,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "5803219e",
+  "id": "5803219e-fe9e-4199-801c-ee2d31bdfcf4",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 27322,
+  "maxCh": 7767,
+  "failHits": 1
+ },
+ {
+  "key": "595117e9",
+  "id": "595117e9-a35f-414c-8182-53ef5b34c647",
+  "type": "regional_data",
+  "cls": "moderate",
+  "contentRows": 3,
+  "totalCh": 5626,
+  "maxCh": 3081,
+  "failHits": 1
+ },
+ {
+  "key": "logistics-labor-cost-availability-benchmarks",
+  "id": "5b07f503-8dbc-4bb4-b801-6359b5ab6018",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 43061,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "canada-clean-fuel-regulations-phase-2",
+  "id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 132464,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "5b37050b",
+  "id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+  "type": "market_signal",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "packaging-material-input-costs",
+  "id": "5b8f3e8a-8096-4392-9c66-1c7d7b0e6385",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 59677,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "5b9b05c7",
+  "id": "5b9b05c7-2c73-4a08-9c98-0a86cba95e43",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 10,
+  "totalCh": 105571,
+  "maxCh": 40000,
+  "failHits": 1
+ },
+ {
+  "key": "g6",
+  "id": "5c75e081-0757-42a8-8b35-bf67125d3522",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 32900,
+  "maxCh": 10442,
+  "failHits": 0
+ },
+ {
+  "key": "5cc10a6d",
+  "id": "5cc10a6d-b671-425e-abdb-8b3ba41678b3",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 15,
+  "totalCh": 315747,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "5d2e7616",
+  "id": "5d2e7616-99d2-4610-a4c1-9661edabb9c4",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 52550,
+  "maxCh": 12239,
+  "failHits": 0
+ },
+ {
+  "key": "t7",
+  "id": "5e0af336-e997-47ae-a235-b7b155d742bb",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 72011,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "5f1095c9",
+  "id": "5f1095c9-4098-4b62-99b3-cf54a6b1e3aa",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 64091,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "r13",
+  "id": "5faf8f8c-8054-4724-8c11-6e2c8fb12c95",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 51731,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "5fc45237",
+  "id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 34337,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "5fec12c6",
+  "id": "5fec12c6-23be-4a7f-b2d3-4b8e9faadc22",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 76786,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "605a2d06",
+  "id": "605a2d06-80e5-4645-82d1-58ec57fc81d0",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 56384,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "r4",
+  "id": "627da433-864b-4d60-98e6-3248726a3738",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 48892,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "62ba40b0",
+  "id": "62ba40b0-f03e-4f2b-a3c1-0bc199880eea",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 36470,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "sustainable-aviation-fuel-saf-production-pricing",
+  "id": "63acfa2f-f54d-4bdb-8cbd-367d9faddbbd",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 21086,
+  "maxCh": 10245,
+  "failHits": 2
+ },
+ {
+  "key": "646dda2d",
+  "id": "646dda2d-f039-4a55-90e2-900dbca4b185",
+  "type": "market_signal",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "sg-singapore-green-finance-incentive-scheme-for-maritime-decarbonisation",
+  "id": "64e9d38d-75bf-4fc3-b946-eebff05a0d6a",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 73925,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "652b39e1",
+  "id": "652b39e1-cb71-4465-af8a-4ceecf8679a1",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 88078,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "t6",
+  "id": "658247c4-52e1-4af5-9073-2ab56c6e4ee0",
+  "type": "regulation",
+  "cls": "moderate",
+  "contentRows": 2,
+  "totalCh": 6345,
+  "maxCh": 3210,
+  "failHits": 0
+ },
+ {
+  "key": "6627ef8b",
+  "id": "6627ef8b-5ca1-49a4-9442-7cc201c78a07",
+  "type": "market_signal",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "6662ebeb",
+  "id": "6662ebeb-e310-4205-9582-2e98ad8b95d9",
+  "type": "guidance",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "67434312",
+  "id": "67434312-05ce-4e90-b8ca-5aec18ea2ed9",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 11849,
+  "maxCh": 7327,
+  "failHits": 1
+ },
+ {
+  "key": "67c6e313",
+  "id": "67c6e313-e501-48ec-82be-944296aad8db",
+  "type": "market_signal",
+  "cls": "suspect",
+  "contentRows": 5,
+  "totalCh": 3340,
+  "maxCh": 669,
+  "failHits": 5
+ },
+ {
+  "key": "68af10b5",
+  "id": "68af10b5-66a2-4fc1-b62b-89bd7fbf12a6",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 24347,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "6961f625",
+  "id": "6961f625-f7cb-4433-9f95-82f959016c46",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 63094,
+  "maxCh": 11478,
+  "failHits": 0
+ },
+ {
+  "key": "w4_ca_ab1305",
+  "id": "69d5dacb-b0a0-4b27-9784-4967e5759c1f",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 12610,
+  "maxCh": 10281,
+  "failHits": 1
+ },
+ {
+  "key": "6a8036a0",
+  "id": "6a8036a0-41b5-4aa3-a118-5ac05f1f4e71",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 45125,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "6a857887",
+  "id": "6a857887-8f3d-4812-886d-a30a396baea5",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 9,
+  "totalCh": 260379,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "6af04bf0",
+  "id": "6af04bf0-bebd-4dd5-a900-72974c87fa69",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 46366,
+  "maxCh": 12433,
+  "failHits": 0
+ },
+ {
+  "key": "6b0939a5",
+  "id": "6b0939a5-30fe-4afe-88d5-26d6b96bb752",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 37487,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "6b55b53d",
+  "id": "6b55b53d-f383-453a-a029-707b86b80013",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 68705,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "g20",
+  "id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 8,
+  "totalCh": 40666,
+  "maxCh": 12860,
+  "failHits": 0
+ },
+ {
+  "key": "r11",
+  "id": "6d562d34-e6c4-4901-8579-4482b5af647d",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 66172,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "6f1e6615",
+  "id": "6f1e6615-2394-440b-bd4c-88b7bf711c72",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 44989,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "solar-battery-energy-storage-for-warehouses",
+  "id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+  "type": "regional_data",
+  "cls": "moderate",
+  "contentRows": 1,
+  "totalCh": 14000,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "70c108a2",
+  "id": "70c108a2-9833-4b5d-bfd1-c94652bbd1c7",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 11,
+  "totalCh": 147900,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "7115c978",
+  "id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 54866,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "7126e83b",
+  "id": "7126e83b-4c96-4daa-8391-f49f970ce193",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 37799,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "autonomous-connected-freight-technology",
+  "id": "7169c9ac-8a1d-43af-ad97-224c7456464a",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 53242,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "71b03469",
+  "id": "71b03469-c11c-4218-8b44-c1fec3ffda25",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 61634,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "7227b685",
+  "id": "7227b685-4ff9-47e1-868d-6d84d19c5f6f",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 40654,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "74a54415",
+  "id": "74a54415-1022-4441-95ec-185ba4cc80be",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 56171,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "77b2b073",
+  "id": "77b2b073-25c4-4d4a-b69d-d51574f2529d",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 22451,
+  "maxCh": 9206,
+  "failHits": 0
+ },
+ {
+  "key": "7820e673",
+  "id": "7820e673-c984-44e6-95e0-d3884d7128c4",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 37683,
+  "maxCh": 14000,
+  "failHits": 4
+ },
+ {
+  "key": "782878c0",
+  "id": "782878c0-757f-4a73-998f-48f52bbfa585",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 19,
+  "totalCh": 462626,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "78b711f5",
+  "id": "78b711f5-5109-458e-8ed7-375f67e22664",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 14,
+  "totalCh": 216353,
+  "maxCh": 40000,
+  "failHits": 1
+ },
+ {
+  "key": "79e73a30",
+  "id": "79e73a30-8e06-4702-98d9-80ec2a3514ad",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 65385,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "7a0ead55",
+  "id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 10,
+  "totalCh": 197400,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "7aa19423",
+  "id": "7aa19423-f99d-4c2b-b634-f4f234b41068",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 54116,
+  "maxCh": 12061,
+  "failHits": 0
+ },
+ {
+  "key": "g34",
+  "id": "7aaecc81-b065-4f32-934b-d4c981269e8b",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 77620,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "7ae06612",
+  "id": "7ae06612-5467-40ca-a9b3-e6dc14601b44",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 47565,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "7ae2adb0",
+  "id": "7ae2adb0-352c-494d-acf1-45fc6540f735",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 15,
+  "totalCh": 178888,
+  "maxCh": 25700,
+  "failHits": 0
+ },
+ {
+  "key": "r25",
+  "id": "7ae77ef8-211a-4f20-ad88-341c8dcdae65",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 40030,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "c4",
+  "id": "7d2f8d88-46b6-4998-a10e-75093500f46c",
+  "type": "standard",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 90600,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "7d5bd5a1",
+  "id": "7d5bd5a1-07db-4271-81c8-d9f6e177bc77",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 25293,
+  "maxCh": 10589,
+  "failHits": 1
+ },
+ {
+  "key": "7e43c296",
+  "id": "7e43c296-063c-4b21-813a-460379bd2dbe",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 67416,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "7e4f2b36",
+  "id": "7e4f2b36-81a0-4769-85ae-e70e475076cd",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 28384,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "7fd6fbf1",
+  "id": "7fd6fbf1-9428-4e24-aaf1-21ecf29b861b",
+  "type": "market_signal",
+  "cls": "moderate",
+  "contentRows": 1,
+  "totalCh": 8301,
+  "maxCh": 8301,
+  "failHits": 0
+ },
+ {
+  "key": "82f09535",
+  "id": "82f09535-ef34-4674-a16c-e7d9753b41bf",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 16,
+  "totalCh": 199215,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "r30",
+  "id": "831f9e63-42a9-4546-9bc6-281e04cea4f6",
+  "type": "market_signal",
+  "cls": "moderate",
+  "contentRows": 1,
+  "totalCh": 14000,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "battery-electric-vehicle-technology",
+  "id": "85525e8f-04ce-4e4d-9a9e-8c948d322eb9",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 42550,
+  "maxCh": 13999,
+  "failHits": 1
+ },
+ {
+  "key": "a8",
+  "id": "85a44451-3aec-4375-93ed-e1eaaacc2f89",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 26792,
+  "maxCh": 12416,
+  "failHits": 0
+ },
+ {
+  "key": "85a7a629",
+  "id": "85a7a629-744d-4e59-9b9a-959cf76e5226",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 11370,
+  "maxCh": 5685,
+  "failHits": 0
+ },
+ {
+  "key": "c1",
+  "id": "87493612-1be4-4434-af30-e7f32b3bd48b",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 52493,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "878294c8",
+  "id": "878294c8-ebc3-4cae-9644-4e931bc6549f",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 44452,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "87ed781c",
+  "id": "87ed781c-5916-417d-9bfd-feefa3c095bb",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 33160,
+  "maxCh": 13999,
+  "failHits": 1
+ },
+ {
+  "key": "88a2918c",
+  "id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+  "type": "market_signal",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "88c3a053",
+  "id": "88c3a053-e5c4-44f2-b1cb-ecb1a313090a",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 56634,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "89656109",
+  "id": "89656109-694f-4dbb-95eb-586db75f9855",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 10,
+  "totalCh": 201982,
+  "maxCh": 32470,
+  "failHits": 0
+ },
+ {
+  "key": "8a9af9ef",
+  "id": "8a9af9ef-0fe5-40c8-b8f4-dd97a316a574",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 34224,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "g30",
+  "id": "8c0049b4-7f91-4fcd-90ff-99de2cbf8df5",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 41869,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "eu_clean_trucking_2024_1610",
+  "id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 9,
+  "totalCh": 134227,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "r6",
+  "id": "8e5a62ba-2393-4b81-a6ca-546e985cc052",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 22261,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "8fb37a9e",
+  "id": "8fb37a9e-6c7c-4252-9cd6-7ffaf6de45bc",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 11,
+  "totalCh": 298907,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "g26",
+  "id": "8ff93a7e-5256-4d31-959b-2172de16ae8f",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 16054,
+  "maxCh": 8027,
+  "failHits": 0
+ },
+ {
+  "key": "uk-streamlined-energy-and-carbon-reporting-secr-amendment",
+  "id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 66162,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "9118aab6",
+  "id": "9118aab6-bafe-43d8-9944-baf8dc698aab",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 63726,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "o3",
+  "id": "91534b5a-d112-41d7-898b-71846600e5b4",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 120524,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "924731b1",
+  "id": "924731b1-c92c-4f5d-a2e5-79d27d3f2dcd",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 56000,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "93c344a1",
+  "id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 15,
+  "totalCh": 255656,
+  "maxCh": 40000,
+  "failHits": 1
+ },
+ {
+  "key": "947e08f3",
+  "id": "947e08f3-0136-423d-8f62-03bb071bad49",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 32914,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "south-korea-k-taxonomy-for-sustainable-transport-activities",
+  "id": "96169446-5510-4d47-ad13-39bc08385852",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 40428,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "9622fa5d",
+  "id": "9622fa5d-4e23-44ff-a926-150d41650043",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 12,
+  "totalCh": 315919,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "japan-s-updated-top-runner-program-for-heavy-duty-vehicles",
+  "id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 112867,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "974550f4",
+  "id": "974550f4-6962-46ec-83af-3d0938a30790",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 61306,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "97d22488",
+  "id": "97d22488-5ee8-4795-8df6-6c47eb01a869",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 27133,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "99de93a3",
+  "id": "99de93a3-da2c-4e8c-85e2-f37cd3fa1860",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 13392,
+  "maxCh": 4515,
+  "failHits": 0
+ },
+ {
+  "key": "eu-corporate-sustainability-reporting-directive-csrd-transport-provisions",
+  "id": "9c5d1d17-4388-43a0-b9df-67de1fc0e582",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 10,
+  "totalCh": 187902,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "9d18608f",
+  "id": "9d18608f-269e-405a-9ad8-afa638dda928",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 36418,
+  "maxCh": 9177,
+  "failHits": 0
+ },
+ {
+  "key": "r33",
+  "id": "9e113196-9223-4dae-8292-f68ab2a080e6",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 62966,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "9e70b75b",
+  "id": "9e70b75b-48be-405e-9c1f-41f7c3b5538b",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 30465,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "uae-national-hydrogen-strategy-transport-sector-requirements",
+  "id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 53322,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "a1fd9574",
+  "id": "a1fd9574-3be2-48f2-ab3a-4c8b92ca6cc0",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 48871,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "a212b2ab",
+  "id": "a212b2ab-c394-49f7-9527-9c94a4bf700f",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 75171,
+  "maxCh": 13999,
+  "failHits": 0
+ },
+ {
+  "key": "a4153234",
+  "id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 29355,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "a7d9bc29",
+  "id": "a7d9bc29-1514-4ee9-9177-a4408426498c",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 24109,
+  "maxCh": 7485,
+  "failHits": 1
+ },
+ {
+  "key": "a7fd2700",
+  "id": "a7fd2700-de27-4cc1-b5e6-442fdf8a66ad",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 55999,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "r22",
+  "id": "aa0c5308-5aaf-4177-8a64-b68821bdca72",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 61194,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "ab362011",
+  "id": "ab362011-bea5-4cc3-95b2-c185ced3c2de",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 48021,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "l1",
+  "id": "ab922a18-c9a8-4b1b-9ac6-b7f20606c5d7",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 137706,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "abd29144",
+  "id": "abd29144-9afa-47af-80a3-97c1e5d34c5e",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 13,
+  "totalCh": 221415,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "ad4cc6c6",
+  "id": "ad4cc6c6-6c72-44bf-8b54-79671ee1707c",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 18,
+  "totalCh": 226676,
+  "maxCh": 40000,
+  "failHits": 12
+ },
+ {
+  "key": "ae628786",
+  "id": "ae628786-ad32-4dd4-bd43-64a812029966",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 43152,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "af277afd",
+  "id": "af277afd-b925-4583-852a-eaa6db310888",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 42375,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "marine-fuel-decarbonisation-pathways",
+  "id": "afc851b1-4413-4d8a-8462-8b726b11ce45",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 67070,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "b040b08c",
+  "id": "b040b08c-41e5-406f-8dcf-dacda0a32fb5",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 43525,
+  "maxCh": 13057,
+  "failHits": 0
+ },
+ {
+  "key": "b0cf862e",
+  "id": "b0cf862e-a95a-41a9-8d97-ab2c03b3342b",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 36789,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "b11cccc4",
+  "id": "b11cccc4-fdb6-4008-b76c-1ff6632c2657",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 65891,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "b2193d25",
+  "id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+  "type": "research_finding",
+  "cls": "moderate",
+  "contentRows": 4,
+  "totalCh": 5296,
+  "maxCh": 4168,
+  "failHits": 3
+ },
+ {
+  "key": "g19",
+  "id": "b293a2b6-c882-44dc-8efc-a801ed6a160b",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 108226,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "b3b32236",
+  "id": "b3b32236-047c-4011-a79b-25913a70a662",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 69594,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "b4710002",
+  "id": "b4710002-d626-429b-9796-e7c9ea43c43e",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 30348,
+  "maxCh": 11179,
+  "failHits": 0
+ },
+ {
+  "key": "b4811af8",
+  "id": "b4811af8-d45e-4e4f-b7ca-1f94451cc91e",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 37477,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "b6b7eb7d",
+  "id": "b6b7eb7d-0f3d-445a-8116-82bf89f58de7",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 41477,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "b6fd00bf",
+  "id": "b6fd00bf-2573-4103-8f67-216c8bec66c7",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 55295,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "eu-hdv-co2-standards-2019-1242",
+  "id": "b7736a1a-2c81-4d58-87b4-ee09330eaff2",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 182982,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "b813d0a5",
+  "id": "b813d0a5-211b-4b56-9cee-503087c11486",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 31962,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "lng-natural-gas-price-intelligence",
+  "id": "b8da154a-149e-483a-9198-7039850006fc",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 34073,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "b94cd283",
+  "id": "b94cd283-33f7-4ae8-bab1-f4b309a0db8a",
+  "type": "market_signal",
+  "cls": "suspect",
+  "contentRows": 5,
+  "totalCh": 3340,
+  "maxCh": 669,
+  "failHits": 5
+ },
+ {
+  "key": "bd7c3f5a",
+  "id": "bd7c3f5a-a877-4800-b973-e208ddfd82df",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 12,
+  "totalCh": 142207,
+  "maxCh": 40000,
+  "failHits": 1
+ },
+ {
+  "key": "bd9a1a6b",
+  "id": "bd9a1a6b-2966-41df-b595-63ccad090f90",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 31808,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "india-s-national-logistics-policy-carbon-intensity-standards",
+  "id": "beae0a7e-1088-4d35-b89f-362aade1d1a8",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 42281,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "bec305e1",
+  "id": "bec305e1-1ce7-4dbe-a599-32dd63927c36",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 8,
+  "totalCh": 96554,
+  "maxCh": 37191,
+  "failHits": 2
+ },
+ {
+  "key": "g1",
+  "id": "bf54dc59-ad47-4e2e-9984-cc4cd0206435",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 13,
+  "totalCh": 411095,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "bfb6a9fe",
+  "id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 47906,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "o11",
+  "id": "c0a2dfb3-e394-4e88-8acd-60a714339c4a",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 47107,
+  "maxCh": 13999,
+  "failHits": 0
+ },
+ {
+  "key": "c0eab829",
+  "id": "c0eab829-5402-4c8a-8c0c-60954e88cc52",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 16425,
+  "maxCh": 7825,
+  "failHits": 0
+ },
+ {
+  "key": "c113dd5d",
+  "id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 57035,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "carbon-allowance-price-intelligence",
+  "id": "c26f4ac6-cd91-4bc8-b0c2-84766f9072f6",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 65360,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "c28b567f",
+  "id": "c28b567f-7bd0-4448-b5f0-e3be42334bb6",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 43573,
+  "maxCh": 10748,
+  "failHits": 2
+ },
+ {
+  "key": "g31",
+  "id": "c2af2fc0-6792-443f-8c24-ce24f9665aa4",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 66035,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "c3004aa0",
+  "id": "c3004aa0-2e9a-4912-90b2-de095a69f670",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 55998,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "o8",
+  "id": "c3fa4cc2-f168-4784-bf78-dda5c022843e",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 14799,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "c54cd5f2",
+  "id": "c54cd5f2-779a-4a74-9614-ea38a0e6d55f",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 49461,
+  "maxCh": 14000,
+  "failHits": 4
+ },
+ {
+  "key": "o4",
+  "id": "c5cae7db-c44e-4346-8389-25ff6476d853",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 95088,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "c6e7abe3",
+  "id": "c6e7abe3-47e8-4c44-9c97-f48aad834e68",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 39546,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "c828810c",
+  "id": "c828810c-d371-4562-81c1-d64584ec4f40",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 72727,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "l8",
+  "id": "c8b4f1ae-45d1-4719-86a7-40809f709556",
+  "type": "initiative",
+  "cls": "suspect",
+  "contentRows": 1,
+  "totalCh": 10694,
+  "maxCh": 10694,
+  "failHits": 1
+ },
+ {
+  "key": "ca6fa630",
+  "id": "ca6fa630-e8d3-4948-b0a8-20856cd17343",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 34477,
+  "maxCh": 10410,
+  "failHits": 0
+ },
+ {
+  "key": "a1",
+  "id": "cc0958fb-6453-4163-8363-27515817597f",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 65562,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "cd5c84e3",
+  "id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 23,
+  "totalCh": 350597,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "cda44a7d",
+  "id": "cda44a7d-d7c1-4069-96a9-69983fb4986b",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 13,
+  "totalCh": 250628,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "cea40062",
+  "id": "cea40062-fead-407a-bf9d-3bf0a666ba00",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 50591,
+  "maxCh": 13593,
+  "failHits": 1
+ },
+ {
+  "key": "cea7bd1b",
+  "id": "cea7bd1b-cb28-4087-968e-31729c32cb3d",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 12912,
+  "maxCh": 7990,
+  "failHits": 0
+ },
+ {
+  "key": "g8",
+  "id": "cee5aa6b-a4f8-4f14-ae6e-91484eb1f768",
+  "type": "standard",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 16529,
+  "maxCh": 4803,
+  "failHits": 2
+ },
+ {
+  "key": "uae-national-hydrogen-strategy-implementation-decree-for-logistics",
+  "id": "cfcf9e4c-6562-4c2e-8463-0cc6e5cb0bad",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 35052,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "d012bc20",
+  "id": "d012bc20-9e9c-4669-942a-f50c3d4d2fe2",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 51890,
+  "maxCh": 8850,
+  "failHits": 0
+ },
+ {
+  "key": "d02b40cc",
+  "id": "d02b40cc-193a-4248-82bb-1a88953ccfbc",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 21200,
+  "maxCh": 13999,
+  "failHits": 1
+ },
+ {
+  "key": "d131224a",
+  "id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 15548,
+  "maxCh": 13999,
+  "failHits": 3
+ },
+ {
+  "key": "d136c88c",
+  "id": "d136c88c-8816-4727-b15d-a80b96f0f57b",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 39904,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "uae-national-net-zero-by-2050-transport-sector-roadmap",
+  "id": "d2da85da-0912-497a-b645-31e4ca73cd18",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 19850,
+  "maxCh": 14000,
+  "failHits": 2
+ },
+ {
+  "key": "d4dd6677",
+  "id": "d4dd6677-8ff8-4445-b818-5ed6f8d3c911",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 26304,
+  "maxCh": 12053,
+  "failHits": 1
+ },
+ {
+  "key": "d56ca4e1",
+  "id": "d56ca4e1-5f68-4bf8-9c88-47ecfee986f0",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 2,
+  "totalCh": 29008,
+  "maxCh": 28766,
+  "failHits": 1
+ },
+ {
+  "key": "d5ee6ab8",
+  "id": "d5ee6ab8-ebf0-4903-89b5-3e1d4d3d47de",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 11,
+  "totalCh": 263702,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "d6a9889f",
+  "id": "d6a9889f-20a6-4b4f-a846-e52fe9f18340",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 59436,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "d779efe4",
+  "id": "d779efe4-9587-44af-882b-0a0374d6a8f5",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 67291,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "india-green-credit-programme-for-transport",
+  "id": "d91f76f0-0ec3-4d47-b54f-2a525945dc52",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 34890,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "d935e112",
+  "id": "d935e112-603d-48e3-a47a-a5896bf6fab8",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 14,
+  "totalCh": 245959,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "daaa7e3a",
+  "id": "daaa7e3a-61fc-4c53-adba-81d9e636133f",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 61309,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "db8577c6",
+  "id": "db8577c6-96e3-4cfa-8bd6-daf538ac3dc5",
+  "type": "framework",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 59175,
+  "maxCh": 14000,
+  "failHits": 3
+ },
+ {
+  "key": "de2df788",
+  "id": "de2df788-acca-42ed-b621-864db48da109",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 14,
+  "totalCh": 204175,
+  "maxCh": 40000,
+  "failHits": 3
+ },
+ {
+  "key": "de368414",
+  "id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 58198,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "de7f09fc",
+  "id": "de7f09fc-b66e-41d2-a3a9-876aeda6a7e1",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 27414,
+  "maxCh": 7791,
+  "failHits": 2
+ },
+ {
+  "key": "o13",
+  "id": "e241fe75-8627-4759-a7dd-a25e9db146bf",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 60046,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "e2e03e1b",
+  "id": "e2e03e1b-b466-4c11-987e-38a7fc279ff6",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 18,
+  "totalCh": 377024,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "r27",
+  "id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 42552,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "e44a5408",
+  "id": "e44a5408-72b2-4ca5-b2a2-51bbbeee31d4",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 47405,
+  "maxCh": 13999,
+  "failHits": 0
+ },
+ {
+  "key": "o2",
+  "id": "e4d84c60-0264-4d87-81d3-49a37863eefb",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 221807,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "e5c17fac",
+  "id": "e5c17fac-a188-41da-be29-8278da6539e7",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 51531,
+  "maxCh": 13999,
+  "failHits": 0
+ },
+ {
+  "key": "united-kingdom-regional-operations-profile",
+  "id": "e77f9426-15a8-4364-93ff-ecaf93e32868",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 29086,
+  "maxCh": 13350,
+  "failHits": 0
+ },
+ {
+  "key": "eb08d16c",
+  "id": "eb08d16c-f51c-44bd-8f50-0fada86c67d4",
+  "type": "directive",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "eb6641da",
+  "id": "eb6641da-ce23-49aa-add6-a5a876d422b0",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 41183,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "r31",
+  "id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 26548,
+  "maxCh": 7163,
+  "failHits": 0
+ },
+ {
+  "key": "ece93c54",
+  "id": "ece93c54-871b-4cf3-9f39-a4a2e9691574",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 69207,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "ed63f522",
+  "id": "ed63f522-96bd-4aac-b828-a216f34b90a9",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 25799,
+  "maxCh": 13223,
+  "failHits": 1
+ },
+ {
+  "key": "ed6c5c76",
+  "id": "ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 35638,
+  "maxCh": 14000,
+  "failHits": 1
+ },
+ {
+  "key": "edb9b138",
+  "id": "edb9b138-896c-4df2-94e1-9f28f85c3db6",
+  "type": "initiative",
+  "cls": "no-pool",
+  "contentRows": 0,
+  "totalCh": 0,
+  "maxCh": 0,
+  "failHits": 0
+ },
+ {
+  "key": "ee2cfe81",
+  "id": "ee2cfe81-afc8-492f-b03b-2ed9c94400cc",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 20763,
+  "maxCh": 10742,
+  "failHits": 0
+ },
+ {
+  "key": "ee8f4e71",
+  "id": "ee8f4e71-6b1a-43d5-a763-f195fcd2bcb5",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 15520,
+  "maxCh": 8364,
+  "failHits": 2
+ },
+ {
+  "key": "efcc9f45",
+  "id": "efcc9f45-c7c7-4e06-8cb6-fc85348b8f2f",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 43891,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "g2",
+  "id": "efdb3390-7530-44e5-b99d-9b20157ae186",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 87902,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "eu-corporate-sustainability-reporting-directive-csrd-transport-sector-implementa",
+  "id": "f0833999-8c58-4f00-8389-0a3f938641f3",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 15,
+  "totalCh": 253245,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "a3",
+  "id": "f2269121-4e10-4bdc-99bf-1e9c6a1b35e4",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 127990,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "f3510df3",
+  "id": "f3510df3-0fdc-49a8-b33c-c45ed78494f8",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 64796,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "r29",
+  "id": "f3cee01b-77bf-4770-badb-c8020186e63c",
+  "type": "research_finding",
+  "cls": "moderate",
+  "contentRows": 1,
+  "totalCh": 13999,
+  "maxCh": 13999,
+  "failHits": 0
+ },
+ {
+  "key": "f41fd969",
+  "id": "f41fd969-c1bc-4fea-9b18-c46a08202c63",
+  "type": "regional_data",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 29752,
+  "maxCh": 8910,
+  "failHits": 1
+ },
+ {
+  "key": "japan-green-transformation-gx-freight-transport-standards",
+  "id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 53511,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "hydrogen-ammonia-as-maritime-fuel",
+  "id": "f6774c49-f277-4882-ba29-b911985a427a",
+  "type": "research_finding",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 48935,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "nyc-local-law-97-building-carbon-emissions-caps",
+  "id": "f67aabad-45a5-42ce-9270-77e481f79eed",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 3,
+  "totalCh": 68338,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "f72155a2",
+  "id": "f72155a2-beba-4e75-8b19-1f12074bb15a",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 12,
+  "totalCh": 183011,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "f92fab46",
+  "id": "f92fab46-b7c8-4ebb-ba87-ff54d18aeaf2",
+  "type": "initiative",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 51318,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "t2",
+  "id": "f982289b-fa8f-4d95-b507-903d0683c611",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 4,
+  "totalCh": 49497,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "fabda0e7",
+  "id": "fabda0e7-dfb4-43c2-bef9-1821bb148d5d",
+  "type": "guidance",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 71745,
+  "maxCh": 12806,
+  "failHits": 0
+ },
+ {
+  "key": "fb86ee11",
+  "id": "fb86ee11-08ba-47a5-8cbd-5a8079dfc1c2",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 5,
+  "totalCh": 66170,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "fc47cf4d",
+  "id": "fc47cf4d-1762-41ed-abcb-494445323e9c",
+  "type": "directive",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 43575,
+  "maxCh": 14000,
+  "failHits": 0
+ },
+ {
+  "key": "fc7cdcd7",
+  "id": "fc7cdcd7-ebdf-4e08-82df-a4ce9c6f8d00",
+  "type": "market_signal",
+  "cls": "rich",
+  "contentRows": 7,
+  "totalCh": 38411,
+  "maxCh": 11016,
+  "failHits": 2
+ },
+ {
+  "key": "g21",
+  "id": "fcf98c3d-44d9-4eae-a31f-1e611545acf8",
+  "type": "research_finding",
+  "cls": "suspect",
+  "contentRows": 5,
+  "totalCh": 4663,
+  "maxCh": 1991,
+  "failHits": 5
+ },
+ {
+  "key": "eu-emissions-trading-system-ets-extension-to-maritime-transport",
+  "id": "ff4064ab-9489-4fc4-b3cc-f0f157e71db5",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 16,
+  "totalCh": 352547,
+  "maxCh": 40000,
+  "failHits": 0
+ },
+ {
+  "key": "eu-alternative-fuels-infrastructure-regulation-afir",
+  "id": "ff95b385-6cb2-453a-94e6-b9fc84d7f851",
+  "type": "regulation",
+  "cls": "rich",
+  "contentRows": 6,
+  "totalCh": 207349,
+  "maxCh": 40000,
+  "failHits": 0
+ }
+]
