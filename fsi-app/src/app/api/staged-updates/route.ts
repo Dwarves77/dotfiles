@@ -7,6 +7,9 @@ import { APP_DATA_TAG } from "@/lib/data";
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { mintIntelligenceItem } from "@/lib/intake/mint-item";
 import { isPlatformAdmin } from "@/lib/auth/admin";
+import { isGloballyPaused } from "@/lib/api/pause";
+import { start } from "workflow/api";
+import { generateBriefWorkflow } from "@/workflows/generate-brief";
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -228,6 +231,42 @@ export async function POST(request: NextRequest) {
           },
           { status: 500 }
         );
+      }
+
+      // Approve→generate loop-closer (DEEP-AUDIT S1-11, option-2 item b). A
+      // newly-MINTED item (materializeResult.itemId is populated ONLY for
+      // new_item — the mint went through mintIntelligenceItem, the F13
+      // intake-gate chokepoint) otherwise sits as an invisible stub: no
+      // full_brief, gated out of every customer surface (verified-only).
+      //
+      // DORMANT by construction, behind the autonomous-loop flag: while the
+      // loop is paused (its current state), this does NOT fire — generation
+      // begins only when the operator flips the loop on (the phase flip). Any
+      // run it starts still routes through the spend chokepoint (F15) and the
+      // fetch hold gate (F16 — 503s while the scrape hold is live), so it fails
+      // closed twice over. Existing-item updates carry no itemId and never
+      // trigger here, so this path only ever fires for a minted new_item.
+      if (materializeResult.itemId) {
+        const paused = await isGloballyPaused(supabase);
+        if (paused) {
+          console.log(
+            `[staged-updates] approve→generate DORMANT (autonomous loop paused) for minted item ${materializeResult.itemId} — the brief generates when the loop is enabled.`
+          );
+        } else {
+          try {
+            const run = await start(generateBriefWorkflow, [materializeResult.itemId]);
+            console.log(
+              `[staged-updates] approve→generate started run ${run?.runId ?? "?"} for minted item ${materializeResult.itemId}`
+            );
+          } catch (genErr) {
+            // Non-fatal: the item is materialized + approved. Generation can be
+            // re-triggered via /api/agent/run. Do NOT fail the approval here.
+            console.error(
+              `[staged-updates] approve→generate trigger failed for ${materializeResult.itemId}:`,
+              genErr
+            );
+          }
+        }
       }
 
       // Invalidate the workspace data cache — the new/updated
