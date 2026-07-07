@@ -93,6 +93,18 @@ export interface RoomVM {
   roster: RosterMemberVM[];
 }
 
+/** A member-created cross-regional vertical group (region GLOBAL, vertical set). */
+export interface VerticalGroupVM {
+  id: string;
+  slug: string;
+  name: string;
+  vertical: string;
+  verticalLabel: string;
+  description: string | null;
+  memberCount: number;
+  youOwn: boolean;
+}
+
 interface CommunityRoomsProps {
   rooms: RoomVM[];
   seeded: boolean;
@@ -103,6 +115,10 @@ interface CommunityRoomsProps {
   verifierStatus: string;
   networkMemberCount: number;
   pendingPickups: number;
+  /** Member-created vertical groups (cross-regional, cargo-vertical). */
+  verticalGroups: VerticalGroupVM[];
+  /** Cargo-vertical options for the create picker: {id, label}. */
+  verticalOptions: { id: string; label: string }[];
 }
 
 const HUE_VAR: Record<RoomVM["hue"], string> = {
@@ -153,11 +169,16 @@ export function CommunityRooms({
   verifierStatus,
   networkMemberCount,
   pendingPickups,
+  verticalGroups,
+  verticalOptions,
 }: CommunityRoomsProps) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   // Local mutable copy so posts/joins/deletes reflect immediately.
   const [roomState, setRoomState] = useState<RoomVM[]>(rooms);
+  // Local copy of the vertical groups so a just-created group appears at once.
+  const [groupState, setGroupState] = useState<VerticalGroupVM[]>(verticalGroups);
+  const [createOpen, setCreateOpen] = useState(false);
   const initialKey =
     rooms.find((r) => r.youHere)?.key ?? rooms[0]?.key ?? ("EU" as RoomKey);
   const [selectedKey, setSelectedKey] = useState<RoomKey>(initialKey);
@@ -175,6 +196,45 @@ export function CommunityRooms({
 
   function patchRoom(key: RoomKey, patch: Partial<RoomVM>) {
     setRoomState((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  }
+
+  // Create a member-owned vertical group and show it immediately. Returns an
+  // error string on failure (rendered inside the modal), or null on success.
+  async function doCreateGroup(input: {
+    name: string;
+    vertical: string;
+    description: string;
+  }): Promise<string | null> {
+    try {
+      const res = await fetch("/api/community/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return data?.error || "Could not create the group.";
+      const g = data?.group;
+      if (!g?.id) return "Group creation returned no row.";
+      const label =
+        verticalOptions.find((o) => o.id === g.vertical)?.label ?? g.vertical;
+      setGroupState((prev) => [
+        {
+          id: g.id,
+          slug: g.slug,
+          name: g.name,
+          vertical: g.vertical,
+          verticalLabel: label,
+          description: g.description ?? null,
+          memberCount: g.member_count ?? 1,
+          youOwn: true,
+        },
+        ...prev,
+      ]);
+      setNotice(`Group "${g.name}" created — you own it.`);
+      return null;
+    } catch {
+      return "Network error creating the group.";
+    }
   }
 
   // ── actions ──
@@ -1263,15 +1323,23 @@ export function CommunityRooms({
                   onDecide={decideSignoff}
                 />
 
-                {/* Vertical groups pending frame */}
-                <PendingFrame
-                  eyebrow="Vertical groups · none yet"
-                  body="Rooms are regional; groups will cut across them by vertical (fine art, live events, automotive…). They form when members create them."
+                {/* Vertical groups — live: member-created, cross-regional. */}
+                <VerticalGroupsRailPanel
+                  groups={groupState}
+                  onCreate={() => setCreateOpen(true)}
                 />
               </div>
             </div>
           )}
         </>
+      )}
+
+      {createOpen && (
+        <CreateGroupModal
+          verticalOptions={verticalOptions}
+          onClose={() => setCreateOpen(false)}
+          onSubmit={doCreateGroup}
+        />
       )}
     </div>
   );
@@ -1529,6 +1597,286 @@ function PendingFrame({ eyebrow, body }: { eyebrow: string; body: string }) {
   );
 }
 
+// ── Vertical groups (member-created, cross-regional) ──
+
+function VerticalGroupsRailPanel({
+  groups,
+  onCreate,
+}: {
+  groups: VerticalGroupVM[];
+  onCreate: () => void;
+}) {
+  return (
+    <div style={CARD}>
+      <div
+        style={{
+          ...PLATE_HEAD,
+          padding: "10px 14px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <p style={{ ...EYEBROW, color: "var(--text)" }}>
+          Vertical groups{groups.length > 0 ? ` · ${groups.length}` : ""}
+        </p>
+        <button
+          type="button"
+          onClick={onCreate}
+          style={{
+            fontFamily: "inherit",
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: "var(--color-primary)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          + New group
+        </button>
+      </div>
+      <div style={{ padding: "12px 14px" }}>
+        {groups.length === 0 ? (
+          <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
+            No vertical groups yet. Rooms are regional; a group cuts across them
+            by cargo vertical (fine art, live events, automotive…). Start one and
+            invite peers wherever they operate.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {groups.map((g) => (
+              <Link
+                key={g.id}
+                href={`/community/${g.slug}`}
+                style={{
+                  display: "block",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 6,
+                  padding: "8px 10px",
+                  textDecoration: "none",
+                  color: "inherit",
+                }}
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text)" }}>
+                    {g.name}
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                    {g.memberCount} member{g.memberCount === 1 ? "" : "s"}
+                  </span>
+                </span>
+                <span
+                  style={{
+                    display: "inline-block",
+                    marginTop: 4,
+                    fontSize: 9,
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--color-primary)",
+                    border: "1px solid var(--color-active-border)",
+                    borderRadius: 4,
+                    padding: "1px 7px",
+                  }}
+                >
+                  {g.verticalLabel}
+                </span>
+                {g.youOwn && (
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 8 }}>
+                    · you own this
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CreateGroupModal({
+  verticalOptions,
+  onClose,
+  onSubmit,
+}: {
+  verticalOptions: { id: string; label: string }[];
+  onClose: () => void;
+  onSubmit: (input: {
+    name: string;
+    vertical: string;
+    description: string;
+  }) => Promise<string | null>;
+}) {
+  const [name, setName] = useState("");
+  const [vertical, setVertical] = useState(verticalOptions[0]?.id ?? "");
+  const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canSubmit = name.trim().length > 0 && vertical && !busy;
+
+  async function submit() {
+    if (!canSubmit) return;
+    setBusy(true);
+    setError(null);
+    const err = await onSubmit({ name: name.trim(), vertical, description: description.trim() });
+    setBusy(false);
+    if (err) setError(err);
+    else onClose();
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="create-group-title"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "min(460px, 100%)",
+          background: "var(--surface)",
+          border: "1px solid var(--color-border)",
+          borderRadius: 10,
+          padding: 22,
+        }}
+      >
+        <h3 id="create-group-title" style={{ fontSize: 15, fontWeight: 800, margin: "0 0 4px", color: "var(--text)" }}>
+          Start a vertical group
+        </h3>
+        <p style={{ fontSize: 11.5, lineHeight: 1.55, color: "var(--color-text-secondary)", margin: "0 0 14px" }}>
+          A public space that cuts across the regional rooms by cargo vertical.
+          You become its first member and owner.
+        </p>
+
+        <label htmlFor="cg-name" style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", margin: "0 0 4px" }}>
+          Group name
+        </label>
+        <input
+          id="cg-name"
+          value={name}
+          maxLength={120}
+          placeholder="e.g. Fine-art crating & climate control"
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && canSubmit) submit();
+          }}
+          style={inputStyle}
+        />
+
+        <label htmlFor="cg-vertical" style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", margin: "12px 0 4px" }}>
+          Cargo vertical
+        </label>
+        <select
+          id="cg-vertical"
+          value={vertical}
+          onChange={(e) => setVertical(e.target.value)}
+          style={{ ...inputStyle, cursor: "pointer" }}
+        >
+          {verticalOptions.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+
+        <label htmlFor="cg-desc" style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", margin: "12px 0 4px" }}>
+          Description <span style={{ fontWeight: 500, color: "var(--color-text-muted)" }}>(optional)</span>
+        </label>
+        <textarea
+          id="cg-desc"
+          value={description}
+          maxLength={1000}
+          rows={3}
+          placeholder="What this group is for, and who should join."
+          onChange={(e) => setDescription(e.target.value)}
+          style={{ ...inputStyle, resize: "vertical" }}
+        />
+
+        {error && (
+          <p role="alert" style={{ fontSize: 11.5, color: "var(--sev-critical)", margin: "10px 0 0" }}>
+            {error}
+          </p>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 700,
+              padding: "8px 14px",
+              borderRadius: 6,
+              border: "1px solid var(--color-border-medium)",
+              background: "var(--surface)",
+              color: "var(--text)",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!canSubmit}
+            style={{
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 800,
+              padding: "8px 14px",
+              borderRadius: 6,
+              border: "1px solid var(--color-primary)",
+              background: canSubmit ? "var(--color-primary)" : "transparent",
+              color: canSubmit ? "#FFFFFF" : "var(--text-disabled)",
+              cursor: canSubmit ? "pointer" : "not-allowed",
+              opacity: canSubmit ? 1 : 0.6,
+            }}
+          >
+            {busy ? "Creating…" : "Create group"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  fontFamily: "inherit",
+  fontSize: 12.5,
+  padding: "9px 12px",
+  border: "1px solid var(--color-border-medium)",
+  borderRadius: 6,
+  outline: "none",
+  background: "var(--color-background)",
+  color: "var(--text)",
+  boxSizing: "border-box",
+};
+
 function NotSeededState({
   pendingPickups,
   verifierStatus,
@@ -1595,8 +1943,8 @@ function NotSeededState({
           </p>
         </div>
         <PendingFrame
-          eyebrow="Vertical groups · none yet"
-          body="Rooms are regional; groups will cut across them by vertical (fine art, live events, automotive…). They form when members create them."
+          eyebrow="Vertical groups"
+          body="Rooms are regional; groups cut across them by vertical (fine art, live events, automotive…). Members create them from inside a room once the rooms are live."
         />
       </div>
     </div>
