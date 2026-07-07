@@ -3,74 +3,105 @@
 /**
  * MarketSignalDetailSurface — client subcomponent for `/market/[slug]`.
  *
- * Adapted from RegulationDetailSurface for the Market Intel signal vocabulary
- * (5-label severity: action / cost / window / edge / monitor; 3 signal bands:
- * price / corporate / corridor). Matches the visual language of the
- * regulations detail (hero card, stat strip, 2-col grid with right rail,
- * `cl-card` primitives, Anton section headings, semantic tokens).
+ * REDESIGN T05 (feat/redesign-t05-signal-detail): rebuilt to the approved mock
+ * "Pages - 05 Signal Detail.dc.html" (HANDOFF §6.5), reusing the detail-page
+ * archetype the T03 branch established (breadcrumb hero, action row, 3px orange
+ * tab underline, meta rail, honest-state pending frames, structured Sources).
+ * Exact hex/px are lifted from the mock inline styles into the `C` palette
+ * (same values the additive `--cl-*` tokens carry; see DESIGN-DEVIATIONS D1/T05).
  *
- * Sprint 4 — SECTION-AWARE: when `sections` are supplied (rows from
- * intelligence_item_sections for this item), the main panel renders the 8
- * Market Signal Brief sections via <MarketSections>, using the shared
- * ProseSection primitive (imported from
- * @/components/regulations/sections/ProseSection). The prior Summary panel
- * (short/full toggle) renders ONLY when sections is empty — honest empty
- * state over silent gap.
+ * Structure:
+ *   Hero — breadcrumb → title + deck (with real corroboration count) + chips
+ *     (severity + dashed Unverified + band) + actions (Export brief / Share /
+ *     Watch) → PRICE BOARD (published statistics; honest §4 frame until the live
+ *     feed lands, per HANDOFF §7 — NEVER faked) → six-tab strip.
+ *   Tabs — What's moving (S1) / Drivers & trajectory (S2·S3·S5 + trajectory) /
+ *     Cost impact (S4) / Client talking points (S6) / Do now (recommended
+ *     actions | S7) / Sources (structured rows + S8).
+ *   Persistent notes field + Connected intelligence (honest pending) on every tab.
+ *   Rail — Signal / Next data drops / Owner & team (honest pending).
  *
- * No-Vacuum (S3): when the item's `conversionTrigger` or `crossReferences`
- * callout is populated, a "Linked regulation / trigger" block is shown,
- * mirroring the S3 No-vacuum rule in analysis-construction-spec SKILL.md §6.
- *
- * Corroboration note: if the page passes `convergence` with non-zero
- * `independent_citers`, a small "Corroboration: N independent sources" note
- * is rendered in the hero card. When absent or zero, the note is omitted.
- * The count comes exclusively from sources.independent_citers (the real
- * source-growth convergence engine — aggregateConvergence). No proxy.
- *
- * Band + severity helpers are re-implemented here (MarketPage's helpers
- * are not exported and the dispatch forbids modifying MarketPage). When
- * migration 102 populates the signal_band + severity columns, both surfaces
- * route through the same column reads.
+ * DO-NOT-REVERT invariants preserved: tier CLAMP 1-7; structured Sources (the
+ * #172 stripSources pattern, never a raw dump); honest empty states; epistemic
+ * chips bind REAL fields only (severity derived; dashed "Unverified" bound to
+ * the signal item_type by design; band derived; tier chips clamped); corroboration
+ * count comes exclusively from sources.independent_citers — never a proxy;
+ * no chip is rendered without its backing field; the live price feed is never faked.
  */
 
 import { useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
-import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
+import Link from "next/link";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
-import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { ProseSection } from "@/components/regulations/sections/ProseSection";
+import { TrajectoryBars } from "@/components/market/TrajectoryBars";
+import {
+  extractRegulationSections,
+  type SourceEntry,
+} from "@/lib/agent/extract-regulation-sections";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 
-interface Props {
-  resource: Resource;
-  /** Workspace-wide Market Intel resource pool used to surface related
-   *  signals in the same band. The parent route fetches via
-   *  getMarketIntelItems and passes the result here. */
-  relatedPool: Resource[];
-  /**
-   * Sprint 4: parsed Market Signal Brief sections from intelligence_item_sections.
-   * When non-empty, renders the 8 structured section cards (section-aware mode).
-   * Empty array falls back to the legacy summary panel / brief toggle.
-   */
-  sections?: IntelligenceItemSectionRow[];
-  /**
-   * Real source-growth convergence from sources.independent_citers /
-   * sources.confirmation_count (aggregateConvergence output, migration 054
-   * columns). When provided with independent_citers > 0, a small corroboration
-   * note is shown in the hero card. When absent or zero, the note is omitted.
-   * NEVER derived from sources_used.length or any proxy.
-   */
-  convergence?: {
-    independent_citers: number;
-    confirmation_count: number;
-  } | null;
+// ── Palette — lifted verbatim from the approved mock inline styles ──────
+// Same values as the additive --cl-* token block in theme.css (DESIGN-DEVIATIONS
+// D1). The T03 archetype consumes the mock hex through this local constant; T05
+// mirrors it for cross-detail-surface consistency (no neighbor refactor).
+const C = {
+  page: "#FAFAF8",
+  card: "#FFFFFF",
+  plate: "#F5F2EE",
+  tint: "#FFF7F0",
+  ink: "#1A1A1A",
+  ink2: "#5A6B67",
+  muted: "#7A6E6C",
+  accent: "#E8610A",
+  accentHover: "#D05509",
+  blue: "#2563EB",
+  sevCritical: "#DC2626",
+  sevHigh: "#D97706",
+  sevMod: "#CA8A04",
+  sevLow: "#16A34A",
+  signal: "#B45309",
+  quiet: "#9A3412",
+  brass: "#8A6A2A",
+  hair: "rgba(0,0,0,0.12)",
+  hairSoft: "rgba(0,0,0,0.06)",
+  hairStrong: "rgba(0,0,0,0.18)",
+} as const;
+
+// ── Price-board record (migration 151 backing store) ────────────────────
+export interface PriceStat {
+  label: string;
+  valueDisplay: string;
+  unit?: string | null;
+  contextLine?: string | null;
+  severityTone?: string | null;
+  sourceTier?: number | null;
+  releasedAt?: string | null;
+  nextReleaseAt?: string | null;
+  nextReleaseLabel?: string | null;
 }
 
-// ── Severity vocabulary (5-label, mirrors MarketPage) ─────────────────
+interface Props {
+  resource: Resource;
+  /** Workspace-wide Market Intel pool for same-band related signals. */
+  relatedPool: Resource[];
+  /** Parsed Market Signal Brief sections (intelligence_item_sections rows). */
+  sections?: IntelligenceItemSectionRow[];
+  /** Real source-growth convergence (sources.independent_citers /
+   *  confirmation_count). independent_citers > 0 → corroboration line. */
+  convergence?: { independent_citers: number; confirmation_count: number } | null;
+  /** Published price statistics for the hero board (migration 151). Empty →
+   *  honest §4 published-statistics pending frame. NEVER faked. */
+  priceBoard?: PriceStat[];
+  /** Breadcrumb middle segment, e.g. "B1 · Price signals · United States". */
+  groupLabel?: string;
+  /** Hero deck sub-line, e.g. "U.S. EIA · published May 9, 2026". */
+  deck?: string;
+}
 
+// ── Severity vocabulary (5-label, mirrors MarketPage / MarketSignalDetail) ─
 type Severity = "action" | "cost" | "window" | "edge" | "monitor";
 
 const SEVERITY_LABEL: Record<Severity, string> = {
@@ -81,43 +112,12 @@ const SEVERITY_LABEL: Record<Severity, string> = {
   monitor: "Monitoring",
 };
 
-const SEVERITY_PILL_TONE: Record<
-  Severity,
-  { fg: string; bg: string; bd: string }
-> = {
-  action: {
-    fg: "var(--color-critical, var(--critical))",
-    bg: "var(--color-critical-bg, var(--critical-bg))",
-    bd: "var(--color-critical-border, var(--critical-bd))",
-  },
-  cost: {
-    fg: "var(--color-high, var(--high))",
-    bg: "var(--color-high-bg, var(--high-bg))",
-    bd: "var(--color-high-border, var(--high-bd))",
-  },
-  window: {
-    fg: "var(--color-moderate, var(--moderate))",
-    bg: "var(--color-moderate-bg, var(--moderate-bg))",
-    bd: "var(--color-moderate-border, var(--moderate-bd))",
-  },
-  edge: {
-    fg: "var(--color-secondary, var(--accent))",
-    bg: "rgba(37,99,235,0.08)",
-    bd: "var(--color-secondary, var(--accent))",
-  },
-  monitor: {
-    fg: "var(--color-text-muted, var(--muted))",
-    bg: "var(--color-surface, var(--surface))",
-    bd: "var(--color-border, var(--border))",
-  },
-};
-
-const SEVERITY_KEYWORDS: Record<Severity, RegExp[]> = {
-  action: [/\baction required\b/i, /\bimmediate\b/i, /\bdeadline\b/i, /\bmust file\b/i],
-  cost: [/\b(cost|surcharge|pass[- ]?through|margin|price.*(rise|up|breach))\b/i, /\bcost alert\b/i],
-  window: [/\b(window|deadline|by 20|q\d \d{4}|enforcement|consultation)\b/i],
-  edge: [/\b(competitive|edge|advantage|lock(ed)?|offtake|partnership)\b/i],
-  monitor: [/\b(monitor|tracking|watch|observe)\b/i],
+const SEVERITY_TONE: Record<Severity, { fg: string; bg: string; bd: string }> = {
+  action: { fg: C.sevCritical, bg: "#FEF2F2", bd: "#FECACA" },
+  cost: { fg: C.sevHigh, bg: "#FFF7ED", bd: "rgba(217,119,6,0.4)" },
+  window: { fg: C.sevMod, bg: "#FEFCE8", bd: "#FEF08A" },
+  edge: { fg: C.blue, bg: "rgba(37,99,235,0.08)", bd: "rgba(37,99,235,0.4)" },
+  monitor: { fg: C.ink2, bg: C.page, bd: C.hairStrong },
 };
 
 const SEVERITY_COLUMN_TO_KEY: Record<string, Severity> = {
@@ -128,25 +128,26 @@ const SEVERITY_COLUMN_TO_KEY: Record<string, Severity> = {
   monitoring: "monitor",
 };
 
+const SEVERITY_KEYWORDS: Record<Severity, RegExp[]> = {
+  action: [/\baction required\b/i, /\bimmediate\b/i, /\bdeadline\b/i, /\bmust file\b/i],
+  cost: [/\b(cost|surcharge|pass[- ]?through|margin|price.*(rise|up|breach))\b/i, /\bcost alert\b/i],
+  window: [/\b(window|deadline|by 20|q\d \d{4}|enforcement|consultation)\b/i],
+  edge: [/\b(competitive|edge|advantage|lock(ed)?|offtake|partnership)\b/i],
+  monitor: [/\b(monitor|tracking|watch|observe)\b/i],
+};
+
 function deriveSeverity(r: Resource): Severity {
-  if (r.severity && SEVERITY_COLUMN_TO_KEY[r.severity]) {
-    return SEVERITY_COLUMN_TO_KEY[r.severity];
-  }
+  if (r.severity && SEVERITY_COLUMN_TO_KEY[r.severity]) return SEVERITY_COLUMN_TO_KEY[r.severity];
   const text = `${r.title} ${r.note || ""}`;
   const order: Severity[] = ["action", "cost", "window", "edge", "monitor"];
-  for (const sev of order) {
-    for (const re of SEVERITY_KEYWORDS[sev]) {
-      if (re.test(text)) return sev;
-    }
-  }
+  for (const sev of order) for (const re of SEVERITY_KEYWORDS[sev]) if (re.test(text)) return sev;
   if (r.priority === "CRITICAL") return "action";
   if (r.priority === "HIGH") return "cost";
   if (r.priority === "MODERATE") return "window";
   return "monitor";
 }
 
-// ── Signal-band vocabulary (mirrors MarketPage) ───────────────────────
-
+// ── Signal-band vocabulary ──────────────────────────────────────────────
 type BandKey = "price" | "corporate" | "corridor";
 
 const BAND_LABEL: Record<BandKey, string> = {
@@ -154,12 +155,7 @@ const BAND_LABEL: Record<BandKey, string> = {
   corporate: "Corporate & capital",
   corridor: "Corridors & routes",
 };
-
-const BAND_NUM: Record<BandKey, number> = {
-  price: 1,
-  corporate: 2,
-  corridor: 3,
-};
+const BAND_NUM: Record<BandKey, number> = { price: 1, corporate: 2, corridor: 3 };
 
 const BAND_KEYWORDS: Record<BandKey, RegExp[]> = {
   price: [
@@ -175,189 +171,61 @@ const BAND_KEYWORDS: Record<BandKey, RegExp[]> = {
 };
 
 function assignBand(r: Resource): BandKey {
-  if (
-    r.signalBand === "price" ||
-    r.signalBand === "corporate" ||
-    r.signalBand === "corridor"
-  ) {
-    return r.signalBand;
-  }
+  if (r.signalBand === "price" || r.signalBand === "corporate" || r.signalBand === "corridor") return r.signalBand;
   const text = `${r.title} ${r.note || ""}`;
-  const bandsInOrder: BandKey[] = ["price", "corporate", "corridor"];
-  for (const band of bandsInOrder) {
-    for (const re of BAND_KEYWORDS[band]) {
-      if (re.test(text)) return band;
-    }
-  }
+  const order: BandKey[] = ["price", "corporate", "corridor"];
+  for (const band of order) for (const re of BAND_KEYWORDS[band]) if (re.test(text)) return band;
   return "corporate";
 }
 
-// ── Source tier vocab (mirrors RegulationDetailSurface SourceTierLegend) ─
+/** Clamp any tier value to the customer-facing 1-7 range (DO-NOT-REVERT). */
+function clampTier(n: number): number {
+  return Math.min(7, Math.max(1, Math.round(n)));
+}
 
-const TIER_DEFINITIONS = [
-  { tier: 1, label: "Primary law / official journal", color: "var(--critical)" },
-  { tier: 2, label: "Regulator guidance", color: "var(--high)" },
-  { tier: 3, label: "Intergovernmental", color: "var(--accent)" },
-  { tier: 4, label: "Industry body", color: "var(--text)" },
-  { tier: 5, label: "Trade press", color: "var(--text-2)" },
+// ── Tabs ────────────────────────────────────────────────────────────────
+type TabKey = "moving" | "drivers" | "cost" | "talking" | "donow" | "sources";
+const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: "moving", label: "What's moving" },
+  { key: "drivers", label: "Drivers & trajectory" },
+  { key: "cost", label: "Cost impact" },
+  { key: "talking", label: "Client talking points" },
+  { key: "donow", label: "Do now" },
+  { key: "sources", label: "Sources" },
 ];
 
-// ── Market Signal Brief section headings ─────────────────────────────
-//
-// Keys "1"–"8" map to the canonical Market Signal Brief headings per
-// analysis-construction-spec SKILL.md §6 and system-prompt.ts lines 202–209.
-// These MUST match the headings the system prompt emits so the extractor
-// routes sections correctly.
-
-const MARKET_SECTION_HEADINGS: Record<string, string> = {
-  "1": "What's Moving and What Triggered It",
-  "2": "Who's Driving It and What They Want",
-  "3": "Expected Trajectory and Conversion Triggers",
-  "4": "Operational and Cost Implications If It Materializes",
-  "5": "Competitive Implications",
-  "6": "Client Conversation Talking Points",
-  "7": "What the Workspace Should Do Now",
-  "8": "Sources",
-};
-
-const KNOWN_MARKET_KEYS = new Set(["1", "2", "3", "4", "5", "6", "7", "8"]);
-
-// ── Section-aware renderer (analogous to ResearchSections) ────────────
-//
-// Renders the 8 Market Signal Brief sections from intelligence_item_sections
-// rows. Each section is a numbered card with a prose body rendered via the
-// shared ProseSection (reused, not re-implemented). Rows with empty
-// content_md are silently omitted (integrity-preserving). Returns null when
-// no known-key rows have content, so the parent falls back to the legacy
-// summary panel.
-
-function MarketSectionCard({
-  sectionKey,
-  heading,
-  contentMd,
-}: {
-  sectionKey: string;
-  heading: string;
-  contentMd: string;
-}) {
-  return (
-    <section
-      id={`market-section-${sectionKey}`}
-      style={{
-        background: "var(--color-surface, var(--surface))",
-        border: "1px solid var(--color-border, var(--border))",
-        borderRadius: "var(--radius-md, 6px)",
-        marginBottom: 14,
-        boxShadow: "var(--shadow-card, var(--shadow))",
-        overflow: "hidden",
-      }}
-    >
-      {/* Section header — numbered badge + heading label */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "14px 22px",
-          background: "var(--color-bg-raised, var(--bg))",
-          borderBottom: "1px solid var(--color-border-subtle, var(--border-sub))",
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 13,
-            fontWeight: 400,
-            letterSpacing: "0.08em",
-            color: "#fff",
-            background: "var(--color-primary, var(--accent))",
-            padding: "4px 10px",
-            borderRadius: 3,
-            minWidth: 36,
-            textAlign: "center",
-            lineHeight: 1.1,
-          }}
-        >
-          S{sectionKey}
-        </span>
-        <span
-          style={{
-            fontSize: 13.5,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "var(--color-text-primary, var(--text))",
-          }}
-        >
-          {heading}
-        </span>
-      </div>
-      {/* Section body — shared generic prose renderer (reused, not re-implemented). */}
-      <div style={{ padding: "18px 22px 22px" }}>
-        <ProseSection markdown={contentMd} />
-      </div>
-    </section>
-  );
-}
-
-function MarketSections({ rows }: { rows: IntelligenceItemSectionRow[] }) {
-  const known = rows.filter(
-    (r) => KNOWN_MARKET_KEYS.has(r.section_key) && (r.content_md || "").trim()
-  );
-  if (known.length === 0) return null;
-
-  return (
-    <div>
-      {known.map((row) => {
-        const heading =
-          MARKET_SECTION_HEADINGS[row.section_key] || `Section ${row.section_key}`;
-        return (
-          <MarketSectionCard
-            key={row.section_key}
-            sectionKey={row.section_key}
-            heading={heading}
-            contentMd={row.content_md}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Component ─────────────────────────────────────────────────────────
-
+// ── Component ─────────────────────────────────────────────────────────────
 export function MarketSignalDetailSurface({
   resource: r,
   relatedPool,
   sections = [],
   convergence = null,
+  priceBoard = [],
+  groupLabel,
+  deck,
 }: Props) {
+  const [tab, setTab] = useState<TabKey>("moving");
+
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const band = useMemo(() => assignBand(r), [r]);
 
-  // Section-aware mode: sections from intelligence_item_sections take
-  // precedence over the legacy summary toggle when non-empty. Rows are
-  // already ordered by section_order from the server fetch.
-  const hasSections = sections.length > 0;
+  // section_key → trimmed content_md (only rows with content).
+  const sectionMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const row of sections) {
+      const md = (row.content_md || "").trim();
+      if (md) map[row.section_key] = md;
+    }
+    return map;
+  }, [sections]);
 
-  // Corroboration: render ONLY when convergence carries a real non-zero
-  // independent_citers count from the source-growth engine. Never proxy.
+  // Corroboration: real non-zero independent_citers only. Never a proxy.
   const independentCiters =
-    convergence && convergence.independent_citers > 0
-      ? convergence.independent_citers
-      : null;
+    convergence && convergence.independent_citers > 0 ? convergence.independent_citers : null;
 
-  // Related: same band, exclude self, cap at 5.
-  const related = useMemo(() => {
-    return relatedPool
-      .filter((x) => x.id !== r.id)
-      .map((x) => ({ item: x, band: assignBand(x), severity: deriveSeverity(x) }))
-      .filter((x) => x.band === band)
-      .slice(0, 5);
-  }, [relatedPool, r.id, band]);
-
-  const modes = r.modes || (r.cat ? [r.cat] : []);
-  const tags = r.tags || [];
+  // A market signal is a SIGNAL by design → dashed "Unverified" epistemic chip.
+  // Bound to the real item_type (routes to Market Intel); never fabricated.
+  const isSignalType = !!r.type;
 
   const jurisdictionLabels =
     r.jurisdictionIso && r.jurisdictionIso.length > 0
@@ -366,980 +234,854 @@ export function MarketSignalDetailSurface({
       ? [JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label || r.jurisdiction]
       : ["Global"];
   const jurisLabel = jurisdictionLabels.join(" · ");
+  const crumbGroup = groupLabel || `B${BAND_NUM[band]} · ${BAND_LABEL[band]} · ${jurisLabel}`;
 
-  const sevTone = SEVERITY_PILL_TONE[severity];
+  const related = useMemo(
+    () =>
+      relatedPool
+        .filter((x) => x.id !== r.id)
+        .map((x) => ({ item: x, band: assignBand(x), severity: deriveSeverity(x) }))
+        .filter((x) => x.band === band)
+        .slice(0, 4),
+    [relatedPool, r.id, band]
+  );
+
+  // Next data drops rail — from the price board's next-release fields.
+  const nextDrops = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Array<{ label: string; date: string }> = [];
+    for (const p of priceBoard) {
+      if (!p.nextReleaseAt) continue;
+      const key = `${p.nextReleaseLabel || p.label}·${p.nextReleaseAt}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ label: p.nextReleaseLabel || p.label, date: shortDate(p.nextReleaseAt) });
+    }
+    return out;
+  }, [priceBoard]);
 
   return (
-    <div className="px-9 pt-8 pb-16 max-w-[1280px] mx-auto">
-      {/* Hero card */}
-      <div
-        style={{
-          background: "var(--color-surface, var(--surface))",
-          border: "1px solid var(--color-border-subtle, var(--border-sub))",
-          borderLeft: `5px solid ${sevTone.fg}`,
-          borderRadius: "var(--radius-md, var(--r-lg))",
-          padding: "22px 26px 20px",
-          boxShadow: "var(--shadow-card, var(--shadow))",
-          marginBottom: 16,
-        }}
-      >
-        {/* Mode chips */}
-        {modes.length > 0 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-            {modes.map((m) => (
-              <span
-                key={m}
-                style={{
-                  fontSize: 11,
-                  padding: "4px 10px",
-                  border: "1px solid var(--color-border, var(--border))",
-                  borderRadius: 999,
-                  background: "var(--color-surface, var(--surface))",
-                  color: "var(--color-text-secondary, var(--text-2))",
-                  display: "inline-flex",
-                  gap: 5,
-                  alignItems: "center",
-                  fontWeight: 600,
-                }}
-              >
-                {m.toUpperCase()}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Title metadata strip — severity + band + type pills on the right
-            (mirrors RegulationDetailSurface; the masthead is the single
-            source of truth for the title itself). */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            marginBottom: 10,
-          }}
-        >
-          {r.type && (
+    <div style={{ padding: "0 0 90px", fontFamily: "var(--font-sans)", color: C.ink }}>
+      {/* ── Hero header ── */}
+      <header style={{ background: C.card, borderBottom: `1px solid ${C.hair}` }}>
+        <div style={{ padding: "18px 36px 0" }}>
+          {/* Breadcrumb */}
+          <nav
+            aria-label="Breadcrumb"
+            style={{ fontSize: 12, margin: "0 0 12px", display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}
+          >
+            <Link href="/market" prefetch={false} style={{ color: C.ink2, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+              Market Intel
+            </Link>
+            <span style={{ color: C.muted }}>/</span>
+            <span style={{ color: C.ink2, fontWeight: 600, whiteSpace: "nowrap" }}>{crumbGroup}</span>
+            <span style={{ color: C.muted }}>/</span>
             <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                padding: "4px 10px",
-                borderRadius: 3,
-                background: "var(--accent-bg)",
-                color: "var(--accent)",
-                border: "1px solid var(--accent-bd)",
-              }}
+              style={{ color: C.ink, fontWeight: 800, whiteSpace: "nowrap", maxWidth: "44ch", overflow: "hidden", textOverflow: "ellipsis" }}
+              title={r.title}
             >
-              {r.type.replace(/_/g, " ")}
+              {r.title}
             </span>
-          )}
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              padding: "4px 10px",
-              borderRadius: 3,
-              background: "var(--color-bg-raised, var(--bg))",
-              color: "var(--color-text-primary, var(--text))",
-              border: "1px solid var(--color-border, var(--border))",
-            }}
-          >
-            B{BAND_NUM[band]} {BAND_LABEL[band]}
-          </span>
-          <SeverityPill severity={severity} />
-        </div>
+          </nav>
 
-        {/* Deck / note */}
-        {(r.note || r.whatIsIt) && (
-          <p
-            style={{
-              fontSize: 14,
-              lineHeight: 1.55,
-              color: "var(--color-text-secondary, var(--text-2))",
-              marginBottom: 14,
-              maxWidth: "78ch",
-            }}
-          >
-            {r.note || r.whatIsIt}
-          </p>
-        )}
-
-        {/* Source attribution line */}
-        {(r.sourceName || r.url) && (
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--color-text-muted, var(--muted))",
-              margin: "0 0 10px",
-            }}
-          >
-            Source:{" "}
-            {r.url ? (
-              <a
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "var(--color-primary, var(--accent))" }}
-              >
-                {r.sourceName || r.url}
-              </a>
-            ) : (
-              <span style={{ color: "var(--color-text-secondary, var(--text-2))" }}>
-                {r.sourceName}
-              </span>
-            )}
-            {r.sourceTier && (
-              <span style={{ marginLeft: 8 }}>
-                <SourceTierBadge tier={r.sourceTier} />
-              </span>
-            )}
-          </p>
-        )}
-
-        {tags.length > 0 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {tags.map((t) => (
-              <span
-                key={t}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ maxWidth: "86ch" }}>
+              <h1
                 style={{
-                  fontSize: 11,
-                  padding: "3px 10px",
-                  background: "var(--color-bg-raised, var(--bg))",
-                  border: "1px solid var(--color-border-subtle, var(--border-sub))",
-                  borderRadius: 999,
-                  color: "var(--color-text-secondary, var(--text-2))",
-                  fontWeight: 600,
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 400,
+                  fontSize: 32,
+                  lineHeight: 1.08,
+                  letterSpacing: "0.02em",
+                  textTransform: "uppercase",
+                  margin: 0,
+                  color: C.ink,
                 }}
               >
-                {t}
-              </span>
-            ))}
+                {r.title}
+              </h1>
+              {(deck || independentCiters !== null) && (
+                <p style={{ fontSize: 13, color: C.ink2, margin: "10px 0 0", lineHeight: 1.6 }}>
+                  {deck}
+                  {deck && independentCiters !== null ? " · " : ""}
+                  {independentCiters !== null && (
+                    <b style={{ color: C.ink }}>
+                      {independentCiters} independent source{independentCiters === 1 ? "" : "s"} corroborate this signal
+                    </b>
+                  )}
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <SeverityChip severity={severity} />
+                {isSignalType && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.09em",
+                      textTransform: "uppercase",
+                      color: C.signal,
+                      border: `1px dashed rgba(180,83,9,0.45)`,
+                      borderRadius: 4,
+                      padding: "5px 11px",
+                    }}
+                    title="Market signals are unverified early reports by design — dashed, not yet load-bearing"
+                  >
+                    Unverified · early report
+                  </span>
+                )}
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.09em",
+                    textTransform: "uppercase",
+                    color: C.ink2,
+                    border: `1px solid ${C.hairStrong}`,
+                    borderRadius: 4,
+                    padding: "5px 11px",
+                  }}
+                >
+                  B{BAND_NUM[band]} · {BAND_LABEL[band].split(" ")[0]}
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {(r.fullBrief || r.url) && (
+                  <ActionButton primary onClick={() => exportBriefAsMarkdown(r)}>
+                    Export brief
+                  </ActionButton>
+                )}
+                <ActionButton onClick={() => shareCurrent(r)}>Share</ActionButton>
+                <WatchButton />
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Corroboration note — rendered ONLY when sources.independent_citers
-            is populated and non-zero (real source-growth convergence from
-            aggregateConvergence / compoundSourceCredibility). Absent or zero
-            → note omitted entirely. No proxy; no sources_used.length. */}
-        {independentCiters !== null && (
-          <div
-            style={{
-              marginTop: 12,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 11.5,
-              color: "var(--color-text-muted, var(--muted))",
-              background: "var(--color-bg-raised, var(--bg))",
-              border: "1px solid var(--color-border-subtle, var(--border-sub))",
-              borderRadius: 4,
-              padding: "4px 10px",
-            }}
-          >
-            <span style={{ fontWeight: 700, color: "var(--color-primary, var(--accent))" }}>
-              {independentCiters}
-            </span>
-            {" "}independent source{independentCiters === 1 ? "" : "s"} corroborate this signal
+          {/* Price board */}
+          <PriceBoard stats={priceBoard} />
+
+          {/* Tab strip */}
+          <div style={{ display: "flex", gap: 2, margin: "14px 0 0", overflowX: "auto" }} role="tablist" aria-label="Signal views">
+            {TABS.map((t) => {
+              const active = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(t.key)}
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 12.5,
+                    fontWeight: active ? 800 : 600,
+                    padding: "10px 16px",
+                    whiteSpace: "nowrap",
+                    border: 0,
+                    borderBottom: `3px solid ${active ? C.accent : "transparent"}`,
+                    background: "transparent",
+                    color: active ? C.ink : C.ink2,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      </header>
 
-      {/* Stat strip — Severity + Signal band + Published */}
-      <div
-        className="cl-detail-stat-strip"
-        style={{
-          display: "grid",
-          gridTemplateColumns: r.added ? "repeat(3, 1fr)" : "repeat(2, 1fr)",
-          gap: 10,
-          marginBottom: 18,
-        }}
-      >
-        <style>{`
-          @media (max-width: 720px) { .cl-detail-stat-strip { grid-template-columns: 1fr !important; } }
-        `}</style>
-        <Stat label="Severity" value={SEVERITY_LABEL[severity]} accentColor={sevTone.fg} />
-        <Stat label="Signal band" value={`B${BAND_NUM[band]} · ${BAND_LABEL[band]}`} />
-        {r.added && (
-          <Stat label="Published" value={formatDate(r.added)} sub={r.lastVerifiedDate ? `Reviewed ${formatDate(r.lastVerifiedDate)}` : undefined} />
-        )}
-      </div>
-
-      {/* AI prompt bar — signal-aware follow-ups */}
-      <div style={{ marginBottom: 16 }}>
+      {/* Ask bar — page-scoped */}
+      <div style={{ padding: "22px 36px 0" }}>
         <AiPromptBar
           placeholder={`Ask anything about ${r.title} — e.g. how does this hit my Q3 lane costs?`}
-          chips={[
-            "What does this mean for me?",
-            "How does this affect my margins?",
-            "Which lanes are most exposed?",
-          ]}
+          chips={["What does this mean for me?", "How does this affect my margins?", "Which lanes are most exposed?"]}
         />
       </div>
 
-      {/* Layout: main + right rail */}
+      {/* ── Body: main + meta rail ── */}
       <div
-        className="cl-detail-layout"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 320px",
-          gap: 24,
-          alignItems: "start",
-        }}
+        id="cl-sig-grid"
+        style={{ padding: "22px 36px 0", display: "grid", gridTemplateColumns: "minmax(0,1fr) 264px", gap: 24, alignItems: "start" }}
       >
         <style>{`
-          @media (max-width: 1100px) { .cl-detail-layout { grid-template-columns: 1fr !important; } }
+          @media (max-width: 1100px) {
+            #cl-sig-grid { grid-template-columns: minmax(0,1fr) !important; }
+            #cl-sig-rail { flex-direction: row !important; flex-wrap: wrap !important; }
+            #cl-sig-rail > div { flex: 1 1 240px; }
+          }
         `}</style>
 
-        <div>
-          {/* Section-aware content: 8 Market Signal Brief sections from the
-              canonical pipeline. Renders when sections are available (Sprint 4).
-              Each section is a numbered card (S1–S8) matching the Market Signal
-              Brief format per analysis-construction-spec SKILL.md §6. */}
-          {hasSections ? (
-            <>
-              <MarketSections rows={sections} />
-              {/* Honest block-level empty-state fires only when ALL rows are
-                  absent/empty — MarketSections already handles that by returning null.
-                  No duplicate empty-state needed; ResearchFindingDetailSurface uses
-                  the same approach. */}
-              {sections.length > 0 &&
-                sections.every((s) => !(s.content_md || "").trim()) && (
-                  <div
-                    style={{
-                      marginBottom: 14,
-                      padding: "12px 16px",
-                      background: "var(--color-surface-raised, var(--color-bg-raised, var(--surface)))",
-                      border: "1px solid var(--color-border-subtle, var(--border-sub))",
-                      borderLeft: "3px solid var(--color-text-muted, var(--muted))",
-                      borderRadius: "var(--radius-sm, 4px)",
-                      fontSize: 13,
-                      lineHeight: 1.55,
-                      color: "var(--color-text-muted, var(--muted))",
-                    }}
-                  >
-                    Detailed sections pending for this signal; brief generation in
-                    progress.
-                  </div>
-                )}
-            </>
-          ) : (
-            <>
-              {/* Legacy fallback: summary + brief toggle. Renders only when
-                  no sections are available yet (pre-generation items). */}
-              {(r.whatIsIt || r.note || r.fullBrief) && (
-                <SummaryPanel
-                  shortText={r.whatIsIt || r.note || ""}
-                  fullBrief={r.fullBrief}
-                />
+        <main style={{ minWidth: 0 }}>
+          {tab === "moving" && (
+            <SectionCard title="What's moving and what triggered it">
+              {sectionMap["1"] ? (
+                <ProseSection markdown={sectionMap["1"]} />
+              ) : (
+                <PendingFrame header="Movement analysis pending">
+                  What moved and what triggered it appears here once the signal brief is generated for
+                  {" "}{r.title}.
+                </PendingFrame>
               )}
+            </SectionCard>
+          )}
 
-              {/* What it changes — so-what narrative (legacy fallback only) */}
-              {(r.whyMatters || r.reasoning) && (
-                <BriefSection title="What it changes">
-                  {r.reasoning && (
-                    <div
-                      style={{
-                        borderLeft: "3px solid var(--color-primary, var(--accent))",
-                        paddingLeft: 16,
-                        fontSize: 14.5,
-                        lineHeight: 1.7,
-                        margin: "0 0 16px",
-                        color: "var(--color-text-primary, var(--text))",
-                      }}
-                    >
-                      {r.reasoning}
-                    </div>
-                  )}
-                  {r.whyMatters && (
-                    <p
-                      style={{
-                        fontSize: 14,
-                        lineHeight: 1.7,
-                        margin: 0,
-                        color: "var(--color-text-primary, var(--text))",
-                      }}
-                    >
-                      {r.whyMatters}
-                    </p>
-                  )}
-                </BriefSection>
+          {tab === "drivers" && (
+            <DriversTab r={r} sectionMap={sectionMap} band={band} />
+          )}
+
+          {tab === "cost" && (
+            <SectionCard title="Operational and cost implications by mode">
+              {sectionMap["4"] ? (
+                <>
+                  <ProseSection markdown={sectionMap["4"]} />
+                  <p style={{ fontSize: 11.5, lineHeight: 1.5, color: C.muted, margin: "14px 0 0" }}>
+                    Per-mode cost facts (Air / Road / Ocean) as first-class sourced records land with the
+                    state-level cost-fact backend. Where a mode lacks a sourced figure it reads as an em-dash,
+                    never an inferred number.
+                  </p>
+                </>
+              ) : (
+                <PendingFrame header="Cost impact pending">
+                  Operational and cost implications by mode appear here once the signal brief is generated.
+                  Where a mode lacks a sourced figure it renders as an em-dash <b>—</b>, never an inferred number.
+                </PendingFrame>
               )}
-            </>
+            </SectionCard>
           )}
 
-          {/* No-Vacuum (S3): linked-regulation / conversion-trigger block.
-              Per analysis-construction-spec SKILL.md §6, S3 "Expected Trajectory
-              and Conversion Triggers" frequently links a specific Regulation item.
-              Render this block whenever conversionTrigger or crossReferences is
-              present on the row — regardless of section-aware vs legacy mode.
-              These are migration 110 callout columns on intelligence_items,
-              projected to Resource.conversionTrigger / Resource.crossReferences. */}
-          {(r.conversionTrigger || r.crossReferences) && (
-            <div
-              style={{
-                marginBottom: 14,
-                padding: "14px 18px",
-                background: "var(--color-bg-raised, var(--bg))",
-                border: "1px solid var(--color-border, var(--border))",
-                borderLeft: "4px solid var(--color-primary, var(--accent))",
-                borderRadius: "var(--radius-md, 6px)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--color-primary, var(--accent))",
-                  marginBottom: 6,
-                }}
-              >
-                {r.crossReferences ? "Linked regulations" : "Conversion trigger"}
-              </div>
-              <p
-                style={{
-                  fontSize: 13.5,
-                  lineHeight: 1.55,
-                  color: "var(--color-text-primary, var(--text))",
-                  margin: 0,
-                }}
-              >
-                {r.conversionTrigger || r.crossReferences}
-              </p>
-            </div>
+          {tab === "talking" && (
+            <SectionCard title="Client conversation talking points">
+              {sectionMap["6"] ? (
+                <ProseSection markdown={sectionMap["6"]} />
+              ) : (
+                <PendingFrame header="Talking points pending">
+                  What the workspace can credibly say, the pitfalls to avoid, and the questions to pose to
+                  clients appear here once the signal brief is generated.
+                </PendingFrame>
+              )}
+            </SectionCard>
           )}
 
-          {/* Trajectory — band === "price" ONLY. Per dispatch Phase 5:
-              market signals don't carry explicit trajectory time-series
-              data on the intelligence_items row today. The price snapshot
-              in MarketPage is hard-coded as a 4-tile vertical slice; per-
-              signal trajectory bars would need either:
-                (a) a marketData.{currentPrice, previousPrice} pair on the
-                    resource, projected into a 2-point trend, OR
-                (b) a future item_price_history table (not in any migration).
-              Until (a) or (b) lands, we render the section with an honest
-              "Trajectory data not yet available" empty-state when the row
-              lacks marketData. When marketData IS populated, we render a
-              minimal 2-point indicator so the section earns its place. */}
-          {band === "price" && <TrajectoryPanel resource={r} />}
+          {tab === "donow" && <DoNowTab r={r} sectionMap={sectionMap} />}
 
-          {/* Key data (carried through when present) */}
-          {r.keyData && r.keyData.length > 0 && (
-            <BriefSection title="Key data">
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.75 }}>
-                {r.keyData.map((d, i) => (
-                  <li key={i}>{d}</li>
-                ))}
-              </ul>
-            </BriefSection>
-          )}
+          {tab === "sources" && <SourcesTab r={r} sectionMap={sectionMap} band={band} />}
 
-          {/* Related signals — same band, max 5 */}
+          {/* Persistent notes — every tab */}
+          <NotesField itemId={r.id} />
+
+          {/* Related signals + connected intelligence — every tab */}
           {related.length > 0 && (
-            <BriefSection title={`Related signals · ${BAND_LABEL[band]}`}>
-              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+            <SectionCard title={`Connected intelligence · related ${BAND_LABEL[band].toLowerCase()}`} rightMeta="related signals">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
                 {related.map((rel) => (
-                  <li
+                  <Link
                     key={rel.item.id}
+                    href={`/market/${encodeURIComponent(rel.item.id)}`}
+                    prefetch={false}
                     style={{
-                      padding: "10px 0",
-                      borderBottom: "1px solid var(--color-border-subtle, var(--border-sub))",
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr",
+                      gap: 10,
+                      alignItems: "center",
+                      padding: "12px 0",
+                      borderBottom: `1px solid ${C.hairSoft}`,
+                      textDecoration: "none",
+                      color: "inherit",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <SeverityPill severity={rel.severity} small />
-                      <a
-                        href={`/market/${encodeURIComponent(rel.item.id)}`}
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: "var(--color-text-primary, var(--text))",
-                          textDecoration: "none",
-                        }}
-                      >
+                    <SeverityChip severity={rel.severity} small />
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 12.5, fontWeight: 700, margin: 0, color: C.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {rel.item.title}
-                      </a>
-                    </div>
-                    {rel.item.note && (
-                      <p
-                        style={{
-                          fontSize: 12.5,
-                          lineHeight: 1.5,
-                          color: "var(--color-text-secondary, var(--text-2))",
-                          margin: 0,
-                        }}
-                      >
-                        {rel.item.note}
                       </p>
-                    )}
-                  </li>
+                      <p style={{ fontSize: 11, color: C.muted, margin: "1px 0 0" }}>
+                        {SEVERITY_LABEL[rel.severity]} · B{BAND_NUM[rel.band]}
+                      </p>
+                    </div>
+                  </Link>
                 ))}
-              </ul>
-            </BriefSection>
+              </div>
+            </SectionCard>
           )}
+        </main>
 
-          {/* Sources panel */}
-          <BriefSection title="Sources">
-            {r.url ? (
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.75 }}>
-                <li>
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "var(--color-primary, var(--accent))" }}
-                  >
-                    {r.sourceName || r.url}
-                  </a>
-                  {r.sourceTier && (
-                    <span style={{ marginLeft: 8 }}>
-                      <SourceTierBadge tier={r.sourceTier} />
-                    </span>
-                  )}
-                </li>
-              </ul>
-            ) : (
-              <p style={{ fontSize: 14, color: "var(--color-text-muted, var(--muted))", margin: 0 }}>
-                Primary source not yet linked.
-              </p>
-            )}
-            <SourceTierLegend />
-          </BriefSection>
-        </div>
-
-        {/* Right rail */}
-        <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* Meta rail */}
+        <div id="cl-sig-rail" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <SideCard label="Signal">
             <KV k="Band" v={`B${BAND_NUM[band]} · ${BAND_LABEL[band]}`} />
-            <KV k="Severity" v={SEVERITY_LABEL[severity]} />
-            {r.type && <KV k="Type" v={r.type.replace(/_/g, " ")} />}
-          </SideCard>
-          <SideCard label="Identification">
-            <KV k="ID" v={r.id} />
-            {r.added && <KV k="Published" v={formatDate(r.added)} />}
-            {r.lastVerifiedDate && <KV k="Reviewed" v={formatDate(r.lastVerifiedDate)} />}
-            {r.sourceName && <KV k="Source" v={r.sourceName} />}
-          </SideCard>
-          <SideCard label="Coverage">
+            <KV k="Severity" v={<span style={{ fontWeight: 800, color: SEVERITY_TONE[severity].fg }}>{SEVERITY_LABEL[severity]}</span>} />
+            <KV k="Status" v={<span style={{ fontWeight: 700, color: C.signal }}>Unverified</span>} />
+            {independentCiters !== null && <KV k="Corroboration" v={`${independentCiters} source${independentCiters === 1 ? "" : "s"}`} />}
             <KV k="Jurisdiction" v={jurisLabel || "Global"} />
-            {modes.length > 0 && (
-              <KV k="Modes" v={modes.map((m) => m.toUpperCase()).join(", ")} />
-            )}
             {r.topic && <KV k="Topic" v={r.topic} />}
+            {r.added && <KV k="Published" v={fullDate(r.added)} />}
           </SideCard>
-        </aside>
-      </div>
-    </div>
-  );
-}
 
-// ── Subcomponents ───────────────────────────────────────────────────────
+          <SideCard label="Next data drops">
+            {nextDrops.length > 0 ? (
+              <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 8 }}>
+                {nextDrops.map((d, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{d.label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: C.sevHigh, whiteSpace: "nowrap" }}>{d.date}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <PendingFrame header="Release calendar pending">
+                  Next release dates for this signal&apos;s data series appear here once the price feed is connected.
+                </PendingFrame>
+              </div>
+            )}
+          </SideCard>
 
-function Stat({
-  label,
-  value,
-  sub,
-  accentColor,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accentColor?: string;
-}) {
-  return (
-    <div
-      style={{
-        background: "var(--color-surface, var(--surface))",
-        border: accentColor
-          ? `1px solid ${accentColor}`
-          : "1px solid var(--color-border-subtle, var(--border-sub))",
-        borderLeft: accentColor ? `4px solid ${accentColor}` : undefined,
-        borderRadius: "var(--radius-md, var(--r-md))",
-        padding: "14px 16px",
-        boxShadow: "var(--shadow-card, var(--shadow))",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 9,
-          fontWeight: 800,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: accentColor || "var(--color-text-muted, var(--muted))",
-          marginBottom: 6,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 22,
-          lineHeight: 1.15,
-          color: accentColor || "var(--color-text-primary, var(--text))",
-        }}
-      >
-        {value}
-      </div>
-      {sub && (
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--color-text-secondary, var(--text-2))",
-            marginTop: 6,
-            lineHeight: 1.4,
-          }}
-        >
-          {sub}
+          <SideCard label="Owner & team">
+            <div style={{ gridColumn: "1 / -1" }}>
+              <PendingFrame header="Unassigned">
+                No owner is tracking this signal yet. Owner assignment lands when the workspace-membership
+                backend ships.
+              </PendingFrame>
+            </div>
+          </SideCard>
         </div>
-      )}
-    </div>
-  );
-}
-
-function BriefSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="cl-card"
-      style={{
-        background: "var(--color-surface, var(--surface))",
-        border: "1px solid var(--color-border-subtle, var(--border-sub))",
-        borderRadius: "var(--radius-md, var(--r-md))",
-        padding: "22px 26px",
-        marginBottom: 14,
-        boxShadow: "var(--shadow-card, var(--shadow))",
-      }}
-    >
-      <h3
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 22,
-          fontWeight: 400,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          margin: "0 0 14px",
-          paddingBottom: 12,
-          borderBottom: "1px solid var(--color-border-subtle, var(--border-sub))",
-          color: "var(--color-text-primary, var(--text))",
-        }}
-      >
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function SideCard({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: "var(--color-surface, var(--surface))",
-        border: "1px solid var(--color-border-subtle, var(--border-sub))",
-        borderRadius: "var(--radius-md, var(--r-md))",
-        padding: "14px 16px",
-        boxShadow: "var(--shadow-card, var(--shadow))",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 800,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "var(--color-text-muted, var(--muted))",
-          marginBottom: 8,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "78px 1fr",
-          gap: "6px 10px",
-          fontSize: 12.5,
-          lineHeight: 1.55,
-        }}
-      >
-        {children}
       </div>
     </div>
   );
 }
 
-function KV({ k, v }: { k: string; v?: string | null }) {
-  if (!v) return null;
+// ── Price board ─────────────────────────────────────────────────────────
+function PriceBoard({ stats }: { stats: PriceStat[] }) {
+  const toneHue = (t?: string | null): string => {
+    switch (t) {
+      case "critical": return C.sevCritical;
+      case "high": return C.sevHigh;
+      case "moderate": return C.sevMod;
+      case "low": return C.sevLow;
+      default: return C.ink;
+    }
+  };
+
+  // Honest §4 published-statistics frame while the live feed is pending (HANDOFF §7).
+  // The board never fakes ticks — with no rows it states what's absent and what lands it.
+  if (stats.length === 0) {
+    return (
+      <div style={{ margin: "18px 0 0" }}>
+        <div style={{ border: "1px dashed rgba(0,0,0,0.25)", background: C.page, borderRadius: 8, padding: "14px 16px" }}>
+          <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase", color: C.brass, display: "block", margin: "0 0 4px" }}>
+            Price board · published statistics pending
+          </span>
+          <p style={{ fontSize: 12, lineHeight: 1.6, color: C.ink2, margin: 0 }}>
+            The hero price board shows published government statistics (release-cadence anchored), not live
+            ticks. These slots populate when the commodity-price feed is connected — until then no figure is
+            shown rather than an unsourced one.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ margin: "18px 0 0" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+        {stats.map((s, i) => {
+          const hue = toneHue(s.severityTone);
+          return (
+            <div key={i} style={{ border: `1px solid ${C.hair}`, borderRadius: 8, padding: "12px 16px 10px", background: C.page }}>
+              <p style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: C.muted, margin: "0 0 4px" }}>
+                {s.label}
+              </p>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: hue, margin: 0 }}>
+                {s.valueDisplay}
+                {s.unit && <span style={{ fontSize: 14 }}> {s.unit}</span>}
+              </p>
+              {s.contextLine && (
+                <p style={{ fontSize: 10.5, color: C.ink2, margin: "5px 0 0" }}>{s.contextLine}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontSize: 10.5, color: C.muted, margin: "8px 0 0" }}>
+        Figures are published statistics{stats.some((s) => s.releasedAt) ? ` (release ${shortDate(stats.find((s) => s.releasedAt)!.releasedAt!)})` : ""} — not live ticks.
+        {stats.some((s) => s.nextReleaseAt) && (
+          <> Next release: {shortDate(stats.find((s) => s.nextReleaseAt)!.nextReleaseAt!)}.</>
+        )}
+      </p>
+    </div>
+  );
+}
+
+// ── Drivers & trajectory tab ────────────────────────────────────────────
+function DriversTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<string, string>; band: BandKey }) {
+  const hasTrajectory = band === "price" && (r.trajectoryPoints?.points?.length ?? 0) > 0;
+  const anySection = sectionMap["2"] || sectionMap["3"] || sectionMap["5"];
+
   return (
     <>
-      <div style={{ color: "var(--color-text-muted, var(--muted))", fontWeight: 600 }}>{k}</div>
-      <div style={{ color: "var(--color-text-primary, var(--text))", fontWeight: 600 }}>{v}</div>
+      {sectionMap["2"] && (
+        <SectionCard title="Who's driving it and what they want">
+          <ProseSection markdown={sectionMap["2"]} />
+        </SectionCard>
+      )}
+      {sectionMap["3"] && (
+        <SectionCard title="Expected trajectory and conversion triggers">
+          <ProseSection markdown={sectionMap["3"]} />
+        </SectionCard>
+      )}
+      {r.conversionTrigger && (
+        <div
+          style={{
+            marginBottom: 14,
+            padding: "14px 18px",
+            background: C.card,
+            border: `1px solid ${C.hair}`,
+            borderLeft: `3px solid ${C.accent}`,
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase", color: C.accent, margin: "0 0 4px" }}>
+            Conversion trigger · what would shift this path
+          </div>
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: C.ink, margin: 0 }}>{r.conversionTrigger}</p>
+        </div>
+      )}
+      {hasTrajectory && r.trajectoryPoints && (
+        <SectionCard title="Price trajectory">
+          <TrajectoryBars trajectoryPoints={r.trajectoryPoints} />
+        </SectionCard>
+      )}
+      {sectionMap["5"] && (
+        <SectionCard title="Competitive implications">
+          <ProseSection markdown={sectionMap["5"]} />
+        </SectionCard>
+      )}
+      {!anySection && !hasTrajectory && !r.conversionTrigger && (
+        <SectionCard title="Drivers & trajectory">
+          <PendingFrame header="Drivers and trajectory pending">
+            Who is driving this signal, the expected price path, and the conversion triggers appear here once
+            the signal brief is generated.
+          </PendingFrame>
+        </SectionCard>
+      )}
     </>
   );
 }
 
-function SummaryPanel({
-  shortText,
-  fullBrief,
-}: {
-  shortText: string;
-  fullBrief?: string;
-}) {
-  const [mode, setMode] = useState<"short" | "full">("short");
-  const hasFull = !!(fullBrief && fullBrief.trim().length > 0);
+// ── Do now tab ──────────────────────────────────────────────────────────
+function DoNowTab({ r, sectionMap }: { r: Resource; sectionMap: Record<string, string> }) {
+  // Sorted by priority (1 = highest) — the structured deadline proxy on
+  // RecommendedAction; the timeframe renders as the deadline chip per row.
+  const actions = [...(r.recommendedActions || [])].sort(
+    (a, b) => (a.priority ?? 99) - (b.priority ?? 99)
+  );
 
-  return (
-    <div style={{ marginBottom: 16 }}>
-      {hasFull && (
-        <div
-          style={{
-            display: "flex",
-            gap: 6,
-            background: "var(--color-surface, var(--surface))",
-            border: "1px solid var(--color-border, var(--border))",
-            borderRadius: "var(--radius-pill, var(--r-pill, 999px))",
-            padding: 4,
-            marginBottom: 14,
-            width: "max-content",
-          }}
-        >
-          <button
-            onClick={() => setMode("short")}
-            style={{
-              background: mode === "short" ? "var(--color-primary, var(--accent))" : "transparent",
-              color: mode === "short" ? "#fff" : "var(--color-text-secondary, var(--text-2))",
-              border: 0,
-              padding: "7px 16px",
-              fontFamily: "inherit",
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.04em",
-              borderRadius: "var(--radius-pill, var(--r-pill, 999px))",
-              cursor: "pointer",
-            }}
-          >
-            Short summary
-          </button>
-          <button
-            onClick={() => setMode("full")}
-            style={{
-              background: mode === "full" ? "var(--color-primary, var(--accent))" : "transparent",
-              color: mode === "full" ? "#fff" : "var(--color-text-secondary, var(--text-2))",
-              border: 0,
-              padding: "7px 16px",
-              fontFamily: "inherit",
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.04em",
-              borderRadius: "var(--radius-pill, var(--r-pill, 999px))",
-              cursor: "pointer",
-            }}
-          >
-            Full briefing
-          </button>
-        </div>
-      )}
-
-      {mode === "short" && shortText && (
-        <div
-          style={{
-            background: "var(--accent-strip, var(--color-bg-raised, var(--surface)))",
-            border: "1px solid var(--accent-strip-bd, var(--color-border-subtle, var(--border-sub)))",
-            borderRadius: "var(--radius-md, var(--r-md))",
-            padding: "16px 20px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <span
+  if (actions.length > 0) {
+    return (
+      <SectionCard title="What the workspace should do now" rightMeta={`${actions.length} action${actions.length === 1 ? "" : "s"} · sorted by priority`}>
+        <div>
+          {actions.map((a, i) => (
+            <div
+              key={i}
               style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--color-primary, var(--accent))",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
+                display: "grid",
+                gridTemplateColumns: "26px minmax(0,1fr) auto",
+                gap: 12,
+                alignItems: "start",
+                padding: "13px 0",
+                borderBottom: i === actions.length - 1 ? "none" : `1px solid ${C.hairSoft}`,
               }}
             >
-              <Sparkles size={12} />
-              Short summary
-            </span>
-            <span style={{ fontSize: 11, color: "var(--color-text-muted, var(--muted))" }}>
-              30-second read
-            </span>
-          </div>
-          <p
-            style={{
-              fontSize: 14,
-              lineHeight: 1.6,
-              margin: 0,
-              color: "var(--color-text-primary, var(--text))",
-            }}
-          >
-            {shortText}
-          </p>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 17, color: C.accent, lineHeight: 1.3 }}>{i + 1}</span>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 800, margin: "0 0 3px", color: C.ink }}>{a.action}</p>
+                {a.owner && <p style={{ fontSize: 12, lineHeight: 1.6, color: C.ink2, margin: 0 }}>{a.owner}</p>}
+              </div>
+              {a.timeframe ? (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: C.sevHigh,
+                    border: `1px solid rgba(217,119,6,0.4)`,
+                    borderRadius: 4,
+                    padding: "3px 8px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {a.timeframe}
+                </span>
+              ) : (
+                <span aria-hidden style={{ fontSize: 12, color: C.muted }}>—</span>
+              )}
+            </div>
+          ))}
         </div>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard title="What the workspace should do now">
+      {sectionMap["7"] ? (
+        <ProseSection markdown={sectionMap["7"]} />
+      ) : (
+        <PendingFrame header="Recommended actions pending">
+          The actions the workspace should take — with owners and deadlines — appear here once the signal brief
+          is generated.
+        </PendingFrame>
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Sources tab — structured rows, never a raw dump (#172) ──────────────
+function SourcesTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<string, string>; band: BandKey }) {
+  const parsed = useMemo<SourceEntry[]>(() => {
+    if (!r.fullBrief) return [];
+    const map = extractRegulationSections(r.fullBrief);
+    for (const section of Object.values(map)) {
+      if (section && section.kind === "sources_list") return section.entries;
+    }
+    return [];
+  }, [r.fullBrief]);
+
+  const rows: SourceEntry[] =
+    parsed.length > 0
+      ? parsed
+      : r.url
+      ? [{ tier: typeof r.sourceTier === "number" ? r.sourceTier : null, name: r.sourceName || r.url, meta: r.enforcementBody || "", url: r.url }]
+      : [];
+
+  return (
+    <>
+      <SectionCard title="Sources" rightMeta={rows.length > 0 ? `${rows.length} ${rows.length === 1 ? "source" : "sources"} · tier = provenance` : undefined} noPad>
+        {rows.length > 0 ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 32px", padding: "4px 20px" }}>
+              {rows.map((s, i) => {
+                const inner = (
+                  <>
+                    {typeof s.tier === "number" ? (
+                      <TierBadge tier={s.tier} />
+                    ) : (
+                      <span aria-hidden style={{ fontSize: 10, fontWeight: 800, padding: "5px 10px", borderRadius: 4, border: `1px dashed rgba(0,0,0,0.3)`, color: C.muted }}>—</span>
+                    )}
+                    <div>
+                      <p style={{ fontSize: 12.5, fontWeight: 700, margin: 0, lineHeight: 1.45, color: C.ink }}>{s.name}</p>
+                      {s.meta && <p style={{ fontSize: 11, color: C.muted, margin: "2px 0 0" }}>{s.meta}</p>}
+                    </div>
+                  </>
+                );
+                const cellStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "baseline", padding: "11px 0", borderBottom: `1px solid ${C.hairSoft}`, textDecoration: "none", color: "inherit" };
+                return s.url ? (
+                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={cellStyle}>{inner}</a>
+                ) : (
+                  <div key={i} style={cellStyle}>{inner}</div>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11.5, color: C.muted, margin: 0, padding: "10px 20px", borderTop: `1px solid ${C.hairSoft}`, background: C.page }}>
+              Newly identified sources are pending tier review in the Admin queue before they join the registry.
+            </p>
+          </>
+        ) : (
+          <div style={{ padding: "16px 20px" }}>
+            <PendingFrame header="Primary source not yet linked">
+              The primary source document will be linked here once verified against the registry.
+            </PendingFrame>
+          </div>
+        )}
+      </SectionCard>
+
+      {sectionMap["8"] && (
+        <SectionCard title="Source notes">
+          <ProseSection markdown={sectionMap["8"]} />
+        </SectionCard>
       )}
 
-      {mode === "full" && fullBrief && (
-        <div
-          className="cl-card"
-          style={{
-            background: "var(--color-surface, var(--surface))",
-            border: "1px solid var(--color-border-subtle, var(--border-sub))",
-            borderRadius: "var(--radius-md, var(--r-md))",
-            padding: "22px 26px",
-            boxShadow: "var(--shadow-card, var(--shadow))",
-          }}
-        >
-          {/* Sources dedupe (item 5a): this surface renders a structured Sources card (BriefSection above),
-              so strip the raw "## Sources" section from the full-brief body to avoid a duplicate. */}
-          <IntelligenceBrief markdown={fullBrief} stripSources />
-        </div>
-      )}
+      <SectionCard title="Trajectory">
+        {band === "price" && (r.trajectoryPoints?.points?.length ?? 0) > 0 && r.trajectoryPoints ? (
+          <TrajectoryBars trajectoryPoints={r.trajectoryPoints} />
+        ) : (
+          <PendingFrame header="Price history · not yet captured">
+            Per-signal price history populates once the commodity-price feed is connected. The published
+            figures above remain current until then.
+          </PendingFrame>
+        )}
+      </SectionCard>
+    </>
+  );
+}
+
+// ── Persistent notes field ──────────────────────────────────────────────
+// Lazy initializer reads localStorage on the in-browser render (SSR returns
+// ""), matching the codebase's SavedSearchesSection pattern — no setState in an
+// effect. Workspace-visible persistence lands with the notes backend.
+function loadNote(key: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+function NotesField({ itemId }: { itemId: string }) {
+  const key = `cl-sig-note-${itemId}`;
+  const [note, setNote] = useState<string>(() => loadNote(key));
+
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.hair}`, borderRadius: 8, padding: "14px 18px", margin: "14px 0 0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+        <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase", color: C.blue }}>
+          Your notes · visible to your workspace
+        </span>
+        <span style={{ fontSize: 10.5, color: C.muted }}>{note.trim().length > 0 ? "Saved" : "Not saved"}</span>
+      </div>
+      <textarea
+        value={note}
+        onChange={(e) => {
+          const v = e.target.value;
+          setNote(v);
+          try {
+            window.localStorage.setItem(key, v);
+          } catch {
+            /* ignore */
+          }
+        }}
+        placeholder="Add analyst context — which lanes or clients this touches, who's on it, what was decided…"
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          fontFamily: "var(--font-sans)",
+          fontSize: 12.5,
+          lineHeight: 1.6,
+          padding: "10px 13px",
+          border: `1px solid rgba(0,0,0,0.16)`,
+          borderRadius: 6,
+          outline: "none",
+          background: C.page,
+          resize: "vertical",
+          minHeight: 52,
+          margin: "8px 0 0",
+          color: C.ink,
+        }}
+        suppressHydrationWarning
+      />
     </div>
   );
 }
 
-/** Trajectory panel — price-band-only.
- *
- * Sprint 3 A4-3 (2026-05-27): three-tier rendering hierarchy:
- *   1. If r.signalBand === 'price' AND r.trajectoryPoints has data →
- *      render the 12-week TrajectoryBars (migration 107 schema-backed).
- *      Belt 3 of three; outer band guard at line 465 already restricts
- *      entry, this signalBand check is defense-in-depth.
- *   2. Else if marketData.{currentPrice, previousPrice} pair present →
- *      legacy 2-tile fallback for the sparse-corpus case where the row
- *      has snapshot data but no time-series. Preserved from H1 Path B.
- *   3. Else honest empty-state copy.
- *
- * As ingestion populates trajectory_points across the B1 corpus (agent
- * extension + TIMESERIES-WORKER), tier 1 becomes the default and the
- * tier 2/3 fallbacks fade. */
-function TrajectoryPanel({ resource: r }: { resource: Resource }) {
-  const md = r.marketData;
-  const hasPair = !!(md && md.currentPrice && md.previousPrice);
-  const hasTrajectoryData =
-    r.signalBand === "price" &&
-    (r.trajectoryPoints?.points?.length ?? 0) > 0;
-
+// ── Reusable primitives (archetype, mirrors T03) ────────────────────────
+function SectionCard({
+  title,
+  rightMeta,
+  children,
+  noPad,
+}: {
+  title: string;
+  rightMeta?: string;
+  children: React.ReactNode;
+  noPad?: boolean;
+}) {
   return (
-    <BriefSection title="Trajectory">
-      {hasTrajectoryData && r.trajectoryPoints ? (
-        <TrajectoryBars trajectoryPoints={r.trajectoryPoints} />
-      ) : hasPair ? (
-        <div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 16,
-              marginBottom: 12,
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--color-text-muted, var(--muted))",
-                  marginBottom: 4,
-                }}
-              >
-                Previous
-              </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 24, color: "var(--color-text-primary, var(--text))" }}>
-                {md!.previousPrice}
-              </div>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "var(--color-text-muted, var(--muted))",
-                  marginBottom: 4,
-                }}
-              >
-                Current
-              </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: 24, color: "var(--color-primary, var(--accent))" }}>
-                {md!.currentPrice}
-              </div>
-            </div>
-          </div>
-          {md!.priceSource && (
-            <p style={{ fontSize: 12, color: "var(--color-text-muted, var(--muted))", margin: 0 }}>
-              {md!.priceSource}
-              {md!.priceDate ? ` · ${md!.priceDate}` : ""}
-            </p>
-          )}
-          {md!.freightCostImpact && (
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--color-text-primary, var(--text))",
-                margin: "8px 0 0",
-                fontWeight: 600,
-              }}
-            >
-              Freight cost impact: {md!.freightCostImpact}
-            </p>
-          )}
-        </div>
-      ) : (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--color-text-muted, var(--muted))",
-            margin: 0,
-            fontStyle: "italic",
-          }}
-        >
-          Trajectory data not yet available for this signal. Historical
-          price data will be added as it becomes available.
-        </p>
-      )}
-    </BriefSection>
+    <div style={{ background: C.card, border: `1px solid ${C.hair}`, borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
+      <div
+        style={{
+          padding: "12px 20px",
+          background: C.plate,
+          borderBottom: `1px solid ${C.hairSoft}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 12,
+        }}
+      >
+        <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", color: C.ink }}>{title}</span>
+        {rightMeta && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, whiteSpace: "nowrap" }}>{rightMeta}</span>}
+      </div>
+      <div style={noPad ? undefined : { padding: "16px 20px" }}>{children}</div>
+    </div>
   );
 }
 
-function SeverityPill({
-  severity,
-  small,
-}: {
-  severity: Severity;
-  small?: boolean;
-}) {
-  const tone = SEVERITY_PILL_TONE[severity];
+function SideCard({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.hair}`, borderRadius: 8, padding: "14px 16px" }}>
+      <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.13em", textTransform: "uppercase", color: C.muted, margin: "0 0 10px" }}>{label}</p>
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 14px", fontSize: 12 }}>{children}</div>
+    </div>
+  );
+}
+
+function KV({ k, v }: { k: string; v?: React.ReactNode }) {
+  if (v === undefined || v === null || v === "") return null;
+  return (
+    <>
+      <span style={{ color: C.muted, fontWeight: 600 }}>{k}</span>
+      <span style={{ color: C.ink, fontWeight: 700 }}>{v}</span>
+    </>
+  );
+}
+
+function PendingFrame({ header, children }: { header: string; children: React.ReactNode }) {
+  return (
+    <div style={{ border: "1px dashed rgba(0,0,0,0.25)", background: C.page, borderRadius: 8, padding: "12px 14px" }}>
+      <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase", color: C.brass, display: "block", margin: "0 0 4px" }}>{header}</span>
+      <p style={{ fontSize: 12, lineHeight: 1.6, color: C.ink2, margin: 0 }}>{children}</p>
+    </div>
+  );
+}
+
+function SeverityChip({ severity, small }: { severity: Severity; small?: boolean }) {
+  const tone = SEVERITY_TONE[severity];
   return (
     <span
       style={{
-        alignSelf: "flex-start",
         fontSize: small ? 9 : 10,
         fontWeight: 800,
-        padding: small ? "1px 6px" : "2px 8px",
-        borderRadius: 3,
-        letterSpacing: "0.08em",
+        letterSpacing: "0.09em",
         textTransform: "uppercase",
         color: tone.fg,
         background: tone.bg,
         border: `1px solid ${tone.bd}`,
+        borderRadius: 4,
+        padding: small ? "3px 8px" : "5px 11px",
+        whiteSpace: "nowrap",
         display: "inline-block",
       }}
     >
+      {severity === "monitor" ? "" : "● "}
       {SEVERITY_LABEL[severity]}
     </span>
   );
 }
 
-function SourceTierBadge({ tier }: { tier: number }) {
-  const def = TIER_DEFINITIONS.find((t) => t.tier === tier);
+function TierBadge({ tier }: { tier: number }) {
+  const t = clampTier(tier);
+  let style: React.CSSProperties;
+  if (t <= 2) style = { background: C.blue, color: "#fff" };
+  else if (t <= 5) style = { background: C.ink, color: "#fff" };
+  else style = { border: `1px dashed rgba(0,0,0,0.3)`, color: C.muted };
   return (
-    <span
-      style={{
-        display: "inline-block",
-        fontSize: 10,
-        fontWeight: 800,
-        padding: "2px 7px",
-        borderRadius: 3,
-        letterSpacing: "0.08em",
-        color: def?.color || "var(--text-2)",
-        border: `1px solid ${def?.color || "var(--border)"}`,
-      }}
-      title={def ? `Tier ${tier}, ${def.label}` : `Tier ${tier}`}
-    >
-      T{tier}
+    <span title={`Tier ${t} — provenance, never urgency`} style={{ fontSize: 10, fontWeight: 800, padding: "5px 10px", borderRadius: 4, textAlign: "center", ...style }}>
+      T{t}
     </span>
   );
 }
 
-function SourceTierLegend() {
+function ActionButton({ children, primary, onClick }: { children: React.ReactNode; primary?: boolean; onClick?: () => void }) {
+  const [hover, setHover] = useState(false);
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
-        marginTop: 18,
-        padding: "12px 14px",
-        background: "var(--raised, var(--bg))",
-        border: "1px solid var(--border-sub, var(--border))",
-        borderRadius: "var(--r-md, 6px)",
+        fontFamily: "var(--font-sans)",
         fontSize: 11.5,
+        fontWeight: primary ? 800 : 700,
+        padding: "8px 16px",
+        borderRadius: 6,
+        border: `1px solid ${primary ? (hover ? C.accentHover : C.accent) : hover ? C.accent : C.hairStrong}`,
+        background: primary ? (hover ? C.accentHover : C.accent) : C.card,
+        color: primary ? "#fff" : hover ? C.accent : C.ink,
+        cursor: "pointer",
       }}
     >
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 800,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "var(--text-2, var(--muted))",
-          marginBottom: 8,
-        }}
-      >
-        Source tier
-      </div>
-      <ul
-        style={{
-          listStyle: "none",
-          margin: 0,
-          padding: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}
-      >
-        {TIER_DEFINITIONS.map((t) => (
-          <li key={t.tier} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <SourceTierBadge tier={t.tier} />
-            <span style={{ color: "var(--text)" }}>{t.label}</span>
-          </li>
-        ))}
-        <li style={{ color: "var(--text-2, var(--muted))", fontStyle: "italic", marginTop: 4 }}>
-          Sources are curated for reliability and verified before publication.
-        </li>
-      </ul>
-    </div>
+      {children}
+    </button>
   );
 }
 
-function formatDate(d: string): string {
+function WatchButton() {
+  const [watched, setWatched] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-pressed={watched}
+      onClick={() => setWatched((v) => !v)}
+      title="Watchlist persistence lands when the watchlist backend ships"
+      style={{
+        fontFamily: "var(--font-sans)",
+        fontSize: 11.5,
+        fontWeight: 700,
+        padding: "8px 16px",
+        borderRadius: 6,
+        border: `1px solid ${watched ? C.accent : C.hairStrong}`,
+        background: watched ? C.tint : C.card,
+        color: watched ? C.accent : C.ink,
+        cursor: "pointer",
+      }}
+    >
+      {watched ? "Watching" : "Watch"}
+    </button>
+  );
+}
+
+// ── Action handlers ─────────────────────────────────────────────────────
+function exportBriefAsMarkdown(r: Resource) {
+  if (typeof window === "undefined") return;
+  const titleLine = `# ${r.title}\n\n`;
+  const meta = [
+    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+    r.severity ? `- Severity: ${r.severity}` : null,
+    r.signalBand ? `- Signal band: ${r.signalBand}` : null,
+    r.url ? `- Source: ${r.url}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const body = r.fullBrief || [r.whatIsIt, r.whyMatters].filter(Boolean).join("\n\n") || r.note || "(No briefing body recorded.)";
+  const md = `${titleLine}${meta ? meta + "\n\n" : ""}${body}\n`;
+  const slug = (r.id || "signal").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `signal-${slug || "brief"}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function shareCurrent(r: Resource) {
+  if (typeof window === "undefined") return;
+  const href = typeof window.location !== "undefined" ? window.location.href : "";
+  const shareData = { title: r.title, text: r.note || r.whatIsIt || r.title, url: href };
+  const nav = window.navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+  if (typeof nav.share === "function") {
+    nav.share(shareData).catch(() => copyToClipboard(href));
+    return;
+  }
+  copyToClipboard(href);
+}
+
+function copyToClipboard(text: string) {
+  if (typeof window === "undefined" || !text) return;
+  const nav = window.navigator as Navigator & { clipboard?: { writeText: (s: string) => Promise<void> } };
+  if (nav.clipboard && typeof nav.clipboard.writeText === "function") {
+    nav.clipboard.writeText(text).catch(() => {});
+  }
+}
+
+// ── Date helpers ────────────────────────────────────────────────────────
+function shortDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function fullDate(d: string): string {
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return d;
+  return dt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }

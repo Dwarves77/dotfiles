@@ -260,6 +260,12 @@
   /* Brass — pending-frame headers, jurisdiction tags, theme eyebrows (HANDOFF §2). */
   --brass: #8A6A2A;
 
+  /* Destructive-quiet — Ban / Delete text actions + REPLACED supersession
+     chips (HANDOFF §2). Text-only destructive register, never a filled pill. */
+  /* Destructive-quiet — Ban/Delete text actions + the "does not resolve" rust
+     rule on Research findings (HANDOFF §2). */
+  --destructive-quiet: #9A3412;
+
   /* Severity spectrum — HANDOFF §2 named values. */
   --sev-critical: #DC2626;
   --sev-high: #E8610A;
@@ -285,6 +291,77 @@
   /* Low tile eyebrow/numeral render muted-secondary in the mock (only the
      bottom rule is green) — token keeps that intent explicit. */
   --reg-tile-low-fig: #5A6B67;
+
+  /* -----------------------------------------------------
+     REDESIGN T03 TOKENS (additive — HANDOFF §2)
+     Detail/reader-page token set. Lifted verbatim from the
+     approved mock inline styles (Pages - 03 Regulation
+     Detail.dc.html). The action color on detail/reader pages
+     is brand orange #E8610A — the legacy editorial --accent
+     (navy) is intentionally NOT changed here so template-02
+     shell and other surfaces render unchanged; the detail
+     surface consumes these detail-scoped tokens instead.
+     See docs/design/redesign/DESIGN-DEVIATIONS.md D1.
+     ───────────────────────────────────────────────────── */
+  --cl-bg-page: #FAFAF8;
+  --cl-bg-card: #FFFFFF;
+  --cl-bg-plate: #F5F2EE;              /* section-header plates, avatar bg */
+  --cl-bg-accent-tint: #FFF7F0;        /* selected/active tint */
+  --cl-ink: #1A1A1A;
+  --cl-ink-secondary: #5A6B67;
+  --cl-ink-muted: #7A6E6C;
+  --cl-accent: #E8610A;                /* THE action color on detail pages */
+  --cl-accent-hover: #D05509;
+  --cl-accent-blue: #2563EB;           /* eyebrow/volume, T-tier badge, VERIFIED */
+  --cl-sev-critical: #DC2626;
+  --cl-sev-high: #E8610A;
+  --cl-sev-moderate: #CA8A04;
+  --cl-sev-low: #16A34A;
+  --cl-epistemic-signal: #B45309;      /* unverified / early signal (dashed) */
+  --cl-destructive-quiet: #9A3412;     /* ban/delete text, counsel labels */
+  --cl-brass: #8A6A2A;                 /* pending-frame headers, theme eyebrows */
+  --cl-hairline: rgba(0,0,0,0.12);     /* card border */
+  --cl-hairline-soft: rgba(0,0,0,0.06);/* row rules */
+  --cl-detail-grad: linear-gradient(90deg, #E8610A 0%, #2563EB 100%);
+
+  /* Research severity chips (TEMPLATE 06). The finding-severity hue reuses
+     the reg-band hues (identical values in the mock); these add the
+     translucent chip-border tints the "Pages - 06 Research" mock uses on
+     the per-finding severity chip. Kept as tokens so the surface never
+     substitutes raw hex. The tile gradients / numerals reuse the
+     --reg-band-*-strip and --reg-band-* hue tokens above. */
+  --res-sev-action: var(--reg-band-immediate);
+  --res-sev-action-bd: #FECACA;
+  --res-sev-cost: var(--reg-band-action);
+  --res-sev-cost-bd: rgba(217, 119, 6, 0.4);
+  --res-sev-monitor: var(--reg-band-monitor);
+  --res-sev-monitor-bd: rgba(161, 98, 7, 0.4);
+  --res-sev-background: var(--reg-band-awareness);
+  --res-sev-background-bd: rgba(22, 163, 74, 0.4);
+
+  /* ─────────────────────────────────────────────────────
+     REDESIGN T07 TOKENS (HANDOFF §6.7 + "Pages - 07 Operations")
+     Added additively per feat/redesign-t07-operations. Values lifted
+     verbatim from the mock inline styles / renderVals sevMeta. The
+     Operations severity spectrum (tiles, region chips, key figures)
+     reuses the --reg-band-* hues + tints above (identical hex in the
+     mock); the tokens below cover the values the reg set did not carry.
+     ───────────────────────────────────────────────────── */
+
+  /* Selected/active tint — dimension chip + spotlighted dimension cell
+     (mock: background '#FFF7F0' with a 2px orange border). */
+  --accent-tint: #FFF7F0;
+
+  /* Region severity-chip borders (mock sevMeta `bd`; translucent, so not
+     carried by the solid --*-bd reg tokens). Critical reuses --critical-bd. */
+  --ops-critical-bd: #FECACA;
+  --ops-high-bd: rgba(217, 119, 6, 0.4);
+  --ops-moderate-bd: rgba(161, 98, 7, 0.4);
+  --ops-low-bd: rgba(22, 163, 74, 0.4);
+
+  /* Honest-state dashed frame (HANDOFF §4: `1px dashed rgba(0,0,0,0.25)`,
+     bg `#FAFAF8`). Pending dimension cells + By-state pending frame. */
+  --honest-dashed: rgba(0, 0, 0, 0.25);
 }
 
 /* ── DARK THEME (opt-in) ── */
