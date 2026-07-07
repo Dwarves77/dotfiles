@@ -390,3 +390,56 @@ EditorialMasthead archetype. New surface component `OperationsLedger.tsx`; the p
 - **Why:** The route auth-gates via `proxy.ts` and the headless sandbox cannot hold a Supabase
   workspace session. The capture demonstrates the layout, the epistemic/honest-state system, and the
   By-state pending frame; production (authed) fills the tiles + lists from the same bound fields.
+
+---
+
+## TEMPLATE 09 — Map (`feat/redesign-t09-map`)
+
+Branched off `feat/redesign-t02-regulations` to inherit the shell + §2 tokens. The production
+Leaflet map component (`MapView.tsx`, real basemap / zoom / fly-to) is KEPT per §6.9 — the mock's
+schematic SVG is a placeholder and was NOT copied; only the surrounding layout, marker encoding, and
+rail were adopted around it.
+
+### D09-1 · Coverage-gaps rail is data-driven, not the mock's literal rows
+- **What:** The mock hard-codes coverage-gap rows (United States 56, EU member states 27, Canada 13).
+  The rail instead renders `getCoverageGaps()` (top 5 regions by gap severity), the same
+  data-driven card the prior /map shipped.
+- **Why:** The count binding forbids hard-coding the mock's snapshot numbers; coverage figures must
+  trace to the sources table. The mock's rows are a snapshot, not a spec. Restyled to the mock's
+  dashed brass-eyebrow frame, values stay live.
+
+### D09-2 · Mode chips drive an honest note only — the map never filters by mode
+- **What:** Selecting Ocean / Air / Road does NOT filter the markers or rail; it surfaces the
+  "Mode view pending" dashed note linking to the Regulations index.
+- **Why:** Mandated by §6.9 + §7 (item-level mode tags are a known-new backend surface). Mode
+  filtering is never faked on the map. (Recorded here because the prior /map DID filter resources by
+  mode — this branch removes that so the surface is honest.)
+
+### D09-3 · Priority / Region chips are multi-select with an explicit "All" chip
+- **What:** The mock's Priority and Regions groups are single-select. This surface keeps the prior
+  /map's multi-select `Set` behaviour (OR-within-group) and adds an "All" chip that clears the set.
+- **Why:** Multi-select is a strict superset of the mock's single-select and was already the shipped
+  behaviour; "All" makes the empty-set state explicit and matches the mock's chip roster. No data or
+  epistemic rule is affected.
+
+### D09-4 · Register band / List cap at 12 jurisdictions with an honest "+ N more"
+- **What:** The under-map register band and the List view show the top 12 jurisdictions (by item
+  count), then an honest "+ N more jurisdictions · M items — full register on the Regulations index"
+  footer computed from the live totals.
+- **Why:** Mirrors the mock (12 tiles + "+17 more"). The remainder is derived, never hard-coded; the
+  Regulations index remains the full register.
+
+### D09-5 · "Open in Regulations →" passes the jurisdiction as an uppercased region code
+- **What:** The focused-jurisdiction panel links to `/regulations?region=<ID uppercased>`. Valid
+  Tier-1 ISO codes pre-filter the index; codes outside that set fall through to the full index.
+- **Why:** The /regulations page validates `?region=` against `TIER1_PRIORITY_ISOS` and ignores
+  unknown codes, so the link is always honest (it lands on Regulations regardless). No jurisdiction →
+  ISO mapping table was added (out of T09 scope).
+
+### D09-6 · 1440px screenshot is an anonymous sandbox capture (honest-empty data)
+- **What:** `t09-map-1440.png` was captured against the local dev server without a Supabase user
+  session (the sandbox has no login credentials), so RLS returns no rows: counts read 0, the register
+  shows its empty state, and the "Data temporarily unavailable" banner is shown.
+- **Why:** The screenshot verifies the redesigned chrome, the production Leaflet basemap + zoom +
+  severity legend (do-not-revert), the filter bar, rail, and honest-empty states. A populated,
+  authenticated capture is best confirmed by the operator on the Vercel preview.
