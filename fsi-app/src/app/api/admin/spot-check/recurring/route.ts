@@ -48,8 +48,8 @@ import {
 } from "@/lib/sources/verification";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { pausedResponse } from "@/lib/api/pause";
+import { workerAuthGuard } from "@/lib/api/worker-auth";
 
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const COOLDOWN_KEY = "admin_spot_check_recurring";
@@ -252,10 +252,8 @@ async function fetchSample(supabase: SupabaseClient): Promise<SampledSource[]> {
 
 export async function POST(request: NextRequest) {
   // 1) Worker-secret auth
-  const secret = request.headers.get("x-worker-secret");
-  if (secret !== WORKER_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = workerAuthGuard(request);
+  if (denied) return denied;
 
   if (!ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });

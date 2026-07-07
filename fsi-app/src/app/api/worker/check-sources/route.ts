@@ -6,6 +6,7 @@ import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { classifyReachability } from "@/lib/sources/reachability.mjs";
 import { decideSourceAssessment } from "@/lib/sources/check-sources-decision.mjs";
+import { workerAuthGuard } from "@/lib/api/worker-auth";
 
 type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number }>;
 type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
@@ -94,8 +95,6 @@ export async function assessAndUpdateSource(
  * This is NOT a user-facing API route — it's a system endpoint.
  */
 
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
-
 function getServiceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -105,10 +104,8 @@ function getServiceClient() {
 
 export async function POST(request: NextRequest) {
   // Authenticate worker
-  const secret = request.headers.get("x-worker-secret");
-  if (secret !== WORKER_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = workerAuthGuard(request);
+  if (denied) return denied;
 
   const supabase = getServiceClient();
 

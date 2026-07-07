@@ -44,8 +44,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { recomputeEffectiveTier } from "@/lib/trust";
+import { workerAuthGuard } from "@/lib/api/worker-auth";
 
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
 const Q7_CONFIG_VERSION = "q7-2026-05-20";
 
 function getServiceClient() {
@@ -60,14 +60,8 @@ export async function POST(request: NextRequest) {
   // Authorization: Bearer ${CRON_SECRET} (Vercel Cron convention; see
   // vercel.json crons array). Both auth paths converge on the same
   // WORKER_SECRET / CRON_SECRET value (single source of truth deploy-side).
-  const workerSecret = request.headers.get("x-worker-secret");
-  const authHeader = request.headers.get("authorization");
-  const bearerSecret = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : null;
-  if (workerSecret !== WORKER_SECRET && bearerSecret !== WORKER_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = workerAuthGuard(request, { allowBearer: true });
+  if (denied) return denied;
 
   const url = new URL(request.url);
   const halfLifeMonthsParam = url.searchParams.get("half_life_months");

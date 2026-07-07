@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { workerAuthGuard } from "@/lib/api/worker-auth";
 
 /**
  * POST /api/notifications/trigger
@@ -11,13 +12,9 @@ import { createClient } from "@supabase/supabase-js";
  * that can be called by database webhooks or the monitoring worker.
  */
 
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
-
 export async function POST(request: NextRequest) {
-  const secret = request.headers.get("x-worker-secret");
-  if (secret !== WORKER_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = workerAuthGuard(request);
+  if (denied) return denied;
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

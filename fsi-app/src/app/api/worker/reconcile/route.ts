@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { recordSourceChangeTrigger } from "@/lib/sources/reconcile";
+import { workerAuthGuard } from "@/lib/api/worker-auth";
 
 // POST /api/worker/reconcile — the reconcile-loop CONSUMER (activation).
 //
@@ -17,7 +18,6 @@ import { recordSourceChangeTrigger } from "@/lib/sources/reconcile";
 // Idempotent: each processed row is stamped reconciled_at, so re-runs do not double-record.
 // Authentication: WORKER_SECRET header. Honors the global pause gate.
 
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret";
 const BATCH = 200;
 
 function getServiceClient(): SupabaseClient {
@@ -29,9 +29,8 @@ function getServiceClient(): SupabaseClient {
 }
 
 export async function POST(request: NextRequest) {
-  if (request.headers.get("x-worker-secret") !== WORKER_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = workerAuthGuard(request);
+  if (denied) return denied;
   const supabase = getServiceClient();
 
   if (await isGloballyPaused(supabase)) {
