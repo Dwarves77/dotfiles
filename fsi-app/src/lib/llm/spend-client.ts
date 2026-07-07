@@ -18,7 +18,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 import { anthropicError } from "@/lib/agent/anthropic-error.mjs";
-import { costUsdForModel, SPEND_CEILING_USD } from "@/lib/agent/generation-config";
+import { costUsdForModel, inputUsdPerMtokForModel, SPEND_CEILING_USD } from "@/lib/agent/generation-config";
+import { cacheSavingsUsd } from "@/lib/agent/prompt-cache.mjs";
 import { assertTicket, assertBudget, account, markCallLogged, takeItemLedger, resetItemLedger, spentUsd, assertLedgerDrained, unloggedCallCount } from "@/lib/llm/spend-guard.mjs";
 
 export type SpendTicket = NonNullable<Parameters<typeof assertTicket>[0]>;
@@ -42,14 +43,18 @@ export function currentSpendTicket(): SpendTicket { return currentTicket; }
  *  streamMessagesText call except for the guard + accounting. */
 export async function spendStreamRaw(
   streamOpts: Parameters<typeof streamMessagesText>[0],
-): Promise<{ text: string; stopReason: string | null; usage: { input_tokens: number; output_tokens: number } }> {
+): Promise<{ text: string; stopReason: string | null; usage: { input_tokens: number; output_tokens: number; cache_creation_input_tokens: number; cache_read_input_tokens: number } }> {
   assertTicket(currentTicket);
   assertBudget(currentTicket, SPEND_CEILING_USD);
   const r = await streamMessagesText(streamOpts);
   const model = String(((streamOpts?.body ?? {}) as { model?: string }).model ?? "claude-sonnet-4-6");
-  const cost = costUsdForModel(model, r.usage.input_tokens, r.usage.output_tokens);
+  // PROMPT-CACHE (Phase-3a): cache tokens are billed at 1.25× (write) / 0.1× (read) of the input rate;
+  // input_tokens excludes the cached prefix when caching is active. Real cost, not the full-rate fiction.
+  const cacheWrite = r.usage.cache_creation_input_tokens ?? 0;
+  const cacheRead = r.usage.cache_read_input_tokens ?? 0;
+  const cost = costUsdForModel(model, r.usage.input_tokens, r.usage.output_tokens, cacheWrite, cacheRead);
   account(cost, r.usage.input_tokens, r.usage.output_tokens);
-  await recordSpendCall(model, r.usage.input_tokens, r.usage.output_tokens, cost, currentTicket);
+  await recordSpendCall(model, r.usage.input_tokens, r.usage.output_tokens, cost, currentTicket, cacheWrite, cacheRead);
   return r;
 }
 
@@ -65,9 +70,11 @@ export async function spendStream(
     apiKey: process.env.ANTHROPIC_API_KEY!,
     body: { model, max_tokens: opts.maxTokens ?? 32000, system: opts.system, messages: [{ role: "user", content: opts.user }] },
   });
-  const cost = costUsdForModel(model, usage.input_tokens, usage.output_tokens);
+  const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+  const cacheRead = usage.cache_read_input_tokens ?? 0;
+  const cost = costUsdForModel(model, usage.input_tokens, usage.output_tokens, cacheWrite, cacheRead);
   account(cost, usage.input_tokens, usage.output_tokens);
-  await recordSpendCall(model, usage.input_tokens, usage.output_tokens, cost, ticket);
+  await recordSpendCall(model, usage.input_tokens, usage.output_tokens, cost, ticket, cacheWrite, cacheRead);
   return { text, stopReason, usage, cost };
 }
 
@@ -103,14 +110,17 @@ function svc(): SupabaseClient {
  *  and marks it logged in the guard. Called INSIDE every spend function right after account() — telemetry is
  *  client-internal, never caller-remembered. On a write failure it does NOT markCallLogged(), so the guard's
  *  unloggedCalls stays > 0 and the NEXT assertBudget throws (unlogged spend is mechanically impossible). */
-async function recordSpendCall(model: string, inputTokens: number, outputTokens: number, cost: number, ticket: SpendTicket): Promise<void> {
+async function recordSpendCall(model: string, inputTokens: number, outputTokens: number, cost: number, ticket: SpendTicket, cacheWriteTokens = 0, cacheReadTokens = 0): Promise<void> {
   try {
     const nowIso = new Date().toISOString();
+    // PROMPT-CACHE savings telemetry (Phase-3a): what these cache reads saved vs full input rate —
+    // the number the block-close savings report sums. Rides errors[].telemetry (no DDL).
+    const cacheSavedUsd = Number(cacheSavingsUsd(cacheReadTokens, inputUsdPerMtokForModel(model)).toFixed(6));
     const { error } = await svc().from("agent_runs").insert({
       intelligence_item_id: ticket.itemId ?? null, source_url: null, fetch_method: "spend-call",
       started_at: nowIso, ended_at: nowIso, status: "success",
       cost_usd_estimated: Number(cost.toFixed(6)),
-      errors: [{ telemetry: { model, inputTokens, outputTokens, purpose: ticket.purpose, authorizationRef: ticket.authorizationRef ?? null } }],
+      errors: [{ telemetry: { model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, cacheSavedUsd, purpose: ticket.purpose, authorizationRef: ticket.authorizationRef ?? null } }],
     });
     if (error) { console.warn(`[spend] per-call ledger write FAILED (${error.message}) — call stays UNLOGGED; next spend will be refused.`); return; }
     markCallLogged();

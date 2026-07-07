@@ -51,12 +51,13 @@ import {
 } from "../lib/agent/audit-gate";
 import { linkItems } from "../lib/entities/link-items";
 
-// Estimated per-step Claude spend for the cost_usd_estimated ledger. CLAUDE.md
-// baseline is ~$0.15/item: the generate pass and the ground pass each make one
-// Sonnet call; section + grow make none. Honest as an ESTIMATE (the column name is
-// cost_usd_estimated) and adequate for the cap's purpose (count items x est cost).
-const EST_GENERATE_USD = 0.1;
-const EST_GROUND_USD = 0.05;
+// PER-STEP COST ESTIMATES RETIRED (Phase-3a double-count fix, DEEP-AUDIT S3 §3 C4). Since the
+// 2026-07-06 per-call telemetry, every model call writes its REAL cost as a fetch_method='spend-call'
+// row inside the spend client — so the flat per-step estimates these rows used to carry made the
+// daily cap (budgetGuard) and the MTD tile count the same spend twice. Step rows remain as the
+// status/audit trail; their cost is 0. The spend-call rows are the single cost ledger.
+const EST_GENERATE_USD = 0;
+const EST_GROUND_USD = 0;
 // Daily estimated-spend ceiling. Override with GENERATION_DAILY_CAP_USD.
 const DAILY_CAP_USD = Number(process.env.GENERATION_DAILY_CAP_USD ?? 5);
 

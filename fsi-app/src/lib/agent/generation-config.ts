@@ -63,12 +63,31 @@ export function sonnetCostUsd(inputTokens: number, outputTokens: number): number
 export const HAIKU_INPUT_USD_PER_MTOK = Number(process.env.HAIKU_INPUT_USD_PER_MTOK || 1);
 export const HAIKU_OUTPUT_USD_PER_MTOK = Number(process.env.HAIKU_OUTPUT_USD_PER_MTOK || 5);
 
-/** Pure: model-aware USD cost estimate. Sonnet models bill at the Sonnet rate; Haiku at the Haiku rate. */
-export function costUsdForModel(model: string, inputTokens: number, outputTokens: number): number {
+/** Pure: model-aware USD cost estimate. Sonnet models bill at the Sonnet rate; Haiku at the Haiku rate.
+ *  PROMPT-CACHE (Phase-3a): with a cache_control prefix the API reports input_tokens EXCLUSIVE of the
+ *  cached prefix, plus cache_creation_input_tokens (billed 1.25× input rate) and
+ *  cache_read_input_tokens (billed 0.1× input rate). Optional args keep every legacy caller exact. */
+export function costUsdForModel(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  cacheCreationTokens = 0,
+  cacheReadTokens = 0
+): number {
   const isHaiku = /haiku/i.test(model || "");
   const inRate = isHaiku ? HAIKU_INPUT_USD_PER_MTOK : SONNET_INPUT_USD_PER_MTOK;
   const outRate = isHaiku ? HAIKU_OUTPUT_USD_PER_MTOK : SONNET_OUTPUT_USD_PER_MTOK;
-  return (inputTokens / 1e6) * inRate + (outputTokens / 1e6) * outRate;
+  return (
+    (inputTokens / 1e6) * inRate +
+    (cacheCreationTokens / 1e6) * inRate * 1.25 +
+    (cacheReadTokens / 1e6) * inRate * 0.1 +
+    (outputTokens / 1e6) * outRate
+  );
+}
+
+/** Pure: input rate for a model (used by cache-savings telemetry). */
+export function inputUsdPerMtokForModel(model: string): number {
+  return /haiku/i.test(model || "") ? HAIKU_INPUT_USD_PER_MTOK : SONNET_INPUT_USD_PER_MTOK;
 }
 
 /** The standing spend ceiling (USD), enforced INSIDE the spend client — the ceiling class stops being relay
