@@ -63,7 +63,7 @@ const ROOMS = [
 async function resolveOwner() {
   // Rooms are platform-owned canonical spaces. Owner = first platform admin.
   const admins = await readAll("profiles", "id, is_platform_admin", {
-    match: { is_platform_admin: true },
+    match: (q) => q.eq("is_platform_admin", true),
   });
   if (admins && admins.length) return admins[0].id;
   // Fallback: any profile (the seed still needs a NOT NULL owner_user_id).
