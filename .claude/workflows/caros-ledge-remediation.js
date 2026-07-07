@@ -22,16 +22,19 @@ export const meta = {
 // - Run ONE phase per invocation: Workflow({ scriptPath, args: { phase: '0' } }).
 //   Read the result, merge/inspect, then run the next phase.
 // ---------------------------------------------------------------------------
-// MODEL POLICY (operator-directed): the judgment-heavy stages — recon,
-// implement, review — are pinned to Fable ('fable') at high effort because it is
-// the most capable model and this work rewards capability. The mechanical verify
-// stage (running typecheck/build) runs on a cheaper tier at low effort so we do
-// not spend the top model on command-running. Override per-phase via
-// args.model / args.verifyModel if you want to force a different tier.
+// MODEL POLICY (operator-directed): Fable is used ONLY to BUILD this workflow and
+// author all its direction (the audit, the per-package tasks, the doctrine refs) —
+// NOT to run it. Execution after today runs on Claude Code's own session model.
+// So the agent stages DO NOT pin Fable: leaving MAIN_MODEL/VERIFY_MODEL unset makes
+// every stage INHERIT the session model, i.e. whatever Claude Code runs as when you
+// launch a phase. High effort is kept on the judgment stages (recon/implement/review)
+// and low effort on the mechanical verify stage. If you ever DO want to force a tier
+// for one run, pass args.model / args.verifyModel — but the default is inherit, never
+// Fable. The Fable-authored guidance lives in the task strings + REF + the audit docs.
 // ---------------------------------------------------------------------------
 
-const MAIN_MODEL = (args && args.model) || 'fable'      // recon / implement / review
-const VERIFY_MODEL = (args && args.verifyModel) || 'sonnet'  // mechanical build/typecheck stage
+const MAIN_MODEL = (args && args.model) || undefined      // recon / implement / review — inherit session model
+const VERIFY_MODEL = (args && args.verifyModel) || undefined  // verify — inherit session model
 
 const REF = 'Context for every agent: read fsi-app/.claude/CLAUDE.md (doctrine), '
   + 'DEEP-AUDIT-2026-07-07.md and MASTER-PLAN.md at repo root (findings + plan). '
