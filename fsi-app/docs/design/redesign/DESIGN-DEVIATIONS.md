@@ -70,3 +70,57 @@ template · what deviated · why. The operator reviews and rules.
   42px.
 - **Why:** Pre-existing mobile-a11y adaptation in the shared masthead; at 1440px it renders ~44px,
   effectively matching the mock. Not reverted, to preserve the mobile behavior.
+
+---
+
+## Template 11 — Community (feat/redesign-t11-community)
+
+Deviations are proposals for operator review, not decisions. Binding schema spec:
+`docs/design/redesign/community-schema-mapping.md`.
+
+### D11-1 · Rooms render honest-empty until the 7-room seed runs
+- **What:** The "room" is realized as one canonical public `community_groups` row per region
+  (7 rows), seeded by `scripts/seed-community-regional-rooms.mjs` (committed, NOT executed). Until
+  the main session runs it, the rooms grid renders the honest-pending frame (`NotSeededState`).
+- **Why:** No mig-007 forum table and no parallel rooms schema (mapping §1/§4). The seed is a data
+  change (writes-script track), separate from this code PR.
+
+### D11-2 · "Request verifier sign-off" is honest-pending
+- **What:** The action renders disabled with a title note; no request is written.
+- **Why:** Its backing table `community_post_signoff_requests` is committed as migration
+  `151_community_post_signoff_requests.sql` but NOT applied (future DDL window, mapping §3.1).
+
+### D11-3 · Leave-room uses a browser-client self-delete (no dedicated endpoint)
+- **What:** Join → `POST /api/community/groups/[id]/join` (existing). Leave → RLS-guarded
+  self-DELETE on `community_group_members` via the browser Supabase client.
+- **Why:** The join route is POST-only; leaving is a self-delete the RLS policy already allows
+  (mapping §2 element #8). Mirrors the browser-client pattern in `CommunityPickupsQueueView`.
+
+### D11-4 · "Cite source" writes via the browser client (no set-source endpoint)
+- **What:** Existing citations render read-only; attaching one updates
+  `community_posts.referenced_intelligence_item_ids` (author-only, RLS) via the browser client,
+  choosing from the room's live ledger items.
+- **Why:** The column exists (migration 104) but no set-endpoint does (mapping §2 element #18).
+  Kept the affordance functional rather than faking it. **Proposed:** a small
+  `POST /api/community/posts/[id]/cite` endpoint in a follow-up.
+
+### D11-5 · Region binding is presentation-layer (intelligence_items have no region column)
+- **What:** Per-room item counts, "Live in this region" items, themes, and "Who's here" presence
+  classify by jurisdiction → room using `src/lib/community/rooms.ts`, reusing the Map surface's
+  region vocabulary. HK folds into APAC and MEA displays as "MEAF" (mock vocab); the schema
+  `community_groups.region` CHECK is untouched (no migration).
+- **Why:** `intelligence_items` carries `jurisdiction`/`jurisdiction_iso`, not a region column
+  (mapping §1/§2). Counts are computed + fail-soft (em-dash on absence); no mock snapshot literals.
+
+### D11-6 · Starter questions are generic per-room static prompts
+- **What:** Composer starter chips are region-neutral prompts derived from the room name, not
+  regulation-specific questions.
+- **Why:** No `starter_questions` store (mapping §3.3 permits static config); generic prompts avoid
+  asserting specific facts the workspace may not track (no-invented-data rule).
+
+### D11-7 · Screenshot is a faithful static render of the seeded state
+- **What:** `t11-community-1440.png` is a 1440px render (headless Edge) of the component in its
+  seeded state with representative data, not a live authenticated capture.
+- **Why:** `/community` is auth-gated and the 7 rooms are unseeded until the seed script runs, so a
+  live capture would show only the honest-empty state. The render uses the exact token hex values;
+  a live authenticated capture can replace it once the seed has run.
