@@ -70,3 +70,53 @@ template · what deviated · why. The operator reviews and rules.
   42px.
 - **Why:** Pre-existing mobile-a11y adaptation in the shared masthead; at 1440px it renders ~44px,
   effectively matching the mock. Not reverted, to preserve the mobile behavior.
+
+---
+
+## Template 10 — Account (feat/redesign-t10-account-v2)
+
+### D10-1 · Account is two routes with top-tab links, not one in-page toggle
+- **What:** The mock is a single "Account" screen whose top tabs (Profile / Settings) switch in
+  place. Production keeps the existing `/profile` and `/settings` routes; the shared
+  `AccountMasthead` renders the two top tabs as real links, `aria-current` on the active one.
+- **Why:** Preserves deep-linking, back-navigation, per-route server data fetching, and the legacy
+  `/settings#hash` aliases. Visually identical to the mock; only the navigation mechanism differs.
+
+### D10-2 · Ban is honest-pending (typed-confirm shown, action disabled)
+- **What:** Members & roles renders the rust `Ban` control and a typed-confirmation dialog, but the
+  destructive action is disabled with an honest note: platform-wide ban ships with the
+  member-management backend (§7). Role change and Remove are fully wired.
+- **Why:** Ban is KNOWN NEW BACKEND (§7) and the dispatch forbids faking it; migrations are
+  DO-NOT-TOUCH, so no ban column/RPC is introduced. Honest-pending over fabrication.
+
+### D10-3 · Organization tab: "Created" column + preserved owner editor
+- **What:** The mock's org table has a "Last activity" column; per-org activity events are unbuilt
+  (§7), so the last column renders the real created date labelled "Created". The owner name/slug
+  editor (wired to `/api/orgs/[org_id]` PATCH) is preserved below the table; the mock omits it.
+- **Why:** No fabricated activity timestamp (§1); no loss of the existing rename capability.
+
+### D10-4 · Data & supersessions / Archive render real data when present
+- **What:** The mock shows honest-pending frames for Data & supersessions and Archive. Where the
+  live workspace data path already supplies supersessions / archived items, the real
+  `DataSummary`, `SupersessionHistory`, and `ArchiveViewer` components render; the honest empty
+  copy shows only when the set is genuinely empty.
+- **Why:** "Content, counts, dates → production DB wins" (§8.3, §1). Hiding real working data
+  behind a pending frame would be less honest than showing it.
+
+### D10-5 · Verifier badge keeps a quiet apply action
+- **What:** The mock's Verifier badge tab is status-only. This build keeps a quiet
+  "Request verifier sign-off →" action for `none` / `revoked` states that flips
+  `verifier_status` to `pending` (the existing write path).
+- **Why:** Avoids silently dropping a working conversion moment (§3); styled subordinate so the
+  tab still reads as the mock's status card.
+
+### D10-6 · Floating assistant stays; in-page Ask bar stays absent
+- **What:** The in-page Ask bar is absent on Account, per §9. The global floating "Ask AI" button
+  (AppShell chrome) remains, exactly as it does on Map and Community.
+- **Why:** §9 rules the Ask BAR absent; the floating assistant is shell chrome shared by every
+  authenticated surface and was not in scope to remove.
+
+### D10-7 · Edition eyebrow is computed, not the frozen mock snapshot
+- **What:** The masthead eyebrow renders "Personal preferences · Vol IV · No. {ISO week}" computed
+  from the current date (mirroring `EditorialMasthead`), not the mock's frozen "No. 27".
+- **Why:** One issue date app-wide, derived from data — never a hard-coded snapshot (§1, §5).

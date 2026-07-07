@@ -1,25 +1,26 @@
 "use client";
 
 /**
- * MembersPanel — UserProfilePage Members & roles tab.
+ * MembersPanel — Account · Profile · Members & roles (redesign T10).
  *
- * Lists every org_membership for the caller's org with the joined
- * profile (display name + avatar). Owner can change role per row
- * (owner / admin / member / viewer) and revoke a membership. Server
- * guards against demoting / revoking the only owner and against the
- * owner revoking self.
+ * Rebuilt against "Pages - 10 Account". Role change (PATCH) and remove
+ * (DELETE) are wired to /api/orgs/[org_id]/members; invite is wired to
+ * /api/orgs/[org_id]/invitations (email-stub — returns an invite URL).
+ * The last-owner / self-revoke guards are enforced server-side (same
+ * controls as Admin → Workspaces).
  *
- * Backed by /api/orgs/[org_id]/members (GET + PATCH + DELETE).
+ * Ban is a KNOWN NEW BACKEND action (HANDOFF §7) — the platform-wide ban
+ * is NOT yet built. Rather than fake it, the Ban control opens a typed
+ * confirmation that renders the honest-pending state: the design's typed
+ * confirm is shown, but the destructive action is disabled until the
+ * member-management backend ships.
  *
- * Per DP-1 every related decision on a single member row is reachable
- * inline: role picker, save, revoke, inline status banner. No tab
- * switches.
+ * Member identity renders the server-resolved display_name
+ * (full_name ?? display_name ?? email ?? short id) — never a raw UUID.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, UserMinus, Save } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { formatRelative, toDate } from "@/lib/relative-time";
+import { AccountCard, TextInput } from "@/components/account/AccountPrimitives";
 
 interface Member {
   id: string;
@@ -50,15 +51,21 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
   const [data, setData] = useState<MembersResponse | null>(null);
+  const [pendingInvites, setPendingInvites] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [roleDrafts, setRoleDrafts] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+
+  const [banTarget, setBanTarget] = useState<Member | null>(null);
 
   function flash(kind: "ok" | "err", text: string) {
     setStatus({ kind, text });
-    setTimeout(() => setStatus(null), 5000);
+    setTimeout(() => setStatus(null), 6000);
   }
 
   const load = useCallback(async () => {
@@ -69,20 +76,26 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/orgs/${orgId}/members`, { credentials: "include" });
-      const payload = await res.json();
-      if (!res.ok) {
-        setError(payload?.error || `HTTP ${res.status}`);
+      const [mRes, iRes] = await Promise.all([
+        fetch(`/api/orgs/${orgId}/members`, { credentials: "include" }),
+        fetch(`/api/orgs/${orgId}/invitations`, { credentials: "include" }).catch(() => null),
+      ]);
+      const payload = await mRes.json();
+      if (!mRes.ok) {
+        setError(payload?.error || `HTTP ${mRes.status}`);
         setData(null);
       } else {
         setData(payload as MembersResponse);
-        // Reset drafts to match server state on every reload.
-        const drafts: Record<string, string> = {};
-        for (const m of (payload as MembersResponse).members) drafts[m.id] = m.role;
-        setRoleDrafts(drafts);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+      if (iRes && iRes.ok) {
+        const inv = await iRes.json();
+        const list = Array.isArray(inv?.invitations) ? inv.invitations : [];
+        setPendingInvites(list.filter((x: { status?: string }) => x.status === "pending").length);
+      } else {
+        setPendingInvites(null);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -92,10 +105,8 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
     load();
   }, [load]);
 
-  async function saveRole(member: Member) {
-    if (!orgId) return;
-    const nextRole = roleDrafts[member.id];
-    if (!nextRole || nextRole === member.role) return;
+  async function changeRole(member: Member, nextRole: string) {
+    if (!orgId || nextRole === member.role) return;
     setPendingId(member.id);
     try {
       const res = await fetch(`/api/orgs/${orgId}/members`, {
@@ -105,186 +116,220 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
         body: JSON.stringify({ membership_id: member.id, role: nextRole }),
       });
       const payload = await res.json();
-      if (!res.ok) {
-        flash("err", payload?.error || `HTTP ${res.status}`);
-      } else {
-        flash("ok", `Role updated to ${ROLE_LABELS[nextRole]}`);
+      if (!res.ok) flash("err", payload?.error || `HTTP ${res.status}`);
+      else {
+        flash("ok", `${member.display_name} is now ${ROLE_LABELS[nextRole]}`);
         await load();
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setPendingId(null);
     }
   }
 
-  async function revoke(member: Member) {
+  async function remove(member: Member) {
     if (!orgId) return;
-    if (
-      !window.confirm(
-        `Revoke ${member.display_name}'s membership? They will lose access to this organization.`
-      )
-    ) {
-      return;
-    }
+    if (!window.confirm(`Remove ${member.display_name} from this workspace? They lose access to it.`)) return;
     setPendingId(member.id);
     try {
       const res = await fetch(
         `/api/orgs/${orgId}/members?membership_id=${encodeURIComponent(member.id)}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
+        { method: "DELETE", credentials: "include" }
       );
       const payload = await res.json();
-      if (!res.ok) {
-        flash("err", payload?.error || `HTTP ${res.status}`);
-      } else {
-        flash("ok", `Revoked ${member.display_name}`);
+      if (!res.ok) flash("err", payload?.error || `HTTP ${res.status}`);
+      else {
+        flash("ok", `Removed ${member.display_name}`);
         await load();
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setPendingId(null);
+    }
+  }
+
+  async function invite() {
+    if (!orgId || !inviteEmail.trim()) return;
+    setInviting(true);
+    setInviteUrl(null);
+    try {
+      const res = await fetch(`/api/orgs/${orgId}/invitations`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail.trim(), role: "member" }),
+      });
+      const payload = await res.json();
+      if (!res.ok) flash("err", payload?.error || `HTTP ${res.status}`);
+      else {
+        flash("ok", `Invitation created for ${inviteEmail.trim()}`);
+        setInviteUrl(payload?.invitation?.invite_url ?? null);
+        setInviteEmail("");
+        await load();
+      }
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
+    } finally {
+      setInviting(false);
     }
   }
 
   if (!orgId) {
     return (
-      <Card title="Members & roles" meta="No active workspace">
-        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-          You are not yet a member of any organization. Member management
-          appears once you join one.
+      <AccountCard title="Members & roles" maxWidth={720}>
+        <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
+          You are not yet a member of any workspace. Member management appears once you join one.
         </p>
-      </Card>
+      </AccountCard>
     );
   }
 
   if (loading) {
     return (
-      <Card title="Members & roles" meta="Loading...">
-        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Loading members...
-        </p>
-      </Card>
+      <AccountCard title="Members & roles" meta="Loading…" maxWidth={720}>
+        <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>Loading members…</p>
+      </AccountCard>
     );
   }
 
   if (error || !data) {
     return (
-      <Card title="Members & roles" meta="Error">
-        <p className="text-sm" style={{ color: "var(--color-error)" }}>
-          {error || "Failed to load members"}
-        </p>
-      </Card>
+      <AccountCard title="Members & roles" meta="Error" maxWidth={720}>
+        <p style={{ fontSize: 13, color: "var(--color-error)", margin: 0 }}>{error || "Failed to load members"}</p>
+      </AccountCard>
     );
   }
 
   const isOwner = data.caller_role === "owner";
+  const invitedMeta = pendingInvites != null ? ` · ${pendingInvites} invited` : "";
 
   return (
-    <Card title="Members & roles" meta={`${data.members.length} members on this org`}>
-      <p
-        className="text-xs mb-4"
-        style={{ color: "var(--color-text-secondary)" }}
+    <>
+      <AccountCard
+        title="Members & roles"
+        meta={`${data.members.length} member${data.members.length === 1 ? "" : "s"}${invitedMeta}`}
+        maxWidth={720}
       >
-        {isOwner
-          ? "Change role inline or revoke a member. You cannot revoke your own membership; promote another owner first if you need to leave."
-          : `View only. Owner role required to change roles or revoke. Your role is ${ROLE_LABELS[data.caller_role]}.`}
-      </p>
-
-      {status && (
-        <div
-          className="text-[11px] p-2 rounded mb-3"
-          style={{
-            color:
-              status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
-            backgroundColor:
-              status.kind === "ok"
-                ? "rgba(22,163,74,0.04)"
-                : "rgba(220,38,38,0.04)",
-            border:
-              status.kind === "ok"
-                ? "1px solid rgba(22,163,74,0.2)"
-                : "1px solid rgba(220,38,38,0.2)",
-          }}
-        >
-          {status.text}
-        </div>
-      )}
-
-      <ul className="space-y-2">
-        {data.members.map((m) => {
-          const isPending = pendingId === m.id;
-          const draftRole = roleDrafts[m.id] || m.role;
-          const isSelf = m.user_id === callerUserId;
-          const joined = toDate(m.joined_at);
-          return (
-            <li
-              key={m.id}
-              className="flex items-center justify-between gap-3 flex-wrap p-3 rounded-md border"
+        {/* Invite row (owner/admin) */}
+        {isOwner && (
+          <div style={{ display: "flex", gap: 8, margin: "0 0 12px" }}>
+            <TextInput
+              type="email"
+              placeholder="Email address"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && invite()}
+              style={{ flex: 1, fontSize: "12.5px", padding: "9px 12px" }}
+            />
+            <button
+              type="button"
+              onClick={invite}
+              disabled={inviting || !inviteEmail.trim()}
               style={{
-                borderColor: "var(--color-border-subtle)",
-                backgroundColor: "var(--color-surface)",
+                fontFamily: "var(--font-sans)",
+                fontSize: "11.5px",
+                fontWeight: 800,
+                padding: "9px 16px",
+                borderRadius: 6,
+                border: "1px solid var(--color-primary)",
+                background: "var(--color-primary)",
+                color: "#FFFFFF",
+                cursor: inviting || !inviteEmail.trim() ? "not-allowed" : "pointer",
+                opacity: inviting || !inviteEmail.trim() ? 0.5 : 1,
+                whiteSpace: "nowrap",
               }}
             >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                {m.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.avatar_url}
-                    alt=""
-                    className="w-8 h-8 rounded-full object-cover shrink-0"
-                  />
-                ) : (
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
-                    style={{
-                      backgroundColor: "var(--color-surface-raised)",
-                      color: "var(--color-text-secondary)",
-                    }}
-                  >
-                    {m.display_name.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <div
-                    className="text-sm font-semibold truncate"
-                    style={{ color: "var(--color-text-primary)" }}
-                  >
-                    {m.display_name}
-                    {isSelf && (
-                      <span
-                        className="ml-1.5 text-[10px] font-bold uppercase"
-                        style={{ color: "var(--color-text-muted)" }}
-                      >
-                        (you)
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className="text-[11px]"
-                    style={{ color: "var(--color-text-muted)" }}
-                  >
-                    Joined {joined ? formatRelative(joined) : m.joined_at}
-                  </div>
-                </div>
-              </div>
+              {inviting ? "Inviting…" : "Invite"}
+            </button>
+          </div>
+        )}
 
-              {isOwner ? (
-                <div className="flex items-center gap-2 flex-wrap">
+        {inviteUrl && (
+          <div
+            style={{
+              fontSize: 11,
+              padding: "8px 12px",
+              borderRadius: 6,
+              margin: "0 0 12px",
+              background: "var(--color-bg-ai-strip)",
+              border: "1px solid var(--color-active-border)",
+              color: "var(--color-text-secondary)",
+              wordBreak: "break-all",
+            }}
+          >
+            Invitation link (email delivery pending): <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>{inviteUrl}</span>
+          </div>
+        )}
+
+        {status && (
+          <div
+            role="status"
+            style={{
+              fontSize: 11,
+              padding: "8px 10px",
+              borderRadius: 6,
+              margin: "0 0 12px",
+              color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
+              background: status.kind === "ok" ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
+              border: `1px solid ${status.kind === "ok" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
+            }}
+          >
+            {status.text}
+          </div>
+        )}
+
+        {data.members.map((m) => {
+          const isPending = pendingId === m.id;
+          const isSelf = m.user_id === callerUserId;
+          const joined = new Date(m.joined_at);
+          const joinedStr = Number.isNaN(joined.getTime()) ? m.joined_at : joined.toLocaleDateString("en-US");
+          return (
+            <div
+              key={m.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 0",
+                borderTop: "1px solid var(--color-border-subtle)",
+                opacity: isPending ? 0.6 : 1,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: "12.5px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
+                  {m.display_name}
+                  {isSelf && (
+                    <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: "var(--color-text-muted)", marginLeft: 6 }}>
+                      you
+                    </span>
+                  )}
+                </p>
+                <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "1px 0 0" }}>
+                  {ROLE_LABELS[m.role].toLowerCase()} · joined {joinedStr}
+                </p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                {isOwner ? (
                   <select
-                    value={draftRole}
-                    onChange={(e) =>
-                      setRoleDrafts((s) => ({ ...s, [m.id]: e.target.value }))
-                    }
+                    value={m.role}
                     disabled={isPending}
-                    className="px-2 py-1 text-xs rounded border"
+                    onChange={(e) => changeRole(m, e.target.value)}
+                    aria-label={`Role for ${m.display_name}`}
                     style={{
-                      borderColor: "var(--color-border)",
-                      backgroundColor: "var(--color-surface)",
-                      color: "var(--color-text-primary)",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "9.5px",
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "var(--color-primary)",
+                      background: "var(--surface)",
+                      border: "1px solid var(--color-active-border)",
+                      borderRadius: 4,
+                      padding: "3px 6px",
+                      cursor: isPending ? "default" : "pointer",
                     }}
                   >
                     {Object.entries(ROLE_LABELS).map(([k, v]) => (
@@ -293,86 +338,192 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
                       </option>
                     ))}
                   </select>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={isPending || draftRole === m.role}
-                    onClick={() => saveRole(m)}
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "9.5px",
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "var(--color-primary)",
+                      border: "1px solid var(--color-active-border)",
+                      borderRadius: 4,
+                      padding: "2px 8px",
+                    }}
                   >
-                    {isPending ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <Save size={11} />
-                    )}
-                    Save
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={isPending || isSelf}
-                    title={isSelf ? "Owners cannot revoke their own membership" : "Revoke"}
-                    onClick={() => revoke(m)}
-                  >
-                    <UserMinus size={11} />
-                    Revoke
-                  </Button>
-                </div>
-              ) : (
-                <span
-                  className="text-[11px] font-bold uppercase px-2 py-0.5 rounded"
-                  style={{
-                    color: "var(--color-text-secondary)",
-                    backgroundColor: "var(--color-surface-raised)",
-                    border: "1px solid var(--color-border-subtle)",
-                  }}
-                >
-                  {ROLE_LABELS[m.role]}
-                </span>
-              )}
-            </li>
+                    {ROLE_LABELS[m.role]}
+                  </span>
+                )}
+                {isOwner && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => remove(m)}
+                      disabled={isPending || isSelf}
+                      title={isSelf ? "You cannot remove your own membership" : "Remove from workspace"}
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "var(--color-text-secondary)",
+                        background: "none",
+                        border: "none",
+                        cursor: isPending || isSelf ? "not-allowed" : "pointer",
+                        opacity: isSelf ? 0.4 : 1,
+                        padding: 2,
+                      }}
+                    >
+                      Remove
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBanTarget(m)}
+                      disabled={isSelf}
+                      title={isSelf ? "You cannot ban yourself" : "Ban platform-wide"}
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "var(--destructive-quiet, #9A3412)",
+                        background: "none",
+                        border: "none",
+                        cursor: isSelf ? "not-allowed" : "pointer",
+                        opacity: isSelf ? 0.4 : 1,
+                        padding: 2,
+                      }}
+                    >
+                      Ban
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           );
         })}
-      </ul>
-    </Card>
+
+        <p
+          style={{
+            fontSize: "10.5px",
+            color: "var(--color-text-muted)",
+            lineHeight: 1.55,
+            margin: "10px 0 0",
+            borderTop: "1px solid var(--color-border-subtle)",
+            paddingTop: 10,
+          }}
+        >
+          The role chip changes role in place (Owner / Admin / Member / Viewer). <b>Remove</b> detaches the
+          member from this workspace; <b>Ban</b> blocks the account platform-wide behind a typed confirmation.
+          The last owner cannot be removed. Same controls as Admin → Workspaces.
+        </p>
+      </AccountCard>
+
+      {banTarget && (
+        <BanDialog member={banTarget} onClose={() => setBanTarget(null)} />
+      )}
+    </>
   );
 }
 
-// ── Local card mirrors UserProfilePage's idiom ──
+// ── Ban dialog — honest-pending (§7 member-management backend) ──────────────
 
-function Card({
-  title,
-  meta,
-  children,
-}: {
-  title: string;
-  meta?: string;
-  children: React.ReactNode;
-}) {
+function BanDialog({ member, onClose }: { member: Member; onClose: () => void }) {
+  const [typed, setTyped] = useState("");
+  const matches = typed.trim() === member.display_name;
   return (
-    <section
-      className="rounded-lg border mb-5"
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Ban ${member.display_name}`}
+      onClick={onClose}
       style={{
-        borderColor: "var(--color-border-subtle)",
-        backgroundColor: "var(--color-surface)",
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+        zIndex: 60,
       }}
     >
-      <header
-        className="flex items-baseline justify-between gap-3 flex-wrap px-5 py-4 border-b"
-        style={{ borderColor: "var(--color-border-subtle)" }}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--color-border)",
+          borderRadius: 8,
+          width: "min(440px, 100%)",
+          padding: "20px 22px",
+        }}
       >
-        <h3
-          className="text-base font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+        <p style={{ fontSize: 15, fontWeight: 800, margin: "0 0 8px", color: "var(--destructive-quiet, #9A3412)" }}>
+          Ban {member.display_name} platform-wide
+        </p>
+        <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: "0 0 14px" }}>
+          A platform-wide ban blocks this account across every workspace — a heavier action than removing them
+          from this one. It requires typed confirmation.
+        </p>
+        <p style={{ fontSize: "9.5px", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
+          Type “{member.display_name}” to confirm
+        </p>
+        <TextInput value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={member.display_name} />
+
+        <div
+          style={{
+            fontSize: 11,
+            lineHeight: 1.55,
+            color: "var(--brass, #8A6A2A)",
+            background: "var(--color-background)",
+            border: "1px dashed rgba(0,0,0,0.25)",
+            borderRadius: 6,
+            padding: "10px 12px",
+            margin: "12px 0 14px",
+          }}
         >
-          {title}
-        </h3>
-        {meta && (
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-            {meta}
-          </span>
-        )}
-      </header>
-      <div className="px-5 py-4">{children}</div>
-    </section>
+          <b>Ban is not available yet.</b> The platform-wide ban action ships with the member-management
+          backend (HANDOFF §7). Removing the member from this workspace works today.
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12.5px",
+              fontWeight: 700,
+              padding: "9px 16px",
+              borderRadius: 6,
+              border: "1px solid var(--color-border-medium)",
+              background: "var(--surface)",
+              color: "var(--color-text-secondary)",
+              cursor: "pointer",
+            }}
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            title="Available when the member-management backend ships"
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12.5px",
+              fontWeight: 800,
+              padding: "9px 16px",
+              borderRadius: 6,
+              border: "1px solid var(--destructive-quiet, #9A3412)",
+              background: matches ? "rgba(154,52,18,0.08)" : "transparent",
+              color: "var(--destructive-quiet, #9A3412)",
+              cursor: "not-allowed",
+              opacity: 0.6,
+            }}
+          >
+            Ban {member.display_name.split(" ")[0]}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
