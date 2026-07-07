@@ -1,6 +1,7 @@
 import { getOperationsItems, getResourcesOnly, getSurfaceCounts } from "@/lib/data";
 import { fetchOperationsCoverage } from "@/lib/supabase-server";
-import { OperationsPage } from "@/components/pages/OperationsPage";
+import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { OperationsLedger } from "@/components/operations/OperationsLedger";
 import type { Resource } from "@/types/resource";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
@@ -72,12 +73,29 @@ export default async function Operations() {
   // decision-engine UI (OBS-29).
   const regulationsByRegion = fallback.resources.filter(isRegulationItem);
 
+  // Redesign TEMPLATE 07: masthead (VOL eyebrow + Anton title + counts sub-line)
+  // + the OperationsLedger (severity tiles → D1–D6 dimension chips → Ask bar →
+  // region cards with the US By-state sub-list → active items → right rail).
+  // COUNTS bind to get_surface_counts('operations') (fail-soft) — never the
+  // mock snapshot; the descriptive tail is static editorial copy.
+  const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
+  const meta = (
+    <span>
+      <span style={boldInk}>{aggregates.totalItems || initialResources.length}</span> active items ·{" "}
+      <span style={boldInk}>{aggregates.totalJurisdictions || operationsCoverage.regions.length || 5}</span>{" "}
+      jurisdictions in scope · six dimensions per region · every fact carries a source and date
+    </span>
+  );
+
   return (
-    <OperationsPage
-      initialResources={initialResources}
-      aggregates={aggregates}
-      regulationsByRegion={regulationsByRegion}
-      operationsCoverage={operationsCoverage}
-    />
+    <>
+      <EditorialMasthead title="Operations Intelligence" meta={meta} />
+      <OperationsLedger
+        initialResources={initialResources}
+        aggregates={aggregates}
+        regulationsByRegion={regulationsByRegion}
+        operationsCoverage={operationsCoverage}
+      />
+    </>
   );
 }

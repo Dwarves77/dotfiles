@@ -70,3 +70,70 @@ template · what deviated · why. The operator reviews and rules.
   42px.
 - **Why:** Pre-existing mobile-a11y adaptation in the shared masthead; at 1440px it renders ~44px,
   effectively matching the mock. Not reverted, to preserve the mobile behavior.
+
+---
+
+## TEMPLATE 07 — Operations (`feat/redesign-t07-operations`)
+
+Branched off `feat/redesign-t02-regulations` to inherit the shell + §2 tokens + the
+EditorialMasthead archetype. New surface component `OperationsLedger.tsx`; the prior
+`components/pages/OperationsPage.tsx` is now unreferenced (left on disk per D02-5).
+
+### D07-1 · Severity tiles are display, not clickable filters
+- **What:** HANDOFF §6 (general index pattern) makes severity tiles clickable filters. The T07
+  Operations tiles render as **display tiles** (no `onClick`, not buttons).
+- **Why:** The "Pages - 07 Operations" mock's tiles carry no `pick` handler (unlike the dimension
+  chips, which do) — Operations is a structured-content read surface, not a filtered ledger, so the
+  tiles are a headline count board. Matched the mock exactly. The interactive filter affordance on
+  this surface is the D1–D6 **dimension chips** (real `aria-pressed` buttons that spotlight a
+  dimension's cells across expanded regions).
+
+### D07-2 · Severity-tile counts read `by_priority` (same fail-soft as D02-1)
+- **What:** The four tile numbers read `get_surface_counts('operations').by_priority` (verified-gated
+  RPC), fail-soft to the scoped-aggregates RPC.
+- **Why:** Identical rationale to D02-1 — migrations 148/149 (severity backfill) are not applied yet,
+  and Operations uses the Critical/High/Moderate/Low vocab that maps 1:1 to `by_priority`. Never the
+  mock snapshot, never recomputed from rows. Migrates to `by_severity` when the hold lifts.
+
+### D07-3 · Dimension-cell key figure uses the region's context hue (not a per-figure severity)
+- **What:** In an expanded region, each D2–D6 cell shows the first sourced fact's value as an Anton
+  key figure, colored with the **region's** severity hue (HANDOFF §2 "key figures in the severity
+  color of their context").
+- **Why:** `regional_data_facts` rows carry no per-figure severity signal, and inventing one would
+  imply a judgment the data doesn't support. Tying the figure to its region's card severity is the
+  honest reading of "context" and avoids a fabricated per-number severity.
+
+### D07-4 · By-state sub-list — state rows derive from regulation cross-refs; every cost figure is PENDING
+- **What:** The US "By state" sub-list groups US **regulations** by state (real cross-ref data) and
+  renders each state's cost figure as an em-dash "—" plus the dashed **STATE-LEVEL COST FACTS
+  PENDING** frame.
+- **Why:** State-level cost facts (minimum wage, labor rates, fuel taxes) are known new backend
+  (HANDOFF §7). This PR ships their schema home only — committed migration `151_state_cost_facts.sql`
+  (per-state, `source_id` FK + `statute_citation`, world-readable RLS) — and renders the honest
+  pending frame until sourced, cited rows land. Per §1/§4 a US state without a sourced figure shows
+  a dash, **never** a national number. State grouping reuses the surface's existing region-regex
+  pattern (same class already used for region grouping); the reserved EU member-state sub-list is not
+  populated (mock shows US only).
+
+### D07-5 · Active-items list reuses `OperationsItemsView` rather than the mock's compact row
+- **What:** The mock's "Active operations items" is a compact `region / title / date` row list. This
+  PR reuses the existing `OperationsItemsView` card (severity pill + jurisdiction + date + optional
+  tier chip, links to `/operations/[id]`).
+- **Why:** Reuse-before-construction — `OperationsItemsView` already renders honest, gated,
+  detail-linked items with the correct severity + tier-chip discipline. Rebuilding the compact row
+  would duplicate that logic. The card is visually heavier than the mock row but semantically richer
+  and honest.
+
+### D07-6 · Migration 151 is committed but NOT applied by this PR
+- **What:** `151_state_cost_facts.sql` is added as a file only; no data write, no apply.
+- **Why:** Scrape hold live; NO spend/fetch/mint (dispatch constraint) + the code-vs-data separation
+  (`.claude/CLAUDE.md`) — migrations land via a separate operator-ruled data dispatch. F6
+  (migrations-numeric-ordering) passes with 151 following 150.
+
+### D07-7 · PR screenshot is an anonymous local render (counts/items thin)
+- **What:** The 1440px screenshot was captured against a local dev server with no workspace session,
+  so the severity tiles read 0 and the item/regulation lists are empty; region facts (D2–D6 = 3/5)
+  come through the service-role coverage fetch, and the US card + By-state pending frame render fully.
+- **Why:** The route auth-gates via `proxy.ts` and the headless sandbox cannot hold a Supabase
+  workspace session. The capture demonstrates the layout, the epistemic/honest-state system, and the
+  By-state pending frame; production (authed) fills the tiles + lists from the same bound fields.

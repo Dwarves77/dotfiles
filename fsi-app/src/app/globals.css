@@ -330,6 +330,22 @@ body {
   .cl-two-col, .cl-two-col--narrow, .cl-two-col--wide { grid-template-columns: 1fr; gap: 24px; }
 }
 
+/* Operations (Redesign TEMPLATE 07) — mirrors the mock's @media(max-width:1200px):
+   the region ledger + rail collapse to one column and the rail flows as a row. */
+@media (max-width: 1200px) {
+  .cl-ops-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .cl-ops-rail { flex-direction: row !important; flex-wrap: wrap !important; }
+  .cl-ops-rail > div { flex: 1 1 260px; }
+}
+@media (max-width: 900px) {
+  .cl-ops-tiles { grid-template-columns: repeat(2, 1fr) !important; }
+  .cl-ops-dims { grid-template-columns: repeat(3, 1fr) !important; }
+  .cl-ops-dimgrid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 560px) {
+  .cl-ops-state { grid-template-columns: 1fr auto !important; row-gap: 2px !important; }
+}
+
 .cl-page-pad { padding: 26px 40px 60px; }
 .cl-page-pad-tight { padding: 0 40px 60px; }
 .cl-stat-zone-pad { padding: 0 40px 18px; }
