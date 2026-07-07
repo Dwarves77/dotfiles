@@ -1,0 +1,35 @@
+{
+  "completed": true,
+  "completed_at": "2026-05-10T01:44:30.855Z",
+  "total": 783,
+  "null_before": 783,
+  "eligible_for_backfill": 182,
+  "updated": 182,
+  "null_after": 601,
+  "log": [
+    {
+      "name": "precondition_column_exists",
+      "ok": true,
+      "detail": "sources.last_scanned reachable via PostgREST",
+      "at": "2026-05-10T01:44:09.423Z"
+    },
+    {
+      "name": "read_state",
+      "ok": true,
+      "detail": "total=783 null_before=783 eligible_for_backfill=182",
+      "at": "2026-05-10T01:44:10.053Z"
+    },
+    {
+      "name": "backfill_complete",
+      "ok": true,
+      "detail": "updated 182 of 182 eligible rows",
+      "at": "2026-05-10T01:44:30.746Z"
+    },
+    {
+      "name": "verify_state",
+      "ok": true,
+      "detail": "null_after=601 expected=601 (sources never HEAD-probed remain NULL by design)",
+      "at": "2026-05-10T01:44:30.855Z"
+    }
+  ]
+}

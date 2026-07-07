@@ -111,6 +111,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[sources-content-verification-2026-05-11]] — Sources + content verification, 2026-05-11
 - [[topic-relevance-investigation-2026-05-09]] — Topic relevance investigation, 2026-05-09
 - [[us-state-code-audit-2026-05-12]] — US-state Code Audit — 2026-05-12
+- [[wave1-archive-logs-disposition-2026-07-07]] — Wave-1 archive-logs disposition + Obsidian-vault topology finding, 2026-07-07
 - [[wave1-step1-verification]] — Wave 1a Step 1 — Post-merge verification checklist
 - [[wave1-track1-summary]] — Wave 1a Track 1 (Gate 4) Discovery Summary
 - [[wave1b-stub-quality-investigation-2026-05-11]] — Wave 1b stub quality investigation, 2026-05-11

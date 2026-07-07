@@ -47,18 +47,16 @@ fsi-app/scripts/backfill-classify-metadata-batch-*.mjs
 fsi-app/supabase/seed/apply-051.mjs
 fsi-app/supabase/seed/apply-pending.mjs
 
-# Raw machine-generated audit outputs under docs/. Authored audit reports
-# (e.g. `docs/cleanup-audit-2026-05-11.md`, `docs/dashboard-payload-audit-*.md`)
-# remain tracked; only the regenerable raw JSON / JSONL captures are ignored.
-# Convention: underscore-prefixed `_audit-*-raw-*` files are the raw drops,
-# and `wave1-*-log.json[l]` / `wave1-track*-routing-applied.json` are the
-# Wave 1a probe captures kept on disk for reference but not source-of-truth.
-docs/_audit-*-raw-*.json
-docs/wave1-api-discovery-*.jsonl
-docs/wave1-api-discovery-*.jsonl.backup
-docs/wave1-cold-start-log.jsonl
-docs/wave1-last-scanned-backfill-log.json
-docs/wave1-track*-routing-applied.json
+# (Removed 2026-07-07) The Wave-1a machine-evidence ignore block previously
+# excluded raw JSON/JSONL captures at the docs/ ROOT. Those files were relocated
+# to docs/archive/logs/ by the ADR-010 taxonomy triage, so the root-anchored
+# patterns no longer matched (dead lines). Per the disposition audit
+# docs/audits/wave1-archive-logs-disposition-2026-07-07.md the 6 stragglers are
+# now TRACKED in place — the repo's docs/ IS the sole Obsidian vault, so tracking
+# is what makes the evidence durable (untracked files die on clean checkout) while
+# keeping one home (no two-homes drift). Producer scripts still write to docs/ root; repointing them
+# is deferred (flagged in that audit) because touching them trips discipline rules 015/016 on
+# pre-existing violations unrelated to a log-path change.
 
 # Claude Code agent worktrees (transient, never committed)
 .claude/worktrees/

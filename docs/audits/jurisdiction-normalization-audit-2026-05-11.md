@@ -4,7 +4,7 @@ Date: 2026-05-11
 Org sampled: `a0000000-0000-0000-0000-000000000001` (operator workspace)
 Scope: read-only audit. No writes, no migrations, no code changes.
 Reproduction script: `scripts/jurisdiction-audit-2026-05-11.mjs` (read-only)
-Raw data dump: `docs/_audit-jurisdiction-raw-2026-05-11.json`
+Raw data dump: `docs/archive/logs/_audit-jurisdiction-raw-2026-05-11.json`
 
 ## 1. TL;DR
 

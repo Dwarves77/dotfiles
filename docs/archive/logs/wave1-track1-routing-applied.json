@@ -1,0 +1,6019 @@
+{
+  "generated_at": "2026-05-10T02:16:27.595Z",
+  "dry_run": false,
+  "decisions": {
+    "total_probed": 695,
+    "applied": 225,
+    "skipped_low_confidence": 437,
+    "skipped_manual_review_low": 0,
+    "skipped_aborted": 1,
+    "skipped_probe_error": 0,
+    "skipped_no_change": 32,
+    "skipped_unknown_method": 0,
+    "rss_url_set": 187,
+    "rss_url_unset": 0,
+    "errors": 0
+  },
+  "applied_changes": [
+    {
+      "source_id": "21709630-dd75-46db-b0dc-9a53f5ad4d90",
+      "name": "City of Boston — Environment Department",
+      "url": "https://www.boston.gov/departments/environment",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.boston.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "8ea87818-aec3-4402-8df1-3a67f9903e69",
+      "name": "New York State Department of Environmental Conservation (NYSDEC)",
+      "url": "https://dec.ny.gov/regulatory",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://dec.ny.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "0f2cf213-8a5c-4cb4-8bb4-93ae0665fabf",
+      "name": "European Clean Trucking Alliance (ECTA)",
+      "url": "https://clean-trucking.eu/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://clean-trucking.eu/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f73be09b-75b9-49a9-aaa9-82171802762c",
+      "name": "Ministerul Mediului, Apelor și Pădurilor (MMAP)",
+      "url": "https://www.mmediu.ro/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://mmediu.ro/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "275ad555-7e43-4b81-9187-2e3c59daf627",
+      "name": "Keskkonnaministeerium (KKM – Estonian Ministry of Climate / Environment)",
+      "url": "https://www.envir.ee/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.envir.ee/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "a819d580-44e4-4fd9-981d-a660bbabe96d",
+      "name": "Tweede Kamer der Staten-Generaal",
+      "url": "https://www.tweedekamer.nl/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.tweedekamer.nl/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b243e435-a4d0-411f-9000-2070c7872e2b",
+      "name": "New York State Public Service Commission (PSC)",
+      "url": "https://www.dps.ny.gov",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.dps.ny.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3594e5a7-16f4-4681-bfec-2c836dca23f1",
+      "name": "Deutscher Bundestag",
+      "url": "https://www.bundestag.de/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.bundestag.de/static/appdata/includes/rss/aktuellethemen.rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3819e20d-0bf4-48d1-91d3-c2ddb5dcfc12",
+      "name": "Riigikogu – Parliament of Estonia",
+      "url": "https://www.riigikogu.ee/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.riigikogu.ee/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1f5fb2b0-29f3-4be7-a23a-df64210787d5",
+      "name": "Agence wallonne de l'Air et du Climat (AwAC)",
+      "url": "https://www.awac.be/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://awac.be/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "393f7044-5bff-4881-86c0-dd7b19826fab",
+      "name": "North Carolina General Assembly – Enacted Legislation & General Statutes",
+      "url": "https://www.ncleg.gov/Laws/GeneralStatuteSections/Chapter136",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.ncleg.gov/news/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "88124255-6d96-4521-9e3e-fc663fd82994",
+      "name": "North Dakota Legislative Assembly – North Dakota Century Code & Administrative Code",
+      "url": "https://www.legis.nd.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ndlegis.gov/announcements/feed"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "22fb8ec4-1084-4aae-86ec-ae998713d4ee",
+      "name": "Sveriges Riksdag (Swedish Parliament)",
+      "url": "https://www.riksdagen.se/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://data.riksdagen.se/dokumentlista/?avd=kalender&amp;from=2026-05-10&amp;utformat=rss&amp;sort=datum&amp;sortorder=asc&amp;tom=2026-05-10"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "592129fc-2313-44d6-b252-64d494bdfaa6",
+      "name": "Houses of the Oireachtas (Irish Parliament)",
+      "url": "https://www.oireachtas.ie/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.oireachtas.ie/en/rss/dail-schedule.xml"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e158c5ec-29ab-4b13-9eca-94718029ec6c",
+      "name": "United Nations Department of Economic and Social Affairs (UN DESA)",
+      "url": "https://sdgs.un.org/goals",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://sdgs.un.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "2a7cb270-1e64-41b4-a3ee-c3859c6612b6",
+      "name": "European Commission – DG Energy",
+      "url": "https://energy.ec.europa.eu/topics/markets-and-consumers_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "89fae12f-63e6-472a-bf11-1fafa6f7b4ec",
+      "name": "European Commission – DG Energy",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/market-analysis_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "87b241da-8864-4273-8cb9-f935e7c3614f",
+      "name": "Rhode Island DEM – Office of Air Resources (Mobile Sources & Climate)",
+      "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://dem.ri.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b9d38292-21af-42a6-a956-3918f700dcae",
+      "name": "CER – Community of European Railway and Infrastructure Companies",
+      "url": "https://www.cer.be/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cer.be/?format=feed&amp;type=rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f45fa467-286f-4047-8a61-9ad365bab29b",
+      "name": "Office of Rail and Road (ORR)",
+      "url": "https://www.orr.gov.uk",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.orr.gov.uk/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "384cd037-f08a-48dc-830a-1fb9e546d462",
+      "name": "Georgia Environmental Protection Division (EPD)",
+      "url": "https://epd.georgia.gov",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://epd.georgia.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "729062fd-d113-4e64-a731-0b0db8469386",
+      "name": "Transport Canada",
+      "url": "https://tc.canada.ca/en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://tc.canada.ca/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e786f2c7-f010-4bcc-8288-a871d3da8198",
+      "name": "Sabin Center for Climate Change Law",
+      "url": "https://climate.law.columbia.edu",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://climate.law.columbia.edu/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "04ba0c5e-d99d-4474-947d-14c8d0fe0596",
+      "name": "Department for Infrastructure Northern Ireland (DfI)",
+      "url": "https://www.infrastructure-ni.gov.uk",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.infrastructure-ni.gov.uk/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "253e0eb6-e9ad-4d9e-91f7-736320c015e3",
+      "name": "Arkansas Pollution Control and Ecology Commission (APC&EC)",
+      "url": "https://ee.arkansas.gov/environment/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ee.arkansas.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "4dd807b9-9857-4e3e-b61d-082f8d2842d1",
+      "name": "Utility Regulator Northern Ireland",
+      "url": "https://www.uregni.gov.uk",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.uregni.gov.uk/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+      "name": "Colorado Department of Transportation – GHG Transportation Planning Program",
+      "url": "https://www.codot.gov/programs/environmental/greenhousegas",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.codot.gov/RSS"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "71f5003a-57f3-431a-a3a7-1d5b67dad2ac",
+      "name": "NSW Environment Protection Authority (EPA)",
+      "url": "https://www.epa.nsw.gov.au/licensing-and-regulation",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.epa.nsw.gov.au/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "9d18cbab-7ec3-49ea-8e7e-c1ce3f6d328d",
+      "name": "ADOT – Arizona State Freight Plan",
+      "url": "https://azdot.gov/planning/transportation-programs/arizona-state-freight-plan",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://azdot.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "051c99be-3a75-4862-a5dd-fd3f7af64e2c",
+      "name": "National Heavy Vehicle Regulator (NHVR)",
+      "url": "https://www.nhvr.gov.au",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.nhvr.gov.au/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "be1164eb-5467-4da4-a5d2-17432f88e9cb",
+      "name": "Delaware Department of Natural Resources and Environmental Control (DNREC)",
+      "url": "https://dnrec.delaware.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://dnrec.delaware.gov/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+      "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+      "url": "https://www.customs.go.jp/english/index.htm",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.customs.go.jp/news.rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "296cd44e-5df9-4265-91d2-dfb7b8f87b7e",
+      "name": "Florida Department of Environmental Protection (FDEP) – Division of Air Resource Management",
+      "url": "https://floridadep.gov/air",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://floridadep.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "c20241c2-a712-440a-8e59-be582186517e",
+      "name": "Australian Maritime Safety Authority (AMSA)",
+      "url": "https://www.amsa.gov.au",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.amsa.gov.au/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f7e0cad5-bdd1-4022-8351-b2663f319ae9",
+      "name": "California Energy Commission (CEC) – Fuels and Transportation Division",
+      "url": "https://www.energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.energy.ca.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3d80cc5f-d4bf-4070-817c-eb00cd15fad7",
+      "name": "Kansas Highway Patrol (KHP) – Commercial Vehicle Enforcement (Troop I)",
+      "url": "https://kansashighwaypatrol.gov/find-a-troop/troop-location-map/technical-operations-bureau/troop-i/commercial-vehicle-regulations/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://kansashighwaypatrol.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "4bdce3c6-f79e-48d4-b8b3-804ec98a55a8",
+      "name": "California Environmental Protection Agency (CalEPA)",
+      "url": "https://calepa.ca.gov",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://calepa.ca.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "511b8cdb-2071-48cb-8d3b-6e271613e900",
+      "name": "Hawaii State Energy Office (HSEO)",
+      "url": "https://energy.hawaii.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://energy.hawaii.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f1781dff-326d-47f6-8eb7-03880627556c",
+      "name": "USGBC LEED Project Database",
+      "url": "https://www.usgbc.org/projects",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.usgbc.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "91845d5f-3057-4f6d-8eb3-590d936a2767",
+      "name": "Wyoming Department of Environmental Quality (DEQ) – Air Quality Division",
+      "url": "https://deq.wyoming.gov/aqd/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "http://deq.wyoming.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1c31ece5-3a0d-4b21-bfdf-86eaa9647687",
+      "name": "New York City Council",
+      "url": "https://council.nyc.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://council.nyc.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "adc88972-f034-4e4b-9e23-bb6e89571730",
+      "name": "Alabama Department of Environmental Management (ADEM)",
+      "url": "https://www.adem.alabama.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adem.alabama.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "04014768-151f-4adf-91ff-b29e4113cc00",
+      "name": "NREL System Advisor Model (SAM)",
+      "url": "https://sam.nrel.gov",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "042f6965-6f6e-4cf0-b64a-76c18143e074",
+      "name": "Queensland Legislation website (Office of the Queensland Parliamentary Counsel)",
+      "url": "https://www.legislation.qld.gov.au/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.legislation.qld.gov.au/feed?id=whatsnew"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "0b594fec-503d-4f89-82f3-958062ff6eea",
+      "name": "Northern Ireland Environment Agency / DAERA (Department of Agriculture, Environment and Rural Affairs)",
+      "url": "https://www.daera-ni.gov.uk/topics/environment",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.daera-ni.gov.uk/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+      "name": "Alberta Environment and Protected Areas",
+      "url": "https://www.alberta.ca/environment-and-parks.aspx",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.alberta.ca/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1679dc4c-4d1b-46aa-84c0-b720709ca6a4",
+      "name": "Commission for Environmental Cooperation (CEC)",
+      "url": "https://www.cec.org/about/agreement-on-environmental-cooperation/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cec.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "81d5ee4d-7604-4e8e-8b22-d8e3b62c4406",
+      "name": "ENERGY STAR Portfolio Manager",
+      "url": "https://www.energystar.gov/buildings/benchmark",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.energystar.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "7b726d85-2d19-4cab-a6d2-04fe3c704ec1",
+      "name": "California Office of Administrative Law (OAL) – California Regulatory Notice Register & CCR",
+      "url": "https://oal.ca.gov",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://oal.ca.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "ed8bd0e6-3dc6-4bea-9a08-5032eaad4cd8",
+      "name": "Nova Scotia House of Assembly",
+      "url": "https://nslegislature.ca/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://nslegislature.ca/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "500b249e-fc60-4cd5-bc38-96c1502191fd",
+      "name": "Nova Scotia Department of Environment and Climate Change",
+      "url": "https://novascotia.ca/nse/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://news-feeds.novascotia.ca/feeds/homepage.atom"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5a08fec4-cecd-4cb8-8b25-45e034d94980",
+      "name": "Newfoundland and Labrador Department of Environment and Climate Change",
+      "url": "https://www.gov.nl.ca/eccm/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.gov.nl.ca/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "2ce9a14e-62ba-42a8-b8b8-728b6f69e1ba",
+      "name": "Western Australian Government Gazette (WA Legislation)",
+      "url": "https://www.legislation.wa.gov.au",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "medium",
+      "manual_review_required": true
+    },
+    {
+      "source_id": "9b01a831-e570-4ce4-80e1-183af21d9fb5",
+      "name": "Asian Development Bank (ADB)",
+      "url": "https://www.adb.org/what-we-do/topics/transport/overview",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adb.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "a30cd6aa-ca17-4a1e-8421-664d2d294bc2",
+      "name": "Prince Edward Island Department of Environment, Energy and Climate Action",
+      "url": "https://www.princeedwardisland.ca/en/topic/environment-energy-and-climate-action",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.princeedwardisland.ca/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "38b755c0-4ad2-4e2d-b7ff-0a477cb5ff8f",
+      "name": "CCICED Secretariat",
+      "url": "https://cciced.eco/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://cciced.eco/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "191a1c06-d02d-4de1-9600-a179e371cafe",
+      "name": "Greater London Authority (GLA)",
+      "url": "https://www.london.gov.uk/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.london.gov.uk/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b737a500-8b9c-4928-84fb-b1028bd37852",
+      "name": "Northwest Territories Department of Environment and Climate Change",
+      "url": "https://www.gov.nt.ca/ecc/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.gov.nt.ca/en/rss.xml"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "name": "Federal Register / U.S. Department of Transportation",
+      "url": "https://www.federalregister.gov/documents/2025/07/15/2025-13219/national-freight-strategic-plan-2025-update-request-for-information",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "2efe7fd6-2445-4ebb-85d1-61c1c5f7976f",
+      "name": "Infra S.A. (formerly EPL — Empresa de Planejamento e Logística), Governo Federal do Brasil",
+      "url": "https://ontl.infrasa.gov.br/planejamento-integrado-de-transportes/plano-nacional-de-logistica/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ontl.infrasa.gov.br/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "95d0d427-3de5-4278-a325-f9a18d71562f",
+      "name": "Mississippi Department of Environmental Quality (MDEQ)",
+      "url": "https://www.mdeq.ms.gov/about-mdeq/regulations/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.mdeq.ms.gov/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "13f9585a-1f19-4b07-a0f7-df65ae0f5712",
+      "name": "Publications Office of the European Union / EUR-Lex",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202500040",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "24f4b92e-6a76-4773-91b4-4463e9f19da9",
+      "name": "Legislative Assembly of Nunavut",
+      "url": "https://assembly.nu.ca/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://assembly.nu.ca/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "7da47f8c-e7ce-4b6c-8ec5-1c20b3b8366c",
+      "name": "Missouri Department of Natural Resources – Division of Environmental Quality",
+      "url": "https://dnr.mo.gov/about-us/division-environmental-quality",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://dnr.mo.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "68fe7082-3b95-4a5a-a9d8-5d5ac3529524",
+      "name": "Maritime Carbon Intelligence",
+      "url": "https://maritimecarbonintelligence.com/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://maritimecarbonintelligence.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d8859b1a-a9d9-410a-b7cb-039dde1581b7",
+      "name": "Agência Portuguesa do Ambiente (APA)",
+      "url": "https://apambiente.pt/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://apambiente.pt/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "ac2bec50-caaf-461f-95d0-c5912184b6ce",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/eli/reg/2023/1805/oj/eng",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e0e9d808-bc39-4317-8107-883943d86a71",
+      "name": "Montana Legislature – Montana Code Annotated (MCA)",
+      "url": "https://leg.mt.gov/bills/mca/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.legmt.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "c3ff2016-c77e-4de1-ba4d-0b5d0fa84928",
+      "name": "Ministerio de Transporte de Colombia",
+      "url": "https://mintransporte.gov.co/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://mintransporte.gov.co/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "237ddcb0-c9a8-4a37-879a-3c282bce840c",
+      "name": "New Jersey Economic Development Authority (NJEDA) – Clean Energy",
+      "url": "https://www.njeda.gov/clean-energy/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.njeda.gov/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1d86d8a1-6561-4e2b-b140-c9210b012c7b",
+      "name": "European Commission – DG TAXUD",
+      "url": "https://taxation-customs.ec.europa.eu/carbon-border-adjustment-mechanism/cbam-legislation-and-guidance_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "6c906a79-826c-43e9-80b0-9b846cd4a1d9",
+      "name": "Ministerstvo životního prostředí (MZP)",
+      "url": "https://www.mzp.cz/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.mzp.cz/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "fd9d21c6-6269-40fe-ad6c-d56b0d438f65",
+      "name": "Sejm of the Republic of Poland",
+      "url": "https://www.sejm.gov.pl/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.sejm.gov.pl/rss.nsf/feed.xsp?symbol=NEWS"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "198a631e-1b2d-4e17-9dc6-3ea113ff7eed",
+      "name": "New Mexico Environment Department (NMED) – Air Quality Bureau",
+      "url": "https://www.env.nm.gov/air-quality/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.env.nm.gov/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "167dae92-0e44-420f-a6ff-c151427647b0",
+      "name": "EUR-Lex",
+      "url": "https://eur-lex.europa.eu/EN/legal-content/summary/refueleu-aviation-sustainable-air-transport.html",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "fa6d6470-6b45-452a-9bc6-6fdff4ec44ae",
+      "name": "American Trucking Associations",
+      "url": "https://www.trucking.org/Energy-Environment",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.trucking.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "c8b07d63-f48f-4d1e-984c-ad9df229966b",
+      "name": "Albuquerque-Bernalillo County Air Quality Control Board (AQCB)",
+      "url": "https://www.cabq.gov/airquality/air-quality-control-board",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cabq.gov/atom.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b8c5905c-4461-46df-aad4-e73b7e98799f",
+      "name": "National Assembly of the Republic of Bulgaria",
+      "url": "https://www.parliament.bg/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.parliament.bg/feed/news"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "83bb800b-13fa-4096-99af-5c6bfaa57b61",
+      "name": "Virginia Legislative Information System (LIS)",
+      "url": "https://lis.virginia.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://lis.virginia.gov/feed.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "74d46ece-5db5-4ae6-8796-56529ab79b11",
+      "name": "U.S. Bureau of Labor Statistics (BLS)",
+      "url": "https://www.bls.gov/oes/current/oes537065.htm",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.bls.gov/feed/bls_latest.rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "9918bb9f-453b-4b99-9480-9994e480dc7a",
+      "name": "South Carolina Department of Environmental Services (SCDES) – Bureau of Air Quality",
+      "url": "https://des.sc.gov/programs/bureau-air-quality",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://des.sc.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "97b05c0a-ad3e-4f8a-87af-7e948297a81c",
+      "name": "Maine Legislature (legislature.maine.gov)",
+      "url": "https://legislature.maine.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://legislature.maine.gov/rss.php"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5f12cb79-ec17-4725-8514-aa5bcf938f08",
+      "name": "DC Department of Energy & Environment (DOEE)",
+      "url": "https://doee.dc.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://doee.dc.gov/rss.xml"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "2f0e6c2d-29a4-47d7-b467-3708bd2a2001",
+      "name": "American Samoa Fono (Legislature)",
+      "url": "https://www.americansamoa.gov/legislature",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.americansamoa.gov/blog-feed.xml"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e50b19a7-1ea4-44c7-beb1-33dcc0cc0b38",
+      "name": "ASEAN Main Portal (asean.org)",
+      "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://asean.org/feed"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3d828dbb-4eda-44fc-84e4-ed92ae7b4220",
+      "name": "Puerto Rico Department of Natural and Environmental Resources (DRNA)",
+      "url": "https://www.drna.pr.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.drna.pr.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "55a4cd0c-7d3f-4084-bf96-2b29aa5cbc15",
+      "name": "Idaho Legislature – Idaho Statutes & Idaho Administrative Code",
+      "url": "https://legislature.idaho.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://legislature.idaho.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "be57a794-e82a-4c91-b182-6a1ad1cccab2",
+      "name": "Texas Commission on Environmental Quality (TCEQ)",
+      "url": "https://www.tceq.texas.gov/rules/current.html",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.tceq.texas.gov/RSS"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "111c637d-49b3-4ab2-b7bf-5dcb6aa8e114",
+      "name": "FreightWaves",
+      "url": "https://www.freightwaves.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.freightwaves.com/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e6342fcd-872c-4fd7-9f3c-79c107414f58",
+      "name": "Wisconsin State Legislature",
+      "url": "https://docs.legis.wisconsin.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://docs.legis.wisconsin.gov/feed/atom"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f8ef5b76-1d2a-4842-8165-5af33d95b352",
+      "name": "REVERB",
+      "url": "https://reverb.org",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://reverb.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "2e1ca35a-97fa-46bb-a719-27c36d613f58",
+      "name": "National Renewable Energy Laboratory (NREL)",
+      "url": "https://www.nrel.gov/solar/market-research-analysis/solar-plus-storage-analysis",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "73ff74a2-6c97-4ad2-a008-c230b5168ce4",
+      "name": "Commercial Carrier Journal",
+      "url": "https://www.ccjdigital.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.ccjdigital.com/__rss/website-scheduled-content.xml?input=%7B%22sectionAlias%22%3A%22home%22%7D"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "ab8e216e-d063-438e-95c3-d11cfdcdc6c9",
+      "name": "IMT — Institute for Market Transformation",
+      "url": "https://www.imt.org",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.imt.org/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "cd8da726-1422-4d22-8f7c-4038cef55e18",
+      "name": "U.S. Energy Information Administration (EIA)",
+      "url": "https://www.eia.gov/dnav/pet/pet_pri_spt_s1_m.htm",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "28d0b9a7-39c3-48f8-a3c6-76e1002896e4",
+      "name": "Journal of Commerce (JOC)",
+      "url": "https://www.joc.com/",
+      "from": {
+        "access_method": "api",
+        "rss_feed_url": "https://www.joc.com/rss.xml"
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.joc.com/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "48cc84e3-d78e-4fec-8923-5cdc4ecb652d",
+      "name": "Los Angeles Department of Building and Safety (LADBS)",
+      "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://dbs.lacity.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5b770846-a00b-4af2-8325-89f2b73bdb04",
+      "name": "Guam Environmental Protection Agency (GEPA)",
+      "url": "https://epa.guam.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://epa.guam.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f9f787e4-bcfa-4026-8719-abec5de462a4",
+      "name": "Minnesota Pollution Control Agency (MPCA)",
+      "url": "https://www.pca.state.mn.us/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.pca.state.mn.us/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "63f3ac51-55b1-460e-bebd-bcce00413583",
+      "name": "U.S. Energy Information Administration (EIA)",
+      "url": "https://www.eia.gov/dnav/ng/ng_pri_fut_s1_d.htm",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "fd042e62-8955-4fa7-8248-0a296942f537",
+      "name": "ASEAN Main Portal (asean.org)",
+      "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://asean.org/feed"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "aae0af9b-3dc7-4ca5-91c0-95769b590f8a",
+      "name": "ASEAN Main Portal (asean.org)",
+      "url": "https://asean.org/our-communities/economic-community/transport/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://asean.org/feed"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "de15227a-ce56-49f5-8ebb-8758c5794d67",
+      "name": "FreightWaves",
+      "url": "https://www.freightwaves.com/",
+      "from": {
+        "access_method": "api",
+        "rss_feed_url": "https://www.freightwaves.com/news/feed"
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.freightwaves.com/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": true
+    },
+    {
+      "source_id": "ce0f5d88-f986-43e6-8c23-6c13ee88ff3e",
+      "name": "National Renewable Energy Laboratory (NREL) / U.S. Department of Energy",
+      "url": "https://www.nrel.gov/transportation/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f4946a56-8854-4e0a-8e85-014316ef54e8",
+      "name": "Commission for Environmental Cooperation (CEC)",
+      "url": "https://www.cec.org/about/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cec.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "130e05c2-2d5b-441b-ba8a-56f815e2d724",
+      "name": "U.S. Energy Information Administration (EIA)",
+      "url": "https://www.eia.gov/naturalgas/data.php",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "58fb7e21-b1b3-4b51-8606-dfad928d157d",
+      "name": "National Renewable Energy Laboratory (NREL)",
+      "url": "https://www.nrel.gov/reopt/projects/case-study-commercial-storage.html",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "0ff45df5-eb3b-4bed-b1ff-9dffa44e7725",
+      "name": "Kansas Legislature",
+      "url": "https://www.kslegislature.org/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "medium",
+      "manual_review_required": true
+    },
+    {
+      "source_id": "da251500-ec68-4df5-adab-0f654f4876f2",
+      "name": "Ministerio de Transporte de Colombia",
+      "url": "https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://mintransporte.gov.co/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "bedb8f15-e9d2-4877-8902-ae5152b055fd",
+      "name": "Arizona State Legislature",
+      "url": "https://www.azleg.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.azleg.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "77dd0e92-9da8-4589-8327-aba15293569e",
+      "name": "Washington Utilities and Transportation Commission (UTC)",
+      "url": "https://www.utc.wa.gov",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.utc.wa.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "4d5ba9b0-0cda-4534-9171-71177ed7b975",
+      "name": "Washington State Department of Transportation (WSDOT) – Freight & Rail Division",
+      "url": "https://wsdot.wa.gov/construction-planning/statewide-plans/freight-rail-plans/freight-system-plan",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://wsdot.wa.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "7fa29bcb-32eb-4d94-afe7-ebb2e2f624eb",
+      "name": "U.S. Energy Information Administration (EIA)",
+      "url": "https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5a83bc99-f851-48ff-9514-b838b3a6248e",
+      "name": "U.S. Bureau of Labor Statistics (BLS)",
+      "url": "https://www.bls.gov/oes/current/naics2_48-49.htm",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.bls.gov/feed/bls_latest.rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1a760dfb-1e89-4416-a594-8d92778fb2e4",
+      "name": "National Renewable Energy Laboratory (NREL) / U.S. Department of Energy",
+      "url": "https://www.nrel.gov/transportation/research",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "56dff28e-afa1-4bfa-9b1d-e999e37802b6",
+      "name": "National Renewable Energy Laboratory (NREL) / National Laboratory of the Rockies (NLR)",
+      "url": "https://www.nrel.gov/transportation/research",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "a5a3569d-02a8-4d83-ba9d-21e3cad15070",
+      "name": "Washington State Department of Commerce – Energy Office",
+      "url": "https://www.commerce.wa.gov/growing-the-economy/energy/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.commerce.wa.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "bec1a090-c849-4e78-b463-f7f34e64afb6",
+      "name": "International Council on Clean Transportation (ICCT)",
+      "url": "https://www.transportpolicy.net/standard/india-regulatory-background/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.transportpolicy.net/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1c5588e3-e45d-4985-9154-113558853c7f",
+      "name": "House of Representatives of Japan (Shugiin / 衆議院)",
+      "url": "https://www.shugiin.go.jp/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "medium",
+      "manual_review_required": true
+    },
+    {
+      "source_id": "36978885-cb83-4af3-816d-4d3536a5cce8",
+      "name": "Idaho Department of Environmental Quality (DEQ)",
+      "url": "https://www.deq.idaho.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.deq.idaho.gov/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b0cece2a-bb98-4ac7-85d4-e53994767ef9",
+      "name": "U.S. Energy Information Administration (EIA)",
+      "url": "https://www.eia.gov/naturalgas/weekly/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "0091e1d0-afb5-4d0c-bf1a-b2c3faedda7c",
+      "name": "U.S. Energy Information Administration (EIA)",
+      "url": "https://www.eia.gov/todayinenergy/prices.php",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "81c57c2c-09c1-4428-a272-547a668e979b",
+      "name": "Council of the European Union Press",
+      "url": "https://www.consilium.europa.eu/en/press/press-releases/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.consilium.europa.eu/en/press/press-releases/?language=en&Format=rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "9fb4b968-7068-4262-8be2-dc4ee0fd8742",
+      "name": "EC CBAM Portal",
+      "url": "https://taxation-customs.ec.europa.eu/carbon-border-adjustment-mechanism_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "cc11069e-0350-4500-8322-b872b2f325f4",
+      "name": "European Commission – DG MOVE (Directorate-General for Mobility and Transport)",
+      "url": "https://transport.ec.europa.eu/transport-modes/air/environment/refueleu-aviation_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "62d003e3-4b19-4286-8fd8-3bda315ab460",
+      "name": "CER – Community of European Railway and Infrastructure Companies",
+      "url": "https://www.cer.be/topics/sustainability",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cer.be/?format=feed&amp;type=rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "33154dd7-1b59-441f-8d3b-2221090a53a5",
+      "name": "European Commission — Directorate-General for Mobility and Transport (DG MOVE)",
+      "url": "https://transport.ec.europa.eu/news-events/news/commission-welcomes-political-agreement-new-rules-harmonise-transport-emissions-calculations-eu-2025-11-06_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "da604866-450e-47c0-9d2b-04d606bc6267",
+      "name": "MIT Center for Transportation and Logistics",
+      "url": "https://ctl.mit.edu",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ctl.mit.edu/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "529e725e-38cb-41e2-8df9-1899405855ca",
+      "name": "European Commission – DG MOVE (transport.ec.europa.eu)",
+      "url": "https://transport.ec.europa.eu/transport-modes/maritime/decarbonising-maritime-transport-fueleu-maritime_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1361fa34-d4c1-41e5-a99a-6e937880fa8f",
+      "name": "H2Accelerate Collaboration (industry consortium: Daimler Truck, Volvo Group, Iveco, Shell, Linde, TotalEnergies, TEAL Mobility, Hyundai Hydrogen Mobility, et al.)",
+      "url": "https://h2accelerate.eu/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://h2accelerate.eu/przykladowa-strona/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5a81a775-3ea6-4e5b-a468-7b5cf7dbd215",
+      "name": "European Commission — Directorate-General for Mobility and Transport",
+      "url": "https://transport.ec.europa.eu/transport-themes/clean-transport/alternative-fuels-sustainable-mobility-europe/alternative-fuels-infrastructure_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "60ab8dd5-c7b3-4131-a2cb-e81ad31ca951",
+      "name": "European Commission – DG TAXUD (Taxation and Customs Union)",
+      "url": "https://taxation-customs.ec.europa.eu/customs/customs-security/import-control-system-2_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "2b6d9e9a-c8ed-42de-942f-1576dfa931ac",
+      "name": "CER – Community of European Railway and Infrastructure Companies",
+      "url": "https://www.cer.be/about-us/who-we-are",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cer.be/?format=feed&amp;type=rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e421ae49-28a2-40ec-8c52-81133a0b87f3",
+      "name": "EU EPBD Recast — Energy Performance of Buildings",
+      "url": "https://energy.ec.europa.eu/topics/energy-efficiency/energy-efficient-buildings/energy-performance-buildings-directive_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "46379f0b-c77d-4b99-a6d4-a3ca9a8d066a",
+      "name": "SmartPort (partnership of EUR, TU Delft, Port of Rotterdam Authority, Municipality of Rotterdam, Deltalinqs, TNO, Deltares)",
+      "url": "https://smartport.nl/en/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://smartport.nl/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d8d21ad5-47b3-4839-b9ea-9afa392c4f20",
+      "name": "European Commission Press Corner",
+      "url": "https://ec.europa.eu/commission/presscorner/home/en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1a5e8577-f280-47ef-af24-334576472cde",
+      "name": "Packaging Europe",
+      "url": "https://packagingeurope.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://packagingeurope.com/2713.rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b534ca39-6ec5-4dce-9889-92367a2f5c62",
+      "name": "European Clean Trucking Alliance (ECTA)",
+      "url": "https://clean-trucking.eu/about-us/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://clean-trucking.eu/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "c048ce5e-bbf4-4e74-a03c-575283bcfba3",
+      "name": "EUR-Lex (Official Journal of the European Union)",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52021DC0550",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "fbbacc94-d511-4f3e-8738-64f861ed2851",
+      "name": "Council of the European Union",
+      "url": "https://www.consilium.europa.eu/en/policies/fit-for-55/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.consilium.europa.eu/en/press/press-releases/?language=en&Format=rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "363abb3f-921f-47fe-9bb3-e085c70c0c91",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1805",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "44ddd506-81ea-4e7c-beef-33de2933e5fb",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32013R0952",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "4c6f45e9-c0ea-4dff-9fe8-37ab043644bb",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/eli/reg/2023/1804/oj/eng",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "807a3ad8-7665-47b3-b0e4-3702ef3a8b33",
+      "name": "Publications Office of the European Union / EUR-Lex",
+      "url": "https://eur-lex.europa.eu/eli/reg/2025/40/oj/eng",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "93fc8015-69cc-4bdc-a73f-ccfb560b928a",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e6956d6f-4c95-47b6-a72e-04cec98992f2",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "272e9339-665d-4d75-acab-23c927dfa998",
+      "name": "European Commission – DG TAXUD (Taxation and Customs Union)",
+      "url": "https://taxation-customs.ec.europa.eu/customs/customs-security/import-control-system-2/faq_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "name": "European Commission – DG Energy",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "9a8840c8-2715-49be-8799-7d3ef0d44531",
+      "name": "European Commission — Directorate-General for Environment",
+      "url": "https://environment.ec.europa.eu/topics/waste-and-recycling/packaging-waste_en",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3cb91963-21a2-418e-bc33-fa391fd96d38",
+      "name": "Legislative Assembly of British Columbia",
+      "url": "https://www.leg.bc.ca/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.leg.bc.ca/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "071dff9e-4841-4955-8c04-9012c7836a49",
+      "name": "Centre for Sustainable Road Freight",
+      "url": "https://www.csrf.ac.uk",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.csrf.ac.uk/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "9fde471c-fada-4c4c-a148-fa8f4b29cd39",
+      "name": "Tyndall Centre for Climate Research",
+      "url": "https://www.tyndall.ac.uk",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://tyndall.ac.uk/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e2e75b20-0d6c-448a-950d-32ec401d6af4",
+      "name": "Centre for Sustainable Road Freight",
+      "url": "https://www.csrf.ac.uk/technical-reports/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.csrf.ac.uk/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b8ff2ebb-ab9a-456c-b3c9-8f869fb64f88",
+      "name": "Centre for Sustainable Road Freight",
+      "url": "https://www.csrf.ac.uk/about/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.csrf.ac.uk/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "00d006cf-33ec-4439-be45-3a51ee1849a3",
+      "name": "Julie's Bicycle",
+      "url": "https://juliesbicycle.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://juliesbicycle.com/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "19f69037-3d39-4482-8359-0bfe3f9f6ae3",
+      "name": "Tyndall Centre for Climate Change Research (tyndall.ac.uk)",
+      "url": "https://tyndall.ac.uk/reports/decarbonising-the-uk-energy-in-a-climate-conscious-future/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://tyndall.ac.uk/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "c096820c-e857-4173-b60d-9af004a0d73d",
+      "name": "Centre for Sustainable Road Freight (University of Cambridge / Heriot-Watt University / University of Westminster)",
+      "url": "https://www.csrf.ac.uk/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.csrf.ac.uk/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "a44c91fa-8d83-48ea-b123-82ff67ea81dd",
+      "name": "legislation.gov.uk (UK Statute Law Database)",
+      "url": "https://www.legislation.gov.uk/ukdsi/2015/9780111128350/contents",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "81f10615-1e7e-4646-9fd4-e576a38fd232",
+      "name": "InsideEVs",
+      "url": "https://insideevs.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://insideevs.com/feed"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d9bf4347-ea64-4ee6-accf-cef66f0e2cd4",
+      "name": "GHG Protocol",
+      "url": "https://ghgprotocol.org/corporate-value-chain-scope-3-standard",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ghgprotocol.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "58148ad8-df16-40e8-84de-93504271cba0",
+      "name": "IRU Environment",
+      "url": "https://www.iru.org/what-we-do/being-trusted-voice-mobility-and-logistics/environment",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.iru.org/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3df9eae5-473c-4900-9900-3a475a7d53ee",
+      "name": "ICCT Freight",
+      "url": "https://theicct.org/sector/freight/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://theicct.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "719531d9-3688-455a-aff3-453b69fc53a9",
+      "name": "RMI Energy Innovation",
+      "url": "https://rmi.org",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://rmi.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "fa19ea7f-ab82-4eaa-9dd2-9375d8418e87",
+      "name": "BloombergNEF Energy Storage",
+      "url": "https://about.bnef.com/energy-storage/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://about.bnef.com/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "6a4fbc59-5412-4541-a9a3-eeb155b15cc6",
+      "name": "ESG Today",
+      "url": "https://www.esgtoday.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.esgtoday.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b2588399-4cf6-40fc-9129-3f9b44c4b356",
+      "name": "Splash247",
+      "url": "https://splash247.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://splash247.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d3e7c0b9-7550-4805-84cb-6aad42ef3275",
+      "name": "Seatrade Maritime News",
+      "url": "https://www.seatrade-maritime.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.seatrade-maritime.com/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1c2b33a5-f9ae-4d2e-977f-5212174814d5",
+      "name": "Air Cargo News",
+      "url": "https://www.aircargonews.net",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.aircargonews.net/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "20fb520a-38d2-4c68-928c-e359d9ff5d41",
+      "name": "Electrek",
+      "url": "https://electrek.co",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://electrek.co/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "98ea1dbe-6ddf-4af9-bb13-9420d13c3fae",
+      "name": "CleanTechnica",
+      "url": "https://cleantechnica.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://cleantechnica.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "1ed3f79c-9d4c-4ae7-a443-0683edbd7f47",
+      "name": "GreenBiz",
+      "url": "https://www.greenbiz.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://trellis.net/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "9f11c216-6ce6-44ca-831f-f70528b17e1b",
+      "name": "The Loadstar",
+      "url": "https://theloadstar.com",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://theloadstar.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "a4dc8935-b270-4a04-bd25-a4b95222be87",
+      "name": "ZEMBA (Zero Emission Maritime Buyers Alliance)",
+      "url": "https://www.shipzemba.org/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.shipzemba.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5a70d4a5-27af-4b11-9a6c-d4d193731c4e",
+      "name": "Aviation Week Network (Informa)",
+      "url": "https://aviationweek.com/special-topics/sustainability",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://aviationweek.com/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "cd7ed847-c50f-44a5-b946-a66e29692a8d",
+      "name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)",
+      "url": "https://bluevisby.com/how-does-it-work/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://bluevisby.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3654fc96-0f23-43d7-8fe9-8403fed5f927",
+      "name": "Blue Visby Consortium (co-ordinated by NAPA Oy & Stephenson Harwood LLP)",
+      "url": "https://bluevisby.com/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://bluevisby.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "3a08ee19-df3b-45fb-8d7a-3a59f06eb330",
+      "name": "Intergovernmental Panel on Climate Change (IPCC)",
+      "url": "https://www.ipcc.ch/reports/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.ipcc.ch/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e0e3b24b-f709-4e97-ab8e-03c6f8a72891",
+      "name": "Journal of Commerce (S&P Global)",
+      "url": "https://www.joc.com/about",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.joc.com/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d5d9b939-9153-4a7a-8b3c-27e637e3c1c3",
+      "name": "TIACA (The International Air Cargo Association)",
+      "url": "https://www.tiaca.org/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://tiaca.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "bf630add-6c5a-4c0b-9984-2f66fc8efc6b",
+      "name": "DNV Maritime Regulatory Updates",
+      "url": "https://www.dnv.com/maritime/insights/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.dnv.com/news/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d96111d4-b9e7-432a-a9b4-ee79fc4dee1d",
+      "name": "GreenBiz (Trellis Group)",
+      "url": "https://www.greenbiz.com/collections/supply-chain",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://trellis.net/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e3a3818a-7e8b-4aad-8bbb-b7668f0fbc17",
+      "name": "Asian Development Bank (ADB)",
+      "url": "https://www.adb.org/documents/sustainable-transport-initiative-operational-plan",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adb.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "0b049c06-e6aa-483a-ae65-048d1afb0068",
+      "name": "The Loadstar",
+      "url": "https://theloadstar.com/feed/",
+      "from": {
+        "access_method": "api",
+        "rss_feed_url": "https://theloadstar.com/feed/"
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://theloadstar.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "ce9e6672-1cff-402c-8316-31cab6a0d48f",
+      "name": "United Nations Department of Economic and Social Affairs (UN DESA)",
+      "url": "https://sdgs.un.org/goals/goal9",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://sdgs.un.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "295fba96-2a55-4430-a5b5-3548992c6df4",
+      "name": "Splash247",
+      "url": "https://splash247.com/",
+      "from": {
+        "access_method": "api",
+        "rss_feed_url": "https://splash247.com/feed/"
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://splash247.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "593f30c6-8a88-4dc5-8a33-3214fa07bcf7",
+      "name": "United Nations Department of Economic and Social Affairs (UN DESA)",
+      "url": "https://sdgs.un.org/goals/goal13",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://sdgs.un.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "6f698bf0-8e67-4432-83d1-83f9daff7283",
+      "name": "EcoVadis",
+      "url": "https://resources.ecovadis.com/whitepapers/ecovadis-ratings-methodology-overview-and-principles-2022-neutral",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://resources.ecovadis.com/news.rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "971e661f-4c7b-4639-98cd-3489e7150d5a",
+      "name": "Project Drawdown (drawdown.org)",
+      "url": "https://drawdown.org/explorer",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://drawdown.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "c7f45d80-638d-475b-b8bb-f4c7c32644f9",
+      "name": "Intergovernmental Panel on Climate Change (IPCC)",
+      "url": "https://www.ipcc.ch/assessment-report/ar6/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.ipcc.ch/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "a2d25d50-0bb7-4b7c-8cda-e37d26803e8e",
+      "name": "EcoVadis",
+      "url": "https://resources.ecovadis.com/blog",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://resources.ecovadis.com/news.rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "beecae98-5bdb-4513-8215-eaa3ce8bf0d1",
+      "name": "U.S. Green Building Council (USGBC)",
+      "url": "https://www.usgbc.org/leed",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.usgbc.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5ce39da7-a55b-41bf-bc58-a3d33746213c",
+      "name": "Global Environment Facility (GEF) — official secretariat site",
+      "url": "https://www.thegef.org/who-we-are",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.thegef.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b04ddc7f-ed89-4c6d-a401-237b621ee62a",
+      "name": "Tyndall Centre for Climate Change Research (tyndall.ac.uk)",
+      "url": "https://tyndall.ac.uk/research/reaching-zero-emissions/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://tyndall.ac.uk/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "96f795c2-97fa-4f6e-84d8-cf3b158c8e14",
+      "name": "Splash247 (Asia Shipping Media)",
+      "url": "https://splash247.com/category/sector/environment/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://splash247.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "9e5ff2fe-94be-4225-a7fa-7b77a0453e79",
+      "name": "FreightWaves",
+      "url": "https://www.freightwaves.com/news/tag/sustainability",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.freightwaves.com/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "fbeec262-732a-48c0-8f0e-8dd1597c7189",
+      "name": "Mission Innovation",
+      "url": "https://www.mission-innovation.net/missions/shipping/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.mission-innovation.net/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "ba4e0a5f-bc72-45e3-b938-e65f3e02ccbd",
+      "name": "Maritime Carbon Intelligence",
+      "url": "https://maritimecarbonintelligence.com/contact-us/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://maritimecarbonintelligence.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5013b7c3-1aad-4afa-9508-304caf55b56a",
+      "name": "MIT Sustainable Supply Chain Lab (hosted under MIT CTL)",
+      "url": "https://sustainable.mit.edu/sustainable-transportation/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://sustainable.mit.edu/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "5025e77d-75d7-4f9b-9dee-c54630f67b1f",
+      "name": "Sustainable Packaging Coalition (a project of GreenBlue)",
+      "url": "https://sustainablepackaging.org/about-us/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://sustainablepackaging.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "860f7c3b-54e1-4ccd-9842-c70bf3146ca1",
+      "name": "Mission Innovation",
+      "url": "https://mission-innovation.net/missions/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://mission-innovation.net/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "4d2e0f8a-0238-4316-9d88-079aeefd71e7",
+      "name": "Sustainable Packaging Coalition (a project of GreenBlue)",
+      "url": "https://sustainablepackaging.org/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://sustainablepackaging.org/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "c30febdb-2981-47f3-b65c-0907c0091b04",
+      "name": "International Labour Organization (ILO)",
+      "url": "https://ilostat.ilo.org/topics/labour-costs/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "f939efd5-a76c-474a-b181-5738e99482ad",
+      "name": "Asian Development Bank (ADB)",
+      "url": "https://www.adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adb.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "e76e2549-648d-4508-8d15-68eb7234987c",
+      "name": "Intergovernmental Panel on Climate Change (IPCC)",
+      "url": "https://www.ipcc.ch/assessment-report/ar7/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.ipcc.ch/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "8792e3c9-2bbb-4388-9d08-3ddc3c1f09d5",
+      "name": "Global Environment Facility (GEF) — official secretariat site",
+      "url": "https://www.thegef.org/publications/instrument-establishment-restructured-gef-2019",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.thegef.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d55e91db-dc9b-42a9-9854-ddd4f1d670ee",
+      "name": "FreightWaves",
+      "url": "https://www.freightwaves.com/news/category/news/insight/sustainability",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.freightwaves.com/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "319197ff-6f89-40ee-a7a6-f20ec57a55ad",
+      "name": "Hawai‘i Department of Health – Clean Air Branch & Environmental Health Administration",
+      "url": "https://health.hawaii.gov/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://health.hawaii.gov/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "7d18d831-429b-450a-a209-22446a8d886f",
+      "name": "City of Toronto — City Council",
+      "url": "https://www.toronto.ca/city-government/council/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.toronto.ca/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "41c1cadd-f6b2-4f56-8e22-ba4dd6db9a9c",
+      "name": "EUR-Lex (Official Journal / European Commission)",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=comnat:COM_2023_0441_FIN",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "45140924-25b6-4d2c-abe5-11a65386acdc",
+      "name": "California Air Resources Board (CARB)",
+      "url": "https://ww2.arb.ca.gov",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://ww2.arb.ca.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d888d3a0-4fac-406e-9997-3e888c450354",
+      "name": "McKinsey Sustainability",
+      "url": "https://www.mckinsey.com/capabilities/sustainability/our-insights",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.mckinsey.com/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "ba680206-2b54-4d08-8d98-909da2b3c643",
+      "name": "City of Toronto — Environment & Climate",
+      "url": "https://www.toronto.ca/services-payments/water-environment/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.toronto.ca/rss"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "7f8d6310-97cc-4c6a-ab93-ac984e9d737c",
+      "name": "NYC Office of Administrative Trials and Hearings / NYC Rules portal",
+      "url": "https://rules.cityofnewyork.us/rule/annual-greenhouse-gas-ghg-emissions-limits-for-buildings/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://rules.cityofnewyork.us/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d9424b30-ca5a-4e6e-bb52-6b2a319c9402",
+      "name": "Philadelphia City Council",
+      "url": "https://phlcouncil.com/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://phlcouncil.com/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "6fad3393-3a75-434d-b354-a09659fe091b",
+      "name": "Los Angeles Department of Building and Safety (LADBS)",
+      "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://dbs.lacity.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "777c7a9c-8e46-4791-af04-aa8d4aaf92b5",
+      "name": "EUR-Lex / European Union",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1804",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "90202733-5283-4744-bf8a-98335b136abd",
+      "name": "Boston City Council",
+      "url": "https://www.boston.gov/departments/city-council",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.boston.gov/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+      "name": "Northwest Territories Legislative Assembly",
+      "url": "https://www.assembly.gov.nt.ca/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.assembly.gov.nt.ca/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b6b32cb2-0575-4fd7-ba88-3ee7409f4ef1",
+      "name": "Legislative Assembly of Ontario",
+      "url": "https://www.ola.org/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://www.ola.org/rss.xml"
+      },
+      "confidence": "medium",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "b32c0e41-bfbd-4bea-a1a7-732d6b02a4ad",
+      "name": "EUR-Lex / Regulation (EU) 2023/1542 — Batteries Regulation",
+      "url": "https://eur-lex.europa.eu/eli/reg/2023/1542/oj",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "d7c1a71b-8de0-498a-8da6-e87f044409e0",
+      "name": "legislation.gov.uk (His Majesty's Stationery Office)",
+      "url": "https://www.legislation.gov.uk/ukdsi/2024/9780348261714",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "8afd5b81-f2af-4c31-9db1-57e8c618b51e",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/eli/reg/2023/2405/oj/eng",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "82a5c70e-cf83-498c-83d2-924e06ba9c81",
+      "name": "Ministerio de Transporte de Colombia",
+      "url": "https://transportesostenible.mintransporte.gov.co/normatividad-2/",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "rss",
+        "rss_feed_url": "https://transportesostenible.mintransporte.gov.co/feed/"
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "bd3beeb4-e60f-43dc-b6b9-9e4f4778d7fd",
+      "name": "Federal Register / Office of the Federal Register (U.S. Government)",
+      "url": "https://www.federalregister.gov/documents/2024/04/22/2024-06809/greenhouse-gas-emissions-standards-for-heavy-duty-vehicles-phase-3",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    },
+    {
+      "source_id": "de36ea2b-fa9e-4406-8158-3a3c8dde6860",
+      "name": "EUR-Lex / Official Journal of the European Union",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R0956",
+      "from": {
+        "access_method": "scrape",
+        "rss_feed_url": null
+      },
+      "to": {
+        "access_method": "api",
+        "rss_feed_url": null
+      },
+      "confidence": "high",
+      "manual_review_required": false
+    }
+  ],
+  "skipped": [
+    {
+      "source_id": "4c97d1ce-7153-4474-a990-d4e85f113646",
+      "name": "Ministry of Ecology and Environment (MEE), People's Republic of China",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7cc36395-3e20-47d9-b23c-5cb64dc13663",
+      "name": "Hrvatski sabor – Croatian Parliament",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0cc23a7e-4c41-4667-b0fb-6094d134d71b",
+      "name": "Seimas of the Republic of Lithuania",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bd336e46-60cf-4b70-bfd6-6376ad404a68",
+      "name": "Országgyűlés – National Assembly of Hungary",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f692281c-95c6-4d78-96b2-c8aa9f2beb0c",
+      "name": "Saeima of the Republic of Latvia",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bb38c4f7-2b4a-421a-91cf-d1185902e9c2",
+      "name": "Ministry of Environment and Water (MOEW)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b440f113-5be4-4fa5-aa65-80782ff8469f",
+      "name": "Ministarstvo gospodarstva i održivog razvoja (Ministry of Economy and Sustainable Development)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "67d76814-46aa-4146-a668-a07bbba10c1e",
+      "name": "Aplinkos apsaugos agentūra (AAA – Environmental Protection Agency)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "687a082b-65eb-4b9a-9e0d-e3bccda8f64b",
+      "name": "ECLAC / CEPAL – United Nations",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5823b4b1-0de4-4290-addd-bf939ae748c8",
+      "name": "Ministrstvo za okolje, podnebje in energijo (MOPE)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "610ed5ac-ae3b-4fc6-b82f-df2988bb78e3",
+      "name": "New York State Department of Transportation (NYSDOT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "198b04d6-cce0-4c4a-aefb-38be73bc2e48",
+      "name": "Državni zbor Republike Slovenije",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "af78aadc-ea59-4db0-9e2e-e248d6464239",
+      "name": "Camera Deputaților – Chamber of Deputies of Romania",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "584a0085-e145-4a53-8918-a77630845b59",
+      "name": "Vides aizsardzības un reģionālās attīstības ministrija (VARAM)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "81df8e97-9b84-45c3-94a5-5e9e5838c10a",
+      "name": "Ministère de la Transition écologique et de la Cohésion des territoires (MITECO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0988c497-a6f1-4501-99d5-5986032d3883",
+      "name": "Brussels Environment / Leefmilieu Brussel (Bruxelles Environnement)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a2b2fe29-5a42-4231-8214-f7d86f56f87f",
+      "name": "ECLAC / CEPAL – United Nations",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3b3b18c7-2527-44a7-aba1-9a550de7a52b",
+      "name": "Singapore Statutes Online",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "61fd172f-b2b8-472e-9d92-06139889b24a",
+      "name": "Sénat (France)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "53581e0d-12ef-4ad7-9462-483bbd693b34",
+      "name": "Rijksinstituut voor Volksgezondheid en Milieu (RIVM)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1ba7f3d2-b838-44f8-99b6-d86f565c18b4",
+      "name": "SPF Santé publique, Sécurité de la chaîne alimentaire et Environnement (FPS Health)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f65fd561-795b-471d-ad1c-55a292cb712a",
+      "name": "Assemblée nationale",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9b646f1b-8e80-47e9-9ff5-e19b9142f24c",
+      "name": "La Chambre des représentants de Belgique / Belgische Kamer van volksvertegenwoordigers",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "28e82808-aa9f-4110-a5be-9564944106ec",
+      "name": "Umweltbundesamt (UBA) — German Environment Agency",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "63df9b16-2a53-4fd6-81fb-09933abd9b38",
+      "name": "New York State Climate Action Council – Scoping Plan",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7c077e07-5be4-4af2-b3b3-e212084a4f4c",
+      "name": "Vlaamse Milieumaatschappij (VMM) — Flanders Environment Agency",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "65b6e5fc-77e4-4055-97c6-39e26a7cc932",
+      "name": "Naturvårdsverket — Swedish Environmental Protection Agency",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9c13dca2-f674-4dec-a2bb-7e93cb49d596",
+      "name": "Ministère de l'Environnement, du Climat et de la Biodiversité (MECDD) — Luxembourg",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f404180d-6e41-42e1-967e-615e6d8377e4",
+      "name": "Umweltbundesamt — Austrian Environment Agency",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "86474c7e-a858-4a25-a206-d4aadf17d09f",
+      "name": "North Carolina Department of Environmental Quality (NC DEQ) – Division of Air Quality",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1d166acf-5328-4965-8c37-5be7d2b57456",
+      "name": "Ohio Laws – Ohio Administrative Code & Ohio Revised Code (LSC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5370c7f4-3f67-4701-8545-1905c6c1ee37",
+      "name": "Miljøministeriet (Ministry of Environment of Denmark)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c1c527fa-fa10-46c9-9667-7c47edc60974",
+      "name": "Estidama Pearl Rating System",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4bd7d688-d76c-401c-86da-55c17bad7445",
+      "name": "Texas Legislature Online",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a9776b5f-9ce3-41a0-b20b-c5e01a7a220c",
+      "name": "NCDOT – Climate Change & Clean Energy",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "62a43402-42e4-4987-a760-c3abe6f0390c",
+      "name": "Australian Government Federal Register of Legislation",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "07da4496-58f2-48aa-b438-9ddd23c69fe7",
+      "name": "Chambre des Députés du Grand-Duché de Luxembourg",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "35ce9af9-a6ff-4acf-a367-e3e3dd54a6dc",
+      "name": "Folketinget (Danish Parliament)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a0e2be6c-1c62-4bad-bda6-469285ffa57c",
+      "name": "Österreichisches Parlament (Nationalrat & Bundesrat)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5b676647-171e-4ba4-b468-28f7d41c2e72",
+      "name": "Massachusetts Department of Environmental Protection (MassDEP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5012a359-bb4b-44f7-b28a-e9b976383051",
+      "name": "North Dakota Department of Environmental Quality (NDDEQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "22e4e428-f280-4484-ae8f-05b7bddb590d",
+      "name": "Gazette of India eGazette",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a386a21f-2fe4-42b8-bb27-1d7c20a10f5e",
+      "name": "National Laboratory of the Rockies (NLR) — formerly NREL",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c49414da-7c9e-45cc-a629-f138166ecda5",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b98250ab-296c-4967-be19-ac27e83d1fb9",
+      "name": "Oregon Department of Environmental Quality (DEQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dbb217d8-19c2-4f86-b481-eb076026f898",
+      "name": "New Hampshire Department of Environmental Services (NHDES)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c8b87abd-146d-4e79-8c91-d14ad8943681",
+      "name": "Alabama State Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e2fa9583-ada5-45aa-986a-888b7efa349f",
+      "name": "Eduskunta (Parliament of Finland)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7663d425-295a-46ce-abc4-c47f6fa8d683",
+      "name": "Région Île-de-France",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7f213384-e730-451b-85d7-e794baa62be4",
+      "name": "Gobierno de México (gob.mx) — SEMARNAT",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "acc6322f-09fa-4d48-a369-f905e5411bb7",
+      "name": "Abgeordnetenhaus von Berlin",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "54c1ea8f-c6e9-4ae3-9cea-d048a1ce6f0b",
+      "name": "NYC Department of Buildings",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f6843bed-0120-477c-9cdf-4df8df6048be",
+      "name": "Tennessee General Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8c9b7831-64fb-4cad-b4fb-85c431f767ed",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "64328f32-7e83-4487-83ac-1eb68efd6450",
+      "name": "Maryland General Assembly (mgaleg.maryland.gov)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8ee1c94f-c248-4e03-ae90-f3b55c1cd6f6",
+      "name": "New Hampshire General Court (gencourt.state.nh.us)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+      "name": "Chicago Department of Public Health — Environmental Health",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3d0d4489-63a0-43be-b1ef-52ef2de8a672",
+      "name": "City of Seattle — Environment & Sustainability",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f8721185-8c86-4b5d-a202-718a36e88ceb",
+      "name": "Seattle City Council",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "22ad6bf3-eb3d-4118-b514-26f5af1050e0",
+      "name": "Environmental Protection Agency (EPA) — Ireland",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "04061547-7d93-4f14-9d4d-e232121a6822",
+      "name": "Pennsylvania Public Utility Commission (PA PUC) – Motor Carrier Division",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "eec932a5-c797-4adb-bd17-076937979da1",
+      "name": "Pennsylvania Department of Environmental Protection (DEP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "214bf581-4dd0-469d-91ff-d76d6853f090",
+      "name": "NABERS (NSW Government, on behalf of Australian Federal, State and Territory Governments)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "987ad67e-288c-4cf0-afdd-4fab324aa4ab",
+      "name": "Kentucky General Assembly (Legislative Research Commission)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a8a4c514-7430-4930-925f-5bce7c7a5997",
+      "name": "Delaware General Assembly (legis.delaware.gov)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "44e3ea14-8246-43b0-a01c-28fd3ccdcb8e",
+      "name": "Vermont Department of Environmental Conservation (VT DEC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "095d2a2c-0e59-43c9-b759-c3a7d19ad71d",
+      "name": "Tokyo Metropolitan Assembly (東京都議会)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "30662aba-076f-49ee-8896-a14f8405ae65",
+      "name": "European Sea Ports Organisation (ESPO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a21978b4-61fd-48ea-84ee-2e4c195c8b4a",
+      "name": "European Sea Ports Organisation (ESPO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f231a260-b752-49af-b849-45ddcbdbf460",
+      "name": "SEMARNAT (semarnat.gob.mx)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2dd40334-abc1-4bd7-a4bf-b6fe7f75d038",
+      "name": "Port of Los Angeles (Los Angeles Harbor Department)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dbfb56f7-f38b-4d67-ac3d-15d5a5cb0149",
+      "name": "Norwegian Maritime Authority (Sjøfartsdirektoratet / NMA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "47281d66-21df-4e22-a209-d033a082e8cb",
+      "name": "South Carolina Department of Health and Environmental Control (DHEC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "58ffd350-38b1-429a-9f82-aaa96cc7b193",
+      "name": "South Carolina General Assembly (SC Statehouse)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ec6b370e-ebc8-4d21-bff9-e09e7a4b7330",
+      "name": "Pennsylvania General Assembly (legis.state.pa.us)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "413c42ec-ff72-4a5b-a85a-ff5c1bf532fd",
+      "name": "European Sea Ports Organisation (ESPO) / EcoPorts",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6e234940-3d99-40cc-ac5d-d83058266c09",
+      "name": "Parliament of Victoria",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "46beff65-0d00-490a-8363-db1e85120b99",
+      "name": "Ley Chile",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8344c305-bd30-4fea-a2cf-fd51424fb177",
+      "name": "U.S. Department of Energy (DOE) – Alternative Fuels Data Center (AFDC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0e86b739-17f1-4278-a895-df0123dd2aad",
+      "name": "Florida Department of Transportation (FDOT) – Freight and Rail Office",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7dd79f52-390e-4c47-bbb5-c8bce1a4f5a1",
+      "name": "Renewables, Climate and Future Industries Tasmania (ReCFIT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "80bf696d-d8a2-46fd-a0ba-4b5242626b88",
+      "name": "South Coast Air Quality Management District (SCAQMD)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "594c9aec-707f-43a5-9538-7f00d2b79437",
+      "name": "Cortes Generales – Congreso de los Diputados",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "941ff721-cae1-4a48-94c4-0bef46d64a71",
+      "name": "Diario Oficial da Uniao (Brazil)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2f0cf633-da54-45fc-bbbf-cdb1d2383f94",
+      "name": "California Highway Patrol (CHP) – Commercial Vehicle Section",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "75281c05-63e9-4a29-9baf-65c198f99249",
+      "name": "Iowa Department of Natural Resources (Iowa DNR) – Air Quality Bureau",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5ed8596c-67f6-4f97-960f-2a1ebf4404df",
+      "name": "California Department of Transportation – Office of Sustainable Freight Planning (Caltrans OSFP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0ef987a1-3470-49d3-a04b-01025ea582ba",
+      "name": "California State Transportation Agency (CalSTA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "140f7bcc-aac3-4a3c-ba73-411ceaeb6abc",
+      "name": "Georgia Department of Transportation (GDOT) – Freight Office",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f26a771c-88b0-41c4-ad64-8b94969810e7",
+      "name": "Alaska DOT&PF – Measurement Standards & Commercial Vehicle Compliance (MSCVC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "18ede96c-f841-4fab-93ac-fa34a9c44366",
+      "name": "WisDOT – State Freight Plan Portal",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6d2537ca-21b4-442d-8750-447c9ee76d7c",
+      "name": "Connecticut Department of Energy and Environmental Protection (DEEP) – Air & Mobile Sources",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a6fde226-f3b2-4b54-9574-aaa2716a61ec",
+      "name": "California Public Utilities Commission (CPUC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "01fd2c6b-efee-4528-8f22-9cbec6d39d55",
+      "name": "Department of Environment – Ministry of Agriculture, Rural Development and Environment",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ef347aa7-6dc2-40b8-ac18-6555f964c037",
+      "name": "BREEAM (BRE Global)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b0b9aac5-cd89-455e-99cc-3d7f9dde2b8c",
+      "name": "Illinois Pollution Control Board (IPCB)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8f7c3fa4-f193-4265-8073-da024a287a72",
+      "name": "Iowa DOT – Freight Planning & Maps/Data Tools",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b926dd11-6242-4b2f-ba34-cfdb789e7402",
+      "name": "Iowa Utilities Commission (IUC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "acfa9bc1-51c8-4099-b8f9-9cace671a016",
+      "name": "ACT Legislation Register (Parliamentary Counsel's Office)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5766d220-756f-4f78-844f-f6733c92ade7",
+      "name": "NT Legislation – Northern Territory Legislation Website",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "290e66c9-a757-4be6-ab68-a40414ec33b6",
+      "name": "Office of the City Clerk of Chicago",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "feb56ca1-2e79-4c2d-bc62-fde0823246df",
+      "name": "Indiana Utility Regulatory Commission (IURC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "026c73a4-2747-4e8e-8c9b-139cc1946e6c",
+      "name": "National People's Congress of the People's Republic of China",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2edabd99-e523-465e-98e1-d10186eb42e0",
+      "name": "Wyoming Secretary of State – Administrative Rules Repository",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "817bf251-a8af-43c6-b8d6-f0f4304d3bee",
+      "name": "Transport for London (TfL)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "06ea2956-12d2-423d-a27a-48859935cd59",
+      "name": "Presidência da República / Casa Civil – planalto.gov.br",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "408eb843-a94e-46d4-9249-6eec36502884",
+      "name": "Natural Resources Wales (Cyfoeth Naturiol Cymru)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ef191419-1dde-4e5a-98b4-85f52fa84298",
+      "name": "Scottish Environment Protection Agency (SEPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "09eafe50-924a-451e-b460-43e88d7080df",
+      "name": "IRENA Data Portal",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "cf93f9e4-5bf8-40a2-8a6f-e878acc2dd7c",
+      "name": "Kansas Secretary of State – Kansas Register (Official Gazette)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b5f85b79-82e0-4f2d-9665-51f1d4d146ca",
+      "name": "Louisiana Department of Environmental Quality (LDEQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a02669f2-d31a-4822-bb42-90e8bc919a81",
+      "name": "Scottish Parliament (Holyrood)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "65f9e3de-6e4a-4ce3-a9c8-cf4fa75a29d4",
+      "name": "Kentucky Energy and Environment Cabinet (EEC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e99a7e99-ebae-4a39-81cb-e81a3d5e218d",
+      "name": "Northern Ireland Assembly (Stormont)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "586ebf7c-0146-4d0e-871d-db604490e358",
+      "name": "Ministère de l'Environnement, de la Lutte contre les changements climatiques, de la Faune et des Parcs (MELCCFP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "44602a3b-a647-4e78-86d0-08820066a81b",
+      "name": "Manitoba Environment and Climate Change",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "69b7cfb9-77f8-4d85-a0f4-ea0711d69328",
+      "name": "British Columbia Ministry of Environment and Climate Change Strategy",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "874767f5-887e-47a1-ab4d-b12924bc6188",
+      "name": "Assemblée nationale du Québec",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b476ff63-cae4-43bd-b39c-9b5e45a14677",
+      "name": "Louisiana DOTD – State Freight Plan",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3b860d5e-b972-450f-ba73-518bee466061",
+      "name": "Maine Department of Environmental Protection (Maine DEP) – Air Quality / Mobile Sources",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8b24df2f-f244-41a4-9801-c3941e9c5932",
+      "name": "Australian Government Federal Register of Legislation",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f27f1e92-54b0-4f47-be25-4301025888a7",
+      "name": "Legislative Assembly of Alberta",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d561c0b8-9679-42cd-93fa-923b7cb32945",
+      "name": "Canada Gazette",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "00b6cd1a-61a5-4023-ad7b-0835fdc16fe7",
+      "name": "Colorado General Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "29845b19-7004-485e-86f3-fdd84f8aa3f5",
+      "name": "Statutes of the Republic of Korea",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f011d2e9-c1b9-40de-92e2-4490b7f8b14f",
+      "name": "Legislative Assembly of Saskatchewan",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9b2c1d4f-f206-4e50-acd8-d9e1d95bef92",
+      "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2d150967-be7a-476f-bfe4-33ed871e9653",
+      "name": "Massachusetts Legislature (General Court) – Session Laws & MGL",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5664b6a2-1e50-4ea0-ba69-dd94d40bb068",
+      "name": "Vermont Legislature – General Assembly (statutes & session laws)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "16c23231-33d2-4b7b-b021-c0d0ca201a52",
+      "name": "DC Municipal Regulations & DC Register (dcregs.dc.gov)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b1c023a0-c95e-4ec4-b300-7901f36d8ab1",
+      "name": "Newfoundland and Labrador House of Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b92386d4-9e79-4854-9a0f-8f9c7c79de13",
+      "name": "Legislative Assembly of Prince Edward Island",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "179972a0-c1db-4868-9d74-2bf527906eb7",
+      "name": "New York State Senate / Assembly Legislative Information",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "fdd32abd-4bb9-4d60-995c-5c13b8a70141",
+      "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3e0d6c3f-5a66-41c7-a78f-41de7491593a",
+      "name": "Michigan Legislature – Michigan Compiled Laws (MCL) & Administrative Code",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "fe91a469-56c6-4142-8212-d55697432c09",
+      "name": "Nunavut Department of Environment",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "25fb1adb-2db7-498a-bd6b-aecf9961ea0f",
+      "name": "Inter-American Development Bank (IDB) – IDB Publications",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d641dc78-7d9c-4c88-8d25-fd166dae91ff",
+      "name": "Minnesota Public Utilities Commission (PUC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "027a7175-a0b8-4e77-adf0-8440d55acf28",
+      "name": "Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Government of Japan",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "817a4c48-5257-4eff-8e80-8413dbffd4dc",
+      "name": "Ville de Paris (Mairie de Paris)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a8682ba6-2c30-4c12-a215-c4f37a62fdd8",
+      "name": "Ministry of Environment and Energy (YPEN)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1bc48b90-4e2a-4f3f-aaa2-6a470b51eb41",
+      "name": "Kansas Legislature – Kansas Statutes Annotated (KSA) Revisor of Statutes",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b711bb3a-7452-460a-b413-25b20f13bad3",
+      "name": "Environment and Resources Authority (ERA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ebe50cec-0fd6-4150-9d3b-2011c6c8d923",
+      "name": "Senatsverwaltung für Mobilität, Verkehr, Klimaschutz und Umwelt (Berlin)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5993fd5f-ce69-4d3e-b3c1-737dd8fd5754",
+      "name": "Montana Department of Environmental Quality (DEQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c6398492-92c4-41cb-bacf-0d552da9b48b",
+      "name": "Ministero dell'Ambiente e della Sicurezza Energetica (MASE)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "42daf048-7524-4ef7-b3c7-b5676a448b69",
+      "name": "Parliament of Malta",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8bbf8fd5-7ef9-439e-b951-4bacf0f10265",
+      "name": "Hellenic Parliament",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "909b213e-dbd9-45fc-ab22-f08c56194fe9",
+      "name": "Clark County Department of Environment and Sustainability",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1af654f1-b9bd-45b2-8a14-3fa1451feabb",
+      "name": "Camera dei Deputati – Italian Chamber of Deputies",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "be70947c-503b-497b-a16f-a143372cd69c",
+      "name": "New Jersey Department of Transportation (NJDOT) – Freight Planning",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4e1b00cd-82e9-4e27-9f04-5cc86ab074fd",
+      "name": "AAPA (American Association of Port Authorities)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4bfde4f6-cffc-4bff-88b9-9c94c9db5db8",
+      "name": "Nevada Division of Environmental Protection (NDEP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0cbbbbf7-cfea-419b-b4f7-eb050da2f63b",
+      "name": "California Legislative Information (Leginfo)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b558cfa4-1b42-4456-97b6-5cda7770376f",
+      "name": "Assembleia da República",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9bc9cad3-0628-4fed-a62b-029d7d516074",
+      "name": "Ministerstvo životného prostredia Slovenskej republiky (MŽP SR)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "312350c1-56e0-443f-84e6-0f892b48cfef",
+      "name": "Joint Office of Energy and Transportation (U.S. DOE / U.S. DOT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8acfd015-bf97-41ca-87c6-b20682a2ff35",
+      "name": "House of Representatives of Cyprus",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "47fd8e2e-d1ae-4a81-b6b3-ed74d4763957",
+      "name": "Główny Inspektorat Ochrony Środowiska (GIOŚ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b3e23db3-da1a-4947-ae63-5292d4631edf",
+      "name": "Poslanecká sněmovna Parlamentu České republiky",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+      "name": "Národná rada Slovenskej republiky",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1766208f-939d-4f54-aa65-eddb11ebdda0",
+      "name": "Hungarian Government Environment & Energy Ministry portal (kormany.hu)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "80a70899-559b-4f6d-8c70-5e243800ecbe",
+      "name": "UK Department for Transport (GOV.UK)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e43b64a1-0469-4232-9639-03ee0733be8c",
+      "name": "Parliament of Western Australia",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f968026e-ec27-409e-adcf-81a6645a31f8",
+      "name": "Parliament of Tasmania",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "cf7ab33d-f61e-4cc2-824f-29d9088924ac",
+      "name": "Connecticut General Assembly (cga.ct.gov)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d5c2638f-b5a3-41d3-941d-0aa321c6b91e",
+      "name": "Ministry of Oceans and Fisheries, Republic of Korea",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "495d392a-7439-498c-923b-10564050d9a6",
+      "name": "Queensland Department of Environment, Tourism, Science and Innovation (DETSI / DES)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f74fd17e-a4fa-4d8e-98d5-88bba7c44089",
+      "name": "Environment Protection Authority South Australia (EPA SA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e704ae4d-f366-49c9-b154-702098df587b",
+      "name": "Environment ACT (Environment, Planning and Sustainable Development Directorate)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "fdf22d9f-ba9d-4ebf-93c4-f47fd9700652",
+      "name": "Rhode Island General Assembly – Legislative Portal",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8b2a7b49-ac16-438c-8596-3b060dcb8b45",
+      "name": "New Jersey Department of Environmental Protection (NJDEP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d4107279-8725-4499-8040-436b6a0c0040",
+      "name": "Parliament of Australia",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b5e7624e-7c17-485f-8731-25b67e3127d7",
+      "name": "Queensland Parliament",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "abe48613-c63c-4914-b8d7-39f1640c519b",
+      "name": "Parliament of New South Wales",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3424ed5b-6468-438e-8725-2800c1f91121",
+      "name": "City of Melbourne (Participate Melbourne)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2167775a-1320-48e6-b3d5-c90c72464305",
+      "name": "Parliament of South Australia",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e664fff0-778f-47da-85f8-5010d28524e6",
+      "name": "SDDOT – Carbon Reduction Strategy",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "97dc4cb5-8061-40c7-8f73-5ea38dd621f4",
+      "name": "Ministry of Oceans and Fisheries, Republic of Korea",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9af7f2c3-1538-44d9-bf74-988868410c6a",
+      "name": "Nebraska Department of Environment and Energy (NDEE)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6033c43e-82ff-4acf-b38d-5810178ebc7f",
+      "name": "Arkansas General Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "196fb848-7740-4d1b-9add-20a8d355b53c",
+      "name": "Indiana General Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d31e908f-873e-4f9b-a97a-e8cb6a4a123c",
+      "name": "Department of Climate Change, Energy, the Environment and Water (DCCEEW)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "acee8946-987f-4392-8ee7-44d1d7c25bfb",
+      "name": "Arizona Department of Environmental Quality (ADEQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a7475879-6fb6-4bfd-bd0f-41f96e5f280d",
+      "name": "Inter-American Development Bank (IDB)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5457d581-d325-4742-b07c-3eedaab29cae",
+      "name": "CNMI Bureau of Environmental and Coastal Quality (BECQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "61895e25-5dc2-4bf9-ab34-156fcfa61289",
+      "name": "Tennessee Department of Environment and Conservation (TDEC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5ba23288-e27e-47ee-a2de-3b65cd9bfa97",
+      "name": "Measurabl — Building Benchmarking Tracker",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "559687e8-45cb-4ed6-a78e-ed58ca63d3be",
+      "name": "Michigan Department of Environment, Great Lakes, and Energy (EGLE)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a927b18c-f5f4-4fa3-a5cf-6982ed7b6e36",
+      "name": "Nebraska Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "61321847-144d-4560-99e6-057f433f7aef",
+      "name": "Louisiana State Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1db7d6c0-a644-47e5-94c5-55d66cb80520",
+      "name": "US DOE Clean Investment Monitor",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4ae80922-49e4-429b-97af-5ed4012fb42b",
+      "name": "Legislative Assembly of Puerto Rico (Oficina de Servicios Legislativos)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+      "name": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bb5aebde-d5ea-44d0-a6e2-7587a872c4aa",
+      "name": "LA Existing Buildings Energy & Water Efficiency (EWEO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8c05c435-6fc6-4b4c-9fb0-cc845ed78501",
+      "name": "Ohio Environmental Protection Agency (Ohio EPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0455a9ec-27df-4953-ac85-75185e133a2e",
+      "name": "Mississippi Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ff028065-3a8b-4d1b-b198-f0891936a0a3",
+      "name": "Texas Department of Transportation (TxDOT) – Freight Planning",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c81301f7-b043-474c-8eac-d02ff3b90542",
+      "name": "Oklahoma Department of Environmental Quality (ODEQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "389f7126-b591-46b4-87c4-ac032a1c9223",
+      "name": "Nashville Building Energy Programs",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1138f3cd-dbe0-4ed0-97c3-80d76b797054",
+      "name": "South Dakota Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "735cb9df-fe9f-414c-96e1-2f7e7d172c98",
+      "name": "Ministry of Commerce & Industry, Government of India",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b4b04ad0-7884-4722-9bc5-19137708254c",
+      "name": "General Office of the Standing Committee of the National People's Congress of the People's Republic of China",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "87894622-d165-4ca0-84dd-13c433058616",
+      "name": "ANTT — Agência Nacional de Transportes Terrestres, Governo Federal do Brasil",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "28ecc6b0-436b-4bf4-889f-fb2673497562",
+      "name": "Utah Division of Air Quality (UDAQ) – Utah Department of Environmental Quality",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ef2643ee-a501-4d4a-ac0e-899e884cf8fd",
+      "name": "Oklahoma Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8de70bd9-d0ac-4d11-8c54-ccf006184f34",
+      "name": "Iowa Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "645a64c5-10b6-40f6-867c-acd30f22bfa0",
+      "name": "Illinois Environmental Protection Agency (IEPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0e633b61-70ab-4886-80b8-66ef93d20497",
+      "name": "U.S. Department of State",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "45c66e48-2428-4636-b2a3-74ec1e64e737",
+      "name": "Commonwealth of the Northern Mariana Islands Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "42a72f10-a937-4500-b70f-adebd03b5a49",
+      "name": "Metropolitan Government of Nashville and Davidson County – Department of General Services",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ac7d233a-3e85-40ec-a454-47a6c987f4a2",
+      "name": "Legislature of the Virgin Islands",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "fb877c31-51f3-4ae7-9c03-13f88771fd8f",
+      "name": "International Carbon Action Partnership (ICAP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bec796bd-772f-4aba-8c24-0aaffc82f821",
+      "name": "Port of Los Angeles (Los Angeles Harbor Department)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "daa0bb17-5688-47d3-a404-e4c7d569113a",
+      "name": "Metropolitan Government of Nashville and Davidson County – Office of the Mayor",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bf9399db-8f66-4c78-8c5e-5998bf9c0245",
+      "name": "Ministério do Meio Ambiente e Mudança do Clima – gov.br",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dcaf69fa-d9fd-4bd8-b462-041e1d4dc386",
+      "name": "U.S. Green Building Council (USGBC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e6e99900-0463-437b-9126-30e9bd57266e",
+      "name": "U.S. Department of Transportation (USDOT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2215d39d-e506-4c1e-ad34-d03b33818fd7",
+      "name": "Port of Los Angeles (Los Angeles Harbor Department)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f6a642dd-25c6-4a67-ab6d-86df394a2ee9",
+      "name": "Arkansas Department of Environmental Quality (ADEQ / DEQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "147ee8c6-ac78-4941-ab6d-6e65e829541b",
+      "name": "Indiana Department of Environmental Management (IDEM)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7fb0e8dc-1f87-46e0-8748-269ba548f669",
+      "name": "ECLAC / CEPAL – United Nations",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c610702c-4ced-4c2d-8316-153edd9e8a76",
+      "name": "Washington State Register (WSR) / Washington Administrative Code (WAC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2156a4bd-023f-4988-9b00-1300e8b51b10",
+      "name": "Australian Government Climate Change Authority",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "cd0ab56f-371e-4ae8-a8ea-27e27f007d4f",
+      "name": "Diario Oficial de la Federación (DOF) — Gobierno de México",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d57b213b-01d7-443b-817d-9f03943aa3a9",
+      "name": "Washington State Department of Ecology – Air & Climate Division",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c5177c00-fc69-4823-a9bb-c15c03fc6935",
+      "name": "Minnesota Legislature",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "98831f47-0e27-4b1c-8f32-4023aede92ef",
+      "name": "Kansas Department of Health and Environment (KDHE)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "253eb63a-a009-46ad-86d0-86eaa6f47977",
+      "name": "Illinois General Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "014cd242-606b-4200-a699-b2d8180c487f",
+      "name": "Missouri General Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ef56e193-1110-4015-b199-e275d8e810ce",
+      "name": "Guam Legislature (I Liheslaturan Guåhan)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a2afa79d-1d47-43aa-8d7d-d789ac880241",
+      "name": "Inter-American Development Bank (IDB)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dd7b482b-bae8-4620-a6ac-6fa9846b1eb5",
+      "name": "Joint Office of Energy and Transportation (U.S. DOE / U.S. DOT / EPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ac6ff2e4-c03f-48b1-a757-721e7420ff2f",
+      "name": "American Samoa Environmental Protection Agency (AS-EPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "593a9a84-46ad-440a-a1f7-746a155e8736",
+      "name": "Ohio General Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "62323e04-77bd-428a-a881-f81cc6b78d7b",
+      "name": "Policy Research Institute for Land, Infrastructure, Transport and Tourism (PRILIT) / MLIT, Government of Japan",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1c4df84e-8c9a-4c11-b6e1-605ed46dd0bc",
+      "name": "Utah State Legislature – Utah Code & Utah Administrative Code",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "23a9f77a-1106-43fd-bb6b-79a973449339",
+      "name": "Yukon Legislative Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b0e4cf0c-e6b2-48fb-b887-a6a4c7ae0fd9",
+      "name": "Federal Highway Administration (U.S. DOT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c2267c50-0bdb-4717-8145-6606c11d77ea",
+      "name": "Metropolitan Government of Nashville and Davidson County – Department of General Services",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5f395d6b-7868-422c-93d3-1107fb425dfa",
+      "name": "Western Australia Department of Water and Environmental Regulation (DWER)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "138dc2ea-c435-4991-bbc4-709db80f1a6c",
+      "name": "Environment Protection Authority Tasmania (EPA Tasmania)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "97b289a9-b761-401f-8a17-9ec40cf92718",
+      "name": "Singapore Ministry of Transport (MOT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9190b411-0a6d-408b-8a3e-1dd3d86bbe7b",
+      "name": "Environment Protection Authority Victoria (EPA Victoria)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6c2490a4-15d1-4d17-addc-d67d14c409c9",
+      "name": "Nevada Legislature – Nevada Revised Statutes (NRS) & Legislative Counsel Bureau",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e13722ed-be7f-4e56-a264-ec08a747f4cb",
+      "name": "Alaska Department of Environmental Conservation (DEC)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "47d12be8-c8ac-44f5-8756-7486ec4d1b67",
+      "name": "ACT Legislative Assembly",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3f7ad273-3503-4c15-aba1-11729f0725cc",
+      "name": "U.S. Bureau of Labor Statistics / Federal Reserve Bank of St. Louis (FRED)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "93cf5493-0351-4c9f-8a56-518cb39774d6",
+      "name": "Japan Ministry of Land, Infrastructure, Transport and Tourism (MLIT) – Maritime Bureau",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ac866c6b-7aad-4354-9f1e-ba5355ecc7fe",
+      "name": "West Virginia Department of Environmental Protection – Division of Air Quality (WVDEP DAQ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "084892de-00f7-47a1-8776-4df6c8f980d9",
+      "name": "Hawai‘i State Legislature – Hawai‘i Revised Statutes",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4ebe9bba-5fb0-48a5-a601-1974e1bcc73c",
+      "name": "Environmental Protection Department (EPD), Hong Kong SAR",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "63a62c3a-8922-4b0a-992d-20b6d7062acc",
+      "name": "Northern Territory Environment Protection Authority (NT EPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9a5fa993-83d2-4278-be3e-eaafa90231e2",
+      "name": "UAE Government (u.ae)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f58fb9bf-e2bb-4a95-a418-9e4196f9eac7",
+      "name": "West Virginia Legislature – Legislative Rulemaking Review / WV Code of State Rules",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e775a938-dca3-49c9-87f7-5d98237a1cc0",
+      "name": "Wyoming Legislature – Wyoming Statutes",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d5f9920c-d07a-46a1-9fc9-d563832b86df",
+      "name": "Tokyo Metropolitan Government Bureau of Environment (東京都環境局)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "25189f99-1ecd-457e-9fb1-e5126fbc19d8",
+      "name": "Legislative Assembly of the Northern Territory",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8330f9b4-29ae-414b-a010-7b9a564d586a",
+      "name": "Legislative Council of the Hong Kong SAR (LegCo)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a1d82459-1ae0-4af9-bbc0-4c11f1ee26a8",
+      "name": "Ministry of Environment of the Republic of Korea (환경부 / ME)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4d37573e-14b1-4531-9629-92605571e404",
+      "name": "Wisconsin Department of Natural Resources – Air Program",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "30b51427-df93-4f76-ab99-bf49359d18ce",
+      "name": "City of Houston Health Department — Environmental Services",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8f7db0b5-d2b2-442f-93cd-877fb1fd0384",
+      "name": "Building Performance Standards Coalition",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5b6638f6-2d10-4da9-99a1-47e1036a4770",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7a608c06-2205-4b24-b791-77bd33b56da0",
+      "name": "National Assembly of the Republic of Korea (대한민국 국회)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+      "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9c108fc0-afce-4645-bdaa-92f48a966ad5",
+      "name": "Alaska State Legislature – Alaska Statutes",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+      "name": "Council of the District of Columbia – D.C. Law Library",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0ece33f0-460a-4d2c-b750-8dd70c71e4ce",
+      "name": "U.S. Department of Transportation (USDOT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0879e4cc-113b-4b29-889b-99ade5d12df9",
+      "name": "THETIS-MRV",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8cdde50d-62eb-4518-9b8a-ca6f696cad9a",
+      "name": "Parliament of Singapore",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9a04d213-688a-45eb-a4e1-84dc7f4b7241",
+      "name": "House of Councillors of Japan (Sangiin / 参議院)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "cda55872-b68c-4903-b4bd-9883acc41817",
+      "name": "European Union Aviation Safety Agency (EASA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9046973b-95ef-47cc-aa65-95cea516936b",
+      "name": "European Commission",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1af0c8ac-1a2e-401d-aed4-484175f3435b",
+      "name": "CLECAT (European Forwarder Federation)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5ef07695-889c-40f8-a488-00b2f702f5b1",
+      "name": "Carbon Trust",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6d184dc2-fc25-403f-b14d-32f48637aac8",
+      "name": "Carbon Trust",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3177adf4-fa70-4c3c-91c6-110ce01cc4d9",
+      "name": "eFuel Alliance e.V.",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c2549c0a-e9ed-40f9-99b0-32efe9fdd2b8",
+      "name": "eFuel Alliance e.V.",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6b9e5e97-6b69-4790-a3c6-0bf821631170",
+      "name": "Fraunhofer Institute for Material Flow and Logistics (IML)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c63911ec-97ec-4bd4-9d32-57d5211975c0",
+      "name": "Fraunhofer Institute for Material Flow and Logistics (IML)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8b7b0db2-0274-4446-93a9-b3d0548a3a3b",
+      "name": "Stockholm Environment Institute (SEI)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "edf8d2cf-4150-4845-aa70-e95420b3192b",
+      "name": "Clean Hydrogen Partnership (EU joint undertaking under Horizon Europe)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2f69eb94-c8f5-43a3-97df-5c1ae60f329f",
+      "name": "NYC Local Law 84/97 — Benchmarking & Carbon Limits",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d958833b-2ee6-44b2-afd9-ec0e0252f5e5",
+      "name": "Bundesministerium für Verkehr (BMV) / German Federal Government",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "340f897d-5560-4e1b-9c41-937eb91124c3",
+      "name": "TNO (Netherlands Organisation for Applied Scientific Research)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3c5327fb-3124-48da-b075-a5874d1f2008",
+      "name": "City of Los Angeles City Clerk",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "72afffc1-86ef-49c5-858d-3f61977c8056",
+      "name": "Bundesministerium für Digitales und Verkehr (BMDV) / German Federal Government",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "88239c3d-e188-447d-a031-2952e945ee1f",
+      "name": "Chalmers University Marine Environment",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ffe158ff-994d-484f-8d9c-491f0b8350d1",
+      "name": "Norwegian Government (regjeringen.no) / Ministry of Climate and Environment",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a3c42d6a-459f-4c40-875a-f9cbb524412b",
+      "name": "Norwegian Maritime Authority (Sjøfartsdirektoratet / NMA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "62398739-5a17-494d-ae0e-74acc7bf9cf0",
+      "name": "European Parliament — Legislative Train Schedule",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "63f33e8f-75c9-4233-8493-e16ac2cf982a",
+      "name": "ESPO (European Sea Ports Organisation)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f6df1063-b507-4a9c-bb3a-017e017d63cd",
+      "name": "Erasmus University Rotterdam – ERIM",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0396927b-9553-489a-bef0-93a786d3f81b",
+      "name": "German Federal Government (Bundesregierung)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "380f837a-615e-4fac-bac8-aa94b6124842",
+      "name": "Presidência da República / Casa Civil – planalto.gov.br",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e28f5449-78c8-474c-9176-a190eec65f18",
+      "name": "Cranfield University – School of Management",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "0cd629a2-84fb-4e80-a0a5-546a92a5e2c6",
+      "name": "UK Department for Transport / GOV.UK",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dd4d41e2-100a-46dc-9273-8d2c95be347a",
+      "name": "UK Government (GOV.UK) — Department for Energy Security and Net Zero",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a2c63c9d-86df-47b9-b6a4-500210c58797",
+      "name": "UK MEES — Minimum Energy Efficiency Standards",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+      "name": "Cranfield University – School of Management",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4ff469ca-5d44-4814-ac28-5bc9cf2d3feb",
+      "name": "UK Department for Transport via assets.publishing.service.gov.uk",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c3cd15a9-93f4-4c13-9041-dc229ef7548c",
+      "name": "UK Department for Transport / GOV.UK",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c1bf569d-dce7-4fe8-af09-741e246a087a",
+      "name": "UK Department for Transport via assets.publishing.service.gov.uk",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9564e7d7-15a5-416b-ad8f-e0d2ca5b88b9",
+      "name": "UK Government (publishing.service.gov.uk) — DESNZ / BEIS",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ff6f7eca-48d3-4a31-8e6f-159165a3b8c3",
+      "name": "Global Maritime Forum",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4b24f2e1-1d34-4b65-b4a9-e4f3620a297e",
+      "name": "OECD",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bf5603b3-18b2-422e-9f8e-02e39a2de45a",
+      "name": "World Economic Forum",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d6e87364-309a-4f1b-90e9-93223133f29a",
+      "name": "Smart Freight Centre / GLEC Framework",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7053e1f6-20bf-4150-9b24-900c10fac9bf",
+      "name": "FIATA Sustainability",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d97bb365-a359-4500-aeff-5e2aea8904d8",
+      "name": "ISO 14083",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b2557cf4-65ea-49dd-82f8-838fd697ff1d",
+      "name": "IRENA Renewable Power Generation Costs",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dda43af7-f921-4f21-9b42-b1f1add1c4b0",
+      "name": "Global Maritime Forum (manager of the Getting to Zero Coalition)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "3dc47005-10c5-4232-bb1d-41a9ec75bfb2",
+      "name": "Solargis Global Solar Atlas",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2b7e1191-f627-4838-9579-6f6c8959a0bb",
+      "name": "Science Based Targets initiative",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "63f65853-8fc0-455d-b352-be0d77cc0d25",
+      "name": "ICAP Emissions Trading Status Report",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "8d26629e-9b60-43c0-bf2f-f14189bcb9d6",
+      "name": "ICAP Allowance Price Explorer",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "928dd768-e5f0-4a71-8157-9335df8116db",
+      "name": "Reuters Sustainable Business",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bb2dbe84-d48d-4883-a586-b8bd724d3719",
+      "name": "Hydrogen Insight",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "13ec22b2-4391-4c5a-9643-fa0c0fd8542e",
+      "name": "International Renewable Energy Agency (IRENA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6faa1d15-e7b5-44bf-95b7-df9334cdb7c9",
+      "name": "BizClik Media (Supply Chain Digital)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a5f13dd2-8785-4573-b0ed-1190fb918a9b",
+      "name": "International Renewable Energy Agency (IRENA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "365899e7-d590-40b4-939d-ccf495c2757e",
+      "name": "International Renewable Energy Agency (IRENA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "576516c6-899e-4a82-b83b-a63bf44cb20a",
+      "name": "MarineTraffic",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d5aadce8-c12b-44e5-93ed-91995f271737",
+      "name": "Thomson Reuters Regulatory Intelligence",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a0efc8f6-940f-4807-b568-ba8d9e883ea8",
+      "name": "Lloyd's Register Group (lr.org)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "664e8147-3199-4159-8c7f-05e6e7ba0e82",
+      "name": "ECOLEX",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "55800ddc-ef49-4129-9ec8-c1451a7f6d0d",
+      "name": "International Renewable Energy Agency (IRENA) & Ammonia Energy Association (AEA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "89c7b905-596f-4274-bc15-09b8182166c8",
+      "name": "Bureau Veritas Marine & Offshore",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d9f534eb-84aa-4a61-9a9c-3badb922f68c",
+      "name": "ABS Sustainability",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "60031159-cc44-4baa-94e6-521298d140aa",
+      "name": "TradeWinds",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9f3009fe-576d-4766-905b-9089c110303d",
+      "name": "OECD (Organisation for Economic Co-operation and Development)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "92c05577-d85d-4a07-91a4-88d2f24fb5e6",
+      "name": "Smart Freight Centre",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+      "name": "ClassNK Environmental",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "239f2838-18b4-47ef-a2ea-e7cde7162b5d",
+      "name": "Global Reporting Initiative (GRI)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9de14df4-98a8-4c16-ace4-652178024f6b",
+      "name": "DP World (dpworld.com)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4140b9d2-62db-4e9d-83a4-37b7421b2343",
+      "name": "World Trade Organization (WTO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "59a8c53e-177b-44b7-872f-93934f2c1dcf",
+      "name": "UNCTAD (UN Trade and Development)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e99e2f18-dba1-45e4-87bc-ab7a412314b7",
+      "name": "Lloyd's List",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b13504d2-68e3-44dd-9ce0-2ba1e3519860",
+      "name": "DP World (dpworld.com)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e38fc134-512a-48c3-9547-42a81efc6d26",
+      "name": "World Resources Institute (WRI)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6c0c9c13-db64-4f55-bfbc-18380209a430",
+      "name": "Global Reporting Initiative (GRI)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d363dcbd-de9b-4481-9178-d5820e6d574c",
+      "name": "UNCTAD (UN Trade and Development)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6a72c694-7910-49da-bdb6-ab528807a512",
+      "name": "World Bank Group",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9eefac54-b9e3-4ff8-bb2f-c532191e697c",
+      "name": "World Resources Institute (WRI)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4a956756-9117-451e-b3f1-1e976dd79e39",
+      "name": "EcoVadis",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "71ce6ddf-6a34-4560-8cc7-ec41530f735c",
+      "name": "World Bank Group",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a069c3aa-bf56-46fd-9f32-d3e4d800e3c9",
+      "name": "World Economic Forum",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bf536e46-bef8-43fd-922e-bb46606024ed",
+      "name": "Global Reporting Initiative (GRI)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4fdb662c-3ab1-4987-b754-5530c9e511e1",
+      "name": "EcoVadis",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "15545487-8d27-4f86-bbe7-eaa3f94d79cf",
+      "name": "World Economic Forum",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a6b20a8a-e6a9-41aa-9c6c-0f38b71016ba",
+      "name": "EcoVadis",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2e34415c-4afc-44dd-8c2b-9e137afbe31d",
+      "name": "Lloyd's Register Maritime Decarbonisation Hub (thedecarbhub.org)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "734a5f60-d826-44da-b49f-4119da637a16",
+      "name": "IFRS / ISSB Sustainability Standards",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2dff892f-eafb-4b88-8e9b-0746675e6fea",
+      "name": "BizClik Media (Sustainability Magazine)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dcb667a7-c489-478b-97a6-8c82e451c4b6",
+      "name": "BRE Group (Building Research Establishment)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "addc7d05-cb54-4a70-99a4-1b0f85308bff",
+      "name": "MIT Climate Machine (Massachusetts Institute of Technology)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4f60d453-3dc6-4e87-b3aa-ef96fc4bac35",
+      "name": "J.P. Morgan Eye on the Market (Cembalest)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ff87a98e-1524-4490-9a76-261c4ba16c33",
+      "name": "International Air Transport Association (IATA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c7cee2e1-1d6c-4e7f-95d0-944de3e4a1d7",
+      "name": "The Aspen Institute",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "56a5763d-95f8-4af9-831a-ef7738ca8b62",
+      "name": "Lloyd's Register Foundation (lrfoundation.org.uk)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "867e2609-8a91-4fda-b731-b25f8f77c0f3",
+      "name": "Yara International ASA",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "29557886-098f-4346-ae68-574beb139f96",
+      "name": "OECD (Organisation for Economic Co-operation and Development)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "01bd301f-ecd9-4c0c-87a8-7a7946a0f00d",
+      "name": "World Trade Organization (WTO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "da68e53b-4f26-4828-9413-51971b142723",
+      "name": "IRENA Publications",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "91128f76-b322-4315-b0f2-5b189958d1db",
+      "name": "Smart Freight Centre",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "77bbe384-1a98-4836-99e9-34ca3fab972c",
+      "name": "International Renewable Energy Agency (IRENA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "60898344-665a-43cf-baed-b8311c10817a",
+      "name": "Smart Freight Centre",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "47895045-ee7b-474a-ae01-0249cd2c4d88",
+      "name": "World Trade Organization (WTO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "06dad3cb-01cd-4a29-8722-2a4de3e5593e",
+      "name": "International Transport Forum (ITF) at the OECD",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1af0488e-77de-4319-b54f-816e00d3ef4c",
+      "name": "Taylor & Francis (Taylor and Francis Group)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4703866f-cf2a-49e6-b5ec-9671f8a8e112",
+      "name": "International Renewable Energy Agency (IRENA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "01ec77bb-f30b-4d84-ac95-8412588c82da",
+      "name": "International Transport Forum (ITF) at the OECD",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6ca8a468-1368-4779-b315-220a95ae2cb2",
+      "name": "OECD iLibrary",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9572d357-97d3-4d44-913f-54816fe174ba",
+      "name": "International Transport Forum (ITF/OECD)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5aa6c2c0-2778-4359-b683-55cb8144efbf",
+      "name": "Smart Freight Centre",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "ea198c9e-9601-4eed-85ef-3985fb43d78c",
+      "name": "International Renewable Energy Agency (IRENA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "84cfbfba-8351-408b-b490-3b12748ba008",
+      "name": "OECD (Organisation for Economic Co-operation and Development)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "fe46e0c0-fcce-44a5-bf74-b444ec575a6d",
+      "name": "International Monetary Fund (IMF)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "77d910f4-d638-4b43-970e-f47b3fa74181",
+      "name": "International Energy Agency (IEA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "41a0d4b3-d4a3-4262-b1b2-cf3f0c0427d6",
+      "name": "Australia NABERS",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d821599d-9aad-4eba-8940-47685a1644cb",
+      "name": "World Bank — Financial Intermediary Funds Trustee",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "306c0fb8-6a54-47af-a4d9-973ccc3f70b7",
+      "name": "International Renewable Energy Agency (IRENA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e3fed305-eb71-406a-96dd-dd716e70d72d",
+      "name": "International Transport Forum (ITF/OECD)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "54ab5d60-afd8-4417-b7ca-ae569aba7562",
+      "name": "International Air Transport Association (IATA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b2ae4c9e-3de2-431c-a240-0ad43f9f83f2",
+      "name": "Organisation for Economic Co-operation and Development (OECD)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c61453df-4e9b-4d9e-9ff9-4a6912c6af62",
+      "name": "World Bank Independent Evaluation Group (IEG)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6f117b90-a73b-4dcb-83c5-7b3f41d9982f",
+      "name": "International Transport Forum",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e4de01ae-7c0d-4024-9736-175003d35c32",
+      "name": "United Nations Development Programme (UNDP)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "31fcfca8-577d-46ec-a36a-9cdcd021bb2e",
+      "name": "UNCTAD (UN Trade and Development)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1ccd5e9e-ea2a-476e-84d3-31bf87873ecc",
+      "name": "Singapore BCA Green Mark",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6483d4b1-7a49-4658-bcd3-cfeb18199eab",
+      "name": "Wisconsin Department of Transportation (WisDOT)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7353dea0-a2e7-4b3e-be3f-202e981eed4f",
+      "name": "Houston City Council",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7a31ea18-9109-44e5-8212-bdb772d32a89",
+      "name": "Ministry of Sustainability and the Environment (MSE), Singapore Government",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "55aedb41-0ac7-40cb-a3fd-b06c0a8f8032",
+      "name": "San Francisco Department of the Environment (SF Environment)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e0ec620e-8ca3-4bdf-b91c-05523e9de047",
+      "name": "San Francisco Board of Supervisors",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "36433d07-8a8e-45e9-8c85-e105a1d4c62b",
+      "name": "Shanghai Municipal Bureau of Ecology and Environment (上海市生态环境局)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "259ed662-13b1-4b93-9fb0-aa61d12ac234",
+      "name": "City of Atlanta — Mayor's Office of Sustainability & Resilience",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "92fe8f7e-6888-4941-b006-bc695be09b9d",
+      "name": "Shanghai Municipal People's Government (上海市人民政府)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "622d0e55-ed6c-4ec2-83a0-229425f73797",
+      "name": "MIT Climate Machine",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4a8f3ba3-0abc-497b-a5a0-eaf4f1c88eec",
+      "name": "Pennsylvania Code & Bulletin (pacodeandbulletin.gov)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5391bc5f-c912-427f-bb1f-c2fb6dc1120b",
+      "name": "Government of Dubai Portal",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "55ac3187-6b19-4cfe-86d3-6e2dd291d400",
+      "name": "New Mexico Legislature – New Mexico Statutes Annotated (NMSA) and Session Laws",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6ac220a6-d1fb-4439-8212-c0f2349e2993",
+      "name": "City of Sydney",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "cf6d4da3-6fa3-46d6-b949-eb147d57fd50",
+      "name": "Atlanta City Council",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "259dc287-2130-4341-95a4-6b5a06a76104",
+      "name": "City of Miami — Office of Resilience & Sustainability",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b434ddee-7755-4071-b729-70088256af06",
+      "name": "Ville de Montréal — Environnement",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4663bf16-d7f0-41cf-befd-c38da3549ab8",
+      "name": "New Brunswick Department of Environment and Climate Change",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9bc66c9e-b95a-4444-ad74-9182d5703661",
+      "name": "Miami City Commission",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "4cb5897b-a78d-42ad-b04c-93e80f69b3ef",
+      "name": "Companies House / GOV.UK",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "543d6c68-da55-4a66-8e41-474c4ddc3717",
+      "name": "UK Department for Environment, Food & Rural Affairs (DEFRA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "6abf5dce-b873-47ad-a834-115ddd65e210",
+      "name": "Oregon Legislature – Oregon Revised Statutes (ORS) & Legislative Information System",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5f2c0cad-2d0b-4d3f-95db-6b946399fa7f",
+      "name": "Ministério dos Transportes, Governo Federal do Brasil",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "1a7ed54d-0562-4853-93da-8a4cb58a1cc9",
+      "name": "City of Philadelphia — Office of Sustainability",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "89485cf1-c7a5-476f-ac21-9346018e2f74",
+      "name": "Ville de Montréal — Conseil municipal",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "74042f41-644e-4cdc-85a5-58fe9fa3ed15",
+      "name": "Senedd Cymru / Welsh Parliament",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "7572537b-d94b-40d5-bb43-466e3e6346be",
+      "name": "Dubai Electricity & Water Authority (DEWA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "07a7d198-1394-4934-be1e-204fcfdf00cf",
+      "name": "Dubai Electricity & Water Authority (DEWA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "49b28864-8179-4107-b518-bf7d9130ce6a",
+      "name": "City of Los Angeles — Departments & Bureaus",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "087c1289-0de2-480e-af0f-24ad2e1f0831",
+      "name": "Dubai Municipality (بلدية دبي)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "de8eea1b-926b-4fec-9934-0675c4cd02de",
+      "name": "Los Angeles City Council",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9127af37-57dd-4c07-9d5e-df779077e1a5",
+      "name": "UK Parliament (Westminster)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "5a5afc4f-b319-4429-a340-554ca046c251",
+      "name": "Ontario Ministry of the Environment, Conservation and Parks",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "067b8575-fced-469b-be59-1efdac06c018",
+      "name": "Yukon Department of Environment",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "03080157-5e2b-4882-821c-d0bf6f686406",
+      "name": "Ministerio para la Transición Ecológica y el Reto Demográfico (MITECO)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "9e3f5b77-0a9d-41c4-9703-cdcb55999ce4",
+      "name": "Legislative Assembly of New Brunswick",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "2f7e1fcf-17b4-40e3-9770-2f54afd14ce9",
+      "name": "Legislative Assembly of Manitoba",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "bf68898e-fee2-4469-978e-2a96c363ba69",
+      "name": "NYC Department of Buildings / Office of the City Clerk",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b8917aa2-062c-497c-9fcc-20cb51156bb4",
+      "name": "Victorian Department of Energy, Environment and Climate Action (DEECA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "b197e23d-227c-49f8-aa71-b0e4afeb1506",
+      "name": "North Carolina Office of Administrative Hearings – NC Register & Administrative Code",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "a62c0565-6dd3-4cb4-91c6-ead9584d73b2",
+      "name": "Singapore Government (Multi-Ministry)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "e720fc6b-fdaf-4f76-b54a-99d1995e2f0b",
+      "name": "Saskatchewan Ministry of Environment",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "f67106c2-6cf1-47fa-a3a9-b42d8d0011f7",
+      "name": "Rules and Regulations of the State of Georgia (GA SOS)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "dae165c8-a279-4612-a579-08119cb73031",
+      "name": "National Database of Laws and Regulations (China)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "fed43277-faef-48a5-b145-669847ce4c8a",
+      "name": "NYC Mayor's Office of Climate & Environmental Justice (Sustainability)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "c7ac74e3-4660-479b-bc10-87bc1e838f9c",
+      "name": "Ministry of Oceans and Fisheries, Republic of Korea",
+      "reason": "low_confidence",
+      "confidence": "low"
+    },
+    {
+      "source_id": "d78a96bb-3f85-4ef5-aaf2-6ffe1481e108",
+      "name": "Maritime and Port Authority of Singapore (MPA)",
+      "reason": "low_confidence",
+      "confidence": "low"
+    }
+  ],
+  "errors": []
+}

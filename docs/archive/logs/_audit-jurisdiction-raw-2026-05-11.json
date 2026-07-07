@@ -1,0 +1,792 @@
+{
+  "timestamp": "2026-05-11T14:45:23.413Z",
+  "orgId": "a0000000-0000-0000-0000-000000000001",
+  "schema": {
+    "error": "Could not find the function public.exec_sql(sql) in the schema cache",
+    "fallback": "no exec_sql RPC"
+  },
+  "sample20Rows": {
+    "data": [
+      {
+        "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+        "title": "EPA Heavy-Duty Phase 3 Rule",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US",
+          "US-CA"
+        ],
+        "source_id": "b58bd743-1f9e-41b4-970d-888a9712c148"
+      },
+      {
+        "id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+        "title": "Canada Clean Fuel Regulations Phase 2",
+        "jurisdictions": [
+          "canada"
+        ],
+        "jurisdiction_iso": [
+          "CA"
+        ],
+        "source_id": null
+      },
+      {
+        "id": "851a8e5a-a5e5-4ff9-a883-49cd98362721",
+        "title": "Lithuanian Parliament (Seimas) Official Portal and Legislative Activities Overview",
+        "jurisdictions": [
+          "Lithuania",
+          "European Union"
+        ],
+        "jurisdiction_iso": [],
+        "source_id": "0cc23a7e-4c41-4667-b0fb-6094d134d71b"
+      },
+      {
+        "id": "0c03b4bd-98f0-4513-9176-c4b656db8803",
+        "title": "World Bank Carbon Pricing Dashboard",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL",
+          "BR"
+        ],
+        "source_id": "2d03fce4-d135-4fbb-98d7-b9afa9394271"
+      },
+      {
+        "id": "f7253668-d923-4a40-91fb-06208ac82478",
+        "title": "United States Regional Operations Profile",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US"
+        ],
+        "source_id": "439ae53e-4446-4537-a173-3909b13bf875"
+      },
+      {
+        "id": "6373df1e-1461-478e-b480-70dee471d597",
+        "title": "Mexico SEMARNAT",
+        "jurisdictions": [
+          "latam"
+        ],
+        "jurisdiction_iso": [
+          "MX"
+        ],
+        "source_id": "cd0ab56f-371e-4ae8-a8ea-27e27f007d4f"
+      },
+      {
+        "id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+        "title": "India Regional Operations Profile",
+        "jurisdictions": [
+          "asia"
+        ],
+        "jurisdiction_iso": [
+          "IN"
+        ],
+        "source_id": "bec1a090-c849-4e78-b463-f7f34e64afb6"
+      },
+      {
+        "id": "31fa31a3-9cf9-4318-8069-b6cef3490ac8",
+        "title": "Georgia EPD Annual Open Burning Ban and Drought Response Level 1 Declaration",
+        "jurisdictions": [
+          "Georgia",
+          "Atlanta",
+          "Southwest Georgia",
+          "Brunswick"
+        ],
+        "jurisdiction_iso": [],
+        "source_id": "384cd037-f08a-48dc-830a-1fb9e546d462"
+      },
+      {
+        "id": "9c85fd17-92f7-4c71-b4d3-2969fdc89206",
+        "title": "Utility Regulator Northern Ireland - Regulatory Framework",
+        "jurisdictions": [
+          "Northern Ireland",
+          "UK"
+        ],
+        "jurisdiction_iso": [],
+        "source_id": "4dd807b9-9857-4e3e-b61d-082f8d2842d1"
+      },
+      {
+        "id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+        "title": "Japan's Green Transformation (GX) League Transport Requirements",
+        "jurisdictions": [
+          "japan"
+        ],
+        "jurisdiction_iso": [
+          "JP"
+        ],
+        "source_id": null
+      },
+      {
+        "id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+        "title": "ECLAC (UN Latin America)",
+        "jurisdictions": [
+          "latam"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ],
+        "source_id": "7fb0e8dc-1f87-46e0-8748-269ba548f669"
+      },
+      {
+        "id": "1cda60cd-971a-4294-b90f-fdef2d7ef6da",
+        "title": "Brazil National Policy on Alternative Fuels (PNCA)",
+        "jurisdictions": [
+          "brazil"
+        ],
+        "jurisdiction_iso": [
+          "BR"
+        ],
+        "source_id": null
+      },
+      {
+        "id": "50f1d64b-b73b-4d20-b203-bafc8a3d07a1",
+        "title": "Transport Canada Regulatory Publications and Policy Updates 2026",
+        "jurisdictions": [
+          "Canada"
+        ],
+        "jurisdiction_iso": [],
+        "source_id": "729062fd-d113-4e64-a731-0b0db8469386"
+      },
+      {
+        "id": "ff95b385-6cb2-453a-94e6-b9fc84d7f851",
+        "title": "EU Alternative Fuels Infrastructure Regulation (AFIR)",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "source_id": "5a81a775-3ea6-4e5b-a468-7b5cf7dbd215"
+      },
+      {
+        "id": "ebf3e5a1-b4d6-4d71-9022-6b26b7eef5b4",
+        "title": "Sabin Center-UNEP Annual Conference on Global Climate Litigation",
+        "jurisdictions": [
+          "global",
+          "international"
+        ],
+        "jurisdiction_iso": [],
+        "source_id": "e786f2c7-f010-4bcc-8288-a871d3da8198"
+      },
+      {
+        "id": "3f45b2aa-3d15-4e92-95d3-70dcc6f6bc44",
+        "title": "US EPA Clean Ports Program - Port Emissions Standards",
+        "jurisdictions": [
+          "us"
+        ],
+        "jurisdiction_iso": [
+          "US"
+        ],
+        "source_id": null
+      },
+      {
+        "id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+        "title": "UAE National Hydrogen Strategy - Transport Sector Requirements",
+        "jurisdictions": [
+          "uae"
+        ],
+        "jurisdiction_iso": [
+          "AE"
+        ],
+        "source_id": null
+      },
+      {
+        "id": "c4ad4cc5-ab5f-4e21-a422-bf12b5f992b4",
+        "title": "China (PRC) Regional Operations Profile",
+        "jurisdictions": [
+          "asia"
+        ],
+        "jurisdiction_iso": [
+          "CN"
+        ],
+        "source_id": "026c73a4-2747-4e8e-8c9b-139cc1946e6c"
+      },
+      {
+        "id": "5803219e-fe9e-4199-801c-ee2d31bdfcf4",
+        "title": "Florida Department of Transportation Freight and Rail Office - Rail System Development and Multimodal Freight Programs",
+        "jurisdictions": [
+          "Florida",
+          "United States"
+        ],
+        "jurisdiction_iso": [],
+        "source_id": "0e86b739-17f1-4278-a895-df0123dd2aad"
+      },
+      {
+        "id": "68b28c70-a0af-49a4-83c3-1ea8f5aaf305",
+        "title": "South Coast AQMD Portal - Air Quality Management, Permitting, and Community Programs",
+        "jurisdictions": [
+          "South Coast Air Quality Management District (AQMD)",
+          "California"
+        ],
+        "jurisdiction_iso": [],
+        "source_id": "80bf696d-d8a2-46fd-a0ba-4b5242626b88"
+      }
+    ]
+  },
+  "distinctRawTokens": {
+    "activeRowCount": 636,
+    "totalArrayElementCount": 1169,
+    "distinctRawArrayElements": 396,
+    "distinctSplitTrimUpper": 364,
+    "distinctSplitTrimLower": 364,
+    "elementsContainingComma": 6,
+    "elementsContainingPipe": 0,
+    "elementsContainingSemicolon": 0,
+    "elementsContainingSlash": 0,
+    "elementsWithLeadingTrailingWhitespace": 0,
+    "elementsLowercase": 299,
+    "sampleFragmented": [
+      {
+        "id": "fb86ee11-08ba-47a5-8cbd-5a8079dfc1c2",
+        "value": "Boston, MA"
+      },
+      {
+        "id": "10f3d5b0-9814-490b-ae23-35feb93bfc1b",
+        "value": "Clark County, WA"
+      },
+      {
+        "id": "b2c928b4-7962-40fc-93b5-013d9bfefe4f",
+        "value": "Franklin County, ID"
+      },
+      {
+        "id": "b2c928b4-7962-40fc-93b5-013d9bfefe4f",
+        "value": "Wendell, ID"
+      },
+      {
+        "id": "46914062-4bb6-4e5e-89ae-fb794787f8b3",
+        "value": "Clark County, Nevada"
+      },
+      {
+        "id": "445a06b2-899b-4f4c-80fa-ac697b03587a",
+        "value": "Houston, TX"
+      }
+    ],
+    "sampleSplitTrimUpper": [
+      "ALASKA",
+      "ARIZONA",
+      "ARIZONA DEPARTMENT OF TRANSPORTATION",
+      "ARKANSAS",
+      "ASIA",
+      "ATLANTA",
+      "AUSTRALIA",
+      "BOULDER COUNTY",
+      "BRAZIL",
+      "BRUNSWICK",
+      "CALIFORNIA",
+      "CANADA",
+      "CHAFFEE COUNTY",
+      "COLORADO",
+      "CONEJOS COUNTY",
+      "DELAWARE",
+      "DELAWARE DEPARTMENT OF NATURAL RESOURCES AND ENVIRONMENTAL CONTROL",
+      "EAGLE COUNTY",
+      "EL PASO COUNTY",
+      "ELBERT COUNTY",
+      "EU",
+      "EUROPEAN UNION",
+      "FLORIDA",
+      "GARFIELD COUNTY",
+      "GEORGIA",
+      "GLOBAL",
+      "INDIA",
+      "INTERNATIONAL",
+      "IOWA",
+      "JAPAN",
+      "KANSAS",
+      "LAKE COUNTY",
+      "LATAM",
+      "LITHUANIA",
+      "MEAF",
+      "NATIONAL",
+      "NEW SOUTH WALES",
+      "NORTHERN IRELAND",
+      "NORTHERN_IRELAND",
+      "SINGAPORE",
+      "SOUTH AUSTRALIA",
+      "SOUTH COAST AIR QUALITY MANAGEMENT DISTRICT (AQMD)",
+      "SOUTHWEST GEORGIA",
+      "TUCSON",
+      "UAE",
+      "UK",
+      "UNITED STATES",
+      "US",
+      "US-CA",
+      "WISCONSIN"
+    ],
+    "sampleSplitTrimLowerUnique": [
+      "alaska",
+      "arizona",
+      "arizona department of transportation",
+      "arkansas",
+      "asia",
+      "atlanta",
+      "australia",
+      "boulder county",
+      "brazil",
+      "brunswick",
+      "california",
+      "canada",
+      "chaffee county",
+      "colorado",
+      "conejos county",
+      "delaware",
+      "delaware department of natural resources and environmental control",
+      "eagle county",
+      "el paso county",
+      "elbert county",
+      "eu",
+      "european union",
+      "florida",
+      "garfield county",
+      "georgia",
+      "global",
+      "india",
+      "international",
+      "iowa",
+      "japan",
+      "kansas",
+      "lake county",
+      "latam",
+      "lithuania",
+      "meaf",
+      "national",
+      "new south wales",
+      "northern ireland",
+      "northern_ireland",
+      "singapore",
+      "south australia",
+      "south coast air quality management district (aqmd)",
+      "southwest georgia",
+      "tucson",
+      "uae",
+      "uk",
+      "united states",
+      "us",
+      "us-ca",
+      "wisconsin"
+    ]
+  },
+  "reproduce068": {
+    "total_items": 636,
+    "total_jurisdictions": 396,
+    "distinctTokenSampleFromRPC": [
+      "AL",
+      "ASEAN",
+      "AT",
+      "AU",
+      "Asia",
+      "CA-NL",
+      "Chile",
+      "China",
+      "DOT",
+      "Diest",
+      "Dubai",
+      "EPA",
+      "EU",
+      "EU-27",
+      "FR",
+      "G7",
+      "Ghent",
+      "Guam",
+      "HR",
+      "IE",
+      "IMO",
+      "Idaho",
+      "India",
+      "Iowa",
+      "Iran",
+      "Italy",
+      "Japan",
+      "Kenya",
+      "Local",
+      "MLIT",
+      "Maine",
+      "NSW",
+      "OECD",
+      "Oahu",
+      "Ohio",
+      "PE",
+      "PR",
+      "Paris",
+      "RGGI",
+      "SG",
+      "Spain",
+      "State",
+      "Texas",
+      "Tokyo",
+      "UAE",
+      "UK",
+      "UN",
+      "US",
+      "US-CA",
+      "USA",
+      "Utah",
+      "WTO",
+      "asia",
+      "eu",
+      "meaf",
+      "oecd",
+      "uae",
+      "uk",
+      "us",
+      "usa"
+    ],
+    "fullDistinctCount": 396
+  },
+  "rawArrayShapeCheck": [
+    {
+      "id": "4d5670cb-b40f-41fa-b28d-39378d0b7f69",
+      "array_length": 1,
+      "elements": [
+        "us"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+      "array_length": 1,
+      "elements": [
+        "canada"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "851a8e5a-a5e5-4ff9-a883-49cd98362721",
+      "array_length": 2,
+      "elements": [
+        "Lithuania",
+        "European Union"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "0c03b4bd-98f0-4513-9176-c4b656db8803",
+      "array_length": 1,
+      "elements": [
+        "global"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "f7253668-d923-4a40-91fb-06208ac82478",
+      "array_length": 1,
+      "elements": [
+        "us"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "6373df1e-1461-478e-b480-70dee471d597",
+      "array_length": 1,
+      "elements": [
+        "latam"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "10f26f54-ee9d-4ded-a556-bf789eac9846",
+      "array_length": 1,
+      "elements": [
+        "asia"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "31fa31a3-9cf9-4318-8069-b6cef3490ac8",
+      "array_length": 4,
+      "elements": [
+        "Georgia",
+        "Atlanta",
+        "Southwest Georgia",
+        "Brunswick"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "9c85fd17-92f7-4c71-b4d3-2969fdc89206",
+      "array_length": 2,
+      "elements": [
+        "Northern Ireland",
+        "UK"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+      "array_length": 1,
+      "elements": [
+        "japan"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "72be8dd3-8086-4719-97ab-ae84784f3fdb",
+      "array_length": 1,
+      "elements": [
+        "latam"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "1cda60cd-971a-4294-b90f-fdef2d7ef6da",
+      "array_length": 1,
+      "elements": [
+        "brazil"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "50f1d64b-b73b-4d20-b203-bafc8a3d07a1",
+      "array_length": 1,
+      "elements": [
+        "Canada"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "ff95b385-6cb2-453a-94e6-b9fc84d7f851",
+      "array_length": 1,
+      "elements": [
+        "eu"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "ebf3e5a1-b4d6-4d71-9022-6b26b7eef5b4",
+      "array_length": 2,
+      "elements": [
+        "global",
+        "international"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "3f45b2aa-3d15-4e92-95d3-70dcc6f6bc44",
+      "array_length": 1,
+      "elements": [
+        "us"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+      "array_length": 1,
+      "elements": [
+        "uae"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "c4ad4cc5-ab5f-4e21-a422-bf12b5f992b4",
+      "array_length": 1,
+      "elements": [
+        "asia"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "5803219e-fe9e-4199-801c-ee2d31bdfcf4",
+      "array_length": 2,
+      "elements": [
+        "Florida",
+        "United States"
+      ],
+      "anyElementHasComma": false
+    },
+    {
+      "id": "68b28c70-a0af-49a4-83c3-1ea8f5aaf305",
+      "array_length": 2,
+      "elements": [
+        "South Coast Air Quality Management District (AQMD)",
+        "California"
+      ],
+      "anyElementHasComma": false
+    }
+  ],
+  "sourcesShape": {
+    "data": [
+      {
+        "id": "e60e956a-f3c3-4c7e-adcd-746effad7d8c",
+        "name": "Národná rada Slovenskej republiky",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": [
+          "SK"
+        ]
+      },
+      {
+        "id": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+        "name": "American Alliance of Museums (AAM)",
+        "jurisdictions": [
+          "us-federal"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "59a8c53e-177b-44b7-872f-93934f2c1dcf",
+        "name": "UNCTAD (UN Trade and Development)",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ]
+      },
+      {
+        "id": "5a81a775-3ea6-4e5b-a468-7b5cf7dbd215",
+        "name": "European Commission — Directorate-General for Mobility and Transport",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": [
+          "EU"
+        ]
+      },
+      {
+        "id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+        "name": "EUR-Lex",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": [
+          "EU"
+        ]
+      },
+      {
+        "id": "46beff65-0d00-490a-8363-db1e85120b99",
+        "name": "Ley Chile",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "593f30c6-8a88-4dc5-8a33-3214fa07bcf7",
+        "name": "United Nations Department of Economic and Social Affairs (UN DESA)",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ]
+      },
+      {
+        "id": "5b676647-171e-4ba4-b468-28f7d41c2e72",
+        "name": "Massachusetts Department of Environmental Protection (MassDEP)",
+        "jurisdictions": [
+          "us-federal"
+        ],
+        "jurisdiction_iso": [
+          "US-MA"
+        ]
+      },
+      {
+        "id": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+        "name": "European Banking Authority (EBA)",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "390fb3eb-c17c-474e-9783-d0c71822c37b",
+        "name": "US Securities and Exchange Commission (SEC)",
+        "jurisdictions": [
+          "us-federal"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "5cb7d618-f2ef-47ff-8b89-d9a512b427bc",
+        "name": "Gallery Climate Coalition (about + resources)",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "7aa784cf-6765-4e60-bc56-8fb884897261",
+        "name": "European Securities and Markets Authority (ESMA)",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "c75ea058-f29a-4606-a76e-bb0295565958",
+        "name": "UK Financial Conduct Authority (FCA)",
+        "jurisdictions": [
+          "uk"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "e1cf70bc-7981-4c83-b9f3-bae57b035cee",
+        "name": "Carbon Pulse",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "f81c2cd0-2627-4e92-aa07-478ef395c2a2",
+        "name": "Gallery Climate Coalition (research)",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": []
+      },
+      {
+        "id": "9e5ff2fe-94be-4225-a7fa-7b77a0453e79",
+        "name": "FreightWaves",
+        "jurisdictions": [
+          "us-federal"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ]
+      },
+      {
+        "id": "e6956d6f-4c95-47b6-a72e-04cec98992f2",
+        "name": "EUR-Lex / Official Journal of the European Union",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": [
+          "EU"
+        ]
+      },
+      {
+        "id": "e76e2549-648d-4508-8d15-68eb7234987c",
+        "name": "Intergovernmental Panel on Climate Change (IPCC)",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ]
+      },
+      {
+        "id": "4d2e0f8a-0238-4316-9d88-079aeefd71e7",
+        "name": "Sustainable Packaging Coalition (a project of GreenBlue)",
+        "jurisdictions": [
+          "global"
+        ],
+        "jurisdiction_iso": [
+          "GLOBAL"
+        ]
+      },
+      {
+        "id": "1d0265c2-38ce-463e-befb-f623146ee517",
+        "name": "European Commission DG FISMA (finance)",
+        "jurisdictions": [
+          "eu"
+        ],
+        "jurisdiction_iso": []
+      }
+    ]
+  }
+}
