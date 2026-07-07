@@ -213,7 +213,7 @@ export async function registerPoolHostsForGrounding(
   itemId: string,
 ): Promise<{ registered: number; institutions: number }> {
   const { data: pool } = await supabase
-    .from("agent_run_searches").select("result_url").eq("intelligence_item_id", itemId);
+    .from("agent_run_searches").select("result_url, search_query").eq("intelligence_item_id", itemId);
   if (!pool?.length) return { registered: 0, institutions: 0 };
   // ALL sources (paginate past the 1000-row PostgREST cap) -> institution-keyed resolver.
   const sources: SourceRow[] = [];
@@ -228,8 +228,13 @@ export async function registerPoolHostsForGrounding(
   const seen = new Set<string>();
   const toRegister: CitedSourceInput[] = [];
   for (const r of pool) {
-    const url = (r as { result_url: string | null }).result_url;
+    const { result_url: url, search_query: q } = r as { result_url: string | null; search_query: string | null };
     if (!url) continue;
+    // CROSS-RUN SELF-LICENSING SEAM (P3c residual, closed): `canonical:cited-*` rows are the ground
+    // step's citation STUBS, not fetched pool content — registering their hosts here would let a
+    // run-1 model citation auto-register as a provisional source that criterion-2's registry branch
+    // accepts on run-2, re-opening the circularity the cited-host gate closed. Real pool rows only.
+    if (q && q.startsWith("canonical:cited")) continue;
     const inst = hostInstitution(hostOf(url));
     if (!inst || seen.has(inst)) continue;
     if (resolver.resolveSpan(url).tier != null) continue; // institution already resolves — no action

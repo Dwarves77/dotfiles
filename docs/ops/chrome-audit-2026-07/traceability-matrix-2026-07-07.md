@@ -175,11 +175,14 @@ committed files until Jason's apply window.
      (paragraph-scoped) label check; expression red-then-green'd read-only against prod.
      Blast radius: 1 claim / 1 item (Japan MLIT 68e05861) of 517 claims / 78 items — the
      generation prompt already demanded per-sentence labels; only the gate lagged.
-- **RESIDUAL (reported, not built)**: cross-run self-licensing seam — `registerPoolHostsForGrounding`
-  (register step) reads the item's WHOLE `agent_run_searches` pool including prior stub rows, so a
-  run-1 stub can auto-register as a provisional source that criterion-2's registry branch (exact-URL,
-  no status filter) accepts on run-2. Bounded by the new gate (novel hosts no longer stub at all),
-  but the register step should exclude `canonical:cited-*` rows — small follow-on, not rushed here.
+- **RESIDUAL → CLOSED (same day, operator "Proceed")**: cross-run self-licensing seam —
+  `registerPoolHostsForGrounding` now excludes `canonical:cited-*` stub rows from host registration
+  (real pool rows only), so a run-1 citation can no longer auto-register into a source row that
+  criterion-2's registry branch accepts on run-2.
+- **Mig 158 APPLIED 2026-07-07** (operator "Proceed" ruling): ledger row 158 same transaction;
+  read-back + three behavioral probes green (Japan MLIT forces exactly 1 label failure; LOW-priority
+  reg fails floor with `floor_basis=item_type_unconditional`; CRITICAL/HIGH control still valid).
+  No items flipped at apply — flips ride future re-validation writes (zero-mints/loop-OFF gated).
 
 ## Standing rule (codified here, going forward)
 
