@@ -265,6 +265,151 @@ export async function PATCH(
   );
 }
 
+interface PostBody {
+  membership_id?: string;
+  reason?: string;
+}
+
+// POST — org-scoped BAN. Owner-only. Body: { membership_id, reason? }. Records
+// a row in org_member_bans (block-rejoin) AND removes the membership. Cannot
+// ban self; cannot ban the only owner. This is NOT a platform-wide account ban
+// — the account is only blocked from THIS workspace (operator ruling
+// 2026-07-07; enforced on rejoin by accept_invitation, migration 156).
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ org_id: string }> }
+) {
+  const auth = await requireCommunityAuth(request);
+  if (isCommunityAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const { org_id } = await params;
+  if (!org_id) {
+    return NextResponse.json(
+      { error: "org_id required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  let body: PostBody;
+  try {
+    body = (await request.json()) as PostBody;
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  const membershipId = typeof body.membership_id === "string" ? body.membership_id : null;
+  const reason = typeof body.reason === "string" ? body.reason.slice(0, 2000) : null;
+  if (!membershipId) {
+    return NextResponse.json(
+      { error: "membership_id is required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const service = getServiceClient();
+
+  const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
+  if (callerErr) {
+    return NextResponse.json(
+      { error: callerErr },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (!callerMembership) {
+    return NextResponse.json(
+      { error: "Not a member of this organization" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (callerMembership.role !== "owner") {
+    return NextResponse.json(
+      { error: "Owner role required to ban members" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { data: target, error: targetErr } = await service
+    .from("org_memberships")
+    .select("id, user_id, role, org_id")
+    .eq("id", membershipId)
+    .maybeSingle();
+  if (targetErr) {
+    return NextResponse.json(
+      { error: targetErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (!target || target.org_id !== org_id) {
+    return NextResponse.json(
+      { error: "membership not found in this org" },
+      { status: 404, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (target.user_id === auth.userId) {
+    return NextResponse.json(
+      { error: "You cannot ban yourself" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  // Last-owner guard: never ban the only owner (would leave the org ownerless).
+  if (target.role === "owner") {
+    const { count: ownerCount, error: ownerCountErr } = await service
+      .from("org_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org_id)
+      .eq("role", "owner");
+    if (ownerCountErr || ownerCount == null) {
+      return NextResponse.json(
+        { error: ownerCountErr?.message ?? "owner count unavailable" },
+        { status: 500, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+    if (ownerCount <= 1) {
+      return NextResponse.json(
+        { error: "Cannot ban the only owner. Promote another member to owner first." },
+        { status: 409, headers: rateLimitHeaders(auth.userId) }
+      );
+    }
+  }
+
+  // Record the ban FIRST (block-rejoin), then remove the membership. Ordering
+  // matters: if the delete succeeded first and the ban insert failed, the user
+  // could rejoin. Ban-then-delete fails closed.
+  const { error: banErr } = await service
+    .from("org_member_bans")
+    .upsert(
+      { org_id, user_id: target.user_id, banned_by: auth.userId, reason },
+      { onConflict: "org_id,user_id" }
+    );
+  if (banErr) {
+    return NextResponse.json(
+      { error: banErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { error: delErr } = await service
+    .from("org_memberships")
+    .delete()
+    .eq("id", membershipId);
+  if (delErr) {
+    return NextResponse.json(
+      { error: delErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  return NextResponse.json(
+    { success: true, banned_user_id: target.user_id, membership_id: membershipId },
+    { headers: rateLimitHeaders(auth.userId) }
+  );
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ org_id: string }> }
