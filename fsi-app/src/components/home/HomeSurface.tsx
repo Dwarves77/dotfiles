@@ -1,60 +1,47 @@
 "use client";
 
 /**
- * HomeSurface — client wrapper that mounts the resource store, then renders
- * the dashboard sections that need client state (WeeklyBriefing toggle,
- * WhatChanged toggle, Supersessions toggle, scoring with sector context).
+ * HomeSurface — the Dashboard body (TEMPLATE 01, HANDOFF §6.3 + "Pages - 01
+ * Dashboard" mock). Client component: hydrates the resource store (scoring
+ * with sector context), then lays out the mock's information architecture:
  *
- * The page-level <EditorialMasthead> + <DashboardHero> + <AiPromptBar> live
- * in the server component (app/page.tsx). This subcomponent owns the body
- * grid: the editorial main column ("This Week" + "Replaced" + Housekeeping)
- * and the 300px sidebar rail (Watchlist + By Owner).
+ *   Priority tiles → Ask bar → THIS WEEK (top-priority list + rail:
+ *   surfaces / watchlist / by owner) → WHAT CHANGED (date-stamped bar +
+ *   REPLACED ledger) → HOUSEKEEPING (coverage gaps + awaiting review).
  *
- * Phase 3 (design_handoff_2026-05_dashboard-sidebar) reshapes the body to
- * Layout A: 1fr / 300px grid with a 32px gap, an inset border on the rail,
- * and a 1024px breakpoint that collapses to single-column. Layout B is
- * out of scope.
+ * The masthead (VOL eyebrow + Anton title + counts sub-line) lives in the
+ * server component (app/page.tsx). Section headers, tiles, and the Ask bar
+ * live here in the body per the mock.
+ *
+ * Bindings honored: counts come from server aggregates / snapshots (never
+ * recomputed from visible rows); honest-state frames for every absent field;
+ * the What-changed half stays date-stamped (never implies live detection);
+ * superseded items render in their own ledger, never mixed into active lists.
  */
 
-import { Suspense, useEffect, useMemo, useState, useCallback } from "react";
-import { Toast } from "@/components/ui/Toast";
-import { SectionHeader } from "@/components/shell/SectionHeader";
-import { WeeklyBriefing } from "@/components/home/WeeklyBriefing";
-import { WhatChanged } from "@/components/home/WhatChanged";
-import { Supersessions } from "@/components/home/Supersessions";
-import {
-  HousekeepingSection,
-  HousekeepingSkeleton,
-  RailSkeleton,
-} from "@/components/home/HousekeepingSection";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { DashboardHero } from "@/components/home/DashboardHero";
+import { DashboardAskBar } from "@/components/home/DashboardAskBar";
+import { DashboardTopPriority } from "@/components/home/DashboardTopPriority";
+import { DashboardSurfaceCoverage } from "@/components/home/DashboardSurfaceCoverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import { DashboardByOwner } from "@/components/home/DashboardByOwner";
 import { DashboardCoverageGaps } from "@/components/home/DashboardCoverageGaps";
 import { DashboardAwaitingReview } from "@/components/home/DashboardAwaitingReview";
-import { DashboardSurfaceCoverage } from "@/components/home/DashboardSurfaceCoverage";
+import { WhatChanged } from "@/components/home/WhatChanged";
+import { Supersessions } from "@/components/home/Supersessions";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
-import type { SourceCredibilityMap } from "@/lib/dashboard/credibility";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
-import type {
-  Resource,
-  ChangeLogEntry,
-  Dispute,
-  Supersession,
-} from "@/types/resource";
-import type {
-  WatchlistItem,
-  CoverageGap,
-  ReviewItem,
-  WorkspaceAggregates,
-} from "@/lib/data";
+import type { Resource, ChangeLogEntry, Supersession } from "@/types/resource";
+import type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates } from "@/lib/data";
 
 interface HomeSurfaceProps {
   initialResources: Resource[];
   initialArchived: Resource[];
   changelog: Record<string, ChangeLogEntry[]>;
-  disputes: Record<string, Dispute>;
   supersessions: Supersession[];
   auditDate: string;
   initialOverrides?: {
@@ -65,43 +52,69 @@ interface HomeSurfaceProps {
     archiveNote: string | null;
     notes: string;
   }[];
-  // Scalar aggregates (migration 068) over the workspace's true active row
-  // set — distinct from the LIMIT-50 row payload above. Passed through to
-  // WeeklyBriefing for the summary line.
   aggregates: WorkspaceAggregates;
-  // Phase 3 widget promises — passed unawaited from page.tsx so each
-  // widget can Suspense-resolve independently of the editorial body's
-  // first paint.
+  jurisdictionsCount: number;
   watchlistPromise: Promise<WatchlistItem[]>;
   coverageGapsPromise: Promise<CoverageGap[]>;
   awaitingReviewPromise: Promise<ReviewItem[]>;
-  // Build 11: per-surface coverage for the five-surface rail widget.
-  // Passed as a fully resolved snapshot rather than a promise because the
-  // page-level fetch (page.tsx) awaits it alongside aggregates for the
-  // count-coherence headline; downstream rendering is synchronous.
   surfaceCoverage: SurfaceCoverageSnapshot;
-  // Build 11: Q9 credibility map (source_id → tier + citation + bias).
-  // Plain serializable object (Record<string, profile>); RSC-safe per
-  // dispatch brief. WeeklyBriefing reads from this map for its top-5
-  // intelligence-item cards. Empty map degrades to no chips per the
-  // chip contracts.
-  credibilityBySourceId: SourceCredibilityMap;
+}
+
+/** Section rule per the mock: Anton title + right eyebrow + 2px ink underline. */
+function SectionHeading({ title, aside, style }: { title: string; aside: ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        borderBottom: "2px solid var(--color-text-primary)",
+        padding: "0 0 8px",
+        gap: 12,
+        ...style,
+      }}
+    >
+      <h2
+        style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 400,
+          fontSize: 26,
+          letterSpacing: "0.02em",
+          textTransform: "uppercase",
+          margin: 0,
+        }}
+      >
+        {title}
+      </h2>
+      <span
+        style={{
+          fontSize: 10.5,
+          fontWeight: 800,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "var(--color-text-muted)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {aside}
+      </span>
+    </div>
+  );
 }
 
 export function HomeSurface({
   initialResources,
   initialArchived,
   changelog,
-  disputes,
   supersessions,
   auditDate,
   initialOverrides = [],
   aggregates,
+  jurisdictionsCount,
   watchlistPromise,
   coverageGapsPromise,
   awaitingReviewPromise,
   surfaceCoverage,
-  credibilityBySourceId,
 }: HomeSurfaceProps) {
   const {
     resources: platformResources,
@@ -115,15 +128,6 @@ export function HomeSurface({
   const sectorWeights = useWorkspaceStore((s) => s.sectorWeights);
   const jurisdictionWeights = useWorkspaceStore((s) => s.jurisdictionWeights);
 
-  const [toast, setToast] = useState<{ message: string; visible: boolean }>({
-    message: "",
-    visible: false,
-  });
-  const showToast = useCallback((message: string) => {
-    setToast({ message, visible: true });
-  }, []);
-
-  // Hydrate the resource store from server-fetched data.
   useEffect(() => {
     const sectorCtx = { activeSectors: sectorProfile, sectorWeights };
     const scored = initialResources.map((r) => ({
@@ -137,10 +141,8 @@ export function HomeSurface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialResources, initialArchived]);
 
-  const effectiveResources =
-    platformResources.length > 0 ? platformResources : initialResources;
-  const effectiveArchived =
-    platformArchived.length > 0 ? platformArchived : initialArchived;
+  const effectiveResources = platformResources.length > 0 ? platformResources : initialResources;
+  const effectiveArchived = platformArchived.length > 0 ? platformArchived : initialArchived;
   const { active: resources, archived: workspaceArchived } = useMemo(
     () => mergeWithOverrides(effectiveResources, overrides),
     [effectiveResources, overrides]
@@ -157,150 +159,69 @@ export function HomeSurface({
     return map;
   }, [resources, archived]);
 
-  const todayLabel = new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  // Pending live-filter plumbing (DISABLED — DashboardHero.TILES_AS_LIVE_FILTERS
+  // is false). State is wired so activation is a one-line flip after operator
+  // approval (HANDOFF §9). Until then the setter is unused by design.
+  const [, setBandFilter] = useState<string | null>(null);
+
+  const briefingDate = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   return (
-    <div className="px-9 pt-8 pb-16 max-w-[1280px] mx-auto">
-      {/* AI prompt bar removed from Dashboard per Phase D placement rule.
-          The Weekly Briefing already curates "what should I know" in
-          editorial format. AI inquiry surfaces live on the regulatory and
-          operational pages: /regulations, /regulations/[slug], /market,
-          /research, /operations, /map. */}
+    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 80px" }}>
+      {/* Priority tiles */}
+      <DashboardHero resources={resources} aggregates={aggregates} onSelectBand={(b) => setBandFilter(b)} />
 
+      {/* Ask bar */}
+      <DashboardAskBar />
+
+      {/* THIS WEEK */}
+      <SectionHeading title="This week" aside={`Weekly briefing · ${briefingDate}`} style={{ margin: "0 0 18px" }} />
       <div
-        className="cl-home-body-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 300px",
-          gap: 0,
-          alignItems: "start",
-        }}
+        className="cl-dash-thisweek"
+        style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}
       >
         <style>{`
-          @media (max-width: 1024px) {
-            .cl-home-body-grid { grid-template-columns: 1fr !important; }
-            .cl-home-body-rail { border-left: 0 !important; padding-left: 0 !important; padding-top: 32px !important; border-top: 1px solid var(--border-sub); }
-            .cl-home-body-main { padding-right: 0 !important; }
+          @media (max-width: 900px) {
+            .cl-dash-thisweek { grid-template-columns: 1fr !important; }
+            .cl-dash-housekeeping { grid-template-columns: 1fr !important; }
           }
         `}</style>
-
-        <div
-          className="cl-home-body-main"
-          style={{ paddingRight: 32, minWidth: 0 }}
-        >
-          {/* This Week — Weekly Briefing (1.3fr) + What Changed (1fr) */}
-          <section style={{ marginBottom: 40 }}>
-            <SectionHeader
-              title="This Week"
-              aside={
-                <>
-                  Weekly briefing · <b>{todayLabel}</b>
-                </>
-              }
-            />
-            <div
-              className="cl-this-week-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.3fr 1fr",
-                gap: 18,
-              }}
-            >
-              <style>{`
-                @media (max-width: 900px) {
-                  .cl-this-week-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
-                }
-              `}</style>
-              <WeeklyBriefing
-                resources={resources}
-                changelog={changelog}
-                disputes={disputes}
-                auditDate={auditDate}
-                aggregates={aggregates}
-                credibilityBySourceId={credibilityBySourceId}
-                onToast={showToast}
-              />
-              <WhatChanged
-                resources={resources}
-                changelog={changelog}
-                auditDate={auditDate}
-              />
-            </div>
-          </section>
-
-          {/* Replaced — 5-up horizontal Supersessions strip */}
-          {supersessions.length > 0 && (
-            <section style={{ marginBottom: 40 }}>
-              <SectionHeader
-                title="Replaced"
-                aside={
-                  <>
-                    <b>{supersessions.length}</b> regulations superseded by newer
-                    versions
-                  </>
-                }
-              />
-              <Supersessions
-                supersessions={supersessions}
-                resourceMap={resourceMap}
-              />
-            </section>
-          )}
-
-          {/* Housekeeping — Coverage gaps (left) + Awaiting review (right) */}
-          <HousekeepingSection
-            coverageGapsSlot={
-              <Suspense
-                fallback={<HousekeepingSkeleton label="Coverage gaps" />}
-              >
-                <DashboardCoverageGaps promise={coverageGapsPromise} />
-              </Suspense>
-            }
-            awaitingReviewSlot={
-              <Suspense
-                fallback={<HousekeepingSkeleton label="Awaiting review" />}
-              >
-                <DashboardAwaitingReview promise={awaitingReviewPromise} />
-              </Suspense>
-            }
-          />
-        </div>
-
-        <aside
-          className="cl-home-body-rail"
-          style={{
-            paddingLeft: 32,
-            borderLeft: "1px solid var(--border-sub)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 36,
-          }}
-        >
-          {/* Build 11: five-surface coverage widget. Mounted at the top
-              of the rail per caros-ledge-platform-intent SKILL Section
-              "The Five Customer-Facing Surfaces": Regulations, Market
-              Intel, Research, Operations, and Community are co-equal
-              entry points. Pre-Build-11 the rail surfaced Regulations
-              priority breakdown and By Owner without representing the
-              other surfaces (OBS-41). */}
+        <DashboardTopPriority resources={resources} jurisdictionsCount={jurisdictionsCount} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <DashboardSurfaceCoverage snapshot={surfaceCoverage} />
-          <Suspense fallback={<RailSkeleton label="Watchlist" />}>
+          <Suspense fallback={null}>
             <DashboardWatchlist promise={watchlistPromise} />
           </Suspense>
-          <Suspense fallback={<RailSkeleton label="By Owner" />}>
-            <DashboardByOwner resources={resources} />
-          </Suspense>
-        </aside>
+          <DashboardByOwner resources={resources} />
+        </div>
       </div>
 
-      <Toast
-        message={toast.message}
-        visible={toast.visible}
-        onDismiss={() => setToast({ message: "", visible: false })}
+      {/* WHAT CHANGED */}
+      <SectionHeading
+        title="What changed"
+        aside="Change log across the registry"
+        style={{ margin: "44px 0 16px" }}
       />
+      <WhatChanged resources={resources} changelog={changelog} auditDate={auditDate} />
+      <Supersessions supersessions={supersessions} resourceMap={resourceMap} />
+
+      {/* HOUSEKEEPING */}
+      <SectionHeading
+        title="Housekeeping"
+        aside="Registry health · review queue"
+        style={{ margin: "44px 0 16px" }}
+      />
+      <div
+        className="cl-dash-housekeeping"
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}
+      >
+        <Suspense fallback={null}>
+          <DashboardCoverageGaps promise={coverageGapsPromise} />
+        </Suspense>
+        <Suspense fallback={null}>
+          <DashboardAwaitingReview promise={awaitingReviewPromise} />
+        </Suspense>
+      </div>
     </div>
   );
 }

@@ -70,3 +70,61 @@ template · what deviated · why. The operator reviews and rules.
   42px.
 - **Why:** Pre-existing mobile-a11y adaptation in the shared masthead; at 1440px it renders ~44px,
   effectively matching the mock. Not reverted, to preserve the mobile behavior.
+
+---
+
+## TEMPLATE 01 — Dashboard (`feat/redesign-t01-dashboard`)
+
+### D01-1 · Dashboard priority tiles as live filters — PLUMBING BUILT, DISABLED (pending operator decision)
+- **What:** HANDOFF §6.3 + §9 flag "make the dashboard tiles filter like every other page" as a
+  pending operator decision. The plumbing is built (`DashboardHero.onSelectBand` + the
+  `TILES_AS_LIVE_FILTERS` constant + a `setBandFilter` state in `HomeSurface`) but **DISABLED**:
+  `TILES_AS_LIVE_FILTERS === false`. Until approved, clicking a tile scrolls to the `#priority`
+  "This week" list (the mock's `href="#priority"` behaviour).
+- **Why:** Explicit "build the plumbing to allow it … flagged, awaiting operator approval." Activation
+  is a one-line flip once approved. **Needs Jason's ruling.**
+
+### D01-2 · "Top priority" analysis line binds real `whyMatters`, labeled "Our analysis" (no per-item "do now" field)
+- **What:** The mock's glance rows carry an imperative "OUR ANALYSIS · DO NOW" directive with a
+  specific recommendation per item. No per-item do-now/recommendation field exists in the schema.
+  The row renders the item's stored `whyMatters` under an **"Our analysis"** label (labeled analysis,
+  epistemic grammar §3) plus the real `actionOwner` when present; the analysis line is omitted when
+  `whyMatters` is absent. No directive text is fabricated.
+- **Why:** No-invented-data + epistemic grammar. A structured `do_now` / operational-directive field
+  is backend work (§7-class). When it lands, the row swaps `whyMatters` → the directive under a
+  "Do now" label with no shape change. **Proposed: add a do-now field to the item contract.**
+
+### D01-3 · Per-item severity eyebrow is priority-derived, not the mock's flavour labels
+- **What:** The mock varies the glance-row eyebrow per item ("Action required" / "Window closing" /
+  "Cost alert"). These map to no field. The row derives the eyebrow from `priority`
+  (CRITICAL → "Action required", HIGH → "High priority").
+- **Why:** Count/label integrity — a label must trace to a real field. Flavour labels would be
+  fabricated. A future signal-band / severity-flavour field could restore the variety.
+
+### D01-4 · "Top priority" glance-row deadline uses honest em-dash when no dated deadline
+- **What:** The mock shows a mix of dates and the semantic status "In force." A row with no future
+  `complianceDeadline` / `item_timelines` date renders `— no date` (muted, titled "No dated deadline
+  on record") rather than asserting "In force."
+- **Why:** Honest-state (§4) — never fabricate a status. Priority-list rows still render the date when
+  one exists.
+
+### D01-5 · "This week" change log renders the date-stamped honest state (THE WHATCHANGED RULE)
+- **What:** The unified change log's "This week" half renders a summary line + a `checked {relative}`
+  stamp derived from the last detection pass (`auditDate`). When new/updated items exist in the
+  trailing window they are listed with an explicit "reflects the last detection pass … continuous
+  change-detection is not yet live" note.
+- **Why:** Binding gate — `item_changelog` writer is Phase 3 (unbuilt); the surface must never imply
+  live change detection and must show no fabricated diffs. This is honest date-stamping, not a
+  deviation from intent — logged for visibility of the gate.
+
+### D01-6 · Weekly Briefing / Due-this-quarter cards dropped; prior dashboard components now unreferenced
+- **What:** The prior dashboard's `WeeklyBriefing`, `DueThisQuarter`, `HousekeepingSection`,
+  `TypesetSection`, and `SectionHeader` compositions are not part of the TEMPLATE 01 mock. `HomeSurface`
+  no longer mounts them; the files remain on disk, now unreferenced (mirrors D02-5's approach).
+- **Why:** The mock's "This week" left column is the top-priority glance list, not a weekly-briefing
+  card. Left the old files in place to keep the diff scoped; **proposed for removal in a follow-up.**
+
+### D01-7 · Content column 1180px; masthead title clamp — same as D02-7 / D02-8
+- **What:** Dashboard body centers at `max-width: 1180px`; the shared masthead keeps its responsive
+  Anton clamp. Both inherit the T02 shell decisions.
+- **Why:** Consistency with the shipped shell; see D02-7 / D02-8.

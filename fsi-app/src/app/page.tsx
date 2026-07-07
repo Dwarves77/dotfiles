@@ -1,18 +1,16 @@
 /**
  * Dashboard home (`/`) — server component.
  *
- * Renders the editorial masthead + 4-up DashboardHero strip on the server,
- * then mounts <HomeSurface> for the client-state sections (Weekly Briefing,
- * What Changed, Supersessions). Replaces the previous Dashboard.tsx
- * delegation (case "home").
+ * Redesign TEMPLATE 01 (HANDOFF §6.3 + "Pages - 01 Dashboard" mock). Renders
+ * the editorial masthead (VOL eyebrow + Anton title + counts sub-line) on the
+ * server, then mounts <HomeSurface> for the mock body (priority tiles → Ask bar
+ * → This week → What changed → Housekeeping).
  *
- * Layout per design_handoff_2026-04/preview/dashboard-v3.html:
- *   - <EditorialMasthead> with title="Dashboard — Your Brief"
- *   - DashboardHero rendered inside the masthead's belowSlot for the 4-up
- *     critical/high/moderate/low tiles
- *   - AiPromptBar with chip suggestions
- *   - "This Week" section: WeeklyBriefing (1.3fr) | WhatChanged (1fr)
- *   - "Replaced" section: 5-up horizontal Supersessions strip
+ * COUNTS (binding): the masthead sub-line reads the workspace aggregates
+ * (migration 068) for the true item + jurisdiction totals — never recomputed
+ * from the capped row payload, never the mock snapshot literals. The rail's
+ * per-surface counts read get_all_surface_counts (migration 148) via
+ * getSurfaceCoverageSnapshot, fail-soft.
  */
 
 import {
@@ -22,49 +20,21 @@ import {
   getAwaitingReview,
   getWorkspaceAggregates,
 } from "@/lib/data";
-import { getCriticalItemsSnapshot } from "@/lib/dashboard/critical-items";
 import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
-import { getDashboardCredibility } from "@/lib/dashboard/credibility";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
-import { DashboardHero } from "@/components/home/DashboardHero";
 import { HomeSurface } from "@/components/home/HomeSurface";
 
-// Note: previous `export const revalidate = 60` was a no-op — getAppData()
-// reads cookies via resolveOrgIdFromCookies(), which forces dynamic
-// rendering and disables ISR. ISR-friendly anon/authed split is tracked
-// in docs/PERF-WAVE-2.md as a Phase D item.
-
 export default async function Home() {
-  const t0 = Date.now();
-  // Fetch the dashboard payload and the scalar aggregates (migration 068)
-  // in parallel. The dashboard payload caps at LIMIT 50 — useful for the
-  // top-N row rendering — but the masthead meta, the four DashboardHero
-  // tiles, and the WeeklyBriefing summary need true workspace totals.
-  // Aggregates ride the same APP_DATA_TAG cache so override mutations
-  // invalidate both in lockstep.
-  const [data, aggregates, criticalSnapshot, surfaceCoverage] = await Promise.all([
+  const [data, aggregates, surfaceCoverage] = await Promise.all([
     getAppData(),
     getWorkspaceAggregates(),
-    getCriticalItemsSnapshot(),
     getSurfaceCoverageSnapshot(),
   ]);
-  console.log(`[perf] / data ${Date.now() - t0}ms`);
 
-  // Build 11: Q9 credibility chip data for the dashboard's intelligence-item
-  // cards. Fetched server-side for the distinct source_ids in the bounded
-  // dashboard payload (LIMIT 50 from migration 064); WeeklyBriefing renders
-  // the top-5 of those so the credibility map size is naturally tiny.
-  // Mirrors Build 7/8/9 pattern: per-source tier + citation count + recency
-  // + bias tags, with chip suppression when the value is null/zero.
-  const credibilityBySourceId = await getDashboardCredibility(
-    data.resources.map((r) => r.sourceId)
-  );
-
-  // Phase 3 widget data — kicked off as unawaited promises so the
-  // editorial body and hero paint at the original time-to-first-paint
-  // and the rail / Housekeeping resolve as their independent queries
-  // return inside Suspense boundaries.
+  // Phase 3 widget data — kicked off as unawaited promises so the editorial
+  // body paints at first-paint and the rail / Housekeeping resolve inside
+  // Suspense boundaries as their independent queries return.
   const watchlistPromise = getWatchlist();
   const coverageGapsPromise = getCoverageGaps();
   const awaitingReviewPromise = getAwaitingReview();
@@ -74,54 +44,41 @@ export default async function Home() {
     month: "long",
     day: "numeric",
   });
-  // Counts read from aggregates (true totals across the workspace's active
-  // row set) instead of the capped row array. Falls back to the row-derived
-  // values when aggregates are zero (Supabase unconfigured / RPC error /
-  // anon caller) so the seed-fallback path still renders sensible numbers.
+
+  // True workspace totals (migration 068), fail-soft to the row payload only
+  // when aggregates report zero (anon / seed / RPC error).
   const jurisdictionsCount =
     aggregates.totalJurisdictions > 0
       ? aggregates.totalJurisdictions
       : new Set(data.resources.map((r) => r.jurisdiction || "global")).size;
   const itemsCount =
     aggregates.totalItems > 0 ? aggregates.totalItems : data.resources.length;
-  // Build 11 count coherence: the masthead headline now describes the
-  // workspace's full intelligence corpus across the four routed surfaces
-  // (Regulations, Market Intel, Research, Operations) plus a tag for the
-  // Community surface co-equality. The DashboardHero tile sum
-  // (CRITICAL + HIGH + MODERATE + LOW) may differ from itemsCount when
-  // items carry NULL priority; that delta is now disclosed alongside the
-  // five-surface widget's "X active across 5 surfaces" count rather than
-  // mis-labelled as "regulations tracked".
-  const meta = `${dateStr} · ${itemsCount} intelligence items across 5 surfaces · ${jurisdictionsCount} jurisdictions`;
+
+  const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
+  const meta = (
+    <span>
+      {dateStr} · <span style={boldInk}>{itemsCount}</span> intelligence items across 5 surfaces ·{" "}
+      <span style={boldInk}>{jurisdictionsCount}</span> jurisdictions
+    </span>
+  );
 
   return (
     <>
       <SystemErrorBanner message={data._error} />
-      <EditorialMasthead
-        title="Dashboard — Your Brief"
-        meta={meta}
-        belowSlot={
-          <DashboardHero
-            resources={data.resources}
-            aggregates={aggregates}
-            criticalSnapshot={criticalSnapshot}
-          />
-        }
-      />
+      <EditorialMasthead title="Dashboard — Your brief" meta={meta} />
       <HomeSurface
         initialResources={data.resources}
         initialArchived={data.archived}
         changelog={data.changelog}
-        disputes={data.disputes}
         supersessions={data.supersessions}
         auditDate={data.auditDate}
         initialOverrides={data.overrides}
         aggregates={aggregates}
+        jurisdictionsCount={jurisdictionsCount}
         watchlistPromise={watchlistPromise}
         coverageGapsPromise={coverageGapsPromise}
         awaitingReviewPromise={awaitingReviewPromise}
         surfaceCoverage={surfaceCoverage}
-        credibilityBySourceId={credibilityBySourceId}
       />
     </>
   );
