@@ -285,6 +285,36 @@
   /* Low tile eyebrow/numeral render muted-secondary in the mock (only the
      bottom rule is green) — token keeps that intent explicit. */
   --reg-tile-low-fig: #5A6B67;
+     REDESIGN T03 TOKENS (additive — HANDOFF §2)
+     Detail/reader-page token set. Lifted verbatim from the
+     approved mock inline styles (Pages - 03 Regulation
+     Detail.dc.html). The action color on detail/reader pages
+     is brand orange #E8610A — the legacy editorial --accent
+     (navy) is intentionally NOT changed here so template-02
+     shell and other surfaces render unchanged; the detail
+     surface consumes these detail-scoped tokens instead.
+     See docs/design/redesign/DESIGN-DEVIATIONS.md D1.
+     ───────────────────────────────────────────────────── */
+  --cl-bg-page: #FAFAF8;
+  --cl-bg-card: #FFFFFF;
+  --cl-bg-plate: #F5F2EE;              /* section-header plates, avatar bg */
+  --cl-bg-accent-tint: #FFF7F0;        /* selected/active tint */
+  --cl-ink: #1A1A1A;
+  --cl-ink-secondary: #5A6B67;
+  --cl-ink-muted: #7A6E6C;
+  --cl-accent: #E8610A;                /* THE action color on detail pages */
+  --cl-accent-hover: #D05509;
+  --cl-accent-blue: #2563EB;           /* eyebrow/volume, T-tier badge, VERIFIED */
+  --cl-sev-critical: #DC2626;
+  --cl-sev-high: #E8610A;
+  --cl-sev-moderate: #CA8A04;
+  --cl-sev-low: #16A34A;
+  --cl-epistemic-signal: #B45309;      /* unverified / early signal (dashed) */
+  --cl-destructive-quiet: #9A3412;     /* ban/delete text, counsel labels */
+  --cl-brass: #8A6A2A;                 /* pending-frame headers, theme eyebrows */
+  --cl-hairline: rgba(0,0,0,0.12);     /* card border */
+  --cl-hairline-soft: rgba(0,0,0,0.06);/* row rules */
+  --cl-detail-grad: linear-gradient(90deg, #E8610A 0%, #2563EB 100%);
 }
 
 /* ── DARK THEME (opt-in) ── */
