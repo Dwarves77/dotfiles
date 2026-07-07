@@ -1,50 +1,32 @@
 "use client";
 
 /**
- * OrganizationPanel — UserProfilePage Organization tab.
+ * OrganizationPanel — Account · Profile · Organization (redesign T10).
  *
- * Three-layer tenant model (ADR-001) places the org IS-blueprint-core
- * (between auth user and workspace). This surface shows the caller's
- * org identity (name, slug, owner, created date, member count) and
- * lets the owner edit the name + slug.
+ * Rebuilt against "Pages - 10 Account". Shows the org identity as a
+ * compact table (name / slug / plan / members / created) plus the
+ * workspace-scope footnote. The owner name/slug editor is preserved
+ * below the table (owner-only) so the redesign loses no capability.
  *
- * Backed by /api/orgs/[org_id]:
- *   - GET returns org identity + owner + member_count + caller_role.
- *   - PATCH owner-only updates name and/or slug; the server validates
- *     slug shape and surfaces 23505 (slug taken) as 409.
+ * Backed by /api/orgs/[org_id] (GET + owner PATCH).
  *
- * Per DP-1 the panel inlines every related action on the single org
- * row: view, owner identity, member count, edit form, save / cancel,
- * inline status banner. No tab switches.
+ * Honesty note: the mock's "Last activity" column would need per-org
+ * activity events (HANDOFF §7, not yet shipped), so the last column
+ * renders the real created date labelled "Created" rather than a
+ * fabricated activity timestamp.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Save, Loader2, Crown, Users } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { formatRelative, toDate } from "@/lib/relative-time";
+import { AccountCard, FieldLabel, TextInput, InkButton } from "@/components/account/AccountPrimitives";
 
 interface OrgPayload {
-  org: {
-    id: string;
-    name: string;
-    slug: string;
-    plan: string;
-    created_at: string;
-  };
+  org: { id: string; name: string; slug: string; plan: string; created_at: string };
   caller_role: "owner" | "admin" | "member" | "viewer";
-  owner: {
-    user_id: string;
-    display_name: string;
-    owner_since: string;
-  } | null;
+  owner: { user_id: string; display_name: string; owner_since: string } | null;
   member_count: number;
 }
 
-interface OrganizationPanelProps {
-  orgId: string | null;
-}
-
-export function OrganizationPanel({ orgId }: OrganizationPanelProps) {
+export function OrganizationPanel({ orgId }: { orgId: string | null }) {
   const [data, setData] = useState<OrgPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +37,7 @@ export function OrganizationPanel({ orgId }: OrganizationPanelProps) {
 
   function flash(kind: "ok" | "err", text: string) {
     setStatus({ kind, text });
-    setTimeout(() => setStatus(null), 5000);
+    setTimeout(() => setStatus(null), 6000);
   }
 
   const load = useCallback(async () => {
@@ -76,8 +58,8 @@ export function OrganizationPanel({ orgId }: OrganizationPanelProps) {
         setNameDraft((payload as OrgPayload).org.name);
         setSlugDraft((payload as OrgPayload).org.slug);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -89,8 +71,7 @@ export function OrganizationPanel({ orgId }: OrganizationPanelProps) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!orgId || !data) return;
-    if (data.caller_role !== "owner") return;
+    if (!orgId || !data || data.caller_role !== "owner") return;
     const trimmedName = nameDraft.trim();
     const trimmedSlug = slugDraft.trim().toLowerCase();
     const nameChanged = trimmedName !== data.org.name;
@@ -111,14 +92,13 @@ export function OrganizationPanel({ orgId }: OrganizationPanelProps) {
         body: JSON.stringify(body),
       });
       const payload = await res.json();
-      if (!res.ok) {
-        flash("err", payload?.error || `HTTP ${res.status}`);
-      } else {
+      if (!res.ok) flash("err", payload?.error || `HTTP ${res.status}`);
+      else {
         flash("ok", "Organization updated");
         await load();
       }
-    } catch (err: any) {
-      flash("err", err.message || "Network error");
+    } catch (err) {
+      flash("err", err instanceof Error ? err.message : "Network error");
     } finally {
       setSubmitting(false);
     }
@@ -126,312 +106,149 @@ export function OrganizationPanel({ orgId }: OrganizationPanelProps) {
 
   if (!orgId) {
     return (
-      <Card title="Workspace organization" meta="No active workspace">
-        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-          You are not yet a member of any organization. Create one from the
-          onboarding flow, or accept an invitation, to populate this tab.
+      <AccountCard title="Organization" maxWidth={720}>
+        <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
+          You are not yet a member of any workspace. Create one from onboarding, or accept an invitation, to
+          populate this tab.
         </p>
-      </Card>
+      </AccountCard>
     );
   }
-
   if (loading) {
     return (
-      <Card title="Workspace organization" meta="Loading...">
-        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-          Loading organization details...
-        </p>
-      </Card>
+      <AccountCard title="Organization" meta="Loading…">
+        <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>Loading organization…</p>
+      </AccountCard>
     );
   }
-
   if (error || !data) {
     return (
-      <Card title="Workspace organization" meta="Error">
-        <p className="text-sm" style={{ color: "var(--color-error)" }}>
-          {error || "Failed to load organization"}
-        </p>
-      </Card>
+      <AccountCard title="Organization" meta="Error">
+        <p style={{ fontSize: 13, color: "var(--color-error)", margin: 0 }}>{error || "Failed to load organization"}</p>
+      </AccountCard>
     );
   }
 
   const isOwner = data.caller_role === "owner";
-  const createdRelative = formatRelative(toDate(data.org.created_at) ?? new Date());
+  const created = new Date(data.org.created_at);
+  const createdStr = Number.isNaN(created.getTime())
+    ? "—"
+    : created.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-  return (
-    <Card title="Workspace organization" meta="Three-layer tenant model (ADR-001)">
-      {/* Read-only identity strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-        <Stat label="Plan">
-          <span
-            className="inline-block px-2 py-0.5 rounded text-[11px] font-bold uppercase"
-            style={{
-              color: "var(--color-text-primary)",
-              backgroundColor: "var(--color-surface-raised)",
-              border: "1px solid var(--color-border-subtle)",
-            }}
-          >
-            {data.org.plan}
-          </span>
-        </Stat>
-        <Stat label="Created">
-          <span
-            className="text-sm tabular-nums"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {new Date(data.org.created_at).toLocaleDateString()}
-          </span>
-          <span
-            className="text-[11px] ml-1.5"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            ({createdRelative})
-          </span>
-        </Stat>
-        <Stat label="Owner">
-          {data.owner ? (
-            <div className="flex items-center gap-1.5">
-              <Crown size={12} style={{ color: "var(--color-primary)" }} />
-              <span
-                className="text-sm"
-                style={{ color: "var(--color-text-primary)" }}
-              >
-                {data.owner.display_name}
-              </span>
-            </div>
-          ) : (
-            <span
-              className="text-sm"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              (no owner assigned)
-            </span>
-          )}
-        </Stat>
-        <Stat label="Members">
-          <div className="flex items-center gap-1.5">
-            <Users size={12} style={{ color: "var(--color-text-secondary)" }} />
-            <span
-              className="text-sm tabular-nums"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              {data.member_count}
-            </span>
-          </div>
-        </Stat>
-      </div>
+  const cols = "1.4fr 1fr 0.8fr 0.7fr 0.9fr";
 
-      {/* Edit form — owner only */}
-      <form onSubmit={submit} className="space-y-3">
-        <Field label="Organization name">
-          <Input
-            value={nameDraft}
-            onChange={setNameDraft}
-            disabled={!isOwner || submitting}
-            placeholder="Your organization name"
-          />
-        </Field>
-        <Field label="Slug">
-          <div className="flex items-center gap-2">
-            <span
-              className="text-[11px]"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              /
-            </span>
-            <Input
-              value={slugDraft}
-              onChange={(v) => setSlugDraft(v.toLowerCase())}
-              disabled={!isOwner || submitting}
-              placeholder="org-slug"
-            />
-          </div>
-          <p
-            className="text-[11px] mt-1"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            Lowercase letters, digits, hyphens. 2-60 characters. Used in URLs
-            and invitation links.
-          </p>
-        </Field>
-
-        {!isOwner && (
-          <div
-            className="text-[11px] p-2 rounded"
-            style={{
-              color: "var(--color-text-secondary)",
-              backgroundColor: "var(--color-surface-raised)",
-              border: "1px solid var(--color-border-subtle)",
-            }}
-          >
-            Only the org owner can edit name and slug. Your role on this org
-            is {data.caller_role}.
-          </div>
-        )}
-
-        {status && (
-          <div
-            className="text-[11px] p-2 rounded"
-            style={{
-              color:
-                status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
-              backgroundColor:
-                status.kind === "ok"
-                  ? "rgba(22,163,74,0.04)"
-                  : "rgba(220,38,38,0.04)",
-              border:
-                status.kind === "ok"
-                  ? "1px solid rgba(22,163,74,0.2)"
-                  : "1px solid rgba(220,38,38,0.2)",
-            }}
-          >
-            {status.text}
-          </div>
-        )}
-
-        {isOwner && (
-          <div className="flex items-center gap-2 pt-1">
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={
-                submitting ||
-                (nameDraft.trim() === data.org.name &&
-                  slugDraft.trim().toLowerCase() === data.org.slug)
-              }
-            >
-              {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              {submitting ? "Saving..." : "Save"}
-            </Button>
-            <Button
-              variant="secondary"
-              type="button"
-              disabled={submitting}
-              onClick={() => {
-                setNameDraft(data.org.name);
-                setSlugDraft(data.org.slug);
-              }}
-            >
-              Reset
-            </Button>
-          </div>
-        )}
-      </form>
-    </Card>
-  );
-}
-
-// ── Shared bits (mirror the local Card/Field/Input idiom in UserProfilePage) ──
-
-function Card({
-  title,
-  meta,
-  children,
-}: {
-  title: string;
-  meta?: string;
-  children: React.ReactNode;
-}) {
   return (
     <section
-      className="rounded-lg border mb-5"
       style={{
-        borderColor: "var(--color-border-subtle)",
-        backgroundColor: "var(--color-surface)",
-      }}
-    >
-      <header
-        className="flex items-baseline justify-between gap-3 flex-wrap px-5 py-4 border-b"
-        style={{ borderColor: "var(--color-border-subtle)" }}
-      >
-        <h3
-          className="text-base font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          {title}
-        </h3>
-        {meta && (
-          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-            {meta}
-          </span>
-        )}
-      </header>
-      <div className="px-5 py-4">{children}</div>
-    </section>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span
-        className="block text-[10px] font-semibold uppercase mb-1.5"
-        style={{
-          letterSpacing: "0.12em",
-          color: "var(--color-text-muted)",
-        }}
-      >
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function Input({
-  value,
-  onChange,
-  placeholder,
-  disabled,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      disabled={disabled}
-      className="w-full px-3 py-2 text-sm rounded-md border outline-none disabled:cursor-not-allowed"
-      style={{
-        borderColor: "var(--color-border)",
-        backgroundColor: "var(--color-surface)",
-        color: "var(--color-text-primary)",
-        opacity: disabled ? 0.7 : 1,
-      }}
-    />
-  );
-}
-
-function Stat({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="rounded-md border p-3"
-      style={{
-        borderColor: "var(--color-border-subtle)",
-        backgroundColor: "var(--color-surface-raised)",
+        background: "var(--surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: 8,
+        overflow: "hidden",
       }}
     >
       <div
-        className="text-[10px] font-bold uppercase mb-1"
         style={{
-          letterSpacing: "0.12em",
-          color: "var(--color-text-muted)",
+          padding: "12px 20px",
+          background: "var(--color-surface-raised)",
+          borderBottom: "1px solid var(--color-border-subtle)",
         }}
       >
-        {label}
+        <span style={{ fontSize: "12.5px", fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--color-text-primary)" }}>
+          Organization
+        </span>
       </div>
-      <div>{children}</div>
-    </div>
+
+      {/* Table (scrolls horizontally on narrow viewports) */}
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: cols, minWidth: 560 }}>
+          {["Name", "Slug", "Plan", "Members", "Created"].map((h, i) => (
+            <span
+              key={h}
+              style={{
+                fontSize: "9.5px",
+                fontWeight: 800,
+                letterSpacing: "0.11em",
+                textTransform: "uppercase",
+                color: "var(--color-text-muted)",
+                padding: i === 0 ? "10px 14px 10px 20px" : "10px 14px",
+                background: "var(--color-background)",
+                borderBottom: "1px solid var(--color-border)",
+              }}
+            >
+              {h}
+            </span>
+          ))}
+          <span style={{ fontSize: 13, fontWeight: 800, padding: "12px 14px 12px 20px", color: "var(--color-text-primary)" }}>
+            {data.org.name}
+          </span>
+          <span style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "12px 14px", fontFamily: "monospace" }}>
+            {data.org.slug}
+          </span>
+          <span style={{ padding: "12px 14px" }}>
+            <span
+              style={{
+                fontSize: "9.5px",
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--accent-blue)",
+                border: "1px solid rgba(37,99,235,0.35)",
+                borderRadius: 4,
+                padding: "2px 8px",
+              }}
+            >
+              {data.org.plan}
+            </span>
+          </span>
+          <span style={{ fontSize: "12.5px", fontWeight: 700, padding: "12px 14px", color: "var(--color-text-primary)" }}>
+            {data.member_count}
+            {data.owner ? (
+              <span style={{ fontWeight: 500, color: "var(--color-text-muted)" }}> · owner {data.owner.display_name}</span>
+            ) : null}
+          </span>
+          <span style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "12px 20px 12px 14px" }}>{createdStr}</span>
+        </div>
+      </div>
+
+      <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0, padding: "10px 20px", background: "var(--color-background)", borderTop: "1px solid var(--color-border-subtle)" }}>
+        Workspace-scoped settings (briefing schedule, jurisdiction weights) persist to this organization.
+        Billing and plan changes are owner-only.
+      </p>
+
+      {/* Owner editor — preserved capability (name / slug) */}
+      {isOwner && (
+        <form onSubmit={submit} style={{ padding: "16px 20px", borderTop: "1px solid var(--color-border-subtle)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, margin: "0 0 12px" }}>
+            <div>
+              <FieldLabel>Organization name</FieldLabel>
+              <TextInput value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} disabled={submitting} placeholder="Your organization name" />
+            </div>
+            <div>
+              <FieldLabel>Slug</FieldLabel>
+              <TextInput value={slugDraft} onChange={(e) => setSlugDraft(e.target.value.toLowerCase())} disabled={submitting} placeholder="org-slug" />
+            </div>
+          </div>
+          {status && (
+            <div
+              role="status"
+              style={{
+                fontSize: 11,
+                padding: "8px 10px",
+                borderRadius: 6,
+                margin: "0 0 12px",
+                color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
+                background: status.kind === "ok" ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
+                border: `1px solid ${status.kind === "ok" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
+              }}
+            >
+              {status.text}
+            </div>
+          )}
+          <InkButton type="submit" disabled={submitting || (nameDraft.trim() === data.org.name && slugDraft.trim().toLowerCase() === data.org.slug)}>
+            {submitting ? "Saving…" : "Save organization"}
+          </InkButton>
+        </form>
+      )}
+    </section>
   );
 }

@@ -111,7 +111,7 @@ export default function UserMenuDropdown({
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
             <UserIcon size={14} />
-            Workspace Profile
+            Workspace profile
           </a>
           {isAdmin && (
             <a
@@ -122,14 +122,14 @@ export default function UserMenuDropdown({
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               aria-label={
                 showAdminDot
-                  ? `Admin Panel — ${adminAttentionTotal} item${
+                  ? `Admin panel — ${adminAttentionTotal} item${
                       adminAttentionTotal === 1 ? "" : "s"
                     } need attention`
-                  : "Admin Panel"
+                  : "Admin panel"
               }
             >
               <Shield size={14} />
-              <span className="flex-1">Admin Panel</span>
+              <span className="flex-1">Admin panel</span>
               {showAdminDot && (
                 <span
                   className="inline-flex items-center justify-center text-[10px] font-semibold px-1.5 rounded-full"
