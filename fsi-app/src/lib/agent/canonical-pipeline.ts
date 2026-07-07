@@ -152,27 +152,37 @@ async function apiFetchForHost(url: string, max: number): Promise<{ status: numb
 //     search — the error body is never STORED (captureForStorage gates the INSERT) and the ladder decided it.
 //   - PDF fast-path is preserved: Browserless renders a PDF as an empty viewer shell, so a .pdf URL byte-fetches
 //     + extracts directly (directFetchClean also detects PDF-by-content-type, covering non-.pdf PDF URLs).
-async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
-  if (looksLikePdfUrl(url)) {
-    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* not a usable PDF — fall through to the ladder */ }
-  }
-  const directFetchLadder = async (u: string) => {
+// THE LIVE TRANSPORT BINDINGS for the RD-14 escalation ladder — the SINGLE HOME of the direct / render / api
+// transport closures. fetchWithTransport consumes this, AND the one-time hold-lift BATCH-1 re-collection runner
+// injects the SAME object into seek-more (runSeekMore → escalateFetch), so the batch-1 fetch routes through the
+// exact same live ladder the pipeline uses — the transports cannot diverge into aligned copies (the D1/D3
+// class the codebase kills). Every render goes through browserlessFetch (the hold-gated single fetch home), so
+// the batch-1 runner inherits the scrape-hold gate for free. Pure factory; `max` is the char cap.
+export function buildLiveTransports(max: number) {
+  const directFetch = async (u: string) => {
     try { const d = await directFetchClean(u, max); return { status: 200, text: d.text, truncated: d.truncated, fullLength: d.fullLength, cap: d.cap }; }
     catch (e) { const m = String((e as Error)?.message || "").match(/direct fetch (\d+)/); return { status: m ? Number(m[1]) : 0, text: "" }; }
   };
-  const renderLadder = async (u: string) => {
+  const browserlessRender = async (u: string) => {
     try {
       const r = await browserlessFetch(u, { maxTextLength: max });
       const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
       return { status: 200, text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max };
     } catch { return { status: 0, text: "" }; }
   };
-  const v = await escalateToFetchResult(url, max, {
+  return {
     apiFetch: (u: string) => apiFetchForHost(u, max),
-    directFetch: directFetchLadder,
-    browserlessRender: renderLadder,
+    directFetch,
+    browserlessRender,
     seekMore: async (u: string) => ({ kind: "seek_more_alternate_url", url: u }),
-  });
+  };
+}
+
+async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
+  if (looksLikePdfUrl(url)) {
+    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* not a usable PDF — fall through to the ladder */ }
+  }
+  const v = await escalateToFetchResult(url, max, buildLiveTransports(max));
   if (v.outcome === "content") {
     return { text: v.text, truncated: v.truncated, fullLength: v.fullLength, cap: v.cap, transport: v.transport };
   }
@@ -462,6 +472,19 @@ Search the web and return the JSON list of corroborating / expanding sources.`;
 async function webSearchAlternatives(title: string, itemType: string, reason: string): Promise<string[]> {
   const system = `You locate the OFFICIAL PRIMARY source for a ${itemType}. You return only the issuer's OWN authoritative pages (the regulator / ministry / official body), in English where an official English version exists. You NEVER return summaries, law-firm explainers, news articles, blogs, or third-party commentary.`;
   const user = `The declared primary source for "${title}" is unreachable (roadblock: ${reason}). Find the OFFICIAL issuer's own English-language page(s) carrying the authoritative text or official announcement (e.g. EUR-Lex EN, an official government English page, a regulator press release). Search the web and return the JSON list { "urls": ["..."] } of up to 5 official-source URLs, most authoritative first. Official issuer pages ONLY — no summaries or commentary.`;
+  let txt: string;
+  try { txt = await callSonnetSearch(system, user, 4); } catch { return []; }
+  return [...new Set((txt.match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
+}
+
+// QUERY-SHAPED official-source web search for the BATCH-1 seek-more candidate fallback. generateCandidates
+// (seek-more.mjs) runs its deterministic identifier resolvers FIRST (CELEX/ELI/UK-SI/lovdata/gazette/API — no
+// spend); only when those yield nothing does it call this open-web fallback with a free-text query. Reuses
+// callSonnetSearch → spendSearch (THE spend chokepoint), so the candidate search is ticketed + budget-gated
+// like every other model call. Returns official issuer URLs, [] on failure. Never invents URLs.
+export async function webSearchCandidatesForQuery(query: string): Promise<string[]> {
+  const system = `You locate the OFFICIAL PRIMARY legislation / issuer page for a freight-sustainability instrument. You return ONLY the issuer's own authoritative pages (the regulator / ministry / official body / gazette), in English where an official English version exists. You NEVER return summaries, law-firm explainers, news articles, blogs, or third-party commentary.`;
+  const user = `Find the OFFICIAL issuer page(s) carrying the authoritative text for: ${query}. Search the web and return STRICT JSON { "urls": ["..."] } of up to 5 official-source URLs, most authoritative first. Real reachable URLs taken from your search results only — NEVER invent a URL.`;
   let txt: string;
   try { txt = await callSonnetSearch(system, user, 4); } catch { return []; }
   return [...new Set((txt.match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
