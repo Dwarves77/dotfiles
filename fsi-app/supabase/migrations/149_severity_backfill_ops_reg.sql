@@ -24,4 +24,5 @@ UPDATE intelligence_items
 SET severity = lower(priority)
 WHERE severity IS NULL
   AND priority IS NOT NULL
+  AND is_archived = false   -- displayed rows only; archived rows aren't surfaced and must not trip the provenance-flip guard (a stale archived 'unverified' row is out of scope for a display-severity backfill)
   AND surface_of(item_type, domain) IN ('regulations', 'operations');
