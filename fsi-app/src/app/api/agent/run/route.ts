@@ -27,11 +27,13 @@ export async function POST(request: NextRequest) {
 
   let itemId: string | undefined;
   let sourceUrl: string | undefined;
+  let refresh = false;
   try {
     const body = await request.json();
     itemId = typeof body.itemId === "string" && body.itemId.length > 0 ? body.itemId : undefined;
     sourceUrl =
       typeof body.sourceUrl === "string" && body.sourceUrl.length > 0 ? body.sourceUrl : undefined;
+    refresh = body.refresh === true;
   } catch {
     return NextResponse.json({ error: "itemId or sourceUrl is required" }, { status: 400 });
   }
@@ -66,6 +68,59 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "itemId or sourceUrl is required" }, { status: 400 });
   }
 
+  // ── Per-item guards (DEEP-AUDIT S1-6 / option-2 item c). Service-role reads. ──
+  const guardClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // Verified short-circuit: a certified item is NOT regenerated unless the caller
+  // explicitly refreshes. Regenerating in place overwrote full_brief while
+  // section/ground SKIP on a verified item (canonical-pipeline.ts:866/921) — the
+  // 498-runs/39-items brief↔provenance desync.
+  // RESIDUAL (flagged, deferred): those skip sites do not yet honor `refresh`, so
+  // refresh re-fetches + regenerates the brief BODY but does not yet re-ground a
+  // verified item's sections. The deeper half of the fix lives in the canonical
+  // pipeline (SKILL.md-gated) and is out of this backend block.
+  const { data: itemRow, error: itemErr } = await guardClient
+    .from("intelligence_items")
+    .select("provenance_status")
+    .eq("id", itemId)
+    .maybeSingle();
+  if (itemErr) console.warn(`[agent/run] provenance read failed: ${itemErr.message}`);
+  if (itemRow?.provenance_status === "verified" && !refresh) {
+    return NextResponse.json(
+      {
+        skipped: "already_verified",
+        item_id: itemId,
+        hint: "pass { refresh: true } to force a re-pull + regeneration",
+      },
+      { status: 200 }
+    );
+  }
+
+  // Per-item cooldown: reject a second run within the hour — the no-cooldown
+  // hammering that produced 498 runs across 39 items in a week. `refresh` does
+  // NOT bypass the cooldown (a re-pull is the most expensive path of all).
+  const oneHourAgoIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: recentRuns, error: cooldownErr } = await guardClient
+    .from("agent_runs")
+    .select("created_at")
+    .eq("intelligence_item_id", itemId)
+    .gte("created_at", oneHourAgoIso)
+    .limit(1);
+  if (cooldownErr) console.warn(`[agent/run] cooldown read failed: ${cooldownErr.message}`);
+  if (recentRuns && recentRuns.length > 0) {
+    return NextResponse.json(
+      {
+        error: "cooldown",
+        item_id: itemId,
+        hint: "an agent run for this item ran within the last hour; wait before retrying",
+      },
+      { status: 429 }
+    );
+  }
+
   // Hand off to the durable workflow. start() returns immediately with a runId;
   // it does not wait for completion. Callers poll via the workflow inspect/run
   // APIs or the agent_runs telemetry the steps write (Block 4).
@@ -77,6 +132,8 @@ export async function POST(request: NextRequest) {
     createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!),
     { scope: "data", event: "ingest:brief-gen" }
   );
-  const run = await start(generateBriefWorkflow, [itemId]);
-  return NextResponse.json({ runId: run.runId, item_id: itemId }, { status: 202 });
+  // `refresh` rides the fetch path; while the scrape hold is LIVE the fetch gate
+  // (F16) 503s it, so refresh is dormant-by-construction until hold-lift.
+  const run = await start(generateBriefWorkflow, [itemId, refresh]);
+  return NextResponse.json({ runId: run.runId, item_id: itemId, refresh }, { status: 202 });
 }
