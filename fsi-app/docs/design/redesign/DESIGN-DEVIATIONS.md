@@ -59,6 +59,61 @@ One entry per deviation: template, what deviated, why, screenshot.
 - **Why.** HANDOFF §1/§4: no invented data. The illustrative mock rows are content, not
   a data contract.
 
+## Template 05 — Signal detail (`feat/redesign-t05-signal-detail`)
+
+Inherits the T03 archetype (breadcrumb hero, action row, 3px orange tab underline,
+meta rail, honest-state pending frames, structured Sources) and therefore inherits
+T03 deviations **D1** (detail-scoped `--cl-*` tokens / local `C` palette rather than
+flipping the shared navy `--accent`), **D2** (shell supplies the gradient strip),
+**D3** (breadcrumb replaces `EditorialMasthead` on the detail route — the `/market/[slug]`
+page now composes the deck server-side and the surface renders the full hero), and
+**D4** (Watch is a local pressed-state toggle; no watchlist backend yet).
+
+### T05-D1 — Hero price board is the honest published-statistics frame until the live feed lands
+- **What deviated.** The mock shows four populated price figures (WTI / Brent / Jet fuel /
+  ULSD) with context lines. HANDOFF §7 names the "Live price feed (signal hero board slots)"
+  as KNOWN NEW BACKEND WORK; those figures are a real EIA snapshot, not a data contract.
+- **Resolution.** Committed the backing store (`supabase/migrations/151_published_price_statistics.sql`,
+  release-cadence-anchored published statistics, RLS read for authenticated) and read it
+  fail-soft server-side. With **no rows** (the feed writer has not populated it) the board
+  renders the §4 honest published-statistics pending frame — never faked ticks. When rows
+  exist, each becomes an Anton figure card in its severity tone, with the published-stat
+  caption + next-release line, and the "Next data drops" rail reads the same `next_release_at`
+  values. No seed data is inserted.
+- **Why.** Dispatch binding: "Live price feed is KNOWN NEW BACKEND — do NOT fake it; committed
+  migration file + honest caption only." Honest-state §4.
+
+### T05-D2 — Six tabs render the 8-section Market Signal Brief; no fabricated verified/analysis or per-mode split
+- **What deviated.** The mock's tab bodies carry curated multi-column content — "Verified · EIA
+  published statistics" vs "Our analysis" blocks (What's moving), a three-column can-say /
+  pitfalls / questions split (Talking points), and Air/Road/Ocean cost cards. Production has the
+  8 Market Signal Brief sections as prose in `intelligence_item_sections`, not a per-paragraph
+  verified/analysis split or structured per-mode cost facts.
+- **Resolution.** Each tab renders its real section(s) via the shared `ProseSection` primitive —
+  What's moving = S1; Drivers & trajectory = S2·S3·S5 (+ price `TrajectoryBars` when
+  `trajectoryPoints` present, + `conversionTrigger` callout); Cost impact = S4; Client talking
+  points = S6; Do now = `recommendedActions` (sorted by priority, `timeframe` as the deadline
+  chip) falling back to S7; Sources = structured tier-chip rows (the #172 `stripSources` pattern)
+  + S8. Where a section is absent, the honest pending frame renders. The epistemic framing inside
+  the prose is whatever the agent emitted; no VERIFIED/analysis chip is fabricated (same posture
+  as T03-D6).
+- **Why.** No invented data (§1); epistemic chips bind real fields only (§3); DO-NOT-REVERT
+  "never a chip without its backing field." Per-mode cost facts are named KNOWN NEW BACKEND (§7,
+  state-level cost facts as first-class sourced records) — the Cost impact tab states the em-dash
+  convention for missing modes rather than inventing Air/Road/Ocean cards.
+
+### T05-D3 — Do now sorted by `priority`, not a parsed deadline date
+- **What deviated.** The mock sorts Do-now actions "by deadline". `RecommendedAction` carries a
+  free-text `timeframe` ("Within 7 days", "Jun 9", "Standing") plus a numeric `priority`, but no
+  structured deadline date.
+- **Resolution.** Actions are sorted by `priority` (1 = highest — the reliable structured proxy)
+  and each row shows its `timeframe` string as the deadline chip. The section meta reads "sorted
+  by priority" (honest label), not "by deadline".
+- **Why.** Sorting free-text timeframes would mis-order ("Standing" vs "Jun 9"); the honest label
+  states the real sort key. Reconsider when a structured deadline date lands on the action record.
+
+---
+
 ### D6 — Accordion contents bind the real operational briefing, not the mock's verified/analysis columns
 - **What deviated.** The mock's Full-summary accordions show curated
   "Verified · checked against the source" vs "Our analysis" vs "confirm with counsel"
