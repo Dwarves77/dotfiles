@@ -49,3 +49,33 @@ Browserless, zero Sonnet. Batch-1 spend ($13.44) persists in `agent_runs.cost_us
 
 *(Post-session note: docs/ triaged into the taxonomy + operating manual installed in commits
 `c0b4eac`/`cfa4a20`, ADR-010 — after the six feature PRs above.)*
+
+## 2026-07-07 — P3c grounding-holes unit (S1-07, the moat gate)
+
+**Accomplished:**
+- Probe-first (read-only SQL, $0): floor bypass = 90/113 verified reg-family items on LOW/MODERATE
+  priority, 72 holding 947 sub-floor FACT claims (385 tier-NULL/no-source_id across 39 items, 562 at
+  tiers 3-6); ANALYSIS per-claim = 1 failing claim of 517 (Japan MLIT); stub exposure = 38/309 stubs
+  across 23 items on novel hosts (all real institutional URLs on inspection).
+- **Cited-host gate** (code, live on merge): criterion-2 auto-stubbing in `groundBriefImpl` restricted
+  to hosts known to the item's real pool / registry / own source_url (exact-host OR institution
+  match); novel hosts flagged via `integrity_flags`, never stubbed — closes the model-cites-itself
+  circularity while preserving the safety4sea fix for known hosts. Pure half `cited-host-gate.mjs`
+  red-then-green (6 tests); two `{ data }`-only error-drops cured in the rewrite. 244/244 tests, tsc clean.
+- **Migration 158 AUTHORED, NOT applied** (per the Phase-3 dispatch): reg-family authority floor
+  unconditional on item_type (model's own priority choice can no longer disarm it; `floor_basis`
+  added); criterion-4 ANALYSIS label per-claim (paragraph-scoped — expression validated read-only
+  against prod). Reason strings unchanged (consumer-stable). Inventory row 158 + matrix S1-07
+  disposition landed same commit.
+
+**Decisions:**
+- Novel-host citations fail closed (no stub → honest criterion-2 failure → research-or-erase), the
+  flag is the review channel. Non-reg floors deliberately keep the CRITICAL/HIGH condition — no
+  unruled widening.
+
+**Blockers / open:**
+- Mig 158 apply rides the operator window WITH the 72-item flip figure (flips at re-validation, not apply).
+- RESIDUAL (reported, small follow-on): `registerPoolHostsForGrounding` should exclude
+  `canonical:cited-*` stub rows to close the cross-run self-licensing seam (matrix, P3c section).
+
+**Next:** browser wave (operator per-PR review), loop-live dormant builds, 165-fn search_path companion.

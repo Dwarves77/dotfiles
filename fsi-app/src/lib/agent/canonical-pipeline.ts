@@ -39,7 +39,8 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
-import { buildResolver, hostOf, type SourceRow, type Resolver } from "@/lib/sources/institution";
+import { buildResolver, hostOf, hostInstitution, type SourceRow, type Resolver } from "@/lib/sources/institution";
+import { partitionCitedByHost } from "@/lib/sources/cited-host-gate.mjs";
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
 import { officialnessOf } from "@/lib/sources/officialness.mjs";
@@ -974,36 +975,81 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
   const { data: secs, error: secsErr } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
   if (secsErr || !secs?.length) return { ok: false, detail: `no sections${secsErr ? `: ${secsErr.message}` : ""}` };
-  // Record the brief's surfaced sources as cited-URL searches so criterion-2 URL grounding (EXACT-URL
-  // match) accepts the corroborator URLs the brief cites — they are real, web_search-discovered URLs in
-  // the brief's New Sources table. registerCitedSources (in grow) is host-deduped and would NOT make an
-  // exact path on a known host (iea.org/reports/...) grounded; an exact-URL agent_run_searches row does.
-  // FACT-span grounding (criterion 3) still uses only the FETCHED pool's real content — these stubs are
-  // <200ch so groundBrief's >200 filter excludes them from the span corpus — so a cited-only URL can
-  // never ground a FACT. grow still registers + compounds these sources afterwards.
+  // CITED-HOST GATE (P3c / S1-07). Stubbing a cited URL into agent_run_searches is what makes
+  // criterion-2 accept it (exact-URL match), so unconditional stubbing made criterion-2 CIRCULAR —
+  // the model's own citations licensed themselves (probe 2026-07-07: 38/309 stubs across 23 items
+  // sat on hosts unknown to both the item's fetched pool and the registry). Rule: a stub may only
+  // be written for a host the system already KNOWS — the item's real fetched pool (>200ch content;
+  // stubs excluded), the source registry, or the item's own source_url — matched at exact-host OR
+  // institution level (hostInstitution, the tier resolver's key, so a vetted institution's
+  // subdomain doesn't false-flag). A novel-host citation is NOT stubbed: it is flagged below
+  // (integrity_flags, never silent) and criterion-2 fails it honestly — quarantine +
+  // research-or-erase (register the host, re-ground) instead of self-grounding. Stubs remain
+  // <200ch/empty-excerpt so the FACT-span corpus excludes them: a cited URL still never grounds a
+  // FACT; this gate closes the criterion-2 half. The safety4sea fix (2026-06-21) is preserved for
+  // known hosts: an unlisted cited URL on a pool/registry host still stubs and passes.
+  const knownHosts = new Set<string>();
+  const knownInstitutions = new Set<string>();
+  const addKnown = (u: string | null | undefined) => {
+    const h = hostOf(u ?? "");
+    if (!h) return;
+    knownHosts.add(h);
+    const inst = hostInstitution(h);
+    if (inst) knownInstitutions.add(inst);
+  };
+  addKnown(it.source_url);
   try {
-    for (const cs of parseNewSourcesFromBrief(it.full_brief || "")) {
-      const u = stripUrlMarkers(cs.url) as string;
-      const { data: ex } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", u).limit(1);
-      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-source", result_url: u, result_title: cs.name, result_index: 90, result_content_excerpt: cs.name.slice(0, 280), searched_at: new Date().toISOString() });
+    const { data: realPool, error: rpErr } = await sb.from("agent_run_searches").select("result_url, result_content_excerpt").eq("intelligence_item_id", itemId);
+    if (rpErr) console.warn(`[cited-host-gate] pool read failed for ${itemId} (gate fails closed): ${rpErr.message}`);
+    for (const p of realPool ?? []) if (((p.result_content_excerpt as string | null)?.length ?? 0) > 200) addKnown(p.result_url as string);
+    for (let from = 0; ; from += 1000) {
+      const { data: regs, error: rgErr } = await sb.from("sources").select("url").order("id").range(from, from + 999);
+      if (rgErr) { console.warn(`[cited-host-gate] registry read failed (gate fails closed): ${rgErr.message}`); break; }
+      if (!regs?.length) break;
+      for (const s of regs) addKnown(s.url as string);
+      if (regs.length < 1000) break;
+    }
+  } catch (e) { console.warn(`[cited-host-gate] known-host build failed for ${itemId} (gate fails closed): ${(e as Error).message}`); }
+  const asCited = (u: string) => { const h = hostOf(u); return { url: u, host: h, institution: hostInstitution(h) }; };
+  const novelCited = new Map<string, string>(); // url -> where it was cited
+  try {
+    const newSources = parseNewSourcesFromBrief(it.full_brief || "").map((cs) => ({ ...asCited(stripUrlMarkers(cs.url) as string), name: cs.name }));
+    const { allowed, novel } = partitionCitedByHost(newSources, knownHosts, knownInstitutions);
+    for (const n of novel) if (!novelCited.has(n.url)) novelCited.set(n.url, "new-sources table");
+    for (const cs of allowed) {
+      const { data: ex, error: exErr } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", cs.url).limit(1);
+      if (exErr) console.warn(`[cited-host-gate] stub dedup read failed for ${cs.url}: ${exErr.message}`);
+      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-source", result_url: cs.url, result_title: cs.name, result_index: 90, result_content_excerpt: (cs.name as string).slice(0, 280), searched_at: new Date().toISOString() });
     }
   } catch { /* non-fatal */ }
-  // CITED-URL completeness (criterion 2): the model cites real sources it found INLINE in the prose
-  // without always ALSO listing them in the New Sources table — an unlisted cited URL failed criterion 2
-  // and ERASED the whole brief over a single trade-press citation (the EU-ETS-maritime safety4sea.com
-  // case, 2026-06-21). Record EVERY URL the brief sections cite (the exact set criterion 2 scans) as a
-  // cited-URL search so the gate accepts it, with an EMPTY excerpt so the >200ch FACT-span corpus EXCLUDES
-  // it — a cited URL can NEVER ground a FACT (criterion 3 still requires a verbatim span in real FETCHED
-  // content). Consistent with how the New-Sources flow above already trusts model-cited URLs; integrity
-  // stays with criterion 3, not URL hygiene. These surface for source-registry review via grow/audits.
+  // CITED-URL completeness (criterion 2), now host-gated: the model cites real sources INLINE in
+  // prose without always listing them in the New Sources table — an unlisted cited URL on a KNOWN
+  // host failed criterion 2 and ERASED the whole brief over a single trade-press citation (the
+  // EU-ETS-maritime safety4sea.com case, 2026-06-21). Stub every section-cited URL whose host the
+  // system knows; novel hosts flag + fail honestly per the gate above.
   try {
     const citedUrls = new Set<string>();
     for (const s of secs) for (const m of (s.content_md || "").matchAll(/https?:\/\/[^\s)\]}"'<>]+/g)) citedUrls.add(m[0].replace(/[.,;:]+$/, ""));
-    for (const u of citedUrls) {
-      const { data: ex } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", u).limit(1);
-      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-url", result_url: u, result_title: "cited in brief", result_index: 91, result_content_excerpt: "", searched_at: new Date().toISOString() });
+    const { allowed, novel } = partitionCitedByHost([...citedUrls].map(asCited), knownHosts, knownInstitutions);
+    for (const n of novel) if (!novelCited.has(n.url)) novelCited.set(n.url, "section prose");
+    for (const c of allowed) {
+      const { data: ex, error: exErr } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", c.url).limit(1);
+      if (exErr) console.warn(`[cited-host-gate] stub dedup read failed for ${c.url}: ${exErr.message}`);
+      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-url", result_url: c.url, result_title: "cited in brief", result_index: 91, result_content_excerpt: "", searched_at: new Date().toISOString() });
     }
   } catch { /* non-fatal */ }
+  // Surface the refused citations durably (no silent drop — same shape as the error-body gate).
+  if (novelCited.size) {
+    const novelList = [...novelCited.entries()];
+    for (const [u, ctx] of novelList) console.warn(`[cited-host-gate] item ${itemId}: novel-host citation NOT stubbed (${ctx}) — ${u}`);
+    try {
+      await sb.from("integrity_flags").insert({
+        category: "source_issue", subject_type: "item", subject_ref: itemId, status: "open", created_by: "cited-host-gate",
+        description: `${novelCited.size} cited URL(s) on hosts unknown to the item's fetched pool and the source registry — NOT stubbed for criterion-2 (self-grounding gate): ${novelList.map(([u]) => u).slice(0, 6).join("; ")}`.slice(0, 480),
+        recommended_actions: novelList.slice(0, 8).map(([u, ctx]) => ({ action: "register_source", rationale: `${u} (cited in ${ctx}): verify the source is real, register the host (or reject the citation), then re-ground` })),
+      });
+    } catch { /* best-effort; the criterion-2 failure is the hard floor */ }
+  }
   const { data: slots } = await sb.from("item_type_required_slots").select("slot_key, description").eq("item_type", it.item_type);
   const sectionMap = Object.fromEntries(secs.map((s) => [String(s.section_key), s.id]));
   // Grounding corpus = the pool generate already fetched + stored (the SAME content the brief was

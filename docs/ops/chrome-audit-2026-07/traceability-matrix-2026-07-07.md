@@ -50,7 +50,7 @@ committed files until Jason's apply window.
 | S1-04 | 7 worker/cron routes | S1 | `WORKER_SECRET || "dev-worker-secret"` public fallback | **FIXED — PR #233** |
 | S1-05 | canonical-pipeline generation | S1 | workspace profile never injected (`:570-581`) — every "anchored" brief is generic | **PHASED** — Phase 3 (P3-1); browser-verification wave |
 | S1-06 | generate-brief / agent/run | S1 | no `provenance_status` gate; 498 runs on 39 items/wk desync brief↔certified spans | **IN-BLOCK — item c** (cooldown + verified short-circuit) |
-| S1-07 | canonical-pipeline grounding | S1 | criterion-2 auto-stubs every URL (`:931-938`); ANALYSIS claims need no source | **PHASED** — Phase 3 (P3-2); browser-verification wave |
+| S1-07 | canonical-pipeline grounding | S1 | criterion-2 auto-stubs every URL (`:931-938`); ANALYSIS claims need no source | **FIXED (code: cited-host gate) + AUTHORED (mig 158, apply-gated)** — see P3c disposition section |
 | S1-08 | supabase-server override reads | S1 | `workspace_item_overrides` read with anon client → RLS `[]` → dismissals/notes lost on reload | **FIXED — PR #234** |
 | S1-09 | Ask assistant (all 5 surfaces) | S1 | context = `order("priority").limit(30)`, no retrieval/FTS/history | **PHASED** — Phase 1 (P1-6); browser-verification wave |
 | S1-10 | worker/check-sources | S1 | `change_detected:false` hardcoded (`:80`); 0 change rows ever | **PHASED** — Phase 2 (P2-6); loop flip |
@@ -152,6 +152,34 @@ committed files until Jason's apply window.
   canonical-pipeline URL auto-stub site (pre-registers every section URL), mig 141/142/143/145/150
   chain, floor-conditional-on-priority bypass → make reg-family floor unconditional on item_type
   (migration 158, AUTHOR-ONLY per the migrations-are-files rule).
+
+## Disposition updates — 2026-07-07 (P3c grounding-holes unit)
+
+- **S1-07** → **FIXED (code) + AUTHORED (mig 158, apply-gated)** — all three holes, probe-first:
+  1. **Criterion-2 self-grounding** → **FIXED — cited-host gate** (`cited-host-gate.mjs` pure +
+     tested, wired into both stub loops in `groundBriefImpl`): a cited URL stubs into
+     `agent_run_searches` ONLY when its host (exact or institution-level, `hostInstitution` keying)
+     is already in the item's real fetched pool (>200ch), the registry, or the item's `source_url`.
+     Novel hosts are NOT stubbed — flagged via `integrity_flags` (`cited-host-gate`), criterion-2
+     then fails them honestly. Probe: 38/309 existing stubs across 23 items sat on novel hosts
+     (all real institutional URLs on inspection — ecfr.gov, undocs.org, gesetze-im-internet.de,
+     unregistered fmcsa.dot.gov subdomains — the intent was right, the verification was missing).
+     The safety4sea fix (2026-06-21) is preserved for known hosts. Also cured two `{ data }`-only
+     error-drops in the rewritten loops (#235 bug-class).
+  2. **Floor-conditional-on-priority bypass** → **AUTHORED — mig 158 (NOT applied)**: reg-family
+     floor unconditional on item_type; non-reg floors keep CRITICAL/HIGH; `floor_basis` added.
+     Blast radius probed live: 72 of 113 verified reg-family items hold 947 sub-floor FACT claims
+     (385 tier-NULL/no-source_id across 39 items; 562 at tiers 3-6) — flips happen at
+     RE-VALIDATION, not apply; disposal via re-home-to-floor-pool (4b) / research-or-erase.
+  3. **Section-scoped ANALYSIS label** → **AUTHORED — mig 158 (NOT applied)**: per-claim
+     (paragraph-scoped) label check; expression red-then-green'd read-only against prod.
+     Blast radius: 1 claim / 1 item (Japan MLIT 68e05861) of 517 claims / 78 items — the
+     generation prompt already demanded per-sentence labels; only the gate lagged.
+- **RESIDUAL (reported, not built)**: cross-run self-licensing seam — `registerPoolHostsForGrounding`
+  (register step) reads the item's WHOLE `agent_run_searches` pool including prior stub rows, so a
+  run-1 stub can auto-register as a provisional source that criterion-2's registry branch (exact-URL,
+  no status filter) accepts on run-2. Bounded by the new gate (novel hosts no longer stub at all),
+  but the register step should exclude `canonical:cited-*` rows — small follow-on, not rushed here.
 
 ## Standing rule (codified here, going forward)
 
