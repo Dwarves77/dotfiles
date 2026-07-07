@@ -62,3 +62,9 @@ docs/wave1-track*-routing-applied.json
 
 # Claude Code agent worktrees (transient, never committed)
 .claude/worktrees/
+
+fsi-app/scripts/_snapshots/
+
+fsi-app/scripts/_plans/
+
+.obsidian/

@@ -1,0 +1,157 @@
+# INDEX — Caro's Ledge project memory
+
+One line per living doc. archive/ holds superseded notes and machine evidence and is not indexed.
+
+## decisions
+
+- [[ADR-001-platform-model]] — Platform model (accepted)
+- [[ADR-002-tier-model]] — Tier model (base_tier + effective_tier) (accepted)
+- [[ADR-003-server-centric-dual-write]] — Server-centric dual-write for tier fields (accepted)
+- [[ADR-004-auth-pattern-split]] — Auth pattern split (isPlatformAdmin vs WORKER_SECRET) (accepted)
+- [[ADR-005-discipline-enforcement-layered-architecture]] — Discipline enforcement layered architecture (accepted)
+- [[ADR-006-plan-skill-hybrid]] — Plan-skill hybrid discipline (multi-dispatch coordination) (deprecated)
+- [[ADR-007-bias-tag-threshold-per-dimension]] — Bias-tag auto-cutoff threshold per dimension (D1 decision) (accepted)
+- [[ADR-008-urgency-score-default]] — urgency_score default behavior for intelligence_items inserts (accepted)
+- [[ADR-009-adr-system-architecture]] — ADR system architecture (meta) (deprecated)
+- [[ADR-010-docs-taxonomy-and-brain-conventions]] — Docs taxonomy, INDEX discipline, and two-repo memory architecture (accepted)
+
+## inventories
+
+- [[components]] — Shared Components Inventory
+- [[discipline]] — Discipline Engine Inventory
+- [[migrations]] — Migrations Inventory
+- [[worktrees]] — Git Worktrees Inventory
+
+## runbooks
+
+- [[INTEGRITY-TRIAGE-PROCEDURE]] — Integrity-flag triage procedure
+- [[PERF-PLAYBOOK]] — Perf Playbook
+- [[SPOT-CHECK-PROCEDURE]] — Tier-H Spot-Check Procedure
+- [[sprint4-dataops-ledger]] — Sprint 4 — Data-Operations Ledger (already-executed; do NOT re-run)
+
+## plans
+
+- [[C5-feed-spec]] — C5 — Group Post Feed Specification
+- [[C6-promote-spec]] — C6 — Promote Community Post to Intelligence
+- [[C7-notifications-spec]] — C7 — Community Notifications Surface
+- [[C8-moderation-spec]] — C8 — Community moderation workflow
+- [[C9-realtime-spec]] — C9 — Community Realtime Infrastructure
+- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — `source_type` Taxonomy Column — Design Proposal
+- [[W2A-bulk-import-spec]] — W2.A — Bulk-add tooling
+- [[W2B-discovery-agent-spec]] — W2.B — Sub-national-aware Discovery Agent
+- [[W2D-coverage-matrix-spec]] — W2.D — Coverage Matrix Spec
+- [[W2F-verification-pipeline]] — W2.F — Auto-verification pipeline
+- [[W4-backfill-plan]] — W4 — Backfill plan
+- [[W5-cost-projection]] — W5 — Cost Projection
+- [[build-8-research-surface]] — Build 8 — Research surface (Q9 signal-set integration)
+- [[category-e-investigation-2026-05-21]] — Phase 4 Category E Investigation, 2026-05-21
+- [[classification-backfill-ambiguous-2026-05-22]] — Classification backfill: ambiguous items needing per-item operator decision
+- [[classification-backfill-plan-2026-05-22]] — intelligence_items.domain backfill plan (proposed, not executed)
+- [[dead-code-disposition-2026-05-21]] — Dead-Code Disposition Report — Caro's Ledge (2026-05-21)
+- [[dispatch-2.5-writer-redistribution-prework-2026-05-15]] — Dispatch 2.5 Prework: Writer Redistribution
+- [[dispatch-spec-corrections-2026-05-10]] — Dispatch spec corrections — 2026-05-10
+- [[fix-d-scope-2026-05-23]] — Fix D scope (2026-05-23)
+- [[ingest-pipeline-investigation-2026-05-22]] — Ingest Pipeline Investigation: Staleness + Domain Classification Leakage
+- [[ingest-restart-sequencing-2026-05-22]] — Ingest restart sequencing + leakage prerequisite (2026-05-22)
+- [[multi-tenant-foundation-prework-2026-05-15]] — Multi-Tenant Foundation — Pre-Work Findings
+- [[registry-to-ingestion-handoff-design-2026-05-10]] — Registry-to-ingestion handoff design surface, 2026-05-10
+- [[regulations-classification-mismatch-counts-2026-05-22]] — Regulations classification mismatch counts (2026-05-22)
+- [[skill-refinements-prework-2026-05-15]] — Skill Refinements Prework, 2026-05-15
+- [[source-classification-framework-2026-05-10]] — Source Classification Framework
+- [[source-health-architecture-investigation-2026-05-21]] — Source Health Architecture Investigation, Phase 5
+- [[spec-audit-community-2026-05-23]] — Community surface: built vs caros-ledge-platform-intent spec
+- [[spec-audit-dashboard-2026-05-23]] — Spec Audit: Dashboard `/` Built vs `caros-ledge-platform-intent` SKILL
+- [[spec-audit-map-2026-05-23]] — Spec Audit: Map (`/map`) vs caros-ledge-platform-intent SKILL.md
+- [[spec-audit-market-intel-2026-05-23]] — Spec audit: Market Intel built vs caros-ledge-platform-intent spec
+- [[spec-audit-operations-2026-05-23]] — Spec audit: /operations built vs caros-ledge-platform-intent SKILL (2026-05-23)
+- [[spec-audit-regulations-2026-05-23]] — Regulations surface, spec audit (2026-05-23)
+- [[spec-audit-research-2026-05-23]] — Spec audit, /research, built vs caros-ledge-platform-intent spec
+- [[spec-audit-synthesis-2026-05-23]] — Spec-vs-Built Audit: Cross-Surface Synthesis (2026-05-23)
+- [[spec-audit-user-chrome-2026-05-23]] — Spec audit: user chrome (8 pages) vs caros-ledge-platform-intent
+- [[wave1-track5-widget-implementation-plan]] — Phase 3 Widget Implementation Plan (PR-G3)
+
+## audits
+
+- [[BRIEF-STRUCTURE-AUDIT]] — Brief Structure Audit
+- [[DESIGN-AUDIT-2026-05]] — Design Audit — Preview vs Live App
+- [[E2E-VERIFICATION]] — E2E Verification — PRs #20–#23
+- [[INTEGRITY-TRIAGE-REPORT]] — Integrity-flag triage report
+- [[ISR-WRITE-INVESTIGATION]] — ISR Write-Source Investigation — Caro's Ledge
+- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Page-Load Performance Audit — 2026-05-06
+- [[PERF-AUDIT]] — Page-Load Performance Audit
+- [[PERF-PROFILING-FINDINGS]] — Perf Claim Investigation — Fresh Findings
+- [[REGIONAL-DATA-COLLECTION-AUDIT]] — Regional Data Collection — Ground Truth Audit
+- [[SESSION-AUDIT-2026-05-05]] — Session Audit — 2026-05-05
+- [[VISUAL-RECONCILIATION-2026-05-06]] — Caro's Ledge — Visual Reconciliation Audit
+- [[W1A-dual-write-audit]] — W1.A — Dual-Write Audit: `jurisdictions` Callsites
+- [[W1B-approval-handler-analysis]] — W1.B — Staged-update approval handler: root cause + fix
+- [[W1C-source-attribution-summary]] — W1.C — Source attribution audit summary
+- [[WORKER-ACTIVATION-AUDIT-2026-05-08]] — Worker activation audit — 2026-05-08
+- [[access-method-triage-2026-05-12]] — Access-Method Triage, 2026-05-12
+- [[auth-architecture-audit-2026-05-10]] — Auth architecture audit, 2026-05-10
+- [[california-pilot-summary]] — California Pilot Results
+- [[cards-clickable-audit-2026-05-12]] — Cards Clickable Audit — 2026-05-12
+- [[caros-ledge-product-audit-2026-05-15]] — Caro's Ledge product audit, v2 — 2026-05-15
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Caro's Ledge Supabase schema audit, 2026-05-15
+- [[classification-rules-audit-2026-05-09]] — Classification rules audit, 2026-05-09
+- [[cleanup-audit-2026-05-11]] — Wave cleanup audit, 2026-05-11
+- [[comprehensive-site-audit-2026-05-25]] — Caro's Ledge, Comprehensive Site Audit
+- [[dashboard-payload-audit-2026-05-11]] — Dashboard payload audit, 2026-05-11
+- [[font-usage-audit-2026-05-11]] — Font weight usage audit, 2026-05-11
+- [[four-page-architecture-survey-2026-05-09]] — Four-page architecture survey, 2026-05-09
+- [[functional-purpose-audit-2026-05-24]] — Caro's Ledge, Surface Functional Purpose Audit
+- [[hotfix-3-perf-audit-2026-05-07]] — Hotfix 3 — Performance Audit (Investigation Only)
+- [[jurisdiction-normalization-audit-2026-05-11]] — Jurisdiction-Token Fragmentation Audit
+- [[migration-drift-investigation-2026-05-12]] — Migration 070 drift investigation
+- [[primitives-audit-2026-05-09]] — Caro's Ledge ingestion primitives audit, 2026-05-09
+- [[source-classification-final-summary-2026-05-11]] — Source classification backfill — final summary
+- [[source-coverage-diagnostic-2026-05-09]] — EU ESRS coverage diagnostic + curation methodology audit, 2026-05-09
+- [[source-map-existence-check-2026-05-10]] — ESG-Today source map existence check, 2026-05-10
+- [[source-map-from-esgtoday-2026-05-09]] — Source Registry Expansion
+- [[sources-content-verification-2026-05-11]] — Sources + content verification, 2026-05-11
+- [[topic-relevance-investigation-2026-05-09]] — Topic relevance investigation, 2026-05-09
+- [[us-state-code-audit-2026-05-12]] — US-state Code Audit — 2026-05-12
+- [[wave1-step1-verification]] — Wave 1a Step 1 — Post-merge verification checklist
+- [[wave1-track1-summary]] — Wave 1a Track 1 (Gate 4) Discovery Summary
+- [[wave1b-stub-quality-investigation-2026-05-11]] — Wave 1b stub quality investigation, 2026-05-11
+
+## ops
+
+- [[deletion-reclassification-log]] — Deletion / reclassification log
+- [[multi-tenant-foundation-followups-2026-05-15]] — Multi-Tenant Foundation Follow-Ups, 2026-05-15
+
+## design
+
+- [[decision-package-2026-07-06]] — Decision Package — 52 live non-verified items (read-only)
+- [[design-principles]] — Caro's Ledge Design Principles
+
+## sprint-1
+
+- [[alignment-audit-2026-05-18]] — Caro's Ledge Alignment Audit, 2026-05-18
+- [[critical-investigations-2026-05-18]] — Caro's Ledge Sprint 1 Critical Investigations Report, 2026-05-18
+- [[followups]] — Sprint 1 Followups
+- [[intelligence-assistant-audit-2026-05-18]] — Caro's Ledge Intelligence Assistant Behavior Audit, 2026-05-18
+- [[onboarding-audit-2026-05-18]] — Caro's Ledge Onboarding Flow Audit, 2026-05-18
+- [[perf-1-design]] — PERF-1: Cache Headers Design (Narrowed, Implementation-Ready)
+- [[phase-1-admin-signals]] — Sprint 1 Phase 1: Two-Admin-Signals Resolution
+- [[phase-2-dedup-plan]] — Sprint 1 Phase 2: Canonical-Entity Dedup Plan
+- [[phase-3-jurisdiction-vocabulary]] — Sprint 1 Phase 3: Jurisdiction Vocabulary Extension
+- [[phase-3-operator-decision]] — Sprint 1 Phase 3: Operator Decision (Authorization Packet)
+- [[phase-4-migrations-summary]] — Sprint 1 Phase 4a: Migrations Summary
+- [[phase-4b-design]] — Sprint 1 Phase 4b: Operator Queue Tables + Rejected-Token Routing
+- [[phase-4b-sql-review-final]] — Phase 4b SQL Review, Final
+- [[phase-5-design]] — Sprint 1 Phase 5: Data Migration Design
+- [[phase-7-scope-amendment]] — Sprint 1 Phase 7: Scope Amendment
+- [[schema-reconciliation-discovery-2026-05-18]] — Caro's Ledge Sprint 1 Schema Reconciliation Discovery (Stage 1)
+- [[system-audit-2026-05-18]] — Caro's Ledge Sprint 1 System Audit, 2026-05-18 post-PR-#122
+
+## sprint-2
+
+- [[Phase-1.5-consumer-migration-list]] — Phase 1.5 Consumer Migration List (Q2 base_tier + effective_tier)
+- [[category-routing-wiring-notes]] — Sprint 2 Build 4: Category Routing Wiring Notes
+- [[source-credibility-model-decisions-2026-05-19]] — Source Credibility Model: Architectural Decisions Capture (2026-05-19)
+- [[sprint-2-planning-2026-05-18]] — Caro's Ledge Sprint 2 Planning, 2026-05-18
+
+## top-level living docs
+
+- [[tech-debt-log]] — living technical debt register

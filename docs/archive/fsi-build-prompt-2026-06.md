@@ -1,4 +1,3 @@
-
 # Claude Code Prompt — Freight Sustainability Intelligence App
 
 ## Files Provided
