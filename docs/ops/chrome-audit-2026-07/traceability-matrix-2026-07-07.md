@@ -133,6 +133,26 @@ committed files until Jason's apply window.
 - **S2-05** → **FIXED**: NotesField persists to `workspace_item_overrides.notes` (server-read
   initial value + debounced authed POST; localStorage removed; label now true).
 
+## Disposition updates — 2026-07-07 (Phase-3 quality block)
+
+- **S3-01** → **FIXED — PR #239**: prompt-cache (pool as cached prefix; telemetry records
+  cacheRead/Write + savedUsd; measured savings report owed on the first funded batch) AND the
+  double-counted daily cap cured (spend-call rows are the single cost ledger; step rows cost 0).
+- **DD-01 / DD-02** → **FIXED — PR #240 + backfill EXECUTED**: §14 table+bullet parser (single
+  home), precision-honest normalizer, sectionBrief harvest wiring; corpus re-harvested mechanically
+  (964 rows / 121 items, $0). Verified stored: 984 rows / 127 items; **PPWR = 2026-08-12** (was
+  Aug-1). Residual: 4 items HELD (ICS2, GLEC v3, CountEmissions EU, IMO Net-Zero — §14 unparseable;
+  old rows kept + reported); DD-02b display-layer check rides the browser wave.
+- **DD-03** → **ENACTED — PR #241** (operator rulings): 6 twins archived `duplicate_instrument`
+  (PPWR/CSRD/Reuters/ECTA losers + 2 AFIR twins after the mislabel was RE-TYPED first); PPWR
+  survivor adopted the canonical ELI URL; Singapore KEEP BOTH + xref edge (two-agency pattern).
+  Residual: ECTA claim-port (archived twin retains its 3 extra claims).
+- **S1-07 (P3c grounding holes)** → **QUEUED, next unit** — deliberately NOT rushed: touches
+  `validate_item_provenance` + criterion-2/ANALYSIS semantics (the moat gate itself). Anchors:
+  canonical-pipeline URL auto-stub site (pre-registers every section URL), mig 141/142/143/145/150
+  chain, floor-conditional-on-priority bypass → make reg-family floor unconditional on item_type
+  (migration 158, AUTHOR-ONLY per the migrations-are-files rule).
+
 ## Standing rule (codified here, going forward)
 
 **Any future page/surface audit lands as a findings register FIRST** (stable IDs + surface + severity
