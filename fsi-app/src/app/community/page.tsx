@@ -1,42 +1,123 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { getListingsOnly } from "@/lib/data";
+import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import {
-  CommunityView,
-  type CommunityViewMembership,
-  type CommunityViewThread,
-  type CommunityViewPublicForum,
-} from "@/components/community/CommunityView";
+  CommunityRooms,
+  type RoomVM,
+  type ThreadVM,
+  type RosterMemberVM,
+} from "@/components/community/CommunityRooms";
+import {
+  ROOMS,
+  CANONICAL_ROOM_SLUGS,
+  roomForJurisdiction,
+  homeJurisdictionsInRoom,
+  type RoomKey,
+} from "@/lib/community/rooms";
+import type { Resource } from "@/types/resource";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Community route, H6 rebuild (2026-05-25).
+ * Community — redesign TEMPLATE 11.
  *
- * Layout binds to design_handoff_2026-05/community.html. Per the
- * design-reference-protocol pre-build checklist, the page fetches:
+ * Binds to "Pages - 11 Community" + community-schema-mapping.md §5. Builds on
+ * the newer conversation layer only (community_groups / community_posts /
+ * community_group_members / profiles). The "room" is a canonical public
+ * community_groups row per region (seeded by scripts/seed-community-regional-
+ * rooms.mjs); until that seed runs, the rooms grid renders honest-empty.
  *
- *   1. User's group memberships (existing)
- *   2. Region thread counts (existing RPC)
- *   3. Current user profile (existing)
- *   4. Top-level community_posts for user's groups (top ~12 by
- *      last_reply_at DESC) — drives the per-group thread rows
- *   5. Author profiles for thread authors (full_name + org_id +
- *      workspace_role + sector + region) — drives the author
- *      identity line. Migration 105 added these projection columns.
- *   6. Organizations for author org_ids (name) — drives the orange
- *      org chip in the who-line
- *   7. Public community_groups in user's regions, not in memberships
- *      (top ~6 by last_active_at) — drives the "Public forums in
- *      your network" section
- *
- * Per mockup audit (H6 pre-build): no top-level "+ New Post" CTA,
- * no AiPromptBar. Compose flow routes via group navigation; existing
- * PostComposer is mounted on /community/[slug].
- *
- * Per H5 anchor compatibility: every top-level thread row renders
- * id="post-{uuid}" so anchored links from /admin community pickups
- * queue resolve to a specific post.
+ * Everything data-bearing is fail-soft and computed — no mock snapshot numbers
+ * are hard-coded. Non-verified intelligence items never reach this surface
+ * (getListingsOnly is verified-gated + org-scoped).
  */
+
+const PRIO_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MODERATE: 2, LOW: 3 };
+
+/** ISO timestamp 30 days ago — module scope so the render body stays pure. */
+function thirtyDaysAgoIso(): string {
+  return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function toneForPriority(p: string | undefined): "critical" | "high" | "moderate" | "low" {
+  if (p === "CRITICAL") return "critical";
+  if (p === "HIGH") return "high";
+  if (p === "MODERATE") return "moderate";
+  return "low";
+}
+
+/** Route a ledger item to its canonical surface (domains.ts mapping). */
+function itemHref(r: Resource): string {
+  switch (r.domain) {
+    case 1:
+      return `/regulations/${encodeURIComponent(r.id)}`;
+    case 2:
+    case 4:
+      return "/market";
+    case 3:
+    case 6:
+      return "/operations";
+    case 7:
+      return "/research";
+    default:
+      return "/regulations";
+  }
+}
+
+const SURFACE_LABEL: Record<number, string> = {
+  1: "Regulation",
+  2: "Market Intel",
+  3: "Operations",
+  4: "Market Intel",
+  6: "Operations",
+  7: "Research",
+};
+
+/** Classify a resource to a room via its jurisdiction, then its ISO codes. */
+function roomForResource(r: Resource): RoomKey | null {
+  const direct = roomForJurisdiction(r.jurisdiction);
+  if (direct) return direct;
+  for (const iso of r.jurisdictionIso ?? []) {
+    const k = roomForJurisdiction(iso);
+    if (k) return k;
+  }
+  return null;
+}
+
+function titleCase(s: string): string {
+  return s
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Display-name chain: full_name ?? display_name ?? email ?? uuid slice. */
+function memberDisplayName(p: {
+  full_name?: string | null;
+  display_name?: string | null;
+  email?: string | null;
+  id: string;
+}): string {
+  return (
+    (p.full_name && p.full_name.trim()) ||
+    (p.display_name && p.display_name.trim()) ||
+    (p.email && p.email.trim()) ||
+    p.id.slice(0, 8)
+  );
+}
+
+interface ProfileRow {
+  id: string;
+  full_name: string | null;
+  display_name: string | null;
+  email: string | null;
+  jurisdiction_overrides: string[] | null;
+  workspace_role: string | null;
+  verifier_status: string | null;
+  org_id: string | null;
+}
+
 export default async function CommunityPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -44,103 +125,99 @@ export default async function CommunityPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/community");
 
+  // ── Current user profile ──
+  const { data: meProfile, error: meErr } = await supabase
+    .from("profiles")
+    .select(
+      "id, full_name, display_name, email, jurisdiction_overrides, workspace_role, verifier_status, org_id"
+    )
+    .eq("id", user.id)
+    .maybeSingle();
+  if (meErr) console.warn("community: profile read failed", meErr.message);
+
+  const me = (meProfile as ProfileRow | null) ?? {
+    id: user.id,
+    full_name: null,
+    display_name: null,
+    email: user.email ?? null,
+    jurisdiction_overrides: null,
+    workspace_role: null,
+    verifier_status: "none",
+    org_id: null,
+  };
+  const myHome = me.jurisdiction_overrides ?? [];
+  const myName = memberDisplayName({ ...me, email: me.email ?? user.email ?? null });
+
+  // ── Canonical regional rooms (seeded public groups) ──
+  const { data: roomGroupsRaw, error: roomErr } = await supabase
+    .from("community_groups")
+    .select("id, name, slug, region, privacy, member_count")
+    .in("slug", CANONICAL_ROOM_SLUGS as string[]);
+  if (roomErr) console.warn("community: room groups read failed", roomErr.message);
+
+  const groupBySlug = new Map<string, { id: string; name: string; member_count: number }>();
+  for (const g of (roomGroupsRaw ?? []) as Array<{
+    id: string;
+    name: string;
+    slug: string;
+    member_count: number | null;
+  }>) {
+    groupBySlug.set(g.slug, { id: g.id, name: g.name, member_count: g.member_count ?? 0 });
+  }
+  const roomGroupIds = Array.from(groupBySlug.values()).map((g) => g.id);
+  const seeded = roomGroupIds.length > 0;
+
+  // ── Parallel reads: verified ledger, memberships, room threads, roster, pickups ──
   const [
-    { data: membershipsRaw },
-    { data: regionRows },
-    { data: profile },
+    listings,
+    membershipsRes,
+    postsRes,
+    rosterRes,
+    pickupsRes,
   ] = await Promise.all([
+    getListingsOnly(),
     supabase
       .from("community_group_members")
-      .select(
-        `
-          group_id,
-          role,
-          starred,
-          muted,
-          joined_at,
-          community_groups (
-            id,
-            name,
-            slug,
-            region,
-            privacy,
-            member_count,
-            weekly_post_count,
-            last_active_at
-          )
-        `
-      )
+      .select("group_id")
       .eq("user_id", user.id),
-    supabase.rpc("community_region_counts"),
-    supabase
-      .from("profiles")
-      .select("name:full_name")
-      .eq("id", user.id)
-      .maybeSingle(),
-  ]);
-
-  const memberships: CommunityViewMembership[] = (membershipsRaw || []).flatMap((m: any) => {
-    if (!m.community_groups) return [];
-    return [
-      {
-        group_id: m.group_id,
-        role: m.role as "admin" | "moderator" | "member",
-        starred: !!m.starred,
-        muted: !!m.muted,
-        joined_at: m.joined_at,
-        group: {
-          id: m.community_groups.id,
-          name: m.community_groups.name,
-          slug: m.community_groups.slug,
-          region: m.community_groups.region,
-          privacy: m.community_groups.privacy as "public" | "private",
-          member_count: m.community_groups.member_count ?? 0,
-          weekly_post_count: m.community_groups.weekly_post_count ?? 0,
-          last_active_at: m.community_groups.last_active_at,
-        },
-      },
-    ];
-  });
-
-  const regionCounts: Record<string, number> = {};
-  for (const row of (regionRows ?? []) as { region: string; count: number }[]) {
-    regionCounts[row.region] = Number(row.count) || 0;
-  }
-
-  const groupIds = memberships.map((m) => m.group_id);
-  const userRegions = Array.from(new Set(memberships.map((m) => m.group.region)));
-
-  // Top-level posts across user's groups. 24 rows over 4-8 groups
-  // gives ~3 per group after in-memory partitioning. Reply rows
-  // excluded — only top-level threads render in the group panel.
-  const [
-    { data: postsRaw },
-    { data: publicForumsRaw },
-  ] = await Promise.all([
-    groupIds.length > 0
+    seeded
       ? supabase
           .from("community_posts")
           .select(
             "id, group_id, title, body, reply_count, created_at, last_reply_at, author_user_id, referenced_intelligence_item_ids"
           )
-          .in("group_id", groupIds)
+          .in("group_id", roomGroupIds)
           .is("parent_post_id", null)
           .order("last_reply_at", { ascending: false, nullsFirst: false })
-          .limit(24)
-      : Promise.resolve({ data: [] as any[] }),
-    userRegions.length > 0
+          .limit(60)
+      : Promise.resolve({ data: [] as unknown[], error: null }),
+    me.org_id
       ? supabase
-          .from("community_groups")
-          .select("id, name, slug, region, privacy, member_count, weekly_post_count, last_active_at")
-          .eq("privacy", "public")
-          .in("region", userRegions)
-          .not("id", "in", groupIds.length > 0 ? `(${groupIds.map((id) => `"${id}"`).join(",")})` : `("00000000-0000-0000-0000-000000000000")`)
-          .order("last_active_at", { ascending: false })
-          .limit(6)
-      : Promise.resolve({ data: [] as any[] }),
+          .from("profiles")
+          .select(
+            "id, full_name, display_name, email, jurisdiction_overrides, workspace_role, verifier_status, org_id"
+          )
+          .eq("org_id", me.org_id)
+      : Promise.resolve({ data: [] as unknown[], error: null }),
+    // Admin-pickups pending count — mirrors CommunityPickupsQueueView heuristic
+    // (top-level, unpromoted, reply_count>=3, within 30 days).
+    supabase
+      .from("community_posts")
+      .select("id", { count: "exact", head: true })
+      .is("parent_post_id", null)
+      .is("promoted_at", null)
+      .gte("reply_count", 3)
+      .gte("created_at", thirtyDaysAgoIso()),
   ]);
 
-  const posts = (postsRaw ?? []) as Array<{
+  const resources = (listings.resources ?? []) as Resource[];
+
+  const joinedGroupIds = new Set(
+    ((membershipsRes.data ?? []) as Array<{ group_id: string }>).map((m) => m.group_id)
+  );
+
+  // ── Threads per room group ──
+  const postRows = (postsRes.data ?? []) as Array<{
     id: string;
     group_id: string;
     title: string | null;
@@ -152,107 +229,150 @@ export default async function CommunityPage() {
     referenced_intelligence_item_ids: string[] | null;
   }>;
 
-  // Author projections. Migration 105 added org_id, workspace_role,
-  // sector TEXT[], region TEXT[] to profiles. Fetch in one round-trip
-  // keyed by author IDs.
   const authorIds = Array.from(
-    new Set(posts.map((p) => p.author_user_id).filter((id): id is string => Boolean(id)))
+    new Set(postRows.map((p) => p.author_user_id).filter((id): id is string => Boolean(id)))
   );
-
-  const authorProfileMap = new Map<
-    string,
-    { full_name: string | null; org_id: string | null; workspace_role: string | null; sector: string[] | null; region: string[] | null }
-  >();
-  const orgNameMap = new Map<string, string>();
-
+  const authorMap = new Map<string, ProfileRow>();
   if (authorIds.length > 0) {
     const { data: authorRows } = await supabase
       .from("profiles")
-      .select("id, full_name, org_id, workspace_role, sector, region")
-      .in("id", authorIds);
-    for (const row of (authorRows ?? []) as Array<{
-      id: string;
-      full_name: string | null;
-      org_id: string | null;
-      workspace_role: string | null;
-      sector: string[] | null;
-      region: string[] | null;
-    }>) {
-      authorProfileMap.set(row.id, {
-        full_name: row.full_name,
-        org_id: row.org_id,
-        workspace_role: row.workspace_role,
-        sector: row.sector,
-        region: row.region,
-      });
-    }
-
-    const orgIds = Array.from(
-      new Set(
-        Array.from(authorProfileMap.values())
-          .map((p) => p.org_id)
-          .filter((id): id is string => Boolean(id))
+      .select(
+        "id, full_name, display_name, email, jurisdiction_overrides, workspace_role, verifier_status, org_id"
       )
-    );
-    if (orgIds.length > 0) {
-      const { data: orgRows } = await supabase
-        .from("organizations")
-        .select("id, name")
-        .in("id", orgIds);
-      for (const row of (orgRows ?? []) as Array<{ id: string; name: string }>) {
-        orgNameMap.set(row.id, row.name);
-      }
-    }
+      .in("id", authorIds);
+    for (const row of (authorRows ?? []) as ProfileRow[]) authorMap.set(row.id, row);
   }
 
-  const threads: CommunityViewThread[] = posts.map((p) => {
-    const profile = p.author_user_id ? authorProfileMap.get(p.author_user_id) ?? null : null;
-    const orgName = profile?.org_id ? orgNameMap.get(profile.org_id) ?? null : null;
-    return {
+  const threadsByGroup = new Map<string, ThreadVM[]>();
+  for (const p of postRows) {
+    const author = p.author_user_id ? authorMap.get(p.author_user_id) ?? null : null;
+    const isYou = p.author_user_id === user.id;
+    const authorName = isYou
+      ? myName
+      : author
+        ? memberDisplayName(author)
+        : "Former member";
+    const isOwner = (isYou ? me.workspace_role : author?.workspace_role) === "owner";
+    const vm: ThreadVM = {
       id: p.id,
-      group_id: p.group_id,
-      title: p.title,
+      groupId: p.group_id,
+      title: p.title ?? p.body.slice(0, 120),
       body: p.body,
-      reply_count: p.reply_count,
-      created_at: p.created_at,
-      last_reply_at: p.last_reply_at,
-      referenced_intelligence_item_ids: p.referenced_intelligence_item_ids ?? [],
-      author: {
-        full_name: profile?.full_name ?? null,
-        org_name: orgName,
-        workspace_role: profile?.workspace_role ?? null,
-        sector: profile?.sector ?? [],
-        region: profile?.region ?? [],
-      },
+      replyCount: p.reply_count ?? 0,
+      createdAt: p.created_at,
+      referencedItemIds: p.referenced_intelligence_item_ids ?? [],
+      authorName,
+      isYou,
+      isOwner,
     };
-  });
+    const list = threadsByGroup.get(p.group_id) ?? [];
+    list.push(vm);
+    threadsByGroup.set(p.group_id, list);
+  }
 
-  const publicForums: CommunityViewPublicForum[] = ((publicForumsRaw ?? []) as Array<{
-    id: string;
-    name: string;
-    slug: string;
-    region: string;
-    privacy: string;
-    member_count: number | null;
-    weekly_post_count: number | null;
-    last_active_at: string | null;
-  }>).map((g) => ({
-    id: g.id,
-    name: g.name,
-    slug: g.slug,
-    region: g.region,
-    member_count: g.member_count ?? 0,
-    weekly_post_count: g.weekly_post_count ?? 0,
-    last_active_at: g.last_active_at,
-  }));
+  // ── Roster (workspace network, for "Who's here" presence) ──
+  const rosterRows = (rosterRes.data ?? []) as ProfileRow[];
+  const rosterPool: ProfileRow[] =
+    rosterRows.length > 0 ? rosterRows : [{ ...me, email: me.email ?? user.email ?? null }];
+  // Ensure self is present exactly once.
+  if (!rosterPool.some((r) => r.id === user.id)) {
+    rosterPool.push({ ...me, email: me.email ?? user.email ?? null });
+  }
+  const networkMemberCount = new Set(rosterPool.map((r) => r.id)).size;
+
+  // ── Assemble per-room view models ──
+  const rooms: RoomVM[] = [];
+  for (const def of ROOMS) {
+    const group = groupBySlug.get(def.slug);
+    // Classify verified ledger items into this room.
+    const inRoom = resources.filter((r) => roomForResource(r) === def.key);
+    inRoom.sort(
+      (a, b) => (PRIO_RANK[a.priority] ?? 3) - (PRIO_RANK[b.priority] ?? 3)
+    );
+    const liveItems = inRoom.slice(0, 2).map((r) => {
+      const label = r.domain ? SURFACE_LABEL[r.domain] ?? "Ledger" : "Ledger";
+      const juris = r.jurisdiction ? titleCase(r.jurisdiction) : def.short;
+      const sev = (r.severity || r.priority || "").toString().toLowerCase();
+      return {
+        id: r.id,
+        title: r.title,
+        meta: `${label} · ${juris}${sev ? ` · ${sev}` : ""}`,
+        href: itemHref(r),
+      };
+    });
+    // Themes derived from real topic tags (no invented data; omit when none).
+    const themeCounts = new Map<string, number>();
+    for (const r of inRoom) {
+      const t = (r.topic || r.theme || "").toString().trim();
+      if (t) themeCounts.set(t, (themeCounts.get(t) ?? 0) + 1);
+    }
+    const themes = Array.from(themeCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([t]) => titleCase(t));
+
+    const tone = toneForPriority(inRoom[0]?.priority);
+    const threads = group ? threadsByGroup.get(group.id) ?? [] : [];
+
+    // Presence roster for this room (home jurisdictions ∩ room).
+    const present: RosterMemberVM[] = rosterPool
+      .filter((p) => homeJurisdictionsInRoom(p.jurisdiction_overrides, def.key))
+      .map((p) => ({
+        name: p.id === user.id ? myName : memberDisplayName(p),
+        isYou: p.id === user.id,
+        isOwner: p.workspace_role === "owner",
+      }));
+
+    rooms.push({
+      key: def.key,
+      name: def.name,
+      short: def.short,
+      groupId: group?.id ?? null,
+      joined: group ? joinedGroupIds.has(group.id) : false,
+      youHere: homeJurisdictionsInRoom(myHome, def.key),
+      itemCount: inRoom.length,
+      itemCountKnown: resources.length > 0 || !listings._error,
+      hue: tone,
+      themes,
+      liveItems,
+      threads,
+      roster: present,
+    });
+  }
+
+  const totalItems = rooms.reduce((sum, r) => sum + r.itemCount, 0);
+
+  const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
+  const meta = (
+    <span>
+      Regional rooms — what&rsquo;s live in each region, who&rsquo;s there, and the discussions
+      that explain what the ledger can&rsquo;t print yet.{" "}
+      {seeded ? (
+        <>
+          <span style={boldInk}>{totalItems}</span> active items across{" "}
+          <span style={boldInk}>{rooms.length}</span> rooms
+        </>
+      ) : (
+        <>Peer posts are unverified by design; a verifier&rsquo;s sign-off makes them citable.</>
+      )}
+    </span>
+  );
 
   return (
-    <CommunityView
-      memberships={memberships}
-      regionCounts={regionCounts}
-      threads={threads}
-      publicForums={publicForums}
-      currentUserName={profile?.name ?? user.email?.split("@")[0] ?? ""}
-    />
+    <>
+      <SystemErrorBanner message={listings._error} />
+      <EditorialMasthead title="Community" meta={meta} />
+      <CommunityRooms
+        rooms={rooms}
+        seeded={seeded}
+        currentUserId={user.id}
+        currentUserName={myName}
+        currentUserIsOwner={me.workspace_role === "owner"}
+        currentUserIsVerifier={me.verifier_status === "active"}
+        verifierStatus={me.verifier_status ?? "none"}
+        networkMemberCount={networkMemberCount}
+        pendingPickups={pickupsRes.count ?? 0}
+      />
+    </>
   );
 }

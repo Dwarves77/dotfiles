@@ -394,6 +394,33 @@
   --mi-monitor-strip: #16A34A;
   /* Key figure ink when a signal carries no sourced price dimension (em-dash). */
   --mi-fig-empty: #7A6E6C;
+  /* ─────────────────────────────────────────────────────
+     REDESIGN T11 TOKENS (HANDOFF §2/§4 + Community mock)
+     Added additively per feat/redesign-t11-community. Values
+     lifted verbatim from "Pages - 11 Community" inline styles —
+     do NOT substitute Tailwind defaults. The T11 components
+     reference these, never raw hex.
+     ───────────────────────────────────────────────────── */
+
+  /* Quiet destructive — Delete text action (HANDOFF §2 destructive-quiet).
+     Distinct from --oxblood; reserved for Ban/Delete word-actions. */
+  --destructive-quiet: #9A3412;
+
+  /* Accent tint (0.09) — "You're here" / "You · Owner" chip fill and the
+     selected-room tint. The general --color-active-bg is 0.08; the mock
+     uses 0.09 on these chips, so the exact value is kept explicit. */
+  --accent-tint-strong: rgba(232, 97, 10, 0.09);
+  /* Accent tint border — chip outlines on the orange identity chips. */
+  --accent-tint-border: rgba(232, 97, 10, 0.4);
+  /* Selected-room tile fill (mock #FFF7F0 — same warm tint as the AI strip). */
+  --room-selected-bg: #FFF7F0;
+
+  /* Epistemic dashed border — the dashed outline paired with
+     --epistemic-signal on every "Unverified" peer-signal chip (§3). */
+  --epistemic-border: rgba(180, 83, 9, 0.45);
+
+  /* Honest-state pending frame border — 1px dashed (HANDOFF §4). */
+  --pending-frame-border: rgba(0, 0, 0, 0.25);
 }
 
 /* ── DARK THEME (opt-in) ── */
