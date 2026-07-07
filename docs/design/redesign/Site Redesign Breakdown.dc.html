@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+  </style>
+</helmet>
+
+<div style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh">
+
+  <!-- ══════════ MASTHEAD ══════════ -->
+  <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+    <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+    <div style="max-width:1240px;margin:0 auto;padding:28px 40px 24px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <div>
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Caro's Ledge · design pass · July 2026</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:44px;line-height:1.02;letter-spacing:0.02em;text-transform:uppercase;margin:0">The complete breakdown</h1>
+        <p style="font-size:14px;color:#5A6B67;margin:8px 0 0;max-width:76ch">How every surface gets better without adding a feature. Same eight pages, same titles, same data — one skeleton, one set of plain-language trust labels, one way to move between pages. Design only; content and code stay put.</p>
+      </div>
+      <div style="display:flex;gap:20px;align-items:baseline;padding-bottom:4px">
+        <div><span style="font-family:'Anton',sans-serif;font-size:28px;color:#E8610A">8</span> <span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C">pages</span></div>
+        <div><span style="font-family:'Anton',sans-serif;font-size:28px;color:#E8610A">4</span> <span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C">new systems</span></div>
+        <div><span style="font-family:'Anton',sans-serif;font-size:28px;color:#E8610A">0</span> <span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C">new features</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════ BODY: STICKY TOC + CONTENT ══════════ -->
+  <div style="max-width:1240px;margin:0 auto;padding:40px 40px 120px;display:grid;grid-template-columns:230px 1fr;gap:44px;align-items:start">
+
+    <!-- The document practices its own wayfinding spec: sticky TOC, scroll-spy -->
+    <nav style="position:sticky;top:24px;display:flex;flex-direction:column;gap:2px;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:14px 10px">
+      <p style="font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px;padding:0 10px">In this breakdown</p>
+      <sc-for list="{{ toc }}" as="t" hint-placeholder-count="9">
+        <a href="#{{ t.id }}" style="{{ t.style }}"><span style="font-family:'Anton',sans-serif;font-size:11px;color:#E8610A;min-width:18px">{{ t.num }}</span><span>{{ t.label }}</span></a>
+      </sc-for>
+      <div style="margin:10px 10px 2px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.08)">
+        <p style="font-size:10.5px;line-height:1.5;color:#7A6E6C;margin:0">This page uses the sticky-TOC + scroll-position pattern it proposes in <a href="#s4" style="color:#E8610A;font-weight:700;text-decoration:none">04</a>.</p>
+      </div>
+    </nav>
+
+    <main style="min-width:0">
+
+      <!-- ════════ 01 · DIAGNOSIS ════════ -->
+      <section id="s1" data-screen-label="01 Diagnosis" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">01 · Diagnosis</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Why the site feels clunky</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 26px">The masthead identity is strong and the data underneath is genuinely deep. The friction is structural: five findings, all fixable with design alone.</p>
+
+        <div style="display:flex;flex-direction:column;gap:0;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:56px 1fr;gap:18px;padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.08)">
+            <span style="font-family:'Anton',sans-serif;font-size:30px;color:#E8610A;line-height:1">1</span>
+            <div><h3 style="font-size:15px;font-weight:800;margin:0 0 4px">One identity, two systems</h3><p style="font-size:13.5px;line-height:1.6;color:#5A6B67;margin:0">The bold masthead (VOL IV · NO. 27, Anton, the gradient rule) stops at the fold. Below it, every page falls back to stock component defaults — so the product reads generic exactly where the reader spends their time.</p></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 1fr;gap:18px;padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.08)">
+            <span style="font-family:'Anton',sans-serif;font-size:30px;color:#E8610A;line-height:1">2</span>
+            <div><h3 style="font-size:15px;font-weight:800;margin:0 0 4px">Law, signal, and analysis all look the same</h3><p style="font-size:13.5px;line-height:1.6;color:#5A6B67;margin:0">The platform's core differentiator — verified fact vs. early signal vs. labeled analysis — exists only as italic prefixes buried in prose ("Analytical inference:", "FACT:"). A reader can't tell at a glance whether a paragraph is binding law or an inference.</p></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 1fr;gap:18px;padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.08)">
+            <span style="font-family:'Anton',sans-serif;font-size:30px;color:#E8610A;line-height:1">3</span>
+            <div><h3 style="font-size:15px;font-weight:800;margin:0 0 4px">Five pages, five list patterns</h3><p style="font-size:13.5px;line-height:1.6;color:#5A6B67;margin:0">Regulations is a 4-column kanban (94 cards, one column 64 deep). Research groups by theme. Operations uses region accordions. Market Intel uses bands. Dashboard uses a feed. Scanning skill learned on one page transfers to none of the others.</p></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 1fr;gap:18px;padding:20px 24px;border-bottom:1px solid rgba(0,0,0,0.08)">
+            <span style="font-family:'Anton',sans-serif;font-size:30px;color:#E8610A;line-height:1">4</span>
+            <div><h3 style="font-size:15px;font-weight:800;margin:0 0 4px">Internal machinery leaks into the reading surface</h3><p style="font-size:13.5px;line-height:1.6;color:#5A6B67;margin:0">Raw markdown pipe-tables render as prose in Sources sections. Scheduling labels ("Always · 10"), gapped section numbers (§4 → §8), schema names in empty states, and triplicate tag chips ("+189 more") all surface to the customer.</p></div>
+          </div>
+          <div style="display:grid;grid-template-columns:56px 1fr;gap:18px;padding:20px 24px">
+            <span style="font-family:'Anton',sans-serif;font-size:30px;color:#E8610A;line-height:1">5</span>
+            <div><h3 style="font-size:15px;font-weight:800;margin:0 0 4px">No wayfinding below page level</h3><p style="font-size:13.5px;line-height:1.6;color:#5A6B67;margin:0">Briefs run 15+ sections and thousands of words with no table of contents, no position indicator, no breadcrumb, and no visible expression of how items connect across surfaces. The 7-item sidebar is fine; everything inside a page is unmapped.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 02 · WHAT STAYS + SKELETON ════════ -->
+      <section id="s2" data-screen-label="02 What stays and the shared skeleton" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">02 · What stays · the shared skeleton</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">One skeleton, eight pages</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 22px">Congruity is the fix for findings 3 and 5: every index page shares one vertical skeleton, and every detail page shares one reader frame. Information lives in the same place on every page, so the reader's scan habit transfers everywhere.</p>
+
+        <div style="background:#FFF7F0;border:1px solid #FBD5B5;border-radius:10px;padding:16px 20px;margin:0 0 24px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Locked — kept exactly as built</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span style="font-size:12px;font-weight:700;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:5px 12px">7-item sidebar</span>
+            <span style="font-size:12px;font-weight:700;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:5px 12px">4 priority stat tiles</span>
+            <span style="font-size:12px;font-weight:700;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:5px 12px">AI prompt bar + chips</span>
+            <span style="font-size:12px;font-weight:700;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:5px 12px">Severity vocabulary (5 labels)</span>
+            <span style="font-size:12px;font-weight:700;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:5px 12px">T1–T7 tiers (refined, not replaced)</span>
+            <span style="font-size:12px;font-weight:700;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:5px 12px">Page titles &amp; page count</span>
+            <span style="font-size:12px;font-weight:700;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:5px 12px">Anton + Plus Jakarta Sans + orange</span>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <!-- Index skeleton -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 18px;display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-family:'Anton',sans-serif;font-size:15px;letter-spacing:0.03em;text-transform:uppercase">The index skeleton</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C;letter-spacing:0.06em;text-transform:uppercase">Dashboard · Regulations · Market Intel · Research · Operations</span>
+            </div>
+            <div style="padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Masthead <span style="color:#7A6E6C;font-weight:500">— VOL · NO · date line, Anton title, count summary</span></div>
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Legend + 4 priority stat tiles <span style="color:#7A6E6C;font-weight:500">— tiles double as jump-filters into the bands below</span></div>
+              <div style="border:1px solid #FBD5B5;background:#FFF7F0;border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">AI prompt bar <span style="color:#7A6E6C;font-weight:500">— unchanged, surface-aware chips</span></div>
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Facet bar <span style="color:#7A6E6C;font-weight:500">— search · jurisdiction · mode · vertical · tier · sort, identical controls on all five surfaces</span></div>
+              <div style="border:2px solid #E8610A;border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Banded ledger <span style="color:#7A6E6C;font-weight:500">— the one list pattern, replaces kanban / feed / theme groups (see 05)</span></div>
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Right rail <span style="color:#7A6E6C;font-weight:500">— coverage, methodology, watch-this-week; same slots every page</span></div>
+            </div>
+          </div>
+          <!-- Detail skeleton -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 18px;display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-family:'Anton',sans-serif;font-size:15px;letter-spacing:0.03em;text-transform:uppercase">The reader frame</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C;letter-spacing:0.06em;text-transform:uppercase">Regulation · Signal · Finding detail</span>
+            </div>
+            <div style="padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Breadcrumb <span style="color:#7A6E6C;font-weight:500">— Regulations / EU / CBAM — position is always visible</span></div>
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Hero <span style="color:#7A6E6C;font-weight:500">— Anton title, severity chip, citation string promoted, one date row</span></div>
+              <div style="border:1px solid #FBD5B5;background:#FFF7F0;border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">AI prompt bar <span style="color:#7A6E6C;font-weight:500">— item-aware chips</span></div>
+              <div style="border:2px solid #E8610A;border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Reading frame <span style="color:#7A6E6C;font-weight:500">— sticky section TOC + 72ch column + progressive disclosure (see 04)</span></div>
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Connected intelligence <span style="color:#7A6E6C;font-weight:500">— cross-page relationships, one component everywhere (see 04)</span></div>
+              <div style="border:1px solid rgba(0,0,0,0.14);border-radius:6px;padding:8px 12px;font-size:11.5px;font-weight:700">Sources <span style="color:#7A6E6C;font-weight:500">— structured rows with refined T-badges, never raw tables</span></div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:#7A6E6C;margin:14px 2px 0;line-height:1.6">Map, Community, and Admin keep their specialised layouts but adopt the same masthead, chips, facet controls, and states — so they feel like rooms in the same building.</p>
+      </section>
+
+      <!-- ════════ 03 · EPISTEMIC GRAMMAR ════════ -->
+      <section id="s3" data-screen-label="03 Trust labels" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">03 · Trust labels — the centerpiece</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Can I act on this? The label answers first</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 22px">Every paragraph and row is labeled in plain words before you read it. <b style="color:#2563EB">Verified</b> — confirmed against the official document. <b style="color:#B45309">Unverified</b> — early word worth watching, not yet confirmed. <b style="color:#1A1A1A">Our analysis</b> — the platform talking, not the source. Always spelled out, never a code or an icon to memorize. Orange stays out of it (orange only ever means "click here"), and red stays reserved for urgency.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:0 0 26px">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-top:3px solid #2563EB;border-radius:10px;padding:18px 20px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Verified</p>
+            <p style="font-size:13px;line-height:1.6;color:#5A6B67;margin:0">Confirmed against the official document — a regulation, ruling, or filing. The citation is always attached so you can check it yourself. Blue = on the record.</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-top:3px dashed #D97706;border-radius:10px;padding:18px 20px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#D97706;margin:0 0 6px">Unverified</p>
+            <p style="font-size:13px;line-height:1.6;color:#5A6B67;margin:0">Early word — credible enough to watch, not yet confirmed against a primary source. Amber on a dashed rule: dashed means not yet solid.</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-top:3px solid #1A1A1A;border-radius:10px;padding:18px 20px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#1A1A1A;margin:0 0 6px">Our analysis</p>
+            <p style="font-size:13px;line-height:1.6;color:#5A6B67;margin:0">The platform's own read — what it implies, what to do about it. Written in ink and always labeled, so our voice can never be mistaken for the law. When a read needs a lawyer's sign-off, the label says so: "Confirm with counsel," in quiet rust.</p>
+          </div>
+        </div>
+
+        <!-- Severity gradient scale -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden;margin:0 0 26px">
+          <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 18px;display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-family:'Anton',sans-serif;font-size:15px;letter-spacing:0.03em;text-transform:uppercase">Severity keeps your gradient scale</span>
+            <span style="font-size:10.5px;font-weight:700;color:#7A6E6C;letter-spacing:0.06em;text-transform:uppercase">gradient-bar tokens · systematized</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+            <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;border-right:1px solid rgba(0,0,0,0.08)">
+              <div style="display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:center">
+                <span style="font-size:10.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#16A34A">Low</span>
+                <div style="height:6px;border-radius:3px;border:1px solid rgba(0,0,0,0.14);background:#16A34A"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:center">
+                <span style="font-size:10.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#A16207">Moderate</span>
+                <div style="height:6px;border-radius:3px;border:1px solid rgba(0,0,0,0.14);background:linear-gradient(90deg,#16A34A,#CFA000)"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:center">
+                <span style="font-size:10.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#D97706">High</span>
+                <div style="height:6px;border-radius:3px;border:1px solid rgba(0,0,0,0.14);background:linear-gradient(90deg,#16A34A,#CFA000 50%,#D97706)"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:center">
+                <span style="font-size:10.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#DC2626">Critical</span>
+                <div style="height:6px;border-radius:3px;border:1px solid rgba(0,0,0,0.14);background:linear-gradient(90deg,#16A34A,#CFA000 33%,#D97706 66%,#DC2626)"></div>
+              </div>
+            </div>
+            <div style="padding:18px 20px">
+              <p style="font-size:13px;line-height:1.65;color:#5A6B67;margin:0 0 10px">The bar shows how far up the scale an item has climbed — the whole path, ending at its current level. You read severity by <b style="color:#1A1A1A">where the color stops</b>, not by memorizing four hues. Each stop is a full hue apart: green, yellow, amber, red.</p>
+              <p style="font-size:13px;line-height:1.65;color:#5A6B67;margin:0">Where it renders: <b style="color:#1A1A1A">stat-tile underline · ledger band headers · detail hero top edge</b>. The trust label says <em>who is speaking</em>; the gradient bar says <em>how loud</em>. They never use each other's surfaces. The orange→blue brand gradient stays masthead-only.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive in-context sample -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden;margin:0 0 22px">
+          <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-family:'Anton',sans-serif;font-size:15px;letter-spacing:0.03em;text-transform:uppercase">In context — try the three treatments</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button onClick="{{ setA }}" style="{{ btnA }}">A · Marginal rule</button>
+              <button onClick="{{ setB }}" style="{{ btnB }}">B · Chip-led</button>
+              <button onClick="{{ setC }}" style="{{ btnC }}">C · Tinted block</button>
+            </div>
+          </div>
+          <div style="padding:24px 28px;max-width:72ch">
+            <p style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#7A6E6C;margin:0 0 16px">Sample — real paragraphs from MEPC.377(80) and the May 2026 oil-market signal</p>
+            <div style="{{ factBlock }}">
+              <span style="{{ factKick }}">Verified · checked against the source · T1</span>
+              <p style="font-size:14.5px;line-height:1.65;margin:2px 0 0;color:#1A1A1A">MEPC.377(80) establishes a framework resolution — not a directly operative convention text — meaning it binds IMO Member States as the primary duty-bearers, not freight forwarders or shippers directly. <span style="font-size:12px;color:#7A6E6C">Resolution MEPC.377(80), IMO MEPC, 7 July 2023.</span></p>
+            </div>
+            <div style="{{ sigBlock }}">
+              <span style="{{ sigKick }}">Unverified · early report · T5</span>
+              <p style="font-size:14.5px;line-height:1.65;margin:2px 0 0;color:#1A1A1A">International Roadcheck enforcement begins May 12, 2026. Historical data shows spot rate increases of 6–8% and tender rejection rates rising 117 basis points during the inspection week. <span style="font-size:12px;color:#7A6E6C">CVSA via trade press, May 2026.</span></p>
+            </div>
+            <div style="{{ anaBlock }}">
+              <span style="{{ anaKick }}">Our analysis</span>
+              <p style="font-size:14.5px;line-height:1.65;margin:2px 0 0;color:#1A1A1A">The UAE's exit from OPEC is structurally significant: operating outside the cartel's production framework, UAE spare capacity can no longer be relied on as a rapid-response buffer to stabilise prices in a new disruption event.</p>
+            </div>
+            <div style="{{ legBlock }}">
+              <span style="{{ legKick }}">Our analysis · confirm with counsel</span>
+              <p style="font-size:14.5px;line-height:1.65;margin:2px 0 0;color:#1A1A1A">Whether the workspace, when acting as a contractual carrier, assumes any MARPOL-adjacent responsibility for fuel documentation should be confirmed with maritime law counsel on a jurisdiction-by-jurisdiction basis.</p>
+            </div>
+            <div style="border-top:1px solid rgba(0,0,0,0.08);margin-top:18px;padding-top:12px">
+              <p style="font-size:12.5px;line-height:1.6;color:#5A6B67;margin:0">{{ optNote }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compact contexts + refined tiers -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:18px 20px">
+            <h3 style="font-size:14px;font-weight:800;margin:0 0 12px">Compact contexts — the state travels with the item</h3>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;color:#2563EB;min-width:76px">VERIFIED</span>
+              <span style="font-size:13px;font-weight:600;flex:1">List rows &amp; cards — the state word leads the row in its color; no letter codes, no tooltips</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;color:#D97706;min-width:76px">UNVERIFIED</span>
+              <span style="font-size:13px;font-weight:600;flex:1">Map markers — dashed ring = unverified, solid ring = verified; same rule as everywhere else</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0">
+              <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;color:#1A1A1A;min-width:76px">ANALYSIS</span>
+              <span style="font-size:13px;font-weight:600;flex:1">Callouts ("What it changes") — always analysis, always ink</span>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:18px 20px">
+            <h3 style="font-size:14px;font-weight:800;margin:0 0 12px">T1–T7 refined — tier means provenance, never urgency</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px">
+              <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span>
+              <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T2</span>
+              <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#1A1A1A;color:#FFFFFF">T3</span>
+              <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#1A1A1A;color:#FFFFFF">T4</span>
+              <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px solid rgba(0,0,0,0.25);color:#5A6B67">T5</span>
+              <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px dashed rgba(0,0,0,0.3);color:#7A6E6C">T6</span>
+              <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px dashed rgba(0,0,0,0.3);color:#7A6E6C">T7</span>
+            </div>
+            <p style="font-size:12.5px;line-height:1.6;color:#5A6B67;margin:0">T1–T2 (primary law, regulator guidance) go blue solid. T3–T4 (intergovernmental, industry body) go ink solid. T5 outline, T6–T7 dashed outline. Today's red T1 badge falsely reads as an alarm; red returns to the urgency system where it belongs.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 04 · WAYFINDING ════════ -->
+      <section id="s4" data-screen-label="04 Wayfinding and relationships" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">04 · Wayfinding &amp; relationships</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Never lost in a 20-minute read</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 22px">Three layers: a breadcrumb that says where you are, a reading frame that says where you are <em>inside the document</em>, and a connected-intelligence block that says where this item sits in the web of everything else.</p>
+
+        <!-- Breadcrumb sample -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:14px 20px;margin:0 0 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin-right:6px">Breadcrumb · every detail page</span>
+          <span style="font-size:13px;font-weight:600;color:#5A6B67">Regulations</span>
+          <span style="color:#7A6E6C">/</span>
+          <span style="font-size:13px;font-weight:600;color:#5A6B67">Global · IMO</span>
+          <span style="color:#7A6E6C">/</span>
+          <span style="font-size:13px;font-weight:800;color:#1A1A1A">MEPC.377(80)</span>
+        </div>
+
+        <!-- Reading frame miniature -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden;margin:0 0 20px">
+          <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 18px"><span style="font-family:'Anton',sans-serif;font-size:15px;letter-spacing:0.03em;text-transform:uppercase">The reading frame — long-document pattern</span></div>
+          <div style="display:grid;grid-template-columns:220px 1fr;gap:0">
+            <!-- mini TOC -->
+            <div style="border-right:1px solid rgba(0,0,0,0.08);padding:16px 12px;background:#FAFAF8">
+              <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px;padding:0 8px">In this brief · 24 min</p>
+              <div style="display:flex;flex-direction:column;gap:1px;font-size:12px">
+                <span style="padding:6px 8px;color:#7A6E6C;display:flex;gap:8px"><s style="text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.25)">01</s> Overview</span>
+                <span style="padding:6px 8px;background:rgba(232,97,10,0.08);border-left:2px solid #E8610A;font-weight:800;display:flex;gap:8px"><span>02</span> Immediate actions</span>
+                <span style="padding:6px 8px;color:#5A6B67;display:flex;gap:8px"><span>03</span> Compliance chain</span>
+                <span style="padding:6px 8px;color:#5A6B67;display:flex;gap:8px"><span>04</span> Substantive requirements</span>
+                <span style="padding:6px 8px;color:#5A6B67;display:flex;gap:8px"><span>05</span> Registration &amp; reporting</span>
+                <span style="padding:6px 8px;color:#5A6B67;display:flex;gap:8px"><span>06</span> Regulatory timeline</span>
+                <span style="padding:6px 8px;color:#5A6B67;display:flex;gap:8px"><span>07</span> Sources · 14</span>
+              </div>
+              <div style="margin:12px 8px 0">
+                <div style="height:3px;background:rgba(0,0,0,0.08);border-radius:2px;overflow:hidden"><div style="height:100%;width:22%;background:#E8610A"></div></div>
+                <p style="font-size:10px;color:#7A6E6C;margin:5px 0 0">Section 2 of 7</p>
+              </div>
+            </div>
+            <!-- mini content -->
+            <div style="padding:18px 24px">
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 10px">
+                <div style="background:#F5F2EE;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:12.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase">02 · Issues requiring immediate action</span>
+                  <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">3 items · open</span>
+                </div>
+                <div style="padding:12px 14px">
+                  <p style="font-style:italic;font-size:12.5px;color:#5A6B67;margin:0 0 10px">Track DCS reporting requirements, validate carrier Statements of Compliance, begin a low-emission ocean-services market survey.</p>
+                  <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 12px">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#1A1A1A">Our analysis · what to do</span>
+                    <p style="font-size:12.5px;line-height:1.6;margin:2px 0 0;color:#1A1A1A">Confirm that ocean freight providers are DCS-compliant and that the workspace holds copies of carriers' Statements of Compliance — these become due-diligence evidence in shipper ESG reporting.</p>
+                  </div>
+                </div>
+              </div>
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin:0 0 8px">
+                <div><span style="font-size:12.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#5A6B67">03 · Compliance chain</span>
+                <p style="font-style:italic;font-size:12px;color:#7A6E6C;margin:3px 0 0">Who is bound, who absorbs cost, where the workspace sits — closed, opens from its summary.</p></div>
+                <span style="font-size:16px;font-weight:700;color:#E8610A">+</span>
+              </div>
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+                <div><span style="font-size:12.5px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#5A6B67">04 · Substantive requirements</span>
+                <p style="font-style:italic;font-size:12px;color:#7A6E6C;margin:3px 0 0">10 obligations with deadline, status, next action — table, not prose.</p></div>
+                <span style="font-size:16px;font-weight:700;color:#E8610A">+</span>
+              </div>
+            </div>
+          </div>
+          <div style="border-top:1px solid rgba(0,0,0,0.08);padding:12px 18px;background:#FAFAF8">
+            <p style="font-size:12.5px;line-height:1.6;color:#5A6B67;margin:0"><b style="color:#1A1A1A">Rules.</b> Sections are numbered continuously in reading order — internal section keys and scheduling labels ("Always · 10") never render. Every section opens from a one-line summary; disclosure is keyboard-operable (<span style="font-weight:700">Enter</span> toggles, arrow keys move). Read sections get a struck number in the TOC. The read column holds a 72ch measure; tables may break out to full width.</p>
+          </div>
+        </div>
+
+        <!-- Connected intelligence -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+          <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 18px;display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-family:'Anton',sans-serif;font-size:15px;letter-spacing:0.03em;text-transform:uppercase">Connected intelligence — the cross-page affordance</span>
+            <span style="font-size:10.5px;font-weight:700;color:#7A6E6C;letter-spacing:0.06em;text-transform:uppercase">One component, every detail page</span>
+          </div>
+          <div style="padding:6px 18px 4px">
+            <div style="display:grid;grid-template-columns:150px 64px 1fr;gap:14px;align-items:center;padding:12px 4px;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#2563EB;border:1px solid rgba(30,58,138,0.35);border-radius:4px;padding:3px 8px;text-align:center">Corroborates</span>
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">MKT ↗</span>
+              <div><p style="font-size:13.5px;font-weight:700;margin:0">Lloyd's Register Maritime Decarbonisation Hub</p><p style="font-size:11.5px;color:#7A6E6C;margin:2px 0 0">Industry programme tracking the same IMO decarbonisation trajectory · Monitoring</p></div>
+            </div>
+            <div style="display:grid;grid-template-columns:150px 64px 1fr;gap:14px;align-items:center;padding:12px 4px;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;border:1px solid rgba(0,0,0,0.2);border-radius:4px;padding:3px 8px;text-align:center">References</span>
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">RES ↗</span>
+              <div><p style="font-size:13.5px;font-weight:700;margin:0">Marine Fuel Decarbonisation Pathways</p><p style="font-size:11.5px;color:#7A6E6C;margin:2px 0 0">Research finding on the fuel pathways this resolution's targets depend on · IMO · T2</p></div>
+            </div>
+            <div style="display:grid;grid-template-columns:150px 64px 1fr;gap:14px;align-items:center;padding:12px 4px">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#DC2626;border:1px solid #FECACA;background:#FEF2F2;border-radius:4px;padding:3px 8px;text-align:center">Supersedes</span>
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">REG ↗</span>
+              <div><p style="font-size:13.5px;font-weight:700;margin:0">Initial IMO GHG Strategy (2018)</p><p style="font-size:11.5px;color:#7A6E6C;margin:2px 0 0">Replaced by the 2023 revised strategy — retained for record</p></div>
+            </div>
+          </div>
+          <div style="border-top:1px solid rgba(0,0,0,0.08);padding:12px 18px;background:#FAFAF8">
+            <p style="font-size:12.5px;line-height:1.6;color:#5A6B67;margin:0"><b style="color:#1A1A1A">Grammar.</b> Relationship verb (corroborates · supersedes · references) renders as the leading chip; the surface tag (REG / MKT / RES / OPS in brass) says where the link goes; the why-line says what the connection means. The same rows appear condensed in index cards ("↗ 3 connected") and in the Operations "pending changes" panel. Supersedes is the only red verb — it changes what is true.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 05 · DENSITY TIERS ════════ -->
+      <section id="s5" data-screen-label="05 Density tiers" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">05 · Density tiers</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Glance, scan, read</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 22px">Every piece of content renders at exactly one of three densities, and each tier has a hard budget. The budget is what kills tag walls: if a field is not in the anatomy, it does not render at that tier.</p>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <!-- Glance -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:190px 1fr;gap:0">
+              <div style="padding:18px 20px;border-right:1px solid rgba(0,0,0,0.08);background:#FAFAF8">
+                <p style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Glance</p>
+                <p style="font-size:11.5px;color:#7A6E6C;margin:6px 0 0;line-height:1.55">Dashboard tiles &amp; featured rows. Budget: <b>severity · title · jurisdiction · one date · one tier</b>. Nothing else.</p>
+              </div>
+              <div style="padding:18px 20px;display:flex;align-items:center">
+                <div style="width:100%;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #DC2626;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <span style="font-size:10px;font-weight:800;letter-spacing:0.1em;color:#8A6A2A">EU · REPORTING</span>
+                    <span style="font-size:14.5px;font-weight:800">CSRD — 2026 surrender-year obligations</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:12px;font-weight:800;color:#DC2626">Dec 31</span>
+                    <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Scan -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:190px 1fr;gap:0">
+              <div style="padding:18px 20px;border-right:1px solid rgba(0,0,0,0.08);background:#FAFAF8">
+                <p style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Scan</p>
+                <p style="font-size:11.5px;color:#7A6E6C;margin:6px 0 0;line-height:1.55">Index rows — built for 90+ items. Adds: <b>one summary line · trust word · connected count</b>. One severity chip, never two.</p>
+              </div>
+              <div style="padding:18px 20px">
+                <div style="display:grid;grid-template-columns:72px 92px 1fr auto;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid rgba(0,0,0,0.08)">
+                  <span style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:#2563EB">VERIFIED</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">EU · CUSTOMS</span>
+                  <div><p style="font-size:13.5px;font-weight:700;margin:0">EU ICS2 (Import Control System 2)</p><p style="font-size:11.5px;color:#7A6E6C;margin:1px 0 0">Entry summary declarations phase in for road and rail carriers · ↗ 2 connected</p></div>
+                  <div style="display:flex;align-items:center;gap:10px"><span style="font-size:12px;font-weight:800;color:#DC2626">Feb 29</span><span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span></div>
+                </div>
+                <div style="display:grid;grid-template-columns:72px 92px 1fr auto;gap:12px;align-items:center;padding:10px 4px">
+                  <span style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:#D97706">UNVERIFIED</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">US · ROAD</span>
+                  <div><p style="font-size:13.5px;font-weight:700;margin:0">International Roadcheck 2026 — ELD and cargo securement focus</p><p style="font-size:11.5px;color:#7A6E6C;margin:1px 0 0">Spot rate and tender-rejection pressure expected during inspection week · ↗ 1 connected</p></div>
+                  <div style="display:flex;align-items:center;gap:10px"><span style="font-size:12px;font-weight:800;color:#D97706">May 12</span><span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;border:1px solid rgba(0,0,0,0.25);color:#5A6B67">T5</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Read -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:190px 1fr;gap:0">
+              <div style="padding:18px 20px;border-right:1px solid rgba(0,0,0,0.08);background:#FAFAF8">
+                <p style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Read</p>
+                <p style="font-size:11.5px;color:#7A6E6C;margin:6px 0 0;line-height:1.55">Detail pages only. Full prose with trust labels, tables, callouts, sources. Density lives here — not in the index.</p>
+              </div>
+              <div style="padding:18px 20px">
+                <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 14px;max-width:66ch">
+                  <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#1A1A1A">Our analysis · what to do</span>
+                  <p style="font-size:13.5px;line-height:1.65;margin:2px 0 0">FuelEU Maritime raises the GHG intensity penalty in 2026. On affected routes at current bunker mix this adds measurable per-TEU cost — the callout carries the flag, the prose carries the math.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 06 · HONEST STATES ════════ -->
+      <section id="s6" data-screen-label="06 Honest states" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">06 · Honest states</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Honesty that looks intentional</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 22px">The current empty states tell the truth — that is brand and it stays. The design job is a consistent anatomy so truth doesn't look like an unfinished page: a dashed frame means "by design, not yet", a kicker names the state, and customer-facing words replace schema names.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:16px 18px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">Empty — nothing matches</p>
+            <div style="border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:18px;text-align:left">
+              <p style="font-size:13px;font-weight:700;margin:0 0 4px">No briefs match this filter.</p>
+              <p style="font-size:12px;color:#5A6B67;margin:0 0 10px">Clear jurisdiction or widen the date range.</p>
+              <span style="font-size:11.5px;font-weight:800;color:#E8610A">Clear filters</span>
+            </div>
+            <p style="font-size:11.5px;color:#7A6E6C;line-height:1.55;margin:10px 0 0">Solid border — the system is working, the query is narrow. Always one recovery action.</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:16px 18px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">Pending — not yet connected</p>
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:8px;padding:18px;background:#FAFAF8">
+              <p style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#8A6A2A;margin:0 0 5px">Trajectory · not yet captured</p>
+              <p style="font-size:12px;color:#5A6B67;line-height:1.6;margin:0">Price history for this signal begins with the next weekly capture. Existing sources above remain current.</p>
+            </div>
+            <p style="font-size:11.5px;color:#7A6E6C;line-height:1.55;margin:10px 0 0">Dashed border — absent by design. Names when data arrives; never names a schema.</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:16px 18px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">Stale — aging data</p>
+            <div style="border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:18px">
+              <p style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#CA8A04;margin:0 0 5px">Last sync · Jun 21</p>
+              <p style="font-size:12px;color:#5A6B67;line-height:1.6;margin:0">11 days since the last regulatory sync. Figures below reflect the Jun 21 capture.</p>
+            </div>
+            <p style="font-size:11.5px;color:#7A6E6C;line-height:1.55;margin:10px 0 0">Amber kicker, content stays readable. Staleness is a fact about the data, not an alarm.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 07 · PAGE BY PAGE ════════ -->
+      <section id="s7" data-screen-label="07 Page-by-page" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">07 · Page-by-page</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Every page, what changes</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 24px">Same titles, same count, same content. Each page states what's holding it back today and the design change that fixes it — all drawn from the four systems above.</p>
+
+        <div style="display:flex;flex-direction:column;gap:20px">
+
+          <!-- DASHBOARD -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Dashboard</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/dashboard · glance tier</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>Priority rows are text walls — ALL-CAPS action copy pasted inside summaries</li>
+                  <li>Tag noise: three identical "government-funded" chips + "+189 more" per row</li>
+                  <li>"What changed — 0" holds a prime column to say nothing</li>
+                  <li>Right rail repeats the sidebar as counts</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Rows adopt the <a href="#s5" style="color:#E8610A;font-weight:700;text-decoration:none">glance budget</a>: severity, title, jurisdiction, one date, one tier</li>
+                  <li>The action sentence becomes a labeled <b>Do now</b> line in analysis orange — one per row</li>
+                  <li>"What changed" collapses to a single honest line at zero, expands only when non-zero</li>
+                  <li>Right rail becomes cross-surface deltas + Watchlist — information, not navigation</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- REGULATIONS with mock -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Regulations</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/regulations · scan tier — the index archetype</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>4-column kanban across 94 regulations; the Awareness column is 64 cards deep</li>
+                  <li>Columns force ~260px cards: titles wrap to 4 lines, dates fall off</li>
+                  <li>No ordering signal inside a column; priority is the only visible facet</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Kanban retired. One <b>priority-banded ledger</b>: four full-width bands mirroring the stat tiles; tiles jump-filter to their band</li>
+                  <li>Rows use the scan anatomy, sorted by next deadline inside each band</li>
+                  <li>Bands show 8 rows then "All 64 →" inline expansion; facet bar handles jurisdiction · mode · vertical · tier</li>
+                  <li>Card / list / table toggle stays; this becomes the template for all five index pages</li>
+                </ul>
+              </div>
+            </div>
+            <!-- ledger mock -->
+            <div style="padding:16px 20px;background:#FAFAF8">
+              <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">The banded ledger — real items</p>
+              <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+                <div style="height:4px;background:linear-gradient(90deg,#16A34A,#CFA000 33%,#D97706 66%,#DC2626)"></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;background:#FEF2F2;border-bottom:1px solid #FECACA">
+                  <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#DC2626;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#DC2626;display:inline-block"></span>Immediate — critical, within 90 days</span>
+                  <span style="font-family:'Anton',sans-serif;font-size:15px;color:#DC2626">5</span>
+                </div>
+                <div style="display:grid;grid-template-columns:72px 88px 1fr auto;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(0,0,0,0.06)">
+                  <span style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:#2563EB">VERIFIED</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">EU</span>
+                  <p style="font-size:13px;font-weight:700;margin:0">CSRD — corporate sustainability reporting</p>
+                  <div style="display:flex;gap:10px;align-items:center"><span style="font-size:12px;font-weight:800;color:#DC2626">Dec 31</span><span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span></div>
+                </div>
+                <div style="display:grid;grid-template-columns:72px 88px 1fr auto;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(0,0,0,0.06)">
+                  <span style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:#2563EB">VERIFIED</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">EU</span>
+                  <p style="font-size:13px;font-weight:700;margin:0">EU ICS2 (Import Control System 2)</p>
+                  <div style="display:flex;gap:10px;align-items:center"><span style="font-size:12px;font-weight:800;color:#DC2626">Feb 29</span><span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span></div>
+                </div>
+                <div style="display:grid;grid-template-columns:72px 88px 1fr auto;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(0,0,0,0.06)">
+                  <span style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;color:#2563EB">VERIFIED</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">GLOBAL</span>
+                  <p style="font-size:13px;font-weight:700;margin:0">MEPC.377(80) — IMO Marine Environment Protection Committee Resolution</p>
+                  <div style="display:flex;gap:10px;align-items:center"><span style="font-size:12px;font-weight:600;color:#7A6E6C">In force</span><span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span></div>
+                </div>
+                <div style="padding:9px 16px;display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:11.5px;font-weight:800;color:#E8610A">All 5 immediate →</span>
+                  <span style="font-size:10.5px;color:#7A6E6C">next band: Action 6 mo · 14</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REGULATION DETAIL -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Regulation detail</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/regulations/[id] · read tier — the detail archetype</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>15+ sections, thousands of words, no TOC or position indicator</li>
+                  <li>§-numbers with gaps (§4 → §8); "Always · 10" scheduling labels visible</li>
+                  <li>Markdown leaks: pipe tables, "###", "---" render as prose</li>
+                  <li>Trust status only as italic prefixes inside paragraphs</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Adopts the <a href="#s4" style="color:#E8610A;font-weight:700;text-decoration:none">reading frame</a>: sticky TOC, continuous numbering, customer-facing names, progressive disclosure from one-line summaries</li>
+                  <li>Every paragraph classed with the <a href="#s3" style="color:#E8610A;font-weight:700;text-decoration:none">trust labels</a>; citation string promoted into the hero</li>
+                  <li>Sources become structured rows with refined T-badges — the raw table never renders</li>
+                  <li>Connected-intelligence block above Sources; breadcrumb on top</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- MARKET INTEL -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Market Intel</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/market · scan + read</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>Signal bands are right; cards carry the same severity chip twice (left + right)</li>
+                  <li>Signal detail renders raw pipe-table Sources and "FACT:" prefixes</li>
+                  <li>Trajectory empty state names internal schemas to the customer</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Band bodies switch to scan rows; one severity chip, head position only</li>
+                  <li>Signal detail adopts the reader frame; FACT/inference prose gets the grammar</li>
+                  <li>Sources reuse the Regulations source-row component; trajectory empty state uses the <a href="#s6" style="color:#E8610A;font-weight:700;text-decoration:none">pending pattern</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESEARCH -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Research</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/research · scan + read</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>Severity chip duplicated on every card ("Background" twice)</li>
+                  <li>Theme rail leaves a dead grey half-row when themes &lt; columns</li>
+                  <li>Finding detail has the same markdown/TOC problems as Regulations</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Theme cells become a flexible wrap — no dead cells; counts only, no filler</li>
+                  <li>Findings render as scan rows inside theme bands — same ledger as Regulations</li>
+                  <li>Finding detail adopts the reader frame; "What it changes" is the analysis callout</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- OPERATIONS -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Operations</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/operations · scan + fact tables</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>Region accordions hide everything behind a click; coverage fractions float in a rail</li>
+                  <li>Dimension rail (D1–D6) has no link to the regions it describes</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Accordions stay (home region open); each summary row shows its worst-priority chip + counts so the closed state still informs</li>
+                  <li>Dimension cells anchor-link into the open region's D1–D6 sections</li>
+                  <li>D2–D6 render as fact tables — every row sourced and dated; gaps use the pending pattern</li>
+                  <li>The "pending changes" panel reuses the connected-intelligence rows (REG ↗ / MKT ↗)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- MAP -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Map</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/map · glance over geography</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>"Global · 83" renders as a marker floating in the mid-Atlantic</li>
+                  <li>Marker and rail-row are unlinked; hover tells you nothing</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Global items move to a fixed strip above the frame — not a fake coordinate</li>
+                  <li>Hover sync: marker ↔ jurisdiction row highlight; click opens a drawer of scan rows</li>
+                  <li>Markers adopt the trust ring (solid = verified, dashed = unverified); key stays bottom-left</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMMUNITY -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Community</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/community · scan</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>Breaks the shell: own sidebar, own search, a "Back to Caro's Ledge" escape hatch</li>
+                  <li>Empty regions render as bare dashed boxes with no next step</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Returns to the global shell — standard masthead, sidebar, facet bar; groups list moves into the right-rail slot</li>
+                  <li>Thread rows use the scan anatomy with the author identity line; cross-references reuse the ↗ chips</li>
+                  <li>Zero-group regions use the honest empty pattern with a recovery action</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADMIN -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+            <div style="background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">Admin</span><span style="font-size:11px;font-weight:700;color:#7A6E6C">/admin · operator chrome</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+              <div style="padding:16px 20px;border-right:1px solid rgba(0,0,0,0.08)">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Now</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#5A6B67">
+                  <li>Two competing navigations: 6 section cards <em>and</em> a 13-tab strip, both visible</li>
+                  <li>Tables unstyled relative to the rest of the product</li>
+                </ul>
+              </div>
+              <div style="padding:16px 20px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A;margin:0 0 8px">Change</p>
+                <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.7;color:#1A1A1A">
+                  <li>Section cards become the only top-level nav; tabs move inside each section as sub-nav</li>
+                  <li>Tables adopt the same anatomy as detail-page tables; queue rail keeps its accent</li>
+                  <li>Cost strip stays; breadcrumb shows Admin / Section / Sub-view</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ════════ 08 · MOBILE ════════ -->
+      <section id="s8" data-screen-label="08 Mobile" style="margin:0 0 84px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">08 · Mobile</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Same skeleton, one column</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 22px">Desktop is primary; mobile is the same skeleton collapsed, not a second design. Sidebar becomes a sheet from the masthead, tiles go 2×2, ledger rows stack their columns, and the reading-frame TOC becomes a sticky chip rail with the progress bar underneath.</p>
+        <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+          <!-- Mobile dashboard -->
+          <div style="width:300px;border:1px solid rgba(0,0,0,0.18);border-radius:14px;overflow:hidden;background:#FAFAF8">
+            <div style="height:3px;background:linear-gradient(90deg,#E8610A,#2563EB)"></div>
+            <div style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.1);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+              <div><p style="font-family:'Anton',sans-serif;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p><p style="font-size:8px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:1px 0 0">Vol IV · No. 27</p></div>
+              <div style="display:flex;flex-direction:column;gap:3px;padding:6px"><span style="width:16px;height:2px;background:#1A1A1A;display:block"></span><span style="width:16px;height:2px;background:#1A1A1A;display:block"></span><span style="width:10px;height:2px;background:#1A1A1A;display:block"></span></div>
+            </div>
+            <div style="padding:12px 14px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px">
+                <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #DC2626;border-radius:8px;padding:10px"><span style="font-family:'Anton',sans-serif;font-size:20px;color:#DC2626">5</span><p style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:2px 0 0">Immediate</p></div>
+                <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:10px"><span style="font-family:'Anton',sans-serif;font-size:20px;color:#D97706">42</span><p style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:2px 0 0">High</p></div>
+                <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:10px"><span style="font-family:'Anton',sans-serif;font-size:20px;color:#A16207">26</span><p style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:2px 0 0">Moderate</p></div>
+                <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:10px"><span style="font-family:'Anton',sans-serif;font-size:20px;color:#7A6E6C">186</span><p style="font-size:8.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:2px 0 0">Low</p></div>
+              </div>
+              <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:10px 12px;margin:0 0 8px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 3px"><span style="font-size:8.5px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">EU · REPORTING</span><span style="font-size:10px;font-weight:800;color:#DC2626">Dec 31</span></div>
+                <p style="font-size:11.5px;font-weight:700;margin:0">CSRD — 2026 surrender-year obligations</p>
+                <p style="font-size:9.5px;color:#E8610A;font-weight:700;margin:3px 0 0">Do now → verify carrier ETS surcharge</p>
+              </div>
+              <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:10px 12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 3px"><span style="font-size:8.5px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">EU · PACKAGING</span><span style="font-size:10px;font-weight:800;color:#DC2626">31 days</span></div>
+                <p style="font-size:11.5px;font-weight:700;margin:0">EU PPWR 2025/40 — recyclability criteria</p>
+                <p style="font-size:9.5px;color:#E8610A;font-weight:700;margin:3px 0 0">Do now → audit EU-bound packaging</p>
+              </div>
+            </div>
+          </div>
+          <!-- Mobile reader -->
+          <div style="width:300px;border:1px solid rgba(0,0,0,0.18);border-radius:14px;overflow:hidden;background:#FFFFFF">
+            <div style="height:3px;background:linear-gradient(90deg,#E8610A,#2563EB)"></div>
+            <div style="padding:10px 14px;border-bottom:1px solid rgba(0,0,0,0.1)">
+              <p style="font-size:9px;font-weight:700;color:#5A6B67;margin:0 0 4px">Regulations / Global · IMO</p>
+              <p style="font-family:'Anton',sans-serif;font-size:15px;line-height:1.15;letter-spacing:0.02em;text-transform:uppercase;margin:0">MEPC.377(80) — IMO GHG Strategy</p>
+            </div>
+            <div style="padding:8px 14px;border-bottom:1px solid rgba(0,0,0,0.1);background:#FAFAF8">
+              <div style="display:flex;gap:6px;overflow:hidden">
+                <span style="font-size:9px;font-weight:800;padding:3px 8px;border-radius:999px;background:rgba(232,97,10,0.1);border:1px solid #E8610A;color:#E8610A;white-space:nowrap">02 Actions</span>
+                <span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid rgba(0,0,0,0.15);color:#5A6B67;white-space:nowrap">03 Chain</span>
+                <span style="font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid rgba(0,0,0,0.15);color:#5A6B67;white-space:nowrap">04 Require…</span>
+              </div>
+              <div style="height:2px;background:rgba(0,0,0,0.08);margin:8px 0 0;border-radius:2px;overflow:hidden"><div style="height:100%;width:22%;background:#E8610A"></div></div>
+            </div>
+            <div style="padding:12px 14px">
+              <p style="font-size:10.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;margin:0 0 8px">02 · Issues requiring immediate action</p>
+              <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 10px;margin:0 0 10px">
+                <span style="font-size:8px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A">Our analysis · what to do</span>
+                <p style="font-size:10.5px;line-height:1.6;margin:2px 0 0">Confirm ocean freight providers are DCS-compliant; hold carrier Statements of Compliance as ESG due-diligence evidence.</p>
+              </div>
+              <div style="border-left:3px solid #2563EB;padding:2px 0 2px 10px">
+                <span style="font-size:8px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#2563EB">Verified · T1</span>
+                <p style="font-size:10.5px;line-height:1.6;margin:2px 0 0">The 2023 IMO GHG Strategy targets zero/near-zero fuels at 5% (striving 10%) of shipping energy by 2030.</p>
+              </div>
+            </div>
+          </div>
+          <!-- Rules -->
+          <div style="flex:1;min-width:240px">
+            <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;padding:18px 20px">
+              <h3 style="font-size:14px;font-weight:800;margin:0 0 10px">Collapse rules</h3>
+              <ul style="margin:0;padding:0 0 0 16px;font-size:12.5px;line-height:1.8;color:#5A6B67">
+                <li>Sidebar → sheet from the masthead menu; same 7 items, same order</li>
+                <li>Stat tiles → 2×2; tap filters the band below, same as desktop</li>
+                <li>Ledger rows stack: kicker + date top line, title, meta line</li>
+                <li>Reader TOC → sticky chip rail + progress bar; sections stay collapsible</li>
+                <li>Fact tables → label/value stacks; map rail → bottom sheet</li>
+                <li>All tap targets ≥ 44px; trust words and chips keep their size</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 09 · ADOPTION ════════ -->
+      <sc-if value="{{ showPlan }}" hint-placeholder-val="{{ true }}">
+      <section id="s9" data-screen-label="09 Adoption order" style="margin:0 0 40px">
+        <p style="font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#E8610A;margin:0">09 · Adoption order</p>
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:0.02em;text-transform:uppercase;color:#1A1A1A;margin:6px 0 12px">Template by template, no big bang</h2>
+        <p style="font-size:15px;line-height:1.65;color:#5A6B67;max-width:72ch;margin:0 0 22px">Each step ships alone into the existing Next.js + Tailwind + shadcn codebase and improves the site on its own. Steps 1–3 carry most of the value.</p>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:52px 1fr 210px;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08)"><span style="font-family:'Anton',sans-serif;font-size:22px;color:#E8610A">1</span><div><p style="font-size:13.5px;font-weight:800;margin:0">Grammar kit — chips, squares, T-badges, state frames</p><p style="font-size:12px;color:#5A6B67;margin:2px 0 0">Pure component/token work; lands on every page at once without touching layouts</p></div><span style="font-size:11px;font-weight:700;color:#7A6E6C">Tailwind tokens + 5 small components</span></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 210px;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08)"><span style="font-family:'Anton',sans-serif;font-size:22px;color:#E8610A">2</span><div><p style="font-size:13.5px;font-weight:800;margin:0">Regulations index — kanban → banded ledger</p><p style="font-size:12px;color:#5A6B67;margin:2px 0 0">The worst offender; the ledger then becomes the template for the other four index pages</p></div><span style="font-size:11px;font-weight:700;color:#7A6E6C">One page template</span></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 210px;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08)"><span style="font-family:'Anton',sans-serif;font-size:22px;color:#E8610A">3</span><div><p style="font-size:13.5px;font-weight:800;margin:0">Reader frame — Regulation detail first</p><p style="font-size:12px;color:#5A6B67;margin:2px 0 0">TOC, continuous numbering, disclosure, structured sources; the markdown renderer stops leaking</p></div><span style="font-size:11px;font-weight:700;color:#7A6E6C">One layout + section renderer</span></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 210px;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08)"><span style="font-family:'Anton',sans-serif;font-size:22px;color:#E8610A">4</span><div><p style="font-size:13.5px;font-weight:800;margin:0">Market Intel + Research reuse both</p><p style="font-size:12px;color:#5A6B67;margin:2px 0 0">Detail pages adopt the reader frame; indexes adopt the ledger; connected-intelligence block lands as the relationship data ships</p></div><span style="font-size:11px;font-weight:700;color:#7A6E6C">Reuse, minor variants</span></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 210px;gap:16px;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.08)"><span style="font-family:'Anton',sans-serif;font-size:22px;color:#E8610A">5</span><div><p style="font-size:13.5px;font-weight:800;margin:0">Dashboard + Operations</p><p style="font-size:12px;color:#5A6B67;margin:2px 0 0">Glance rows, honest "what changed", fact tables, cross-surface panel</p></div><span style="font-size:11px;font-weight:700;color:#7A6E6C">Two page templates</span></div>
+          <div style="display:grid;grid-template-columns:52px 1fr 210px;gap:16px;align-items:center;padding:14px 20px"><span style="font-family:'Anton',sans-serif;font-size:22px;color:#E8610A">6</span><div><p style="font-size:13.5px;font-weight:800;margin:0">Map, Community shell, Admin nav</p><p style="font-size:12px;color:#5A6B67;margin:2px 0 0">Marker/rail sync, shell reunification, single admin navigation</p></div><span style="font-size:11px;font-weight:700;color:#7A6E6C">Contained fixes</span></div>
+        </div>
+        <p style="font-size:12.5px;color:#7A6E6C;margin:16px 2px 0;line-height:1.6">Next step when you're ready: pick a step and I'll build the high-fidelity template for it — full page, real content, desktop + mobile.</p>
+      </section>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;defaultEpistemicOption&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;], &quot;default&quot;: &quot;A&quot;, &quot;tsType&quot;: &quot;'A' | 'B' | 'C'&quot;, &quot;section&quot;: &quot;Epistemic grammar&quot; },
+  &quot;showAdoptionPlan&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Sections&quot; }
+}">
+class Component extends DCLogic {
+  state = { active: 's1', opt: null };
+
+  componentDidMount() {
+    const ids = ['s1','s2','s3','s4','s5','s6','s7','s8','s9'];
+    this._io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) this.setState({ active: e.target.id });
+      });
+    }, { rootMargin: '-10% 0px -78% 0px' });
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) this._io.observe(el);
+    });
+  }
+
+  componentWillUnmount() {
+    if (this._io) this._io.disconnect();
+  }
+
+  renderVals() {
+    const opt = this.state.opt ?? (this.props.defaultEpistemicOption ?? 'A');
+    const active = this.state.active;
+
+    const items = [
+      ['s1', 'Diagnosis'],
+      ['s2', 'What stays · the skeleton'],
+      ['s3', 'Trust labels'],
+      ['s4', 'Wayfinding & relationships'],
+      ['s5', 'Density tiers'],
+      ['s6', 'Honest states'],
+      ['s7', 'Page-by-page'],
+      ['s8', 'Mobile'],
+      ['s9', 'Adoption order']
+    ];
+    const toc = items.map((t, i) => ({
+      id: t[0],
+      num: ('0' + (i + 1)).slice(-2),
+      label: t[1],
+      style: t[0] === active
+        ? { display: 'flex', gap: '8px', alignItems: 'baseline', padding: '7px 10px', background: 'rgba(232,97,10,0.08)', borderLeft: '2px solid #E8610A', color: '#1A1A1A', fontWeight: 700, textDecoration: 'none', fontSize: '12.5px', lineHeight: 1.35 }
+        : { display: 'flex', gap: '8px', alignItems: 'baseline', padding: '7px 10px', borderLeft: '2px solid transparent', color: '#5A6B67', fontWeight: 500, textDecoration: 'none', fontSize: '12.5px', lineHeight: 1.35 }
+    }));
+
+    const hues = { fact: '#2563EB', signal: '#D97706', analysis: '#1A1A1A', legal: '#9A3412' };
+    const block = (h, dash) => {
+      const rule = '3px ' + (dash ? 'dashed' : 'solid') + ' ' + h;
+      if (opt === 'A') return { borderLeft: rule, padding: '2px 0 2px 16px', margin: '0 0 18px' };
+      if (opt === 'B') return { padding: '2px 0', margin: '0 0 18px' };
+      return { background: h + '0D', borderLeft: rule, padding: '12px 16px', margin: '0 0 18px', borderRadius: '0 8px 8px 0' };
+    };
+    const kick = (h) => {
+      if (opt === 'B') return { display: 'inline-block', fontSize: '9.5px', fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase', color: h, border: '1px solid ' + h + '55', background: h + '12', padding: '2px 9px', borderRadius: '4px', marginBottom: '6px' };
+      return { display: 'inline-block', fontSize: '10px', fontWeight: 800, letterSpacing: '0.13em', textTransform: 'uppercase', color: h, marginBottom: '4px' };
+    };
+
+    const btnBase = { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 700, padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.18)', background: '#FFFFFF', color: '#5A6B67', cursor: 'pointer' };
+    const btnOn = { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 800, padding: '6px 12px', borderRadius: '6px', border: '1px solid #E8610A', background: '#E8610A', color: '#FFFFFF', cursor: 'pointer' };
+
+    const notes = {
+      A: 'Option A — marginal rule + small-caps kicker. Quiet enough for 20-minute reads; the recommended default for brief body text. The rule survives dense pages without turning them into a chip wall.',
+      B: 'Option B — chip-led. Densest; the state reads even in a single-line context. Recommended for list rows, cards, and anywhere the paragraph is short. Falls apart over long prose runs.',
+      C: 'Option C — tinted block. Loudest; reserve it for the callouts (What it changes, Do now) and legal-confirmation warnings, or the grammar stops meaning anything. Never more than one tint per screen-height.'
+    };
+
+    return {
+      toc,
+      showPlan: this.props.showAdoptionPlan ?? true,
+      factBlock: block(hues.fact), factKick: kick(hues.fact),
+      sigBlock: block(hues.signal, true), sigKick: kick(hues.signal),
+      anaBlock: block(hues.analysis), anaKick: kick(hues.analysis),
+      legBlock: block(hues.legal), legKick: kick(hues.legal),
+      btnA: opt === 'A' ? btnOn : btnBase,
+      btnB: opt === 'B' ? btnOn : btnBase,
+      btnC: opt === 'C' ? btnOn : btnBase,
+      setA: () => this.setState({ opt: 'A' }),
+      setB: () => this.setState({ opt: 'B' }),
+      setC: () => this.setState({ opt: 'C' }),
+      optNote: notes[opt]
+    };
+  }
+}
+</script>
+</body>
+</html>

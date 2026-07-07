@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+  </style>
+</helmet>
+
+<div data-screen-label="Dashboard" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR (locked, 7 items + admin) ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Regulations</a>
+      <a href="Pages - 04 Market Intel.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Market Intel</a>
+      <a href="Pages - 06 Research.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="Pages - 07 Operations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <!-- Masthead -->
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="max-width:1180px;margin:0 auto;padding:26px 36px 22px">
+        <p style="font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Vol IV · No. 27 · Friday</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;letter-spacing:0.02em;text-transform:uppercase;margin:0">Dashboard — Your brief</h1>
+        <p style="font-size:13.5px;color:#5A6B67;margin:8px 0 0">July 3, 2026 · 259 intelligence items across 5 surfaces · 84 jurisdictions</p>
+      </div>
+    </header>
+
+    <div style="max-width:1180px;margin:0 auto;padding:28px 36px 80px">
+
+      <!-- Priority stat tiles (locked) with gradient severity underlines; tiles jump-filter -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 22px">
+        <a href="#priority" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#DC2626&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#DC2626;margin:0 0 4px">Immediate action</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#DC2626;margin:0">5</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Critical, within 90 days</p>
+          </div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000 33%,#D97706 66%,#DC2626)"></div>
+        </a>
+        <a href="#priority" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#D97706&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#D97706;margin:0 0 4px">High</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#D97706;margin:0">42</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Action, 6 mo</p>
+          </div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000 50%,#D97706)"></div>
+        </a>
+        <a href="#priority" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#A16207&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#A16207;margin:0 0 4px">Moderate</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#A16207;margin:0">26</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Monitor, 6 to 12 mo</p>
+          </div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000)"></div>
+        </a>
+        <a href="#priority" style="text-decoration:none;color:inherit;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;display:block" style-hover="{&quot;borderColor&quot;:&quot;#16A34A&quot;}">
+          <div style="padding:16px 18px 12px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#5A6B67;margin:0 0 4px">Low</p>
+            <p style="font-family:'Anton',sans-serif;font-size:44px;line-height:1;color:#5A6B67;margin:0">186</p>
+            <p style="font-size:11.5px;font-weight:600;color:#5A6B67;margin:6px 0 0">Awareness only</p>
+          </div>
+          <div style="height:5px;background:#16A34A"></div>
+        </a>
+      </div>
+
+      <!-- AI prompt bar (locked) -->
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px;margin:0 0 30px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input value="{{ aiText }}" onChange="{{ onAiChange }}" placeholder="Ask about regulations, costs, technology…" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;padding:11px 14px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+          <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:800;padding:11px 20px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Ask</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">
+          <button onClick="{{ chip1 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">How will crude oil prices affect my air freight costs?</button>
+          <button onClick="{{ chip2 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">What CBAM deadlines do I need to prepare for?</button>
+          <button onClick="{{ chip3 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Which EV trucks are viable for 200-mile drayage routes?</button>
+          <button onClick="{{ chip4 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Summarize the EU packaging regulation impact on freight</button>
+        </div>
+      </div>
+
+      <!-- THIS WEEK -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:0 0 8px;margin:0 0 18px">
+        <h2 id="priority" style="font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:0.02em;text-transform:uppercase;margin:0">This week</h2>
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Weekly briefing · Jul 1</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start">
+
+        <!-- Priority list -->
+        <div style="min-width:0">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 12px">
+            <h3 style="font-size:15px;font-weight:800;margin:0">Top priority this week — 5 items</h3>
+            <span style="font-size:11.5px;color:#7A6E6C">across 84 jurisdictions</span>
+          </div>
+
+          <!-- Glance rows: severity · title · jurisdiction · one date · one tier + Do-now line -->
+          <div style="display:flex;flex-direction:column;gap:10px">
+
+            <a href="#" style="text-decoration:none;color:inherit;display:block;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #DC2626;border-radius:8px;padding:14px 18px" style-hover="{&quot;borderColor&quot;:&quot;#DC2626&quot;}">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px">
+                <div style="display:flex;align-items:baseline;gap:10px;min-width:0">
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#DC2626;white-space:nowrap">Action required</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;color:#8A6A2A;white-space:nowrap">UK</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
+                  <span style="font-size:12px;font-weight:800;color:#DC2626">In force</span>
+                  <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span>
+                </div>
+              </div>
+              <p style="font-size:15px;font-weight:800;margin:5px 0 0">UK DfT Decarbonisation</p>
+              <p style="font-size:12.5px;line-height:1.55;color:#1A1A1A;margin:7px 0 0;border-left:3px solid #1A1A1A;padding:1px 0 1px 10px"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 2px">Our analysis · do now</span>Maintain separate UK and EU compliance tracking; audit cross-Channel operations for dual-compliance requirements. <span style="color:#7A6E6C">Owner: Compliance + Legal.</span></p>
+            </a>
+
+            <a href="#" style="text-decoration:none;color:inherit;display:block;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #DC2626;border-radius:8px;padding:14px 18px" style-hover="{&quot;borderColor&quot;:&quot;#DC2626&quot;}">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px">
+                <div style="display:flex;align-items:baseline;gap:10px;min-width:0">
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#DC2626;white-space:nowrap">Action required</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;color:#8A6A2A;white-space:nowrap">EU</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
+                  <span style="font-size:12px;font-weight:800;color:#DC2626">31 days</span>
+                  <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T2</span>
+                </div>
+              </div>
+              <p style="font-size:15px;font-weight:800;margin:5px 0 0">EU PPWR 2025/40 — packaging recyclability</p>
+              <p style="font-size:12.5px;line-height:1.55;color:#1A1A1A;margin:7px 0 0;border-left:3px solid #1A1A1A;padding:1px 0 1px 10px"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 2px">Our analysis · do now</span>Audit EU-bound packaging against recyclability criteria; identify PFAS-containing materials that need replacement. <span style="color:#7A6E6C">Owner: Operations + Sustainability.</span></p>
+            </a>
+
+            <a href="#" style="text-decoration:none;color:inherit;display:block;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #DC2626;border-radius:8px;padding:14px 18px" style-hover="{&quot;borderColor&quot;:&quot;#DC2626&quot;}">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap">
+                <div style="display:flex;align-items:baseline;gap:10px;min-width:0">
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#DC2626;white-space:nowrap">Window closing</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;color:#8A6A2A;white-space:nowrap">US · NYC</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
+                  <span style="font-size:12px;font-weight:800;color:#DC2626">May 1 · 18 days</span>
+                  <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span>
+                </div>
+              </div>
+              <p style="font-size:15px;font-weight:800;margin:5px 0 0">NYC Local Law 97 — building carbon emissions caps</p>
+              <p style="font-size:12.5px;line-height:1.55;color:#1A1A1A;margin:7px 0 0;border-left:3px solid #1A1A1A;padding:1px 0 1px 10px"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 2px">Our analysis · do now</span>Provide utility data for the landlord's LL84 filing; review the warehouse lease for LL97 cost pass-through clauses. <span style="color:#7A6E6C">Owner: Operations + Legal.</span></p>
+            </a>
+
+            <a href="#" style="text-decoration:none;color:inherit;display:block;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #DC2626;border-radius:8px;padding:14px 18px" style-hover="{&quot;borderColor&quot;:&quot;#DC2626&quot;}">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px">
+                <div style="display:flex;align-items:baseline;gap:10px;min-width:0">
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#DC2626;white-space:nowrap">Cost alert</span>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;color:#8A6A2A;white-space:nowrap">EU · Ocean</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
+                  <span style="font-size:12px;font-weight:800;color:#DC2626">Sep 30</span>
+                  <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span>
+                </div>
+              </div>
+              <p style="font-size:15px;font-weight:800;margin:5px 0 0">EU ETS for Shipping — 70% surrender year</p>
+              <p style="font-size:12.5px;line-height:1.55;color:#1A1A1A;margin:7px 0 0;border-left:3px solid #1A1A1A;padding:1px 0 1px 10px"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 2px">Our analysis · do now</span>Verify carrier ETS surcharges against the 70% surrender obligation; methane and N₂O enter scope from January 2026. <span style="color:#7A6E6C">Owner: Procurement.</span></p>
+            </a>
+
+            <a href="#" style="text-decoration:none;display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border:1px solid rgba(0,0,0,0.12);border-radius:8px;background:#FFFFFF" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;}">
+              <span style="font-size:12.5px;font-weight:800;color:#E8610A">All 5 priority items →</span>
+              <span style="font-size:11px;color:#7A6E6C">opens Regulations, filtered to Immediate</span>
+            </a>
+          </div>
+
+        </div>
+
+        <!-- Right rail: information, not navigation -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0">Across the platform</p>
+            </div>
+            <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="5">
+              <a href="#" style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                <div><p style="font-size:12.5px;font-weight:700;color:#1A1A1A;margin:0">{{ s.name }}</p><p style="font-size:10.5px;color:#7A6E6C;margin:1px 0 0">{{ s.desc }}</p></div>
+                <span style="font-family:'Anton',sans-serif;font-size:18px;color:{{ s.hue }}">{{ s.count }}</span>
+              </a>
+            </sc-for>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Watchlist</p>
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px">
+              <p style="font-size:12px;color:#5A6B67;line-height:1.55;margin:0 0 8px">Nothing watched yet. Watch any regulation, source, or market signal to see its updates here.</p>
+              <a href="#" style="font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none">Browse what to watch →</a>
+            </div>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">By owner</p>
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px">
+              <p style="font-size:12px;color:#5A6B67;line-height:1.55;margin:0 0 8px">No owners assigned yet. Assign owners to regulations from any detail page to populate this view.</p>
+              <a href="#" style="font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none">Pick a regulation to assign →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ WHAT CHANGED — unified change log ══════════ -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:0 0 8px;margin:44px 0 16px">
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:0.02em;text-transform:uppercase;margin:0">What changed</h2>
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Change log across the registry</span>
+      </div>
+      <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;background:#FFFFFF;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 10px">
+        <p style="font-size:13px;margin:0"><b>This week:</b> <span style="color:#5A6B67">nothing — no items added, updated, or replaced in the last 7 days.</span></p>
+        <span style="font-size:11px;color:#7A6E6C;white-space:nowrap">checked 2 hr ago</span>
+      </div>
+      <p style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px;padding:0 2px">Earlier · 11 replaced</p>
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 8px">
+        <sc-for list="{{ replacedShown }}" as="r" hint-placeholder-count="5">
+          <a href="#" style="display:grid;grid-template-columns:110px 1fr auto;gap:14px;align-items:center;padding:11px 18px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+            <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#9A3412;border:1px solid rgba(154,52,45,0.35);border-radius:4px;padding:3px 8px;text-align:center">Replaced</span>
+            <div style="min-width:0">
+              <p style="font-size:13px;font-weight:700;margin:0;color:#5A6B67">{{ r.old }}</p>
+              <p style="font-size:11.5px;color:#7A6E6C;margin:1px 0 0">superseded by <span style="font-weight:700;color:#1A1A1A">{{ r.by }}</span> — retained for record</p>
+            </div>
+            <span style="font-size:11.5px;font-weight:600;color:#7A6E6C;white-space:nowrap">{{ r.date }}</span>
+          </a>
+        </sc-for>
+        <button onClick="{{ toggleReplaced }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;padding:11px 18px;background:#FFFFFF;border:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+          <span style="font-size:12px;font-weight:800;color:#E8610A">{{ replacedToggleLabel }}</span>
+          <span style="font-size:11px;color:#7A6E6C">superseded items never mix into active lists</span>
+        </button>
+      </div>
+
+      <!-- ══════════ HOUSEKEEPING ══════════ -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:0 0 8px;margin:44px 0 16px">
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:0.02em;text-transform:uppercase;margin:0">Housekeeping</h2>
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Registry health · review queue</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+        <!-- Coverage gaps -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 18px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 2px">What you might be missing</p>
+          <div style="display:flex;align-items:baseline;gap:10px;margin:0 0 4px">
+            <h3 style="font-family:'Anton',sans-serif;font-weight:400;font-size:19px;letter-spacing:0.02em;text-transform:uppercase;margin:0">Coverage gaps</h3>
+            <span style="font-size:11px;font-weight:700;color:#7A6E6C">2 flagged</span>
+          </div>
+          <p style="font-size:11.5px;color:#7A6E6C;margin:0 0 12px">Our analysis — severity is a recommendation, not a precise score.</p>
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px;margin:0 0 10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+              <p style="font-size:12.5px;font-weight:700;margin:0">Switzerland packaging waste regulation</p>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#D97706">High</span>
+            </div>
+            <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:4px 0 8px">Federal ordinance update suggests new alignment requirements; no current source in the registry.</p>
+            <a href="#" style="font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none">Suggest a source →</a>
+          </div>
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px;margin:0 0 12px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+              <p style="font-size:12.5px;font-weight:700;margin:0">CA SB 261 climate-related financial risk</p>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#A16207">Medium</span>
+            </div>
+            <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:4px 0 8px">Sister regulation to SB 253; tracked partially.</p>
+            <a href="#" style="font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none">Add to registry →</a>
+          </div>
+          <p style="font-size:11px;color:#7A6E6C;line-height:1.5;margin:0">We're still expanding our source registry; check back as jurisdictions are added.</p>
+        </div>
+
+        <!-- Awaiting review -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 18px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 2px">What you should do today</p>
+          <div style="display:flex;align-items:baseline;gap:10px;margin:0 0 12px">
+            <h3 style="font-family:'Anton',sans-serif;font-weight:400;font-size:19px;letter-spacing:0.02em;text-transform:uppercase;margin:0">Awaiting review</h3>
+            <span style="font-size:11px;font-weight:700;color:#7A6E6C">3 items</span>
+            <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#B45309">oldest waiting 2 mo</span>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <a href="#" style="display:grid;grid-template-columns:92px 1fr auto;gap:12px;align-items:center;padding:11px 4px;border-top:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#B45309;border:1px dashed rgba(180,83,9,0.45);border-radius:4px;padding:3px 6px;text-align:center">Provisional</span>
+              <p style="font-size:12.5px;font-weight:700;margin:0;line-height:1.4">Maritime and Port Authority of Singapore Sustainability Hub</p>
+              <span style="font-size:11px;color:#7A6E6C;white-space:nowrap">2 mo waiting</span>
+            </a>
+            <a href="#" style="display:grid;grid-template-columns:92px 1fr auto;gap:12px;align-items:center;padding:11px 4px;border-top:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#B45309;border:1px dashed rgba(180,83,9,0.45);border-radius:4px;padding:3px 6px;text-align:center">Provisional</span>
+              <p style="font-size:12.5px;font-weight:700;margin:0;line-height:1.4">Japan METI Transportation Efficiency Standards</p>
+              <span style="font-size:11px;color:#7A6E6C;white-space:nowrap">2 mo waiting</span>
+            </a>
+            <a href="#" style="display:grid;grid-template-columns:92px 1fr auto;gap:12px;align-items:center;padding:11px 4px;border-top:1px solid rgba(0,0,0,0.06);border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#B45309;border:1px dashed rgba(180,83,9,0.45);border-radius:4px;padding:3px 6px;text-align:center">Provisional</span>
+              <p style="font-size:12.5px;font-weight:700;margin:0;line-height:1.4">UAE Ministry of Energy and Infrastructure</p>
+              <span style="font-size:11px;color:#7A6E6C;white-space:nowrap">2 mo waiting</span>
+            </a>
+          </div>
+          <a href="#" style="display:inline-block;margin:12px 0 0;font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none">Open admin queue →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 }
+}">
+class Component extends DCLogic {
+  state = { aiText: '', replacedOpen: false };
+
+  replaced = [
+    { old: 'Matrix Hudson 2BR/1BA Affordable Housing', by: 'Matrix Hudson Unit Lottery Opening', date: '2026-05' },
+    { old: 'Local Law 97: NYC Greenhouse Gas Limits', by: 'NYC Local Law 97 — Building Carbon Caps', date: '2026-05' },
+    { old: 'New York City Local Law 97 of 2019', by: 'NYC Local Law 97 — Building Carbon Caps', date: '2026-05' },
+    { old: 'EPA Final Rule: Greenhouse Gas Standards', by: 'EPA Heavy-Duty Phase 3 Rule', date: '2026-05' },
+    { old: 'Greenhouse Gas Emissions Standards', by: 'EPA Heavy-Duty Phase 3 Rule', date: '2026-05' },
+    { old: 'Zero-Emission Requirements for Vans', by: 'Norway Enacts Zero-Emission Requirement', date: '2026-05' },
+    { old: 'CSRD 250+ employees threshold', by: 'CSRD', date: '2026-02' },
+    { old: 'EPA 2009 Endangerment Finding', by: 'EPA SmartWay', date: '2025-12' },
+    { old: 'Voluntary IMO GHG measures only', by: 'IMO Net-Zero Framework', date: '2025-04' },
+    { old: 'EU PPWD 94/62/EC', by: 'EU PPWR 2025/40', date: '2025-02' }
+  ];
+
+  renderVals() {
+    const setText = (t) => this.setState({ aiText: t });
+    const open = this.state.replacedOpen;
+    return {
+      replacedShown: open ? this.replaced : this.replaced.slice(0, 4),
+      replacedToggleLabel: open ? 'Show fewer' : 'All 11 replaced →',
+      toggleReplaced: () => this.setState({ replacedOpen: !open }),
+      aiText: this.state.aiText,
+      onAiChange: (e) => setText(e.target.value),
+      chip1: () => setText('How will crude oil prices affect my air freight costs?'),
+      chip2: () => setText('What CBAM deadlines do I need to prepare for?'),
+      chip3: () => setText('Which EV trucks are viable for 200-mile drayage routes?'),
+      chip4: () => setText('Summarize the EU packaging regulation impact on freight'),
+      surfaces: [
+        { name: 'Regulations', desc: 'Binding law, agency rules, court decisions', count: '111', hue: '#1A1A1A' },
+        { name: 'Market Intel', desc: 'Industry signals, corporate moves, capital flow', count: '67', hue: '#1A1A1A' },
+        { name: 'Research', desc: 'Horizon-scan analytical depth', count: '39', hue: '#1A1A1A' },
+        { name: 'Operations', desc: 'Regional cost, feasibility, infrastructure', count: '42', hue: '#1A1A1A' },
+        { name: 'Community', desc: 'Peer working groups and forums', count: '0', hue: '#7A6E6C' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

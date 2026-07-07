@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+    @media (max-width: 1100px) {
+      #detail-grid { grid-template-columns: minmax(0,1fr) !important; }
+      #meta-rail { flex-direction: row !important; flex-wrap: wrap !important; }
+      #meta-rail > div { flex: 1 1 240px; }
+    }
+  </style>
+</helmet>
+
+<div data-screen-label="Regulation detail" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Regulations</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Market Intel</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <!-- Hero -->
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="padding:18px 36px 0">
+        <p style="font-size:12px;margin:0 0 12px;display:flex;gap:8px;align-items:baseline">
+          <a href="Pages - 02 Regulations.dc.html" style="color:#5A6B67;font-weight:600;text-decoration:none" style-hover="{&quot;color&quot;:&quot;#E8610A&quot;}">Regulations</a>
+          <span style="color:#7A6E6C">/</span>
+          <span style="color:#5A6B67;font-weight:600;white-space:nowrap">Global · IMO</span>
+          <span style="color:#7A6E6C">/</span>
+          <span style="color:#1A1A1A;font-weight:800">MEPC.377(80)</span>
+        </p>
+        <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-start;flex-wrap:wrap">
+          <div style="max-width:86ch">
+            <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:34px;line-height:1.08;letter-spacing:0.02em;text-transform:uppercase;margin:0">MEPC.377(80) — IMO Marine Environment Protection Committee Resolution</h1>
+            <p style="font-size:13px;color:#5A6B67;margin:10px 0 0;line-height:1.6">Resolution MEPC.377(80), IMO MEPC · adopted 7 July 2023 · in force · Global · Ocean</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#DC2626;border:1px solid #FECACA;background:#FEF2F2;border-radius:4px;padding:5px 11px">● Immediate ▾</span>
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:4px;padding:5px 11px">Directive</span>
+              <span style="font-size:10px;font-weight:800;padding:5px 10px;border-radius:4px;background:#2563EB;color:#FFFFFF">T1</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;padding:8px 16px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Export brief</button>
+              <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:700;padding:8px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.18);background:#FFFFFF;color:#1A1A1A;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Share</button>
+              <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:700;padding:8px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.18);background:#FFFFFF;color:#1A1A1A;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Watch</button>
+            </div>
+          </div>
+        </div>
+        <!-- Tab strip -->
+        <div style="display:flex;gap:2px;margin:18px 0 0">
+          <button onClick="{{ tabSummary }}" style="{{ tabStyleSummary }}">Summary</button>
+          <button onClick="{{ tabExposure }}" style="{{ tabStyleExposure }}">Exposure</button>
+          <button onClick="{{ tabPenalty }}" style="{{ tabStylePenalty }}">Penalty schedule</button>
+          <button onClick="{{ tabTimeline }}" style="{{ tabStyleTimeline }}">Timeline</button>
+          <button onClick="{{ tabSources }}" style="{{ tabStyleSources }}">Sources</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- AI prompt bar — identical block on every page -->
+    <div style="padding:22px 36px 0">
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input value="{{ aiText }}" onChange="{{ onAiChange }}" placeholder="Ask anything about MEPC.377(80) — e.g. what does this mean for my workspace?" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;padding:11px 14px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+          <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:800;padding:11px 20px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Ask</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">
+          <button onClick="{{ chip1 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">What does this mean for me?</button>
+          <button onClick="{{ chip2 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">When does this hit force?</button>
+          <button onClick="{{ chip3 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Who's affected in my supply chain?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ CONTROL PANEL BODY ══════════ -->
+    <div id="detail-grid" style="padding:22px 36px 90px;display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:24px;align-items:start">
+
+      <main style="min-width:0">
+
+        <!-- ════ TAB: SUMMARY ════ -->
+        <sc-if value="{{ showSummary }}" hint-placeholder-val="{{ true }}">
+
+          <!-- Short / Full toggle -->
+          <div style="display:flex;gap:2px;margin:0 0 14px">
+            <button onClick="{{ setShort }}" style="{{ shortBtn }}">Short summary</button>
+            <button onClick="{{ setFull }}" style="{{ fullBtn }}">Full summary</button>
+            <span style="align-self:center;margin-left:12px;font-size:11px;color:#7A6E6C">{{ summaryNote }}</span>
+          </div>
+
+          <!-- Short summary card -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #E8610A;border-radius:8px;padding:16px 20px;margin:0 0 14px">
+            <div style="display:flex;justify-content:space-between;gap:14px;align-items:baseline">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#E8610A">Short summary</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">Generated · 30-second read</span>
+            </div>
+            <p style="font-size:14px;line-height:1.7;margin:8px 0 0;max-width:86ch">IMO Marine Environment Protection Committee Resolution 377 (80th session) establishing mandatory requirements for maritime operations and environmental protection standards applicable to all shipping operators under IMO jurisdiction.</p>
+          </div>
+
+          <!-- Impact assessment -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px;margin:0 0 14px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 12px">Impact assessment</p>
+            <div style="display:grid;grid-template-columns:170px 1fr 110px;gap:10px 16px;align-items:center">
+              <span style="font-size:12.5px;font-weight:700">Operational</span>
+              <div style="height:7px;border-radius:4px;background:rgba(0,0,0,0.07);overflow:hidden"><div style="height:100%;width:66%;background:linear-gradient(90deg,#16A34A,#CFA000);border-radius:4px"></div></div>
+              <span style="font-size:11.5px;font-weight:800;color:#A16207;text-align:right">2/3 · Moderate</span>
+            </div>
+          </div>
+
+          <!-- Timeline strip -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px;margin:0 0 14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin:0 0 18px">
+              <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0">Timeline</p>
+              <button onClick="{{ tabTimeline }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;padding:0">All 10 obligations →</button>
+            </div>
+            <div style="position:relative;height:4px;background:rgba(0,0,0,0.08);border-radius:2px;margin:0 40px">
+              <div style="position:absolute;left:0;top:0;height:100%;width:{{ tlProgress }};background:linear-gradient(90deg,#16A34A,#CFA000);border-radius:2px"></div>
+              <sc-for list="{{ milestones }}" as="m" hint-placeholder-count="6">
+                <button onClick="{{ m.pick }}" title="{{ m.label }}" style="{{ m.dotStyle }}"></button>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin:10px 40px 0">
+              <sc-for list="{{ milestones }}" as="m" hint-placeholder-count="6">
+                <button onClick="{{ m.pick }}" style="{{ m.yearStyle }}">{{ m.year }}</button>
+              </sc-for>
+            </div>
+            <div style="border:1px solid rgba(0,0,0,0.1);border-left:3px solid {{ tlHue }};border-radius:6px;background:#FAFAF8;padding:12px 16px;margin:16px 0 0;display:flex;justify-content:space-between;gap:16px;align-items:baseline">
+              <div>
+                <p style="font-size:12.5px;font-weight:800;margin:0">{{ tlTitle }}</p>
+                <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:3px 0 0;max-width:96ch">{{ tlBody }}</p>
+              </div>
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:{{ tlHue }};white-space:nowrap">{{ tlStatus }}</span>
+            </div>
+          </div>
+
+          <!-- Immediate actions -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+            <button onClick="{{ toggleA }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;padding:12px 20px;background:#F5F2EE;border:none;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#1A1A1A">Issues requiring immediate action <span style="font-weight:700;color:#7A6E6C;letter-spacing:0.02em;text-transform:none">· 4 items</span></span>
+              <span style="{{ ebtnA }}">{{ glyphA }}</span>
+            </button>
+            <sc-if value="{{ openA }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px 24px">
+                <div>
+                  <div style="display:flex;gap:8px;align-items:baseline;margin:0 0 4px;flex-wrap:wrap"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.2);border-radius:4px;padding:2px 7px">Monitoring</span><p style="font-size:13px;font-weight:800;margin:0">Review ocean-carrier contractual GHG disclosure obligations now</p></div>
+                  <p style="font-size:12.5px;line-height:1.6;margin:0">MEPC.377(80) is the master framework driving all downstream mandatory measures (EEXI, CII, SEEMP, incoming mid-term measures). Ocean-mode shipments are directly affected by carrier compliance costs that will be passed through. Identify carriers' CII ratings and ensure lane-level emissions data collection before mid-term instruments enter force (target 2027). <b>Review carrier contracts within 30 days.</b></p>
+                </div>
+                <div>
+                  <div style="display:flex;gap:8px;align-items:baseline;margin:0 0 4px;flex-wrap:wrap"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#A16207;border:1px solid rgba(161,98,7,0.4);background:#FEFCE8;border-radius:4px;padding:2px 7px">Window closing</span><p style="font-size:13px;font-weight:800;margin:0">Engage carriers on cost-pass-through language before MEPC 84</p></div>
+                  <p style="font-size:12.5px;line-height:1.6;margin:0">MEPC 84 (Spring 2026) finalises the basket of measures; entry into force 2027. Carriers are already pricing fuel-standard and GHG levy exposure into forward agreements. High-value shipments booking beyond Q2 2026 may carry unquantified carbon-cost exposure. <b>30 days to initiate carrier dialogue.</b></p>
+                </div>
+                <div>
+                  <div style="display:flex;gap:8px;align-items:baseline;margin:0 0 4px;flex-wrap:wrap"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.2);border-radius:4px;padding:2px 7px">Monitoring</span><p style="font-size:13px;font-weight:800;margin:0">Track IMO DCS reporting for ships ≥5,000 GT</p></div>
+                  <p style="font-size:12.5px;line-height:1.6;margin:0">Ships on primary lanes must report fuel consumption annually under MARPOL Annex VI. Confirm ocean providers are DCS-compliant and the workspace holds carriers' Statements of Compliance — due-diligence evidence in shipper ESG reporting. <b>Validate within 30 days.</b></p>
+                </div>
+                <div>
+                  <div style="display:flex;gap:8px;align-items:baseline;margin:0 0 4px;flex-wrap:wrap"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#16A34A;border:1px solid rgba(22,163,74,0.4);background:#F0FDF4;border-radius:4px;padding:2px 7px">Competitive edge</span><p style="font-size:13px;font-weight:800;margin:0">Position zero-/near-zero-GHG fuel shipping as a premium differentiator</p></div>
+                  <p style="font-size:12.5px;line-height:1.6;margin:0">The 2023 IMO GHG Strategy targets zero/near-zero fuels at ≥5% (striving 10%) of shipping energy by 2030. Early contracting of low-emission ocean services supports client-facing sustainability credentials for luxury, fine art, and live-events verticals. <b>Begin market survey within 30 days.</b></p>
+                </div>
+              </div>
+              <p style="font-size:11.5px;color:#7A6E6C;margin:0;padding:10px 20px;border-top:1px solid rgba(0,0,0,0.08)">Source: Resolution MEPC.377(80), 2023 IMO Strategy on Reduction of GHG Emissions from Ships, IMO MEPC, 7 July 2023.</p>
+            </sc-if>
+          </div>
+
+          <!-- Full summary sections -->
+          <sc-if value="{{ isFull }}" hint-placeholder-val="{{ false }}">
+
+            <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+              <button onClick="{{ toggleB }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;padding:12px 20px;background:#F5F2EE;border:none;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px">
+                <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#1A1A1A">How the workspace sits in the compliance chain</span>
+                <span style="{{ ebtnB }}">{{ glyphB }}</span>
+              </button>
+              <sc-if value="{{ openB }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px 24px">
+                  <div style="border-left:3px solid #2563EB;padding:2px 0 2px 14px">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#2563EB;display:block;margin:0 0 3px">Verified · checked against the source</span>
+                    <p style="font-size:12.5px;line-height:1.65;margin:0">MEPC.377(80) is a framework resolution — not directly operative convention text — binding IMO Member States (flag states, port states) as primary duty-bearers, not freight forwarders or shippers. Obligations flow downward through MARPOL Annex VI amendments (EEXI, CII, SEEMP), enforced against shipowners, operators, and managers of vessels ≥400 GT on international voyages.</p>
+                  </div>
+                  <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 14px">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 3px">Our analysis</span>
+                    <p style="font-size:12.5px;line-height:1.65;margin:0"><b>Tier-1 obligated parties:</b> vessel owners/operators and ship managers — they hold SEEMP, EEXI certification, and CII rating obligations. <b>Tier-2 contractual chain (workspace position):</b> the workspace is a cargo interest, not a "ship operator" — but GHG levy and fuel-standard costs will pass through freight rates; the workspace is a cost-absorber. <b>Tier-3 reporting interface:</b> where clients face scope 3 obligations (CSRD, SEC), the workspace becomes a data intermediary supplying per-shipment GHG intensity from carriers' CII and DCS reports.</p>
+                  </div>
+                  <div style="border-left:3px solid #9A3412;padding:2px 0 2px 14px;grid-column:1 / -1">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#9A3412;display:block;margin:0 0 3px">Our analysis · confirm with counsel</span>
+                    <p style="font-size:12.5px;line-height:1.65;margin:0">Whether the workspace, acting as a contractual carrier (issuing its own house bill of lading for ocean legs), assumes any MARPOL-adjacent responsibility for fuel documentation should be confirmed with maritime law counsel per jurisdiction (US, EU, Singapore, Hong Kong).</p>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+              <button onClick="{{ toggleC }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;padding:12px 20px;background:#F5F2EE;border:none;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px">
+                <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#1A1A1A">Registration &amp; reporting obligations</span>
+                <span style="{{ ebtnC }}">{{ glyphC }}</span>
+              </button>
+              <sc-if value="{{ openC }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 24px">
+                  <div style="border-left:3px solid #2563EB;padding:2px 0 2px 14px">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#2563EB;display:block;margin:0 0 3px">Verified</span>
+                    <p style="font-size:12.5px;line-height:1.65;margin:0">No EPR-style registration falls on the workspace. Under MARPOL Annex VI, ships ≥5,000 GT report annual fuel consumption through the IMO DCS — submitted by the shipowner/operator to the flag state, then to IMO GISIS. The obligation rests with the carrier.</p>
+                  </div>
+                  <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 14px">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 3px">Our analysis · what to collect</span>
+                    <p style="font-size:12.5px;line-height:1.65;margin:0">Per ocean carrier: (a) vessel IMO number; (b) voyage CII rating; (c) fuel type and consumption per voyage or TEU/tonne-mile; (d) the carrier's annual DCS-derived Statement of Compliance. CII ratings appear on the vessel's SEEMP Part III.</p>
+                  </div>
+                  <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#8A6A2A;display:block;margin:0 0 4px">Promised but pending at the IMO</span>
+                    <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Expanded DCS data granularity (per-voyage/per-route emissions) was discussed at MEPC 80 and deferred; it remains under intersessional deliberation and is not yet a published reporting format.</p>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+              <button onClick="{{ toggleD }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;padding:12px 20px;background:#F5F2EE;border:none;border-bottom:1px solid rgba(0,0,0,0.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:14px">
+                <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#1A1A1A">Operational system requirements <span style="font-weight:700;color:#7A6E6C;letter-spacing:0.02em;text-transform:none">· 5 workstreams</span></span>
+                <span style="{{ ebtnD }}">{{ glyphD }}</span>
+              </button>
+              <sc-if value="{{ openD }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px">
+                  <sc-for list="{{ workstreams }}" as="w" hint-placeholder-count="5">
+                    <div style="display:grid;grid-template-columns:26px 1fr;gap:10px">
+                      <span style="font-family:'Anton',sans-serif;font-size:16px;color:#E8610A;line-height:1.4">{{ w.n }}</span>
+                      <div>
+                        <p style="font-size:12.5px;font-weight:800;margin:0 0 2px">{{ w.title }}</p>
+                        <p style="font-size:12px;line-height:1.6;color:#1A1A1A;margin:0">{{ w.body }} <b>{{ w.deadline }}</b></p>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- Connected intelligence — always on Summary -->
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Connected intelligence</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">across surfaces</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px;padding:6px 20px 10px">
+              <a href="#" style="display:grid;grid-template-columns:110px 46px 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                <span style="font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#2563EB;border:1px solid rgba(37,99,235,0.35);border-radius:4px;padding:3px 6px;text-align:center">Corroborates</span>
+                <span style="font-size:10px;font-weight:800;color:#8A6A2A">MKT ↗</span>
+                <div><p style="font-size:12.5px;font-weight:700;margin:0">Lloyd's Register Maritime Decarbonisation Hub</p><p style="font-size:11px;color:#7A6E6C;margin:1px 0 0">Tracks the same IMO decarbonisation trajectory · Monitoring</p></div>
+              </a>
+              <a href="#" style="display:grid;grid-template-columns:110px 46px 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                <span style="font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#7A6E6C;border:1px solid rgba(0,0,0,0.2);border-radius:4px;padding:3px 6px;text-align:center">References</span>
+                <span style="font-size:10px;font-weight:800;color:#8A6A2A">RES ↗</span>
+                <div><p style="font-size:12.5px;font-weight:700;margin:0">Marine Fuel Decarbonisation Pathways</p><p style="font-size:11px;color:#7A6E6C;margin:1px 0 0">Fuel pathways this resolution's targets depend on · IMO · T2</p></div>
+              </a>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ════ TAB: EXPOSURE ════ -->
+        <sc-if value="{{ showExposure }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Where the exposure sits</span>
+            </div>
+            <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 24px">
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:14px 16px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;margin:0 0 6px">Tier 1 · Directly bound</p>
+                <p style="font-size:12.5px;line-height:1.6;margin:0">Vessel owners/operators and ship managers — SEEMP, EEXI certification, CII rating obligations. <b>Not the workspace.</b></p>
+              </div>
+              <div style="border:2px solid #E8610A;border-radius:6px;padding:14px 16px;background:#FFF7F0">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#E8610A;margin:0 0 6px">Tier 2 · The workspace</p>
+                <p style="font-size:12.5px;line-height:1.6;margin:0">Cost-absorber in the contractual chain: GHG levy and fuel-standard costs pass through freight rates. Must understand how carriers disclose and invoice these costs.</p>
+              </div>
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:14px 16px">
+                <p style="font-size:10px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;margin:0 0 6px">Tier 3 · Client interface</p>
+                <p style="font-size:12.5px;line-height:1.6;margin:0">Data intermediary for shipper-clients with scope 3 obligations (CSRD, SEC) — supplies per-shipment GHG intensity from carrier CII/DCS reports.</p>
+              </div>
+            </div>
+            <div style="padding:0 20px 16px">
+              <div style="border-left:3px solid #9A3412;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#9A3412;display:block;margin:0 0 3px">Our analysis · confirm with counsel</span>
+                <p style="font-size:12.5px;line-height:1.65;margin:0;max-width:86ch">House-bill-of-lading scenarios may carry MARPOL-adjacent documentation responsibility — confirm per jurisdiction (US, EU, Singapore, Hong Kong).</p>
+              </div>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Affected lanes</p>
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px">
+              <p style="font-size:12px;color:#5A6B67;line-height:1.6;margin:0">Lane-level exposure appears here once workspace shipment data is connected. Jurisdiction scope today: <b>Global</b> · Mode: <b>Ocean</b> · primary lanes transatlantic, transpacific, Europe–Asia.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ════ TAB: PENALTY SCHEDULE ════ -->
+        <sc-if value="{{ showPenalty }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Penalty schedule</p>
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:14px 16px;max-width:86ch">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#8A6A2A;display:block;margin:0 0 4px">No direct penalty schedule · by design</span>
+              <p style="font-size:12.5px;line-height:1.65;color:#5A6B67;margin:0">MEPC.377(80) is a framework strategy resolution — it carries no penalty provisions of its own. Enforcement flows through MARPOL Annex VI instruments (EEXI, CII, SEEMP) applied by flag and port states against vessel owners and operators. Penalties relevant to the workspace arrive indirectly, as carrier compliance costs passed through freight rates — tracked under <b>Exposure</b>.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ════ TAB: TIMELINE ════ -->
+        <sc-if value="{{ showTimeline }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Obligations by deadline</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">10 obligations · confirmed in primary sources</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1.5fr 0.9fr 1fr 1.4fr;gap:0">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px 10px 20px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Obligation</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Deadline</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Status</span>
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#7A6E6C;padding:10px 20px 10px 14px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.1)">Next action</span>
+              <sc-for list="{{ obligations }}" as="o" hint-placeholder-count="6">
+                <span style="font-size:12px;font-weight:700;line-height:1.5;padding:10px 14px 10px 20px;border-bottom:1px solid rgba(0,0,0,0.06)">{{ o.what }}</span>
+                <span style="font-size:12px;line-height:1.5;padding:10px 14px;border-bottom:1px solid rgba(0,0,0,0.06);color:#5A6B67">{{ o.when }}</span>
+                <span style="font-size:12px;line-height:1.5;padding:10px 14px;border-bottom:1px solid rgba(0,0,0,0.06);color:#5A6B67">{{ o.status }}</span>
+                <span style="font-size:12px;line-height:1.5;padding:10px 20px 10px 14px;border-bottom:1px solid rgba(0,0,0,0.06)">{{ o.next }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px">
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px;max-width:86ch">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#8A6A2A;display:block;margin:0 0 4px">Consolidated schedule · not yet published</span>
+              <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">The mid-term measures adoption path (MEPC 84, Spring 2026 → entry into force ~2027) renders above only where dates are confirmed in primary sources. The IMO has not yet published a consolidated schedule.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ════ TAB: SOURCES ════ -->
+        <sc-if value="{{ showSources }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Sources</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">14 sources · tier = provenance, never urgency</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 32px;padding:4px 20px">
+              <sc-for list="{{ sources }}" as="s" hint-placeholder-count="8">
+                <a href="#" style="display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                  <span style="{{ s.badge }}">{{ s.tier }}</span>
+                  <div><p style="font-size:12.5px;font-weight:700;margin:0;line-height:1.45">{{ s.title }}</p><p style="font-size:11px;color:#7A6E6C;margin:2px 0 0">{{ s.meta }}</p></div>
+                </a>
+              </sc-for>
+            </div>
+            <p style="font-size:11.5px;color:#7A6E6C;margin:0;padding:10px 20px;border-top:1px solid rgba(0,0,0,0.08);background:#FAFAF8">Full regulatory text is hosted at the source — <a href="#" style="color:#E8610A;font-weight:700;text-decoration:none">open the original document ↗</a></p>
+          </div>
+        </sc-if>
+      </main>
+
+      <!-- Meta rail — the regulation's control panel -->
+      <div id="meta-rail" style="display:flex;flex-direction:column;gap:14px">
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">At a glance</p>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px">
+            <span style="color:#7A6E6C;font-weight:600">Type</span><span style="font-weight:700">Directive</span>
+            <span style="color:#7A6E6C;font-weight:600">Priority</span><span style="font-weight:800;color:#DC2626">Immediate</span>
+            <span style="color:#7A6E6C;font-weight:600">Jurisdiction</span><span style="font-weight:700">Global · IMO</span>
+            <span style="color:#7A6E6C;font-weight:600">Modes</span><span style="font-weight:700">Ocean</span>
+            <span style="color:#7A6E6C;font-weight:600">Topic</span><span style="font-weight:700">Corridors</span>
+            <span style="color:#7A6E6C;font-weight:600">Sources</span><span style="font-weight:700">14 · <span style="color:#2563EB">T1 primary</span></span>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Affected lanes</p>
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:11px 13px">
+            <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:0">Appears once workspace shipment data is connected. Scope today: <b>Global</b>.</p>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Owner &amp; team</p>
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:11px 13px">
+            <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:0 0 6px">Unassigned — no updates recorded yet.</p>
+            <a href="#" style="font-size:11px;font-weight:800;color:#E8610A;text-decoration:none">Assign an owner →</a>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Linked regulations</p>
+          <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:0">No cross-references recorded — connected market and research items render under <b>Summary → Connected intelligence</b>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 }
+}">
+class Component extends DCLogic {
+  state = { aiText: '', tab: 'summary', mode: 'short', open: { A: true, B: true, C: true, D: true }, tlPick: 1 };
+
+  milestones = [
+    { year: '2023', pos: 0, label: 'Strategy adopted · short-term measures in force', title: 'Framework adopted; EEXI, CII, SEEMP operative', body: 'Resolution MEPC.377(80) adopted 7 July 2023. Short-term measures (EEXI, CII, SEEMP) already in force under MARPOL Annex VI since 1 January 2023 and being enforced.', status: 'In force', hue: '#16A34A', done: true },
+    { year: '2026', pos: 20, label: 'MEPC 84 — mid-term measures finalised', title: 'MEPC 84 (Spring 2026) finalises the basket of measures', body: 'Adoption of the technical fuel standard and GHG economic mechanism. Carriers are already pricing this exposure into forward freight agreements — the active engagement window.', status: 'Next · window open', hue: '#D97706', done: false },
+    { year: '2027', pos: 32, label: 'Mid-term measures enter into force', title: 'Fuel standard + GHG levy enter into force (~2027)', body: 'Carbon costs become invoiceable reality on ocean freight. Carrier-emissions data collection and contract pass-through clauses must be in place before this date.', status: 'Pending adoption', hue: '#D97706', done: false },
+    { year: '2028', pos: 42, label: 'MEPC 88 strategy review', title: 'MEPC 88 (Autumn 2028) — periodic strategy review', body: 'The 2023 Strategy is revisited; targets and checkpoints may tighten. Watch for revised indicative checkpoints.', status: 'Scheduled', hue: '#A16207', done: false },
+    { year: '2030', pos: 55, label: 'First checkpoint: −20% GHG · ≥5% zero-GHG fuels', title: 'Checkpoint: ≥20% emissions reduction (striving 30%)', body: 'Zero/near-zero GHG fuels to reach ≥5% (striving 10%) of international shipping energy. Basis of carrier decarbonisation-roadmap vetting.', status: 'Indicative', hue: '#A16207', done: false },
+    { year: '2040', pos: 80, label: 'Second checkpoint: −70% GHG', title: 'Checkpoint: ≥70% emissions reduction (striving 80%)', body: 'Second indicative checkpoint vs. 2008 baseline. Long-range fleet and fuel planning horizon.', status: 'Indicative', hue: '#7A6E6C', done: false },
+    { year: '~2050', pos: 100, label: 'Net-zero GHG from international shipping', title: 'Net-zero GHG by or around 2050', body: 'The strategic ambition the whole instrument chain serves. No near-term action item.', status: 'Ambition', hue: '#7A6E6C', done: false }
+  ];
+
+  obligations = [
+    { what: 'Net-zero GHG vision for international shipping — strategic ambition adopted', when: 'In force as of 7 July 2023 (framework)', status: 'Framework adopted; operative instruments via MARPOL', next: 'Monitor downstream MARPOL Annex VI amendments for operative compliance dates' },
+    { what: 'Indicative checkpoint: reduce total annual GHG emissions ≥20% (striving for 30%) vs. 2008 baseline', when: '2030', status: 'Indicative (binding via mid-term measures)', next: 'Track mid-term measure adoption at extraordinary MEPC session; engage ocean carriers on 2030 pathway' },
+    { what: 'Indicative checkpoint: reduce total annual GHG emissions ≥70% (striving for 80%) vs. 2008 baseline', when: '2040', status: 'Indicative', next: 'Monitor MEPC 88 (Autumn 2028) strategy review' },
+    { what: 'Net-zero GHG emissions from international shipping by or around (close to) 2050', when: '~2050', status: 'Indicative', next: 'Long-range fleet/fuel planning horizon; no near-term action item' },
+    { what: 'Zero/near-zero GHG fuels to represent ≥5% (striving for 10%) of energy used by international shipping', when: '2030', status: 'Indicative target; mid-term fuel standard under development', next: 'Survey ocean carriers\u2019 alternative fuel commitments; include in RFQ/tender criteria' },
+    { what: 'Short-term measures (EEXI, CII, SEEMP) — in force under MARPOL Annex VI res. MEPC.328(76)', when: 'In force as of 1 January 2023', status: 'Operative and being enforced', next: 'Collect carrier CII rating certificates; review SEEMP Part III compliance status annually' },
+    { what: 'CII rating review: ships rated D (3 consecutive years) or E (1 year) must submit corrective action plan', when: 'Annual rating cycle (first ratings issued 2024)', status: 'Enforcement ongoing', next: 'Flag carriers on D/E ratings; avoid booking capacity on persistently low-rated vessels for high-value cargo' },
+    { what: 'Mid-term measures (technical fuel standard + GHG economic mechanism) — adoption targeted', when: 'Extraordinary MEPC session Autumn 2025; entry into force ~2027', status: 'MEPC 83 approved draft; adoption pending', next: 'Monitor final adoption; model freight-cost impact for ocean lanes' },
+    { what: 'DCS fuel oil consumption data reporting (ships ≥5,000 GT)', when: 'Annual (data year 2019 onwards)', status: 'Operative under MARPOL Annex VI', next: 'Confirm carrier DCS compliance; retain data for scope 3 reporting' },
+    { what: 'Periodic strategy review — 2023 GHG Strategy to be revisited', when: 'MEPC 88 (Autumn 2028)', status: 'Scheduled', next: 'Monitor for revised targets and any tightening of checkpoints' }
+  ];
+
+  workstreams = [
+    { n: '1', title: 'GHG data collection and carrier monitoring infrastructure', body: 'Build or integrate a carrier-emissions data layer into the TMS. Required fields per ocean booking: vessel IMO number, CII rating (A–E), fuel type, estimated CO2e per TEU-km or tonne-km. Most standard TMS platforms do not natively pull CII ratings; a carrier API or manual workflow must be designed.', deadline: 'Before mid-term measures enter force (~2027); scope 3 obligations create a de facto 2025–2026 requirement.' },
+    { n: '2', title: 'Carrier vetting and qualification criteria update', body: 'Add: (a) MARPOL Annex VI compliance confirmation (EEXI certificate, SEEMP Part III); (b) current CII rating; (c) fleet-level decarbonisation roadmap toward the 2030 ≥5% zero/near-zero fuel target. Applies particularly to time-sensitive, high-value verticals.', deadline: 'Update RFQ/tender templates within 60–90 days.' },
+    { n: '3', title: 'Client-facing ESG reporting capability', body: 'Produce per-shipment GHG intensity estimates using carrier-supplied data and recognised methodologies (GLEC Framework, ISO 14083). Requires staff training, a data-provision contract clause, and a standard reporting template.', deadline: 'Ahead of the 2026 reporting cycle.' },
+    { n: '4', title: 'Contract clause review', body: 'Review ocean freight contracts for: (a) carbon cost pass-through transparency; (b) data-provision obligations (DCS/CII data post-voyage); (c) substitution rights if a vessel is persistently rated D or E under CII.', deadline: 'Next renewal cycle or within 90 days for key ocean lanes.' },
+    { n: '5', title: 'Staff training', body: 'Baseline training in IMO GHG regulatory architecture: what EEXI, CII, and SEEMP mean operationally; how mid-term measures affect freight pricing; how to communicate these to shipper clients. A half-day internal module.', deadline: 'Recommend completion within 6 months.' }
+  ];
+
+  sources = [
+    { tier: 'T1', kind: 'law', title: 'Resolution MEPC.377(80) — 2023 IMO Strategy on Reduction of GHG Emissions from Ships', meta: 'Tier 1 — Binding IMO Resolution (strategy framework) · IMO MEPC · 7 July 2023' },
+    { tier: 'T1', kind: 'law', title: 'Resolution MEPC.376(80) — Guidelines on Lifecycle GHG Intensity of Marine Fuels (LCA Guidelines)', meta: 'Tier 1 — Binding IMO Resolution · IMO MEPC · 7 July 2023' },
+    { tier: 'T2', kind: 'reg', title: 'IMO MEPC 80 Session Meeting Summary', meta: 'Tier 2 — Regulator guidance/summary · IMO · July 2023' },
+    { tier: 'T2', kind: 'reg', title: 'Press Briefing: Revised GHG Reduction Strategy for Global Shipping Adopted', meta: 'Tier 2 — Regulator press briefing · IMO · 7 July 2023' },
+    { tier: 'T2', kind: 'reg', title: '2023 IMO Strategy on Reduction of GHG Emissions from Ships (IMO topic page)', meta: 'Tier 2 — Regulator guidance · IMO · Ongoing (updated)' },
+    { tier: 'T2', kind: 'reg', title: 'Mid- and Long-Term GHG Reduction Measures (IMO topic page)', meta: 'Tier 2 — Regulator guidance · IMO · Ongoing (updated)' },
+    { tier: 'T2', kind: 'reg', title: 'EEXI and CII — Ship Carbon Intensity and Rating System (IMO FAQ)', meta: 'Tier 2 — Regulator guidance · IMO · Ongoing (updated)' },
+    { tier: 'T4', kind: 'ind', title: 'ABS Regulatory News — MEPC 80 Brief', meta: 'Tier 4 — Industry body analysis · American Bureau of Shipping · July 2023' },
+    { tier: 'T4', kind: 'ind', title: 'LISCR MEPC 80 Meeting Summary', meta: 'Tier 4 — Industry body summary · LISCR · 18 July 2023' },
+    { tier: 'T4', kind: 'ind', title: 'Bureau Veritas — MEPC 80 Summary', meta: 'Tier 4 — Industry body analysis · Bureau Veritas Marine & Offshore · July 2023' },
+    { tier: 'T4', kind: 'ind', title: 'LISCR MEPC 83 Meeting Summary', meta: 'Tier 4 — Industry body summary · LISCR · April 2025' },
+    { tier: 'T6', kind: 'op', title: "IMO's Newly Revised GHG Strategy: What It Means for Shipping and the Paris Agreement", meta: 'Tier 6 — Analysis/opinion · ICCT · August 2023' },
+    { tier: 'T6', kind: 'op', title: 'The Implications of the IMO Revised GHG Strategy for Shipping', meta: 'Tier 6 — Analysis/opinion · Global Maritime Forum · 2023' },
+    { tier: 'T6', kind: 'op', title: "A Guide to the IMO's Net-Zero Framework", meta: 'Tier 6 — Analysis/opinion · Global Maritime Forum · April 2026' }
+  ];
+
+  renderVals() {
+    const setText = (t) => this.setState({ aiText: t });
+    const tab = this.state.tab;
+    const mode = this.state.mode;
+    const open = this.state.open;
+
+    const tabStyle = (on) => on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 800, padding: '10px 18px', whiteSpace: 'nowrap', border: 'none', borderBottom: '3px solid #E8610A', background: 'transparent', color: '#1A1A1A', cursor: 'pointer' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 600, padding: '10px 18px', whiteSpace: 'nowrap', border: 'none', borderBottom: '3px solid transparent', background: 'transparent', color: '#5A6B67', cursor: 'pointer' };
+
+    const segStyle = (on) => on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 800, padding: '8px 16px', border: '1px solid #1A1A1A', background: '#1A1A1A', color: '#FFFFFF', cursor: 'pointer', borderRadius: '6px 0 0 6px' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '11.5px', fontWeight: 600, padding: '8px 16px', border: '1px solid rgba(0,0,0,0.18)', background: '#FFFFFF', color: '#5A6B67', cursor: 'pointer', borderRadius: '6px 0 0 6px' };
+
+    const badge = (kind) => {
+      const base = { fontSize: '10px', fontWeight: 800, padding: '2px 0', borderRadius: '4px', textAlign: 'center', display: 'inline-block', width: '34px' };
+      if (kind === 'law' || kind === 'reg') return Object.assign({}, base, { background: '#2563EB', color: '#FFFFFF' });
+      if (kind === 'ind') return Object.assign({}, base, { background: '#1A1A1A', color: '#FFFFFF' });
+      return Object.assign({}, base, { border: '1px dashed rgba(0,0,0,0.3)', color: '#7A6E6C' });
+    };
+
+    const expandStyle = { fontSize: '18px', fontWeight: 700, lineHeight: 1, color: '#E8610A' };
+    const mkToggle = (k) => ({
+      ['toggle' + k]: () => this.setState({ open: Object.assign({}, open, { [k]: !open[k] }) }),
+      ['open' + k]: !!open[k],
+      ['glyph' + k]: open[k] ? '–' : '+',
+      ['ebtn' + k]: expandStyle
+    });
+
+    const shortBtnBase = segStyle(mode === 'short');
+    const fullBtnBase = Object.assign({}, segStyle(mode === 'full'), { borderRadius: '0 6px 6px 0', marginLeft: '-1px' });
+
+    return Object.assign(
+      {
+        aiText: this.state.aiText,
+        onAiChange: (e) => setText(e.target.value),
+        chip1: () => setText('What does this mean for me?'),
+        chip2: () => setText('When does this hit force?'),
+        chip3: () => setText("Who's affected in my supply chain?"),
+
+        tabSummary: () => this.setState({ tab: 'summary' }),
+        tabExposure: () => this.setState({ tab: 'exposure' }),
+        tabPenalty: () => this.setState({ tab: 'penalty' }),
+        tabTimeline: () => this.setState({ tab: 'timeline' }),
+        tabSources: () => this.setState({ tab: 'sources' }),
+        tabStyleSummary: tabStyle(tab === 'summary'),
+        tabStyleExposure: tabStyle(tab === 'exposure'),
+        tabStylePenalty: tabStyle(tab === 'penalty'),
+        tabStyleTimeline: tabStyle(tab === 'timeline'),
+        tabStyleSources: tabStyle(tab === 'sources'),
+        showSummary: tab === 'summary',
+        showExposure: tab === 'exposure',
+        showPenalty: tab === 'penalty',
+        showTimeline: tab === 'timeline',
+        showSources: tab === 'sources',
+
+        setShort: () => this.setState({ mode: 'short' }),
+        setFull: () => this.setState({ mode: 'full' }),
+        shortBtn: shortBtnBase,
+        fullBtn: fullBtnBase,
+        isFull: mode === 'full',
+        summaryNote: mode === 'short' ? 'Essentials only — switch to Full for the compliance chain, reporting, and workstreams.' : 'Complete brief · 24 min read',
+
+        milestones: this.milestones.map((m, i) => ({
+          year: m.year,
+          label: m.label,
+          pick: () => this.setState({ tlPick: i }),
+          dotStyle: {
+            position: 'absolute', left: m.pos + '%', top: '50%', transform: 'translate(-50%,-50%)',
+            width: i === this.state.tlPick ? '16px' : '12px', height: i === this.state.tlPick ? '16px' : '12px',
+            borderRadius: '50%', cursor: 'pointer', padding: 0,
+            background: m.done ? '#16A34A' : '#FFFFFF',
+            border: i === this.state.tlPick ? '3px solid ' + m.hue : '2px solid ' + (m.done ? '#16A34A' : 'rgba(0,0,0,0.3)'),
+            boxShadow: i === this.state.tlPick ? '0 0 0 4px ' + m.hue + '22' : 'none'
+          },
+          yearStyle: {
+            fontFamily: "'Plus Jakarta Sans',sans-serif", background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            fontSize: '11px', fontWeight: i === this.state.tlPick ? 800 : 600,
+            color: i === this.state.tlPick ? '#1A1A1A' : '#7A6E6C'
+          }
+        })),
+        tlProgress: '10%',
+        tlTitle: this.milestones[this.state.tlPick].title,
+        tlBody: this.milestones[this.state.tlPick].body,
+        tlStatus: this.milestones[this.state.tlPick].status,
+        tlHue: this.milestones[this.state.tlPick].hue,
+        obligations: this.obligations,
+        workstreams: this.workstreams,
+        sources: this.sources.map((s) => Object.assign({}, s, { badge: badge(s.kind) }))
+      },
+      mkToggle('A'), mkToggle('B'), mkToggle('C'), mkToggle('D')
+    );
+  }
+}
+</script>
+</body>
+</html>

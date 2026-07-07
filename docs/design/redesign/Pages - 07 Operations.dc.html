@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+    @media (max-width: 1200px) {
+      #ops-grid { grid-template-columns: minmax(0,1fr) !important; }
+      #ops-rail { flex-direction: row !important; flex-wrap: wrap !important; }
+      #ops-rail > div { flex: 1 1 260px; }
+    }
+  </style>
+</helmet>
+
+<div data-screen-label="Operations" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Regulations</a>
+      <a href="Pages - 04 Market Intel.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Market Intel</a>
+      <a href="Pages - 06 Research.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="padding:26px 36px 22px">
+        <p style="font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Vol IV · No. 27 · Friday</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;letter-spacing:0.02em;text-transform:uppercase;margin:0">Operations Intelligence</h1>
+        <p style="font-size:13.5px;color:#5A6B67;margin:8px 0 0">48 active items · 33 jurisdictions in scope · six dimensions per region · every fact carries a source and date</p>
+      </div>
+    </header>
+
+    <div style="padding:28px 36px 80px">
+
+      <!-- Severity tiles -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 18px">
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+          <div style="padding:14px 16px 10px"><p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#DC2626;margin:0 0 4px">Critical</p><p style="font-family:'Anton',sans-serif;font-size:38px;line-height:1;color:#DC2626;margin:0">0</p><p style="font-size:11px;font-weight:600;color:#5A6B67;margin:5px 0 0">Threshold breached, immediate cost impact</p></div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000 33%,#D97706 66%,#DC2626)"></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+          <div style="padding:14px 16px 10px"><p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#D97706;margin:0 0 4px">High</p><p style="font-family:'Anton',sans-serif;font-size:38px;line-height:1;color:#D97706;margin:0">10</p><p style="font-size:11px;font-weight:600;color:#5A6B67;margin:5px 0 0">Plan ahead, material impact</p></div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000 50%,#D97706)"></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+          <div style="padding:14px 16px 10px"><p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#A16207;margin:0 0 4px">Moderate</p><p style="font-family:'Anton',sans-serif;font-size:38px;line-height:1;color:#A16207;margin:0">5</p><p style="font-size:11px;font-weight:600;color:#5A6B67;margin:5px 0 0">Monitor, within range</p></div>
+          <div style="height:5px;background:linear-gradient(90deg,#16A34A,#CFA000)"></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+          <div style="padding:14px 16px 10px"><p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#16A34A;margin:0 0 4px">Low</p><p style="font-family:'Anton',sans-serif;font-size:38px;line-height:1;color:#16A34A;margin:0">33</p><p style="font-size:11px;font-weight:600;color:#5A6B67;margin:5px 0 0">Background awareness</p></div>
+          <div style="height:5px;background:#16A34A"></div>
+        </div>
+      </div>
+
+      <!-- Dimension strip — click to spotlight across regions -->
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:0 0 18px">
+        <sc-for list="{{ dims }}" as="d" hint-placeholder-count="6">
+          <button onClick="{{ d.pick }}" style="{{ d.style }}">
+            <p style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#8A6A2A;margin:0 0 4px;text-align:left">{{ d.code }} {{ d.name }}</p>
+            <p style="font-family:'Anton',sans-serif;font-size:22px;line-height:1;color:{{ d.hue }};margin:0;text-align:left">{{ d.cov }}<span style="font-size:12px;color:#7A6E6C"> /5</span></p>
+            <p style="font-size:10px;color:#5A6B67;margin:3px 0 0;text-align:left">{{ d.sub }}</p>
+          </button>
+        </sc-for>
+      </div>
+
+      <!-- AI prompt bar — identical block on every page -->
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px;margin:0 0 22px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input value="{{ aiText }}" onChange="{{ onAiChange }}" placeholder="Ask anything about your operations, e.g. What are warehouse labor rates in Singapore vs LA?" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;padding:11px 14px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+          <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:800;padding:11px 20px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Ask</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">
+          <button onClick="{{ chip1 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Warehouse labor, EU vs US</button>
+          <button onClick="{{ chip2 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">SAF availability at EU airports</button>
+          <button onClick="{{ chip3 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Solar permitting timelines</button>
+          <button onClick="{{ chip4 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Drayage rates, LA / NY / Rotterdam</button>
+        </div>
+      </div>
+
+      <!-- Regional ledger -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:0 0 8px;margin:0 0 16px">
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:0.02em;text-transform:uppercase;margin:0">Regional operations</h2>
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Six dimensions per region · click to expand</span>
+      </div>
+
+      <div id="ops-grid" style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px;align-items:start">
+
+        <div style="min-width:0;display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ regions }}" as="r" hint-placeholder-count="5">
+            <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid {{ r.hue }};border-radius:8px;overflow:hidden">
+              <button onClick="{{ r.toggle }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;background:transparent;border:none;cursor:pointer;padding:14px 18px;display:flex;justify-content:space-between;gap:14px;align-items:center" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                  <span style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase">{{ r.name }}</span>
+                  <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:{{ r.hue }};border:1px solid {{ r.bd }};background:{{ r.bg }};border-radius:4px;padding:2px 8px">{{ r.sev }}</span>
+                  <span style="font-size:11.5px;font-weight:600;color:#5A6B67">{{ r.regs }} regulations</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:14px">
+                  <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">{{ r.covNote }}</span>
+                  <span style="{{ r.expandBtn }}">{{ r.expandLabel }}</span>
+                </div>
+              </button>
+              <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+                <div style="border-top:1px solid rgba(0,0,0,0.08);padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="6">
+                    <div style="{{ c.style }}">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 5px">
+                        <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#8A6A2A">{{ c.code }} · {{ c.name }}</span>
+                        <sc-if value="{{ c.fig }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Anton',sans-serif;font-size:19px;color:{{ c.figHue }};white-space:nowrap">{{ c.fig }}</span></sc-if>
+                      </div>
+                      <p style="font-size:11.5px;line-height:1.6;color:{{ c.bodyHue }};margin:0">{{ c.body }}</p>
+                      <sc-if value="{{ c.link }}" hint-placeholder-val="{{ false }}"><a href="{{ c.href }}" style="display:inline-block;font-size:11px;font-weight:800;color:#E8610A;text-decoration:none;margin:7px 0 0">{{ c.link }}</a></sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ r.hasSubs }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ r.subToggle }}" style="width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;padding:11px 18px;background:#FAFAF8;border:none;border-top:1px solid rgba(0,0,0,0.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center" style-hover="{&quot;background&quot;:&quot;#F5F2EE&quot;}">
+                    <span style="font-size:12px;font-weight:800;color:#E8610A">{{ r.subToggleLabel }}</span>
+                    <span style="font-size:11px;color:#7A6E6C">state law is state-level data — never a national average</span>
+                  </button>
+                  <sc-if value="{{ r.subOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="border-top:1px solid rgba(0,0,0,0.08)">
+                      <sc-for list="{{ r.subs }}" as="st" hint-placeholder-count="5">
+                        <a href="#" style="display:grid;grid-template-columns:150px 1fr auto auto;gap:12px;align-items:center;padding:11px 18px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                          <span style="font-size:12.5px;font-weight:800">{{ st.name }}</span>
+                          <span style="font-size:11.5px;color:#5A6B67;line-height:1.5">{{ st.note }}</span>
+                          <sc-if value="{{ st.fig }}" hint-placeholder-val="{{ false }}"><span style="font-family:'Anton',sans-serif;font-size:17px;color:{{ st.figHue }};white-space:nowrap">{{ st.fig }}</span></sc-if>
+                          <span style="font-size:10.5px;font-weight:700;color:#7A6E6C;white-space:nowrap">{{ st.regs }} regs</span>
+                        </a>
+                      </sc-for>
+                      <div style="padding:11px 18px;background:#FAFAF8">
+                        <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;padding:10px 13px">
+                          <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:0">{{ r.subNote }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </sc-if>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <!-- Active items -->
+          <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:14px 0 8px;margin:14px 0 4px">
+            <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:22px;letter-spacing:0.02em;text-transform:uppercase;margin:0">Active operations items</h2>
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">48 items · grouped by region</span>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <sc-for list="{{ items }}" as="it" hint-placeholder-count="6">
+              <a href="#" style="display:grid;grid-template-columns:64px 90px 1fr auto;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#16A34A;border:1px solid rgba(22,163,74,0.4);border-radius:4px;padding:2px 0;text-align:center">Low</span>
+                <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">{{ it.region }}</span>
+                <div><p style="font-size:13px;font-weight:700;margin:0;line-height:1.4">{{ it.title }}</p><p style="font-size:11.5px;color:#7A6E6C;margin:2px 0 0">{{ it.sub }}</p></div>
+                <span style="font-size:11px;color:#7A6E6C;white-space:nowrap">{{ it.date }}</span>
+              </a>
+            </sc-for>
+            <a href="#" style="display:flex;justify-content:space-between;align-items:center;padding:11px 18px;text-decoration:none" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:12px;font-weight:800;color:#E8610A">All 48 items →</span>
+              <span style="font-size:11px;color:#7A6E6C">33 more regions in the full ledger</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Right rail -->
+        <div id="ops-rail" style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #E8610A;border-radius:8px;padding:14px 16px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Coverage</p>
+            <p style="font-family:'Anton',sans-serif;font-size:26px;color:#E8610A;margin:0">3 <span style="font-size:13px;color:#5A6B67">of 5 jurisdictions with data</span></p>
+            <div style="height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden;margin:8px 0"><div style="height:100%;width:60%;background:#E8610A"></div></div>
+            <p style="font-size:11px;color:#5A6B67;line-height:1.55;margin:0">60% of region × dimension cells populated (15 of 25). D1 renders through Regulations cross-refs; coverage expands weekly for cost data, quarterly for regulatory.</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">By dimension</p>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:600">D1 Regulatory feasibility</span><span style="font-family:'Anton',sans-serif;font-size:15px;color:#16A34A">5/5</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:600">D2 Regional resource availability</span><span style="font-family:'Anton',sans-serif;font-size:15px;color:#D97706">3/5</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:600">D3 Labor markets</span><span style="font-family:'Anton',sans-serif;font-size:15px;color:#D97706">3/5</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:600">D4 Materials sourcing</span><span style="font-family:'Anton',sans-serif;font-size:15px;color:#D97706">3/5</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:600">D5 Infrastructure capacity</span><span style="font-family:'Anton',sans-serif;font-size:15px;color:#D97706">3/5</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:600">D6 Operational cost data</span><span style="font-family:'Anton',sans-serif;font-size:15px;color:#D97706">3/5</span></div>
+            </div>
+            <p style="font-size:11px;color:#7A6E6C;line-height:1.55;margin:10px 0 0">Cells populate when at least one sourced, dated fact exists. Cost data refreshes weekly.</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Methodology</p>
+            <p style="font-size:11.5px;line-height:1.6;color:#5A6B67;margin:0">Regional data points come from published regulator and utility schedules, industry surveys, and trade-press reporting. Every fact carries a source and date. Regulatory feasibility entries cross-reference Regulations; click any rule to read the full brief.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 }
+}">
+class Component extends DCLogic {
+  state = { aiText: '', dim: null, open: { 'United States': true } };
+
+  regionData = [
+    {
+      name: 'European Union', sev: 'Critical', regs: '1', covNote: '5 of 6 dimensions populated',
+      cells: {
+        D1: { body: 'CSRD, EU ETS 70% surrender year, PPWR recyclability, ICS2 — the Immediate band on Regulations is EU-heavy.', link: 'Open EU regulations →', href: 'Pages — 02 Regulations.dc.html' },
+        D2: { body: 'Industrial gas and electricity prices, while lower than during the crisis, remain 2–4× higher than the EU\u2019s main trading partners (European Commission 6th Report on Energy Prices, Feb 2025).', fig: '2–4×', figHue: '#DC2626' },
+        D3: { body: 'Labor market entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D4: { body: 'Materials sourcing entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D5: { body: 'SAF availability at EU airports tracked via ReFuelEU mandates; infrastructure capacity survey in progress.', link: 'Ask the assistant →', href: '#' },
+        D6: { body: 'The EU\u2019s energy import bill receded to €427B in 2024 after peaking at €604B in 2022 — still a significant structural drain (DG Energy, Feb 2025).', fig: '€427B', figHue: '#D97706' }
+      }
+    },
+    {
+      name: 'United States', sev: 'Critical', regs: '17', covNote: 'all 6 dimensions populated',
+      subRegions: [
+        { name: 'California', regs: '4', note: 'SB 253/261 climate disclosure · Port of LA environmental policy · LA ULSD $4.183/gal', fig: '$4.183/gal', figHue: '#DC2626' },
+        { name: 'New York', regs: '3', note: 'NYC Local Law 97 building carbon caps · NY Harbor ULSD $3.969/gal benchmark', fig: '$3.969/gal', figHue: '#D97706' },
+        { name: 'North Carolina', regs: '2', note: 'NC DEQ air quality programs · NC Register rulemaking publication', fig: false },
+        { name: 'Texas', regs: '1', note: 'TCEQ current rules and environmental regulations', fig: false },
+        { name: 'Kansas · Iowa · Maine', regs: '3', note: 'State registers and mobile-source emissions programs — background', fig: false }
+      ],
+      subNote: 'State-level cost facts (minimum wage, labor rates, fuel taxes) populate per state as sourced entries land — each carries its own statute citation, never a national average presented as state law.',
+      cells: {
+        D1: { body: '17 active regulations spanning EPA heavy-duty Phase 3, state registries (NC, KS, TX), NYC LL97, SmartWay.', link: 'Open US regulations →', href: 'Pages — 02 Regulations.dc.html' },
+        D2: { body: 'Global industrial electricity spans $0.014–$0.412/kWh across the 133-country GlobalPetrolPrices dataset (2025 Q3); granular US per-state figures require the paid dataset — flagged as a source gap.', fig: '$0.014–0.412', figHue: '#D97706' },
+        D3: { body: 'CVSA Roadcheck week (May 12) tightens road capacity: spot +6–8%, tender rejections +117 bps — cross-referenced from Market Intel.', fig: '+6–8%', figHue: '#D97706', link: 'Open the signal →', href: 'Pages — 05 Signal Detail.dc.html' },
+        D4: { body: 'Materials sourcing entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D5: { body: 'MCS charging infrastructure deployment tracked via IEA battery/EV research finding.', link: 'Open the finding →', href: 'Pages — 06 Research.dc.html' },
+        D6: { body: 'ULSD (NY Harbor) $3.969/gal May avg; Los Angeles $4.183 — a structural $0.32/gal west-coast premium priced into road quotes.', fig: '$3.969/gal', figHue: '#D97706', link: 'Open the signal →', href: 'Pages — 05 Signal Detail.dc.html' }
+      }
+    },
+    {
+      name: 'Asia · Singapore + Hong Kong', sev: 'High', regs: '12', covNote: '4 of 6 dimensions populated',
+      cells: {
+        D1: { body: 'Maritime Singapore Green Initiative (S$50M MSGI refresh, 2025–2027 incentive window) and Decarbonisation Blueprint; MPA Green Shipping Programme port incentives.', fig: 'S$50M', figHue: '#D97706', link: 'Open SG regulations →', href: 'Pages — 02 Regulations.dc.html' },
+        D2: { body: 'Regional resource entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D3: { body: 'Warehouse labor rate comparison (Singapore vs LA) available through the assistant; sourced survey pending.', link: 'Ask the assistant →', href: '#' },
+        D4: { body: 'Materials sourcing entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D5: { body: 'Singapore as Asia-Pacific shipping and air cargo hub — port and airport capacity tracked via regional operations profile.', link: 'Open profile →', href: '#' },
+        D6: { body: 'Operational cost entry pending — populates when a sourced, dated fact lands.', pending: true }
+      }
+    },
+    {
+      name: 'United Kingdom', sev: 'High', regs: '5', covNote: '3 of 6 dimensions populated',
+      cells: {
+        D1: { body: 'UK DfT Decarbonisation (in force) heads the Dashboard priority list; DEFRA policy framework and 4 others tracked.', link: 'Open UK regulations →', href: 'Pages — 02 Regulations.dc.html' },
+        D2: { body: 'Regional resource entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D3: { body: 'Labor market entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D4: { body: 'Materials sourcing entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D5: { body: 'Project JOLT eHGV trials (9 vehicles, 5 OEMs) supply real-world charging and range data for UK road legs.', fig: '9 eHGVs', figHue: '#16A34A', link: 'Open the finding →', href: 'Pages — 06 Research.dc.html' },
+        D6: { body: 'Operational cost entry pending — populates when a sourced, dated fact lands.', pending: true }
+      }
+    },
+    {
+      name: 'UAE · Dubai', sev: 'Moderate', regs: '3', covNote: '2 of 6 dimensions populated',
+      cells: {
+        D1: { body: 'UAE National Hydrogen Strategy (transport sector requirements + logistics implementation decree) and Ministry of Energy tracked.', link: 'Open UAE regulations →', href: 'Pages — 02 Regulations.dc.html' },
+        D2: { body: 'Regional resource entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D3: { body: 'Labor market entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D4: { body: 'Materials sourcing entry pending — populates when a sourced, dated fact lands.', pending: true },
+        D5: { body: 'Middle East corridor capacity reallocations tracked via the air cargo market signal.', link: 'Open Market Intel →', href: 'Pages — 04 Market Intel.dc.html' },
+        D6: { body: 'Operational cost entry pending — populates when a sourced, dated fact lands.', pending: true }
+      }
+    }
+  ];
+
+  dimDefs = [
+    { code: 'D1', name: 'Regulatory feasibility', cov: '5', sub: 'All regions', hue: '#16A34A' },
+    { code: 'D2', name: 'Regional resource', cov: '3', sub: '2 gaps', hue: '#D97706' },
+    { code: 'D3', name: 'Labor markets', cov: '3', sub: '2 gaps', hue: '#D97706' },
+    { code: 'D4', name: 'Materials sourcing', cov: '3', sub: '2 gaps', hue: '#D97706' },
+    { code: 'D5', name: 'Infrastructure capacity', cov: '3', sub: '2 gaps', hue: '#D97706' },
+    { code: 'D6', name: 'Operational cost', cov: '3', sub: '2 gaps', hue: '#D97706' }
+  ];
+
+  renderVals() {
+    const setText = (t) => this.setState({ aiText: t });
+    const { dim, open } = this.state;
+
+    const sevMeta = {
+      Critical: { hue: '#DC2626', bg: '#FEF2F2', bd: '#FECACA' },
+      High: { hue: '#D97706', bg: '#FFF7ED', bd: 'rgba(217,119,6,0.4)' },
+      Moderate: { hue: '#A16207', bg: '#FEFCE8', bd: 'rgba(161,98,7,0.4)' },
+      Low: { hue: '#16A34A', bg: '#F0FDF4', bd: 'rgba(22,163,74,0.4)' }
+    };
+    const dimNames = { D1: 'Regulatory feasibility', D2: 'Regional resource', D3: 'Labor markets', D4: 'Materials sourcing', D5: 'Infrastructure capacity', D6: 'Operational cost' };
+
+    const dims = this.dimDefs.map((d) => ({
+      code: d.code, name: d.name, cov: d.cov, sub: d.sub, hue: d.hue,
+      pick: () => this.setState({ dim: dim === d.code ? null : d.code }),
+      style: {
+        fontFamily: "'Plus Jakarta Sans',sans-serif", cursor: 'pointer', background: dim === d.code ? '#FFF7F0' : '#FFFFFF',
+        borderRadius: '8px', padding: '11px 13px', width: '100%',
+        border: dim === d.code ? '2px solid #E8610A' : '1px solid rgba(0,0,0,0.12)'
+      }
+    }));
+
+    const regions = this.regionData.map((r) => {
+      const m = sevMeta[r.sev];
+      const isOpen = !!open[r.name];
+      const cells = Object.keys(r.cells).map((code) => {
+        const c = r.cells[code];
+        const spotlight = dim === code;
+        return {
+          code, name: dimNames[code],
+          body: c.body,
+          bodyHue: c.pending ? '#5A6B67' : '#1A1A1A',
+          fig: c.fig || false, figHue: c.figHue || '#1A1A1A',
+          link: c.link || false, href: c.href || '#',
+          style: c.pending
+            ? { border: (spotlight ? '2px solid #E8610A' : '1px dashed rgba(0,0,0,0.25)'), borderRadius: '6px', background: '#FAFAF8', padding: '12px 14px' }
+            : { border: (spotlight ? '2px solid #E8610A' : '1px solid rgba(0,0,0,0.12)'), borderRadius: '6px', background: '#FFFFFF', padding: '12px 14px' }
+        };
+      });
+      const subOpen = !!this.state.subOpen;
+      return {
+        name: r.name, sev: r.sev, regs: r.regs, covNote: r.covNote,
+        hue: m.hue, bg: m.bg, bd: m.bd,
+        open: isOpen, glyph: isOpen ? '–' : '+',
+        expandLabel: isOpen ? '–' : '+',
+        expandBtn: { fontSize: '18px', fontWeight: 700, lineHeight: 1, color: '#E8610A', padding: '6px 8px' },
+        toggle: () => this.setState({ open: Object.assign({}, open, { [r.name]: !isOpen }) }),
+        cells,
+        hasSubs: !!r.subRegions,
+        subs: r.subRegions || [],
+        subNote: r.subNote || '',
+        subOpen: !!r.subRegions && subOpen,
+        subToggleLabel: subOpen ? 'Hide state breakdown' : 'By state · ' + (r.subRegions ? r.subRegions.length : 0) + ' with data →',
+        subToggle: () => this.setState({ subOpen: !subOpen })
+      };
+    });
+
+    return {
+      aiText: this.state.aiText,
+      onAiChange: (e) => setText(e.target.value),
+      chip1: () => setText('Warehouse labor, EU vs US'),
+      chip2: () => setText('SAF availability at EU airports'),
+      chip3: () => setText('Solar permitting timelines'),
+      chip4: () => setText('Drayage rates, LA / NY / Rotterdam'),
+      dims, regions,
+      items: [
+        { region: 'ASEAN', title: '48th ASEAN Summit Outcomes and Regional Cooperation Initiatives – May 2026', sub: 'Chair\u2019s statement, Secretary-General briefings, Special Senior Officials Meeting · Cebu, May 7–8', date: '10 May' },
+        { region: 'ASIA', title: 'India Regional Operations Profile', sub: 'Carbon Credit Trading Scheme launching · Owner: Sustainability + Operations', date: '11 Apr' },
+        { region: 'ASIA', title: 'Singapore Regional Operations Profile', sub: 'Asia-Pacific shipping and air cargo hub · MPA Green Shipping Programme with port incentives', date: '11 Apr' },
+        { region: 'ASIA', title: 'Japan Regional Operations Profile', sub: 'GX-ETS launching 2026, carbon surcharge from 2028 · Owner: Sustainability + Operations', date: '11 Apr' },
+        { region: 'AU', title: 'NSW EPA PFAS Investigation Program – Multiple Site Listings (April 2026)', sub: 'Contaminated land registry across NSW · sites documented with coordinates and status', date: '10 May' },
+        { region: 'BR', title: 'Brazilian Ministry of Transportation – Official Portal Navigation and Services', sub: 'Portal landing and navigation structure · background only', date: '10 May' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

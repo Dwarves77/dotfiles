@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+    @media (max-width: 1200px) {
+      #intel-grid { grid-template-columns: minmax(0,1fr) !important; }
+      #intel-rail { flex-direction: row !important; flex-wrap: wrap !important; }
+      #intel-rail > div { flex: 1 1 260px; }
+    }
+  </style>
+</helmet>
+
+<div data-screen-label="Market Intel" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Regulations</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Market Intel</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <!-- Masthead -->
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="padding:26px 36px 22px">
+        <p style="font-size:10.5px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#2563EB;margin:0 0 6px">Vol IV · No. 27 · Friday</p>
+        <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:42px;line-height:1;letter-spacing:0.02em;text-transform:uppercase;margin:0">Market Intelligence</h1>
+        <p style="font-size:13.5px;color:#5A6B67;margin:8px 0 0">July 3, 2026 · 94 active signals · 3 signal bands · signals are unverified by design — timely first, confirmed later</p>
+      </div>
+    </header>
+
+    <div style="padding:28px 36px 80px">
+
+      <!-- Severity tiles — click to filter -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:0 0 18px">
+        <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="5">
+          <button onClick="{{ t.pick }}" style="{{ t.style }}">
+            <div style="padding:14px 16px 10px;text-align:left">
+              <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:{{ t.hue }};margin:0 0 4px">{{ t.label }}</p>
+              <p style="font-family:'Anton',sans-serif;font-size:38px;line-height:1;color:{{ t.hue }};margin:0">{{ t.count }}</p>
+              <p style="font-size:11px;font-weight:600;color:#5A6B67;margin:5px 0 0">{{ t.sub }}</p>
+            </div>
+            <div style="height:5px;background:{{ t.gradient }}"></div>
+          </button>
+        </sc-for>
+      </div>
+
+      <!-- Signal-type band strip — click to filter -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 18px">
+        <sc-for list="{{ bandTabs }}" as="b" hint-placeholder-count="3">
+          <button onClick="{{ b.pick }}" style="{{ b.style }}">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#8A6A2A">{{ b.code }} · {{ b.name }}</span>
+              <span style="font-family:'Anton',sans-serif;font-size:20px;color:#E8610A">{{ b.count }}</span>
+            </div>
+            <p style="font-size:11px;color:#5A6B67;margin:4px 0 0;text-align:left">{{ b.sub }}</p>
+          </button>
+        </sc-for>
+      </div>
+
+      <!-- AI prompt bar — identical block on every page -->
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px;margin:0 0 22px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input value="{{ aiText }}" onChange="{{ onAiChange }}" placeholder="Ask anything about market intel, e.g. How will SAF prices affect Q3 surcharges on my EU-US lanes?" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;padding:11px 14px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+          <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:800;padding:11px 20px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Ask</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">
+          <button onClick="{{ chip1 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">SAF cost outlook</button>
+          <button onClick="{{ chip2 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">EU ETS shipping pass-through</button>
+          <button onClick="{{ chip3 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Carrier capacity Q3</button>
+          <button onClick="{{ chip4 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Diesel forward curve</button>
+        </div>
+      </div>
+
+      <!-- Filter status line -->
+      <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1A1A1A;padding:0 0 8px;margin:0 0 16px">
+        <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:0.02em;text-transform:uppercase;margin:0">{{ ledgerTitle }}</h2>
+        <sc-if value="{{ filterActive }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearFilters }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;padding:0">Clear filters ✕</button>
+        </sc-if>
+        <sc-if value="{{ noFilter }}" hint-placeholder-val="{{ true }}">
+          <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C">Click a tile or band to filter</span>
+        </sc-if>
+      </div>
+
+      <div id="intel-grid" style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px;align-items:start">
+
+        <!-- Signal ledger — grouped by severity, priority order -->
+        <div style="min-width:0;display:flex;flex-direction:column;gap:18px">
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 16px;background:{{ g.bg }};border:1px solid {{ g.bd }};border-radius:8px 8px 0 0;border-bottom:none">
+                <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:{{ g.hue }};display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:{{ g.hue }};display:inline-block"></span>{{ g.label }}<span style="font-weight:600;letter-spacing:0.02em;text-transform:none;color:#7A6E6C">{{ g.sub }}</span></span>
+                <span style="font-family:'Anton',sans-serif;font-size:16px;color:{{ g.hue }}">{{ g.count }}</span>
+              </div>
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:0 0 8px 8px;overflow:hidden;display:flex;flex-direction:column">
+          <sc-for list="{{ g.items }}" as="s" hint-placeholder-count="2">
+            <div style="background:#FFFFFF;border-left:3px solid {{ s.edgeHue }};border-bottom:1px solid rgba(0,0,0,0.06)">
+              <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding:14px 18px">
+                <button onClick="{{ s.toggle }}" style="flex:1;min-width:0;text-align:left;font-family:'Plus Jakarta Sans',sans-serif;background:transparent;border:none;cursor:pointer;padding:0" style-hover="{&quot;opacity&quot;:&quot;0.85&quot;}">
+
+                  <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:0 0 5px">
+                    <span style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#B45309;border:1px dashed rgba(180,83,9,0.45);border-radius:4px;padding:2px 8px">Unverified</span>
+                    <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8A6A2A">{{ s.jur }} · {{ s.bandCode }}</span>
+                    <sc-if value="{{ s.hasNote }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#2563EB;border:1px solid rgba(37,99,235,0.35);border-radius:4px;padding:2px 8px">Your note</span></sc-if>
+                  </div>
+                  <p style="font-size:15px;font-weight:800;margin:0;line-height:1.35">{{ s.title }}</p>
+                  <p style="font-size:12.5px;line-height:1.6;color:#5A6B67;margin:5px 0 0;max-width:96ch">{{ s.summary }}</p>
+                </button>
+                <div style="display:flex;align-items:center;gap:16px;flex-shrink:0">
+                  <div style="text-align:right;min-width:120px">
+                    <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;color:{{ s.figHue }};margin:0;white-space:nowrap">{{ s.figNum }}<span style="font-size:14px;letter-spacing:0.02em"> {{ s.figUnit }}</span></p>
+                    <p style="font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#7A6E6C;margin:4px 0 0;white-space:nowrap">{{ s.figLabel }}</p>
+                  </div>
+                  <sc-if value="{{ s.hasDetail }}" hint-placeholder-val="{{ false }}"><a href="Pages - 05 Signal Detail.dc.html" style="font-size:11.5px;font-weight:800;padding:7px 14px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;text-decoration:none;white-space:nowrap" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Full analysis →</a></sc-if>
+                  <button onClick="{{ s.toggle }}" title="{{ s.expandTitle }}" style="{{ s.expandBtn }}">{{ s.glyph }}</button>
+                </div>
+              </div>
+              <sc-if value="{{ s.open }}" hint-placeholder-val="{{ false }}">
+                <div style="border-top:1px solid rgba(0,0,0,0.08);padding:14px 18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+                  <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px">
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#8A6A2A;display:block;margin:0 0 4px">Trajectory · 12 wk · not yet captured</span>
+                    <p style="font-size:11.5px;line-height:1.55;color:#5A6B67;margin:0">Price history begins with the next weekly capture once the commodity-price feed is connected.</p>
+                  </div>
+                  <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 12px">
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 4px">Our analysis · what it changes</span>
+                    <p style="font-size:11.5px;line-height:1.6;margin:0">{{ s.changes }}</p>
+                  </div>
+                  <div style="border-left:3px solid #E8610A;padding:2px 0 2px 12px">
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#E8610A;display:block;margin:0 0 4px">Conversion trigger · when this escalates</span>
+                    <p style="font-size:11.5px;line-height:1.6;margin:0">{{ s.trigger }}</p>
+                  </div>
+                </div>
+                <div style="border-top:1px solid rgba(0,0,0,0.08);padding:12px 18px;background:#FAFAF8;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start">
+                  <div>
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#2563EB;display:block;margin:0 0 5px">Your notes · visible to your workspace</span>
+                    <textarea value="{{ s.note }}" onChange="{{ s.onNote }}" placeholder="Add analyst context — e.g. which lanes or clients this touches, who's on it…" style="width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.55;padding:9px 12px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FFFFFF;resize:vertical;min-height:40px" style-focus="{&quot;borderColor&quot;:&quot;#2563EB&quot;}"></textarea>
+                  </div>
+                  <span style="font-size:10.5px;color:#7A6E6C;white-space:nowrap;padding-top:20px">{{ s.noteStatus }}</span>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+              </div>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ emptyFilter }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.14);border-radius:8px;padding:20px">
+              <p style="font-size:13px;font-weight:700;margin:0 0 4px">No signals match this filter.</p>
+              <p style="font-size:12px;color:#5A6B67;margin:0 0 10px">{{ emptyNote }}</p>
+              <button onClick="{{ clearFilters }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;color:#E8610A;background:none;border:none;cursor:pointer;padding:0">Clear filters</button>
+            </div>
+          </sc-if>
+
+          <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;background:#FFFFFF;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px">
+            <p style="font-size:12px;color:#5A6B67;margin:0">{{ moreNote }}</p>
+            <a href="#" style="font-size:11.5px;font-weight:800;color:#E8610A;text-decoration:none;white-space:nowrap">Open full ledger →</a>
+          </div>
+        </div>
+
+        <!-- Right rail -->
+        <div id="intel-rail" style="display:flex;flex-direction:column;gap:14px">
+          <button onClick="{{ pickAlerts }}" style="text-align:left;font-family:'Plus Jakarta Sans',sans-serif;background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-left:3px solid #E8610A;border-radius:8px;padding:14px 16px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;}">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Watch this week · click to filter</p>
+            <p style="font-family:'Anton',sans-serif;font-size:26px;color:#E8610A;margin:0">12 alerts</p>
+            <p style="font-size:11.5px;color:#5A6B67;margin:4px 0 0">0 action-required + 12 cost alerts across the bands.</p>
+          </button>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0">Highest-priority indicators</p>
+            </div>
+            <sc-for list="{{ indicators }}" as="i" hint-placeholder-count="6">
+              <a href="#" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:10px 16px;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                <div><p style="font-size:12px;font-weight:700;margin:0;line-height:1.4">{{ i.title }}</p><p style="font-size:10.5px;color:#7A6E6C;margin:1px 0 0">{{ i.meta }}</p></div>
+                <span style="font-size:11px;color:#D97706">▲</span>
+              </a>
+            </sc-for>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Methodology</p>
+            <p style="font-size:11.5px;line-height:1.6;color:#5A6B67;margin:0">Signals are scored by source convergence (independent corroborating sources within 30 days) and recency. The 5-label severity vocabulary names the next-action shape: Action required, Cost alert, Window closing, Competitive edge, Monitoring.</p>
+          </div>
+
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Sources tracked</p>
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:11px 13px">
+              <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:0">The price-data source roster populates here once the commodity-price feed is connected. The live source registry is under <b>Sources → Source Health</b>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 }
+}">
+class Component extends DCLogic {
+  state = { aiText: '', sev: null, band: null, open: { 0: true }, notes: {} };
+
+  componentDidMount() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('cl-mi-notes') || '{}');
+      this.setState({ notes: saved });
+    } catch (e) { /* fresh start */ }
+  }
+
+  saveNote(i, text) {
+    const notes = Object.assign({}, this.state.notes, { [i]: text });
+    this.setState({ notes });
+    try { localStorage.setItem('cl-mi-notes', JSON.stringify(notes)); } catch (e) { /* ignore */ }
+  }
+
+  signalData = [
+    {
+      severity: 'Cost alert', band: 'B1', jur: 'US',
+      fig: { num: '$89', unit: '/bbl', label: 'Brent path · Q4 2026' },
+      title: 'EIA Spot Prices for Crude Oil and Petroleum Products – Monthly Data',
+      summary: 'U.S. Energy Information Administration (EIA) official spot pricing data for crude oil ($/barrel) and petroleum products ($/gallon). Monthly price series with historical data, covering November 2025 through April 2026 forecast period.',
+      changes: 'Jet fuel doubled from Dec-2025 to May-2026 — fixed-rate air commitments quoted at prior lows face margin compression requiring immediate contract audit.',
+      trigger: 'June 9 STEO revision — if Hormuz recovery confirmed, Brent price path to $89/bbl Q4 2026 locks in; if delayed, upward revision triggers a new surcharge cycle.'
+    },
+    {
+      severity: 'Cost alert', band: 'B1', jur: 'US',
+      fig: { num: '$3.07', unit: '/MMBtu', label: 'Henry Hub · re-check Jun 10' },
+      title: 'Natural Gas Spot and Futures Prices (NYMEX) – Daily Data',
+      summary: 'EIA dataset providing daily natural gas spot and futures prices from NYMEX, in dollars per Million Btu with historical data available for download.',
+      changes: 'Henry Hub at $3.07/MMBtu sets the commodity baseline for CNG/LNG road and ocean fuel cost negotiations — re-check on 10 June 2026 EIA release.',
+      trigger: 'A sustained move above $3.50/MMBtu re-opens LNG-fuelled ocean and road contract pricing on affected lanes.'
+    },
+    {
+      severity: 'Cost alert', band: 'B3', jur: 'GLOBAL',
+      fig: { num: '+20–31%', unit: '', label: 'E–W ocean spot · 1 week' },
+      title: 'The Loadstar Supply Chain News Feed – May 9, 2026',
+      summary: 'Weekly supply chain and shipping market updates covering container spot rate movements, carrier capacity adjustments (blanked sailings), war-risk insurance solutions, port competition in India, carrier earnings, and shipper responses to elevated airfreight costs.',
+      changes: 'Iran war-driven Hormuz closure and layered carrier surcharges push East-West ocean spot rates 20–31% in one week — contracted allocation protection now requires active confirmation, not assumption.',
+      trigger: 'Hormuz reopening or a second surcharge round — either resets allocation and rate assumptions for Q3 bookings.'
+    },
+    {
+      severity: 'Cost alert', band: 'B3', jur: 'US',
+      fig: { num: '+6–8%', unit: '', label: 'spot rates · inspection wk' },
+      title: 'International Roadcheck 2026: ELD and Cargo Securement Focus',
+      summary: 'CVSA International Roadcheck enforcement begins May 12, 2026. Historical data shows spot rate increases of 6–8% and tender rejection rates rising 117 basis points during the inspection week.',
+      changes: 'US road capacity tightens during inspection week — time-sensitive road moves booked that week carry premium pricing and rejection risk.',
+      trigger: 'Enforcement-week data confirming the historical 6–8% spot pattern — pre-book critical moves outside the window.'
+    },
+    {
+      severity: 'Cost alert', band: 'B3', jur: 'GLOBAL',
+      fig: { num: '—', unit: '', label: 'rate print pending feed' },
+      title: 'Air Cargo Market Dynamics: Elevated Rates, Geopolitical Impact',
+      summary: 'Air cargo rates elevated on war-risk routing and displaced ocean volume moving to air. Capacity reallocations concentrate on transpacific and Middle East corridors.',
+      changes: 'Air-mode verticals (live events, fine art, film/TV) face compressed booking windows and elevated spot pricing on affected corridors.',
+      trigger: 'Ocean reliability recovering — displaced volume returns to sea and air rates normalise; watch weekly TAC index prints.'
+    },
+    {
+      severity: 'Cost alert', band: 'B2', jur: 'KR',
+      fig: { num: '—', unit: '', label: 'no price dimension' },
+      title: 'South Korea K-Taxonomy for Sustainable Transport Activities',
+      summary: 'Korean green-finance taxonomy defining which transport activities qualify as sustainable — affects carrier fleet-investment economics and vendor sustainability claims on Korea-linked lanes.',
+      changes: 'Carrier and vendor sustainability claims on Korea lanes need checking against K-Taxonomy criteria before client-facing reuse.',
+      trigger: 'Enforcement guidance naming freight-forwarding activities — would move this from vendor diligence to direct exposure.'
+    }
+  ];
+
+  renderVals() {
+    const setText = (t) => this.setState({ aiText: t });
+    const sev = this.state.sev;
+    const band = this.state.band;
+    const open = this.state.open;
+
+    const sevMeta = {
+      'Action required': { hue: '#DC2626', bg: '#FEF2F2', bd: '#FECACA' },
+      'Cost alert': { hue: '#D97706', bg: '#FFF7ED', bd: 'rgba(217,119,6,0.4)' },
+      'Window closing': { hue: '#A16207', bg: '#FEFCE8', bd: 'rgba(161,98,7,0.4)' },
+      'Competitive edge': { hue: '#16A34A', bg: '#F0FDF4', bd: 'rgba(22,163,74,0.4)' },
+      'Monitoring': { hue: '#5A6B67', bg: '#FFFFFF', bd: 'rgba(0,0,0,0.2)' }
+    };
+
+    const tileDefs = [
+      { key: 'Action required', label: 'Action required', count: '0', sub: 'Threshold breached this week', hue: '#DC2626', gradient: 'linear-gradient(90deg,#16A34A,#CFA000 33%,#D97706 66%,#DC2626)' },
+      { key: 'Cost alert', label: 'Cost alert', count: '12', sub: 'Pass-through expected', hue: '#D97706', gradient: 'linear-gradient(90deg,#16A34A,#CFA000 50%,#D97706)' },
+      { key: 'Window closing', label: 'Window closing', count: '1', sub: 'Deadline within 90 days', hue: '#A16207', gradient: 'linear-gradient(90deg,#16A34A,#CFA000)' },
+      { key: 'Competitive edge', label: 'Competitive edge', count: '1', sub: 'Lock-in or advantage', hue: '#2563EB', gradient: '#2563EB' },
+      { key: 'Monitoring', label: 'Monitoring', count: '83', sub: 'Trends to watch', hue: '#5A6B67', gradient: '#16A34A' }
+    ];
+
+    const tiles = tileDefs.map((t) => ({
+      label: t.label, count: t.count, sub: t.sub, hue: t.hue, gradient: t.gradient,
+      pick: () => this.setState({ sev: sev === t.key ? null : t.key }),
+      style: {
+        fontFamily: "'Plus Jakarta Sans',sans-serif", padding: 0, cursor: 'pointer',
+        background: '#FFFFFF', borderRadius: '8px', overflow: 'hidden', width: '100%',
+        border: sev === t.key ? '2px solid ' + t.hue : '1px solid rgba(0,0,0,0.12)'
+      }
+    }));
+
+    const bandDefs = [
+      { key: 'B1', code: 'B1', name: 'Price signals', count: '14', sub: 'Fuel · carbon · energy · freight' },
+      { key: 'B2', code: 'B2', name: 'Corporate & capital', count: '60', sub: 'Vendor · supplier · capacity' },
+      { key: 'B3', code: 'B3', name: 'Corridors & trade routes', count: '23', sub: 'Chokepoints · modal shifts · regulatory windows' }
+    ];
+    const bandTabs = bandDefs.map((b) => ({
+      code: b.code, name: b.name, count: b.count, sub: b.sub,
+      pick: () => this.setState({ band: band === b.key ? null : b.key }),
+      style: {
+        fontFamily: "'Plus Jakarta Sans',sans-serif", textAlign: 'left', cursor: 'pointer',
+        background: band === b.key ? '#FFF7F0' : '#FFFFFF', borderRadius: '8px', padding: '13px 16px', width: '100%',
+        border: band === b.key ? '2px solid #E8610A' : '1px solid rgba(0,0,0,0.12)'
+      }
+    }));
+
+    const filtered = this.signalData
+      .map((s, i) => ({ s, i }))
+      .filter((x) => (!sev || x.s.severity === sev) && (!band || x.s.band === band));
+
+    const notes = this.state.notes;
+    const mkItem = (x) => {
+      const m = sevMeta[x.s.severity];
+      const note = notes[x.i] || '';
+      return {
+        title: x.s.title, summary: x.s.summary, changes: x.s.changes, trigger: x.s.trigger,
+        severity: x.s.severity, jur: x.s.jur, bandCode: x.s.band,
+        sevHue: m.hue, sevBg: m.bg, sevBd: m.bd, edgeHue: m.hue,
+        open: !!open[x.i],
+        glyph: open[x.i] ? '–' : '+',
+        expandTitle: open[x.i] ? 'Collapse' : 'Expand',
+        expandBtn: { fontFamily: "'Plus Jakarta Sans',sans-serif", cursor: 'pointer', fontSize: '18px', fontWeight: 700, lineHeight: 1, padding: '6px 8px', border: 'none', background: 'transparent', color: '#E8610A' },
+        toggle: () => this.setState({ open: Object.assign({}, open, { [x.i]: !open[x.i] }) }),
+        hasDetail: x.i === 0,
+        figNum: x.s.fig.num,
+        figUnit: x.s.fig.unit,
+        figLabel: x.s.fig.label,
+        figHue: x.s.fig.num === '—' ? '#7A6E6C' : m.hue,
+        note,
+        hasNote: note.trim().length > 0,
+        noteStatus: note.trim().length > 0 ? 'Saved' : 'Not saved',
+        onNote: (e) => this.saveNote(x.i, e.target.value)
+      };
+    };
+
+    const sevOrder = ['Action required', 'Cost alert', 'Window closing', 'Competitive edge', 'Monitoring'];
+    const groupSubs = {
+      'Action required': 'decision pressure now',
+      'Cost alert': 'margin or surcharge moving — sorted by escalation risk',
+      'Window closing': 'deadline approaches',
+      'Competitive edge': 'lock-in or advantage',
+      'Monitoring': 'track trend'
+    };
+    const groups = sevOrder
+      .map((label) => {
+        const items = filtered.filter((x) => x.s.severity === label).map(mkItem);
+        if (items.length === 0) return null;
+        const m = sevMeta[label];
+        return { label, sub: groupSubs[label], hue: m.hue, bg: m.bg, bd: m.bd === '#FECACA' ? m.bd : 'rgba(0,0,0,0.12)', count: String(items.length), items };
+      })
+      .filter(Boolean);
+
+    const filterActive = !!(sev || band);
+    const parts = [];
+    if (sev) parts.push(sev);
+    if (band) { const b = bandDefs.find((d) => d.key === band); parts.push(b.code + ' ' + b.name); }
+
+    return {
+      aiText: this.state.aiText,
+      onAiChange: (e) => setText(e.target.value),
+      chip1: () => setText('SAF cost outlook'),
+      chip2: () => setText('EU ETS shipping pass-through'),
+      chip3: () => setText('Carrier capacity Q3'),
+      chip4: () => setText('Diesel forward curve'),
+      tiles, bandTabs, groups,
+      filterActive, noFilter: !filterActive,
+      emptyFilter: filterActive && filtered.length === 0,
+      emptyNote: 'No detailed signals carry this combination — the remaining items in this band are monitoring rows in the full ledger.',
+      clearFilters: () => this.setState({ sev: null, band: null }),
+      pickAlerts: () => this.setState({ sev: 'Cost alert', band: null }),
+      ledgerTitle: filterActive ? filtered.length + ' of 94 signals · ' + parts.join(' · ') : '94 signals',
+      moreNote: filterActive
+        ? 'Detailed cards shown; the rest of this filter\u2019s signals are monitoring rows in the full ledger.'
+        : 'Showing the 6 detailed signal cards. The other 88 signals are monitoring rows — open the full ledger to scan them.',
+      indicators: [
+        { title: 'EIA Spot Prices for Crude Oil and Petroleum Products – Month…', meta: 'Cost alert · price' },
+        { title: 'Natural Gas Spot and Futures Prices (NYMEX) – Daily Data', meta: 'Cost alert · price' },
+        { title: 'The Loadstar Supply Chain News Feed – May 9, 2026', meta: 'Cost alert · price' },
+        { title: 'International Roadcheck 2026: ELD and Cargo Securement Focus…', meta: 'Cost alert · price' },
+        { title: 'Air Cargo Market Dynamics: Elevated Rates, Geopolitical Impa…', meta: 'Cost alert · price' },
+        { title: 'South Korea K-Taxonomy for Sustainable Transport Activities', meta: 'Cost alert · corporate' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
