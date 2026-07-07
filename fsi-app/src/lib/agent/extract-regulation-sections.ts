@@ -381,9 +381,17 @@ function parseObligationsTable(markdown: string): ObligationRow[] {
 // ── §14 timeline parser ────────────────────────────────────────────
 
 /**
- * §14 entries are typically bulleted lines opening with a date or date
- * range followed by an em-dash and the event label. A trailing source
- * citation in parentheses or after `Source:` is captured separately.
+ * §14 entries come in TWO shapes and both must parse (Phase-3b, DD-01 — the
+ * corpus's flagship briefs emit a markdown TABLE, and the bullet-only parser
+ * read them as zero entries, which is how 28 seeded-timeline items sat
+ * unharvestable):
+ *  1. Bulleted lines opening with a date or date range followed by an
+ *     em-dash and the event label; trailing source citation in parentheses
+ *     or after `Source:` captured separately.
+ *  2. Markdown table rows `| date | milestone | status |` — date = column 1,
+ *     label = column 2 (header + `|---|` separator rows skipped; the status
+ *     column is display-state judgment, not part of the milestone label —
+ *     completion derives from the date downstream).
  */
 function parseTimeline(markdown: string): TimelineEntry[] {
   const blocks = markdown.split(/\n{1,}/);
@@ -394,6 +402,19 @@ function parseTimeline(markdown: string): TimelineEntry[] {
     if (!trimmed) continue;
     // Skip horizontal-rule separators.
     if (/^[-*_]{3,}$/.test(trimmed)) continue;
+    // Markdown TABLE row: | date | label | … |
+    if (trimmed.startsWith("|")) {
+      const cells = trimmed.split("|").map((c) => c.trim()).filter((c, i, arr) => !(i === 0 && c === "") && !(i === arr.length - 1 && c === ""));
+      if (cells.length < 2) continue;
+      // Separator row (|---|---|) or header row ("Date" / "Milestone").
+      if (cells.every((c) => /^:?-{2,}:?$/.test(c))) continue;
+      const dateCell = cells[0].replace(/\*\*/g, "").trim();
+      if (/^date\b/i.test(dateCell)) continue; // header
+      const labelCell = (cells[1] || "").replace(/\*\*/g, "").trim();
+      if (!dateCell || !labelCell) continue;
+      entries.push({ date: dateCell, label: labelCell, source: null });
+      continue;
+    }
     // Drop leading bullet marker.
     const stripped = trimmed.replace(/^[-*+]\s+/, "");
     // Match a leading date-ish token (ISO date, "Q3 2026", "Jan 2026",

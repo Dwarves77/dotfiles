@@ -30,6 +30,8 @@ import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 // spendSearch = the web_search call). Behavior-preserving — the streaming body/params are unchanged.
 import { spendStreamRaw, spendSearch, spendStream } from "@/lib/llm/spend-client";
 import { cachedSystemBlocks } from "@/lib/agent/prompt-cache.mjs";
+import { extractRegulationSections } from "@/lib/agent/extract-regulation-sections";
+import { buildTimelineRows } from "@/lib/agent/timeline-harvest.mjs";
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
 import { isThinningRegression } from "@/lib/agent/thinning-guard.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
@@ -896,7 +898,35 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
       { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: stripUrlMarkers(s.content_md) ?? s.content_md, is_conditional: s.is_conditional }
     );
   }
-  return { ok: true, detail: `${rows.length} sections` };
+  // §14 TIMELINE HARVEST (Phase-3b, DD-01): item_timelines had NO production writer — the model
+  // assembled "Confirmed Regulatory Timeline" in the brief prose and the structured store stayed
+  // empty (85% of verified reg briefs), while the few seeded rows drifted wrong (the PPWR Aug-12→
+  // Aug-1 precision defect). Harvest §14 here so EVERY future generation persists its timeline:
+  // parse (the existing display parser) → precision-honest normalize (timeline-harvest.mjs) →
+  // replace this item's rows. Non-fatal: a harvest failure logs and never fails the section step.
+  let timelineDetail = "";
+  if (spec.formatType === "regulatory_fact_document") {
+    try {
+      const t = extractRegulationSections(it.full_brief)["14"];
+      const entries = t && t.kind === "timeline" ? t.entries : [];
+      const { rows: tlRows, skipped } = buildTimelineRows(entries, new Date().toISOString().slice(0, 10));
+      if (tlRows.length) {
+        const { error: delErr } = await sb.from("item_timelines").delete().eq("item_id", itemId);
+        if (delErr) throw new Error(`timeline delete failed: ${delErr.message}`);
+        const { error: insErr } = await sb.from("item_timelines").insert(tlRows.map((r) => ({ ...r, item_id: itemId })));
+        if (insErr) throw new Error(`timeline insert failed: ${insErr.message}`);
+        timelineDetail = `; timeline ${tlRows.length} milestones${skipped.length ? ` (${skipped.length} unparseable date tokens skipped)` : ""}`;
+      } else if (skipped.length) {
+        // Dates existed but none parsed — surface, don't silently leave the timeline empty.
+        console.warn(`[canonical] §14 harvest for ${itemId}: 0 rows, ${skipped.length} unparseable tokens (${skipped.slice(0, 3).map((s) => s.date).join(" | ")})`);
+        timelineDetail = `; timeline 0 rows (${skipped.length} unparseable)`;
+      }
+    } catch (e) {
+      console.warn(`[canonical] §14 timeline harvest failed for ${itemId}: ${(e as Error).message}`);
+      timelineDetail = "; timeline harvest failed (see warn)";
+    }
+  }
+  return { ok: true, detail: `${rows.length} sections${timelineDetail}` };
 }
 
 // SLOT-FORCING JUDGE (5c). "Does this candidate span support a binding FACT for the slot?" MOAT ASYMMETRY
