@@ -45,7 +45,8 @@ jobs:
             scripts/lib/entity-gate.selftest.mjs \
             scripts/lib/fetch-now-decision.selftest.mjs \
             scripts/lib/check-sources-decision.selftest.mjs \
-            scripts/lib/verification-decision.selftest.mjs
+            scripts/lib/verification-decision.selftest.mjs \
+            scripts/lib/error-drop-probe.selftest.mjs
 
   bug-class-scan:
     name: SOFT — bug-class repo scan (review signal, never fails the build)
@@ -66,3 +67,5 @@ jobs:
         run: node scripts/lib/inconclusive-report.mjs . || true
       - name: Unguarded type-consumer scan (item_type migration precondition) — report only
         run: node scripts/lib/type-consumer-probe.mjs . || true
+      - name: Supabase error-drop scan (const { data } without error) — report only
+        run: node scripts/lib/error-drop-probe.mjs . || true
