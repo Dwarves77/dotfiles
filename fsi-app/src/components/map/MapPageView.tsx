@@ -18,10 +18,12 @@
  * view of Regulations content (platform-intent §3/§4), so markers, rail, and
  * masthead all gate on the regulations domain.
  *
- * MODE FILTERS (honest-state, HANDOFF §6.9 + §7): items are not yet tagged by
- * transport mode, so the map does NOT filter by mode. Selecting a mode shows
- * an honest pending note that links to the Regulations index (where mode
- * filters work today). Mode filtering is never faked on the map.
+ * MODE FILTERS (LIVE, §6.9 + §7): the map filters on the item's real
+ * `transport_modes` tags (same field the Regulations index filters on).
+ * Selecting a mode narrows markers/rail/register to items carrying that tag;
+ * items with no mode tag are hidden under a specific mode (never faked in).
+ * A selected mode shows an honest caption stating untagged items are hidden
+ * and how many of the current set are mode-tagged. Mode filtering is never faked.
  */
 
 import { useMemo, useState } from "react";
@@ -88,14 +90,16 @@ const PRIORITY_CHIP_ORDER: { key: PriorityChipKey; label: string }[] = [
 
 type ViewMode = "split" | "map" | "list";
 
-// Mode filtering is honest-pending (§6.9): the chips drive the pending note
-// only — they never filter the markers/rail.
-type Mode = "all" | "ocean" | "air" | "road";
+// Mode filtering is LIVE (§6.9): the chips filter markers/rail/register on the
+// item's real `transport_modes` tags. Order follows the platform mode priority
+// (air → road → ocean → rail; CLAUDE.md Constraints).
+type Mode = "all" | "air" | "road" | "ocean" | "rail";
 const MODE_CHIP_ORDER: { key: Mode; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "ocean", label: "Ocean" },
   { key: "air", label: "Air" },
   { key: "road", label: "Road" },
+  { key: "ocean", label: "Ocean" },
+  { key: "rail", label: "Rail" },
 ];
 
 // ── Urgency tone helpers ──
@@ -195,10 +199,10 @@ export function MapPageView(props: MapPageViewProps) {
     setRegionChips(new Set());
   };
 
-  // Resource filter: ISO region (URL) + Priority chips + Region chips. Mode is
-  // intentionally NOT applied — mode tagging is a pending backend surface, so
-  // the map shows all modes and the honest note explains it (§6.9).
-  const filteredResources = useMemo(() => {
+  // Resource filter: ISO region (URL) + Priority chips + Region chips (the
+  // "pre-mode" set). Mode is applied on top of this so the honest caption can
+  // report how many of THIS set carry a transport-mode tag.
+  const preModeResources = useMemo(() => {
     const isoFiltered =
       activeRegionIso === null
         ? resources
@@ -225,6 +229,30 @@ export function MapPageView(props: MapPageViewProps) {
 
     return regionFiltered;
   }, [resources, activeRegionIso, priorityChips, regionChips]);
+
+  // Mode filters on the item's real `transport_modes` tags — an item with no
+  // mode tag is hidden under a specific mode (never faked in); "all" applies no
+  // mode narrowing so untagged items remain visible.
+  const filteredResources = useMemo(
+    () =>
+      mode === "all"
+        ? preModeResources
+        : preModeResources.filter((r) => (r.modes || []).includes(mode)),
+    [preModeResources, mode]
+  );
+
+  // Honest mode caption stats: of the pre-mode set, how many (in the
+  // Regulations domain the map charts) carry any transport-mode tag.
+  const modeTagStats = useMemo(() => {
+    let tagged = 0;
+    let total = 0;
+    for (const r of preModeResources) {
+      if (r.domain !== REGULATIONS_DOMAIN) continue;
+      total += 1;
+      if ((r.modes || []).length > 0) tagged += 1;
+    }
+    return { tagged, total };
+  }, [preModeResources]);
 
   // Regulations-gated aggregation by jurisdiction (map is a Regulations view).
   const jurisdictionRows = useMemo(() => {
@@ -424,16 +452,22 @@ export function MapPageView(props: MapPageViewProps) {
             }}
           >
             <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: 0 }}>
-              <b style={{ color: "var(--brass)" }}>Mode view pending.</b> Items on the map are not yet
-              tagged by transport mode — markers show all modes until mode tagging lands. Mode filters
-              work today on the{" "}
+              <b style={{ color: "var(--brass)" }}>
+                Filtering to {MODE_CHIP_ORDER.find((m) => m.key === mode)?.label ?? mode}.
+              </b>{" "}
+              Items without a transport-mode tag are hidden while a mode is selected.{" "}
+              <b style={{ color: "var(--color-text-primary)", fontWeight: 800 }}>
+                {modeTagStats.tagged}
+              </b>{" "}
+              of {modeTagStats.total} charted item{modeTagStats.total === 1 ? "" : "s"} in the current
+              view carr{modeTagStats.tagged === 1 ? "ies" : "y"} a mode tag. Tag coverage is partial —{" "}
               <Link
                 href="/regulations"
                 style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}
               >
-                Regulations index
-              </Link>
-              .
+                the Regulations index
+              </Link>{" "}
+              filters the same tags.
             </p>
             <button
               type="button"
