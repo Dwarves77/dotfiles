@@ -70,3 +70,50 @@ template · what deviated · why. The operator reviews and rules.
   42px.
 - **Why:** Pre-existing mobile-a11y adaptation in the shared masthead; at 1440px it renders ~44px,
   effectively matching the mock. Not reverted, to preserve the mobile behavior.
+
+---
+
+## TEMPLATE 08 — Admin (`feat/redesign-t08-admin`)
+
+### D08-1 · Sources sub-tabs (Source registry / Provisional review / Spot-check) all render the same wired view
+- **What:** The mock splits Sources into five sub-tabs. Three of them — Source registry, Provisional
+  review, Spot-check — resolve to the same existing `<SourceHealthDashboard>`; only Bulk add sources
+  (`<BulkImportView>`) and Tier disagreements (`<TierOpinionDisagreementsView>`) route to distinct
+  components.
+- **Why:** `SourceHealthDashboard` is a monolith that already owns provisional-candidate review and
+  recently-auto-approved spot-check inside one surface. Reuse-before-construction (no RPC exists to
+  slice it into three separately-paged rows here). The sub-tab still communicates operator intent; a
+  future split of the source surface would light these up independently.
+
+### D08-2 · Member role-change / Remove / Ban are honest-pending (no mutation fires)
+- **What:** The member rows ship the full affordances — role chip menu (Owner ▾), Remove verb, rust
+  Ban verb with a **typed-confirmation dialog**, and a live **last-owner-immovable** guard (Remove +
+  Ban disabled on the sole owner). On confirm, the action surfaces an honest "member management lands
+  when the backend ships" toast instead of writing.
+- **Why:** Member role-change / remove / ban (typed confirm, last-owner guard) is KNOWN NEW BACKEND
+  (HANDOFF §7): committed-migration + honest-pending only. No `/api/admin` endpoint for role/remove/ban
+  exists yet, so faking a write would violate the no-invented-data rule. The UI + client-side guards
+  are built and keyboard-operable; only the server mutation is deferred.
+
+### D08-3 · Rejections filter chip in Flags & rejections is label-only (no count)
+- **What:** The merged Flags & rejections queue's three-way filter shows live counts on Integrity and
+  Platform (from `useAdminAttention`), but the Rejections chip renders label-only.
+- **Why:** No RPC scalar tracks ingest-rejection count at the attention-hook layer, and the count
+  binding forbids both recomputing from visible rows and hard-coding the mock's snapshot (131). The
+  `<IngestRejectionsView>` still renders its own real rows when the chip is selected.
+
+### D08-4 · Coverage matrix reuses the live `<CoverageMatrixView>`, not the mock's static 5×6 grid
+- **What:** The mock hard-codes a 5×6 region×dimension grid (and its own header "15 of 25" contradicts
+  its 30-cell body). The build renders the existing `<CoverageMatrixView>` (real, RPC-backed cells with
+  dashed pending states) instead.
+- **Why:** Counts must be computed from data, and the mock's grid is a snapshot with an internal
+  inconsistency. The live component is the authoritative matrix that also drives the Operations
+  coverage rail, honoring "the matrix behind the Operations coverage rail."
+
+### D08-5 · Section badges + sub-tab count pills read live scalars, not the mock's static numbers
+- **What:** The mock shows fixed red section badges (Sources 531, Ingest 797) and sub-tab counts
+  (Provisional 489, Spot-check 42). The build computes Sources badge = provisional pending, Ingest
+  badge = integrity + platform flags, and the sub-tab pills from the same `useAdminAttention` scalars —
+  each suppressed when zero.
+- **Why:** Counts are computed, never hard-coded (binding). The mock numbers are live snapshots; the
+  build wires the same fields so the badges track reality and can never contradict the issues rail.

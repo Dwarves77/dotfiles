@@ -1,34 +1,51 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+/**
+ * AdminDashboard — redesign TEMPLATE 08 (HANDOFF §6.8).
+ *
+ * Layout (inside AppShell, which supplies the sidebar + 4px brand rule):
+ *   PageMasthead ("Platform admin · operator view")
+ *   → status strip (platform-wide controls + read-only MTD spend)
+ *   → two-column grid:
+ *        LEFT  · "Sections" plate grid (Workspaces / Sources / Ingest /
+ *                Coverage / Research pipeline / Community pickups) + a
+ *                per-section sub-nav + the active section body
+ *        RIGHT · <AdminIssuesRail> — computed total = sum(rows)
+ *
+ * The section bodies REUSE the existing wired admin views (real data). Only
+ * the mock's genuinely new pieces are net-new: the Workspaces usage row, the
+ * member rows (role chip / Remove / rust Ban + typed confirm + last-owner
+ * guard, honest-pending per §7), and the merged Flags & rejections queue.
+ *
+ * Counts are computed, never hard-coded: section badges + sub-nav count pills
+ * read useAdminAttention (the same 60s polling singleton the rail uses); the
+ * rail total is sum(rows). A badge that can contradict its list is a bug.
+ */
+
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useSourceStore } from "@/stores/sourceStore";
+import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import type { Source, ProvisionalSource, SourceConflict } from "@/types/source";
-import {
-  Plus,
-  CheckCircle, XCircle, RefreshCw,
-  Search,
-} from "lucide-react";
+import { CheckCircle, XCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { PageMasthead } from "@/components/shell/PageMasthead";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
-import { IssuesQueue } from "@/components/admin/IssuesQueue";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
-import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
 import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
-import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
 import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
-import { MtdSpendTile } from "@/components/admin/MtdSpendTile";
 import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
-// Phase 7 admin chrome — tier-opinion disagreement review + triage queues.
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
-import { IngestRejectionsView } from "@/components/admin/IngestRejectionsView";
 import { ResearchPipelineQueueView } from "@/components/admin/ResearchPipelineQueueView";
 import { CommunityPickupsQueueView } from "@/components/admin/CommunityPickupsQueueView";
 import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdictionReviewView";
+import { AdminIssuesRail, type IssueNavTarget } from "@/components/admin/redesign/AdminIssuesRail";
+import { WorkspacesUsageRow } from "@/components/admin/redesign/WorkspacesUsageRow";
+import { MembersPanel } from "@/components/admin/redesign/MembersPanel";
+import { FlagsRejectionsQueue } from "@/components/admin/redesign/FlagsRejectionsQueue";
 
 interface AdminDashboardProps {
   userId: string;
@@ -39,20 +56,70 @@ interface AdminDashboardProps {
   initialOrgs?: any[];
   initialMembers?: any[];
   initialStagedUpdates?: any[];
-  // Wave 1a MTD spend tile inputs. Optional so existing callers
-  // continue to compile when agent_runs is not yet present.
   initialMtdSpendUsd?: number;
   initialMtdRuns?: number;
   initialMtdErrors?: number;
 }
 
+// ─── Section model (mock §6.8 sectionDefs) ──────────────────────────────────
+// Each section carries an ordered list of sub-nav tab labels. The tab label is
+// the routing key into the section body below. Sub-tab `count` reads a live
+// scalar (see subTabCount) — never a snapshot literal.
+type SectionName =
+  | "Workspaces"
+  | "Sources"
+  | "Ingest"
+  | "Coverage"
+  | "Research pipeline"
+  | "Community pickups";
+
+interface SectionDef {
+  name: SectionName;
+  sub: string;
+  tabs: string[];
+}
+
+const SECTIONS: SectionDef[] = [
+  {
+    name: "Workspaces",
+    sub: "Organizations, members, invitations. Per-tenant overrides and plan visibility.",
+    tabs: ["Organizations"],
+  },
+  {
+    name: "Sources",
+    sub: "Source registry, bulk add, provisional candidate review and tier classification.",
+    tabs: [
+      "Source registry",
+      "Provisional review",
+      "Bulk add sources",
+      "Tier disagreements",
+      "Spot-check",
+    ],
+  },
+  {
+    name: "Ingest",
+    sub: "Staged updates, flags & rejections (combined), regulatory scan scheduling.",
+    tabs: ["Flags & rejections", "Staged updates", "Regulatory scan"],
+  },
+  {
+    name: "Coverage",
+    sub: "Jurisdiction review, coverage matrix, gap analysis.",
+    tabs: ["Jurisdiction review", "Coverage matrix"],
+  },
+  {
+    name: "Research pipeline",
+    sub: "Editorial draft-staging (moved from customer-facing /research per design rebuild).",
+    tabs: ["Draft staging"],
+  },
+  {
+    name: "Community pickups",
+    sub: "High-engagement community posts pending promotion to platform intelligence.",
+    tabs: ["Pending pickups"],
+  },
+];
+
 export function AdminDashboard({
   userId,
-  // userEmail is currently unused after the visual refresh — the
-  // identity row at the top of the legacy admin shell was replaced
-  // by the EditorialMasthead, which doesn't surface the email. Kept
-  // on the props interface so callers (admin/page.tsx) don't have
-  // to change.
   userEmail: _userEmail,
   initialSources = [],
   initialProvisionalSources = [],
@@ -64,11 +131,9 @@ export function AdminDashboard({
   initialMtdRuns = 0,
   initialMtdErrors = 0,
 }: AdminDashboardProps) {
-  // Hydrate the source store with the admin-context unfiltered list. Mirror of
-  // the Dashboard pattern at src/components/Dashboard.tsx (lines 247-253). The
-  // source store is shared across pages, but only / and /admin populate it; if
-  // the user enters /admin directly the store would otherwise be empty and
-  // SourceHealthDashboard would render zero sources.
+  // Hydrate the source store with the admin-context unfiltered list (mirror of
+  // the Dashboard pattern) so SourceHealthDashboard sees every source even on
+  // a direct /admin entry.
   const { setSources, setProvisionalSources, setOpenConflicts } = useSourceStore();
   useEffect(() => {
     if (initialSources.length > 0) setSources(initialSources);
@@ -76,113 +141,58 @@ export function AdminDashboard({
     if (initialOpenConflicts.length > 0) setOpenConflicts(initialOpenConflicts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // "integrity-flags" and "coverage-matrix" are reserved for W2.C and W2.D
-  // respectively. They appear as targets in the IssuesQueue tap-throughs;
-  // when the IssuesQueue navigates to one before its tab body ships we
-  // gracefully fall back to a sibling tab (see resolveAdminTab below).
-  type AdminTab =
-    | "orgs"
-    | "sources"
-    | "staged"
-    | "scan"
-    | "integrity-flags"
-    | "platform-integrity-flags"
-    | "coverage-matrix"
-    | "bulk-import"
-    | "tier-opinions"
-    | "ingest-rejections"
-    | "jurisdiction-review"
-    // H4 (2026-05-25): destination view for Section card 5 "Research
-    // pipeline". Reached via section card click, NOT via the legacy
-    // 11-tab strip. Per operator direction: the section card → destination
-    // view pattern is the canonical /admin navigation; the visible
-    // 11-tab strip is legacy chrome slated for retirement in a separate
-    // Admin restructure dispatch.
-    | "research-pipeline"
-    // H5 (2026-05-25): destination view for Section card 6 "Community
-    // pickups". Engagement-heuristic suggestion queue surfacing top-level
-    // community posts with reply_count >= 3 and < 30 days old that
-    // haven't been promoted. Same section-card → destination-view pattern
-    // as H4; not added to the legacy 11-tab strip.
-    | "community-pickups";
-  const KNOWN_RENDERED_TABS: ReadonlyArray<AdminTab> = [
-    "orgs",
-    "sources",
-    "staged",
-    "scan",
-    "integrity-flags",
-    "platform-integrity-flags",
-    "coverage-matrix",
-    "bulk-import",
-    "tier-opinions",
-    "ingest-rejections",
-    "jurisdiction-review",
-    "research-pipeline",
-    "community-pickups",
-  ];
-  const [activeTab, setActiveTab] = useState<AdminTab>("orgs");
+
+  const [section, setSection] = useState<SectionName>("Workspaces");
+  const [sub, setSub] = useState<string>("Organizations");
   const [issueFilter, setIssueFilter] = useState<string | null>(null);
 
-  const resolveAdminTab = (tab: string): AdminTab => {
-    if (KNOWN_RENDERED_TABS.includes(tab as AdminTab)) return tab as AdminTab;
-    return "orgs";
-  };
-  const handleIssueNavigate = (tab: string, filter?: string) => {
-    setActiveTab(resolveAdminTab(tab));
-    setIssueFilter(filter ?? null);
-  };
   const [members, setMembers] = useState<any[]>(initialMembers);
   const [orgs, setOrgs] = useState<any[]>(initialOrgs);
   const [stagedUpdates, setStagedUpdates] = useState<any[]>(initialStagedUpdates);
-  const [integrityFlagCount, setIntegrityFlagCount] = useState<number>(0);
-  const [platformIntegrityFlagCount, setPlatformIntegrityFlagCount] = useState<number>(0);
-  const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState("member");
   const [toast, setToast] = useState("");
 
   const supabase = createSupabaseBrowserClient();
+  const { counts } = useAdminAttention();
 
-  // Manual refresh — re-runs the same three reads the server hydrated us
-  // with at first paint. Used by the Refresh button and after add-member /
-  // approve-update side effects.
+  const activeSection = SECTIONS.find((s) => s.name === section)!;
+
+  const pickSection = (name: SectionName) => {
+    const def = SECTIONS.find((s) => s.name === name)!;
+    setSection(name);
+    setSub(def.tabs[0]);
+    setIssueFilter(null);
+  };
+
+  const handleIssueNavigate = (target: IssueNavTarget) => {
+    const def = SECTIONS.find((s) => s.name === target.section);
+    if (!def) return;
+    setSection(def.name);
+    setSub(def.tabs.includes(target.tab) ? target.tab : def.tabs[0]);
+    setIssueFilter(null);
+  };
+
+  // Manual refresh — re-runs the same reads the server hydrated us with.
   const loadData = useCallback(async () => {
     try {
-      const [orgRes, memberRes, updateRes, flagRes, platformFlagRes] = await Promise.all([
+      const [orgRes, memberRes, updateRes] = await Promise.all([
         supabase.from("organizations").select("id, name, slug, plan, created_at"),
-        // Embed profiles via the user_id FK so the member list
-        // can show "Jason Losh" instead of a raw uuid. The relation alias
-        // `user:profiles!user_id` joins on the org_memberships.user_id ->
-        // profiles.id FK added in migration 075. Migrated 2026-05-15
-        // (migration 075 Phase 2): was user_profiles(name, headshot_url).
         supabase
           .from("org_memberships")
           .select(
             "id, org_id, user_id, role, created_at, user:profiles!user_id(full_name, avatar_url)"
           ),
-        // Slim staged_updates select — same column list as the server
-        // initial fetch in app/admin/page.tsx. Drops full_brief + other
-        // wide columns the panel doesn't render.
-        supabase.from("staged_updates").select("id, update_type, created_at, reason, proposed_changes, status").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
         supabase
-          .from("intelligence_items")
-          .select("id", { count: "exact", head: true })
-          .eq("agent_integrity_flag", true)
-          .is("agent_integrity_resolved_at", null),
-        // Platform integrity flags (migration 048) — open + in_review
-        // counted together as the "needs attention" badge.
-        supabase
-          .from("integrity_flags")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["open", "in_review"]),
+          .from("staged_updates")
+          .select("id, update_type, created_at, reason, proposed_changes, status")
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(100),
       ]);
-
       setOrgs(orgRes.data || []);
       setMembers(memberRes.data || []);
       setStagedUpdates(updateRes.data || []);
-      setIntegrityFlagCount(flagRes.count ?? 0);
-      setPlatformIntegrityFlagCount(platformFlagRes.count ?? 0);
     } catch {
-      // RLS may block some queries — still show the UI
+      // RLS may block some queries — still show the UI.
     }
   }, [supabase]);
 
@@ -191,35 +201,30 @@ export function AdminDashboard({
     setTimeout(() => setToast(""), 3000);
   };
 
-  // Add member to the caller's current workspace.
-  // The full "invite by email + provision" flow lives at /api/admin/users
-  // (POST). This direct insert is the dev-mode shortcut that adds the
-  // current user under a new role; it requires a resolved orgId from
-  // auth context.
   const orgIdFromAuth = useWorkspaceStore((s) => s.orgId);
-  const addMember = async () => {
-    if (!newEmail) return;
+
+  // Add a teammate to the caller's current workspace. The full invite-by-email
+  // + provision flow lives at /api/admin/users; this direct insert is the
+  // dev-mode shortcut that attaches the current account under a new role.
+  const addMember = async (email: string) => {
+    if (!email) return;
     if (!orgIdFromAuth) {
       showToast("No workspace resolved — sign in to add members.");
       return;
     }
-
     const { error } = await supabase.from("org_memberships").insert({
       org_id: orgIdFromAuth,
       user_id: userId,
-      role: newRole,
+      role: "member",
     });
-
-    if (error) {
-      showToast("Error: " + error.message);
-    } else {
+    if (error) showToast("Error: " + error.message);
+    else {
       showToast("Member added");
-      setNewEmail("");
       loadData();
     }
   };
 
-  // Approve/reject staged update
+  // Approve / reject a staged update.
   const handleUpdate = async (id: string, action: "approve" | "reject") => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -232,11 +237,9 @@ export function AdminDashboard({
         body: JSON.stringify({ id, action }),
       });
       const result = await resp.json();
-      if (result.error) {
-        showToast("Error: " + result.error);
-      } else {
+      if (result.error) showToast("Error: " + result.error);
+      else {
         showToast(`Update ${action}d`);
-        // Remove from local list immediately
         setStagedUpdates((prev) => prev.filter((u) => u.id !== id));
       }
     } catch (e: any) {
@@ -265,798 +268,616 @@ export function AdminDashboard({
       });
       const data = await resp.json();
       setScanResult(data);
-      if (data.staged > 0) loadData(); // Refresh staged updates
+      if (data.staged > 0) loadData();
     } catch (e: any) {
       setScanResult({ error: e.message });
     }
     setScanning(false);
   };
 
-  // "integrations" and "audit" tabs stripped per the 2026-05-21 dead-code
-  // disposition (no backing service; not in Sprint 2 scope). Add them back
-  // when API integrations + audit-log read endpoints actually ship.
-  const tabs: { id: AdminTab; label: string; count: number }[] = [
-    { id: "orgs", label: "Organizations", count: orgs.length },
-    { id: "sources", label: "Source registry", count: 0 },
-    { id: "staged", label: "Staged updates", count: stagedUpdates.length },
-    { id: "integrity-flags", label: "Integrity flags", count: integrityFlagCount },
-    { id: "platform-integrity-flags", label: "Platform flags", count: platformIntegrityFlagCount },
-    { id: "tier-opinions", label: "Tier disagreements", count: 0 },
-    { id: "ingest-rejections", label: "Ingest rejections", count: 0 },
-    { id: "jurisdiction-review", label: "Jurisdiction review", count: 0 },
-    { id: "coverage-matrix", label: "Coverage matrix", count: 0 },
-    { id: "bulk-import", label: "Bulk add sources", count: 0 },
-    { id: "scan", label: "Regulatory scan", count: 0 },
-  ];
+  // ── Computed section badges + sub-tab count pills (live scalars) ──────────
+  const provisionalCount = counts?.provisional_sources_pending ?? 0;
+  const spotCheckCount = counts?.auto_approved_awaiting_spotcheck ?? 0;
+  const flagsCount =
+    (counts?.integrity_flags_unresolved ?? 0) + (counts?.platform_integrity_flags_open ?? 0);
+
+  const sectionBadge = (name: SectionName): number | null => {
+    if (name === "Sources") return provisionalCount > 0 ? provisionalCount : null;
+    if (name === "Ingest") return flagsCount > 0 ? flagsCount : null;
+    return null;
+  };
+
+  const subTabCount = (label: string): number | null => {
+    if (label === "Provisional review") return provisionalCount > 0 ? provisionalCount : null;
+    if (label === "Spot-check") return spotCheckCount > 0 ? spotCheckCount : null;
+    if (label === "Flags & rejections") return flagsCount > 0 ? flagsCount : null;
+    return null;
+  };
+
+  const crumb = useMemo(() => {
+    const firstTab = activeSection.tabs[0];
+    return sub && sub !== firstTab ? `${section} / ${sub}` : section;
+  }, [section, sub, activeSection]);
+
+  const mtd = `$${(initialMtdSpendUsd || 0).toFixed(2)}`;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
-      <EditorialMasthead
-        eyebrow="Platform Admin"
-        title="Platform Admin"
-        meta="Workspaces, sources, ingest, coverage. Aggregated needs-attention queue refreshes every 60 seconds."
+    <div style={{ minHeight: "100vh", background: "var(--color-background)" }}>
+      <style>{`
+        .admin-t08-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 300px;
+          gap: 24px;
+          align-items: start;
+        }
+        @media (max-width: 960px) {
+          .admin-t08-grid { grid-template-columns: 1fr; }
+        }
+        .admin-t08-sections { grid-template-columns: repeat(3, 1fr); }
+        @media (max-width: 640px) {
+          .admin-t08-sections { grid-template-columns: 1fr; }
+          .admin-t08-usage { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
+
+      <PageMasthead
+        eyebrow="Platform admin · operator view"
+        title="Platform admin"
+        meta="Workspaces, sources, ingest, coverage · needs-attention queue refreshes every 60 seconds"
       />
 
-      <div style={{ padding: "28px 36px 60px" }}>
-        {/* Issues queue (W2.E) — aggregated needs-attention list above
-            the rest of the admin shell. Tap-throughs switch the active
-            tab via handleIssueNavigate; sub-tab filters are captured in
-            issueFilter for the target tab to consume. */}
-        <IssuesQueue onNavigate={handleIssueNavigate} />
-
-        {/* Navy admin-view banner */}
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            alignItems: "center",
-            background: "var(--accent-bg)",
-            border: "1px solid var(--accent-bd)",
-            borderRadius: "var(--r-md)",
-            padding: "10px 16px",
-            marginBottom: 18,
-            fontSize: 12,
-            color: "var(--text)",
-          }}
-        >
-          <span
-            aria-hidden="true"
+      <div style={{ padding: "28px 36px 80px" }}>
+        {/* Status strip */}
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", margin: "0 0 22px" }}>
+          <div
             style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              flexShrink: 0,
+              flex: 1,
+              minWidth: 300,
+              background: "var(--surface)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 8,
+              padding: "11px 16px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
             }}
-          />
-          <span>
-            <b style={{ color: "var(--accent)" }}>Caro&apos;s Ledge admin view</b> — you are
-            looking at platform-wide controls. Per-org settings (members, billing) live on
-            each org owner&apos;s{" "}
-            <a
-              href="/profile"
-              style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "underline" }}
-            >
-              Profile
-            </a>
-            .
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={loadData}
-            className="ml-auto"
           >
-            <RefreshCw size={12} />
-            Refresh
-          </Button>
-        </div>
-
-        {/* Wave 1a MTD spend tile, read-only month-to-date agent run cost. */}
-        <MtdSpendTile
-          usd={initialMtdSpendUsd}
-          runs={initialMtdRuns}
-          errors={initialMtdErrors}
-        />
-
-        {/* Design rebuild 2026-05-24 (handoff design_handoff_2026-05/admin.html):
-            6 section cards group the 11 underlying tabs into operator-meaningful
-            categories. Clicking a card jumps the active tab to the first sub-view
-            in that section. The full 11-tab strip below remains for direct access. */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 14,
-            marginBottom: 24,
-          }}
-        >
-          {(
-            [
-              {
-                key: "workspaces",
-                kicker: "Section 1",
-                title: "Workspaces",
-                desc: "Organizations, members, invitations. Per-tenant overrides and plan visibility.",
-                target: "orgs" as AdminTab,
-                count: orgs.length,
-                unit: "orgs",
-                urgent: false,
-              },
-              {
-                key: "sources",
-                kicker: "Section 2",
-                title: "Sources",
-                desc: "Source registry, bulk add, provisional candidate review and tier classification.",
-                target: "sources" as AdminTab,
-                count: 0,
-                unit: "provisional pending",
-                urgent: false,
-              },
-              {
-                key: "ingest",
-                kicker: "Section 3",
-                title: "Ingest",
-                desc: "Staged updates, integrity flags, rejections, regulatory scan scheduling.",
-                target: "staged" as AdminTab,
-                count: stagedUpdates.length + integrityFlagCount + platformIntegrityFlagCount,
-                unit: "open",
-                urgent: integrityFlagCount > 0 || platformIntegrityFlagCount > 0,
-              },
-              {
-                key: "coverage",
-                kicker: "Section 4",
-                title: "Coverage",
-                desc: "Jurisdiction review, coverage matrix, gap analysis.",
-                target: "jurisdiction-review" as AdminTab,
-                count: 0,
-                unit: "critical gaps",
-                urgent: false,
-              },
-              {
-                key: "research-pipeline",
-                kicker: "Section 5",
-                title: "Research pipeline",
-                desc: "Editorial draft-staging (moved from customer-facing /research per design rebuild).",
-                // H4 (2026-05-25): retargeted from "tier-opinions"
-                // placeholder to the new "research-pipeline" destination
-                // view (ResearchPipelineQueueView). Section card click
-                // → destination view is the canonical /admin navigation
-                // pattern per operator direction.
-                target: "research-pipeline" as AdminTab,
-                count: 0,
-                unit: "drafts",
-                urgent: false,
-              },
-              {
-                key: "community-pickups",
-                kicker: "Section 6",
-                title: "Community pickups",
-                desc: "High-engagement community posts pending promotion to platform intelligence.",
-                // H5 (2026-05-25): retargeted from "tier-opinions"
-                // placeholder to the new "community-pickups" destination
-                // view (CommunityPickupsQueueView). Section card click →
-                // destination view per the H4 pattern.
-                target: "community-pickups" as AdminTab,
-                count: 0,
-                unit: "pending",
-                urgent: false,
-              },
-            ] as const
-          ).map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setActiveTab(s.target)}
+            <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0 }}>
+              <b style={{ color: "var(--text)" }}>Platform-wide controls.</b> Per-org settings
+              (members, billing) live on each org owner&apos;s{" "}
+              <a href="/profile" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
+                Profile
+              </a>
+              .
+            </p>
+            <Button variant="secondary" size="sm" onClick={loadData}>
+              Refresh
+            </Button>
+          </div>
+          <div
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--color-border)",
+              borderRadius: 8,
+              padding: "11px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+              {mtd} <span style={{ fontWeight: 600, color: "var(--text-2)" }}>month-to-date</span>
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+              {initialMtdRuns} <span style={{ fontWeight: 600, color: "var(--text-2)" }}>agent runs</span>
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+              {initialMtdErrors} <span style={{ fontWeight: 600, color: "var(--text-2)" }}>errors</span>
+            </span>
+            <span
               style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderLeft: s.urgent ? "3px solid var(--critical)" : "1px solid var(--border)",
-                borderRadius: "var(--r-md)",
-                padding: "18px 22px",
-                textAlign: "left",
-                cursor: "pointer",
-                color: "inherit",
-                fontFamily: "inherit",
+                fontSize: 9.5,
+                fontWeight: 800,
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+                color: "var(--text-2)",
+                border: "1px solid var(--color-border-medium)",
+                borderRadius: 4,
+                padding: "3px 8px",
               }}
             >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: s.urgent ? "var(--critical)" : "var(--text-2)",
-                  marginBottom: 8,
-                }}
-              >
-                {s.kicker}
-                {s.urgent && s.count > 0 ? ` · ${s.count} attention` : ""}
-              </div>
-              <h3
+              Read-only
+            </span>
+          </div>
+        </div>
+
+        <div className="admin-t08-grid">
+          {/* LEFT — sections + sub-nav + body */}
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                borderBottom: "2px solid var(--text)",
+                padding: "0 0 8px",
+                margin: "0 0 14px",
+                gap: 12,
+              }}
+            >
+              <h2
                 style={{
                   fontFamily: "var(--font-display)",
-                  fontSize: 22,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  margin: "0 0 6px",
                   fontWeight: 400,
-                  lineHeight: 1.1,
+                  fontSize: 26,
+                  letterSpacing: "0.02em",
+                  textTransform: "uppercase",
+                  margin: 0,
+                  color: "var(--text)",
                 }}
               >
-                {s.title}
-              </h3>
-              <p
-                style={{
-                  fontSize: 12.5,
-                  color: "var(--text-2)",
-                  margin: "0 0 12px",
-                  lineHeight: 1.55,
-                }}
-              >
-                {s.desc}
-              </p>
-              {/* Honest-empty: show a count ONLY when it is a real positive number. The
-                  hardcoded `count: 0` placeholders (sources/coverage/research/community
-                  pickups) were rendering false metrics ("0 provisional pending" while the
-                  live backlog is 485, contradicting the IssuesQueue above). The real
-                  needs-attention numbers live in the IssuesQueue; these nav cards no longer
-                  assert a fabricated count. */}
-              {s.count > 0 && (
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    color: "var(--text-2)",
-                    borderTop: "1px solid var(--border-sub)",
-                    paddingTop: 10,
-                  }}
-                >
-                  <b style={{ color: s.urgent ? "var(--critical)" : "var(--text)", fontWeight: 700 }}>
-                    {s.count}
-                  </b>{" "}
-                  {s.unit}
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div
-          style={{
-            display: "flex",
-            gap: 0,
-            borderBottom: "1px solid var(--border)",
-            marginBottom: 24,
-            flexWrap: "wrap",
-          }}
-        >
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              style={{
-                position: "relative",
-                padding: "12px 20px",
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: activeTab === t.id ? "var(--accent)" : "var(--text-2)",
-                borderBottom:
-                  activeTab === t.id
-                    ? "3px solid var(--accent)"
-                    : "3px solid transparent",
-                background: "transparent",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              {t.label}
-              {t.count > 0 && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: "1px 7px",
-                    borderRadius: 999,
-                    background: "var(--raised)",
-                    color: "var(--text-2)",
-                    fontWeight: 700,
-                  }}
-                >
-                  {t.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Organizations Tab */}
-        {activeTab === "orgs" && (
-          <div className="space-y-4">
-            {/* Workspace-level orgs roster: id/name/slug/plan/created_at +
-                derived member counts, role rosters, and last-activity proxy.
-                Replaces the prior Phase D placeholder. Data comes from
-                app/admin/page.tsx server fetch (initialOrgs + initialMembers);
-                the OrganizationsTable component derives everything else
-                without an extra query. */}
-            <div className="space-y-2">
-              <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                Organizations ({orgs.length})
+                Sections
               </h2>
-              <OrganizationsTable orgs={orgs} members={members} />
+              <span style={{ fontSize: 12, color: "var(--text-2)" }}>
+                Admin / <b style={{ color: "var(--text)" }}>{crumb}</b>
+              </span>
             </div>
 
-            {/* Workspace member shortcut — kept until Phase D Profile-side
-                management ships; covers the dev-mode path of inviting users
-                to the current workspace. */}
-            <div className="space-y-2 pt-2">
-              <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                Current workspace · members
-              </h2>
-              <div
-                className="flex gap-2 p-4 rounded-lg border"
-                style={{
-                  borderColor: "var(--color-border)",
-                  backgroundColor: "var(--color-surface)",
-                }}
-              >
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="Email address"
-                  className="flex-1 px-3 py-2 text-sm rounded-md border outline-none"
-                  style={{
-                    borderColor: "var(--color-border)",
-                    backgroundColor: "var(--color-background)",
-                    color: "var(--color-text-primary)",
-                  }}
-                />
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  className="px-3 py-2 text-sm rounded-md border"
-                  style={{
-                    borderColor: "var(--color-border)",
-                    backgroundColor: "var(--color-background)",
-                    color: "var(--color-text-primary)",
-                  }}
-                >
-                  <option value="owner">Owner</option>
-                  <option value="admin">Admin</option>
-                  <option value="member">Member</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-                <Button variant="primary" size="md" onClick={addMember}>
-                  <Plus size={14} />
-                  Add
-                </Button>
-              </div>
-
-              {members.length === 0 ? (
-                <p className="text-xs px-1" style={{ color: "var(--color-text-secondary)" }}>
-                  No workspace members yet.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {members.map((m) => {
-                    // Display: prefer profiles.full_name (joined via the
-                    // user_id FK in loadData); fall back to a short uuid
-                    // for older accounts that have no profiles row,
-                    // and to "(no profile)" if the embed object is null
-                    // entirely. Auth.users.email isn't readable via
-                    // anon-RLS, so it can't be the fallback here.
-                    // Migrated 2026-05-15 (075 Phase 2): user.name -> user.full_name.
-                    const profileName: string | null =
-                      (m.user && typeof m.user === "object" && "full_name" in m.user
-                        ? (m.user as { full_name?: string | null }).full_name ?? null
-                        : null) || null;
-                    const displayName =
-                      profileName ||
-                      (m.user_id
-                        ? `${m.user_id.slice(0, 8)}…`
-                        : "(no profile)");
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
+            {/* Sections plate grid */}
+            <div className="admin-t08-sections" style={{ display: "grid", gap: 12, margin: "0 0 18px" }}>
+              {SECTIONS.map((s) => {
+                const on = s.name === section;
+                const badge = sectionBadge(s.name);
+                return (
+                  <button
+                    key={s.name}
+                    type="button"
+                    onClick={() => pickSection(s.name)}
+                    aria-pressed={on}
+                    style={{
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      background: on ? "var(--color-bg-ai-strip)" : "var(--surface)",
+                      borderRadius: 8,
+                      padding: "13px 16px",
+                      width: "100%",
+                      border: on
+                        ? "2px solid var(--color-primary)"
+                        : "1px solid var(--color-border)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+                      <span
                         style={{
-                          borderColor: "var(--color-border)",
-                          backgroundColor: "var(--color-surface)",
+                          fontFamily: "var(--font-display)",
+                          fontSize: 16,
+                          letterSpacing: "0.03em",
+                          textTransform: "uppercase",
+                          color: "var(--text)",
                         }}
                       >
-                        <div>
-                          <p
-                            className="text-sm font-medium"
-                            style={{ color: "var(--color-text-primary)" }}
-                            title={m.user_id}
-                          >
-                            {displayName}
-                          </p>
-                          <p
-                            className="text-xs"
-                            style={{ color: "var(--color-text-muted)" }}
-                          >
-                            {m.role} · joined{" "}
-                            {new Date(m.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
+                        {s.name}
+                      </span>
+                      {badge !== null && (
                         <span
-                          className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
                           style={{
-                            color:
-                              m.role === "owner"
-                                ? "var(--color-primary)"
-                                : "var(--color-text-secondary)",
-                            backgroundColor: "var(--color-surface-raised)",
+                            fontFamily: "var(--font-display)",
+                            fontSize: 16,
+                            color: "var(--sev-critical)",
+                            fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {m.role}
+                          {badge.toLocaleString()}
                         </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Workstream B: invitations panel — admin can invite by email,
-                view pending/recent invitations, and revoke. Lives below
-                the members list so the workflow is contiguous. */}
-            {orgIdFromAuth && <InvitationsPanel orgId={orgIdFromAuth} />}
-          </div>
-        )}
-
-        {/* Source registry Tab — wraps existing SourceHealthDashboard */}
-        {activeTab === "sources" && (
-          <div className="space-y-4">
-            {issueFilter && (
-              <IssueFilterCaption
-                label={issueFilterLabel(issueFilter)}
-                onClear={() => setIssueFilter(null)}
-              />
-            )}
-            <SourceHealthDashboard />
-          </div>
-        )}
-
-        {/* Staged updates Tab */}
-        {activeTab === "staged" && (
-          <div className="space-y-4">
-            {issueFilter && (
-              <IssueFilterCaption
-                label={issueFilterLabel(issueFilter)}
-                onClear={() => setIssueFilter(null)}
-              />
-            )}
-            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-              Pending Staged Updates
-            </h2>
-            {stagedUpdates.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm" style={{ color: "var(--color-text-primary)" }}>
-                  No pending updates
-                </p>
-                <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
-                  When the monitoring worker detects changes, they appear here for review.
-                </p>
-              </div>
-            ) : (
-              stagedUpdates.map((update) => (
-                <div
-                  key={update.id}
-                  className="p-4 rounded-lg border space-y-3"
-                  style={{
-                    borderColor: "var(--color-border)",
-                    backgroundColor: "var(--color-surface)",
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded"
-                      style={{
-                        color: "var(--color-warning)",
-                        backgroundColor: "rgba(217, 119, 6, 0.08)",
-                        border: "1px solid rgba(217, 119, 6, 0.15)",
-                      }}
-                    >
-                      {update.update_type}
-                    </span>
-                    <span className="text-xs tabular-nums" style={{ color: "var(--color-text-muted)" }}>
-                      {new Date(update.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                  {/* Show full proposed item details */}
-                  {update.proposed_changes && (
-                    <div className="space-y-1.5">
-                      {update.proposed_changes.title && (
-                        <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                          {update.proposed_changes.title}
-                        </p>
-                      )}
-                      {update.proposed_changes.summary && (
-                        <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                          {update.proposed_changes.summary}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-1.5 text-[10px]">
-                        {update.proposed_changes.priority && (
-                          <span className="px-1.5 py-0.5 rounded font-semibold" style={{ color: "var(--color-warning)", backgroundColor: "rgba(217,119,6,0.08)" }}>
-                            {update.proposed_changes.priority}
-                          </span>
-                        )}
-                        {update.proposed_changes.status && (
-                          <span className="px-1.5 py-0.5 rounded" style={{ color: "var(--color-text-secondary)", backgroundColor: "var(--color-surface-raised)" }}>
-                            {update.proposed_changes.status}
-                          </span>
-                        )}
-                        {update.proposed_changes.jurisdictions?.map((j: string) => (
-                          <span key={j} className="px-1.5 py-0.5 rounded" style={{ color: "var(--color-text-secondary)", backgroundColor: "var(--color-surface-raised)" }}>
-                            {j.toUpperCase()}
-                          </span>
-                        ))}
-                        {update.proposed_changes.transport_modes?.map((m: string) => (
-                          <span key={m} className="px-1.5 py-0.5 rounded" style={{ color: "var(--color-primary)", backgroundColor: "var(--color-active-bg)" }}>
-                            {m}
-                          </span>
-                        ))}
-                      </div>
-                      {update.proposed_changes.source_url && (
-                        <a href={update.proposed_changes.source_url} target="_blank" rel="noopener noreferrer"
-                          className="text-[11px] hover:underline" style={{ color: "var(--color-primary)" }}>
-                          {update.proposed_changes.source_url}
-                        </a>
-                      )}
-                      {update.proposed_changes.entry_into_force && (
-                        <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-                          Effective: {update.proposed_changes.entry_into_force}
-                        </p>
                       )}
                     </div>
-                  )}
-                  {!update.proposed_changes?.title && (
-                    <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                      {update.reason || JSON.stringify(update.proposed_changes, null, 2)}
+                    <p style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, margin: "5px 0 0" }}>
+                      {s.sub}
                     </p>
-                  )}
-                  {/* Sprint 4 task 1.11: provenance-gate failure modes */}
-                  <ProvenanceFailures failures={extractFailures(update)} />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleUpdate(update.id, "approve")}
-                    >
-                      <CheckCircle size={12} />
-                      Approve
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleUpdate(update.id, "reject")}
-                    >
-                      <XCircle size={12} />
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Integrity flags Tab — W2.C
-            Surfaces intelligence_items.agent_integrity_flag rows from
-            migration 035. Component owns its own data fetching + actions
-            against /api/admin/integrity-flags. */}
-        {activeTab === "integrity-flags" && (
-          <div className="space-y-4">
-            {issueFilter && (
-              <IssueFilterCaption
-                label={issueFilterLabel(issueFilter)}
-                onClear={() => setIssueFilter(null)}
-              />
-            )}
-            <IntegrityFlagsView />
-          </div>
-        )}
-
-        {/* Platform integrity flags Tab — Wave 4
-            Surfaces the integrity_flags table from migration 048 (design_drift,
-            data_quality, source_issue, coverage_gap, data_integrity,
-            surface_concern). Distinct from the per-brief Integrity flags
-            tab above; this is the durable queue for agent-detected concerns
-            that don't tie to a single intelligence_items row.  */}
-        {activeTab === "platform-integrity-flags" && (
-          <div className="space-y-4">
-            {issueFilter && (
-              <IssueFilterCaption
-                label={issueFilterLabel(issueFilter)}
-                onClear={() => setIssueFilter(null)}
-              />
-            )}
-            <PlatformIntegrityFlagsView />
-          </div>
-        )}
-
-        {activeTab === "coverage-matrix" && (
-          <div className="space-y-4">
-            {issueFilter && (
-              <IssueFilterCaption
-                label={issueFilterLabel(issueFilter)}
-                onClear={() => setIssueFilter(null)}
-              />
-            )}
-            <CoverageMatrixView
-              onAction={(action) => {
-                if (action.kind === "bulk-add") {
-                  setActiveTab("bulk-import");
-                  setIssueFilter(`coverage:${action.jurisdictionIso}`);
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {activeTab === "bulk-import" && (
-          <div className="space-y-4">
-            {issueFilter && (
-              <IssueFilterCaption
-                label={issueFilterLabel(issueFilter)}
-                onClear={() => setIssueFilter(null)}
-              />
-            )}
-            <BulkImportView />
-          </div>
-        )}
-
-        {/* Phase 7 admin chrome — tier-opinion disagreement review surface.
-            Sources where the brief-generation agent's tier opinions
-            disagree with current base_tier; operator can accept (writes
-            tier_override), reject (dismisses opinions), or defer. */}
-        {activeTab === "tier-opinions" && (
-          <div className="space-y-4">
-            <TierOpinionDisagreementsView />
-          </div>
-        )}
-
-        {/* H4 (2026-05-25): Section card 5 destination view. The Research
-            editorial draft-staging surface moved from customer-facing
-            /research to /admin per platform-intent SKILL Section 5
-            correction; this is the canonical workflow surface. Reached
-            via Section card click, not via the legacy 11-tab strip. */}
-        {activeTab === "research-pipeline" && (
-          <div className="space-y-4">
-            <ResearchPipelineQueueView />
-          </div>
-        )}
-
-        {/* H5 (2026-05-25): Section card 6 destination view. Engagement-
-            heuristic suggestion queue for community-to-intelligence
-            promotion. Same section-card → destination-view pattern as
-            H4; not in the legacy 11-tab strip. */}
-        {activeTab === "community-pickups" && (
-          <div className="space-y-4">
-            <CommunityPickupsQueueView />
-          </div>
-        )}
-
-        {/* Phase 7 admin chrome — ingest rejections triage queue. */}
-        {activeTab === "ingest-rejections" && (
-          <div className="space-y-4">
-            <IngestRejectionsView />
-          </div>
-        )}
-
-        {/* Phase 7 admin chrome — pending jurisdiction-review triage queue. */}
-        {activeTab === "jurisdiction-review" && (
-          <div className="space-y-4">
-            <PendingJurisdictionReviewView />
-          </div>
-        )}
-
-        {/* Regulatory Scan Tab */}
-        {activeTab === "scan" && (
-          <div className="space-y-4">
-            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-              Regulatory Scan
-            </h2>
-            <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              Search for new regulations using AI. Leave fields empty to scan all freight sustainability topics globally.
-              Results are staged for your review — nothing is published automatically.
-              Automated scans run Monday/Wednesday/Friday at 07:00 UTC.
-            </p>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Topic (e.g., carbon pricing, packaging, SAF)"
-                value={scanTopic}
-                onChange={(e) => setScanTopic(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm rounded-md border"
-                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }}
-              />
-              <input
-                type="text"
-                placeholder="Jurisdiction (e.g., EU, US, UK)"
-                value={scanJurisdiction}
-                onChange={(e) => setScanJurisdiction(e.target.value)}
-                className="w-40 px-3 py-2 text-sm rounded-md border"
-                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-primary)" }}
-              />
-              <Button variant="primary" onClick={handleScan} disabled={scanning}>
-                <Search size={14} />
-                {scanning ? "Scanning..." : "Scan Now"}
-              </Button>
+                  </button>
+                );
+              })}
             </div>
 
-            {scanResult && (
-              <div
-                className="p-4 rounded-lg border"
-                style={{
-                  borderColor: scanResult.error ? "var(--color-error)" : "var(--color-success)",
-                  backgroundColor: scanResult.error ? "rgba(220,38,38,0.04)" : "rgba(22,163,74,0.04)",
-                }}
-              >
-                {scanResult.error ? (
-                  <p className="text-sm" style={{ color: "var(--color-error)" }}>{scanResult.error}</p>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>
-                      Scan complete: {scanResult.discovered} regulations found, {scanResult.new_items} new, {scanResult.staged} staged for review
-                      {scanResult.new_sources_discovered > 0 && ` · ${scanResult.new_sources_discovered} new sources discovered`}
-                    </p>
-                    {scanResult.staged_titles?.length > 0 && (
-                      <ul className="space-y-1">
-                        {scanResult.staged_titles.map((title: string, i: number) => (
-                          <li key={i} className="text-xs flex items-center gap-1.5" style={{ color: "var(--color-text-secondary)" }}>
-                            <CheckCircle size={10} style={{ color: "var(--color-success)" }} />
-                            {title}
-                          </li>
-                        ))}
-                      </ul>
+            {/* Sub-nav */}
+            <div
+              role="tablist"
+              aria-label={`${section} views`}
+              style={{
+                display: "flex",
+                gap: 2,
+                borderBottom: "1px solid var(--color-border)",
+                margin: "0 0 18px",
+                flexWrap: "wrap",
+              }}
+            >
+              {activeSection.tabs.map((t) => {
+                const on = t === sub;
+                const count = subTabCount(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => {
+                      setSub(t);
+                      setIssueFilter(null);
+                    }}
+                    style={{
+                      fontFamily: "inherit",
+                      fontSize: 12.5,
+                      fontWeight: on ? 800 : 600,
+                      padding: "10px 16px",
+                      border: "none",
+                      borderBottom: on ? "3px solid var(--color-primary)" : "3px solid transparent",
+                      background: "transparent",
+                      color: on ? "var(--text)" : "var(--text-2)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {t}
+                    {count !== null && (
+                      <span
+                        style={{
+                          marginLeft: 7,
+                          fontSize: 10,
+                          fontWeight: 800,
+                          padding: "1px 7px",
+                          borderRadius: 999,
+                          background: "var(--critical-bg)",
+                          color: "var(--sev-critical)",
+                          border: "1px solid var(--critical-bd)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {count.toLocaleString()}
+                      </span>
                     )}
-                    {scanResult.new_source_names?.length > 0 && (
-                      <div className="mt-2">
-                        <span className="text-xs font-medium" style={{ color: "var(--color-primary)" }}>New sources added to registry:</span>
-                        <ul className="mt-1 space-y-0.5">
-                          {scanResult.new_source_names.map((name: string, i: number) => (
-                            <li key={i} className="text-xs" style={{ color: "var(--color-text-secondary)" }}>+ {name}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>
-                      Review staged items in the Staged Updates tab to approve or reject.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Section body */}
+            {renderBody(section, sub)}
           </div>
-        )}
+
+          {/* RIGHT — issues queue rail */}
+          <AdminIssuesRail onNavigate={handleIssueNavigate} />
+        </div>
 
         {/* Toast */}
         {toast && (
           <div
-            className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg border text-sm font-medium shadow-lg"
+            role="status"
+            aria-live="polite"
             style={{
-              borderColor: "var(--color-success)",
-              backgroundColor: "var(--color-surface)",
-              color: "var(--color-success)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              position: "fixed",
+              bottom: 24,
+              right: 24,
+              zIndex: 200,
+              padding: "12px 16px",
+              borderRadius: 8,
+              border: "1px solid var(--color-border)",
+              background: "var(--surface)",
+              color: "var(--text)",
+              fontSize: 13,
+              fontWeight: 600,
+              maxWidth: 360,
             }}
           >
-            <CheckCircle size={14} className="inline mr-1.5" />
             {toast}
           </div>
         )}
       </div>
     </div>
   );
+
+  // ── Section body router ───────────────────────────────────────────────────
+  function renderBody(sec: SectionName, tab: string) {
+    // Workspaces
+    if (sec === "Workspaces") {
+      return (
+        <div style={{ display: "grid", gap: 14 }}>
+          <WorkspacesUsageRow orgs={orgs} members={members} />
+          <PlateCard title="Organizations" meta={`${orgs.length} org${orgs.length === 1 ? "" : "s"} · ${members.length} membership${members.length === 1 ? "" : "s"}`}>
+            <OrganizationsTable orgs={orgs} members={members} />
+          </PlateCard>
+          <div className="admin-t08-usage" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <MembersPanel members={members} onAddMember={addMember} onToast={showToast} />
+            {orgIdFromAuth ? (
+              <InvitationsPanel orgId={orgIdFromAuth} />
+            ) : (
+              <PendingFrame
+                heading="Invitations need a resolved workspace."
+                body="Sign in to a workspace to invite teammates. Invitations attach to the workspace you own."
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Sources
+    if (sec === "Sources") {
+      if (tab === "Bulk add sources") return <BulkImportView />;
+      if (tab === "Tier disagreements") return <TierOpinionDisagreementsView />;
+      // Source registry / Provisional review / Spot-check all resolve to the
+      // source review surface (SourceHealthDashboard owns provisional review +
+      // recently-approved spot-check); the sub-tab scopes the operator's intent.
+      return (
+        <div style={{ display: "grid", gap: 16 }}>
+          {issueFilter && (
+            <IssueFilterCaption label={issueFilterLabel(issueFilter)} onClear={() => setIssueFilter(null)} />
+          )}
+          <SourceHealthDashboard />
+        </div>
+      );
+    }
+
+    // Ingest
+    if (sec === "Ingest") {
+      if (tab === "Flags & rejections") return <FlagsRejectionsQueue />;
+      if (tab === "Staged updates") return renderStaged();
+      if (tab === "Regulatory scan") return renderScan();
+    }
+
+    // Coverage
+    if (sec === "Coverage") {
+      if (tab === "Coverage matrix") {
+        return (
+          <CoverageMatrixView
+            onAction={(action) => {
+              if (action.kind === "bulk-add") {
+                setSection("Sources");
+                setSub("Bulk add sources");
+                setIssueFilter(`coverage:${action.jurisdictionIso}`);
+              }
+            }}
+          />
+        );
+      }
+      return <PendingJurisdictionReviewView />;
+    }
+
+    // Research pipeline
+    if (sec === "Research pipeline") return <ResearchPipelineQueueView />;
+
+    // Community pickups
+    if (sec === "Community pickups") return <CommunityPickupsQueueView />;
+
+    return null;
+  }
+
+  function renderStaged() {
+    return (
+      <PlateCard title="Staged updates" meta={`${stagedUpdates.length} pending`}>
+        <div style={{ padding: 20, display: "grid", gap: 12 }}>
+          {stagedUpdates.length === 0 ? (
+            <PendingFrame
+              heading="No staged updates pending."
+              body="When the monitoring worker detects changes, worker-staged regulations appear here for approval before they materialize into customer-facing briefs."
+            />
+          ) : (
+            stagedUpdates.map((update) => (
+              <div
+                key={update.id}
+                style={{
+                  padding: 16,
+                  borderRadius: 8,
+                  border: "1px solid var(--color-border)",
+                  background: "var(--surface)",
+                  display: "grid",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      color: "var(--sev-high)",
+                      border: "1px solid var(--high-bd)",
+                      background: "var(--high-bg)",
+                    }}
+                  >
+                    {update.update_type}
+                  </span>
+                  <span style={{ fontSize: 12, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
+                    {new Date(update.created_at).toLocaleString()}
+                  </span>
+                </div>
+                {update.proposed_changes?.title && (
+                  <p style={{ fontSize: 13, fontWeight: 700, margin: 0, color: "var(--text)" }}>
+                    {update.proposed_changes.title}
+                  </p>
+                )}
+                {update.proposed_changes?.summary && (
+                  <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--text-2)", margin: 0 }}>
+                    {update.proposed_changes.summary}
+                  </p>
+                )}
+                {!update.proposed_changes?.title && (
+                  <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0 }}>
+                    {update.reason || JSON.stringify(update.proposed_changes)}
+                  </p>
+                )}
+                <ProvenanceFailures failures={extractFailures(update)} />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button variant="primary" size="sm" onClick={() => handleUpdate(update.id, "approve")}>
+                    <CheckCircle size={12} />
+                    Approve
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleUpdate(update.id, "reject")}>
+                    <XCircle size={12} />
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </PlateCard>
+    );
+  }
+
+  function renderScan() {
+    return (
+      <PlateCard title="Regulatory scan" meta="Mon / Wed / Fri · 07:00 UTC">
+        <div style={{ padding: 20, display: "grid", gap: 14 }}>
+          <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, lineHeight: 1.6 }}>
+            Search for new regulations. Leave fields empty to scan all freight-sustainability topics
+            globally. Results are staged for review — nothing is published automatically.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              type="text"
+              placeholder="Topic (e.g. carbon pricing, packaging, SAF)"
+              value={scanTopic}
+              onChange={(e) => setScanTopic(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 220,
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                padding: "9px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--color-border-medium)",
+                background: "var(--color-background)",
+                color: "var(--text)",
+                outline: "none",
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Jurisdiction (e.g. EU, US, UK)"
+              value={scanJurisdiction}
+              onChange={(e) => setScanJurisdiction(e.target.value)}
+              style={{
+                width: 200,
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                padding: "9px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--color-border-medium)",
+                background: "var(--color-background)",
+                color: "var(--text)",
+                outline: "none",
+              }}
+            />
+            <Button variant="primary" onClick={handleScan} disabled={scanning}>
+              <Search size={14} />
+              {scanning ? "Scanning…" : "Scan now"}
+            </Button>
+          </div>
+          {scanResult && (
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 8,
+                border: `1px solid ${scanResult.error ? "var(--color-error)" : "var(--color-success)"}`,
+                background: "var(--surface)",
+              }}
+            >
+              {scanResult.error ? (
+                <p style={{ fontSize: 13, color: "var(--color-error)", margin: 0 }}>{scanResult.error}</p>
+              ) : (
+                <p style={{ fontSize: 13, color: "var(--text)", margin: 0 }}>
+                  Scan complete: {scanResult.discovered} found, {scanResult.new_items} new,{" "}
+                  {scanResult.staged} staged for review
+                  {scanResult.new_sources_discovered > 0
+                    ? ` · ${scanResult.new_sources_discovered} new sources discovered`
+                    : ""}
+                  . Review them in Staged updates.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </PlateCard>
+    );
+  }
 }
 
+// ── Small shared presentational helpers ─────────────────────────────────────
+
+function PlateCard({
+  title,
+  meta,
+  children,
+}: {
+  title: string;
+  meta?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "12px 20px",
+          background: "var(--raised)",
+          borderBottom: "1px solid var(--color-border-subtle)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 12,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12.5,
+            fontWeight: 800,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            color: "var(--text)",
+          }}
+        >
+          {title}
+        </span>
+        {meta && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{meta}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Honest-state frame (§4): dashed border, brass heading, one-liner + reason. */
+function PendingFrame({ heading, body }: { heading: string; body: string }) {
+  return (
+    <div
+      style={{
+        border: "1px dashed var(--color-border-strong)",
+        background: "var(--color-background)",
+        borderRadius: 8,
+        padding: "14px 16px",
+      }}
+    >
+      <p
+        style={{
+          fontSize: 12.5,
+          fontWeight: 800,
+          color: "var(--text)",
+          margin: "0 0 4px",
+        }}
+      >
+        {heading}
+      </p>
+      <p style={{ fontSize: 12.5, lineHeight: 1.65, color: "var(--text-2)", margin: 0 }}>{body}</p>
+    </div>
+  );
+}
