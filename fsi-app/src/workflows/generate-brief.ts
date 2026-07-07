@@ -49,6 +49,7 @@ import {
   readOpenDataAuditBlock,
   hasValidWaiver,
 } from "../lib/agent/audit-gate";
+import { linkItems } from "../lib/entities/link-items";
 
 // Estimated per-step Claude spend for the cost_usd_estimated ledger. CLAUDE.md
 // baseline is ~$0.15/item: the generate pass and the ground pass each make one
@@ -193,6 +194,21 @@ export async function groundStep(itemId: string): Promise<StepResult> {
 export async function growStep(itemId: string): Promise<StepResult> {
   "use step";
   return growSources(itemId);
+}
+
+// Entity cross-reference linking (phase-intake-gate piece 3): deterministically wire the entities this
+// item's content NAMES (reg#/CELEX/named standards) into item_cross_references (origin=entity_extraction)
+// and surface ambiguous/unknown-standard mentions to integrity_flags. No LLM. Non-gating — a link failure
+// never invalidates a grounded brief. Moat boundary: writes edges/flags, NEVER grounding citations.
+export async function linkStep(itemId: string): Promise<{ edges: number; surfaced: number }> {
+  "use step";
+  try {
+    const r = await linkItems(svc(), itemId);
+    return { edges: r.edges, surfaced: r.surfaced };
+  } catch (e) {
+    console.warn(`[linkStep] non-gating failure for ${itemId}: ${e instanceof Error ? e.message : String(e)}`);
+    return { edges: 0, surfaced: 0 };
+  }
 }
 
 // LAYER B baseline — captures the GLOBAL one-tier-per-host violation count BEFORE this run registers any
@@ -391,6 +407,11 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
   // invalidate an already-verified brief. The set_provenance_status trigger (migration
   // 121) flipped the item to 'verified' on the grounding writes — no human tick.
   const grow = await growStep(itemId);
+
+  // RECONNECT (phase-intake-gate): feed the cross-reference graph from this item's content. Deterministic,
+  // non-gating — turns the built-but-unfed item_cross_references layer into a fed one.
+  const link = await linkStep(itemId);
+  void link;
 
   // LAYER B GATE — NON-OPTIONAL, FAIL-CLOSED. The item is per-item-verified by the mig-115 trigger; this
   // enforces the CROSS-item / corpus invariants the trigger cannot see. "Write succeeded" is connected to
