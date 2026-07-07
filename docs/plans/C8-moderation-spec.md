@@ -233,3 +233,11 @@ And to enable the two stubbed actions:
 None of these are in scope for C8 per the "no new migrations"
 constraint, and the API encoding plus the response field
 `phase_d_stub: true` make the migration roll-forward straightforward.
+
+## Related
+
+- [[C7-notifications-spec]] — C8's warn_user/ban actions service-role-INSERT notifications rows with kind='moderation' — the exact kind C7 renders from the migration 032 CHECK set
+- [[C5-feed-spec]] — C8's remove_post is a HARD delete precisely because C5's community_posts has no deleted_at; C8 wires ReportPostMenu into C5's Post.tsx
+- [[C6-promote-spec]] — C8's Option B mounts ModerationQueue inside the C6-shipped GroupHeader Settings modal, sharing the same group-admin tooling surface
+- [[spec-audit-community-2026-05-23]] — Both cover /community/moderation + ModerationQueue RLS scoping
+- [[C9-realtime-spec]] — shares migration 032

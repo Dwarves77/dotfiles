@@ -511,3 +511,11 @@ recommendations.
 - `docs/inventories/worktrees.md`: not touched.
 - Single commit on `chore/spec-audit-community`, push to
   `origin/chore/spec-audit-community`. No merge.
+
+## Related
+
+- [[spec-audit-synthesis-2026-05-23]] — This audit is one of the eight rolled up by the synthesis (commit b982ebe)
+- [[C7-notifications-spec]] — Shared dispatch.ts notifications table (reply/invite/moderation/promote/mention) the audit cites
+- [[C8-moderation-spec]] — Both cover /community/moderation + ModerationQueue RLS scoping
+- [[multi-tenant-foundation-prework-2026-05-15]] — Community components audited were shipped under Multi-Tenant Foundation Workstream B this prework scopes
+- [[C5-feed-spec]] — Community feed spec; the audit's missing cross-group industry-pulse feed is C5's domain

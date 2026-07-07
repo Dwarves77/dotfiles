@@ -266,3 +266,11 @@ The current Resource type (`fsi-app/src/types/resource.ts`) is regulation-centri
 - **The Intelligence Assistant absorbs gap when the page does not.** AiPromptBar at MarketPage.tsx:225-228 with chips at line 97 directs the customer to the Assistant for the four named questions. Per caros-ledge-platform-intent SKILL.md:132-140 the Assistant is a research helper, not a synthesis engine. If the rebuild leans on the Assistant to answer Q1-Q4, that is consistent with the platform-intent skill PROVIDED the page itself surfaces the structured content the Assistant grounds against. Today the structured content is thin (regulation-shaped Resources with optional whyMatters paragraphs), so the Assistant has limited grounding material on Market-Intel-shaped questions.
 
 - **The four customer questions in the framing context are illustrative, not exhaustive.** A rebuild scope should probe whether they are the right four. Q3 (Strait of Hormuz) reads like a regional/geopolitical signal that may belong in a chokepoint sub-surface; Q4 (technology shifts) reads like a Technology Profile question. Operator's intuition on which questions Market Intel must answer in 30 seconds determines the rebuild's headline shape.
+
+## Related
+
+- [[spec-audit-operations-2026-05-23]] — Shared taxonomy-bleed: /market and /operations consume the same unfiltered fallback payload; audit says the Market/Operations boundary must be…
+- [[spec-audit-research-2026-05-23]] — Both flag tech/innovation item-type routing drift vs the item_type-derived Format Mapping (Technology Profile)
+- [[ADR-002-tier-model]] — Section-8 credibility signal set (tier + recency + signal-strength) the audit measures builds on the tier model
+- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — Market Intel gap is unregistered spec-named publishers; this proposal governs the source-type taxonomy that would route them
+- [[source-classification-framework-2026-05-10]] — sources.category routing (migration 084) the audit depends on is defined by this classification framework

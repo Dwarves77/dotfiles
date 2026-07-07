@@ -396,3 +396,11 @@ Net engineering effort: **M.** Net operator review effort: **~1h.** No regenerat
 - CLAUDE.md update — separate PR
 
 This is doc-only. Read-only investigation + design. No schema changes. No code changes. No DB writes.
+
+## Related
+
+- [[W2D-coverage-matrix-spec]] — Both classify source coverage per jurisdiction; the source_type tag is the structured replacement for the same coverage-gaps env-body/legislature…
+- [[source-classification-framework-2026-05-10]] — Shared subsystem: this proposal formalizes the source-type-of-body classification axis that the source-classification framework governs
+- [[W2F-verification-pipeline]] — Both classify sources at write time; W2F's Haiku ai_trust_tier (T1/T2/T3) is the orthogonal trust axis this proposal repeatedly contrasts with…
+- [[spec-audit-market-intel-2026-05-23]] — Market Intel gap is unregistered spec-named publishers; this proposal governs the source-type taxonomy that would route them
+- [[source-classification-final-summary-2026-05-11]] — Defines the source_role vocabulary (primary_legal_authority, intergovernmental_body, trade_press, etc.) whose distribution this doc tabulates

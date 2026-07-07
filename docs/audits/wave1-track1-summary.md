@@ -107,3 +107,9 @@ Existing rss_feed_url does not match the URL we detected on the home page.
 
 - **FreightWaves**: existing=`https://www.freightwaves.com/news/feed`, detected=`https://www.freightwaves.com/rss`
 
+## Related
+
+- [[wave1-step1-verification]] — Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
+- [[W2B-discovery-agent-spec]] — This access-method probing (JSON-at-/api detection, rss/sitemap discovery) is the discovery-agent capability that spec defines
+- [[W5-cost-projection]] — The Browserless cycle recalibration (470 scrape sources, render-hour budget, Lean-tier cadence tiers) is direct input to that cost projection
+- [[wave1-track5-widget-implementation-plan]] — Plan is explicitly staged to implement after the Wave 1a foundation (migrations 052-059) this summary covers

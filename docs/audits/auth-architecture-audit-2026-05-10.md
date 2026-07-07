@@ -142,3 +142,9 @@ A service-role script can call `supabase.auth.admin.generateLink({ type: 'magicl
 5. After the smoke, optionally call `POST $NEXT_PUBLIC_SUPABASE_URL/auth/v1/logout` with the same bearer to invalidate the token. This is cosmetic, the token expires in an hour anyway, but it keeps the GoTrue session table tidy.
 
 The orchestrator should run steps 2 through 4 in the same process, never persist `OPERATOR_PASSWORD` or `BEARER` to disk, and treat any 401 from step 4 as a signal to re-mint rather than to retry the same bearer.
+
+## Related
+
+- [[ADR-004-auth-pattern-split]] — same auth subsystem; audit of the admin-route auth architecture this ADR formalizes
+- [[WORKER-ACTIVATION-AUDIT-2026-05-08]] — Contrasts the worker-secret auth on /api/worker/* against the bearer gate on /api/agent/run — the exact reason the cron worker cannot invoke the…
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Both cover the authorization model; the schema audit's headline is the SECURITY DEFINER page RPCs accepting p_org_id with no auth.uid() membership…

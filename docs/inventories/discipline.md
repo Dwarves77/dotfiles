@@ -158,3 +158,11 @@ git push --no-verify
 - Local hooks (installed copy): `.git/hooks/commit-msg`, `.git/hooks/pre-push`
 - CI workflow: `.github/workflows/discipline.yml`
 - Operator install procedure: `fsi-app/.discipline/INSTALL.md`
+
+## Related
+
+- [[ADR-005-discipline-enforcement-layered-architecture]] — the discipline-engine manifest / mechanism roster this ADR defines is tracked in the discipline inventory
+- [[worktrees]] — C4 consistency check gates that live worktrees equal worktrees.md entries; it caught the remediation-discipline orphan in CI
+- [[ADR-008-urgency-score-default]] — F4 fitness function (now retired) is tracked in the discipline inventory
+- [[ADR-009-adr-system-architecture]] — rule 013 + adr-loader mechanism this ADR defines are tracked in the discipline inventory
+- [[components]] — Fitness function F8 (client-server-tier-boundary) polices the body.tier assignment that CanonicalSourceReview sends — same tier-boundary contract

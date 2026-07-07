@@ -245,3 +245,11 @@ Per the dispatch's halt conditions:
 - `fsi-app/scripts/tmp/prework-mt-2-2026-05-15.json` — outbound FKs, helper function bodies, all RPCs with p_org_id arg.
 
 Both files preserved for re-derivation.
+
+## Related
+
+- [[skill-refinements-prework-2026-05-15]] — Same-session companion; skill-refinements is explicitly the companion doc and reuses this dispatch's three-context (workspace/community/personal)…
+- [[multi-tenant-foundation-followups-2026-05-15]] — Explicitly named companion — the prework doc holds the decisions made before code that this followups doc continues
+- [[dispatch-2.5-writer-redistribution-prework-2026-05-15]] — Explicitly named as the prework-first discipline this dispatch mirrors
+- [[ADR-001-platform-model]] — ADR-001 References section cites this prework doc as the multi-tenant foundation design it accepts
+- [[spec-audit-community-2026-05-23]] — Community components audited were shipped under Multi-Tenant Foundation Workstream B this prework scopes

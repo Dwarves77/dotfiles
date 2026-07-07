@@ -258,3 +258,11 @@ The single biggest concrete waste is **Claim 1**: 3.19 MB of `full_brief` text s
 - **Claim 3:** "5-way concurrent fetch" describes a state that no longer exists in `research/page.tsx`. The current code is a single 150-row SELECT — likely the change being claimed.
 - **Claim 4:** "pipeline_stage missing indexes" is wrong against current production — the index has existed since migration 026.
 - **Claims 1, 5, 6** are still live (or, for 5, plausible-but-unproven).
+
+## Related
+
+- [[PERF-AUDIT]] — Same-day companion verifying externally-supplied perf claims against this audit's getAppData/full_brief findings
+- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Named predecessor; both track the full_brief slim-RPC and the revalidate=60 state of /research and /settings
+- [[PERF-PLAYBOOK]] — Profiling findings map slow metrics to layers — exactly the bottleneck-identification step-3 the playbook defines
+- [[SESSION-AUDIT-2026-05-05]] — shares migration 034
+- [[ISR-WRITE-INVESTIGATION]] — Shares the revalidate-retained-on-/research finding (its Claim 2) that this investigation builds the ISR-write model on

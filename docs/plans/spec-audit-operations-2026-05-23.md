@@ -199,3 +199,11 @@ The data layer (`getOperationsItems` + `fetchOperationsItems` at `supabase-serve
 - `fsi-app/src/lib/supabase-server.ts` lines 912-1101
 - `docs/plans/fix-d-scope-2026-05-23.md` (entire)
 - Commit `8e91271` Build 9 Operations
+
+## Related
+
+- [[spec-audit-research-2026-05-23]] — The NREL Warehouse Solar-ROI item moved from Operations d=6 to Research d=7 under Migration 101; both audits track it
+- [[spec-audit-market-intel-2026-05-23]] — Shared taxonomy-bleed: /market and /operations consume the same unfiltered fallback payload; audit says the Market/Operations boundary must be…
+- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized (commit 1f5a784); Operations rebuild absorbs the Fix D Facility decision
+- [[fix-d-scope-2026-05-23]] — Audit reflects post-Migration-101 reality this doc defines; Facility sub-tab (d=6 empty) disposition is Fix D's open decision
+- [[ingest-restart-sequencing-2026-05-22]] — Audit notes thin post-Migration-101 content refills as ingest restarts per this sequencing plan

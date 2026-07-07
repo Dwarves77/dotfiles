@@ -221,3 +221,10 @@ Migration 063 declares `sources.tier` as `TEXT`, but the Task 6 rows surface in 
 - PR 86 merge time: `2026-05-10T20:00:00Z` (approximate, per dispatch).
 - Cold start completion: `2026-05-10T03:00:00Z`.
 - Audit generation time: `2026-05-10T22:19:40.736Z`.
+
+## Related
+
+- [[topic-relevance-investigation-2026-05-09]] — The two archived rows verified here (NYC ICE + Latvian Saeima) are the off-topic items that investigation recommended flag-and-hide
+- [[wave1b-stub-quality-investigation-2026-05-11]] — Anomaly 2 (finance.ec.europa.eu stub 53c3fcd5 at pipeline_stage=draft) is the exact drain-worker stub that investigation dissects
+- [[source-classification-final-summary-2026-05-11]] — That audit verifies these classified rows (same 2026-05-10T21:20:49 write batch, Task 6 11-source subset)
+- [[deletion-reclassification-log]] — Confirms the 66 hard deletions this audit checks (0 remain, 0 agent_runs FK orphans) — the ops log of that deletion action

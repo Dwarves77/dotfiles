@@ -352,3 +352,11 @@ To get definitive answers on the unverified items: run `next build` once and ins
 ## Closing Note
 
 The 2026-05-05 audit was excellent and most of its high-impact recommendations shipped. The slowness the user is experiencing now is **not** the per-page query count — that's been reduced significantly. It's the **structural auth round-trip multiplication on every page** (3 server calls + 2 client calls before the page's own work) and **the absence of any caching layer** (every render does the full data dance). Fix #1 (AuthProvider hydration) and fix #2 (`unstable_cache` for getAppData) together would eliminate both — and they're independent of each other, so they can ship in parallel.
+
+## Related
+
+- [[PERF-AUDIT]] — Direct predecessor; this doc is the backlog walk-through verifying which of PERF-AUDIT's 15 items shipped vs remain
+- [[PERF-PROFILING-FINDINGS]] — Named predecessor; both track the full_brief slim-RPC and the revalidate=60 state of /research and /settings
+- [[ISR-WRITE-INVESTIGATION]] — Named predecessor; both diagnose the /research revalidate=60 behavior and the cookie-read-forces-dynamic pattern
+- [[PERF-PLAYBOOK]] — Runbook codifying the measure-first discipline and the ssr:true code-split anti-pattern this audit's fix list observes
+- [[hotfix-3-perf-audit-2026-05-07]] — Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread

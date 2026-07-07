@@ -244,3 +244,9 @@ When component owners wire the hooks in:
 - Migration 032 — `notifications` table + RLS policies.
 - `src/lib/supabase-browser.ts` — the browser client factory C9 wraps.
 - `src/types/community.ts` — full row types for joined reads (the realtime hooks emit narrower row payloads — a join is not available on the changefeed).
+
+## Related
+
+- [[C7-notifications-spec]] — C9's useCommunityNotificationsRealtime subscribes to the same notifications table (migration 032) to live-update C7's bell, and recommends the bell…
+- [[C5-feed-spec]] — C5 defers realtime feed updates to C9; C9's useCommunityPostsRealtime subscribes to the same community_posts group_id filter for PostList
+- [[C8-moderation-spec]] — shares migration 032

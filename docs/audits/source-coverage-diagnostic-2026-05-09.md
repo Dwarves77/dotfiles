@@ -282,3 +282,11 @@ Doc location: `C:/Users/jason/dotfiles/docs/source-coverage-diagnostic-2026-05-0
 **Architectural primitives count**: 0 PRESENT, 3 PARTIAL, 1 ABSENT across the four named primitives. Source health monitoring: PARTIAL. Primary-source intercept telemetry: ABSENT. Regulatory-arc entity: PARTIAL. Editorial framing layer: PARTIAL.
 
 **Methodology audit verdict**: written source-curation methodology is effectively absent. Closest artifacts are SKILL.md priority registry (flat ~30-source list, no coverage matrix, no cell-level targets, no last-reviewed metadata) and SKILL.md source-type hierarchy (6-tier weighting for conflict resolution, not a registration rule).
+
+## Related
+
+- [[primitives-audit-2026-05-09]] — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
+- [[registry-to-ingestion-handoff-design-2026-05-10]] — Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
+- [[source-map-existence-check-2026-05-10]] — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
+- [[source-map-from-esgtoday-2026-05-09]] — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
+- [[REGIONAL-DATA-COLLECTION-AUDIT]] — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy

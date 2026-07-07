@@ -612,3 +612,9 @@ This inventory is the scope envelope for a cross-cutting capability dispatch. Re
 ---
 
 **End of Phase 1.5 functional purpose audit.**
+
+## Related
+
+- [[cards-clickable-audit-2026-05-12]] — Shares the card→detail navigation flow per surface; the functional audit tracks the same click-through and notes /market/[slug] and…
+- [[comprehensive-site-audit-2026-05-25]] — Declared companion; the two form a deliberate lens pair — that doc asks whether required flows are present, this asks whether present elements…
+- [[caros-ledge-product-audit-2026-05-15]] — Shares the per-surface intent framing and the same schema-gap symptoms (static penalty calculator, missing 'Your exposure', phantom columns) as…

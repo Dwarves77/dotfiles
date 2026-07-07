@@ -138,3 +138,11 @@ Targeted at the files in operator scope.
 - The audit grepped for column names and import paths but did not exhaustively trace every SELECT inside RPCs. If migration 064 or 066's RPC body internally selects from migration 063's columns, the audit would not have surfaced it. The migration files were spot-checked; no such selects appeared.
 - The audit did not verify that the GitHub Actions workflow `source-monitoring.yml` is actually scheduled and running. It verifies the workflow exists and references `drain-first-fetch`.
 - The audit did not run the build to confirm dead-code elimination would or would not pick up `haikuClassify`. The export is not annotated `@__PURE__`, so a tree-shaker should drop it from the production bundle anyway, making the dead-code cost effectively zero.
+
+## Related
+
+- [[dashboard-payload-audit-2026-05-11]] — Rules it ACTIVE as the column-list contract behind migration 064's dashboard RPC; shared dependency on the get_workspace_intelligence_dashboard…
+- [[wave1b-stub-quality-investigation-2026-05-11]] — shares migration 064
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Both audit the migration 063 12-column scaffolding and the 062 hidden_reason column; cleanup rules them scaffolding-not-yet-consumed, this confirms…
+- [[classification-rules-audit-2026-05-09]] — Cites its title-only OOS-gate proposal (line 375) as the seed for a permanent fetch-quality fix; the _deletion-preview-title-only script is that seed
+- [[source-classification-framework-2026-05-10]] — Migration 063's 12 columns are the 5-axis framework's storage; this audit names that framework doc as the contract Wave 1c will fulfill

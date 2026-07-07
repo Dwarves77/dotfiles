@@ -532,3 +532,11 @@ A parallel live-site UX audit was conducted on 2026-05-15 by an independent agen
 A companion Supabase schema audit (`caros-ledge-supabase-schema-audit-2026-05-15.md`) provides table-by-table inventory of the database, mapped to the entity tables and infrastructure layers specified in Section 6.
 
 Synthesis composed by parent agent on 2026-05-15. v2 revisions composed 2026-05-15 to remove wrong-shape prescriptions (rename /research, feature-flag /operations) per operator clarification that the four-page architecture is the design and is correct.
+
+## Related
+
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Declared companion; the schema audit is the per-table evidence layer that grounds S1-S15 and the Section-6 spec (phantom table integrity_flags,…
+- [[four-page-architecture-survey-2026-05-09]] — The four-page architecture, domain-1 dominance, and weak market/operations schema this audit specs against were first established by that survey
+- [[multi-tenant-foundation-followups-2026-05-15]] — The v2 product audit is referenced throughout (Sections 6.1/6.4/6.5/6.8/6.9) as the source of the deferred/uncovered items
+- [[cards-clickable-audit-2026-05-12]] — Structural failure S1 (single detail-page route every card hardcodes) is the architectural counterpart to this audit's confirmation that all card…
+- [[classification-rules-audit-2026-05-09]] — S2/S5 routing-and-classifier failures are the same finding: item_type is not a reliable category proxy and the Haiku classifier lacks an…

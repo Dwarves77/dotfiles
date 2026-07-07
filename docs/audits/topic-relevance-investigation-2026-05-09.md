@@ -203,3 +203,11 @@ A complementary recommendation: independent of the topic gate, the garbage-extra
 **False-negative risk**: Moderate. The 21-pattern OFF_TOPIC list is not exhaustive; an immigration item titled "ICE Cooperation Memo" without other off-keywords could be flagged via the ICE-agency rule, but a creatively-titled abortion or election item with one off-keyword and one on-keyword would currently land in "on-topic" or "unclear". This investigation's polluted count of 39 is therefore a **lower bound**; an LLM-judge pass over the 45 "unclear" items would likely surface 2 to 5 additional topic failures. The operator should treat 9.3 percent as a floor.
 
 **What the investigation did not do**: did not execute any deletes, updates, or schema changes. Did not modify the cold-start script. Did not modify the handoff doc. Did not propose code changes to fix the gate. The two temporary investigation scripts at `fsi-app/scripts/_relevance-temp{,2,3,4}.mjs` were created and deleted within the same session, no artifacts remain.
+
+## Related
+
+- [[primitives-audit-2026-05-09]] — Co-dated; both independently report agent_runs.intelligence_item_id null (0-of-642 / 0-of-791) as the same unwritten-FK root cause
+- [[sources-content-verification-2026-05-11]] — The two archived rows verified here (NYC ICE + Latvian Saeima) are the off-topic items that investigation recommended flag-and-hide
+- [[classification-rules-audit-2026-05-09]] — Explicitly extends it; the garbage-extraction bucket grew from that audit's 37 to 49 here, same Cloudflare/CAPTCHA interstitial pattern
+- [[four-page-architecture-survey-2026-05-09]] — Both mirror the /regulations page filter (domain=1 AND is_archived=false) defining the candidate surface
+- [[source-coverage-diagnostic-2026-05-09]] — Co-extended companion; both trace the empty-source-topic_tags scoping gap and the registry-to-ingestion silent-failure pattern

@@ -190,3 +190,11 @@ Ship Fix 2 alongside Fix 1 — Fix 2 is free and restores the prober's stated in
 - `.github/workflows/trust-recompute.yml` — monthly trust recompute (not ingestion)
 - `.github/workflows/spot-check-monthly.yml` — monthly spot-check (not ingestion)
 - `docs/MONITORING-STATUS-2026-05-08.md` — context: 577/718 zero-ingestion, 39/718 active in last 28d
+
+## Related
+
+- [[access-method-triage-2026-05-12]] — Both diagnose the same source-fetch worker path; triage explains why the drain fetches fail (Browserless UA/Cloudflare) that this audit's ingestion…
+- [[ADR-004-auth-pattern-split]] — shared WORKER_SECRET / worker-route surface that this ADR's cron exemption list gates
+- [[auth-architecture-audit-2026-05-10]] — Contrasts the worker-secret auth on /api/worker/* against the bearer gate on /api/agent/run — the exact reason the cron worker cannot invoke the…
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — The ingestion tables this worker feeds (monitoring_queue, ingestion_state, pending_first_fetch) are inventoried there as the ingestion subsystem
+- [[four-page-architecture-survey-2026-05-09]] — Shares the sources schema and the 718-active-source cohort; survey enumerates the access_method/last_checked columns this worker reads

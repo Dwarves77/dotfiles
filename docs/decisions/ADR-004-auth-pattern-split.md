@@ -60,3 +60,11 @@ The shared route prefix (`/api/admin/`) for both patterns is a historical accide
 - WORKER_SECRET env var (set in Vercel deployment + local .env.local)
 - Q7 daily cron config: `fsi-app/vercel.json` crons array
 - Track B-code admin gating sweep: commit 4c7b546 (the canonical enumeration that surfaced this distinction)
+
+## Related
+
+- [[ADR-005-discipline-enforcement-layered-architecture]] — F2 admin-routes-isPlatformAdmin is a surviving Layer-2 fitness function in ADR-005's discipline engine
+- [[discipline]] — F2 fitness function enforcing the dichotomy is tracked in the discipline inventory
+- [[SPOT-CHECK-PROCEDURE]] — the /api/admin/spot-check/recurring worker-secret-gated route in this ADR's allowlist is run per this runbook
+- [[WORKER-ACTIVATION-AUDIT-2026-05-08]] — shared WORKER_SECRET / worker-route surface that this ADR's cron exemption list gates
+- [[auth-architecture-audit-2026-05-10]] — same auth subsystem; audit of the admin-route auth architecture this ADR formalizes

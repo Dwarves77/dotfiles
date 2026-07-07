@@ -453,3 +453,8 @@ When the operator approves this prework, the redistribution executes in this ord
 3. **Commit cadence (Section 4 step 6):** one commit per writer vs one commit for all writers
 
 Standing by for operator review of this prework before any writer SKILL.md is modified, any new rule file is authored, or any pointer file is created. No code changes during the pause.
+
+## Related
+
+- [[multi-tenant-foundation-prework-2026-05-15]] — Explicitly named as the prework-first discipline this dispatch mirrors
+- [[skill-refinements-prework-2026-05-15]] — Same-session skill-decomposition prework; both mirror the prework-first gate and the four-cost-surface / inheritance-cost frame

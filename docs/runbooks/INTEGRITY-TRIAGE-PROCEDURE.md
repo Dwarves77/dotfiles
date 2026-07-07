@@ -137,3 +137,9 @@ Three discipline checks built into the script:
 The script is idempotent. Re-running overwrites both artefacts. Items
 that have been resolved in the meantime drop out of the result set
 (the script filters `agent_integrity_resolved_at IS NULL`).
+
+## Related
+
+- [[INTEGRITY-TRIAGE-REPORT]] — This runbook's script emits docs/INTEGRITY-TRIAGE-REPORT.md as its human-readable artifact; the report is this procedure's output
+- [[migrations]] — The whole procedure consumes the migration-035 (agent_integrity_flags) trigger output on intelligence_items — that migration defines the flag…
+- [[SPOT-CHECK-PROCEDURE]] — Sister read-only runbook using a canonical-host allowlist and Haiku re-classification; same 'strictly read-only classifier over a flagged sample'…

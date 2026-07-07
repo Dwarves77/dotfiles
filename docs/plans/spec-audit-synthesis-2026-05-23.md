@@ -154,3 +154,11 @@ Lifting the binding rule "every dispatch's Value Delivery Check must include exp
 - `docs/plans/ingest-restart-sequencing-2026-05-22.md` (substrate sequencing; pre-restart verification gates)
 - `docs/plans/fix-d-scope-2026-05-23.md` (Fix D scope; partially superseded by this synthesis)
 - `docs/plans/spec-audit-<surface>-2026-05-23.md` for each of: dashboard, operations, market-intel, research, community, regulations, map, user-chrome
+
+## Related
+
+- [[spec-audit-regulations-2026-05-23]] — One of eight audits synthesized (commit d02e20c); regulations detail is the systematically-under-built-detail-page exemplar
+- [[spec-audit-community-2026-05-23]] — This audit is one of the eight rolled up by the synthesis (commit b982ebe)
+- [[spec-audit-operations-2026-05-23]] — One of eight audits synthesized (commit 1f5a784); Operations rebuild absorbs the Fix D Facility decision
+- [[fix-d-scope-2026-05-23]] — Synthesis explicitly declares Fix D partially superseded by the rebuilds (Facility + /research limitations absorbed)
+- [[ingest-restart-sequencing-2026-05-22]] — Cited as substrate sequencing unaffected by the surface rebuilds; pre-restart verification gates

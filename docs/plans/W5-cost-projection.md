@@ -117,3 +117,11 @@ This document projects Caro's Ledge platform AI/API spend across three operating
 ## Bottom line
 
 **Annual operating cost: low $671.50 / mid $4031.84 / high $9750.81.**
+
+## Related
+
+- [[SESSION-AUDIT-2026-05-05]] — The cost-and-capacity section's low/mid/high steady-state figures come straight from W5-cost-projection
+- [[W2F-verification-pipeline]] — W5's verification-pipeline cost line and its Tier H/M/L source_verifications counts are the live outputs of this pipeline's Haiku classifier
+- [[W2B-discovery-agent-spec]] — W5's discovery-refresh cost lines use W2.B's ~$0.11/jurisdiction discovery-call rate and per-tier candidate volumes
+- [[W2D-coverage-matrix-spec]] — W5's Tier 1 (125) / Tier 2 (47) jurisdiction constants driving discovery cost are the same tier lists W2.D's tiers.ts defines
+- [[wave1-track1-summary]] — The Browserless cycle recalibration (470 scrape sources, render-hour budget, Lean-tier cadence tiers) is direct input to that cost projection

@@ -107,3 +107,10 @@ The backfill dispatch should consume this doc and produce:
 - A mapping table that the operator can review BEFORE any UPDATE runs
 
 No DB writes without operator signoff. Quantification only.
+
+## Related
+
+- [[classification-backfill-plan-2026-05-22]] — Consumes the mismatch-counts doc; reconciles its conservative 120 against the granular 212
+- [[ingest-pipeline-investigation-2026-05-22]] — That doc's conservative 120-count feeds this investigation; both share the (item_type,domain) cross-tab
+- [[ingest-restart-sequencing-2026-05-22]] — Explicitly cross-referenced as the conservative quantification feeding the backfill
+- [[spec-audit-regulations-2026-05-23]] — Audit's R1 gap cites this doc's 120-of-588 domain=1 item_type misclassification counts directly

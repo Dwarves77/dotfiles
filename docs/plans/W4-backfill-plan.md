@@ -113,3 +113,11 @@ W4 backfill scripts own (writes only):
 
 There is no shared write target. W4.2 and W4.4 do read from `sources`
 (specifically: looking up the CARB row, leginfo row, etc.) but never write.
+
+## Related
+
+- [[W1B-approval-handler-analysis]] — This fix explicitly scopes re-materializing the existing 24 orphans to W4's per-orphan manual review
+- [[C6-promote-spec]] — C6's staged->approved path materializes staged_updates into intelligence_items; W4.3 materializes orphan staged_updates via the same…
+- [[W2D-coverage-matrix-spec]] — W2.D names the W4 backfill agent as the fix for empty jurisdiction_iso arrays; W4.1's iso_backfill populates intelligence_items.jurisdiction_iso…
+- [[W1C-source-attribution-summary]] — The create_new_source / manual_review actions and effort estimate here are the W4 backfill inputs
+- [[SESSION-AUDIT-2026-05-05]] — shares migration 034

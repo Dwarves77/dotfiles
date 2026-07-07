@@ -311,3 +311,11 @@ Per `sprint-followups-discipline`, this docs-and-unapplied-migration dispatch pr
 - `fsi-app/supabase/migrations/101_intelligence_items_domain_backfill.sql` (the proposed unapplied migration)
 - `docs/plans/classification-backfill-ambiguous-2026-05-22.md` (the 7-row per-item review list)
 - `docs/inventories/migrations.md` (updated to include migration 101 per C3 consistency check)
+
+## Related
+
+- [[ingest-pipeline-investigation-2026-05-22]] — Consumes Dispatch E's report as primary input; reconciles its 193-leak count against this plan's 212 moves
+- [[ingest-restart-sequencing-2026-05-22]] — That doc locks migration 101 as step b (DONE 2026-05-23) in the leakage-fix-before-restart sequence
+- [[classification-backfill-ambiguous-2026-05-22]] — Explicit companion; this doc holds the 7 ambiguous rows that plan routes to the default d=4
+- [[regulations-classification-mismatch-counts-2026-05-22]] — Consumes the mismatch-counts doc; reconciles its conservative 120 against the granular 212
+- [[source-classification-framework-2026-05-10]] — Uses migration 084 sources.category which derives from the framework's source_role axis

@@ -294,3 +294,9 @@ Three things worth flagging from this audit:
 1. The hero-band `max-width: none` regression is platform-wide and is the single highest-leverage visual fix. One CSS change touches all editorial surfaces.
 2. The HOLLOW content pattern is technically a data/seed problem rather than a component problem, but it dominates the perceived drift because design previews are always populated.
 3. The side-rail IA divergence (Profile/Settings/Admin promoted into the rail) is a deliberate-looking product decision, not a regression. Worth deciding whether design should be updated to match production, or production should fall back to design's user-footer pattern. This audit notes the divergence but does not propose a direction.
+
+## Related
+
+- [[DESIGN-AUDIT-2026-05]] — Companion preview-vs-production audit — same hollow-content and collapsed-default-state drift patterns across the same 11 surfaces
+- [[spec-audit-community-2026-05-23]] — Community was this audit's single largest delta (shell swap, missing composer/feeds); spec-audit-community governs that surface's rebuild
+- [[comprehensive-site-audit-2026-05-25]] — Later whole-site audit revisits the same production-vs-design surface reconciliation

@@ -249,3 +249,11 @@ verticals (art logistics, live events, luxury goods, automotive,
 humanitarian) and the expansion-time cohort (broader freight forwarding
 across air, road, ocean, rail). No narrowing flag.
 ```
+
+## Related
+
+- [[spec-audit-dashboard-2026-05-23]] — DashboardHero is shared: audit finds every hero tile deep-links into /regulations, the regulations audit's index chrome
+- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized (commit d02e20c); regulations detail is the systematically-under-built-detail-page exemplar
+- [[classification-backfill-plan-2026-05-22]] — The 120 historically-misclassified domain=1 items remain until a backfill this plan scopes runs
+- [[ADR-002-tier-model]] — Audit's Section-8 vocabulary gap (Confidence authority-level vs canonical Tier 1-7) is a divergence from this tier model
+- [[ingest-pipeline-investigation-2026-05-22]] — Dispatch E (ingest investigation) owns the item_type-leakage fix the audit defers to

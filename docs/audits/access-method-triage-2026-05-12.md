@@ -193,3 +193,8 @@ research-output hub, not to change the fetch method.
    ~5 KB and contains tokens like "rate limit", "verification", "checking
    your browser", or "challenge-platform", surface a soft-fail with a
    "consider RSS" hint rather than retrying the same scrape.
+
+## Related
+
+- [[WORKER-ACTIVATION-AUDIT-2026-05-08]] — Both diagnose the same source-fetch worker path; triage explains why the drain fetches fail (Browserless UA/Cloudflare) that this audit's ingestion…
+- [[four-page-architecture-survey-2026-05-09]] — Shares the access_method enum and sources fetch-config columns; the survey documents the enum's distribution and migration 056 extension

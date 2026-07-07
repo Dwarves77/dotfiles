@@ -380,3 +380,11 @@ Distinct item_type:                      11
 | 9 | **Catalogue the 5 EU cross-ref opportunities** (items mentioning the 3 newly-inserted EU regs without a hard link) | Small (full-text scan + link insert) | low | Polish; increases intersection-detection density. |
 | 10 | **Backfill `provisional_sources.discovered_for_jurisdiction`** for the existing 12 rows + ensure new discoveries write it | Small | low | Data hygiene; enables future Tier-coverage queries on provisional data. |
 | 11 | **Sanity-check Battery regulation brief citation table** (parse showed src=0) | Small | low | Confirm whether the "## New Sources Identified" table is missing or unparsed. |
+
+## Related
+
+- [[SESSION-AUDIT-2026-05-05]] — Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory
+- [[W2D-coverage-matrix-spec]] — Dimension 8 audits the coverage_matrix() RPC (mig 039) that W2D-coverage-matrix-spec designs
+- [[W2F-verification-pipeline]] — Dimensions 2-5 measure the source_verifications H/M/L pipeline and 75/55 thresholds that W2F specifies
+- [[SPOT-CHECK-PROCEDURE]] — Dimension 4's dormant H-tier spot-check loop (0 of 64 checked) is the process this runbook defines
+- [[source-coverage-diagnostic-2026-05-09]] — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy

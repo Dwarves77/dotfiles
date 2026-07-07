@@ -244,3 +244,9 @@ It owns its own data fetching against `/api/admin/sources/bulk-import`.
 - `Sidebar.tsx`, `iso.ts`, `intelligence.ts`, `source.ts` are NOT touched.
 - Migrations 033-037 are NOT modified; migration 038 is the only new one.
 - No new npm dependencies; CSV parsing inlined.
+
+## Related
+
+- [[W2B-discovery-agent-spec]] — Sibling ingestion path feeding the same W2.F pipeline; the two coordinate migration numbering (W2.A reserves 038, W2.B names its file 038a to avoid…
+- [[W2F-verification-pipeline]] — W2.A hands every candidate to W2.F's verifyCandidate and relies on its migration 037 source_verifications write contract for the H/M/L tier ->…
+- [[W2D-coverage-matrix-spec]] — W2.D's coverage-matrix bulk-add action opens W2.A's BulkImportView in a dialog pre-filled with the selected jurisdiction

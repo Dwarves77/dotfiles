@@ -252,3 +252,10 @@ shape; the orchestrator picks the surface.
   `promote`, `invite`, `moderation`.
 - All endpoints carry `requireCommunityAuth` + `checkRateLimit` with
   rate-limit headers on success responses.
+
+## Related
+
+- [[C8-moderation-spec]] — C8's warn_user/ban actions service-role-INSERT notifications rows with kind='moderation' — the exact kind C7 renders from the migration 032 CHECK set
+- [[C9-realtime-spec]] — C9's useCommunityNotificationsRealtime subscribes to the same notifications table (migration 032) to live-update C7's bell, and recommends the bell…
+- [[C5-feed-spec]] — C5 cedes new-post/new-reply notification fan-out to C7, which produces the reply/mention kinds this feed triggers
+- [[spec-audit-community-2026-05-23]] — Shared dispatch.ts notifications table (reply/invite/moderation/promote/mention) the audit cites

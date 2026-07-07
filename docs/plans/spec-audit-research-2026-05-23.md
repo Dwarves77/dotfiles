@@ -282,3 +282,11 @@ Currently `intelligence_items.pipeline_stage` (set via migration 026) drives the
 - **The Build 8 sub-dispatches (8.1 to 8.5) added credibility chips (citation count, recency, tier badge, bias tags), a freshness stripe, and the real source coverage matrix.** These are real value adds to the current surface but they enhance the pipeline framing rather than replace it. They do not close the spec gap; they polish the wrong artifact.
 - **No phase-language leak detected on /research.** The spec's "Coming soon, Phase D" anti-pattern (intent SKILL:108, 321) is observed on /operations only; /research is clean of phase language. The anti-pattern that does apply here is "page scope drift" (intent SKILL:322), framed by the spec's "current state" block as a fundamental mismatch.
 - **The spec's "current state" block already names this gap.** Lines 81 to 83 of caros-ledge-platform-intent SKILL.md acknowledge the editorial-pipeline mis-framing and leave the repositioning decision open. This audit confirms and quantifies what the spec author already flagged. The operator's diagnosis matches what the code actually does.
+
+## Related
+
+- [[spec-audit-operations-2026-05-23]] — The NREL Warehouse Solar-ROI item moved from Operations d=6 to Research d=7 under Migration 101; both audits track it
+- [[spec-audit-market-intel-2026-05-23]] — Both flag tech/innovation item-type routing drift vs the item_type-derived Format Mapping (Technology Profile)
+- [[build-8-research-surface]] — Directly audits the Build 8 (8.1-8.5) research surface work including the migration-100 coverage matrix this build shipped
+- [[fix-d-scope-2026-05-23]] — Fix D /research surface limitation is absorbed by the Research rebuild per the synthesis; audit shares the item-type-canonical framing
+- [[source-classification-framework-2026-05-10]] — get_research_items routing on sources.category=research derives from this classification framework

@@ -42,3 +42,9 @@ Implemented in:
 Both scripts now compute `LOG_DATE` via `Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date())`. `en-CA` produces ISO order natively, so no reassembly is required.
 
 Existing files were not renamed; forward consistency only. Operator policy 2026-05-10.
+
+## Related
+
+- [[registry-to-ingestion-handoff-design-2026-05-10]] — Same-day design surface; both cite the apply-pending.mjs direct-pg pattern for atomic writes vs PostgREST's per-call limitation
+- [[source-classification-framework-2026-05-10]] — Same-day source-classification workstream; the tier INTEGER-vs-TEXT no-op is the framework's Axis-2 schema mapping (sources.tier from migration 004)
+- [[multi-tenant-foundation-prework-2026-05-15]] — Applies the same live-schema-audit-before-claiming-a-column discipline (finds OnboardingWizard writes non-existent columns; MIN_VERSION apply floor)

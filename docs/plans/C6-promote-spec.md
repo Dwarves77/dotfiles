@@ -232,3 +232,11 @@ intelligence item detail surface, sourcing the originating post via
 - Audit log on every promotion (`post_promotions`).
 - Default path is `staged`. `direct` requires platform admin — agent-direct
   inserts into `intelligence_items` are not possible through this surface.
+
+## Related
+
+- [[C5-feed-spec]] — C5 explicitly cedes promote-to-public to C6; C6 wires PromotePostButton into C5's Post.tsx and reads community_posts.promoted_at
+- [[C8-moderation-spec]] — C8's Option B mounts ModerationQueue inside the C6-shipped GroupHeader Settings modal, sharing the same group-admin tooling surface
+- [[W4-backfill-plan]] — C6's staged->approved path materializes staged_updates into intelligence_items; W4.3 materializes orphan staged_updates via the same…
+- [[ADR-008-urgency-score-default]] — the community/posts/[id]/promote insert site this ADR fixes is the subject of the promote spec
+- [[spec-audit-community-2026-05-23]] — Editorial pickup / PromotePostButton the audit flags as button-not-pipeline is C6's promote-to-public spec

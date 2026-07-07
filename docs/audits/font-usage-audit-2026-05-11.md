@@ -157,3 +157,8 @@ The most actionable finding from this audit is NOT the 300 weight (which is a cl
 - DECIDE on 900 (1 reference, faux-bolded; cheapest fix is to change `.cl-stat-number` to `font-weight: 800` if 800 is added, or `700` if it is not).
 
 If the operator drops 300 and does nothing else: net change is one fewer Plus_Jakarta_Sans WOFF2 file in the preload (~18 to 25 KB Brotli) and one fewer `@font-face` declaration in head. If the operator drops 300 AND adds 800: net change is roughly zero payload (one out, one in) but visual fidelity improves for 83 call sites. If the operator drops 300 AND migrates 800/900 references down to 700: net change is one WOFF2 removed plus one round of code edits across ~30 files, no font additions.
+
+## Related
+
+- [[dashboard-payload-audit-2026-05-11]] — This audit's secondary observation questions the five Plus Jakarta Sans weights and a possible Roboto Mono misread; the font audit is the resolving…
+- [[cleanup-audit-2026-05-11]] — Cleanup rules this doc ACTIVE and cited by layout.tsx as the source-of-truth for which font weights are bundled into the build

@@ -210,3 +210,11 @@ contract.
 4. **Filter logic** — `scoring.ts` and `sourceStore.ts` filter predicates
    need to accept either column during the 60-day window, then collapse to
    `jurisdiction_iso` when the legacy column is dropped.
+
+## Related
+
+- [[primitives-audit-2026-05-09]] — Wave 1a is the in-flight fix that writes the agent_runs FK this audit names as the collapsing root cause
+- [[W1B-approval-handler-analysis]] — Wave-1a sibling; both touch staged_updates.proposed_changes as a write surface for the same materialization/dual-write effort
+- [[W1C-source-attribution-summary]] — Wave-1a sibling audit; both feed the same W4 backfill of source/jurisdiction attribution
+- [[jurisdiction-normalization-audit-2026-05-11]] — Depends on the locked legacy→ISO mapping (lib/jurisdictions/iso.ts) that jurisdiction normalization defines
+- [[ADR-003-server-centric-dual-write]] — shared dual-write subject; audit of the dual-write write-path this ADR governs

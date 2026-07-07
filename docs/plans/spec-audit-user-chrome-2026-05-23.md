@@ -274,3 +274,11 @@ The /workspace/new → /onboarding hand-off after org creation goes through `win
 - The /privacy "Stripe is a service provider when applicable" question is a legal-content question not a code question; operator may want to consult counsel before changing.
 - The OrganizationPanel and MembersPanel were spot-checked (first 80 and 50 lines respectively) rather than fully read; both have load + PATCH/DELETE plumbing wired against /api/orgs/[org_id] and /api/orgs/[org_id]/members per their respective headers, consistent with Phase 7 shipment per 6b86b04 and 52f7c29.
 - Audit did not test runtime end-to-end (e.g. signup-to-onboarding actual round-trip); inferences are from code inspection.
+
+## Related
+
+- [[ADR-001-platform-model]] — Audit's adjunct spec; /profile Org+Members panels are wired against this ADR's three-layer tenant model
+- [[multi-tenant-foundation-followups-2026-05-15]] — Open chrome gaps (email-delivered invitations, group seeding, chrome polish) are multi-tenant-foundation followups
+- [[dead-code-disposition-2026-05-21]] — The /events dead-code finding traces to the /community/events removal (commit 9cd364f) this disposition ordered
+- [[multi-tenant-foundation-prework-2026-05-15]] — Onboarding wizard, invitations, workspace/new chrome audited were shipped under the Multi-Tenant Foundation Workstream B this prework scopes
+- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized (commit c23091a); supplies the Class-C drift and /events-delete decisions

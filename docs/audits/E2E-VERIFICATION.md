@@ -87,3 +87,8 @@
 
 - **A7 Filter chip toggle-to-isolate (browser-only)** — Requires browser test (filter chip click handler).
 - **B14 Realtime hook (browser-only)** — Requires browser-based realtime channel test. Hooks themselves are pure module imports verified at compile time.
+
+## Related
+
+- [[SESSION-AUDIT-2026-05-05]] — Session audit catalogs these 5 E2E failures and isolates A4+A10 as the two real newly-introduced regressions
+- [[INTEGRITY-TRIAGE-REPORT]] — Test C1 verifies the migration-044 retune that dropped the 57 unresolved flags this triage report enumerated down to 1

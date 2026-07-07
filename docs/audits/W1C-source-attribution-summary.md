@@ -51,3 +51,9 @@ Sample (first 5):
 - Items with NULL `source_id` are tracked separately; they cannot mismatch by definition, but they're an attribution gap W4 should also address.
 
 Full machine-readable mismatch list: `docs/W1C-source-attribution-audit.json`
+
+## Related
+
+- [[W1A-dual-write-audit]] — Wave-1a sibling audit; both feed the same W4 backfill of source/jurisdiction attribution
+- [[W1B-approval-handler-analysis]] — Wave-1a sibling audit feeding the same W4 recovery pass
+- [[W4-backfill-plan]] — The create_new_source / manual_review actions and effort estimate here are the W4 backfill inputs

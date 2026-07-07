@@ -34,3 +34,8 @@ docs/ accumulated 169 loose top-level files mixing decision-grade documents with
 - **Single brain repo holding everything (projects + personal)**: rejected. Wrong access boundary; product repo has agents, CI, and collaborator-visible history.
 - **Leave docs/ flat**: rejected. 169-file top level is unloadable as context and unreadable as memory.
 - **Index inside each folder only**: rejected. Agents need one entry point (Layer 1 routing); per-folder indexes remain optional local routing.
+
+## Related
+
+- [[ADR-009-adr-system-architecture]] — explicit related; ADR-010 preserves the ADR-NNN frontmatter storage convention this ADR defines
+- [[ADR-005-discipline-enforcement-layered-architecture]] — shared docs/decisions/ + docs/inventories/ scope; Layer-4 consistency checks operate over the inventory taxonomy this ADR binds

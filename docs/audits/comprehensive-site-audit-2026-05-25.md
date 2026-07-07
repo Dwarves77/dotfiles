@@ -458,3 +458,10 @@ These gaps are flagged for a future audit pass, not addressed here.
 ---
 
 **End of May 25 comprehensive site audit.**
+
+## Related
+
+- [[functional-purpose-audit-2026-05-24]] — Declared companion; the two form a deliberate lens pair — that doc asks whether required flows are present, this asks whether present elements…
+- [[DESIGN-AUDIT-2026-05]] — Later whole-site audit continues this surface-fidelity review after the spec-audit series
+- [[VISUAL-RECONCILIATION-2026-05-06]] — Later whole-site audit revisits the same production-vs-design surface reconciliation
+- [[cards-clickable-audit-2026-05-12]] — Shares the card/interactive-element click-behavior concern; both check whether clickable-looking surface elements resolve to real navigation/handlers

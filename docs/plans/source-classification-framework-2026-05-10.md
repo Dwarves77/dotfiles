@@ -561,3 +561,11 @@ Each phase has prerequisites; jumping ahead defeats the purpose.
 6. **Vertical taxonomy stability**: the six verticals (fine_art, live_events, luxury, film_tv, automotive, humanitarian) are fixed in the framework. If a seventh vertical emerges, the framework needs amendment, not just an enum value addition.
 
 End framework.
+
+## Related
+
+- [[classification-backfill-plan-2026-05-22]] — Uses migration 084 sources.category which derives from the framework's source_role axis
+- [[registry-to-ingestion-handoff-design-2026-05-10]] — Same-day; EFRAG (this doc's proof) and W2.F verification pipeline tier-H routing are that framework's worked examples
+- [[classification-backfill-ambiguous-2026-05-22]] — The ambiguity cause is unset source_role/category from migrations 063+084, the framework's 5-axis registration
+- [[ADR-002-tier-model]] — same source-classification subsystem that sets the structural base_tier at registration
+- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — Shared subsystem: this proposal formalizes the source-type-of-body classification axis that the source-classification framework governs

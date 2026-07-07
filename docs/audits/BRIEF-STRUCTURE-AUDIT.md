@@ -488,3 +488,8 @@ Render the full_brief markdown with these section-aware behaviors:
 | Tier 3 | New Sources Identified | yes (when external sources cited) | 7/7 in sample. Pipe-delimited table — parse into structured component |
 
 Operational note for the UI architecture decision: the **Confirmed Regulatory Timeline** section is structurally underused in the current UI and is the strongest candidate for promotion to Tier 2 alongside the three workspace-anchoring sections. It's always present, it carries dated milestones with workspace obligations attached, and it's the section operations leads will reference most for planning purposes.
+
+## Related
+
+- [[SESSION-AUDIT-2026-05-05]] — Session audit's 'Architectural state' section restates this doc's brief-structure source-of-truth and order-drift findings verbatim
+- [[spec-audit-regulations-2026-05-23]] — Section 6's emitted-section→UI-tier mapping feeds the Regulations detail Summary-tab spec that spec-audit-regulations governs

@@ -167,3 +167,10 @@ These look reasonable on inspection. Optional: backfill `classification_confiden
 ## HOLD
 
 Phase 1 routing PR can now proceed. The 5-axis classification backfill is complete: 744/744 candidate rows from the JSON intermediary written, 0 errors, 0 tier overrides, 0 URL-split rows. The 39 AMBIGUOUS rows are explicitly held for per-row operator decisions and do NOT block routing.
+
+## Related
+
+- [[sources-content-verification-2026-05-11]] — That audit verifies these classified rows (same 2026-05-10T21:20:49 write batch, Task 6 11-source subset)
+- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — Defines the source_role vocabulary (primary_legal_authority, intergovernmental_body, trade_press, etc.) whose distribution this doc tabulates
+- [[classification-backfill-ambiguous-2026-05-22]] — Later plan that dispositions the 39 AMBIGUOUS rows this summary left NULL for operator review
+- [[source-classification-framework-2026-05-10]] — This backfill applies that framework's role vocabulary + Section 2 tier-7-legacy-outlier rules (rationale strings cite it verbatim)

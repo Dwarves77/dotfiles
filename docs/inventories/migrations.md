@@ -167,3 +167,11 @@ Any commit that adds or removes a migration MUST update this inventory. C3 consi
 
 - Migration files: `fsi-app/supabase/migrations/*.sql`
 - Naming: `NNN_descriptive_name.sql` (3-digit zero-padded; F6 fitness function enforces)
+
+## Related
+
+- [[sprint4-dataops-ledger]] — The ledger records apply scripts for migrations 118/119/121 and flagged 117/118 as missing from this inventory — shared Sprint 4 provenance…
+- [[deletion-reclassification-log]] — RECLASSIFY→source entries run through the migration-135 source-registration guard and migration-019 mistyped-tool reclassification — the DB…
+- [[ADR-002-tier-model]] — shared migration 090 (Q2 tier schema split / tier->base_tier rename) tracked in migrations inventory
+- [[multi-tenant-foundation-followups-2026-05-15]] — Migrations 075/076/077 (multi-tenant) plus the unapplied 048/050 flagged in the followups doc are the same migration set
+- [[INTEGRITY-TRIAGE-PROCEDURE]] — The whole procedure consumes the migration-035 (agent_integrity_flags) trigger output on intelligence_items — that migration defines the flag…

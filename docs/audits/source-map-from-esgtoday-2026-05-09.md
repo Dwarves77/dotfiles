@@ -333,3 +333,10 @@ Three distinct workstreams flow from this map:
 - Does not assess access method (RSS, API, scrape) for each source. Per-source access method is a separate discovery task.
 - Does not validate that each URL is current. URLs were captured from public site footers and historical knowledge; some may have moved.
 - Does not include every source ESG Today references across 91 pages of Government, 41 of Regulators, 31 of Reports & Studies. The bodies listed are the recurring institutional sources surfaced from sampled pages. A full-archive crawl would extend the corporate-actor list (Section C) substantially but would not add new institutional sources at meaningful rate; the regulatory and standards body universe converges quickly.
+
+## Related
+
+- [[source-coverage-diagnostic-2026-05-09]] — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
+- [[source-map-existence-check-2026-05-10]] — This is the existence check of that map's Sections A-G entry-by-entry against the registry
+- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — This map organizes every body by the proposed source_role taxonomy (market_news, vendor-claim T6, primary legal authority)
+- [[W2B-discovery-agent-spec]] — Feeds the source-discovery/expansion workstream — Section H's 'check every body against the existing 718-source registry' is that agent's job

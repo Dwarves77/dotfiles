@@ -188,3 +188,11 @@ Schema, API, or classifier capabilities the spec implies that the Dashboard woul
 - The SKILL does not enumerate Dashboard among the five customer-facing surfaces. The audit treats the Dashboard as an implicit aggregator surface and tests it against the spec's binding rules (five-surface co-equality, dual-posture, Section 8 credibility vocabulary, workspace anchoring, severity labels). Whether Dashboard SHOULD be elevated to a sixth surface, demoted to a chrome page, or formally redefined as the cross-surface aggregator is an operator decision.
 - Build 11 demonstrably fixed engineering bugs (count incoherence, hardcoded "LL97/FuelEU/CBAM" string, missing surface representation). The customer-decision question is separate from the engineering question and is unanswered by Build 11.
 - The `3133b82` `WhatChanged` hotfix today preserves header + last-updated visibility through empty states. The hotfix is in scope of the customer-decision question only insofar as a permanently-visible "What changed" header now invites the customer to read a Regulations-only changelog as the answer to "what changed across the platform".
+
+## Related
+
+- [[wave1-track5-widget-implementation-plan]] — That plan builds the exact widgets audited here (DashboardWatchlist, DashboardByOwner, DashboardCoverageGaps, DashboardAwaitingReview,…
+- [[spec-audit-regulations-2026-05-23]] — DashboardHero is shared: audit finds every hero tile deep-links into /regulations, the regulations audit's index chrome
+- [[ADR-007-bias-tag-threshold-per-dimension]] — Q9 chip set the audit critiques includes the bias chip governed by this ADR
+- [[ADR-008-urgency-score-default]] — WeeklyBriefing top-5 ranks by urgencyScore whose default this ADR sets
+- [[spec-audit-synthesis-2026-05-23]] — One of the eight audits synthesized; Dashboard listed as reframing not rebuild

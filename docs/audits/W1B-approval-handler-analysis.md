@@ -104,3 +104,10 @@ Line numbers refer to the pre-fix `route.ts`.
 
 None. The route is the single ingress and `applyUpdate` is local to the file.
 There is no caller in `src/` invoking `applyUpdate` directly.
+
+## Related
+
+- [[W4-backfill-plan]] — This fix explicitly scopes re-materializing the existing 24 orphans to W4's per-orphan manual review
+- [[W1A-dual-write-audit]] — Wave-1a sibling; both touch staged_updates.proposed_changes as a write surface for the same materialization/dual-write effort
+- [[W1C-source-attribution-summary]] — Wave-1a sibling audit feeding the same W4 recovery pass
+- [[SESSION-AUDIT-2026-05-05]] — shares migration 034

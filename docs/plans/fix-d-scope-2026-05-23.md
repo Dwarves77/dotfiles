@@ -54,3 +54,11 @@ After those: Fix D as a single dispatch covering Operations Facility decision + 
 - Cost gating for classifier API spend (ingest-restart territory)
 - Customer-facing posture during gaps (resolved by backfill + leakage fix)
 - Sector matcher diagnostic (F, even later)
+
+## Related
+
+- [[classification-backfill-ambiguous-2026-05-22]] — Project JOLT (row 5) is the canonical item both docs use to argue content-fit vs item_type routing
+- [[ingest-restart-sequencing-2026-05-22]] — Fix D's decision dependencies (backfill+leakage verified together) are that doc's sequence; both name REC-OBS-G / domain-constants follow-ons
+- [[ingest-pipeline-investigation-2026-05-22]] — REC-OBS-G and the category-aware RPCs Fix D wires end-to-end are diagnosed there (migration 070 orphan RPCs)
+- [[classification-backfill-plan-2026-05-22]] — Explicitly cross-references it; Fix D inherits the /research surface limitation and gates on migration 101 being applied
+- [[spec-audit-synthesis-2026-05-23]] — Synthesis explicitly declares Fix D partially superseded by the rebuilds (Facility + /research limitations absorbed)

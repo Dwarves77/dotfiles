@@ -730,3 +730,9 @@ The operator flagged the next initiative: "we have to go through the entire site
 2. Site + content review dispatch (its own prework first, per the discipline now established)
 
 Standing by for operator review of this document before any of the 10 changes are executed.
+
+## Related
+
+- [[multi-tenant-foundation-prework-2026-05-15]] — Same-session companion; skill-refinements is explicitly the companion doc and reuses this dispatch's three-context (workspace/community/personal)…
+- [[dispatch-2.5-writer-redistribution-prework-2026-05-15]] — Same-session skill-decomposition prework; both mirror the prework-first gate and the four-cost-surface / inheritance-cost frame
+- [[multi-tenant-foundation-followups-2026-05-15]] — shares migration 072

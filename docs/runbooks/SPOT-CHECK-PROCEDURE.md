@@ -113,3 +113,11 @@ runs. The script logs a warning if the pattern count is not 57.
 - Before raising or lowering thresholds in `verification.ts`.
 - After modifying `VERIFICATION_HAIKU_SYSTEM_PROMPT` (rule-of-thumb:
   prompt change + spot-check before merge).
+
+## Related
+
+- [[INTEGRITY-TRIAGE-PROCEDURE]] — Sister read-only runbook using a canonical-host allowlist and Haiku re-classification; same 'strictly read-only classifier over a flagged sample'…
+- [[REGIONAL-DATA-COLLECTION-AUDIT]] — Dimension 4's dormant H-tier spot-check loop (0 of 64 checked) is the process this runbook defines
+- [[ADR-002-tier-model]] — Tier-H promotion and the should-be-M/should-be-L verdicts operate on the tier model ADR-002 defines
+- [[ADR-004-auth-pattern-split]] — the /api/admin/spot-check/recurring worker-secret-gated route in this ADR's allowlist is run per this runbook
+- [[W2F-verification-pipeline]] — This runbook audits the W3 verification pipeline's tier-H auto-approval path; W2F is that pipeline's spec

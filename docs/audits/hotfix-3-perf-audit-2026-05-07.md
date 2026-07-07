@@ -332,3 +332,10 @@ range Next 16 ships from many production apps. The +21.7 kB on /settings
 is the biggest absolute gain and the cheapest to recover, but absolute
 size is still well under the 500 kB threshold where browsers start
 visibly stalling on mid-tier mobile.
+
+## Related
+
+- [[PERF-PLAYBOOK]] — Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
+- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread
+- [[PERF-AUDIT]] — Later perf audit in the same cluster acting on this backlog's deferred items
+- [[PERF-PROFILING-FINDINGS]] — Shares the server-timing [perf] log + hydration-weight profiling of the same route surfaces

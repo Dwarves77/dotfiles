@@ -351,3 +351,11 @@ worth operator confirmation.
   are listed as future in spec; flagging them is forward-looking, not
   a current-state gap.
 - No em or en dashes per operator preference; commas used throughout.
+
+## Related
+
+- [[spec-audit-operations-2026-05-23]] — Facility mode was removed from Map because facility data belongs on /operations per skill Section 3
+- [[spec-audit-regulations-2026-05-23]] — Map is explicitly a geographic view of Regulations content; shares the getListingsMapData/resources payload
+- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized; Map named the sole clean match
+- [[jurisdiction-normalization-audit-2026-05-11]] — Map centroids/pin codes depend on normalized jurisdiction ISO codes this audit governs
+- [[source-coverage-diagnostic-2026-05-09]] — Map's Coverage-gaps card (chrome-leak flag) surfaces per-region source-coverage this diagnostic quantifies

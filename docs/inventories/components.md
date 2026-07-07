@@ -43,3 +43,10 @@ Currently catalogued via the credibility-component contract doc at `docs/sprint-
 ## Maintenance trigger
 
 Any dispatch that adds a new shared component or meaningfully changes a component's props contract should update this inventory. Manual maintenance only; no mechanical enforcement.
+
+## Related
+
+- [[discipline]] — Fitness function F8 (client-server-tier-boundary) polices the body.tier assignment that CanonicalSourceReview sends — same tier-boundary contract
+- [[ADR-002-tier-model]] — Components encode the base_tier vs effective_tier default rule (customer = effective_tier ?? base_tier); ADR-002 is the tier-model decision they…
+- [[wave1-track5-widget-implementation-plan]] — Adds six new src/components/home components that the components inventory tracks
+- [[primitives-audit-2026-05-09]] — Both catalog shared component primitives in src/components/; the primitives audit is the precursor survey this inventory aggregates

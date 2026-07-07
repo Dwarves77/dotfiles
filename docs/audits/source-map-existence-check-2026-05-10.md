@@ -473,3 +473,11 @@ Misclassification risks:
 No writes to the database. No registry edits. No source role column added. No schema recommendations made. The three throwaway scripts at `fsi-app/scripts/_existence-check-*.mjs` and the JSON output files are not committed; they will be cleaned up after this audit ships.
 
 This audit feeds the next architectural decision conversation. It does not execute on any of the paused decisions.
+
+## Related
+
+- [[source-coverage-diagnostic-2026-05-09]] — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
+- [[source-map-from-esgtoday-2026-05-09]] — This is the existence check of that map's Sections A-G entry-by-entry against the registry
+- [[classification-rules-audit-2026-05-09]] — Cross-references its 49 garbage-extraction sources + Lloyd's Register multi-ambiguous concentration for the two double-flags
+- [[four-page-architecture-survey-2026-05-09]] — Tests how many of its 185 unknown-bucket sources map into this source map's sections
+- [[spec-audit-map-2026-05-23]] — Both concern the map/source-registry coverage-by-region surface

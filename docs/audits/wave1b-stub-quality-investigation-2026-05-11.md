@@ -132,3 +132,11 @@ The shared classifier helper duplicates the Haiku prompt + JSON shape used by [`
 **Failure mode terminology, for follow-up quality checks.** The defect is "empty-string summary + stuck Draft pipeline_stage", NOT "NULL summary". The `summary` column is `TEXT NOT NULL DEFAULT ''` per migration 004 — it can never hold a true NULL. Any future quality check that wants to detect under-enriched stubs should test for BOTH `summary = ''` AND `pipeline_stage = 'draft'`, not `summary IS NULL`. The original `summary IS NULL OR title IS NULL` query in this investigation returned 0 rows and nearly masked the bug.
 
 The 2026-05-09 smoke-test row (`finance.ec.europa.eu`, `id=53c3fcd5-…`) was backfilled in place via `scripts/tmp/backfill-finance-ec-europa.mjs` using the same Haiku call the patched drain worker now uses. After backfill the row carries a populated `title`, `summary`, `priority`, `severity`, `urgency_tier`, `item_type`, `topic_tags`, and `jurisdictions`.
+
+## Related
+
+- [[registry-to-ingestion-handoff-design-2026-05-10]] — The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
+- [[sources-content-verification-2026-05-11]] — Anomaly 2 (finance.ec.europa.eu stub 53c3fcd5 at pipeline_stage=draft) is the exact drain-worker stub that investigation dissects
+- [[wave1-step1-verification]] — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
+- [[cleanup-audit-2026-05-11]] — shares migration 064
+- [[ingest-pipeline-investigation-2026-05-22]] — shares migration 065

@@ -73,3 +73,10 @@ Any dispatch that creates or removes a worktree MUST update this inventory. C4 c
 ## Known gaps
 
 - **OBS-58**: Step 3 of the worktree-cleanup 3-step pattern (config-registry sweep against `~/.claude/settings.json` additionalDirectories) is currently manual. Automating in `cleanup-merged-worktrees.mjs` is queued for next cleanup-script touch.
+
+## Related
+
+- [[multi-tenant-foundation-followups-2026-05-15]] — The three multi-tenant workstreams ran in the mt-A/B/C worktrees that landed as PRs #114/115/116 — the worktrees inventory records their disposition
+- [[discipline]] — C4 consistency check gates that live worktrees equal worktrees.md entries; it caught the remediation-discipline orphan in CI
+- [[multi-tenant-foundation-prework-2026-05-15]] — shares migration 075
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — shares migration 075

@@ -68,3 +68,10 @@ The mechanism: each decision becomes an ADR file with explicit scope (file globs
 - ADR loader: `fsi-app/.discipline/lib/adr-loader.mjs`
 - sprint-followups-discipline SKILL.md (gains 13th named rule documenting the ADR-cross-reference discipline)
 - docs/inventories/decisions.md (the inventory of ADRs maintained per rule 11)
+
+## Related
+
+- [[ADR-005-discipline-enforcement-layered-architecture]] — explicit related; ADR-009 is Layer 3 (decision protection) of this layered architecture
+- [[ADR-010-docs-taxonomy-and-brain-conventions]] — explicit related; ADR-010 preserves the ADR-NNN frontmatter storage convention this ADR defines
+- [[discipline]] — rule 013 + adr-loader mechanism this ADR defines are tracked in the discipline inventory
+- [[dead-code-disposition-2026-05-21]] — rule 013 (ADR cross-reference) deletion is dispositioned in this slim-refactor audit

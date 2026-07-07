@@ -323,3 +323,10 @@ grep -E '^\s*-\s*cron:' .github/workflows/*.yml
 # Confirm /research data path is cookies-free
 sed -n '1,70p' fsi-app/src/app/research/page.tsx
 ```
+
+## Related
+
+- [[PERF-PLAYBOOK]] — The measurement-before-lever perf runbook; the ISR fix is exactly a measured single-line correctness fix it exempts from the full playbook
+- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Named predecessor; both diagnose the /research revalidate=60 behavior and the cookie-read-forces-dynamic pattern
+- [[PERF-AUDIT]] — PERF-AUDIT first documented 'revalidate=60 is broken on every page that reads cookies' — the load-bearing premise here
+- [[PERF-PROFILING-FINDINGS]] — Shares the revalidate-retained-on-/research finding (its Claim 2) that this investigation builds the ISR-write model on

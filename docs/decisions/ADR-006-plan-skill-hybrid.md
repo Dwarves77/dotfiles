@@ -46,3 +46,9 @@ Plan files land at `fsi-app/docs/plans/<YYYY-MM-DD>-<coordination-name>.md` BEFO
 - sprint-followups-discipline 10th binding rule (Verification-before-completion required rule)
 - Rule 009 engine: `fsi-app/.discipline/rules/009-plan-skill-hybrid.mjs`
 - 3-axis skill audit commit: 383974e
+
+## Related
+
+- [[ADR-005-discipline-enforcement-layered-architecture]] — this ADR's slim refactor deleted rules 009/010 that ADR-006 documented, deprecating it
+- [[discipline]] — rules 009/010 (now deleted) and their status are tracked in the discipline inventory
+- [[dead-code-disposition-2026-05-21]] — per-item disposition of the deleted rules 009/010 this ADR documented lives in this audit

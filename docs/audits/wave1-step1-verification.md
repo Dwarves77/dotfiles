@@ -68,3 +68,10 @@ Steps:
 All four checks pass → step 1 ships. Surface results back to the dispatch thread for gate-3 recovery acknowledgment.
 
 If any fails: capture the failure mode (HTTP code, body, log line) and halt — do not proceed to gate 5 Wave 1a code dispatch until step 1's recovered behaviors are confirmed working in production.
+
+## Related
+
+- [[wave1-track1-summary]] — Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
+- [[wave1b-stub-quality-investigation-2026-05-11]] — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
+- [[W1A-dual-write-audit]] — Same Wave 1a foundation work (agent_runs telemetry + error capture); both restore the agent/run write path the error-swallow post-mortem exposed
+- [[wave1-track5-widget-implementation-plan]] — Shares the Wave 1 dispatch series and the migration-headroom (060/061 leave room for Wave 1a 052-059) coordination

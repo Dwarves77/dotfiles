@@ -72,3 +72,9 @@ Counts (active items only):
 2. **PipelineRow** in ResearchView already uses a `<button>` for expand/collapse. Wrapping a `<button>` in `<Link>` is invalid. Resolution: split into a title row (wrapped in `<Link>`) and a chevron button (separate, with `e.stopPropagation()`).
 3. All other components have no internal interactive children — straight `<Link>` wrap is safe.
 4. Style: `cursor-pointer` + subtle hover (background-color shift to `var(--raised)`) matching the regulations card precedent in `RegulationsSurface.tsx:1751-1757`.
+
+## Related
+
+- [[functional-purpose-audit-2026-05-24]] — Shares the card→detail navigation flow per surface; the functional audit tracks the same click-through and notes /market/[slug] and…
+- [[caros-ledge-product-audit-2026-05-15]] — Structural failure S1 (single detail-page route every card hardcodes) is the architectural counterpart to this audit's confirmation that all card…
+- [[comprehensive-site-audit-2026-05-25]] — Shares the card/interactive-element click-behavior concern; both check whether clickable-looking surface elements resolve to real navigation/handlers

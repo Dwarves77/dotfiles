@@ -200,3 +200,11 @@ After decisions land, the plan is updated in-place; the first sub-dispatch fires
 - `caros-ledge-platform-intent` skill — Value Delivery Check pattern applied above.
 - `sprint-followups-discipline` skill — every sub-dispatch loads + emits OBS coverage table.
 - `remediation-discipline` skill — sub-dispatches that surface class-shaped issues during execution load this skill per rule 003.
+
+## Related
+
+- [[dead-code-disposition-2026-05-21]] — Named blueprint anchor; Build 8.1-8.5 closes many Category A research items (migrations 098/100)
+- [[ADR-007-bias-tag-threshold-per-dimension]] — Dispatch 8.3 surfaces the per-dimension bias tags whose auto-cutoff threshold ADR-007 defines, and hides empty-state rows per ADR-007's threshold…
+- [[category-e-investigation-2026-05-21]] — Several Category E items (ResearchView, credibility chips) are dispositioned as Build 8 territory
+- [[ADR-001-platform-model]] — /research is one of the five customer surfaces in ADR-001's platform model, which this build enhances rather than adds to
+- [[ADR-002-tier-model]] — Dispatch 8.2 renders base_tier (provenance) and effective_tier (dynamic) per the ADR-002 split, showing the base-tier diff indicator only when…

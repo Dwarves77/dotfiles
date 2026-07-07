@@ -196,3 +196,11 @@ Source health architecture investigation complete (`docs/plans/source-health-arc
 2. **Phase 4 Category E decisions** — 11 remaining items in `docs/plans/category-e-investigation-2026-05-21.md` need keep/wire/remove per item.
 3. **Phase 5 Source health decisions** — 4 questions in `docs/plans/source-health-architecture-investigation-2026-05-21.md`.
 4. **Workspace admin role expansion (optional)** — Phase 7 MembersPanel currently restricts role-change + revoke to owners. 2-line server change in `/api/orgs/[org_id]/members` if workspace `admin` role should also manage non-owner members.
+
+## Related
+
+- [[category-e-investigation-2026-05-21]] — This doc IS the Phase 4 investigation of that report's Category E list (lines 119-138); parent-child
+- [[source-health-architecture-investigation-2026-05-21]] — Phase 5 investigation this report's open-questions section (lines 141-152) spawned
+- [[build-8-research-surface]] — Named blueprint anchor; Build 8.1-8.5 closes many Category A research items (migrations 098/100)
+- [[ADR-002-tier-model]] — Named blueprint anchor; tier-override + tier-opinion Category A closures rest on the tier model
+- [[ADR-005-discipline-enforcement-layered-architecture]] — this ADR's postscript B points to this doc for the full slim-refactor audit rationale and per-item disposition

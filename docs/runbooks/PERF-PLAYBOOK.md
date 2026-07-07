@@ -129,3 +129,11 @@ A measurement-first dispatch that produces "the lever was wrong, here's the actu
 - Keep the route list in `scripts/measure-bundles.mjs` current as new routes ship.
 - When the Speed Insights or Analytics free tier limits change, update the budget figures here.
 - When a new measurement instrument lands (e.g., Vercel Logs API, OpenTelemetry traces, etc.), add it under "The instruments" with the same shape — what it tells you, where to read it, when to use it first.
+
+## Related
+
+- [[hotfix-3-perf-audit-2026-05-07]] — Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
+- [[PERF-PROFILING-FINDINGS]] — Profiling findings map slow metrics to layers — exactly the bottleneck-identification step-3 the playbook defines
+- [[ISR-WRITE-INVESTIGATION]] — The measurement-before-lever perf runbook; the ISR fix is exactly a measured single-line correctness fix it exempts from the full playbook
+- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Runbook codifying the measure-first discipline and the ssr:true code-split anti-pattern this audit's fix list observes
+- [[PERF-AUDIT]] — The perf runbook that codifies this audit's measure-before-lever rule and logs its code-split anti-pattern

@@ -110,3 +110,11 @@ For the record, so future dispatches can scope around them:
 - `caros-ledge-product-audit-2026-05-15.md` (v2)
 - `caros-ledge-supabase-schema-audit-2026-05-15.md` (with Corrections section added 2026-05-15)
 - `multi-tenant-foundation-prework-2026-05-15.md` (decision rationale)
+
+## Related
+
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Cited companion whose Corrections section and Section 6 recommendations drive the deferred integrity_flags and jurisdictions dispatches here
+- [[worktrees]] — The three multi-tenant workstreams ran in the mt-A/B/C worktrees that landed as PRs #114/115/116 — the worktrees inventory records their disposition
+- [[multi-tenant-foundation-prework-2026-05-15]] — Explicitly named companion — the prework doc holds the decisions made before code that this followups doc continues
+- [[migrations]] — Migrations 075/076/077 (multi-tenant) plus the unapplied 048/050 flagged in the followups doc are the same migration set
+- [[caros-ledge-product-audit-2026-05-15]] — The v2 product audit is referenced throughout (Sections 6.1/6.4/6.5/6.8/6.9) as the source of the deferred/uncovered items

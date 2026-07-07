@@ -102,3 +102,11 @@ Full audit rationale + per-item disposition at `docs/plans/dead-code-disposition
 - remediation-discipline SKILL.md (Signal 5 from Sprint Architecture)
 - OBS-62 (worked example of mechanical-encoding-of-architectural-decision pattern)
 - OBS-64 (worked example of verification-surface-gap pattern; F9 closure)
+
+## Related
+
+- [[discipline]] — the discipline-engine manifest / mechanism roster this ADR defines is tracked in the discipline inventory
+- [[ADR-003-server-centric-dual-write]] — F8 client-server tier boundary is a Layer-2 fitness function catalogued in ADR-005's discipline architecture
+- [[ADR-004-auth-pattern-split]] — F2 admin-routes-isPlatformAdmin is a surviving Layer-2 fitness function in ADR-005's discipline engine
+- [[ADR-006-plan-skill-hybrid]] — this ADR's slim refactor deleted rules 009/010 that ADR-006 documented, deprecating it
+- [[ADR-009-adr-system-architecture]] — explicit related; ADR-009 is Layer 3 (decision protection) of this layered architecture

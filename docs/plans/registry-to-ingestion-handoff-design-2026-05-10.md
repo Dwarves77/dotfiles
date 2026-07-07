@@ -154,3 +154,11 @@ In rough order of how load-bearing they are.
 8. **Service-account auth for drain-to-agent calls**: reuse `WORKER_SECRET` and add a worker-trust check to the agent route, or mint a dedicated service-account JWT? The first is simpler and consistent with `check-sources`.
 9. **Backfill for the existing 718 dormant active sources** (and the EFRAG-class provisional rows once they transition to active): does Wave 1b's first run drain the entire backlog at one source per hour (29 days at hourly), or do we accept a faster drain rate as a one-time catch-up window? Recommendation: one-time catch-up at 25 per cron tick for the first 48 hours, then revert to 5.
 10. **`processing_paused` interaction**: should the trigger still enqueue when `processing_paused=true` and let the drain skip? Or never enqueue while paused? Recommendation: never enqueue while paused, mirror the cron worker's filter.
+
+## Related
+
+- [[ingest-pipeline-investigation-2026-05-22]] — The pending_first_fetch queue + migration-065 trigger + drain-worker this report finds empty are that design's deliverables
+- [[primitives-audit-2026-05-09]] — shares migration 058
+- [[wave1b-stub-quality-investigation-2026-05-11]] — The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
+- [[source-coverage-diagnostic-2026-05-09]] — Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
+- [[source-classification-framework-2026-05-10]] — Same-day; EFRAG (this doc's proof) and W2.F verification pipeline tier-H routing are that framework's worked examples

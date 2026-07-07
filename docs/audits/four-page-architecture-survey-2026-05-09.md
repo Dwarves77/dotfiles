@@ -458,3 +458,11 @@ Discrepancies noted:
 - `sector_contexts` and `ingestion_state` returned errors on the row-count probe. They may not have been migrated yet, or may live under a different table name.
 - One workspace_item_overrides row exists; this is the test workspace.
 - The `resources` legacy table was dropped in migration 013 and no longer exists; the `Resource` TypeScript type is reconstructed from `intelligence_items` row shape.
+
+## Related
+
+- [[caros-ledge-product-audit-2026-05-15]] — The four-page architecture, domain-1 dominance, and weak market/operations schema this audit specs against were first established by that survey
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Shares the sources-table column inventory and the three-vocabulary (scope_topics/topic_tags/intelligence_types) drift and two-tier-semantics finding
+- [[primitives-audit-2026-05-09]] — Explicitly cites and extends it; both find the source-role/six-category taxonomy absent and reconstruct pages from item_type/domain TypeScript filters
+- [[classification-rules-audit-2026-05-09]] — Explicitly extends this survey; both find the missing sources.source_role column and domain-1 acting as a catch-all are the root of unclassifiability
+- [[dashboard-payload-audit-2026-05-11]] — Shares the slim RPC (migration 047) and the per-route fetcher split (getResourcesOnly vs full) that the survey first mapped across the four pages

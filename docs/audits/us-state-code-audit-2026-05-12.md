@@ -55,3 +55,8 @@ Total: **37** rows (state unambiguous, country absent from title/summary/full_br
 | US-NE | Niger (NE) | 1 | 0 | 0 | 1 |
 | US-PA | Panama (PA) | 5 | 0 | 2 | 3 |
 | US-VA | Vatican (VA) | 1 | 0 | 0 | 1 |
+
+## Related
+
+- [[jurisdiction-normalization-audit-2026-05-11]] — Direct follow-on: the US-XX collision audit tests migration 072's buggy normalizer against the same jurisdictions column; this doc's US-AR row…
+- [[W4-backfill-plan]] — The W4 ISO derivation is the normalization workstream whose US-XX outputs this audit checks for country/state collisions

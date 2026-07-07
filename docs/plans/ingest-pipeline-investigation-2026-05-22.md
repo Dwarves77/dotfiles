@@ -378,3 +378,11 @@ Per `sprint-followups-discipline`, this investigation produces no design surface
 - `C:/Users/jason/dotfiles/fsi-app/supabase/migrations/004_source_trust_framework.sql` (line 135 domain INT NOT NULL CHECK (1..7))
 - `C:/Users/jason/dotfiles/fsi-app/supabase/migrations/065_pending_first_fetch_queue.sql` (line 120 enqueue trigger; fires on sources INSERT or auto_run_enabled flip only)
 - `C:/Users/jason/dotfiles/fsi-app/supabase/migrations/070_phase1_routing_rpcs.sql` (existing category-aware routing RPCs, orphans per REC-OBS-G)
+
+## Related
+
+- [[ingest-restart-sequencing-2026-05-22]] — That doc operationalizes this report's B4 option and answers its own verification question about the 3 insert sites on the restart path
+- [[classification-backfill-plan-2026-05-22]] — Consumes Dispatch E's report as primary input; reconciles its 193-leak count against this plan's 212 moves
+- [[registry-to-ingestion-handoff-design-2026-05-10]] — The pending_first_fetch queue + migration-065 trigger + drain-worker this report finds empty are that design's deliverables
+- [[fix-d-scope-2026-05-23]] — REC-OBS-G and the category-aware RPCs Fix D wires end-to-end are diagnosed there (migration 070 orphan RPCs)
+- [[regulations-classification-mismatch-counts-2026-05-22]] — That doc's conservative 120-count feeds this investigation; both share the (item_type,domain) cross-tab

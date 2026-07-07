@@ -77,3 +77,9 @@ closes both.
 The discipline pre-push hook flagged migrations **117** (`117_provenance_gate_customer_rpcs.sql`, prior
 session) and **118** (`118_provenance_flip_binding.sql`, this branch) as missing from
 `docs/inventories/migrations.md`. Add both before the code half merges to master.
+
+## Related
+
+- [[migrations]] — The ledger records apply scripts for migrations 118/119/121 and flagged 117/118 as missing from this inventory — shared Sprint 4 provenance…
+- [[deletion-reclassification-log]] — Both are execution-time audit ledgers of durable intelligence_items mutations with snapshot/reversal columns; the dataops ledger's archive passes…
+- [[ADR-002-tier-model]] — The tier-reconcile and role-audit ops move base_tier across 25+ sources per the base_tier vs effective_tier distinction ADR-002 sets

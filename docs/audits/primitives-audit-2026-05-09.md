@@ -276,3 +276,11 @@ Caveats:
 - Primitive 4 verdict PARTIAL treats the multiple coexisting state machines as disqualifying for "with auditable transitions"; if the operator considers `pipeline_stage` alone sufficient and the other state columns as orthogonal axes, the verdict shifts to PRESENT for the editorial pipeline only.
 
 What this audit did not do: did not modify any DB row, did not modify any schema, did not modify the cold-start script, did not modify the handoff doc, did not propose implementation. Did not hold the four-page-architecture or topic-relevance investigation findings to a recount; cited them where applicable.
+
+## Related
+
+- [[source-coverage-diagnostic-2026-05-09]] — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
+- [[registry-to-ingestion-handoff-design-2026-05-10]] — shares migration 058
+- [[W1A-dual-write-audit]] — Wave 1a is the in-flight fix that writes the agent_runs FK this audit names as the collapsing root cause
+- [[four-page-architecture-survey-2026-05-09]] — Explicitly cites and extends it; both find the source-role/six-category taxonomy absent and reconstruct pages from item_type/domain TypeScript filters
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — shares migration 053

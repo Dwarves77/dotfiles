@@ -247,3 +247,11 @@ One potential concern:
 - Does the production Supabase project have connection pooling (PgBouncer transaction mode) tuned for the 15-query bursts? Without it, each page load opens 15 Postgres connections briefly.
 - Are the `revalidate = 60` declarations intentional aspiration (waiting for the cookies-fix) or oversight? If aspiration, that's the single highest-leverage perf fix.
 - The community pages are `force-dynamic`. Was that intentional (RLS-sensitive) or copy-paste? If RLS is the reason, the region-count RPC fix still applies.
+
+## Related
+
+- [[PERF-PROFILING-FINDINGS]] — Same-day companion verifying externally-supplied perf claims against this audit's getAppData/full_brief findings
+- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Direct predecessor; this doc is the backlog walk-through verifying which of PERF-AUDIT's 15 items shipped vs remain
+- [[PERF-PLAYBOOK]] — The perf runbook that codifies this audit's measure-before-lever rule and logs its code-split anti-pattern
+- [[hotfix-3-perf-audit-2026-05-07]] — Later perf audit in the same cluster acting on this backlog's deferred items
+- [[ISR-WRITE-INVESTIGATION]] — PERF-AUDIT first documented 'revalidate=60 is broken on every page that reads cookies' — the load-bearing premise here

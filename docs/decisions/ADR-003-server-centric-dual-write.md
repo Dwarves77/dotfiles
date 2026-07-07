@@ -49,3 +49,10 @@ Rationale:
 - Sprint Architecture commit 2494a74 (F8 + bundled refactor)
 - OBS-62 (Phase 1.5 architectural-decision-in-docstring gap; closed)
 - remediation-discipline Signal 5
+
+## Related
+
+- [[ADR-002-tier-model]] — explicit related; ADR-003 dual-writes the base_tier/effective_tier columns this ADR creates
+- [[ADR-005-discipline-enforcement-layered-architecture]] — F8 client-server tier boundary is a Layer-2 fitness function catalogued in ADR-005's discipline architecture
+- [[discipline]] — F8 fitness function that enforces this decision is tracked in the discipline inventory
+- [[W1A-dual-write-audit]] — shared dual-write subject; audit of the dual-write write-path this ADR governs

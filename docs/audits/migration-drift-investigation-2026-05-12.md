@@ -134,3 +134,9 @@ Why hybrid: pure fingerprinting catches file-vs-DB drift but not whether *all* i
 - `fsi-app/scripts/tmp/072-normalize-and-diff.mjs` — semantic equivalence checker
 - `fsi-app/scripts/tmp/072-diff-report.json` — normalized diff output
 - `fsi-app/scripts/tmp/branch_070.sql` — PR branch file extract for comparison
+
+## Related
+
+- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Both audit live Supabase RPC/function definitions (get_*_items routing RPCs) against the on-disk schema
+- [[migrations]] — The migration 068 missing-tracked-file gap this doc surfaces is a defect in the migrations inventory's file-vs-applied ledger
+- [[jurisdiction-normalization-audit-2026-05-11]] — shares migration 068

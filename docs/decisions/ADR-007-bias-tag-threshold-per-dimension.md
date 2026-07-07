@@ -47,3 +47,11 @@ Implementation: `HIGH_CONFIDENCE_THRESHOLDS` constant in `fsi-app/scripts/q4-bia
 - migration 097 (Q4 bias retune Option B)
 - D1 Option B retune commit: 598d99b
 - OBS-Q4 (in sprint-2 followups; HALT triggered)
+
+## Related
+
+- [[build-8-research-surface]] — Dispatch 8.3 surfaces the per-dimension bias tags whose auto-cutoff threshold ADR-007 defines, and hides empty-state rows per ADR-007's threshold…
+- [[ADR-002-tier-model]] — same sources table + source-credibility model; base_tier feeds the downstream credibility scoring that ADR-007's bias-tag aggregation respects
+- [[ADR-008-urgency-score-default]] — both derive defaults from Haiku classifier output and were retired-to-convention F-functions in the same slim refactor
+- [[migrations]] — shared migrations 092 (source bias tags) and 097 (Q4 bias retune Option B) tracked in migrations inventory
+- [[source-classification-framework-2026-05-10]] — same source-classification/Haiku-classifier subsystem this bias-tag threshold tunes

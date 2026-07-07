@@ -103,3 +103,9 @@ AI_RELEVANCE_M = 50    // below this → L (rejected)
 AI_FREIGHT_H   = 50    // ai_freight_score >= this → eligible for H
 AI_FREIGHT_M   = 25    // below this → L (not freight relevant)
 ```
+
+## Related
+
+- [[W2B-discovery-agent-spec]] — US-CA is W2.B's documented first end-to-end calibration run (CARB at tier H, >=8 candidates); the pilot summary reports that run's outcome
+- [[W2F-verification-pipeline]] — The California pilot is W2.F's calibration vehicle for the H/L precision/false-rejection targets on tier-H auto-approvals
+- [[classification-rules-audit-2026-05-09]] — Shares the Haiku relevance/freight scoring and tier logic; the rules audit examines what those same classifier signals do and do not encode
