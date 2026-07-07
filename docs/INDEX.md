@@ -117,6 +117,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 
 ## ops
 
+- [[session-log]] — Dated session-close log (accomplished / decisions / blockers / next steps)
 - [[deletion-reclassification-log]] — Deletion / reclassification log
 - [[multi-tenant-foundation-followups-2026-05-15]] — Multi-Tenant Foundation Follow-Ups, 2026-05-15
 
