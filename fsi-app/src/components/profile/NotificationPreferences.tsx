@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { Toggle } from "@/components/ui/Toggle";
-import { Tooltip } from "@/components/ui/Tooltip";
-import { Bell, Lock, Check } from "lucide-react";
+import { ToggleSwitch } from "@/components/account/AccountPrimitives";
+import { Check } from "lucide-react";
 
 // ───────────────────────────────────────────────────────────────────────────
 // NotificationPreferences
@@ -105,12 +104,12 @@ const ROWS: Array<{
   },
 ];
 
-export function NotificationPreferences({ userId, compact = false, onSaved }: Props) {
+export function NotificationPreferences({ userId, onSaved }: Props) {
   const supabase = createSupabaseBrowserClient();
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Load current row (or fall back to defaults if no row exists yet).
@@ -179,7 +178,7 @@ export function NotificationPreferences({ userId, compact = false, onSaved }: Pr
     }
 
     setSaving(false);
-    setSavedAt(Date.now());
+    setSaved(true);
     onSaved?.(next);
     return true;
   };
@@ -202,136 +201,77 @@ export function NotificationPreferences({ userId, compact = false, onSaved }: Pr
   }
 
   return (
-    <div className={compact ? "space-y-3" : "space-y-4"}>
-      {!compact && (
-        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-          You can change these any time from Settings.
-        </p>
-      )}
+    <div>
+      {ROWS.map((row) => (
+        <NotifRow
+          key={row.key}
+          label={row.label}
+          description={row.description}
+          on={prefs[row.key]}
+          onFlip={() => toggle(row.key, !prefs[row.key])}
+        />
+      ))}
 
-      <div
-        className="rounded-lg border divide-y"
-        style={{
-          borderColor: "var(--color-border)",
-          backgroundColor: "var(--color-surface)",
-          // Tailwind divide colors are inconsistent with our token system on
-          // some themes — use border on rows directly inside.
-        }}
-      >
-        {ROWS.map((row) => (
-          <div
-            key={row.key}
-            className="flex items-start justify-between gap-4 px-4 py-3"
-            style={{
-              borderTop: "1px solid var(--color-border-subtle)",
-            }}
-          >
-            <div className="flex-1 min-w-0">
-              <div
-                className="text-sm font-medium"
-                style={{ color: "var(--color-text-primary)" }}
-              >
-                {row.label}
-              </div>
-              <p
-                className="text-xs mt-0.5"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                {row.description}
-              </p>
-            </div>
-            <div className="shrink-0 pt-0.5">
-              <Toggle
-                checked={prefs[row.key]}
-                onChange={(v) => toggle(row.key, v)}
-              />
-            </div>
-          </div>
-        ))}
+      {/* Locked: on_invite. Always on — you must be reachable when invited. */}
+      <NotifRow
+        label="Workspace invitations"
+        lockedSuffix="always on"
+        description="Always on — you must be reachable when someone adds you to a group or workspace."
+        on
+        locked
+        onFlip={() => {}}
+      />
 
-        {/* Locked: on_invite. Not toggleable. */}
-        <LockedInviteRow />
-      </div>
-
-      <div className="flex items-center gap-3 text-xs">
-        {saving && (
-          <span style={{ color: "var(--color-text-muted)" }}>Saving…</span>
-        )}
-        {!saving && savedAt && (
-          <span
-            className="flex items-center gap-1"
-            style={{ color: "var(--color-success)" }}
-          >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "10px 0 0" }}>
+        {saving && <span style={{ fontSize: "10.5px", color: "var(--color-text-muted)" }}>Saving…</span>}
+        {!saving && saved && (
+          <span style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-success)", display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Check size={12} /> Saved
           </span>
         )}
-        {error && (
-          <span style={{ color: "var(--color-error)" }}>
-            Couldn&apos;t save: {error}
-          </span>
-        )}
-        <span className="ml-auto" style={{ color: "var(--color-text-muted)" }}>
-          <Bell size={12} className="inline-block mr-1" />
-          Channel: in-app
-        </span>
+        {error && <span style={{ fontSize: "10.5px", color: "var(--color-error)" }}>Couldn&apos;t save: {error}</span>}
+        <span style={{ marginLeft: "auto", fontSize: "10.5px", color: "var(--color-text-muted)" }}>Channel: in-app</span>
       </div>
     </div>
   );
 }
 
-function LockedInviteRow() {
+function NotifRow({
+  label,
+  description,
+  on,
+  onFlip,
+  locked = false,
+  lockedSuffix,
+}: {
+  label: string;
+  description: string;
+  on: boolean;
+  onFlip: () => void;
+  locked?: boolean;
+  lockedSuffix?: string;
+}) {
   return (
     <div
-      className="flex items-start justify-between gap-4 px-4 py-3"
-      style={{ borderTop: "1px solid var(--color-border-subtle)" }}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 14,
+        padding: "11px 0",
+        borderTop: "1px solid var(--color-border-subtle)",
+      }}
     >
-      <div className="flex-1 min-w-0">
-        <div
-          className="text-sm font-medium flex items-center gap-1.5"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          Workspace invitations
-          <Tooltip content="Required for invitation flow. Without this, others can't add you to private groups.">
-            <span
-              className="inline-flex items-center justify-center"
-              aria-label="Required for invitation flow"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              <Lock size={11} />
-            </span>
-          </Tooltip>
-        </div>
-        <p
-          className="text-xs mt-0.5"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          Always on. We need to be able to tell you when someone adds you to a
-          group or workspace.
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: "12.5px", fontWeight: 800, margin: 0, color: "var(--color-text-primary)" }}>
+          {label}
+          {lockedSuffix && (
+            <span style={{ fontWeight: 700, color: "var(--color-text-muted)" }}> · {lockedSuffix}</span>
+          )}
         </p>
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "2px 0 0" }}>{description}</p>
       </div>
-      <div className="shrink-0 pt-0.5">
-        {/* Locked toggle — visually "on" and disabled */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked="true"
-          aria-disabled="true"
-          disabled
-          className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border cursor-not-allowed opacity-80"
-          style={{
-            borderColor: "var(--color-primary)",
-            backgroundColor: "rgba(0,0,0,0)",
-          }}
-        >
-          <span
-            className="inline-block h-3.5 w-3.5 rounded-full"
-            style={{
-              transform: "translateX(18px)",
-              backgroundColor: "var(--color-primary)",
-            }}
-          />
-        </button>
-      </div>
+      <ToggleSwitch on={on} onFlip={onFlip} locked={locked} label={label} />
     </div>
   );
 }

@@ -3,96 +3,47 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Resource, Supersession } from "@/types/resource";
-import { DashboardSettings } from "@/components/settings/DashboardSettings";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { ALL_SECTORS } from "@/lib/constants";
+import { AccountMasthead } from "@/components/account/AccountMasthead";
+import {
+  SubTabBar,
+  type SubTab,
+  AccountCard,
+  HonestFrame,
+  Chip,
+  ToggleSwitch,
+} from "@/components/account/AccountPrimitives";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
 import { BriefingScheduleSection } from "@/components/settings/BriefingScheduleSection";
 
-// Hotfix-3 Fix #1 (2026-05-07): tab-deferred panels for /settings.
-// SettingsPage is a `"use client"` shell — `dynamic({ ssr: false })`
-// from inside a client component DOES move chunks out of the entry per
-// the App Router chunking model. This is the inverse of the failed
-// 2026-05-06 wave (which used `ssr: true` from server pages and didn't
-// defer). General tab components (DashboardSettings, NotificationPreferences,
-// BriefingScheduleSection) stay statically imported because General is
-// the default tab on first paint. Non-default tab bodies are deferred.
-//
-// Each deferred panel ships as a separate async chunk loaded only when
-// the user clicks the corresponding tab.
-const DataSummary = dynamic(
-  () =>
-    import("@/components/settings/DataSummary").then((m) => ({
-      default: m.DataSummary,
-    })),
-  { ssr: false }
-);
-const SupersessionHistory = dynamic(
-  () =>
-    import("@/components/settings/SupersessionHistory").then((m) => ({
-      default: m.SupersessionHistory,
-    })),
-  { ssr: false }
-);
-const ArchiveViewer = dynamic(
-  () =>
-    import("@/components/settings/ArchiveViewer").then((m) => ({
-      default: m.ArchiveViewer,
-    })),
-  { ssr: false }
-);
-const SavedSearchesSection = dynamic(
-  () =>
-    import("@/components/settings/SavedSearchesSection").then((m) => ({
-      default: m.SavedSearchesSection,
-    })),
-  { ssr: false }
-);
-const HelpSection = dynamic(
-  () =>
-    import("@/components/settings/HelpSection").then((m) => ({
-      default: m.HelpSection,
-    })),
-  { ssr: false }
-);
+// ───────────────────────────────────────────────────────────────────────────
+// SettingsPage — Account · Settings (redesign T10, HANDOFF §6.10).
+// Rebuilt against "Pages - 10 Account". The General tab carries dashboard
+// settings, the full 40-sector grid, notifications, and the briefing
+// schedule; the remaining tabs reuse the existing data components inside
+// the redesigned card chrome. Store wiring (settingsStore / workspaceStore
+// / NotificationPreferences / BriefingScheduleSection) is unchanged — only
+// the presentation follows the mock.
+// ───────────────────────────────────────────────────────────────────────────
 
-// ───────────────────────────────────────────────────────────────────────────
-// SettingsPage (Phase C, PR-D IA refactor 2026-05-06)
-// Tabbed settings shell. Tabs (post-refactor, per design intent —
-// dashboard-v3.html and visual-reconciliation §3.10):
-//   General · Dashboard · Exports · Data & supersessions · Archive
-//
-// PR-D moved Notifications out of its own tab into a section inside
-// the General tab — the design preview groups Notifications + briefing
-// schedule under General. NotificationPreferences is the same component
-// it was before; it now renders as a section within the General panel
-// rather than under its own tab.
-//
-// Backward compat: settings#notifications hash now resolves to
-// "general" (with NotificationPreferences in-frame) rather than 404'ing
-// to an unknown tab. The hash-to-tab mapping below treats the legacy
-// notifications hash as an alias for general.
-//
-// Phase C remains pragmatic about splitting the monolithic
-// DashboardSettings — General/Dashboard/Exports all render the existing
-// component as sections. Each tab below renders the part that maps to it.
-// ───────────────────────────────────────────────────────────────────────────
+const DataSummary = dynamic(() => import("@/components/settings/DataSummary").then((m) => ({ default: m.DataSummary })), { ssr: false });
+const SupersessionHistory = dynamic(() => import("@/components/settings/SupersessionHistory").then((m) => ({ default: m.SupersessionHistory })), { ssr: false });
+const ArchiveViewer = dynamic(() => import("@/components/settings/ArchiveViewer").then((m) => ({ default: m.ArchiveViewer })), { ssr: false });
+const SavedSearchesSection = dynamic(() => import("@/components/settings/SavedSearchesSection").then((m) => ({ default: m.SavedSearchesSection })), { ssr: false });
 
 interface Props {
   initialResources: Resource[];
   initialArchived: Resource[];
   supersessions: Supersession[];
   userId: string;
+  userEmail?: string;
 }
 
-type TabKey =
-  | "general"
-  | "dashboard"
-  | "exports"
-  | "saved"
-  | "data"
-  | "archive"
-  | "help";
+type TabKey = "general" | "saved" | "data" | "archive" | "help";
 
-const TABS: Array<{ key: TabKey; label: string }> = [
+const TABS: SubTab<TabKey>[] = [
   { key: "general", label: "General" },
   { key: "saved", label: "Saved searches" },
   { key: "data", label: "Data & supersessions" },
@@ -100,13 +51,6 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "help", label: "Help" },
 ];
 
-// Legacy hash aliases: post-PR-D, #notifications resolves to General
-// (where the NotificationPreferences section now lives) rather than
-// 404'ing the user. PR-L adds: #briefing → General. Phase 4 strip
-// (2026-05-25): #dashboard and #exports now also resolve to General
-// since those duplicate tabs were removed — every preference they
-// surfaced still lives inside the DashboardSettings component rendered
-// on the General tab, so deep links continue to land somewhere useful.
 const LEGACY_HASH_ALIASES: Record<string, TabKey> = {
   notifications: "general",
   briefing: "general",
@@ -114,14 +58,16 @@ const LEGACY_HASH_ALIASES: Record<string, TabKey> = {
   exports: "general",
 };
 
-export function SettingsPage({
-  initialResources,
-  initialArchived,
-  supersessions,
-  userId,
-}: Props) {
-  // Pick initial tab from URL hash if present. Legacy aliases (e.g.
-  // #notifications) resolve to their post-PR-D parent tab (General).
+const HOME_SECTIONS: Array<{ key: string; label: string }> = [
+  { key: "SummaryStrip", label: "Summary strip" },
+  { key: "WeeklyBriefing", label: "Weekly briefing" },
+  { key: "WhatChanged", label: "What changed" },
+  { key: "TopUrgency", label: "Top urgency" },
+  { key: "DueThisQuarter", label: "Due this quarter" },
+  { key: "Supersessions", label: "Supersessions" },
+];
+
+export function SettingsPage({ initialResources, initialArchived, supersessions, userId, userEmail = "" }: Props) {
   const initialTab: TabKey = useMemo(() => {
     if (typeof window === "undefined") return "general";
     const h = window.location.hash.replace(/^#/, "");
@@ -140,203 +86,294 @@ export function SettingsPage({
 
   const onTabClick = (key: TabKey) => {
     setTab(key);
-    if (typeof window !== "undefined") {
-      history.replaceState(null, "", `#${key}`);
-    }
+    if (typeof window !== "undefined") history.replaceState(null, "", `#${key}`);
   };
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8">
-        <p
-          className="text-xs uppercase tracking-wide mb-1"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          Personal preferences
-        </p>
-        <h1
-          className="text-2xl font-bold"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          Settings
-        </h1>
-        <p
-          className="text-sm mt-1"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          General · saved searches · data · archive · help
-        </p>
+    <div>
+      <AccountMasthead active="settings" userEmail={userEmail} />
+      <div style={{ padding: "26px 36px 80px" }}>
+        <SubTabBar tabs={TABS} active={tab} onSelect={onTabClick} ariaLabel="Settings sections" />
 
-        {/* Tabs */}
-        <div
-          className="flex flex-wrap gap-0 border-b mt-6 mb-6"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => onTabClick(t.key)}
-              className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
-              style={{
-                color:
-                  tab === t.key
-                    ? "var(--color-primary)"
-                    : "var(--color-text-secondary)",
-                borderBottom: `3px solid ${
-                  tab === t.key ? "var(--color-primary)" : "transparent"
-                }`,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Panels */}
         {tab === "general" && (
-          <div className="space-y-5">
-            <Card>
-              <DashboardSettings />
-            </Card>
-            {/* PR-D IA refactor: Notifications relocated from a
-                standalone tab into a General section. The component
-                contract (NotificationPreferences) is unchanged — it
-                still loads/saves via the same /api/notifications path
-                and takes the same userId prop. */}
-            <Card
-              title="Notifications"
-              meta="In-app channel available now · email and push coming soon"
-            >
-              <p
-                className="text-sm mb-4"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                Choose what gets your attention. We&apos;re conservative by
-                default — higher-volume notifications are off until you opt in.
+          <div style={{ display: "grid", gap: 16 }}>
+            <DashboardSettingsCard />
+            <FreightSectorsCard />
+            <AccountCard title="Notifications" meta="In-app channel available now · email and push coming soon">
+              <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: "0 0 4px" }}>
+                Choose what gets your attention. Conservative by default — higher-volume notifications are off
+                until you opt in.
               </p>
               <NotificationPreferences userId={userId} />
-            </Card>
-            {/* PR-L Settings restoration (Decision #14, F9): Briefing
-                schedule lives under General per the design preview. The
-                component reads/writes workspace_settings.alert_config,
-                preserving any existing keys. */}
-            <Card
-              title="Briefing schedule"
-              meta="Cadence · time · jurisdictions · delivery"
-            >
+            </AccountCard>
+            <AccountCard title="Briefing schedule" meta="Cadence · time · jurisdictions · delivery">
               <BriefingScheduleSection />
-            </Card>
+            </AccountCard>
           </div>
         )}
 
-        {/* Phase 4 (2026-05-25): "Dashboard" and "Exports" tabs stripped —
-            both rendered the same DashboardSettings component the General tab
-            already shows. Deep links to #dashboard and #exports redirect to
-            #general via LEGACY_HASH_ALIASES. Restore as distinct tabs only
-            when card-visibility toggles and export format pickers split into
-            their own components with non-overlapping content. */}
+        {tab === "saved" && (
+          <AccountCard title="Saved searches" meta="Named filter combinations · stored locally" maxWidth={720}>
+            <SavedSearchesSection />
+          </AccountCard>
+        )}
 
         {tab === "data" && (
-          <div className="space-y-5">
-            <Card title="Data summary">
-              <DataSummary
-                resources={initialResources}
-                archived={initialArchived}
-              />
-            </Card>
-            <Card title="Supersession history">
-              <SupersessionHistory
-                supersessions={supersessions}
-                resourceMap={resourceMap}
-              />
-            </Card>
+          <div style={{ display: "grid", gap: 16 }}>
+            <AccountCard title="Data summary">
+              <DataSummary resources={initialResources} archived={initialArchived} />
+            </AccountCard>
+            <AccountCard title="Supersession history">
+              <SupersessionHistory supersessions={supersessions} resourceMap={resourceMap} />
+            </AccountCard>
           </div>
         )}
 
         {tab === "archive" && (
-          <Card
-            title="Archived items"
-            meta={`${initialArchived.length} item${
-              initialArchived.length !== 1 ? "s" : ""
-            } · still recoverable`}
+          <AccountCard
+            title="Archive"
+            meta={`${initialArchived.length} item${initialArchived.length !== 1 ? "s" : ""} · still recoverable`}
           >
-            <ArchiveViewer />
-          </Card>
+            {initialArchived.length === 0 ? (
+              <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
+                Nothing archived. Briefs you archive and items you dismiss collect here, out of the working
+                view but never deleted.
+              </p>
+            ) : (
+              <ArchiveViewer />
+            )}
+          </AccountCard>
         )}
 
-        {/* PR-L Settings restoration (Decision #14, F10): SAVED SEARCHES.
-            L1 surface persists to localStorage; surface a candidate
-            backend split for L2 (saved_searches table). */}
-        {tab === "saved" && (
-          <Card
-            title="Saved searches"
-            meta="Named filter combinations · stored locally"
-          >
-            <SavedSearchesSection />
-          </Card>
-        )}
-
-        {/* PR-L Settings restoration (Decision #14, F14): HELP card with
-            documentation links, support contact, and version info. */}
         {tab === "help" && (
-          <Card
-            title="Help"
-            meta="Documentation · support · version"
-          >
-            <HelpSection />
-          </Card>
+          <HonestFrame heading="Help centre pending">
+            Documentation and contact routes land here. Until then, workspace owners reach the team through
+            the onboarding channel.
+          </HonestFrame>
         )}
       </div>
     </div>
   );
 }
 
-// ── Card wrapper ──────────────────────────────────────────────────────────
+// ── General · Dashboard settings ────────────────────────────────────────────
 
-function Card({
-  title,
-  meta,
-  children,
-}: {
-  title?: string;
-  meta?: string;
-  children: React.ReactNode;
-}) {
+function LabelRow({ children }: { children: React.ReactNode }) {
   return (
-    <section
-      className="rounded-lg border mb-5"
+    <p
       style={{
-        borderColor: "var(--color-border-subtle)",
-        backgroundColor: "var(--color-surface)",
+        fontSize: "9.5px",
+        fontWeight: 800,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        color: "var(--color-text-muted)",
+        margin: "0 0 8px",
       }}
     >
-      {(title || meta) && (
-        <header
-          className="flex items-baseline justify-between gap-3 flex-wrap px-5 py-4 border-b"
-          style={{ borderColor: "var(--color-border-subtle)" }}
-        >
-          {title && (
-            <h3
-              className="text-base font-semibold"
-              style={{ color: "var(--color-text-primary)" }}
+      {children}
+    </p>
+  );
+}
+
+function DashboardSettingsCard() {
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
+  const defaultSort = useSettingsStore((s) => s.defaultSort);
+  const setDefaultSort = useSettingsStore((s) => s.setDefaultSort);
+  const exportFormat = useSettingsStore((s) => s.exportFormat);
+  const setExportFormat = useSettingsStore((s) => s.setExportFormat);
+  const alertPriorities = useSettingsStore((s) => s.alertPriorities);
+  const setAlertPriorities = useSettingsStore((s) => s.setAlertPriorities);
+  const toggleSection = useSettingsStore((s) => s.toggleSection);
+  const showSummaryStrip = useSettingsStore((s) => s.showSummaryStrip);
+  const showWeeklyBriefing = useSettingsStore((s) => s.showWeeklyBriefing);
+  const showWhatChanged = useSettingsStore((s) => s.showWhatChanged);
+  const showTopUrgency = useSettingsStore((s) => s.showTopUrgency);
+  const showDueThisQuarter = useSettingsStore((s) => s.showDueThisQuarter);
+  const showSupersessions = useSettingsStore((s) => s.showSupersessions);
+  const sectionState: Record<string, boolean> = {
+    showSummaryStrip,
+    showWeeklyBriefing,
+    showWhatChanged,
+    showTopUrgency,
+    showDueThisQuarter,
+    showSupersessions,
+  };
+
+  const sortOpts: Array<{ id: typeof defaultSort; label: string }> = [
+    { id: "urgency", label: "Urgency" },
+    { id: "priority", label: "Priority" },
+    { id: "alpha", label: "Alpha" },
+    { id: "added", label: "Added" },
+  ];
+  const priorityOpts = ["CRITICAL", "HIGH", "MODERATE", "LOW"];
+
+  return (
+    <AccountCard title="Dashboard settings">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 32px" }} className="cl-set-grid">
+        <style>{`@media (max-width: 720px){ .cl-set-grid{ grid-template-columns:1fr !important; } }`}</style>
+        <div>
+          <LabelRow>Appearance</LabelRow>
+          <div style={{ display: "flex", gap: 6 }}>
+            <Chip label="Light" on={theme === "light"} onClick={() => setTheme("light")} />
+            <Chip label="Dark" on={theme === "dark"} onClick={() => setTheme("dark")} />
+          </div>
+        </div>
+        <div>
+          <LabelRow>Default sort</LabelRow>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {sortOpts.map((o) => (
+              <Chip key={o.id} label={o.label} on={defaultSort === o.id} onClick={() => setDefaultSort(o.id)} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <LabelRow>Default export format</LabelRow>
+          <div style={{ display: "flex", gap: 6 }}>
+            <Chip label="HTML" on={exportFormat === "html"} onClick={() => setExportFormat("html")} />
+            <Chip label="Slack" on={exportFormat === "slack"} onClick={() => setExportFormat("slack")} />
+          </div>
+        </div>
+        <div>
+          <LabelRow>Alert priorities</LabelRow>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {priorityOpts.map((p) => {
+              const on = alertPriorities.includes(p);
+              return (
+                <Chip
+                  key={p}
+                  label={p.charAt(0) + p.slice(1).toLowerCase()}
+                  on={on}
+                  onClick={() =>
+                    setAlertPriorities(on ? alertPriorities.filter((x) => x !== p) : [...alertPriorities, p])
+                  }
+                />
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <LabelRow>Home sections</LabelRow>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px 24px" }} className="cl-home-grid">
+            <style>{`@media (max-width: 720px){ .cl-home-grid{ grid-template-columns:1fr !important; } }`}</style>
+            {HOME_SECTIONS.map((h) => {
+              const on = sectionState[`show${h.key}`];
+              return (
+                <div
+                  key={h.key}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "7px 0",
+                    borderBottom: "1px solid var(--color-border-subtle)",
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-primary)" }}>{h.label}</span>
+                  <ToggleSwitch on={on} onFlip={() => toggleSection(h.key)} label={`Show ${h.label}`} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </AccountCard>
+  );
+}
+
+// ── General · Freight sectors (40-checkbox grid) ────────────────────────────
+
+function FreightSectorsCard() {
+  const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
+  const setSectorProfile = useWorkspaceStore((s) => s.setSectorProfile);
+
+  const toggle = (id: string) =>
+    setSectorProfile(sectorProfile.includes(id) ? sectorProfile.filter((x) => x !== id) : [...sectorProfile, id]);
+
+  return (
+    <AccountCard
+      title="Freight sectors"
+      meta={
+        <span style={{ display: "flex", gap: 14, alignItems: "baseline" }}>
+          <span>{sectorProfile.length} selected</span>
+          <button
+            type="button"
+            onClick={() => setSectorProfile(ALL_SECTORS.map((s) => s.id))}
+            style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Select all
+          </button>
+          <button
+            type="button"
+            onClick={() => setSectorProfile([])}
+            style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, color: "var(--color-text-secondary)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Clear
+          </button>
+        </span>
+      }
+      bodyPad={false}
+    >
+      <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: 0, padding: "12px 20px 0" }}>
+        Select the sectors your organization operates in. This filters your default view, briefings, and
+        urgency scoring.
+      </p>
+      <div
+        style={{
+          padding: "14px 20px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {ALL_SECTORS.map((sector) => {
+          const on = sectorProfile.includes(sector.id);
+          return (
+            <button
+              key={sector.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(sector.id)}
+              style={{
+                fontFamily: "var(--font-sans)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                padding: "9px 12px",
+                borderRadius: 6,
+                width: "100%",
+                textAlign: "left",
+                background: on ? "var(--color-bg-ai-strip)" : "var(--surface)",
+                border: on ? "1px solid var(--color-active-border)" : "1px solid var(--color-border)",
+                color: "var(--color-text-primary)",
+              }}
             >
-              {title}
-            </h3>
-          )}
-          {meta && (
-            <span
-              className="text-xs"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              {meta}
-            </span>
-          )}
-        </header>
-      )}
-      <div className="px-5 py-4">{children}</div>
-    </section>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 4,
+                  flexShrink: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: "#FFFFFF",
+                  background: on ? "var(--color-primary)" : "var(--surface)",
+                  border: on ? "1px solid var(--color-primary)" : "1px solid var(--color-border-strong)",
+                }}
+              >
+                {on ? "✓" : ""}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{sector.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </AccountCard>
   );
 }

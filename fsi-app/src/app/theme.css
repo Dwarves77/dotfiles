@@ -267,6 +267,7 @@
   /* Destructive-quiet — Ban / Delete text actions (HANDOFF §2). Destructive
      actions are WORDS, never icons; this ink names the "Ban" verb in the
      Admin member rows. Distinct from --sev-critical (used for alarm counts). */
+  /* Destructive-quiet — Ban / Delete text actions (HANDOFF §2). Words, not icons. */
   --destructive-quiet: #9A3412;
 
   /* Severity spectrum — HANDOFF §2 named values. */
@@ -524,6 +525,16 @@
 
   --surface-card: #1C1B19;
   --surface-card-hover: #252422;
+
+  /* T02/T10 editorial tokens — dark tonal variants. */
+  --brass: #C2A15A;
+  --destructive-quiet: #E0774A;
+  --accent-blue: #60A5FA;
+  --sev-critical: #EF4444;
+  --sev-high: #F97316;
+  --sev-moderate: #EAB308;
+  --sev-low: #22C55E;
+  --color-bg-ai-strip: rgba(232,97,10,0.12);
 
   --scrollbar-thumb: rgba(183, 198, 194, 0.2);
   --scrollbar-thumb-hover: rgba(183, 198, 194, 0.35);

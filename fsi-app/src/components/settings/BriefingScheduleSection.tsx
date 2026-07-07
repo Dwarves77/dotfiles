@@ -5,37 +5,27 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { JURISDICTIONS } from "@/lib/constants";
-import { Toast } from "@/components/ui/Toast";
-import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/cn";
-import { Save, Bell } from "lucide-react";
+import { Chip, TextInput } from "@/components/account/AccountPrimitives";
 
 // ───────────────────────────────────────────────────────────────────────────
-// BriefingScheduleSection (PR-L Settings restoration — Decision #14, F9)
+// BriefingScheduleSection — Account · Settings · Briefing schedule (T10).
 //
-// Cadence + time + jurisdictions + delivery method for the weekly briefing.
+// Rebuilt against "Pages - 10 Account". Cadence / day / time / jurisdiction
+// weights / in-app delivery. Save is enabled only when the form is dirty and
+// on success reports "Saved to {workspace}".
 //
-// Storage: workspace_settings.alert_config (JSONB) augmented with
-//   { briefingDay, briefingTime, briefingCadence, briefingDelivery,
-//     briefingJurisdictions }.
-// Existing fields (priorities, briefingDay) are preserved. The settingsStore
-// already reads/writes briefingDay; this component extends the same JSONB
-// document with the additional schedule fields, keeping in-app state in
-// the store and persisting to Supabase via direct workspace_settings update.
-//
-// Delivery is in-app today; email and push channels ship when their
-// delivery pipelines exist.
+// Storage unchanged: workspace_settings.alert_config (JSONB) read-modify-write
+// with keys briefingCadence / briefingDay / briefingTime / briefingDelivery /
+// briefingJurisdictions. Workspace-scoped; owner/admin can edit.
 // ───────────────────────────────────────────────────────────────────────────
 
 type Cadence = "daily" | "weekly" | "biweekly";
-type Delivery = "in_app";
 
 interface ScheduleState {
   cadence: Cadence;
-  day: string; // monday..friday
-  time: string; // HH:MM 24h, local TZ
+  day: string;
+  time: string;
   jurisdictions: string[];
-  delivery: Delivery;
 }
 
 const DEFAULT_SCHEDULE: ScheduleState = {
@@ -43,41 +33,47 @@ const DEFAULT_SCHEDULE: ScheduleState = {
   day: "monday",
   time: "08:00",
   jurisdictions: [],
-  delivery: "in_app",
 };
 
-const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
+const DAYS: Array<{ id: string; label: string }> = [
+  { id: "monday", label: "Mon" },
+  { id: "tuesday", label: "Tue" },
+  { id: "wednesday", label: "Wed" },
+  { id: "thursday", label: "Thu" },
+  { id: "friday", label: "Fri" },
+];
+
+const CADENCE: Array<{ id: Cadence; label: string }> = [
+  { id: "daily", label: "Daily" },
+  { id: "weekly", label: "Weekly" },
+  { id: "biweekly", label: "Biweekly" },
+];
+
+function sameSchedule(a: ScheduleState, b: ScheduleState): boolean {
+  return (
+    a.cadence === b.cadence &&
+    a.day === b.day &&
+    a.time === b.time &&
+    a.jurisdictions.length === b.jurisdictions.length &&
+    a.jurisdictions.every((j) => b.jurisdictions.includes(j))
+  );
+}
 
 export function BriefingScheduleSection() {
   const orgId = useSettingsStore((s) => s.orgId);
   const briefingDay = useSettingsStore((s) => s.briefingDay);
   const setBriefingDay = useSettingsStore((s) => s.setBriefingDay);
   const userRole = useWorkspaceStore((s) => s.userRole);
-
-  // Workspace-level settings are owner/admin scoped. Members/viewers see
-  // the current schedule but can't change it (mirrors workspace_settings
-  // RLS gate; we render disabled controls so it's clear *why*).
+  const orgName = useWorkspaceStore((s) => s.orgName);
   const canEdit = userRole === "owner" || userRole === "admin";
 
-  const [schedule, setSchedule] = useState<ScheduleState>({
-    ...DEFAULT_SCHEDULE,
-    day: briefingDay,
-  });
-  const [loaded, setLoaded] = useState(false);
+  const [schedule, setSchedule] = useState<ScheduleState>({ ...DEFAULT_SCHEDULE, day: briefingDay });
+  const [baseline, setBaseline] = useState<ScheduleState>({ ...DEFAULT_SCHEDULE, day: briefingDay });
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; visible: boolean }>({
-    message: "",
-    visible: false,
-  });
+  const [saved, setSaved] = useState(false);
 
-  // Load on mount: workspace_settings.alert_config has the full schedule
-  // payload. The settingsStore already loaded briefingDay/priorities; we
-  // refetch the row here once to pick up the extended fields.
   useEffect(() => {
-    if (!orgId) {
-      setLoaded(true);
-      return;
-    }
+    if (!orgId) return;
     let cancelled = false;
     (async () => {
       const supabase = createSupabaseBrowserClient();
@@ -86,356 +82,182 @@ export function BriefingScheduleSection() {
         .select("alert_config")
         .eq("org_id", orgId)
         .maybeSingle();
-
       if (cancelled) return;
       const ac = (data?.alert_config ?? {}) as Record<string, unknown>;
-      setSchedule({
+      const loaded: ScheduleState = {
         cadence: (ac.briefingCadence as Cadence) ?? "weekly",
         day: (ac.briefingDay as string) ?? briefingDay,
         time: (ac.briefingTime as string) ?? "08:00",
-        jurisdictions:
-          (ac.briefingJurisdictions as string[] | undefined) ?? [],
-        delivery: (ac.briefingDelivery as Delivery) ?? "in_app",
-      });
-      setLoaded(true);
+        jurisdictions: (ac.briefingJurisdictions as string[] | undefined) ?? [],
+      };
+      setSchedule(loaded);
+      setBaseline(loaded);
     })();
     return () => {
       cancelled = true;
     };
   }, [orgId, briefingDay]);
 
-  const updateField = <K extends keyof ScheduleState>(
-    key: K,
-    value: ScheduleState[K]
-  ) => {
-    setSchedule((prev) => ({ ...prev, [key]: value }));
+  const dirty = !sameSchedule(schedule, baseline);
+
+  const update = (patch: Partial<ScheduleState>) => {
+    setSaved(false);
+    setSchedule((prev) => ({ ...prev, ...patch }));
   };
 
-  const toggleJurisdiction = (id: string) => {
-    setSchedule((prev) => ({
-      ...prev,
-      jurisdictions: prev.jurisdictions.includes(id)
-        ? prev.jurisdictions.filter((j) => j !== id)
-        : [...prev.jurisdictions, id],
-    }));
-  };
+  const toggleJurisdiction = (id: string) =>
+    update({
+      jurisdictions: schedule.jurisdictions.includes(id)
+        ? schedule.jurisdictions.filter((j) => j !== id)
+        : [...schedule.jurisdictions, id],
+    });
 
   const save = async () => {
-    if (!orgId || !canEdit) return;
+    if (!orgId || !canEdit || !dirty) return;
     setSaving(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      // Preserve existing fields (priorities, etc.) — read-modify-write
-      // on the JSONB document.
       const { data: row } = await supabase
         .from("workspace_settings")
         .select("alert_config")
         .eq("org_id", orgId)
         .maybeSingle();
-
-      const existingAlertConfig = (row?.alert_config ?? {}) as Record<
-        string,
-        unknown
-      >;
-
-      const next = {
-        ...existingAlertConfig,
-        briefingCadence: schedule.cadence,
-        briefingDay: schedule.day,
-        briefingTime: schedule.time,
-        briefingDelivery: schedule.delivery,
-        briefingJurisdictions: schedule.jurisdictions,
-      };
-
+      const existing = (row?.alert_config ?? {}) as Record<string, unknown>;
       await supabase
         .from("workspace_settings")
-        .update({ alert_config: next })
+        .update({
+          alert_config: {
+            ...existing,
+            briefingCadence: schedule.cadence,
+            briefingDay: schedule.day,
+            briefingTime: schedule.time,
+            briefingDelivery: "in_app",
+            briefingJurisdictions: schedule.jurisdictions,
+          },
+        })
         .eq("org_id", orgId);
-
-      // Keep settingsStore.briefingDay in sync (it powers the legacy
-      // DashboardSettings dropdown that still renders elsewhere).
       setBriefingDay(schedule.day as typeof briefingDay);
-
-      setToast({ message: "Briefing schedule saved", visible: true });
-    } catch {
-      setToast({ message: "Could not save schedule", visible: true });
+      setBaseline(schedule);
+      setSaved(true);
     } finally {
       setSaving(false);
     }
   };
 
-  return (
-    <div className="space-y-5">
-      <div>
-        <p
-          className="text-sm"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          {canEdit
-            ? "Tune how often we send the briefing, when it lands, and which jurisdictions it weights."
-            : "Your workspace owner controls the briefing schedule. You see what's coming."}
-        </p>
-        {!orgId && loaded && (
-          <p
-            className="text-xs mt-1"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            Schedule is workspace-scoped. Join or create a workspace to
-            persist preferences.
-          </p>
-        )}
-      </div>
+  const weightNote =
+    schedule.jurisdictions.length === 0
+      ? "All jurisdictions weighted equally"
+      : `${schedule.jurisdictions.length} weighted — others still included at base weight`;
 
-      {/* Cadence */}
-      <Field label="Cadence">
-        <ChipRow>
-          {(
-            [
-              { id: "daily", label: "Daily" },
-              { id: "weekly", label: "Weekly" },
-              { id: "biweekly", label: "Biweekly" },
-            ] as const
-          ).map((opt) => (
-            <Chip
-              key={opt.id}
-              label={opt.label}
-              selected={schedule.cadence === opt.id}
-              onClick={() => updateField("cadence", opt.id)}
-              disabled={!canEdit}
-            />
-          ))}
-        </ChipRow>
-      </Field>
+  const canSave = dirty && canEdit && !!orgId && !saving;
 
-      {/* Day (only if weekly/biweekly) */}
-      {schedule.cadence !== "daily" && (
-        <Field label="Day">
-          <ChipRow>
-            {DAYS.map((d) => (
-              <Chip
-                key={d}
-                label={d.slice(0, 3).toUpperCase()}
-                selected={schedule.day === d}
-                onClick={() => updateField("day", d)}
-                disabled={!canEdit}
-              />
-            ))}
-          </ChipRow>
-        </Field>
-      )}
-
-      {/* Time */}
-      <Field label="Time (24h, your local timezone)">
-        <input
-          type="time"
-          value={schedule.time}
-          onChange={(e) => updateField("time", e.target.value)}
-          disabled={!canEdit}
-          className="px-3 py-2 text-sm rounded-md border outline-none disabled:cursor-not-allowed"
-          style={{
-            borderColor: "var(--color-border)",
-            backgroundColor: "var(--color-surface)",
-            color: "var(--color-text-primary)",
-            opacity: canEdit ? 1 : 0.6,
-          }}
-        />
-      </Field>
-
-      {/* Jurisdictions */}
-      <Field
-        label="Weight these jurisdictions"
-        meta={
-          schedule.jurisdictions.length === 0
-            ? "All jurisdictions weighted equally"
-            : `${schedule.jurisdictions.length} selected`
-        }
-      >
-        <ChipRow wrap>
-          {JURISDICTIONS.map((j) => (
-            <Chip
-              key={j.id}
-              label={j.label}
-              selected={schedule.jurisdictions.includes(j.id)}
-              onClick={() => toggleJurisdiction(j.id)}
-              disabled={!canEdit}
-            />
-          ))}
-        </ChipRow>
-      </Field>
-
-      {/* Delivery — only in-app supported today; email and push ship
-          when their delivery pipelines exist. */}
-      <Field label="Delivery">
-        <div className="grid grid-cols-1 gap-2">
-          <DeliveryCard
-            icon={<Bell size={14} />}
-            label="In-app"
-            description="Lands in your dashboard."
-            selected={schedule.delivery === "in_app"}
-            onClick={() => updateField("delivery", "in_app")}
-            disabled={!canEdit}
-          />
-        </div>
-      </Field>
-
-      <div>
-        <Button
-          variant="primary"
-          onClick={save}
-          disabled={saving || !canEdit || !orgId}
-        >
-          {saving ? (
-            "Saving…"
-          ) : (
-            <>
-              <Save size={14} />
-              Save schedule
-            </>
-          )}
-        </Button>
-      </div>
-
-      <Toast
-        message={toast.message}
-        visible={toast.visible}
-        onDismiss={() => setToast({ message: "", visible: false })}
-      />
-    </div>
-  );
-}
-
-// ── Pieces ────────────────────────────────────────────────────────────────
-
-function Field({
-  label,
-  meta,
-  children,
-}: {
-  label: string;
-  meta?: string;
-  children: React.ReactNode;
-}) {
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-        <span
-          className="text-[10px] font-semibold uppercase"
-          style={{
-            letterSpacing: "0.14em",
-            color: "var(--color-text-muted)",
-          }}
-        >
-          {label}
-        </span>
-        {meta && (
-          <span
-            className="text-[11px]"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            {meta}
-          </span>
+      <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: "0 0 14px" }}>
+        Tune how often the briefing lands, when, and which jurisdictions it weights.{" "}
+        <b>Schedule is workspace-scoped</b>
+        {orgName ? (
+          <>
+            {" "}— it persists to {orgName}.
+          </>
+        ) : (
+          <> — join or create a workspace to persist it.</>
         )}
+      </p>
+
+      <div style={{ display: "flex", gap: 32, flexWrap: "wrap", margin: "0 0 16px" }}>
+        <div>
+          <FieldLabel>Cadence</FieldLabel>
+          <div style={{ display: "flex", gap: 6 }}>
+            {CADENCE.map((c) => (
+              <Chip key={c.id} label={c.label} on={schedule.cadence === c.id} onClick={() => canEdit && update({ cadence: c.id })} />
+            ))}
+          </div>
+        </div>
+        {schedule.cadence !== "daily" && (
+          <div>
+            <FieldLabel>Day</FieldLabel>
+            <div style={{ display: "flex", gap: 6 }}>
+              {DAYS.map((d) => (
+                <Chip key={d.id} label={d.label} on={schedule.day === d.id} onClick={() => canEdit && update({ day: d.id })} />
+              ))}
+            </div>
+          </div>
+        )}
+        <div>
+          <FieldLabel>Time (24h, your local timezone)</FieldLabel>
+          <TextInput
+            type="time"
+            value={schedule.time}
+            disabled={!canEdit}
+            onChange={(e) => update({ time: e.target.value })}
+            style={{ width: 110, fontWeight: 700 }}
+          />
+        </div>
       </div>
-      {children}
+
+      <div style={{ margin: "0 0 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "0 0 8px" }}>
+          <FieldLabel noMargin>Weight these jurisdictions</FieldLabel>
+          <span style={{ fontSize: "10.5px", color: "var(--color-text-muted)" }}>{weightNote}</span>
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {JURISDICTIONS.map((j) => (
+            <Chip key={j.id} label={j.label} pill on={schedule.jurisdictions.includes(j.id)} onClick={() => canEdit && toggleJurisdiction(j.id)} />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ background: "var(--color-bg-ai-strip)", border: "1px solid var(--color-active-border)", borderRadius: 6, padding: "10px 16px" }}>
+          <p style={{ fontSize: 12, fontWeight: 800, margin: 0, color: "var(--color-text-primary)" }}>Delivery · in-app</p>
+          <p style={{ fontSize: "10.5px", color: "var(--color-text-muted)", margin: "2px 0 0" }}>
+            Lands in your dashboard. Email and push follow the notifications channel work.
+          </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {saved && !dirty && (
+            <span style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-success)" }}>
+              Saved to {orgName || "workspace"}.
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={save}
+            disabled={!canSave}
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontSize: "12.5px",
+              fontWeight: 800,
+              padding: "11px 20px",
+              borderRadius: 6,
+              border: canSave ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+              background: canSave ? "var(--color-primary)" : "rgba(0,0,0,0.08)",
+              color: canSave ? "#FFFFFF" : "var(--color-text-muted)",
+              cursor: canSave ? "pointer" : "default",
+            }}
+          >
+            {saving ? "Saving…" : "Save schedule"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function ChipRow({
-  children,
-  wrap,
-}: {
-  children: React.ReactNode;
-  wrap?: boolean;
-}) {
+function FieldLabel({ children, noMargin }: { children: React.ReactNode; noMargin?: boolean }) {
   return (
-    <div className={cn("flex gap-1.5", wrap && "flex-wrap")}>{children}</div>
-  );
-}
-
-function Chip({
-  label,
-  selected,
-  onClick,
-  disabled,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={selected}
-      className="px-3 py-1.5 text-xs font-medium rounded-md border cursor-pointer transition-colors disabled:cursor-not-allowed"
+    <p
       style={{
-        backgroundColor: selected
-          ? "var(--color-active-bg)"
-          : "var(--color-surface)",
-        color: selected
-          ? "var(--color-text-primary)"
-          : "var(--color-text-secondary)",
-        borderColor: selected
-          ? "var(--color-primary)"
-          : "var(--color-border)",
-        opacity: disabled && !selected ? 0.6 : 1,
+        fontSize: "9.5px",
+        fontWeight: 800,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        color: "var(--color-text-muted)",
+        margin: noMargin ? 0 : "0 0 8px",
       }}
     >
-      {label}
-    </button>
-  );
-}
-
-function DeliveryCard({
-  icon,
-  label,
-  description,
-  selected,
-  onClick,
-  disabled,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  selected: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={selected}
-      className="rounded-md border p-3 text-left cursor-pointer transition-colors disabled:cursor-not-allowed"
-      style={{
-        borderColor: selected
-          ? "var(--color-primary)"
-          : "var(--color-border)",
-        backgroundColor: selected
-          ? "var(--color-active-bg)"
-          : "var(--color-surface)",
-        opacity: disabled && !selected ? 0.6 : 1,
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <span style={{ color: "var(--color-text-secondary)" }}>{icon}</span>
-        <span
-          className="text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          {label}
-        </span>
-      </div>
-      <p
-        className="text-xs mt-1"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        {description}
-      </p>
-    </button>
+      {children}
+    </p>
   );
 }
