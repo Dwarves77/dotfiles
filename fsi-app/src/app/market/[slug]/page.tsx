@@ -19,6 +19,7 @@ import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { getMarketIntelItems } from "@/lib/data";
+import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import {
   MarketSignalDetailSurface,
   type PriceStat,
@@ -161,6 +162,47 @@ export default async function MarketSignalDetailPage({
     }
   }
 
+  // Item d (notes → workspace_item_overrides.notes): read the workspace note
+  // server-side so NotesField initializes from the SHARED store, not
+  // localStorage. r.id may be a legacy slug — resolve the UUID first. Fail-soft
+  // to "" (no note / no org / read error): the field still saves via POST.
+  let initialNote = "";
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    if (
+      orgId &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+      );
+      const itemUuid = UUID_RE.test(r.id)
+        ? r.id
+        : (
+            await supabase
+              .from("intelligence_items")
+              .select("id")
+              .eq("legacy_id", r.id)
+              .maybeSingle()
+          ).data?.id ?? null;
+      if (itemUuid) {
+        const { data: noteRow, error: noteErr } = await supabase
+          .from("workspace_item_overrides")
+          .select("notes")
+          .eq("org_id", orgId)
+          .eq("item_id", itemUuid)
+          .maybeSingle();
+        if (noteErr) console.warn(`[market/${id}] note read failed: ${noteErr.message}`);
+        initialNote = noteRow?.notes ?? "";
+      }
+    }
+  } catch {
+    // Soft-fail — field starts empty and still saves.
+  }
+
   // Related signals: pull the Market Intel set, find items in the same
   // band as this one, exclude self, cap at 5. Failures degrade to an
   // empty list (the surface renders "no related signals" cleanly).
@@ -189,6 +231,7 @@ export default async function MarketSignalDetailPage({
       convergence={convergence}
       priceBoard={priceBoard}
       deck={deck}
+      initialNote={initialNote}
     />
   );
 }

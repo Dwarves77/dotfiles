@@ -29,7 +29,8 @@
  * no chip is rendered without its backing field; the live price feed is never faked.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import Link from "next/link";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { ProseSection } from "@/components/regulations/sections/ProseSection";
@@ -99,6 +100,10 @@ interface Props {
   groupLabel?: string;
   /** Hero deck sub-line, e.g. "U.S. EIA · published May 9, 2026". */
   deck?: string;
+  /** Workspace note for this item (workspace_item_overrides.notes), read
+   *  server-side. Empty string when none. Item d: notes are workspace-shared,
+   *  not localStorage. */
+  initialNote?: string;
 }
 
 // ── Severity vocabulary (5-label, mirrors MarketPage / MarketSignalDetail) ─
@@ -203,6 +208,7 @@ export function MarketSignalDetailSurface({
   priceBoard = [],
   groupLabel,
   deck,
+  initialNote = "",
 }: Props) {
   const [tab, setTab] = useState<TabKey>("moving");
 
@@ -470,8 +476,8 @@ export function MarketSignalDetailSurface({
 
           {tab === "sources" && <SourcesTab r={r} sectionMap={sectionMap} band={band} />}
 
-          {/* Persistent notes — every tab */}
-          <NotesField itemId={r.id} />
+          {/* Persistent notes — every tab (workspace-shared via overrides) */}
+          <NotesField itemId={r.id} initialNote={initialNote} />
 
           {/* Related signals + connected intelligence — every tab */}
           {related.length > 0 && (
@@ -821,21 +827,62 @@ function SourcesTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<s
 }
 
 // ── Persistent notes field ──────────────────────────────────────────────
-// Lazy initializer reads localStorage on the in-browser render (SSR returns
-// ""), matching the codebase's SavedSearchesSection pattern — no setState in an
-// effect. Workspace-visible persistence lands with the notes backend.
-function loadNote(key: string): string {
-  if (typeof window === "undefined") return "";
-  try {
-    return window.localStorage.getItem(key) || "";
-  } catch {
-    return "";
-  }
-}
+// Item d (DEEP-AUDIT S1 "notes aren't shared"): the note persists to
+// workspace_item_overrides.notes via POST /api/workspace/overrides (the
+// backend that already existed), debounced 800ms after typing stops + on
+// blur. The prior implementation stored notes in localStorage while the
+// label claimed "visible to your workspace" — a false customer claim. The
+// initial value arrives server-side (initialNote) from the same overrides
+// row the workspace read-layer serves, so the note survives reload and is
+// shared across the org. Save state is surfaced honestly (Saving… / Saved /
+// Save failed — retry); a failed save never silently drops the text.
+function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?: string }) {
+  const [note, setNote] = useState<string>(initialNote);
+  const [status, setStatus] = useState<"idle" | "dirty" | "saving" | "saved" | "error">(
+    initialNote.trim().length > 0 ? "saved" : "idle"
+  );
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latest = useRef(note);
+  latest.current = note;
 
-function NotesField({ itemId }: { itemId: string }) {
-  const key = `cl-sig-note-${itemId}`;
-  const [note, setNote] = useState<string>(() => loadNote(key));
+  async function save(value: string) {
+    setStatus("saving");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch("/api/workspace/overrides", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({ itemId, notes: value }),
+      });
+      if (!resp.ok) throw new Error(`save failed (${resp.status})`);
+      // Only report Saved if the text hasn't changed since this save fired.
+      setStatus(latest.current === value ? "saved" : "dirty");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  function queueSave(value: string) {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => save(value), 800);
+  }
+
+  // Flush any pending debounce on unmount (best-effort fire-and-forget).
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
+  const statusLabel =
+    status === "saving" ? "Saving…" :
+    status === "saved" ? "Saved to workspace" :
+    status === "error" ? "Save failed — edit to retry" :
+    status === "dirty" ? "Unsaved changes…" : "Not saved";
 
   return (
     <div style={{ background: C.card, border: `1px solid ${C.hair}`, borderRadius: 8, padding: "14px 18px", margin: "14px 0 0" }}>
@@ -843,18 +890,19 @@ function NotesField({ itemId }: { itemId: string }) {
         <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase", color: C.blue }}>
           Your notes · visible to your workspace
         </span>
-        <span style={{ fontSize: 10.5, color: C.muted }}>{note.trim().length > 0 ? "Saved" : "Not saved"}</span>
+        <span style={{ fontSize: 10.5, color: status === "error" ? C.sevCritical : C.muted }}>{statusLabel}</span>
       </div>
       <textarea
         value={note}
         onChange={(e) => {
           const v = e.target.value;
           setNote(v);
-          try {
-            window.localStorage.setItem(key, v);
-          } catch {
-            /* ignore */
-          }
+          setStatus("dirty");
+          queueSave(v);
+        }}
+        onBlur={() => {
+          if (timer.current) clearTimeout(timer.current);
+          if (status === "dirty" || status === "error") save(latest.current);
         }}
         placeholder="Add analyst context — which lanes or clients this touches, who's on it, what was decided…"
         style={{
