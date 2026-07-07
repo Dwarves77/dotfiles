@@ -589,6 +589,14 @@ export interface WorkspaceAggregates {
   byJurisdiction: Record<string, number>;
   totalJurisdictions: number;
   lastUpdatedAt: string | null;
+  // Migration 148: per-surface severity + signal-band label distributions,
+  // keyed by the canonical DB vocab (severity: action_required/cost_alert/
+  // window_closing/competitive_edge/monitoring; signal_band: price/corporate/
+  // corridor). Present ONLY from get_surface_counts (fetchSurfaceCounts); the
+  // workspace/scoped aggregate RPCs leave them undefined, so a consumer that
+  // reads them fails soft when the surface-counts RPC is absent (pre-apply).
+  bySeverity?: Record<string, number>;
+  byBand?: Record<string, number>;
 }
 
 const EMPTY_AGGREGATES: WorkspaceAggregates = {
@@ -749,6 +757,8 @@ export async function fetchSurfaceCounts(
     type Raw = {
       total_items?: number;
       by_priority?: Record<string, number>;
+      by_severity?: Record<string, number>;
+      by_band?: Record<string, number>;
       by_status?: Record<string, number>;
       by_jurisdiction?: Record<string, number>;
       total_jurisdictions?: number;
@@ -764,6 +774,20 @@ export async function fetchSurfaceCounts(
         MODERATE: Number(bp.MODERATE ?? 0),
         LOW: Number(bp.LOW ?? 0),
       },
+      // Migration 148 superset fields — the label-instance distributions the
+      // Market Intel tiles (by_severity) and band strip (by_band) bind to
+      // directly. Passed through verbatim (numeric-coerced) so consumers read
+      // the RPC, never a re-derivation from the visible rows.
+      bySeverity: raw.by_severity
+        ? Object.fromEntries(
+            Object.entries(raw.by_severity).map(([k, v]) => [k, Number(v ?? 0)])
+          )
+        : {},
+      byBand: raw.by_band
+        ? Object.fromEntries(
+            Object.entries(raw.by_band).map(([k, v]) => [k, Number(v ?? 0)])
+          )
+        : {},
       byStatus: raw.by_status || {},
       byJurisdiction: raw.by_jurisdiction || {},
       totalJurisdictions: Number(raw.total_jurisdictions ?? 0),

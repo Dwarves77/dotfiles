@@ -443,3 +443,156 @@ rail were adopted around it.
 - **Why:** The screenshot verifies the redesigned chrome, the production Leaflet basemap + zoom +
   severity legend (do-not-revert), the filter bar, rail, and honest-empty states. A populated,
   authenticated capture is best confirmed by the operator on the Vercel preview.
+
+---
+
+## TEMPLATE 04 — Market Intel index (`feat/redesign-t04-market-intel`)
+
+Note: this template RESOLVES D02-1's deferral for the Market surface — the five severity tiles bind
+`get_surface_counts('market').by_severity` and the three-band strip binds `.by_band` **directly**
+(migrations 148 + 149 are applied to prod). That wiring is the intended binding, not a deviation.
+
+### D04-1 · Key figure renders the honest em-dash on every card (no live price feed)
+- **What:** The mock hard-codes a per-signal key figure ($89/bbl, $3.07/MMBtu, +20–31%, …). In
+  production the figure binds `marketData.currentPrice` (a real sourced field); `market_signal` rows
+  carry no such value and no commodity-price feed is connected, so the figure renders the honest
+  em-dash `—` with a muted "no price dimension" reason on essentially every card.
+- **Why:** No-invented-data (§1) and honest-state (§4) forbid rendering the mock's snapshot numbers as
+  if live. When a price source is wired (or a per-signal figure field lands), the same slot fills from
+  the real field with no shape change. Matches the surface-honesty posture already shipped on this page
+  (price snapshot / trajectory / sources roster are all honest-empty).
+
+### D04-2 · Expander notes textarea + "Your note" chip omitted
+- **What:** The mock's expanded card includes a localStorage-backed notes textarea labelled "visible to
+  your workspace" plus a blue "Your note" head chip. Both are omitted; the expander ships the three
+  panels the §6.4 spec lists (Trajectory / What it changes / Conversion trigger).
+- **Why:** (a) §6.4 enumerates only those three panels; (b) a device-local `localStorage` note labelled
+  "visible to your workspace" would be an integrity violation (claims workspace visibility it does not
+  have). Real workspace-visible notes need a backend write (`workspace_item_overrides.notes`), which is
+  out of this read-surface template's scope and gated by the no-write hold. **Proposed** as a follow-up
+  once a notes write path exists.
+
+### D04-3 · Competitive-edge colour split preserved verbatim from the mock (tile blue / ledger green)
+- **What:** The mock renders the Competitive-edge TILE in accent-blue (`#2563EB`) but its ledger band
+  head and key figure in green (`#16A34A`). This per-context split is reproduced exactly (tokens
+  `--mi-edge-tile` vs `--mi-edge`).
+- **Why:** "Match the mock to the pixel" (§8.1). The split looks like a mock authoring slip (the §2
+  token table pairs Competitive edge with accent-blue); surfaced here in case the operator wants the
+  ledger band + figure normalised to blue. No change made unprompted.
+
+### D04-4 · Full ledger rendered (no mock "88 monitoring rows in the full ledger" split)
+- **What:** The mock shows 6 detailed cards and defers "the other 88 signals" to a separate "Open full
+  ledger →" view. Production renders the full verified, category-routed market set as signal cards
+  grouped by severity; there is no separate monitoring-rows store or "Open full ledger" footer.
+- **Why:** The 6-vs-88 split was mock scaffolding for a snapshot. The live `get_market_intel_items`
+  RPC returns the real verified rows; rendering them all is more honest than inventing a hidden tail.
+  The authoritative per-severity tile/band counts still come from the RPC, with a "N shown" disclosure
+  beside a group header only when the rendered cards differ from the authoritative count.
+
+### D04-5 · 1440px screenshot to be captured from the authenticated Vercel preview
+- **What:** The per-template acceptance screenshot is not committed from local capture.
+- **Why:** `/market` is `force-dynamic` and auth/DB-gated; the build environment for this branch has no
+  browser automation and no authenticated session, so a faithful populated capture isn't reproducible
+  locally (an unauthenticated local render shows only the honest empty state). The screenshot is to be
+  taken from the authenticated Vercel preview linked in the PR.
+
+---
+
+## TEMPLATE 08 — Admin (`feat/redesign-t08-admin`)
+
+### D08-1 · Sources sub-tabs (Source registry / Provisional review / Spot-check) all render the same wired view
+- **What:** The mock splits Sources into five sub-tabs. Three of them — Source registry, Provisional
+  review, Spot-check — resolve to the same existing `<SourceHealthDashboard>`; only Bulk add sources
+  (`<BulkImportView>`) and Tier disagreements (`<TierOpinionDisagreementsView>`) route to distinct
+  components.
+- **Why:** `SourceHealthDashboard` is a monolith that already owns provisional-candidate review and
+  recently-auto-approved spot-check inside one surface. Reuse-before-construction (no RPC exists to
+  slice it into three separately-paged rows here). The sub-tab still communicates operator intent; a
+  future split of the source surface would light these up independently.
+
+### D08-2 · Member role-change / Remove / Ban are honest-pending (no mutation fires)
+- **What:** The member rows ship the full affordances — role chip menu (Owner ▾), Remove verb, rust
+  Ban verb with a **typed-confirmation dialog**, and a live **last-owner-immovable** guard (Remove +
+  Ban disabled on the sole owner). On confirm, the action surfaces an honest "member management lands
+  when the backend ships" toast instead of writing.
+- **Why:** Member role-change / remove / ban (typed confirm, last-owner guard) is KNOWN NEW BACKEND
+  (HANDOFF §7): committed-migration + honest-pending only. No `/api/admin` endpoint for role/remove/ban
+  exists yet, so faking a write would violate the no-invented-data rule. The UI + client-side guards
+  are built and keyboard-operable; only the server mutation is deferred.
+
+### D08-3 · Rejections filter chip in Flags & rejections is label-only (no count)
+- **What:** The merged Flags & rejections queue's three-way filter shows live counts on Integrity and
+  Platform (from `useAdminAttention`), but the Rejections chip renders label-only.
+- **Why:** No RPC scalar tracks ingest-rejection count at the attention-hook layer, and the count
+  binding forbids both recomputing from visible rows and hard-coding the mock's snapshot (131). The
+  `<IngestRejectionsView>` still renders its own real rows when the chip is selected.
+
+### D08-4 · Coverage matrix reuses the live `<CoverageMatrixView>`, not the mock's static 5×6 grid
+- **What:** The mock hard-codes a 5×6 region×dimension grid (and its own header "15 of 25" contradicts
+  its 30-cell body). The build renders the existing `<CoverageMatrixView>` (real, RPC-backed cells with
+  dashed pending states) instead.
+- **Why:** Counts must be computed from data, and the mock's grid is a snapshot with an internal
+  inconsistency. The live component is the authoritative matrix that also drives the Operations
+  coverage rail, honoring "the matrix behind the Operations coverage rail."
+
+### D08-5 · Section badges + sub-tab count pills read live scalars, not the mock's static numbers
+- **What:** The mock shows fixed red section badges (Sources 531, Ingest 797) and sub-tab counts
+  (Provisional 489, Spot-check 42). The build computes Sources badge = provisional pending, Ingest
+  badge = integrity + platform flags, and the sub-tab pills from the same `useAdminAttention` scalars —
+  each suppressed when zero.
+- **Why:** Counts are computed, never hard-coded (binding). The mock numbers are live snapshots; the
+  build wires the same fields so the badges track reality and can never contradict the issues rail.
+
+---
+
+## Template 11 — Community (feat/redesign-t11-community)
+
+Deviations are proposals for operator review, not decisions. Binding schema spec:
+`docs/design/redesign/community-schema-mapping.md`.
+
+### D11-1 · Rooms render honest-empty until the 7-room seed runs
+- **What:** The "room" is realized as one canonical public `community_groups` row per region
+  (7 rows), seeded by `scripts/seed-community-regional-rooms.mjs` (committed, NOT executed). Until
+  the main session runs it, the rooms grid renders the honest-pending frame (`NotSeededState`).
+- **Why:** No mig-007 forum table and no parallel rooms schema (mapping §1/§4). The seed is a data
+  change (writes-script track), separate from this code PR.
+
+### D11-2 · "Request verifier sign-off" is honest-pending
+- **What:** The action renders disabled with a title note; no request is written.
+- **Why:** Its backing table `community_post_signoff_requests` is committed as migration
+  `151_community_post_signoff_requests.sql` but NOT applied (future DDL window, mapping §3.1).
+
+### D11-3 · Leave-room uses a browser-client self-delete (no dedicated endpoint)
+- **What:** Join → `POST /api/community/groups/[id]/join` (existing). Leave → RLS-guarded
+  self-DELETE on `community_group_members` via the browser Supabase client.
+- **Why:** The join route is POST-only; leaving is a self-delete the RLS policy already allows
+  (mapping §2 element #8). Mirrors the browser-client pattern in `CommunityPickupsQueueView`.
+
+### D11-4 · "Cite source" writes via the browser client (no set-source endpoint)
+- **What:** Existing citations render read-only; attaching one updates
+  `community_posts.referenced_intelligence_item_ids` (author-only, RLS) via the browser client,
+  choosing from the room's live ledger items.
+- **Why:** The column exists (migration 104) but no set-endpoint does (mapping §2 element #18).
+  Kept the affordance functional rather than faking it. **Proposed:** a small
+  `POST /api/community/posts/[id]/cite` endpoint in a follow-up.
+
+### D11-5 · Region binding is presentation-layer (intelligence_items have no region column)
+- **What:** Per-room item counts, "Live in this region" items, themes, and "Who's here" presence
+  classify by jurisdiction → room using `src/lib/community/rooms.ts`, reusing the Map surface's
+  region vocabulary. HK folds into APAC and MEA displays as "MEAF" (mock vocab); the schema
+  `community_groups.region` CHECK is untouched (no migration).
+- **Why:** `intelligence_items` carries `jurisdiction`/`jurisdiction_iso`, not a region column
+  (mapping §1/§2). Counts are computed + fail-soft (em-dash on absence); no mock snapshot literals.
+
+### D11-6 · Starter questions are generic per-room static prompts
+- **What:** Composer starter chips are region-neutral prompts derived from the room name, not
+  regulation-specific questions.
+- **Why:** No `starter_questions` store (mapping §3.3 permits static config); generic prompts avoid
+  asserting specific facts the workspace may not track (no-invented-data rule).
+
+### D11-7 · Screenshot is a faithful static render of the seeded state
+- **What:** `t11-community-1440.png` is a 1440px render (headless Edge) of the component in its
+  seeded state with representative data, not a live authenticated capture.
+- **Why:** `/community` is auth-gated and the 7 rooms are unseeded until the seed script runs, so a
+  live capture would show only the honest-empty state. The render uses the exact token hex values;
+  a live authenticated capture can replace it once the seed has run.

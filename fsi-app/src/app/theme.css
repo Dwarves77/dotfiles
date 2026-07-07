@@ -264,6 +264,9 @@
      chips (HANDOFF §2). Text-only destructive register, never a filled pill. */
   /* Destructive-quiet — Ban/Delete text actions + the "does not resolve" rust
      rule on Research findings (HANDOFF §2). */
+  /* Destructive-quiet — Ban / Delete text actions (HANDOFF §2). Destructive
+     actions are WORDS, never icons; this ink names the "Ban" verb in the
+     Admin member rows. Distinct from --sev-critical (used for alarm counts). */
   --destructive-quiet: #9A3412;
 
   /* Severity spectrum — HANDOFF §2 named values. */
@@ -362,6 +365,62 @@
   /* Honest-state dashed frame (HANDOFF §4: `1px dashed rgba(0,0,0,0.25)`,
      bg `#FAFAF8`). Pending dimension cells + By-state pending frame. */
   --honest-dashed: rgba(0, 0, 0, 0.25);
+  /* Market Intel severity — five tiles (eyebrow/numeral + 5px bottom rule)
+     and severity-banded ledger (head hue/tint + card left edge + key figure).
+     Lifted verbatim from the "Pages - 04 Market Intel" inline styles
+     (tileDefs + sevMeta). Note the Competitive-edge split is the mock's own:
+     the TILE renders accent-blue (--mi-edge-tile) while the LEDGER band + key
+     figure render green (--mi-edge) — preserved for fidelity, not normalized.
+     Like the reg-band tokens these are not dark-overridden (light-first). */
+  --mi-action: #DC2626;
+  --mi-action-bg: #FEF2F2;
+  --mi-action-bd: #FECACA;
+  --mi-action-strip: linear-gradient(90deg, #16A34A, #CFA000 33%, #D97706 66%, #DC2626);
+  --mi-cost: #D97706;
+  --mi-cost-bg: #FFF7ED;
+  --mi-cost-bd: rgba(217, 119, 6, 0.4);
+  --mi-cost-strip: linear-gradient(90deg, #16A34A, #CFA000 50%, #D97706);
+  --mi-window: #A16207;
+  --mi-window-bg: #FEFCE8;
+  --mi-window-bd: rgba(161, 98, 7, 0.4);
+  --mi-window-strip: linear-gradient(90deg, #16A34A, #CFA000);
+  --mi-edge: #16A34A;        /* ledger band hue + key figure (sevMeta) */
+  --mi-edge-tile: #2563EB;   /* tile eyebrow/numeral + solid strip (tileDefs) */
+  --mi-edge-bg: #F0FDF4;
+  --mi-edge-bd: rgba(22, 163, 74, 0.4);
+  --mi-monitor: #5A6B67;
+  --mi-monitor-bg: #FFFFFF;
+  --mi-monitor-bd: rgba(0, 0, 0, 0.2);
+  --mi-monitor-strip: #16A34A;
+  /* Key figure ink when a signal carries no sourced price dimension (em-dash). */
+  --mi-fig-empty: #7A6E6C;
+  /* ─────────────────────────────────────────────────────
+     REDESIGN T11 TOKENS (HANDOFF §2/§4 + Community mock)
+     Added additively per feat/redesign-t11-community. Values
+     lifted verbatim from "Pages - 11 Community" inline styles —
+     do NOT substitute Tailwind defaults. The T11 components
+     reference these, never raw hex.
+     ───────────────────────────────────────────────────── */
+
+  /* Quiet destructive — Delete text action (HANDOFF §2 destructive-quiet).
+     Distinct from --oxblood; reserved for Ban/Delete word-actions. */
+  --destructive-quiet: #9A3412;
+
+  /* Accent tint (0.09) — "You're here" / "You · Owner" chip fill and the
+     selected-room tint. The general --color-active-bg is 0.08; the mock
+     uses 0.09 on these chips, so the exact value is kept explicit. */
+  --accent-tint-strong: rgba(232, 97, 10, 0.09);
+  /* Accent tint border — chip outlines on the orange identity chips. */
+  --accent-tint-border: rgba(232, 97, 10, 0.4);
+  /* Selected-room tile fill (mock #FFF7F0 — same warm tint as the AI strip). */
+  --room-selected-bg: #FFF7F0;
+
+  /* Epistemic dashed border — the dashed outline paired with
+     --epistemic-signal on every "Unverified" peer-signal chip (§3). */
+  --epistemic-border: rgba(180, 83, 9, 0.45);
+
+  /* Honest-state pending frame border — 1px dashed (HANDOFF §4). */
+  --pending-frame-border: rgba(0, 0, 0, 0.25);
 }
 
 /* ── DARK THEME (opt-in) ── */
@@ -444,6 +503,10 @@
   --color-text-link: #60A5FA;
   --color-text-inverse: #111210;
   --color-text-accent: #F07030;
+
+  /* Destructive-quiet (dark) — lighter tonal variant so the Ban verb keeps
+     AA contrast on the dark surface. */
+  --destructive-quiet: #F0855A;
 
   /* Shadows (dark) */
   --shadow-card: 0 1px 3px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.20);
