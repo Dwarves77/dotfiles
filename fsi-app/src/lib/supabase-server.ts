@@ -1144,6 +1144,34 @@ async function runCategoryRpc(
     }
     const resources = (rows as any[]).map(rpcRowToResource);
 
+    // P1-2 (DEEP-AUDIT S2): enrich the provenance chip (source name + tier). The
+    // category RPCs return source_id but not the publisher name/tier, so the tier
+    // chips + source lines rendered nothing across market/research/operations. One
+    // lookup by the page's distinct source_ids, mapped back by sourceId. Customer
+    // surfaces show effective_tier (dynamic), falling back to base_tier. Non-fatal.
+    const chipSourceIds = Array.from(
+      new Set(resources.map((r) => r.sourceId).filter((id): id is string => !!id))
+    );
+    if (chipSourceIds.length > 0) {
+      const { data: srcRows, error: srcErr } = await serviceClient
+        .from("sources")
+        .select("id, name, base_tier, effective_tier")
+        .in("id", chipSourceIds);
+      if (srcErr) {
+        console.error(`[category-routing] source chip enrichment for ${rpcName} error:`, srcErr.message);
+      } else if (Array.isArray(srcRows)) {
+        const byId = new Map<string, { name: string | null; base_tier: number | null; effective_tier: number | null }>();
+        for (const s of srcRows as any[]) if (s?.id) byId.set(s.id, s);
+        for (const r of resources) {
+          const s = r.sourceId ? byId.get(r.sourceId) : undefined;
+          if (s) {
+            r.sourceName = s.name ?? undefined;
+            r.sourceTier = (s.effective_tier ?? s.base_tier) ?? undefined;
+          }
+        }
+      }
+    }
+
     // Build 9: per-source citation stats for Operations cards. Mirrors the
     // Build 8.1 ResearchView enrichment in fetchResearchPipelineRows above.
     // One RPC call for the page's distinct source_ids, then a join back by
@@ -1455,7 +1483,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
-      supabase
+      // P1-1 (DEEP-AUDIT S1-8): overrides via the SERVICE client. orgId is
+      // authenticated upstream; the anon client has no JWT so org-scoped RLS
+      // returned [] and dismissals/notes silently vanished on reload.
+      getServiceSupabase()
         .from("workspace_item_overrides")
         .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
         .eq("org_id", orgId),
@@ -1572,11 +1603,17 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
-    const supabase = getSupabase();
-    const { data: overridesData } = await supabase
+    // P1-1 (DEEP-AUDIT S1-8): overrides via the SERVICE client. orgId is
+    // authenticated upstream; the anon client has no JWT so org-scoped RLS
+    // returned [] and dismissals/notes silently vanished on reload.
+    const overridesSvc = getServiceSupabase();
+    const { data: overridesData, error: overridesError } = await overridesSvc
       .from("workspace_item_overrides")
       .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
       .eq("org_id", orgId);
+    if (overridesError) {
+      console.warn("[overrides] service read failed:", overridesError.message);
+    }
 
     const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
       itemId: uuidToUiId.get(o.item_id) || o.item_id,
@@ -1720,11 +1757,17 @@ export async function fetchListingsOnly(orgId: string | null): Promise<{
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
-    const supabase = getSupabase();
-    const { data: overridesData } = await supabase
+    // P1-1 (DEEP-AUDIT S1-8): overrides via the SERVICE client. orgId is
+    // authenticated upstream; the anon client has no JWT so org-scoped RLS
+    // returned [] and dismissals/notes silently vanished on reload.
+    const overridesSvc = getServiceSupabase();
+    const { data: overridesData, error: overridesError } = await overridesSvc
       .from("workspace_item_overrides")
       .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
       .eq("org_id", orgId);
+    if (overridesError) {
+      console.warn("[overrides] service read failed:", overridesError.message);
+    }
 
     const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
       itemId: uuidToUiId.get(o.item_id) || o.item_id,
@@ -2169,7 +2212,7 @@ export async function fetchIntelligenceItem(
       : `legacy_id.eq.${itemUiId}`;
     const { data: row, error } = await supabase
       .from("intelligence_items")
-      .select("*")
+      .select("*, source:sources(name, base_tier, effective_tier)")
       .or(orExpr)
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .maybeSingle();
@@ -2182,6 +2225,7 @@ export async function fetchIntelligenceItem(
     if (error || !row) return null;
 
     const resourceId: string = row.legacy_id || row.id;
+    const detailSrc = Array.isArray(row.source) ? row.source[0] : row.source;
 
     // Parallelize the 5 detail-row queries (perf v2 — 2026-05-08).
     // Previously these ran sequentially: timelines → changelog → disputes →
@@ -2264,10 +2308,25 @@ export async function fetchIntelligenceItem(
         : undefined,
       sourceId: row.source_id || undefined,
       isArchived: row.is_archived || false,
-      penaltyRange: row.penalty_range || undefined,
+      // P1-2 (DEEP-AUDIT S2): populate the provenance chip (source name + tier)
+      // via the sources FK embed above. Customer surfaces show effective_tier
+      // (the dynamic signal), falling back to base_tier.
+      sourceName: detailSrc?.name ?? undefined,
+      sourceTier: (detailSrc?.effective_tier ?? detailSrc?.base_tier) ?? undefined,
+      // P1-3 (DEEP-AUDIT §4): map the classified columns the DB actually has so
+      // the detail page stops regex-guessing and disagreeing with the index.
+      // select("*") already returns all of these.
+      severity: row.severity || undefined,
+      signalBand: row.signal_band || undefined,
+      theme: row.theme || undefined,
+      trajectoryPoints: row.trajectory_points || undefined,
+      conversionTrigger: row.conversion_trigger || undefined,
+      whatItChanges: row.what_it_changes || undefined,
+      doesNotResolve: row.does_not_resolve || undefined,
       complianceDeadline: row.compliance_deadline || undefined,
-      enforcementBody: row.enforcement_body || undefined,
-      legalInstrument: row.legal_instrument || undefined,
+      // P1-4 (DEEP-AUDIT §2): penalty_range / enforcement_body / legal_instrument
+      // are NOT in the schema (no migration ever added them) — those reads were
+      // always undefined. Removed; re-add via migration if the fields are wanted.
       // Agent integrity self-flag (migration 035). Only surfaced when the
       // flag is true AND unresolved — the banner check uses both fields.
       agentIntegrityFlag:
