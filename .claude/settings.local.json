@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash",
       "Edit",
@@ -13,7 +12,9 @@
       "TodoWrite",
       "WebFetch",
       "WebSearch",
-      "Skill"
-    ]
+      "Skill",
+      "Bash(mkdir -p /home/user/dotfiles/.claude/workflows && echo ok)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }

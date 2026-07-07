@@ -22,6 +22,16 @@ export const meta = {
 // - Run ONE phase per invocation: Workflow({ scriptPath, args: { phase: '0' } }).
 //   Read the result, merge/inspect, then run the next phase.
 // ---------------------------------------------------------------------------
+// MODEL POLICY (operator-directed): the judgment-heavy stages — recon,
+// implement, review — are pinned to Fable ('fable') at high effort because it is
+// the most capable model and this work rewards capability. The mechanical verify
+// stage (running typecheck/build) runs on a cheaper tier at low effort so we do
+// not spend the top model on command-running. Override per-phase via
+// args.model / args.verifyModel if you want to force a different tier.
+// ---------------------------------------------------------------------------
+
+const MAIN_MODEL = (args && args.model) || 'fable'      // recon / implement / review
+const VERIFY_MODEL = (args && args.verifyModel) || 'sonnet'  // mechanical build/typecheck stage
 
 const REF = 'Context for every agent: read fsi-app/.claude/CLAUDE.md (doctrine), '
   + 'DEEP-AUDIT-2026-07-07.md and MASTER-PLAN.md at repo root (findings + plan). '
@@ -265,7 +275,7 @@ const recon = await agent(
   + `does the audited issue still exist (the UI session or a prior phase may have changed it), and are `
   + `there uncommitted local edits that suggest the UI session is mid-flight in these files? `
   + `Packages: ${JSON.stringify(pkgs.map(p => ({ id: p.id, files: p.files, collides: !!p.collides_with_ui })))}`,
-  { label: `recon:phase-${requested}`, phase: 'Recon', schema: {
+  { label: `recon:phase-${requested}`, phase: 'Recon', model: MAIN_MODEL, effort: 'high', schema: {
     type: 'object', required: ['packages'], properties: {
       ui_session_active_in_files: { type: 'boolean' },
       packages: { type: 'array', items: { type: 'object', required: ['id', 'still_applies'], properties: {
@@ -291,13 +301,13 @@ const results = await pipeline(
     + `Task: ${p.task}\nMake the smallest correct change. If any part requires a production DB apply, `
     + `a migration apply, or changing system_state, DO NOT run it — author the file if applicable and `
     + `list the exact step under operator_actions.`,
-    { label: `impl:${p.id}`, phase: 'Implement', schema: IMPLEMENT_SCHEMA })
+    { label: `impl:${p.id}`, phase: 'Implement', model: MAIN_MODEL, effort: 'high', schema: IMPLEMENT_SCHEMA })
     .then(r => ({ p, impl: r })),
   ({ p, impl }) => agent(
     `${REF}\nVERIFY package ${p.id}. Run \`cd fsi-app && npm run typecheck\` and \`npm run build\`. `
     + `If the package added a .mjs with a co-located test, run \`node --test\` on it. Report results. `
     + `Files changed: ${JSON.stringify(impl?.files_changed || [])}.`,
-    { label: `verify:${p.id}`, phase: 'Verify', effort: 'low', schema: VERIFY_SCHEMA })
+    { label: `verify:${p.id}`, phase: 'Verify', model: VERIFY_MODEL, effort: 'low', schema: VERIFY_SCHEMA })
     .then(v => ({ p, impl, verify: v })),
   ({ p, impl, verify }) => agent(
     `${REF}\nADVERSARIALLY REVIEW package ${p.id}. Read the actual diff for ${JSON.stringify(p.files)}. `
@@ -305,7 +315,7 @@ const results = await pipeline(
     + `no-raw-service-role rules; did it touch any file outside its ownership; did it silently run a `
     + `production/DB action it should have gated. Implementer summary: ${impl?.summary}. `
     + `Verify verdict: ${verify?.verdict}.`,
-    { label: `review:${p.id}`, phase: 'Review', schema: REVIEW_SCHEMA })
+    { label: `review:${p.id}`, phase: 'Review', model: MAIN_MODEL, effort: 'high', schema: REVIEW_SCHEMA })
     .then(review => ({ package: p.id, files: p.files, impl, verify, review,
       operator_actions: impl?.operator_actions || [] })),
 )
