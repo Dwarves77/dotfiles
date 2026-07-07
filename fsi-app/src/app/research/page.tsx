@@ -1,4 +1,4 @@
-import { ResearchView, type ResearchPipelineItem } from "@/components/research/ResearchView";
+import { ResearchLedger, type ResearchPipelineItem } from "@/components/research/ResearchLedger";
 import {
   getResearchItems,
   getResearchPipeline,
@@ -99,12 +99,10 @@ export default async function Research() {
   }));
 
   return (
-    <ResearchView
+    <ResearchLedger
       items={items}
       aggregates={aggregates}
       total={allow.size ? filteredRows.length : pipeline.total}
-      shown={items.length}
-      cap={pipeline.cap}
       sourceCoverage={sourceCoverage}
     />
   );

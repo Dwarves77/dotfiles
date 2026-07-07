@@ -70,3 +70,69 @@ template · what deviated · why. The operator reviews and rules.
   42px.
 - **Why:** Pre-existing mobile-a11y adaptation in the shared masthead; at 1440px it renders ~44px,
   effectively matching the mock. Not reverted, to preserve the mobile behavior.
+
+---
+
+## TEMPLATE 06 — Research index (`feat/redesign-t06-research`)
+
+### D06-1 · Severity tiles + theme "N new" counts are derived from loaded rows, not an RPC
+- **What:** The masthead total and the ledger-heading total read the verified-gated RPC
+  (`getSurfaceCounts('research').totalItems`, fail-soft to the loaded-row count). The four
+  severity tiles (Action required / Cost alert / Monitor / Background) and the theme "N new"
+  counts are **computed from the real loaded corpus**, not from an RPC.
+- **Why:** Research severity and theme are **client-classified** (keyword/recency derivation carried
+  over from the shipped `ResearchView`); they are not `intelligence_items` columns, and no RPC
+  returns a research severity/theme distribution. Deriving from real rows is the only honest source —
+  the mock's snapshot numbers (0/1/0/38, "6/4/1 new") are never hard-coded. When a real
+  `severity`/`theme` column + a `by_*` RPC land, the tiles migrate to the RPC with no shape change.
+
+### D06-2 · Promoted key figure renders as a uniform honest em-dash (no backing column)
+- **What:** The mock promotes a per-finding key figure (`$139/kWh`, `14.3 MtCO₂e`) in Anton, top-right
+  of each finding row. Every row instead renders a muted em-dash `—` with the reason "no key figure
+  yet".
+- **Why:** No structured `key_figure` column exists on `intelligence_items`. Extracting an arbitrary
+  number from summary prose and labelling it "the key figure" would be an unbacked analytical claim
+  (violates "never a chip without a backing field" + "no invented data"). The mock's own idiom already
+  renders `—` + a reason for figure-less findings (its Hydrogen/Ammonia card), so the honest em-dash is
+  on-pattern. **Proposed backend:** a `key_figure` / `key_figure_unit` / `key_figure_label` field
+  populated by the analysis pipeline; the slot lights up when it ships.
+
+### D06-3 · Expand panels show honest "not yet extracted" when the callout field is null
+- **What:** The finding expander binds the real `what_it_changes` / `does_not_resolve` fields
+  (migration 110). When a field is null, the panel header still renders with a muted
+  "— not yet extracted for this finding" body rather than hiding the panel.
+- **Why:** Honest-state (§4): a populated card with an absent field shows an em-dash + reason, never a
+  blank. Keeping both panel headers visible preserves the two-column "what it changes / does not
+  resolve" grammar the mock defines.
+
+### D06-4 · Vertical chips default OFF; additive semantics preserved from shipped behavior
+- **What:** The mock defaults Live events + Fine art ON. Here all five vertical chips default OFF (the
+  page loads showing the full corpus); selecting Live events / Fine art narrows to vertical-relevant
+  findings, and the `+ Luxury / + Automotive / + Humanitarian` chips broaden. Zero results renders the
+  honest empty + Clear-filters recovery.
+- **Why:** Preserves the shipped Sprint-3 fix — defaulting verticals ON with thin, regex-derived
+  vertical metadata produced a false empty state on production. Only Live events / Fine art have
+  reliable detectors today; the broad chips broaden the set. When per-item vertical tags land, the
+  chips become exact per-vertical filters.
+
+### D06-5 · Right-rail source-coverage matrix is a 4-class count over the shown findings
+- **What:** The rail shows a 4-row coverage matrix (Peer-reviewed / Think tank / Quantified research /
+  Analytical press) counted from the shown findings' source names. It does **not** use
+  `get_research_source_coverage()` (migration 100, transport-mode × jurisdiction cells).
+- **Why:** The mock's matrix is the 5-source-class analytical-depth distribution, a different axis than
+  the mode×jurisdiction coverage RPC. Class assignment is keyword-based over `source.name` (carried
+  from `ResearchView`); it is a distribution of the shown set, labelled as such. `sourceCoverage` is
+  still threaded through for a future column-backed matrix.
+
+### D06-6 · Masthead is rendered inside the client ledger (not the server page)
+- **What:** Unlike T02 (masthead in the server page, ledger below), `ResearchLedger` renders
+  `<EditorialMasthead>` itself.
+- **Why:** The masthead sub-line's "M themes active" count is client-derived (see D06-1); rendering the
+  masthead in the client component is the simplest way to feed it that count without a second
+  server-side classification pass. Still the same shared `EditorialMasthead`; shell chrome is unchanged.
+
+### D06-7 · Theme bands collapse to 4 rows with an expander
+- **What:** Each theme band shows up to 4 findings, then an "All N in this theme →" toggle (or "All
+  findings shown"); the mock shows a static subset + a "+ N more" link.
+- **Why:** The real corpus loads all in-window findings per theme, so the collapse is a real
+  show-more/less rather than a link to unloaded rows; recency-sorted, matching the mock's footer note.

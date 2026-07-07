@@ -260,6 +260,10 @@
   /* Brass — pending-frame headers, jurisdiction tags, theme eyebrows (HANDOFF §2). */
   --brass: #8A6A2A;
 
+  /* Destructive-quiet — Ban/Delete text actions + the "does not resolve" rust
+     rule on Research findings (HANDOFF §2). */
+  --destructive-quiet: #9A3412;
+
   /* Severity spectrum — HANDOFF §2 named values. */
   --sev-critical: #DC2626;
   --sev-high: #E8610A;
@@ -285,6 +289,21 @@
   /* Low tile eyebrow/numeral render muted-secondary in the mock (only the
      bottom rule is green) — token keeps that intent explicit. */
   --reg-tile-low-fig: #5A6B67;
+
+  /* Research severity chips (TEMPLATE 06). The finding-severity hue reuses
+     the reg-band hues (identical values in the mock); these add the
+     translucent chip-border tints the "Pages - 06 Research" mock uses on
+     the per-finding severity chip. Kept as tokens so the surface never
+     substitutes raw hex. The tile gradients / numerals reuse the
+     --reg-band-*-strip and --reg-band-* hue tokens above. */
+  --res-sev-action: var(--reg-band-immediate);
+  --res-sev-action-bd: #FECACA;
+  --res-sev-cost: var(--reg-band-action);
+  --res-sev-cost-bd: rgba(217, 119, 6, 0.4);
+  --res-sev-monitor: var(--reg-band-monitor);
+  --res-sev-monitor-bd: rgba(161, 98, 7, 0.4);
+  --res-sev-background: var(--reg-band-awareness);
+  --res-sev-background-bd: rgba(22, 163, 74, 0.4);
 }
 
 /* ── DARK THEME (opt-in) ── */
