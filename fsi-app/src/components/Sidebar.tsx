@@ -2,13 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
-import {
-  LayoutDashboard, Scale, TrendingUp, Globe,
-  GraduationCap, MessageSquare, MapPin, Shield,
-  Menu, X,
-} from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -27,24 +22,23 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 interface NavItem {
   href: string;
   label: string;
-  icon: typeof LayoutDashboard;
 }
 
+// Redesign T02 (HANDOFF §5): text-only nav, no icons, order
+// Dashboard → Regulations → Market Intel → Research → Operations → Map,
+// divider, Community. Admin is NOT in the nav — it lives in the footer
+// row as a small uppercase bordered button beside the user chip.
 const PRIMARY_NAV: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/regulations", label: "Regulations", icon: Scale },
-  { href: "/market", label: "Market Intel", icon: TrendingUp },
-  { href: "/research", label: "Research", icon: GraduationCap },
-  { href: "/operations", label: "Operations", icon: Globe },
-  { href: "/map", label: "Map", icon: MapPin },
+  { href: "/", label: "Dashboard" },
+  { href: "/regulations", label: "Regulations" },
+  { href: "/market", label: "Market Intel" },
+  { href: "/research", label: "Research" },
+  { href: "/operations", label: "Operations" },
+  { href: "/map", label: "Map" },
 ];
 
 const COMMUNITY_NAV: NavItem[] = [
-  { href: "/community", label: "Community", icon: MessageSquare },
-];
-
-const ADMIN_NAV: NavItem[] = [
-  { href: "/admin", label: "Admin", icon: Shield },
+  { href: "/community", label: "Community" },
 ];
 
 // Routes whose server components run Supabase queries on render. Auto-
@@ -75,28 +69,29 @@ export function Sidebar() {
     return pathname.startsWith(href);
   };
 
-  const renderNavItem = ({ href, label, icon: Icon }: NavItem) => (
-    <Link
-      key={href}
-      href={href}
-      prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
-      onClick={() => setMobileOpen(false)}
-      className={cn(
-        "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
-        isActive(href)
-          ? "font-semibold"
-          : "hover:bg-[var(--color-bg-raised)]"
-      )}
-      style={{
-        color: isActive(href) ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-        backgroundColor: isActive(href) ? "var(--color-active-bg)" : undefined,
-        fontWeight: isActive(href) ? 600 : 400,
-      }}
-    >
-      <Icon size={18} strokeWidth={isActive(href) ? 2.2 : 1.8} />
-      {label}
-    </Link>
-  );
+  const renderNavItem = ({ href, label }: NavItem) => {
+    const active = isActive(href);
+    return (
+      <Link
+        key={href}
+        href={href}
+        prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
+        onClick={() => setMobileOpen(false)}
+        aria-current={active ? "page" : undefined}
+        className="flex items-center px-3 py-2.5 rounded-md text-[13px] transition-colors"
+        style={{
+          // Redesign T02 (HANDOFF §5): active = orange tint + 2px orange
+          // left border + ink text + bold; resting = secondary ink.
+          color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+          backgroundColor: active ? "rgba(232,97,10,0.09)" : undefined,
+          borderLeft: `2px solid ${active ? "var(--color-primary)" : "transparent"}`,
+          fontWeight: active ? 800 : 600,
+        }}
+      >
+        {label}
+      </Link>
+    );
+  };
 
   const navDivider = (
     <div
@@ -138,25 +133,42 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Main nav, three groups separated by dividers per design rebuild */}
-      <nav className="py-2 px-2 space-y-0.5">
+      {/* Main nav — text-only, two groups separated by a divider per
+          redesign T02 (HANDOFF §5). Admin is not here; it is a footer
+          button beside the user chip. */}
+      <nav className="py-3 px-2.5 flex flex-col gap-0.5">
         {PRIMARY_NAV.map(renderNavItem)}
         {navDivider}
         {COMMUNITY_NAV.map(renderNavItem)}
-        {isAdmin && (
-          <>
-            {navDivider}
-            {ADMIN_NAV.map(renderNavItem)}
-          </>
-        )}
       </nav>
 
       {/* Spacer, pushes user footer to the bottom of the rail */}
       <div className="flex-1" />
 
-      {/* Bottom, user menu only (Settings is inside the dropdown) */}
-      <div className="px-3 py-3">
-        <UserMenu />
+      {/* Footer row (HANDOFF §5): user chip (opens Account / user menu) +
+          Admin button. Admin stays role-gated — a non-admin never sees it. */}
+      <div
+        className="flex items-center gap-2 px-3.5 py-3.5"
+        style={{ borderTop: "1px solid var(--color-border-subtle)" }}
+      >
+        <div className="min-w-0 flex-1">
+          <UserMenu />
+        </div>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            prefetch={false}
+            onClick={() => setMobileOpen(false)}
+            aria-current={isActive("/admin") ? "page" : undefined}
+            className="shrink-0 text-[10px] font-extrabold tracking-[0.08em] uppercase rounded-md px-2.5 py-1.5 transition-colors"
+            style={{
+              color: isActive("/admin") ? "var(--color-primary)" : "var(--color-text-secondary)",
+              border: `1px solid ${isActive("/admin") ? "var(--color-primary)" : "var(--color-border-strong)"}`,
+            }}
+          >
+            Admin
+          </Link>
+        )}
       </div>
     </>
   );
@@ -167,7 +179,7 @@ export function Sidebar() {
       <aside
         className="hidden md:flex flex-col shrink-0 h-screen sticky top-0 border-r overflow-y-auto"
         style={{
-          width: 220,
+          width: 208,
           backgroundColor: "var(--color-bg-surface)",
           borderColor: "var(--color-border)",
         }}
@@ -198,7 +210,7 @@ export function Sidebar() {
             onClick={() => setMobileOpen(false)}
           />
           <aside
-            className="md:hidden fixed top-0 left-0 z-50 flex flex-col h-screen w-[220px] overflow-y-auto"
+            className="md:hidden fixed top-0 left-0 z-50 flex flex-col h-screen w-[208px] overflow-y-auto"
             style={{
               backgroundColor: "var(--color-bg-surface)",
               borderRight: "1px solid var(--color-border)",

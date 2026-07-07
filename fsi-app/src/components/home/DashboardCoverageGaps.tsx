@@ -1,23 +1,18 @@
 "use client";
 
 /**
- * DashboardCoverageGaps — Housekeeping body (left). Hand-curated v1
- * surfaces potentially-missing regulations the system would expect to
- * track for the workspace's active sectors. Each entry has a recommended
- * action (e.g. "Suggest a source", "Add to registry").
+ * DashboardCoverageGaps — Housekeeping card (left). Potentially-missing
+ * regulations the system would expect to track for the workspace's active
+ * sectors, each with a recommended action.
  *
- * - Reads via React 19 use() inside a Suspense boundary set by HomeSurface.
- * - Capped at 2 items by the fetcher (sorted high then medium then low).
- * - High-severity item gets the filled --high-bg / --high-bd treatment;
- *   others get the muted treatment with --moderate left rule.
- * - Description supports inline <i> callouts (rendered with safe HTML —
- *   the strings are operator-curated in the coverage_gaps table).
- *
- * Empty + caveat copy is spec-verbatim. Do not paraphrase.
+ * Redesign TEMPLATE 01 (HANDOFF §6.3 + mock). Every gap renders inside the
+ * honest-state frame (§4, dashed) because a gap IS an absence. The card is
+ * explicitly labeled "Our analysis — severity is a recommendation, not a
+ * precise score" (labeled analysis, epistemic grammar §3). Empty state is the
+ * honest "coverage looks complete" copy.
  */
 
 import { use } from "react";
-import { TypesetSection } from "./TypesetSection";
 import type { CoverageGap } from "@/lib/data";
 
 export interface DashboardCoverageGapsProps {
@@ -30,92 +25,106 @@ const SEV_LABEL: Record<CoverageGap["severity"], string> = {
   low: "Low",
 };
 
-const CAVEAT_COPY =
-  "We're still expanding our source registry; check back as jurisdictions are added.";
+const SEV_COLOR: Record<CoverageGap["severity"], string> = {
+  high: "var(--reg-band-action)",
+  medium: "var(--reg-band-monitor)",
+  low: "var(--reg-band-awareness)",
+};
+
+const CAVEAT = "We're still expanding our source registry; check back as jurisdictions are added.";
+
+const cardStyle = {
+  background: "var(--color-bg-surface)",
+  border: "1px solid var(--color-border)",
+  borderRadius: 8,
+  padding: "16px 18px",
+} as const;
+
+const eyebrowStyle = {
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.13em",
+  textTransform: "uppercase",
+  color: "var(--color-text-muted)",
+  margin: "0 0 2px",
+} as const;
+
+const titleStyle = {
+  fontFamily: "var(--font-display)",
+  fontWeight: 400,
+  fontSize: 19,
+  letterSpacing: "0.02em",
+  textTransform: "uppercase",
+  margin: 0,
+} as const;
 
 export function DashboardCoverageGaps({ promise }: DashboardCoverageGapsProps) {
-  // The promise is constructed by getCoverageGaps in src/lib/data.ts which
-  // catches all errors and resolves to []. We cannot wrap use() in try/catch
-  // because it throws a Suspense exception React needs to bubble; rely on
-  // the fetcher's try/catch and the Suspense boundary in HomeSurface for
-  // safety. Per the plan, error state is "hide the widget silently"; that
-  // case is reached by the fetcher returning [] which falls into the empty
-  // state below.
   const items = use(promise);
 
   if (items.length === 0) {
     return (
-      <TypesetSection
-        eyebrow="What you might be missing"
-        title="Coverage gaps"
-        deck="Heuristic — severity is a recommendation, not a precise score."
-      >
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--text-2)",
-            lineHeight: 1.5,
-            margin: "4px 0 12px",
-          }}
-        >
+      <div style={cardStyle}>
+        <p style={eyebrowStyle}>What you might be missing</p>
+        <h3 style={{ ...titleStyle, margin: "0 0 8px" }}>Coverage gaps</h3>
+        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.5, margin: "0 0 8px" }}>
           Coverage looks complete for your active sectors.
         </p>
-        <p
-          style={{
-            fontSize: 11,
-            color: "var(--muted)",
-            lineHeight: 1.5,
-            margin: 0,
-          }}
-        >
-          {CAVEAT_COPY}
-        </p>
-      </TypesetSection>
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.5, margin: 0 }}>{CAVEAT}</p>
+      </div>
     );
   }
 
   return (
-    <TypesetSection
-      eyebrow="What you might be missing"
-      title="Coverage gaps"
-      count={`${items.length} flagged`}
-      deck="Heuristic — severity is a recommendation, not a precise score."
-    >
-      <div>
-        {items.map((g) => {
-          const isHigh = g.severity === "high";
-          return (
-            <div
-              key={g.id}
-              className={`cov-item${isHigh ? " high-sev" : ""}`}
-            >
-              <div className="row">
-                <span className="t">{g.title}</span>
-                <span className="sev">{SEV_LABEL[g.severity]}</span>
-              </div>
-              <p
-                className="desc"
-                // Description is editor-curated in coverage_gaps. Allows
-                // a small subset of inline tags (<i>) per the spec.
-                dangerouslySetInnerHTML={{ __html: g.description }}
-              />
-              <a className="act" href={g.suggestedAction.href}>
-                {g.suggestedAction.label} →
-              </a>
-            </div>
-          );
-        })}
+    <div style={cardStyle}>
+      <p style={eyebrowStyle}>What you might be missing</p>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, margin: "0 0 4px" }}>
+        <h3 style={titleStyle}>Coverage gaps</h3>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)" }}>{items.length} flagged</span>
       </div>
-      <p
-        style={{
-          fontSize: 11,
-          color: "var(--muted)",
-          lineHeight: 1.5,
-          margin: "8px 0 0",
-        }}
-      >
-        {CAVEAT_COPY}
+      <p style={{ fontSize: 11.5, color: "var(--color-text-muted)", margin: "0 0 12px" }}>
+        Our analysis — severity is a recommendation, not a precise score.
       </p>
-    </TypesetSection>
+      {items.map((g) => (
+        <div
+          key={g.id}
+          style={{
+            border: "1px dashed rgba(0,0,0,0.25)",
+            borderRadius: 6,
+            background: "var(--color-bg-base)",
+            padding: "12px 14px",
+            margin: "0 0 10px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+            <p style={{ fontSize: 12.5, fontWeight: 700, margin: 0 }}>{g.title}</p>
+            <span
+              style={{
+                fontSize: 9.5,
+                fontWeight: 800,
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+                color: SEV_COLOR[g.severity],
+                whiteSpace: "nowrap",
+              }}
+            >
+              {SEV_LABEL[g.severity]}
+            </span>
+          </div>
+          <p
+            style={{ fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: "4px 0 8px" }}
+            // Description is editor-curated in the coverage_gaps table; allows a
+            // small subset of inline tags (<i>) per the source data contract.
+            dangerouslySetInnerHTML={{ __html: g.description }}
+          />
+          <a
+            href={g.suggestedAction.href}
+            style={{ fontSize: 11.5, fontWeight: 800, color: "var(--color-primary)", textDecoration: "none" }}
+          >
+            {g.suggestedAction.label} →
+          </a>
+        </div>
+      ))}
+      <p style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.5, margin: 0 }}>{CAVEAT}</p>
+    </div>
   );
 }

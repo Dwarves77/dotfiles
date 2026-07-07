@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #FAFAF8; -webkit-font-smoothing: antialiased; }
+    @media (max-width: 1200px) {
+      #sig-grid { grid-template-columns: minmax(0,1fr) !important; }
+      #sig-rail { flex-direction: row !important; flex-wrap: wrap !important; }
+      #sig-rail > div { flex: 1 1 260px; }
+    }
+  </style>
+</helmet>
+
+<div data-screen-label="Signal detail" style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1A1A1A;min-height:100vh;display:grid;grid-template-columns:208px 1fr">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside style="background:#FFFFFF;border-right:1px solid rgba(0,0,0,0.12);min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;box-sizing:border-box">
+    <div style="padding:20px 18px 16px;border-bottom:1px solid rgba(0,0,0,0.08)">
+      <p style="font-family:'Anton',sans-serif;font-size:17px;letter-spacing:0.03em;text-transform:uppercase;margin:0">Caro's Ledge</p>
+      <p style="font-size:8.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#7A6E6C;margin:3px 0 0">Freight Sustainability<br>Intelligence</p>
+    </div>
+    <nav style="padding:12px 10px;display:flex;flex-direction:column;gap:2px">
+      <a href="Pages - 01 Dashboard.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Dashboard</a>
+      <a href="Pages - 02 Regulations.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Regulations</a>
+      <a href="Pages - 04 Market Intel.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;background:rgba(232,97,10,0.09);border-left:2px solid #E8610A;font-size:13px;font-weight:800;color:#1A1A1A;text-decoration:none">Market Intel</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Research</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Operations</a>
+      <a href="Pages - 09 Map.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Map</a>
+      <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 12px"></div>
+      <a href="Pages - 11 Community.dc.html" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;border-left:2px solid transparent;font-size:13px;font-weight:600;color:#5A6B67;text-decoration:none" style-hover="{&quot;background&quot;:&quot;rgba(0,0,0,0.04)&quot;}">Community</a>
+    </nav>
+    <div style="margin-top:auto;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:8px">
+      <a href="Pages - 10 Account.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none" style-hover="{&quot;opacity&quot;:&quot;0.75&quot;}">
+        <span style="width:26px;height:26px;border-radius:50%;background:#F5F2EE;border:1px solid rgba(0,0,0,0.12);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#5A6B67">J</span>
+        <span style="font-size:12px;font-weight:600;color:#5A6B67">jasonlosh</span>
+      </a>
+      <a href="Pages - 08 Admin.dc.html" style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:6px;padding:5px 10px;text-decoration:none" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Admin</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="min-width:0">
+
+    <!-- Hero -->
+    <header style="background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.12)">
+      <div style="height:4px;background:linear-gradient(90deg,#E8610A 0%,#2563EB 100%)"></div>
+      <div style="padding:18px 36px 0">
+        <p style="font-size:12px;margin:0 0 12px;display:flex;gap:8px;align-items:baseline">
+          <a href="Pages - 04 Market Intel.dc.html" style="color:#5A6B67;font-weight:600;text-decoration:none;white-space:nowrap" style-hover="{&quot;color&quot;:&quot;#E8610A&quot;}">Market Intel</a>
+          <span style="color:#7A6E6C">/</span>
+          <span style="color:#5A6B67;font-weight:600;white-space:nowrap">B1 · Price signals · United States</span>
+          <span style="color:#7A6E6C">/</span>
+          <span style="color:#1A1A1A;font-weight:800;white-space:nowrap">EIA Spot Prices</span>
+        </p>
+        <div style="display:flex;justify-content:space-between;gap:24px;align-items:flex-start;flex-wrap:wrap">
+          <div style="max-width:86ch">
+            <h1 style="font-family:'Anton',sans-serif;font-weight:400;font-size:32px;line-height:1.08;letter-spacing:0.02em;text-transform:uppercase;margin:0">EIA Spot Prices for Crude Oil and Petroleum Products – Monthly Data</h1>
+            <p style="font-size:13px;color:#5A6B67;margin:10px 0 0;line-height:1.6">U.S. Energy Information Administration · published May 9, 2026 · <b style="color:#1A1A1A">4 independent sources corroborate this signal</b></p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#D97706;border:1px solid rgba(217,119,6,0.4);background:#FFF7ED;border-radius:4px;padding:5px 11px">● Cost alert</span>
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#B45309;border:1px dashed rgba(180,83,9,0.45);border-radius:4px;padding:5px 11px">Unverified · early report</span>
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:#5A6B67;border:1px solid rgba(0,0,0,0.18);border-radius:4px;padding:5px 11px">B1 · Price</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:800;padding:8px 16px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Export brief</button>
+              <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:700;padding:8px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.18);background:#FFFFFF;color:#1A1A1A;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Share</button>
+              <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:700;padding:8px 16px;border-radius:6px;border:1px solid rgba(0,0,0,0.18);background:#FFFFFF;color:#1A1A1A;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Watch</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live price board -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 0">
+          <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 16px 10px;background:#FAFAF8">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">WTI Crude · Cushing</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;color:#D97706;margin:0">$95.96<span style="font-size:14px"> /bbl</span></p>
+            <p style="font-size:10.5px;color:#5A6B67;margin:5px 0 0">Jun 1 · intraday low $91.16 May 29</p>
+          </div>
+          <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 16px 10px;background:#FAFAF8">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Brent Crude</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;color:#D97706;margin:0">$98.29<span style="font-size:14px"> /bbl</span></p>
+            <p style="font-size:10.5px;color:#5A6B67;margin:5px 0 0">Jun 1 · Apr avg $117.29 · high $138 Apr 7</p>
+          </div>
+          <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 16px 10px;background:#FAFAF8">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Jet Fuel · Gulf Coast</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;color:#DC2626;margin:0">$3.943<span style="font-size:14px"> /gal</span></p>
+            <p style="font-size:10.5px;color:#5A6B67;margin:5px 0 0">May avg · ×2 vs Dec 2025 ($1.965)</p>
+          </div>
+          <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 16px 10px;background:#FAFAF8">
+            <p style="font-size:9.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">ULSD · NY Harbor</p>
+            <p style="font-family:'Anton',sans-serif;font-size:30px;line-height:1;color:#D97706;margin:0">$3.969<span style="font-size:14px"> /gal</span></p>
+            <p style="font-size:10.5px;color:#5A6B67;margin:5px 0 0">May avg · LA $4.183 = +$0.32 west-coast premium</p>
+          </div>
+        </div>
+        <p style="font-size:10.5px;color:#7A6E6C;margin:8px 0 0">Figures from EIA spot price releases (6/3/2026) — published government statistics, not live ticks. Live feed pending; next releases: spot Jun 10 · STEO Jun 9.</p>
+
+        <!-- Tab strip -->
+        <div style="display:flex;gap:2px;margin:14px 0 0">
+          <button onClick="{{ tab1 }}" style="{{ ts1 }}">What's moving</button>
+          <button onClick="{{ tab2 }}" style="{{ ts2 }}">Drivers &amp; trajectory</button>
+          <button onClick="{{ tab3 }}" style="{{ ts3 }}">Cost impact</button>
+          <button onClick="{{ tab4 }}" style="{{ ts4 }}">Client talking points</button>
+          <button onClick="{{ tab5 }}" style="{{ ts5 }}">Do now</button>
+          <button onClick="{{ tab6 }}" style="{{ ts6 }}">Sources</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- AI prompt bar — identical block on every page -->
+    <div style="padding:22px 36px 0">
+      <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+        <div style="display:flex;gap:10px;align-items:center">
+          <input value="{{ aiText }}" onChange="{{ onAiChange }}" placeholder="Ask anything about EIA Spot Prices — e.g. how does this hit my Q3 lane costs?" style="flex:1;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;padding:11px 14px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8" style-focus="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}">
+          <button style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:800;padding:11px 20px;border-radius:6px;border:1px solid #E8610A;background:#E8610A;color:#FFFFFF;cursor:pointer" style-hover="{&quot;background&quot;:&quot;#D05509&quot;}">Ask</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">
+          <button onClick="{{ chip1 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">What does this mean for me?</button>
+          <button onClick="{{ chip2 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">How does this affect my margins?</button>
+          <button onClick="{{ chip3 }}" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:11.5px;font-weight:600;color:#5A6B67;background:#FAFAF8;border:1px solid rgba(0,0,0,0.14);border-radius:999px;padding:6px 13px;cursor:pointer" style-hover="{&quot;borderColor&quot;:&quot;#E8610A&quot;,&quot;color&quot;:&quot;#E8610A&quot;}">Which lanes are most exposed?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ BODY ══════════ -->
+    <div id="sig-grid" style="padding:22px 36px 90px;display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:24px;align-items:start">
+
+      <main style="min-width:0">
+
+        <!-- TAB 1: WHAT'S MOVING -->
+        <sc-if value="{{ show1 }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">What's moving and what triggered it</span>
+            </div>
+            <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px 24px">
+              <div style="border-left:3px solid #2563EB;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#2563EB;display:block;margin:0 0 3px">Verified · EIA published statistics</span>
+                <p style="font-size:12.5px;line-height:1.65;margin:0">WTI spot at Cushing stood at <b>$95.96/barrel</b> on June 1, recovering from an intraday low of $91.16 on May 29. Brent stood at <b>$98.29/barrel</b>, also recovering from $92.88. The April monthly average for Brent was <b>$117.29/barrel</b>, with a spot high of <b>$138/barrel</b> on April 7. <span style="color:#7A6E6C">EIA Spot Prices (Daily), release 6/3/2026.</span></p>
+              </div>
+              <div style="border-left:3px solid #2563EB;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#2563EB;display:block;margin:0 0 3px">Verified · what triggered the spike</span>
+                <p style="font-size:12.5px;line-height:1.65;margin:0">The EIA STEO states that Iraq, Saudi Arabia, Kuwait, the UAE, Qatar, and Bahrain collectively shut in <b>10.5 million barrels per day</b> in April. Jet fuel (Gulf Coast) stood at $3.569/gallon June 1; the May monthly average was <b>$3.943/gallon</b>. <span style="color:#7A6E6C">EIA STEO, release May 12, 2026.</span></p>
+              </div>
+              <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 14px;grid-column:1 / -1">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 3px">Our analysis</span>
+                <p style="font-size:12.5px;line-height:1.65;margin:0;max-width:96ch">The combination of a Strait of Hormuz disruption and a major Gulf producer departing OPEC represents a structural supply-side shock with no single trigger. The partial normalisation now visible in spot prices (Brent recovering to $98 from $138) does not imply a return to pre-April levels in the near term. For air-primary freight operations, the pass-through of jet fuel surcharges lags spot price moves by days to weeks depending on carrier contract terms — creating a margin compression window during rapid price movements in either direction.</p>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- TAB 2: DRIVERS & TRAJECTORY -->
+        <sc-if value="{{ show2 }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Who's driving it and what they want</span>
+            </div>
+            <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px 24px">
+              <div style="border-left:3px solid #2563EB;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#2563EB;display:block;margin:0 0 3px">Verified</span>
+                <p style="font-size:12.5px;line-height:1.65;margin:0">The UAE's departure from OPEC, effective May 1, 2026, reduces OPEC's collective spare capacity. The EIA now forecasts OPEC spare capacity averaging <b>2.5 million b/d in 2027</b>, against a previous forecast of 3.8 million b/d — a reduction of 1.3 million b/d. U.S. crude production averages <b>13.6 million b/d</b> in 2026, with growth projected to 14.1 million b/d in 2027.</p>
+              </div>
+              <div style="border-left:3px solid #1A1A1A;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 3px">Our analysis</span>
+                <p style="font-size:12.5px;line-height:1.65;margin:0">The UAE's exit from OPEC is structurally significant: operating outside the cartel's production framework, UAE spare capacity can no longer be relied on as a rapid-response buffer to stabilise prices in a new disruption event. The cartel's effective response capacity is now narrower. On the demand side, no sourced data identifies a specific buyer constituency driving demand — U.S. output growth is not a near-term price suppressor at current levels.</p>
+              </div>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Expected trajectory and conversion triggers</span>
+            </div>
+            <div style="padding:16px 20px">
+              <!-- Projected price path -->
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:0 0 16px">
+                <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 14px;text-align:center">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">May–Jun 2026</p>
+                  <p style="font-family:'Anton',sans-serif;font-size:26px;color:#DC2626;margin:0">~$106</p>
+                  <p style="font-size:10.5px;color:#5A6B67;margin:3px 0 0">Brent avg · STEO</p>
+                </div>
+                <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 14px;text-align:center">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Full-year 2026</p>
+                  <p style="font-family:'Anton',sans-serif;font-size:26px;color:#D97706;margin:0">$95</p>
+                  <p style="font-size:10.5px;color:#5A6B67;margin:3px 0 0">Brent avg · projected</p>
+                </div>
+                <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 14px;text-align:center">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">Q4 2026</p>
+                  <p style="font-family:'Anton',sans-serif;font-size:26px;color:#A16207;margin:0">$89</p>
+                  <p style="font-size:10.5px;color:#5A6B67;margin:3px 0 0">declining as ME recovers</p>
+                </div>
+                <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:12px 14px;text-align:center">
+                  <p style="font-size:9.5px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#7A6E6C;margin:0 0 4px">2027</p>
+                  <p style="font-family:'Anton',sans-serif;font-size:26px;color:#16A34A;margin:0">$79</p>
+                  <p style="font-size:10.5px;color:#5A6B67;margin:3px 0 0">Brent avg · projected</p>
+                </div>
+              </div>
+              <div style="border-left:3px solid #E8610A;padding:2px 0 2px 14px;margin:0 0 12px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#E8610A;display:block;margin:0 0 3px">Conversion triggers · what would shift this path</span>
+                <p style="font-size:12.5px;line-height:1.65;margin:0;max-width:96ch">Hormuz shipping traffic failing to recover to pre-conflict levels by Q3 2026 (the EIA's own stated recovery assumption — if violated, the downward price path stalls or reverses). A second OPEC production event or further member departures reducing cartel coordination. The next STEO lands <b>June 9, 2026</b> with updated Hormuz recovery data — it may revise the Q2/Q3 forecast.</p>
+              </div>
+              <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:11px 13px">
+                <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:0"><b>Inventory context:</b> the EIA forecasts global oil inventories decreasing 2.6 million b/d in 2026 (vs. 0.3 previously — a 2.3 million b/d revision), falling an average 8.5 million b/d in Q2 — limiting downward price pressure even after Hormuz flows rise.</p>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- TAB 3: COST IMPACT -->
+        <sc-if value="{{ show3 }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Operational and cost implications by mode</span>
+            </div>
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#FEF2F2;border-bottom:1px solid rgba(0,0,0,0.08)">
+                  <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#DC2626">Air — primary mode · highest exposure</span>
+                  <span style="font-family:'Anton',sans-serif;font-size:20px;color:#DC2626">$3.943 <span style="font-size:12px">/gal May avg</span></span>
+                </div>
+                <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px">
+                  <p style="font-size:12px;line-height:1.6;margin:0"><b>Monthly path:</b> Mar $3.697 → Apr $3.928 → May $3.943/gal. From the Dec 2025 baseline ($1.965/gal) that is a <b>doubling</b> of Gulf Coast jet fuel cost from late 2025 to spring 2026.</p>
+                  <div style="border-left:3px solid #1A1A1A;padding:1px 0 1px 12px">
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 3px">Our analysis · negotiation moment</span>
+                    <p style="font-size:12px;line-height:1.6;margin:0">For verticals where the workspace bears fuel cost risk — time-critical live events, humanitarian, film/TV — the spike and partial recovery create a window where spot-indexed contract terms beat fixed-rate terms. This is a negotiation moment, not a monitoring moment.</p>
+                  </div>
+                </div>
+              </div>
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#FFF7ED;border-bottom:1px solid rgba(0,0,0,0.08)">
+                  <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#D97706">Road — secondary mode</span>
+                  <span style="font-family:'Anton',sans-serif;font-size:20px;color:#D97706">$3.969 <span style="font-size:12px">/gal ULSD May</span></span>
+                </div>
+                <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:14px 24px">
+                  <p style="font-size:12px;line-height:1.6;margin:0"><b>Geographic spread is material:</b> Los Angeles ULSD ran <b>$4.183/gal</b> vs. $3.862 Gulf Coast — a $0.32/gal structural west-coast premium.</p>
+                  <div style="border-left:3px solid #1A1A1A;padding:1px 0 1px 12px">
+                    <span style="font-size:9px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#1A1A1A;display:block;margin:0 0 3px">Our analysis</span>
+                    <p style="font-size:12px;line-height:1.6;margin:0">Drayage and last-mile for high-value automotive, fine art, and luxury verticals — where white-glove ground transport is non-substitutable — price off ULSD benchmarks. The west-coast premium is structural and should be reflected in quote templates.</p>
+                  </div>
+                </div>
+              </div>
+              <div style="border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#FAFAF8;border-bottom:1px solid rgba(0,0,0,0.08)">
+                  <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#5A6B67">Ocean — tertiary mode</span>
+                  <span style="font-family:'Anton',sans-serif;font-size:20px;color:#7A6E6C">—</span>
+                </div>
+                <div style="padding:14px 16px">
+                  <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:11px 13px">
+                    <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0"><b>Bunker fuel price not available from primary sources as of June 3, 2026.</b> The EIA dataset covers kerosene-type jet fuel and diesel, not marine residual or distillate bunker grades. The EIA Petroleum &amp; Other Liquids Data Hub may carry residual fuel oil data — listed under New Sources Identified.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- TAB 4: CLIENT TALKING POINTS -->
+        <sc-if value="{{ show4 }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08)">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Client conversation talking points</span>
+            </div>
+            <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 24px">
+              <div style="border-left:3px solid #2563EB;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#2563EB;display:block;margin:0 0 4px">What the workspace can credibly say</span>
+                <p style="font-size:12px;line-height:1.65;margin:0">EIA data confirms jet fuel averaged <b>$3.943/gal in May 2026</b>, up from $1.965 in Dec 2025, driven by the Hormuz closure and production shut-ins — published government statistics, not commercial estimates. The May 12 STEO projects Brent declining to <b>$89/bbl by Q4 2026</b> and $79 in 2027; a forecast the EIA revises monthly, next on <b>June 9</b>.</p>
+              </div>
+              <div style="border-left:3px solid #9A3412;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#9A3412;display:block;margin:0 0 4px">Pitfalls to avoid</span>
+                <p style="font-size:12px;line-height:1.65;margin:0">Do not represent the EIA trajectory as a guarantee of surcharge reduction — the April forecast was significantly revised in May. Do not cite carrier surcharge rates without confirming the carrier's own recalculation cycle; spot price and surcharge are not the same number. Do not claim ocean costs are declining without checking bunker prices separately.</p>
+              </div>
+              <div style="border-left:3px solid #E8610A;padding:2px 0 2px 14px">
+                <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#E8610A;display:block;margin:0 0 4px">Questions to pose to clients</span>
+                <p style="font-size:12px;line-height:1.65;margin:0">Are current project budgets indexed to Q4 2025 fuel levels? The gap to May 2026 actuals is ~<b>$2/gal on jet fuel</b> — is a budget revision conversation needed? For live events and film/TV with Q3 2026 schedules: has fuel cost been modelled at EIA-projected Q3 levels (Brent $89–$95 range) or at Q4 2025 lows?</p>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- TAB 5: DO NOW -->
+        <sc-if value="{{ show5 }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">What the workspace should do now</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">5 actions · sorted by deadline</span>
+            </div>
+            <div style="padding:6px 20px 14px">
+              <sc-for list="{{ actions }}" as="a" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:12px;align-items:start;padding:13px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+                  <span style="font-family:'Anton',sans-serif;font-size:17px;color:#E8610A;line-height:1.3">{{ a.n }}</span>
+                  <div>
+                    <p style="font-size:13px;font-weight:800;margin:0 0 3px">{{ a.title }}</p>
+                    <p style="font-size:12px;line-height:1.6;color:#1A1A1A;margin:0">{{ a.body }}</p>
+                  </div>
+                  <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:{{ a.hue }};border:1px solid {{ a.bd }};border-radius:4px;padding:3px 8px;white-space:nowrap">{{ a.when }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- TAB 6: SOURCES -->
+        <sc-if value="{{ show6 }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:0 0 14px">
+            <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Sources</span>
+              <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">4 cited + 3 newly identified · tier = provenance</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 32px;padding:4px 20px">
+              <sc-for list="{{ sources }}" as="s" hint-placeholder-count="4">
+                <a href="#" style="display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:baseline;padding:11px 0;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+                  <span style="{{ s.badge }}">{{ s.tier }}</span>
+                  <div><p style="font-size:12.5px;font-weight:700;margin:0;line-height:1.45">{{ s.title }}</p><p style="font-size:11px;color:#7A6E6C;margin:2px 0 0">{{ s.meta }}</p></div>
+                </a>
+              </sc-for>
+            </div>
+            <p style="font-size:11.5px;color:#7A6E6C;margin:0;padding:10px 20px;border-top:1px solid rgba(0,0,0,0.08);background:#FAFAF8">Newly identified sources are pending tier review in the <b>Admin queue</b> before they join the registry.</p>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:16px 20px">
+            <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Trajectory</p>
+            <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:12px 14px">
+              <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#8A6A2A;display:block;margin:0 0 4px">Price history · not yet captured</span>
+              <p style="font-size:12px;line-height:1.6;color:#5A6B67;margin:0">Per-signal price history populates once the commodity-price feed is connected. The published EIA figures above remain current until then.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Notes — every tab -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 18px;margin:14px 0 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+            <span style="font-size:9.5px;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;color:#2563EB">Your notes · visible to your workspace</span>
+            <span style="font-size:10.5px;color:#7A6E6C">{{ noteStatus }}</span>
+          </div>
+          <textarea value="{{ note }}" onChange="{{ onNote }}" placeholder="Add analyst context — which lanes or clients this touches, who's on it, what was decided…" style="width:100%;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;line-height:1.6;padding:10px 13px;border:1px solid rgba(0,0,0,0.16);border-radius:6px;outline:none;background:#FAFAF8;resize:vertical;min-height:52px;margin:8px 0 0" style-focus="{&quot;borderColor&quot;:&quot;#2563EB&quot;,&quot;background&quot;:&quot;#FFFFFF&quot;}"></textarea>
+        </div>
+
+        <!-- Connected intelligence — every tab -->
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;overflow:hidden;margin:14px 0 0">
+          <div style="padding:12px 20px;background:#F5F2EE;border-bottom:1px solid rgba(0,0,0,0.08);display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:12.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase">Connected intelligence</span>
+            <span style="font-size:10.5px;font-weight:700;color:#7A6E6C">related price signals</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px;padding:6px 20px 10px">
+            <a href="#" style="display:grid;grid-template-columns:100px 46px 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#2563EB;border:1px solid rgba(37,99,235,0.35);border-radius:4px;padding:3px 6px;text-align:center">Corroborates</span>
+              <span style="font-size:10px;font-weight:800;color:#8A6A2A">MKT ↗</span>
+              <div><p style="font-size:12.5px;font-weight:700;margin:0">Natural Gas Spot and Futures Prices (NYMEX)</p><p style="font-size:11px;color:#7A6E6C;margin:1px 0 0">Same energy-complex move · Cost alert · B1</p></div>
+            </a>
+            <a href="#" style="display:grid;grid-template-columns:100px 46px 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit" style-hover="{&quot;background&quot;:&quot;#FAFAF8&quot;}">
+              <span style="font-size:9px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#2563EB;border:1px solid rgba(37,99,235,0.35);border-radius:4px;padding:3px 6px;text-align:center">Corroborates</span>
+              <span style="font-size:10px;font-weight:800;color:#8A6A2A">MKT ↗</span>
+              <div><p style="font-size:12.5px;font-weight:700;margin:0">The Loadstar Supply Chain News Feed</p><p style="font-size:11px;color:#7A6E6C;margin:1px 0 0">Hormuz-driven surcharge layering · Cost alert · B3</p></div>
+            </a>
+          </div>
+        </div>
+      </main>
+
+      <!-- Meta rail -->
+      <div id="sig-rail" style="display:flex;flex-direction:column;gap:14px">
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 10px">Signal</p>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px">
+            <span style="color:#7A6E6C;font-weight:600">Band</span><span style="font-weight:700">B1 · Price signals</span>
+            <span style="color:#7A6E6C;font-weight:600">Severity</span><span style="font-weight:800;color:#D97706">Cost alert</span>
+            <span style="color:#7A6E6C;font-weight:600">Status</span><span style="font-weight:700;color:#B45309">Unverified</span>
+            <span style="color:#7A6E6C;font-weight:600">Corroboration</span><span style="font-weight:700">4 sources</span>
+            <span style="color:#7A6E6C;font-weight:600">Jurisdiction</span><span style="font-weight:700">United States</span>
+            <span style="color:#7A6E6C;font-weight:600">Topic</span><span style="font-weight:700">Fuels</span>
+            <span style="color:#7A6E6C;font-weight:600">Published</span><span style="font-weight:700">May 9, 2026</span>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Next data drops</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:700">STEO revision</span><span style="font-size:12px;font-weight:800;color:#DC2626">Jun 9</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:700">EIA spot prices</span><span style="font-size:12px;font-weight:800;color:#D97706">Jun 10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:700">Monthly series</span><span style="font-size:12px;font-weight:600;color:#5A6B67">early Jul</span></div>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid rgba(0,0,0,0.12);border-radius:8px;padding:14px 16px">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:#7A6E6C;margin:0 0 8px">Owner &amp; team</p>
+          <div style="border:1px dashed rgba(0,0,0,0.25);border-radius:6px;background:#FAFAF8;padding:11px 13px">
+            <p style="font-size:11.5px;color:#5A6B67;line-height:1.55;margin:0 0 6px">Unassigned — no owner tracking this signal yet.</p>
+            <a href="#" style="font-size:11px;font-weight:800;color:#E8610A;text-decoration:none">Assign an owner →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 1440 }
+}">
+class Component extends DCLogic {
+  state = { aiText: '', tab: 1, note: '' };
+
+  componentDidMount() {
+    try {
+      const saved = localStorage.getItem('cl-sig-eia-note');
+      if (saved) this.setState({ note: saved });
+    } catch (e) { /* fresh */ }
+  }
+
+  actions = [
+    { n: '1', title: 'Audit fixed-rate air freight commitments against current jet fuel baseline', body: 'Any air freight rate quoted before April 2026 at fuel levels near the December 2025 baseline ($1.965/gal Gulf Coast jet fuel) is now priced ~$2/gal below current spot. Identify every such commitment; determine whether renegotiation or surcharge pass-through is contractually available. Margin protection, not compliance.', when: 'Within 7 days', hue: '#DC2626', bd: '#FECACA' },
+    { n: '2', title: 'Pull the June 9 STEO on release and compare to May 12 projections', body: 'The June 9 STEO incorporates updated Hormuz recovery data. If recovery is later than the May 12 assumption, the Q2/Q3 crude forecast revises upward; if faster, the downward trajectory steepens. Brief commercial leadership the same day.', when: 'Jun 9', hue: '#DC2626', bd: '#FECACA' },
+    { n: '3', title: 'Confirm carrier fuel surcharge recalculation cycles for live events, film/TV, humanitarian', body: 'The gap between the May monthly average ($3.943/gal) and June 1 daily ($3.569/gal) is $0.37/gal. Whether that becomes a June surcharge reduction depends entirely on each carrier\u2019s recalculation cycle (weekly, bi-weekly, monthly). Confirm per carrier. Rate management action.', when: 'This cycle', hue: '#D97706', bd: 'rgba(217,119,6,0.4)' },
+    { n: '4', title: 'Review geographic cost spread for road-dependent verticals on the West Coast', body: 'Los Angeles ULSD ran $0.32/gal above Gulf Coast in May 2026. For fine art and high-value automotive where white-glove LA-area ground transport is non-substitutable, this premium is structural and should be reflected in quote templates.', when: 'This cycle', hue: '#D97706', bd: 'rgba(217,119,6,0.4)' },
+    { n: '5', title: 'Establish a standing EIA data pull cadence', body: 'EIA releases spot price data weekly (next: June 10) and the STEO monthly (next: June 9). Add both to a standing monitoring calendar alongside the FRED/St. Louis Fed WTI series.', when: 'Standing', hue: '#5A6B67', bd: 'rgba(0,0,0,0.2)' }
+  ];
+
+  sources = [
+    { tier: 'T1', kind: 'law', title: 'EIA Spot Prices for Crude Oil and Petroleum Products (Monthly)', meta: 'Tier 1 — Government statistical release · U.S. EIA · 6/3/2026' },
+    { tier: 'T1', kind: 'law', title: 'EIA Spot Prices for Crude Oil and Petroleum Products (Daily)', meta: 'Tier 1 — Government statistical release · U.S. EIA · 6/3/2026' },
+    { tier: 'T1', kind: 'law', title: 'Short-Term Energy Outlook (STEO)', meta: 'Tier 1 — Government forecast · U.S. EIA · May 12, 2026' },
+    { tier: 'T2', kind: 'reg', title: 'Crude Oil Prices: WTI — Cushing, Oklahoma (DCOILWTICO)', meta: 'Tier 2 — Statistical series via aggregator · Federal Reserve Bank of St. Louis / EIA · June 3, 2026' },
+    { tier: 'T1', kind: 'new', title: 'EIA Petroleum & Other Liquids Data Hub', meta: 'Newly identified · fills the ocean/bunker fuel gap · pending tier review' },
+    { tier: 'T4', kind: 'new', title: 'S&P Global Commodity Insights — Dated Brent Price Assessment', meta: 'Newly identified · benchmark methodology behind European cargo surcharges · pending review' },
+    { tier: 'T5', kind: 'new', title: 'ICE — Why the World Needs Benchmarks', meta: 'Newly identified · exchange-level benchmark context (WTI vs Brent divergence) · pending review' }
+  ];
+
+  renderVals() {
+    const setText = (t) => this.setState({ aiText: t });
+    const tab = this.state.tab;
+
+    const tabStyle = (on) => on
+      ? { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 800, padding: '10px 16px', border: 'none', borderBottom: '3px solid #E8610A', background: 'transparent', color: '#1A1A1A', cursor: 'pointer' }
+      : { fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: '12.5px', fontWeight: 600, padding: '10px 16px', border: 'none', borderBottom: '3px solid transparent', background: 'transparent', color: '#5A6B67', cursor: 'pointer' };
+
+    const badge = (kind) => {
+      const base = { fontSize: '10px', fontWeight: 800, padding: '2px 0', borderRadius: '4px', textAlign: 'center', display: 'inline-block', width: '34px' };
+      if (kind === 'law' || kind === 'reg') return Object.assign({}, base, { background: '#2563EB', color: '#FFFFFF' });
+      if (kind === 'ind') return Object.assign({}, base, { background: '#1A1A1A', color: '#FFFFFF' });
+      return Object.assign({}, base, { border: '1px dashed rgba(0,0,0,0.3)', color: '#7A6E6C' });
+    };
+
+    const vals = {
+      aiText: this.state.aiText,
+      onAiChange: (e) => setText(e.target.value),
+      chip1: () => setText('What does this mean for me?'),
+      chip2: () => setText('How does this affect my margins?'),
+      chip3: () => setText('Which lanes are most exposed?'),
+      actions: this.actions,
+      sources: this.sources.map((s) => Object.assign({}, s, { badge: badge(s.kind) })),
+      note: this.state.note,
+      noteStatus: this.state.note.trim().length > 0 ? 'Saved' : 'Not saved',
+      onNote: (e) => {
+        const v = e.target.value;
+        this.setState({ note: v });
+        try { localStorage.setItem('cl-sig-eia-note', v); } catch (err) { /* ignore */ }
+      }
+    };
+    for (let i = 1; i <= 6; i++) {
+      vals['tab' + i] = () => this.setState({ tab: i });
+      vals['ts' + i] = tabStyle(tab === i);
+      vals['show' + i] = tab === i;
+    }
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

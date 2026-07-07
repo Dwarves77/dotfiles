@@ -39,6 +39,7 @@ import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, r
 import { buildResolver, hostOf, type SourceRow, type Resolver } from "@/lib/sources/institution";
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
+import { officialnessOf } from "@/lib/sources/officialness.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
 // stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
 // 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
@@ -622,7 +623,7 @@ ${blocks}`;
     what_it_changes: md.what_it_changes, does_not_resolve: md.does_not_resolve,
     conversion_trigger: md.conversion_trigger, cross_references: md.cross_references,
     operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
-    related_items: cleanUuids(md.related_items), intersection_summary: md.intersection_summary,
+    intersection_summary: md.intersection_summary,
     sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
     last_regenerated_at: nowIso, updated_at: nowIso,
   }).eq("id", it.id);
@@ -631,6 +632,16 @@ ${blocks}`;
   // so any future constraint mismatch self-identifies (CLAUDE.md error-swallow post-mortem; Emergence INV-3).
   if (writeErr) {
     return { ok: false, detail: `metadata_write_rejected: ${writeErr.message} (sev=${dbSeverity}, fmt=${md.format_type}, theme=${dbTheme ?? "null"}, prio=${md.priority})` };
+  }
+  // related_items is READ-DERIVED from item_cross_references (migration 146, Option A: related_items_derived()
+  // + item_related_items_derived view — NO write-back trigger; the provenance guard stays untouched). Route the
+  // agent's semantic intersections to edges (origin=agent_semantic), never to the column. FK-safe, never self.
+  const relTargets = cleanUuids(md.related_items).filter((t) => t && t !== it.id);
+  if (relTargets.length) {
+    const { data: existing } = await sb.from("intelligence_items").select("id").in("id", relTargets);
+    const valid = new Set((existing ?? []).map((x: { id: string }) => x.id));
+    const edges = relTargets.filter((t) => valid.has(t)).map((t) => ({ source_item_id: it.id, target_item_id: t, relationship: "related", origin: "agent_semantic" }));
+    if (edges.length) await sb.from("item_cross_references").upsert(edges, { onConflict: "source_item_id,target_item_id", ignoreDuplicates: true });
   }
   return { ok: true, detail: `brief ${body.length}ch + 19-field metadata (fmt=${md.format_type}, sev=${dbSeverity}) from ${fetched.length} sources` };
 }
@@ -1003,7 +1014,27 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   // Floor-first re-attribution pool: the fetched floor-qualifying sources, best-tier-first (span-attribution
   // unit, ruling 2026-07-03). A FACT whose extractor-chosen span host is sub-floor but whose verbatim clause
   // ALSO sits in one of these grounds AT the floor instead of walling. Empty for floor-exempt item types.
-  const floorPool = floorSources(groundWithTier, itemFloor);
+  //
+  // 4d OFFICIALNESS GATE (officialness.mjs, distinct from floor-attribution.mjs's SYSTEM-PROMPT "4d" — the
+  // wrong-language original-span rule; two collided numberings, kept apart). The order at this site is:
+  // detectRoadblock (usable content at all — above/in the fetch) -> 4d (is this the OFFICIAL instrument PAST
+  // the nav?) -> 4b floor re-home -> 4c relabel. 4d does two things to the floor pool:
+  //   (1) DROPS path-b sources (portal / explainer / chrome body) so a non-primary page can NEVER be a
+  //       primary FACT re-home target (the moat: never PROMOTE a non-official page for topical fit).
+  //   (2) Replaces each surviving (path-a) source's matched text with its CLEAN, past-the-nav body, so 4b's
+  //       reattributeToFloor `.includes(needle)` can NEVER fire on nav chrome (the false-stamp defect) — the
+  //       url + tier are preserved, only the CHROME is removed (never DOWNGRADE a real instrument for chrome).
+  // Host authority-origin tier is INJECTED (s.tier, already the resolver-canonical tier — floorSources has
+  // already filtered to tier <= floor, so hostQualifies holds; 4d adds the instrument-body gate). The pool
+  // here carries stripText output (stored excerpts), not raw html, so 4d's structural strip is a graceful
+  // no-op and the marker+host+length path gate is the operative defense; the full chrome-strip engages when
+  // raw html is present and is exercised red-green by officialness.test.mjs.
+  const floorPool = floorSources(groundWithTier, itemFloor)
+    .map((s) => {
+      const off = officialnessOf(s.text, hostOf(s.url), { hostTier: s.tier, floorTier: itemFloor });
+      return { ...s, text: off.cleanBody || s.text, officialnessPath: off.path };
+    })
+    .filter((s) => s.officialnessPath === "a");
   const groundSrc = buildSourceBlocks(groundWithTier, SYNTH_INPUT_BUDGET_CHARS, {
     floorTier: itemFloor,
     hardCeiling: SYNTH_PRIMARY_HARD_CEILING_CHARS,

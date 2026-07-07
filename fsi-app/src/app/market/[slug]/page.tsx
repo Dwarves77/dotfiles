@@ -15,15 +15,14 @@
  * reads and the regex fallback retires.
  */
 
-import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { getMarketIntelItems } from "@/lib/data";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
-import { MarketSignalDetailSurface } from "@/components/pages/MarketSignalDetailSurface";
-import { JURISDICTIONS } from "@/lib/constants";
-import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
+import {
+  MarketSignalDetailSurface,
+  type PriceStat,
+} from "@/components/pages/MarketSignalDetailSurface";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -121,6 +120,47 @@ export default async function MarketSignalDetailPage({
     }
   }
 
+  // Redesign T05: hero price board. Published price statistics (migration 151)
+  // for this signal — the KNOWN NEW BACKEND live-feed store (HANDOFF §7). Fetched
+  // fail-soft: the table is empty until the feed writer populates it, in which
+  // case the surface renders the honest §4 published-statistics pending frame
+  // (never faked ticks). Service-role read, mirroring the convergence fetch.
+  let priceBoard: PriceStat[] = [];
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  ) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { auth: { persistSession: false } }
+      );
+      const { data: priceRows } = await supabase
+        .from("published_price_statistics")
+        .select(
+          "label, value_display, unit, context_line, severity_tone, source_tier, released_at, next_release_at, next_release_label, sort_order"
+        )
+        .eq("item_id", r.id)
+        .order("sort_order", { ascending: true });
+      if (Array.isArray(priceRows)) {
+        priceBoard = priceRows.map((p) => ({
+          label: p.label,
+          valueDisplay: p.value_display,
+          unit: p.unit,
+          contextLine: p.context_line,
+          severityTone: p.severity_tone,
+          sourceTier: p.source_tier,
+          releasedAt: p.released_at,
+          nextReleaseAt: p.next_release_at,
+          nextReleaseLabel: p.next_release_label,
+        }));
+      }
+    } catch {
+      // Soft-fail (table not yet applied, or no rows) — honest pending frame.
+    }
+  }
+
   // Related signals: pull the Market Intel set, find items in the same
   // band as this one, exclude self, cap at 5. Failures degrade to an
   // empty list (the surface renders "no related signals" cleanly).
@@ -129,48 +169,27 @@ export default async function MarketSignalDetailPage({
     total: 0,
   }));
 
-  // Eyebrow jurisdiction label — prefer ISO data, then legacy single string,
-  // then "Global". Mirrors /regulations/[slug].
-  const jurisLabel =
-    r.jurisdictionIso && r.jurisdictionIso.length > 0
-      ? r.jurisdictionIso.map(isoToDisplayLabel).join(" · ")
-      : JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label ||
-        r.jurisdiction ||
-        "Global";
-
-  const published = r.added ? `Published ${formatDate(r.added)}` : null;
-  const reviewed = r.lastVerifiedDate ? `Reviewed ${formatDate(r.lastVerifiedDate)}` : null;
-  const metaParts = [published, reviewed].filter(Boolean) as string[];
+  // Redesign T05: the hero (breadcrumb + title + deck + actions + tabs) now
+  // lives inside MarketSignalDetailSurface per the approved mock (Pages - 05
+  // Signal Detail), mirroring the T03 detail archetype. Compute the breadcrumb
+  // middle segment ("B1 · Price signals · United States") and the deck sub-line
+  // server-side from real fields. The prior EditorialMasthead + separate
+  // back-link are replaced by the in-hero breadcrumb (DESIGN-DEVIATIONS D3/T05).
+  const publisher = r.sourceName || r.enforcementBody || null;
+  const published = r.added ? `published ${formatDate(r.added)}` : null;
+  const deck = [publisher, published].filter(Boolean).join(" · ") || undefined;
 
   console.log(`[perf] /market/${id} data ${Date.now() - t0}ms`);
 
   return (
-    <>
-      <div style={{ padding: "10px 32px 0" }}>
-        <Link
-          href="/market"
-          prefetch={false}
-          style={{
-            color: "var(--muted)",
-            fontSize: 12,
-            textDecoration: "none",
-          }}
-        >
-          ← Market Intelligence
-        </Link>
-      </div>
-      <EditorialMasthead
-        eyebrow={`Market Intel · ${jurisLabel}`}
-        title={r.title}
-        meta={metaParts.join(" · ")}
-      />
-      <MarketSignalDetailSurface
-        resource={r}
-        relatedPool={marketIntel.resources}
-        sections={sections}
-        convergence={convergence}
-      />
-    </>
+    <MarketSignalDetailSurface
+      resource={r}
+      relatedPool={marketIntel.resources}
+      sections={sections}
+      convergence={convergence}
+      priceBoard={priceBoard}
+      deck={deck}
+    />
   );
 }
 

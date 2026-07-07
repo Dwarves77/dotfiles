@@ -85,6 +85,21 @@ expired deferral.
 present :: fsi-app/supabase/migrations/145_provenance_floor_inline_derive.sql :: COALESCE(src.tier_override, src.base_tier)
 ```
 
+### phase-intake-gate — Source-role congruence + subject-existence dedup + entity extract→resolve→wire  ⏳ DEFINED (activates ahead of phase-2 when the atomic unit lands)
+CONTRACT: `docs/design/intake-gate-plan.md` (v2.2 — the full spec this phase's anchors verify).
+One intake discipline, all gate DECISIONS inside the shared chokepoint `mintIntelligenceItem()` (BOTH mint paths call it — Path A `drain-first-fetch`/`seedStubIntelligenceItem`, Path B `staged_updates`/`applyUpdate:new_item`; neither self-INSERTs). Classify layers only precompute inputs. (1) source↔claim-type congruence — (1a) primary-artifact type on a news source → retype to market_signal; (1b) research_finding on a press-release/news source → keep the type, demote the press release to corroborator, surface to seek the study as primary (regional_data evaluated + EXCLUDED: news is a congruent primary for its cost-data); (2) subject-existence
+dedup at the chokepoint (high-precision `matchExistingSubject`); (4) Fork-4 relevance branch (surface-only data_quality flag, NEVER blocks a mint; enforcement waits for labeled-data precision); (3) deterministic entity
+extract (wide detect) → resolve → wire (narrow) feeding the EXISTING `item_cross_references` (SoT; `related_items`
+render-derives from it). Moat boundary: extraction writes cross-ref EDGES, never grounding CITATIONS. Ambiguous/
+unknown-standard → surfaced to `integrity_flags`, never dropped. Bypass-proof: no INSERT into intelligence_items outside `mint-item.ts` (fitness fn, red-then-green). ACTIVE_PHASE flips here as the FINAL build step,
+when these anchors match code (never active-with-failing-anchors):
+```anchors
+present :: fsi-app/src/lib/intake/mint-item.ts :: function mintIntelligenceItem
+present :: fsi-app/src/lib/entities/entity-resolve.mjs :: export function resolve
+present :: fsi-app/src/workflows/generate-brief.ts :: linkStep
+present :: fsi-app/src/lib/entities/entity-resolve.mjs :: LINK_ALLOWED_TABLES = ["item_cross_references", "integrity_flags"]
+```
+
 ### phase-2 — Source → sub-source hierarchy
 Re-parent the multi-page rows as sub-sources under their institution (not collapse, not peers); tier
 lives on the source, sub-sources inherit, no override; source dark → sub-sources dark; collapse the

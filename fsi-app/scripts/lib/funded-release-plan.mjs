@@ -63,6 +63,27 @@ export function isDeletableLoser({ survivor, loser, survivorHasPrimaryGrounding,
 }
 
 /**
+ * OPERATOR-RULED value-delete gate — a SECOND deletion class BESIDE the dedup-identity gate
+ * (isDeletableLoser), which stands unchanged. Here the AUTHORIZATION is Jason's explicit ruled list
+ * (the "Kansas precedent"): a mis-typed / no-value / shell item Jason has NAMED for deletion. Unlike the
+ * dedup gate this does NOT require a verified survivor or identifier identity — the ruling IS the
+ * authority — but it still refuses anything not on the ruled list, anything already archived, and any
+ * call missing a ruling reference. The applier still snapshots + read-back-verifies the row is gone + logs
+ * the ruling reference (the byte-compare analog for a delete = confirm absence).
+ * @param {{ item: object, ruledIds: Set<string>|string[], ruling: string }} args
+ * @returns {{ ok: boolean, reason: string }}
+ */
+export function isOperatorValueDeletable({ item, ruledIds, ruling }) {
+  if (!item || !item.id) return { ok: false, reason: "no item row" };
+  const ruled = ruledIds instanceof Set ? ruledIds : new Set(ruledIds || []);
+  const key = item.legacy_id || String(item.id).slice(0, 8);
+  if (!ruled.has(item.id) && !ruled.has(item.legacy_id)) return { ok: false, reason: `${key} is NOT on the operator-ruled delete list — the ruling is the only authorization; refuse` };
+  if (item.is_archived) return { ok: false, reason: `${key} is already archived — nothing to delete` };
+  if (!ruling || !String(ruling).trim()) return { ok: false, reason: "no ruling reference recorded — an operator value-delete MUST cite the ruling; refuse" };
+  return { ok: true, reason: `operator-ruled value-delete (${ruling})` };
+}
+
+/**
  * Assemble the plan. Loader context calls this AFTER the paid loop with the items that flipped to verified;
  * for a survivor it passes its candidate loser rows (already url/instrument-filtered) + the live facts. The
  * applier RE-VERIFIES live, so this classification is advisory (transparency in the plan file).

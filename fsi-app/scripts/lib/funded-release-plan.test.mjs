@@ -5,7 +5,7 @@
 // ambiguous=surface, identifier-exact=eligible). RED = d5ee6ab8 verbatim; GREEN = the CSRD CELEX pair.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isDeletableLoser, instrumentIdentityBucket, buildReleaseDeletionPlan, validateReleaseDeletionPlan, normUrl } from "./funded-release-plan.mjs";
+import { isDeletableLoser, instrumentIdentityBucket, buildReleaseDeletionPlan, validateReleaseDeletionPlan, normUrl, isOperatorValueDeletable } from "./funded-release-plan.mjs";
 
 // GREEN fixture: the CSRD pair post-survivor-release (identical CELEX:32022L2464).
 const SURVIVOR = { id: "f0833999-aaaa", provenance_status: "verified", is_archived: false, source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32022L2464", instrument_identifier: "2022/2464" };
@@ -91,4 +91,19 @@ test("validateReleaseDeletionPlan: rejects malformed + a loser===survivor deleti
   assert.equal(bad.ok, false);
   assert.match(bad.violations.join(";"), /would delete the survivor/);
   assert.equal(validateReleaseDeletionPlan(null).ok, false);
+});
+
+// OPERATOR-RULED value-delete class (T5, 2026-07-06) — a second deletion class beside the dedup gate.
+// Authorization = Jason's explicit ruled list (Kansas precedent), NOT identifier identity.
+test("isOperatorValueDeletable: ruled list is the only authority; refuse otherwise", () => {
+  const ruled = new Set(["g26", "t6", "l8"]);
+  const g26 = { id: "8ff93a7e-xxxx", legacy_id: "g26", is_archived: false };
+  // GREEN: on the ruled list, not archived, ruling cited → eligible
+  assert.equal(isOperatorValueDeletable({ item: g26, ruledIds: ruled, ruling: "T5 2026-07-06" }).ok, true);
+  // RED: NOT on the ruled list → refuse (an unruled item can never be value-deleted)
+  assert.equal(isOperatorValueDeletable({ item: { id: "zzz", legacy_id: "o2", is_archived: false }, ruledIds: ruled, ruling: "T5" }).ok, false);
+  // RED: ruled but already archived → refuse (nothing to delete)
+  assert.equal(isOperatorValueDeletable({ item: { ...g26, is_archived: true }, ruledIds: ruled, ruling: "T5" }).ok, false);
+  // RED: ruled but no ruling reference → refuse (must cite the authorization)
+  assert.equal(isOperatorValueDeletable({ item: g26, ruledIds: ruled, ruling: "" }).ok, false);
 });

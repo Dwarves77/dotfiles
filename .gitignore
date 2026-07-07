@@ -59,3 +59,6 @@ docs/wave1-api-discovery-*.jsonl.backup
 docs/wave1-cold-start-log.jsonl
 docs/wave1-last-scanned-backfill-log.json
 docs/wave1-track*-routing-applied.json
+
+# Claude Code agent worktrees (transient, never committed)
+.claude/worktrees/

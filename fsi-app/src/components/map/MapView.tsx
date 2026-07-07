@@ -31,7 +31,7 @@
  *   Centroids: JURISDICTION_CENTROIDS (country-level only).
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, useMap, ZoomControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -65,11 +65,12 @@ interface MapViewProps {
 
 // ── Visual contract per mockup ──
 
+// Severity spectrum per HANDOFF §2 (sev-*): colour encodes urgency.
 const TONE_COLOR: Record<JurisdictionTone, string> = {
   critical: "#DC2626",
-  high: "#D97706",
+  high: "#E8610A",
   moderate: "#CA8A04",
-  low: "#6B7280",
+  low: "#16A34A",
 };
 
 // Mockup legend specifies tier base sizes (Critical 14 / High 12 / Moderate 10).
@@ -117,7 +118,6 @@ function createJurisdictionIcon(tone: JurisdictionTone, count: number): L.DivIco
         font-family:var(--font-display,Anton),system-ui,sans-serif;
         font-size:${fontSize}px;font-weight:400;
         color:#fff;
-        box-shadow:0 1px 3px rgba(0,0,0,0.25);
         cursor:pointer;
         transition:transform 0.15s ease;
       ">${count}</div>
@@ -136,7 +136,6 @@ function createCommunityDotIcon(): L.DivIcon {
         border-radius:999px;
         background:#1A1A1A;
         border:1.5px solid #fff;
-        box-shadow:0 1px 2px rgba(0,0,0,0.2);
       "></div>
     `,
     iconSize: [7, 7],
@@ -265,7 +264,6 @@ export function MapView({
           border: "1px solid var(--color-border, rgba(0,0,0,0.12))",
           borderRadius: "var(--radius-sm, 6px)",
           fontSize: 11,
-          boxShadow: "var(--shadow-card, 0 1px 3px rgba(0,0,0,0.06))",
           zIndex: 500,
           pointerEvents: "none",
         }}

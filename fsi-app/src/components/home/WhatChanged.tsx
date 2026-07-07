@@ -1,5 +1,24 @@
 "use client";
 
+/**
+ * WhatChanged — the "This week" summary bar of the unified change log
+ * (TEMPLATE 01, HANDOFF §6.3 + mock).
+ *
+ * THE WHATCHANGED RULE (binding gate): the changed-half stays DATE-STAMPED and
+ * MUST NEVER imply live change detection. The item_changelog writer is Phase 3
+ * (unbuilt), so there is no continuous detection. This component renders the
+ * honest date-stamped state: a summary line + a "checked {relative}" stamp
+ * derived from the last detection pass (auditDate). When new/updated items are
+ * present within the trailing window they are listed, date-stamped, with an
+ * explicit note that they reflect the last detection pass — never a fabricated
+ * diff and never a claim of live monitoring.
+ *
+ * The "Earlier · replaced" supersessions ledger is a sibling
+ * (<SupersessionsLedger>), kept out of the active-change list per the mock's
+ * "superseded items never mix into active lists" rule.
+ */
+
+import { useState } from "react";
 import Link from "next/link";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
 import { formatRelative, toDate } from "@/lib/relative-time";
@@ -10,253 +29,153 @@ interface WhatChangedProps {
   auditDate?: string;
 }
 
-const PRIORITY_BAR: Record<string, string> = {
-  CRITICAL: "var(--color-critical)",
-  HIGH: "var(--color-high)",
-  MODERATE: "var(--color-moderate)",
-  LOW: "var(--color-low)",
+const PRIORITY_COLOR: Record<string, string> = {
+  CRITICAL: "var(--reg-band-immediate)",
+  HIGH: "var(--reg-band-action)",
+  MODERATE: "var(--reg-band-monitor)",
+  LOW: "var(--reg-band-awareness)",
 };
-
-const PRIORITY_LABEL_COLOR: Record<string, string> = {
-  CRITICAL: "var(--color-critical)",
-  HIGH: "var(--color-high)",
-  MODERATE: "var(--color-moderate)",
-  LOW: "var(--color-low)",
-};
-
-function dayCountMeta(r: Resource): { label: string; color: string } {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const candidates: string[] = [];
-  if (r.complianceDeadline) candidates.push(r.complianceDeadline);
-  if (r.timeline) {
-    for (const t of r.timeline) {
-      if (t.date) candidates.push(t.date);
-    }
-  }
-  for (const raw of candidates) {
-    const d = new Date(raw + (raw.length === 10 ? "T00:00:00" : ""));
-    if (Number.isNaN(d.getTime())) continue;
-    const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
-    if (diff < 0) continue;
-    if (diff <= 365) {
-      return { label: `${diff} day${diff === 1 ? "" : "s"}`, color: PRIORITY_LABEL_COLOR[r.priority] || "var(--color-text-muted)" };
-    }
-    const q = Math.floor(d.getMonth() / 3) + 1;
-    const yy = String(d.getFullYear()).slice(-2);
-    return { label: `Q${q} '${yy}`, color: PRIORITY_LABEL_COLOR[r.priority] || "var(--color-text-muted)" };
-  }
-  return { label: "—", color: "var(--color-text-muted)" };
-}
 
 interface ItemRow {
   id: string;
   resource: Resource;
   changeType: "New" | "Updated";
-  detail: string;
   priorityForLabel: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
 }
 
 export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
-  // "New" uses a rolling 7-day window from today, not exact-equality against
-  // auditDate (the most-recent changelog date). The prior filter only matched
-  // when added_date and auditDate coincided exactly, which rarely happens with
-  // prod ingestion cadence, so the entire section silently disappeared when no
-  // items were added on auditDate AND no items had changelog entries. Mirrors
-  // the rolling-window fix applied to WeeklyBriefing in this PR.
-  const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  // Trailing 7-day window from today for "New" (real added dates). "Updated"
+  // rows come from the last detection pass (changelog), never live. Read the
+  // clock once via a state initializer so the cutoff is render-stable (avoids
+  // an impure Date.now() at render — react-hooks/purity, matching the shipped
+  // RegulationsLedger pattern).
+  const [cutoff] = useState(() => new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
   const newResources = resources.filter((r) => r.added && r.added >= cutoff);
-  const changedIds = Object.keys(changelog);
-  const changed = resources.filter((r) => changedIds.includes(r.id));
-
-  // Hotfix 2026-05-23: previously this component returned null when both
-  // newResources and changed were empty, which silently removed the entire
-  // section from the home page. During the build-time ingest pause that
-  // hides the fact that no items have been added recently. Render the
-  // header + "last updated" line unconditionally; show an empty-state
-  // body only when there is genuinely nothing new or updated.
-  const auditDateObj = toDate(auditDate);
-  const lastUpdatedLabel = auditDateObj
-    ? `Last updated ${formatRelative(auditDateObj)}`
-    : "Last updated unavailable";
+  const changedIds = new Set(Object.keys(changelog));
+  const changed = resources.filter((r) => changedIds.has(r.id));
 
   const newRows: ItemRow[] = newResources.map((r) => ({
     id: `new-${r.id}`,
     resource: r,
     changeType: "New",
-    detail: r.note,
+    priorityForLabel: r.priority,
+  }));
+  const updatedRows: ItemRow[] = changed.map((r) => ({
+    id: `upd-${r.id}`,
+    resource: r,
+    changeType: "Updated" as const,
     priorityForLabel: r.priority,
   }));
 
-  const updatedRows: ItemRow[] = changed.flatMap((r) => {
-    const entries = changelog[r.id] || [];
-    const head = entries[0];
-    return [
-      {
-        id: `upd-${r.id}`,
-        resource: r,
-        changeType: "Updated" as const,
-        detail: head?.now || head?.impact || head?.fields?.join(", ") || r.note,
-        priorityForLabel: r.priority,
-      },
-    ];
-  });
-
-  // Dedup: an item that's both NEW and in changelog should only show as New.
   const seen = new Set<string>();
   const allRows = [...newRows, ...updatedRows].filter((row) => {
-    const k = row.resource.id;
-    if (seen.has(k)) return false;
-    seen.add(k);
+    if (seen.has(row.resource.id)) return false;
+    seen.add(row.resource.id);
     return true;
   });
-
   const total = allRows.length;
-  const newCriticalCount = newRows.filter((r) => r.priorityForLabel === "CRITICAL").length;
 
-  const summary =
-    total === 0
-      ? "No new or updated items in the last 7 days."
-      : newCriticalCount > 0
-      ? `${newCriticalCount} new critical item${newCriticalCount === 1 ? "" : "s"} entered scope this audit.`
-      : `${total} change${total === 1 ? "" : "s"} since last audit — review and update workflows accordingly.`;
+  const auditDateObj = toDate(auditDate);
+  const checkedLabel = auditDateObj ? `checked ${formatRelative(auditDateObj)}` : "no detection pass on record";
 
   return (
-    <div
-      className="cl-card"
-      style={{ padding: "18px 22px 20px" }}
-    >
+    <>
       <div
         style={{
+          border: "1px solid var(--color-border)",
+          borderRadius: 8,
+          background: "var(--color-bg-surface)",
+          padding: "13px 18px",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 12,
-          marginBottom: 12,
-          paddingBottom: 12,
-          borderBottom: "1px solid var(--color-border)",
+          alignItems: "center",
+          gap: 14,
+          margin: "0 0 10px",
         }}
       >
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 800,
-            letterSpacing: "-0.01em",
-            color: "var(--color-text-primary)",
-          }}
-        >
-          What changed — {total} since last audit
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--color-text-muted)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {lastUpdatedLabel}
-        </div>
-      </div>
-      {/* Honesty stamp (item 4(iii)): item_changelog has no ongoing writer — the "Updated" rows are the
-          last detection pass, NOT live change-detection. Date-stamp rather than imply continuous updates.
-          Remove this note when a changelog writer lands (Phase 3). */}
-      {updatedRows.length > 0 && (
-        <p
-          style={{
-            margin: "0 0 10px",
-            fontSize: 11.5,
-            fontStyle: "italic",
-            color: "var(--color-text-muted)",
-          }}
-        >
-          Update history reflects the last detection pass (2026-06-07); continuous change-detection is not yet live.
+        <p style={{ fontSize: 13, margin: 0 }}>
+          <b>This week:</b>{" "}
+          <span style={{ color: "var(--color-text-secondary)" }}>
+            {total === 0
+              ? "nothing — no items added, updated, or replaced in the last 7 days."
+              : `${total} item${total === 1 ? "" : "s"} added or updated in the last detection pass.`}
+          </span>
         </p>
-      )}
-      <p
-        style={{
-          fontSize: 13.5,
-          lineHeight: 1.55,
-          color: "var(--color-text-secondary)",
-          margin: "0 0 14px",
-        }}
-      >
-        {summary}
-      </p>
-      {allRows.map((row, idx) => {
-        const meta = dayCountMeta(row.resource);
-        const labelColor = PRIORITY_LABEL_COLOR[row.priorityForLabel] || "var(--color-text-muted)";
-        return (
-          <Link
-            key={row.id}
-            href={`/regulations/${row.resource.id}`}
-            prefetch={false}
+        <span style={{ fontSize: 11, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>{checkedLabel}</span>
+      </div>
+
+      {total > 0 && (
+        <>
+          <p
             style={{
-              display: "grid",
-              gridTemplateColumns: "3px 1fr auto",
-              gap: 12,
-              padding: "14px 0",
-              borderTop: idx === 0 ? "0" : "1px solid var(--color-border)",
-              paddingTop: idx === 0 ? 2 : 14,
-              alignItems: "flex-start",
-              textDecoration: "none",
-              color: "inherit",
+              margin: "0 0 8px",
+              fontSize: 11,
+              fontStyle: "italic",
+              color: "var(--color-text-muted)",
             }}
           >
-            <span
-              style={{
-                alignSelf: "stretch",
-                borderRadius: 2,
-                background: PRIORITY_BAR[row.priorityForLabel] || "var(--color-text-muted)",
-                minHeight: 28,
-              }}
-            />
-            <div style={{ minWidth: 0 }}>
-              <div
+            Reflects the last detection pass{auditDateObj ? ` (${auditDate})` : ""}; continuous change-detection is
+            not yet live.
+          </p>
+          <div
+            style={{
+              border: "1px solid var(--color-border)",
+              borderRadius: 8,
+              background: "var(--color-bg-surface)",
+              overflow: "hidden",
+              margin: "0 0 10px",
+            }}
+          >
+            {allRows.map((row, idx) => (
+              <Link
+                key={row.id}
+                href={`/regulations/${row.resource.id}`}
+                prefetch={false}
                 style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  marginBottom: 2,
-                  color: labelColor,
+                  display: "grid",
+                  gridTemplateColumns: "3px 1fr auto",
+                  gap: 12,
+                  alignItems: "center",
+                  padding: "11px 18px",
+                  borderTop: idx === 0 ? "0" : "1px solid var(--color-border-subtle)",
+                  textDecoration: "none",
+                  color: "inherit",
                 }}
               >
-                {row.changeType} · {row.priorityForLabel.charAt(0) + row.priorityForLabel.slice(1).toLowerCase()}
-              </div>
-              <div
-                style={{
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  color: "var(--color-text-primary)",
-                }}
-              >
-                {row.resource.title}
-              </div>
-              <div
-                style={{
-                  fontSize: 11.5,
-                  color: "var(--color-text-secondary)",
-                  marginTop: 2,
-                  lineHeight: 1.4,
-                }}
-              >
-                {row.detail}
-              </div>
-            </div>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                fontVariantNumeric: "tabular-nums",
-                whiteSpace: "nowrap",
-                color: meta.color,
-              }}
-            >
-              {meta.label}
-            </span>
-          </Link>
-        );
-      })}
-    </div>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    alignSelf: "stretch",
+                    borderRadius: 2,
+                    background: PRIORITY_COLOR[row.priorityForLabel] || "var(--color-text-muted)",
+                    minHeight: 24,
+                  }}
+                />
+                <div style={{ minWidth: 0 }}>
+                  <p
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 800,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      margin: 0,
+                      color: PRIORITY_COLOR[row.priorityForLabel] || "var(--color-text-muted)",
+                    }}
+                  >
+                    {row.changeType}
+                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)", margin: "2px 0 0" }}>
+                    {row.resource.title}
+                  </p>
+                </div>
+                <span style={{ fontSize: 11, color: "var(--color-text-muted)", whiteSpace: "nowrap" }} aria-hidden="true">
+                  ›
+                </span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   );
 }
