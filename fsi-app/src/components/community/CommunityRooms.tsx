@@ -17,8 +17,14 @@
  *   - Join:  POST /api/community/groups/[id]/join
  *   - Leave: self-DELETE on community_group_members (RLS, browser client)
  *   - Cite:  browser-client update of community_posts.referenced_intelligence_item_ids
- * "Request verifier sign-off" is an honest-pending action until migration 151
- * (community_post_signoff_requests) is applied.
+ *   - Sign-off request:  POST /api/community/posts/[id]/signoff
+ *   - Verifier decision:  POST /api/community/signoff/[id]/decide
+ *   - Withdraw own request: POST /api/community/signoff/[id]/withdraw
+ * Sign-off is LIVE against community_post_signoff_requests (migration 153):
+ * the "Request verifier sign-off" card action opens a request, the rail panel
+ * shows the user's open requests (withdraw) and, for active verifiers, a decide
+ * queue. A post shows the verified/signed-off chip ONLY when signed_off_at is
+ * set (a real field) — never fabricated.
  *
  * Colors/px lifted from the mock, expressed through the T02/T11 semantic
  * tokens — no raw hex in this component.
@@ -49,6 +55,20 @@ export interface ThreadVM {
   isOwner: boolean;
   /** Titles+hrefs for citations attached this session (optimistic display). */
   citedLive?: { title: string; href: string }[];
+  /** True only when community_posts.signed_off_at is set (real field). */
+  signedOff: boolean;
+  signedOffAt?: string | null;
+  /**
+   * The caller-visible sign-off request for this post (RLS-scoped: the caller's
+   * own request always; every request for an active verifier / admin). Null
+   * when none is visible.
+   */
+  signoff?: {
+    requestId: string;
+    status: "pending" | "signed_off" | "declined" | "withdrawn";
+    isMine: boolean;
+    requesterName: string;
+  } | null;
 }
 
 export interface RosterMemberVM {
@@ -187,6 +207,8 @@ export function CommunityRooms({
         authorName: currentUserName,
         isYou: true,
         isOwner: currentUserIsOwner,
+        signedOff: false,
+        signoff: null,
       };
       patchRoom(selected.key, { threads: [vm, ...selected.threads] });
       setDraft("");
@@ -298,6 +320,97 @@ export function CommunityRooms({
       setCiteOpen((p) => ({ ...p, [thread.id]: false }));
     } catch {
       setNotice("Could not attach the source.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function patchThread(threadId: string, patch: Partial<ThreadVM>) {
+    if (!selected) return;
+    patchRoom(selected.key, {
+      threads: selected.threads.map((t) =>
+        t.id === threadId ? { ...t, ...patch } : t
+      ),
+    });
+  }
+
+  // ── sign-off lifecycle (migration 153) ──
+  async function requestSignoff(thread: ThreadVM) {
+    if (busy) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/community/posts/${thread.id}/signoff`, {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      if (res.status === 409) {
+        setNotice("A verifier sign-off request is already open for this post.");
+        return;
+      }
+      if (!res.ok) throw new Error();
+      const { request } = await res.json();
+      patchThread(thread.id, {
+        signoff: {
+          requestId: request.id,
+          status: "pending",
+          isMine: true,
+          requesterName: currentUserName,
+        },
+      });
+    } catch {
+      setNotice("Could not request sign-off — try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function withdrawSignoff(thread: ThreadVM) {
+    if (busy || !thread.signoff) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch(
+        `/api/community/signoff/${thread.signoff.requestId}/withdraw`,
+        { method: "POST", credentials: "same-origin" }
+      );
+      if (!res.ok) throw new Error();
+      patchThread(thread.id, { signoff: null });
+    } catch {
+      setNotice("Could not withdraw the request.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decideSignoff(thread: ThreadVM, decision: "signed_off" | "declined") {
+    if (busy || !thread.signoff) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const res = await fetch(
+        `/api/community/signoff/${thread.signoff.requestId}/decide`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ decision }),
+        }
+      );
+      if (!res.ok) throw new Error();
+      if (decision === "signed_off") {
+        patchThread(thread.id, {
+          signedOff: true,
+          signedOffAt: new Date().toISOString(),
+          signoff: { ...thread.signoff, status: "signed_off" },
+        });
+      } else {
+        patchThread(thread.id, {
+          signoff: { ...thread.signoff, status: "declined" },
+        });
+      }
+    } catch {
+      setNotice("Could not record the decision.");
     } finally {
       setBusy(false);
     }
@@ -782,7 +895,7 @@ export function CommunityRooms({
                             {t.isYou ? "You" : t.authorName}
                             {t.isOwner ? " · Owner" : ""}
                           </span>
-                          <UnverifiedChip />
+                          {t.signedOff ? <SignedOffChip /> : <UnverifiedChip />}
                           <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
                             {timeAgo(t.createdAt)}
                           </span>
@@ -838,24 +951,77 @@ export function CommunityRooms({
                               Cite source
                             </TextAction>
                           )}
-                          <button
-                            type="button"
-                            disabled
-                            title="Verifier sign-off requests land when the sign-off queue ships."
-                            style={{
-                              fontFamily: "inherit",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: "var(--accent-blue)",
-                              background: "none",
-                              border: "none",
-                              padding: 0,
-                              cursor: "not-allowed",
-                              opacity: 0.55,
-                            }}
-                          >
-                            Request verifier sign-off
-                          </button>
+                          {t.signedOff ? null : t.signoff?.status === "pending" ? (
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                color: "var(--epistemic-signal)",
+                              }}
+                            >
+                              Sign-off requested{t.signoff.isMine ? "" : ` · ${t.signoff.requesterName}`}
+                              {" · pending"}
+                            </span>
+                          ) : t.signoff?.status === "declined" ? (
+                            <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  color: "var(--sev-moderate)",
+                                }}
+                              >
+                                Sign-off declined
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => requestSignoff(t)}
+                                disabled={busy || !selected.joined}
+                                title={
+                                  selected.joined
+                                    ? "Open a fresh verifier sign-off request"
+                                    : "Join the room to request sign-off"
+                                }
+                                style={{
+                                  fontFamily: "inherit",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: "var(--accent-blue)",
+                                  background: "none",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: busy || !selected.joined ? "not-allowed" : "pointer",
+                                  opacity: selected.joined ? 1 : 0.55,
+                                }}
+                              >
+                                Request again
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => requestSignoff(t)}
+                              disabled={busy || !selected.joined}
+                              title={
+                                selected.joined
+                                  ? "Ask an active verifier to check this claim against a primary document"
+                                  : "Join the room to request sign-off"
+                              }
+                              style={{
+                                fontFamily: "inherit",
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: "var(--accent-blue)",
+                                background: "none",
+                                border: "none",
+                                padding: 0,
+                                cursor: busy || !selected.joined ? "not-allowed" : "pointer",
+                                opacity: selected.joined ? 1 : 0.55,
+                              }}
+                            >
+                              Request verifier sign-off
+                            </button>
+                          )}
                           <span style={{ fontSize: 10.5, color: "var(--color-text-muted)", marginLeft: "auto" }}>
                             {t.replyCount} {t.replyCount === 1 ? "reply" : "replies"}
                           </span>
@@ -1088,26 +1254,14 @@ export function CommunityRooms({
                 </div>
 
                 {/* Verifier sign-off */}
-                <div style={{ ...CARD, padding: "13px 16px" }}>
-                  <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Verifier sign-off</p>
-                  <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
-                    A verifier checks a post&rsquo;s claim against a primary document; signed-off claims
-                    earn the platform&rsquo;s verified treatment and become citable.{" "}
-                    {currentUserIsVerifier ? (
-                      <>You are an <b style={{ color: "var(--accent-blue)" }}>active verifier</b>.</>
-                    ) : verifierStatus === "pending" ? (
-                      <>Your verifier application is pending.</>
-                    ) : (
-                      <>
-                        You are{" "}
-                        <Link href="/account" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
-                          not a verifier
-                        </Link>
-                        .
-                      </>
-                    )}
-                  </p>
-                </div>
+                <SignoffRailPanel
+                  threads={selected.threads}
+                  currentUserIsVerifier={currentUserIsVerifier}
+                  verifierStatus={verifierStatus}
+                  busy={busy}
+                  onWithdraw={withdrawSignoff}
+                  onDecide={decideSignoff}
+                />
 
                 {/* Vertical groups pending frame */}
                 <PendingFrame
@@ -1169,6 +1323,159 @@ function UnverifiedChip() {
     >
       Unverified
     </span>
+  );
+}
+
+function SignedOffChip() {
+  return (
+    <span
+      style={{
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: "0.09em",
+        textTransform: "uppercase",
+        color: "var(--color-text-inverse)",
+        background: "var(--color-primary)",
+        border: "1px solid var(--color-primary)",
+        borderRadius: 4,
+        padding: "2px 7px",
+      }}
+      title="A verifier signed this off against a primary document"
+    >
+      Signed off · verified
+    </span>
+  );
+}
+
+function SignoffRailPanel({
+  threads,
+  currentUserIsVerifier,
+  verifierStatus,
+  busy,
+  onWithdraw,
+  onDecide,
+}: {
+  threads: ThreadVM[];
+  currentUserIsVerifier: boolean;
+  verifierStatus: string;
+  busy: boolean;
+  onWithdraw: (t: ThreadVM) => void;
+  onDecide: (t: ThreadVM, decision: "signed_off" | "declined") => void;
+}) {
+  const myOpen = threads.filter(
+    (t) => t.signoff?.isMine && t.signoff.status === "pending"
+  );
+  const decideQueue = threads.filter((t) => t.signoff?.status === "pending");
+
+  const rowLink: React.CSSProperties = {
+    display: "block",
+    fontSize: 12,
+    fontWeight: 700,
+    color: "var(--text)",
+    textDecoration: "none",
+    lineHeight: 1.4,
+  };
+  const smallBtn = (primary: boolean): React.CSSProperties => ({
+    fontFamily: "inherit",
+    fontSize: 10.5,
+    fontWeight: 800,
+    padding: "4px 10px",
+    borderRadius: 5,
+    border: primary ? "1px solid var(--color-primary)" : "1px solid var(--color-border-strong)",
+    background: primary ? "var(--color-primary)" : "var(--surface)",
+    color: primary ? "var(--color-text-inverse)" : "var(--text)",
+    cursor: busy ? "wait" : "pointer",
+    whiteSpace: "nowrap",
+  });
+
+  return (
+    <div style={{ ...CARD, padding: "13px 16px" }}>
+      <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Verifier sign-off</p>
+      <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
+        A verifier checks a post&rsquo;s claim against a primary document; signed-off claims earn the
+        platform&rsquo;s verified treatment and become citable.{" "}
+        {currentUserIsVerifier ? (
+          <>You are an <b style={{ color: "var(--accent-blue)" }}>active verifier</b>.</>
+        ) : verifierStatus === "pending" ? (
+          <>Your verifier application is pending.</>
+        ) : (
+          <>
+            You are{" "}
+            <Link href="/account" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
+              not a verifier
+            </Link>
+            .
+          </>
+        )}
+      </p>
+
+      {/* Your open requests */}
+      <div style={{ margin: "12px 0 0", paddingTop: 10, borderTop: "1px solid var(--border-sub)" }}>
+        <p style={{ ...EYEBROW, margin: "0 0 6px" }}>Your open requests</p>
+        {myOpen.length === 0 ? (
+          <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
+            No open sign-off requests of yours in this room.
+          </p>
+        ) : (
+          myOpen.map((t) => (
+            <div key={t.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0" }}>
+              <a href={`#post-${t.id}`} style={{ ...rowLink, flex: 1, minWidth: 0 }}>
+                {t.title.slice(0, 60)}
+              </a>
+              <button
+                type="button"
+                onClick={() => onWithdraw(t)}
+                disabled={busy}
+                style={smallBtn(false)}
+              >
+                Withdraw
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Verifier decide queue */}
+      {currentUserIsVerifier && (
+        <div style={{ margin: "12px 0 0", paddingTop: 10, borderTop: "1px solid var(--border-sub)" }}>
+          <p style={{ ...EYEBROW, margin: "0 0 6px" }}>Decide queue</p>
+          {decideQueue.length === 0 ? (
+            <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
+              No sign-off requests waiting in this room.
+            </p>
+          ) : (
+            decideQueue.map((t) => (
+              <div key={t.id} style={{ padding: "8px 0", borderTop: "1px solid var(--border-sub)" }}>
+                <a href={`#post-${t.id}`} style={{ ...rowLink, margin: "0 0 2px" }}>
+                  {t.title.slice(0, 70)}
+                </a>
+                <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0 0 6px" }}>
+                  Requested by {t.signoff?.requesterName}
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => onDecide(t, "signed_off")}
+                    disabled={busy}
+                    style={smallBtn(true)}
+                  >
+                    Sign off
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDecide(t, "declined")}
+                    disabled={busy}
+                    style={smallBtn(false)}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

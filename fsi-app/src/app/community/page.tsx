@@ -184,7 +184,7 @@ export default async function CommunityPage() {
       ? supabase
           .from("community_posts")
           .select(
-            "id, group_id, title, body, reply_count, created_at, last_reply_at, author_user_id, referenced_intelligence_item_ids"
+            "id, group_id, title, body, reply_count, created_at, last_reply_at, author_user_id, referenced_intelligence_item_ids, signed_off_at, signed_off_by"
           )
           .in("group_id", roomGroupIds)
           .is("parent_post_id", null)
@@ -227,10 +227,63 @@ export default async function CommunityPage() {
     last_reply_at: string | null;
     author_user_id: string | null;
     referenced_intelligence_item_ids: string[] | null;
+    signed_off_at: string | null;
+    signed_off_by: string | null;
   }>;
 
+  // ── Sign-off requests for these posts (migration 153) ──
+  // RLS (signoff_select) returns the caller's OWN requests plus, for an active
+  // verifier / platform admin, ALL requests — exactly what the thread badges
+  // and the rail decide-queue need. signed_off_at on the post itself is
+  // group-readable, so the citable/verified chip renders for everyone; the
+  // request rows drive the pending/declined markers and the verifier queue.
+  const postIds = postRows.map((p) => p.id);
+  const signoffRows =
+    seeded && postIds.length > 0
+      ? (((
+          await supabase
+            .from("community_post_signoff_requests")
+            .select(
+              "id, post_id, requested_by, status, verifier_id, primary_doc_url, created_at, decided_at"
+            )
+            .in("post_id", postIds)
+        ).data ?? []) as Array<{
+          id: string;
+          post_id: string;
+          requested_by: string;
+          status: string;
+          verifier_id: string | null;
+          primary_doc_url: string | null;
+          created_at: string;
+          decided_at: string | null;
+        }>)
+      : [];
+
+  // Choose the most relevant request per post: a still-open (pending) request
+  // wins; otherwise the most recently created decided one.
+  const signoffByPost = new Map<string, (typeof signoffRows)[number]>();
+  for (const s of signoffRows) {
+    const cur = signoffByPost.get(s.post_id);
+    if (!cur) {
+      signoffByPost.set(s.post_id, s);
+      continue;
+    }
+    const sPending = s.status === "pending";
+    const curPending = cur.status === "pending";
+    let better = false;
+    if (sPending && !curPending) better = true;
+    else if (sPending === curPending && s.created_at > cur.created_at) better = true;
+    if (better) signoffByPost.set(s.post_id, s);
+  }
+
+  const requesterIds = signoffRows.map((s) => s.requested_by).filter(Boolean);
   const authorIds = Array.from(
-    new Set(postRows.map((p) => p.author_user_id).filter((id): id is string => Boolean(id)))
+    new Set(
+      [
+        ...postRows.map((p) => p.author_user_id),
+        ...requesterIds,
+      ].filter((id): id is string => Boolean(id))
+    )
   );
   const authorMap = new Map<string, ProfileRow>();
   if (authorIds.length > 0) {
@@ -253,6 +306,21 @@ export default async function CommunityPage() {
         ? memberDisplayName(author)
         : "Former member";
     const isOwner = (isYou ? me.workspace_role : author?.workspace_role) === "owner";
+    const req = signoffByPost.get(p.id) ?? null;
+    const signoff = req
+      ? {
+          requestId: req.id,
+          status: req.status as "pending" | "signed_off" | "declined" | "withdrawn",
+          isMine: req.requested_by === user.id,
+          requesterName:
+            req.requested_by === user.id
+              ? myName
+              : (() => {
+                  const rp = authorMap.get(req.requested_by);
+                  return rp ? memberDisplayName(rp) : "A member";
+                })(),
+        }
+      : null;
     const vm: ThreadVM = {
       id: p.id,
       groupId: p.group_id,
@@ -264,6 +332,9 @@ export default async function CommunityPage() {
       authorName,
       isYou,
       isOwner,
+      signedOff: Boolean(p.signed_off_at),
+      signedOffAt: p.signed_off_at,
+      signoff,
     };
     const list = threadsByGroup.get(p.group_id) ?? [];
     list.push(vm);
