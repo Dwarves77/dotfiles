@@ -174,11 +174,26 @@ const DEFAULT_REGIONS: Region[] = [
 
 // ── Component ──
 
+/** A sourced sub-national cost fact (state_cost_facts) — each carries its own
+ *  statute citation + source, never a national average (migration 152). */
+export interface StateCostFactVM {
+  stateCode: string;
+  factLabel: string;
+  value: string;
+  unit: string | null;
+  trend: string | null;
+  statuteCitation: string | null;
+  sourceName: string | null;
+  effectiveDate: string | null;
+}
+
 interface OperationsLedgerProps {
   initialResources: Resource[];
   aggregates?: WorkspaceAggregates;
   regulationsByRegion?: Resource[];
   operationsCoverage?: OperationsCoverageData;
+  /** Sourced per-state cost facts (US By-state sub-list). Empty until sourced. */
+  stateCosts?: StateCostFactVM[];
 }
 
 export function OperationsLedger({
@@ -186,7 +201,15 @@ export function OperationsLedger({
   aggregates,
   regulationsByRegion = [],
   operationsCoverage,
+  stateCosts = [],
 }: OperationsLedgerProps) {
+  // Index the sourced per-state facts by state code for the By-state sub-list.
+  // One primary figure per state (the first fact — minimum wage today).
+  const stateCostByCode = useMemo(() => {
+    const m = new Map<string, StateCostFactVM>();
+    for (const f of stateCosts) if (!m.has(f.stateCode)) m.set(f.stateCode, f);
+    return m;
+  }, [stateCosts]);
   // Live region roster (regions table) or the fallback roster.
   const regions: Region[] = useMemo(() => {
     const live = operationsCoverage?.regions ?? [];
@@ -403,6 +426,7 @@ export function OperationsLedger({
                 factsFor={factsFor}
                 subOpen={!!subOpen[region.key]}
                 onSubToggle={() => setSubOpen((s) => ({ ...s, [region.key]: !s[region.key] }))}
+                stateCosts={stateCostByCode}
               />
             );
           })}
@@ -488,7 +512,7 @@ function SeverityTile({ severity, count, label, sub }: { severity: Severity; cou
 // ── Region card ──
 
 function RegionCard({
-  region, chipSev, regs, populated, open, onToggle, activeDim, factsFor, subOpen, onSubToggle,
+  region, chipSev, regs, populated, open, onToggle, activeDim, factsFor, subOpen, onSubToggle, stateCosts,
 }: {
   region: Region;
   chipSev: Severity;
@@ -500,6 +524,7 @@ function RegionCard({
   factsFor: (regionKey: string, dimKey: string) => OperationsFact[];
   subOpen: boolean;
   onSubToggle: () => void;
+  stateCosts: Map<string, StateCostFactVM>;
 }) {
   const meta = SEV_META[chipSev];
   const hasSubs = region.key === "US";
@@ -545,7 +570,12 @@ function RegionCard({
 
           {/* By-state sub-list (US) */}
           {hasSubs && (
-            <ByStateSubList regs={regs} subOpen={subOpen} onSubToggle={onSubToggle} />
+            <ByStateSubList
+              regs={regs}
+              subOpen={subOpen}
+              onSubToggle={onSubToggle}
+              stateCosts={stateCosts}
+            />
           )}
         </>
       )}
@@ -664,10 +694,21 @@ function FactList({ facts }: { facts: OperationsFact[] }) {
 
 // ── By-state sub-list (US) ──
 
-function ByStateSubList({ regs, subOpen, onSubToggle }: { regs: Resource[]; subOpen: boolean; onSubToggle: () => void }) {
+function ByStateSubList({
+  regs,
+  subOpen,
+  onSubToggle,
+  stateCosts,
+}: {
+  regs: Resource[];
+  subOpen: boolean;
+  onSubToggle: () => void;
+  stateCosts: Map<string, StateCostFactVM>;
+}) {
   // Group US regulations by state (regulation cross-ref data is real). Per-state
-  // COST figures are separate sourced backend (migration 151 state_cost_facts,
-  // not yet landed) → every state's figure shows pending, never a national number.
+  // COST figures come from state_cost_facts (migration 152) — each carries its
+  // own statute citation + source. A state with no sourced fact shows a dash,
+  // never a national average presented as state law.
   const states = useMemo(() => {
     const map = new Map<string, { code: string; label: string; regs: Resource[] }>();
     for (const r of regs) {
@@ -702,9 +743,41 @@ function ByStateSubList({ regs, subOpen, onSubToggle }: { regs: Resource[]; subO
               <span style={{ fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
                 {st.regs.slice(0, 2).map((r) => r.title).join(" · ") || "Regulations in scope"}
               </span>
-              {/* Per-state cost figure: pending — sourced state cost facts are new
-                  backend (migration 151). Honest em-dash, never a national number. */}
-              <span title="State-level cost facts pending sourced entry" style={{ fontFamily: "var(--font-display)", fontSize: 17, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>—</span>
+              {/* Per-state cost figure: real sourced fact where present (each with
+                  its own citation, in the tooltip + a visible source line); an
+                  honest dash where none is sourced — never a national number. */}
+              {(() => {
+                const fact = stateCosts.get(st.code);
+                if (!fact) {
+                  return (
+                    <span
+                      title="No sourced state cost fact yet"
+                      style={{ fontFamily: "var(--font-display)", fontSize: 17, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}
+                    >
+                      —
+                    </span>
+                  );
+                }
+                const citation = [
+                  fact.factLabel,
+                  fact.statuteCitation,
+                  fact.sourceName ? `Source: ${fact.sourceName}` : null,
+                  fact.effectiveDate ? `Effective ${fact.effectiveDate}` : null,
+                ].filter(Boolean).join(" · ");
+                return (
+                  <span title={citation} style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 17, color: "var(--color-text-primary)" }}>
+                      {fact.value}
+                    </span>
+                    {fact.unit && (
+                      <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>{fact.unit}</span>
+                    )}
+                    <span style={{ display: "block", fontSize: 9, fontWeight: 700, letterSpacing: "0.04em", color: "var(--color-text-muted)" }}>
+                      {fact.factLabel}{fact.sourceName ? ` · ${fact.sourceName}` : ""}
+                    </span>
+                  </span>
+                );
+              })()}
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>{st.regs.length} regs</span>
             </div>
           ))}
@@ -713,10 +786,10 @@ function ByStateSubList({ regs, subOpen, onSubToggle }: { regs: Resource[]; subO
           <div style={{ padding: "11px 18px", background: "var(--color-bg-base)" }}>
             <div style={{ border: "1px dashed var(--honest-dashed)", borderRadius: 6, padding: "10px 13px" }}>
               <p style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--brass)", margin: "0 0 4px" }}>
-                State-level cost facts pending
+                State-level cost facts — sourced where available
               </p>
               <p style={{ fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: 0 }}>
-                Per-state figures (minimum wage, labor rates, fuel taxes) populate as sourced entries land — each carrying its own statute citation, never a national average presented as state law. A state with no sourced figure shows a dash, not a national number.
+                Per-state figures (minimum wage first; labor rates and fuel taxes next) carry their own citation and source — hover a figure for it. A state with no sourced figure shows a dash, never a national average presented as state law.
               </p>
             </div>
           </div>
