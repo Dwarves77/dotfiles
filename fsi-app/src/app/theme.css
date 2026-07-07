@@ -291,6 +291,8 @@
   /* Low tile eyebrow/numeral render muted-secondary in the mock (only the
      bottom rule is green) — token keeps that intent explicit. */
   --reg-tile-low-fig: #5A6B67;
+
+  /* -----------------------------------------------------
      REDESIGN T03 TOKENS (additive — HANDOFF §2)
      Detail/reader-page token set. Lifted verbatim from the
      approved mock inline styles (Pages - 03 Regulation
