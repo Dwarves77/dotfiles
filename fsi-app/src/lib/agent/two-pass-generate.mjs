@@ -21,7 +21,9 @@ const truncErr = (msg) => { const e = new Error(msg); e.fatal = false; return e;
 
 /**
  * @param {object} opts
- * @param {string} opts.system
+ * @param {string|Array<{type:string,text:string,cache_control?:{type:string}}>} opts.system - plain string OR
+ *        the prompt-cache block array (Phase-3a: pool as cached first block); passed to the body verbatim,
+ *        so the pass-1/pass-2 truncation split shares the cached prefix.
  * @param {string} opts.user
  * @param {(args:{apiKey:string,body:object})=>Promise<{text:string,stopReason:(string|null)}>} opts.stream
  * @param {(text:string)=>({start:number}|null)} opts.findYaml  - locate a trailing YAML block (to strip stray pass-1 YAML)

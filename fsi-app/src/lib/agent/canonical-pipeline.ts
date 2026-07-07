@@ -29,6 +29,7 @@ import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 // (spendStreamRaw = the same streamMessagesText call, ticket-gated + ceiling-enforced + accounted;
 // spendSearch = the web_search call). Behavior-preserving — the streaming body/params are unchanged.
 import { spendStreamRaw, spendSearch, spendStream } from "@/lib/llm/spend-client";
+import { cachedSystemBlocks } from "@/lib/agent/prompt-cache.mjs";
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
 import { isThinningRegression } from "@/lib/agent/thinning-guard.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
@@ -352,12 +353,13 @@ async function withTelemetry(fn: () => Promise<StepResult>): Promise<StepResult>
   return { ...r, usage: takeUsageLedger() };
 }
 
-// TELEMETRY SINK (span-attribution unit 4f): write ONE stored-path agent_runs row per item from the SUMMED
-// usage across the steps the runner invoked (generateBriefFromStored + groundBrief, each returns its own
-// UsageTelemetry). fetch_method='stored-pool' marks it as the fetch-free path; cost_usd_estimated carries
-// the real spend the MTD tile reads (no more $0 stored path). Service-role via svc(). Called ONLY by the
-// stored-path runner — the /api/agent/run route writes its own agent_runs row, so this never double-counts.
-// Best-effort: a telemetry-write failure must not fail the recovery; it returns ok:false for the caller to log.
+// TELEMETRY SINK (span-attribution unit 4f) — COST ZEROED (Phase-3a double-count fix, DEEP-AUDIT S3
+// §3 C4): since the 2026-07-06 per-call telemetry, EVERY model call already writes its real cost as a
+// fetch_method='spend-call' row inside the spend client. Writing the summed usage cost HERE TOO made
+// the daily cap + MTD tile count the same dollars twice. This row remains as the per-item STATUS audit
+// trail (token detail preserved in errors[].telemetry); its cost_usd_estimated is now 0 — the
+// spend-call rows are the single cost ledger. Best-effort: a telemetry-write failure must not fail the
+// recovery; it returns ok:false for the caller to log.
 export async function logStoredPathRun(
   itemId: string,
   usage: { inputTokens: number; outputTokens: number; calls: number; costUsd: number },
@@ -370,15 +372,15 @@ export async function logStoredPathRun(
     const { error } = await sb.from("agent_runs").insert({
       intelligence_item_id: itemId, source_url: sourceUrl ?? null, fetch_method: "stored-pool",
       started_at: nowIso, ended_at: nowIso, status,
-      cost_usd_estimated: Number(usage.costUsd.toFixed(6)),
-      errors: [{ telemetry: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, sonnet_calls: usage.calls } }],
+      cost_usd_estimated: 0, // spend-call rows carry the real cost (double-count fix); status row only
+      errors: [{ telemetry: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, sonnet_calls: usage.calls, costUsdInformational: Number(usage.costUsd.toFixed(6)) } }],
     });
     if (error) return { ok: false, detail: `agent_runs insert failed: ${error.message}` };
-    return { ok: true, detail: `logged $${usage.costUsd.toFixed(4)} (${usage.inputTokens}in/${usage.outputTokens}out, ${usage.calls} calls)` };
+    return { ok: true, detail: `status row logged; real cost $${usage.costUsd.toFixed(4)} already ledgered per-call (${usage.inputTokens}in/${usage.outputTokens}out, ${usage.calls} calls)` };
   } catch (e) { return { ok: false, detail: `agent_runs insert threw: ${(e as Error).message}` }; }
 }
 
-async function callSonnet(system: string, user: string): Promise<string> {
+async function callSonnet(system: string, user: string, cachedPool?: string): Promise<string> {
   // max_tokens 32000 (was 24000): the largest regs (CSRD, EU-ETS-maritime-class) overran 24000 — the
   // trailing Claim Provenance Ledger + YAML (and thus the 18-field metadata) are the FIRST casualties of
   // truncation, so a too-tight cap surfaced as an obscure "YAML frontmatter not found" parse failure that
@@ -388,9 +390,17 @@ async function callSonnet(system: string, user: string): Promise<string> {
   // socket idles for the full multi-minute generation and never resolves (proven 2026-06-19; the identical
   // stream:true call completed). Streaming keeps the socket alive (so the larger cap is viable), bounds on
   // NO-PROGRESS, and preserves anthropicError classification end-to-end (out-of-credits HALT unchanged).
+  // PROMPT-CACHE (Phase-3a): when a pool is supplied it becomes the FIRST system block with a
+  // cache_control breakpoint (prompt-cache.mjs), so re-ground / retry / slot-forcing calls over the
+  // same pool read the cached prefix at 0.1× instead of re-paying full input rate.
   const { text, stopReason, usage } = await spendStreamRaw({
     apiKey: process.env.ANTHROPIC_API_KEY!,
-    body: { model: "claude-sonnet-4-6", max_tokens: 32000, system, messages: [{ role: "user", content: user }] },
+    body: {
+      model: "claude-sonnet-4-6",
+      max_tokens: 32000,
+      system: cachedPool ? cachedSystemBlocks(cachedPool, system) : system,
+      messages: [{ role: "user", content: user }],
+    },
   });
   addUsage(usage);
   // DETERMINISTIC truncation signal (content-class, fatal=false → per-item failure, not a batch halt). This
@@ -408,7 +418,7 @@ async function callSonnet(system: string, user: string): Promise<string> {
  *  the real deps (streaming + YAML-locate). DEFAULT one call (body + New Sources + YAML, NO ledger); splits
  *  to body-then-YAML ONLY on stop_reason truncation, so the body comes out whole and normal briefs stay 1
  *  call. */
-async function generateBriefText(system: string, user: string): Promise<string> {
+async function generateBriefText(system: string, user: string, cachedPool?: string): Promise<string> {
   // Route every stream call twoPassGenerate makes (1 normal, 2 on truncation split) through the spend client
   // (spendStreamRaw = ticket-gated + ceiling-enforced + accounted) AND meter it into the stored-path ledger.
   const meteredStream: typeof streamMessagesText = async (opts) => {
@@ -416,7 +426,11 @@ async function generateBriefText(system: string, user: string): Promise<string> 
     addUsage(r.usage);
     return r;
   };
-  return twoPassGenerate({ system, user, stream: meteredStream, findYaml: findYamlBlock, apiKey: process.env.ANTHROPIC_API_KEY! });
+  // PROMPT-CACHE (Phase-3a): pool as the cached first system block. twoPassGenerate passes `system`
+  // through to the Messages body verbatim, so the block array flows unchanged — and the truncation
+  // split's pass-1/pass-2 calls share the cached prefix (a guaranteed hit class).
+  const systemArg = cachedPool ? cachedSystemBlocks(cachedPool, system) : system;
+  return twoPassGenerate({ system: systemArg, user, stream: meteredStream, findYaml: findYamlBlock, apiKey: process.env.ANTHROPIC_API_KEY! });
 }
 
 // Sonnet WITH the server-side web_search tool — routed through the spend client (spendSearch owns the
@@ -590,19 +604,20 @@ async function synthesiseAndWriteBrief(
 A requirement stated with ZERO qualifications is a FLAG that you have not read far enough — return to the source text before asserting it.
 LEGAL LINE — state what the text REQUIRES and whom it falls on AS DEFINED. Do NOT assert that the workspace (or any entity) IS a producer / importer / distributor / manufacturer, or that an obligation attaches: matching an entity to a defined role is a legal determination → route it to a "*Legal Confirmation Required:*" callout.`
     : "";
+  // PROMPT-CACHE (Phase-3a): the pool no longer rides the END of this user message — it is the CACHED
+  // first system block (cachedSystemBlocks via generateBriefText's third arg), so grounding / re-ground /
+  // the two-pass split re-read it at 0.1× instead of re-paying the full input rate. The wording below says
+  // "reference corpus" instead of "blocks below" because the pool now precedes these instructions.
   const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}
-Synthesise ACROSS ALL the source blocks below — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack.
+Synthesise ACROSS ALL the SOURCE blocks in your reference corpus (the SOURCE CONTENT in your system context) — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack. The corpus carries ${fetched.length} sources.
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
 Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.
-Ground every FACT claim's source_span as a VERBATIM substring of one of the SOURCE blocks below; set source_url to THAT block's url. HARD RULE: a FACT claim's source_url MUST be one of the SOURCE block urls actually provided below — never a URL you only saw while searching. A source you know of but that is NOT among the blocks below may be listed under "## New Sources Identified" as a lead for later retrieval, but MUST NOT be used as a FACT source_url or source_span; carry its content as a labeled "Analytical inference:" or omit it. Item source_id for the primary FACT source_id: ${it.source_id}.${discoveredHint}
+Ground every FACT claim's source_span as a VERBATIM substring of one of the SOURCE blocks in the reference corpus; set source_url to THAT block's url. HARD RULE: a FACT claim's source_url MUST be one of the SOURCE block urls actually provided in the corpus — never a URL you only saw while searching. A source you know of but that is NOT among the corpus blocks may be listed under "## New Sources Identified" as a lead for later retrieval, but MUST NOT be used as a FACT source_url or source_span; carry its content as a labeled "Analytical inference:" or omit it. Item source_id for the primary FACT source_id: ${it.source_id}.${discoveredHint}
 VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back to quarantine) if violated. Before you finish, RE-READ the WHOLE brief and fix every instance — these two are the dominant rejection causes on long briefs:
 - LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
 - URL discipline: every URL anywhere in the brief body MUST be EITHER (a) copied exactly from a SOURCE block url, OR (b) listed in your "## New Sources Identified" table. A URL that appears in prose but is in NEITHER place WILL REJECT the brief — grounding only recognises SOURCE-block urls and New-Sources-table urls. To reference a source you did not fetch, put it in the New Sources table; never drop a bare/known URL into prose, never invent a path, no markdown emphasis around URLs.
-Follow your output contract exactly: brief body, then a "## New Sources Identified" table of the corroborating sources you used (if any), then the YAML frontmatter as the FINAL block. Do NOT emit a Claim Provenance Ledger — provenance is carried inline in the prose (labels + GAP statements); grounding extracts it downstream.
-
-SOURCE CONTENT (copy FACT spans verbatim from here — ${fetched.length} sources):
-${blocks}`;
-  const parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user));
+Follow your output contract exactly: brief body, then a "## New Sources Identified" table of the corroborating sources you used (if any), then the YAML frontmatter as the FINAL block. Do NOT emit a Claim Provenance Ledger — provenance is carried inline in the prose (labels + GAP statements); grounding extracts it downstream.`;
+  const parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
   const body = stripUrlMarkers((parsed.body || "").trim()) as string;
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
   // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
@@ -1068,7 +1083,9 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   // invisible). A pathological section OVER the hard ceiling is SURFACED (coverage_gap flag), never silent.
   const preparedSecs = secs.map((s) => ({ s, p: prepareSectionForGrounding(s.content_md) }));
   await recordTruncation(sb, itemId, preparedSecs.filter((x) => x.p.truncated).map((x) => ({ url: `section:${x.s.section_key}`, collected: x.p.cap, fullLength: x.p.fullLength, cap: x.p.cap, transport: "section-ceiling" })));
-  const user = `BRIEF SECTIONS:\n${preparedSecs.map(({ s, p }) => `### SECTION ${s.section_key}\n${p.text}`).join("\n\n")}\n\n====\nSOURCE CONTENT (copy spans VERBATIM):\n${groundSrc.blocks}`;
+  // PROMPT-CACHE (Phase-3a): the source pool rides the cached first system block (callSonnet's third
+  // arg), not this user message — retries / re-grounds over the same pool read the prefix at 0.1×.
+  const user = `BRIEF SECTIONS:\n${preparedSecs.map(({ s, p }) => `### SECTION ${s.section_key}\n${p.text}`).join("\n\n")}\n\nCopy spans VERBATIM from the SOURCE CONTENT reference corpus in your system context.`;
   let claims;
   // Lenient extraction: a single malformed claim is skipped, not fatal — one bad FACT must not reject
   // the whole ledger (the 0-FACT quarantine on rich synthesised briefs). The kept-filter + the gate
@@ -1077,7 +1094,7 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   // re-throws so the batch runner HALTS with the actionable cause, instead of mislabeling every remaining
   // item as "still-quarantined". Only a transient/parse failure degrades to a per-item ok:false (full
   // message, never truncated — the diagnostic must survive).
-  try { claims = extractClaimLedgerLenient(await callSonnet(system, user)); }
+  try { claims = extractClaimLedgerLenient(await callSonnet(system, user, groundSrc.blocks)); }
   catch (e) { if (isFatalAnthropic(e)) throw e; return { ok: false, detail: `ledger call failed: ${(e as Error).message}` }; }
   for (const cl of claims) { if (cl.source_url) cl.source_url = stripUrlMarkers(cl.source_url) as string; }
   // Mirror validate_item_provenance criteria so every INSERTED claim already passes the gate:

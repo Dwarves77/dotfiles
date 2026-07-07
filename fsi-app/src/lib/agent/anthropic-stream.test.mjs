@@ -93,7 +93,8 @@ test("accumulator + streamMessagesText: captures usage (input from message_start
 test("accumulator: usage defaults to 0/0 when no usage frames present (never NaN)", () => {
   const acc = createSSEAccumulator();
   for (const c of SSE_OK) acc.feed(c);
-  assert.deepEqual(acc.state.usage, { input_tokens: 0, output_tokens: 0 });
+  // Shape extended for prompt-cache (Phase-3a): cache token fields ride along, defaulting 0.
+  assert.deepEqual(acc.state.usage, { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 });
 });
 
 test("streamMessagesText: pre-stream 400 out-of-credits → FATAL classified (the halt path, preserved)", async () => {
@@ -140,4 +141,27 @@ test("streamMessagesText: a no-progress stream trips the idle watchdog as TRANSI
     () => streamMessagesText({ apiKey: "k", body: { messages: [] }, idleMs: 40, fetchImpl: async () => ({ ok: true, status: 200, body: neverStream }) }),
     (e) => { assert.equal(isFatalAnthropic(e), false); assert.match(e.message, /idle/); return true; },
   );
+});
+
+test("accumulator: captures prompt-cache usage tokens from message_start (Phase-3a)", () => {
+  const acc = createSSEAccumulator();
+  acc.feed('event: message_start\ndata: {"type":"message_start","message":{"id":"m","usage":{"input_tokens":1200,"output_tokens":1,"cache_creation_input_tokens":140000,"cache_read_input_tokens":0}}}\n\n');
+  acc.feed('event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":900}}\n\n');
+  acc.feed('event: message_stop\ndata: {"type":"message_stop"}\n\n');
+  const u = acc.state.usage;
+  assert.equal(u.input_tokens, 1200);
+  assert.equal(u.output_tokens, 900);
+  assert.equal(u.cache_creation_input_tokens, 140000);
+  assert.equal(u.cache_read_input_tokens, 0);
+});
+
+test("accumulator: cache_read tokens captured on a cache-hit call; absent fields default 0", () => {
+  const hit = createSSEAccumulator();
+  hit.feed('event: message_start\ndata: {"type":"message_start","message":{"id":"m","usage":{"input_tokens":800,"output_tokens":1,"cache_read_input_tokens":140000}}}\n\n');
+  assert.equal(hit.state.usage.cache_read_input_tokens, 140000);
+  assert.equal(hit.state.usage.cache_creation_input_tokens, 0);
+  const legacy = createSSEAccumulator();
+  legacy.feed('event: message_start\ndata: {"type":"message_start","message":{"id":"m","usage":{"input_tokens":500,"output_tokens":1}}}\n\n');
+  assert.equal(legacy.state.usage.cache_creation_input_tokens, 0);
+  assert.equal(legacy.state.usage.cache_read_input_tokens, 0);
 });
