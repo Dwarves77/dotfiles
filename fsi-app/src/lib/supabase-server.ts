@@ -1989,6 +1989,64 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
   }
 }
 
+/** A sourced sub-national cost fact for the Operations By-state sub-list. */
+export interface StateCostFactRow {
+  stateCode: string;
+  factLabel: string;
+  value: string;
+  unit: string | null;
+  trend: string | null;
+  statuteCitation: string | null;
+  sourceName: string | null;
+  effectiveDate: string | null;
+}
+
+/**
+ * Fetch sourced per-state cost facts (state_cost_facts, migration 152) for the
+ * Operations By-state sub-list. Each row carries its own statute citation +
+ * registered source — never a national average. Fails soft to [] so the
+ * surface renders honest dashes when the table is empty or unreachable.
+ */
+export async function fetchStateCostFacts(): Promise<StateCostFactRow[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = getServiceSupabase();
+    const { data, error } = await supabase
+      .from("state_cost_facts")
+      .select("state_code, fact_label, value, unit, trend, statute_citation, effective_date, source:sources(name)")
+      .order("state_code", { ascending: true });
+    if (error) {
+      console.warn("fetchStateCostFacts error:", error.message);
+      return [];
+    }
+    return (data || []).map((f: {
+      state_code: string;
+      fact_label: string;
+      value: string;
+      unit: string | null;
+      trend: string | null;
+      statute_citation: string | null;
+      effective_date: string | null;
+      source: { name: string } | { name: string }[] | null;
+    }) => {
+      const src = Array.isArray(f.source) ? f.source[0] : f.source;
+      return {
+        stateCode: f.state_code,
+        factLabel: f.fact_label,
+        value: f.value,
+        unit: f.unit,
+        trend: ["up", "down", "flat"].includes(f.trend || "") ? f.trend : null,
+        statuteCitation: f.statute_citation,
+        sourceName: src?.name ?? null,
+        effectiveDate: f.effective_date,
+      };
+    });
+  } catch (e) {
+    console.warn("fetchStateCostFacts exception:", e instanceof Error ? e.message : String(e));
+    return [];
+  }
+}
+
 // ── Regulation Sections Fetch (A5.3) ─────────────────────────────
 /**
  * Sprint 3 A5.3 (2026-05-27). Fetches the parsed regulation sections
