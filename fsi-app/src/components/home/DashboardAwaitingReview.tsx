@@ -1,36 +1,28 @@
 "use client";
 
 /**
- * DashboardAwaitingReview — Housekeeping body (right). Surfaces the top 3
- * oldest items waiting for admin review across three heterogeneous
- * sources: provisional sources, integrity flags, and staged updates
- * pending spot-check. Composed from existing tables in the fetcher
- * (no unified RPC yet).
+ * DashboardAwaitingReview — Housekeeping card (right). Top oldest items waiting
+ * for admin review across provisional sources, integrity flags, and staged
+ * spot-checks (composed server-side; permission-gated to admins — non-admins
+ * get []).
  *
- * - Reads via React 19 use() inside a Suspense boundary set by HomeSurface.
- * - Permission gate handled server-side: fetchAwaitingReview returns []
- *   for non-admins. The widget renders the empty-state for that case
- *   (fine because the strings are also spec-approved).
- * - Stale flag: if any item has daysWaiting > 7, render the (stale) pill
- *   in the header AND apply .high-sev to that row.
- * - Type chips: prov / intg / spot, mapped to provisional / integrity /
- *   spotcheck per the spec.
- *
- * Empty + error copy is spec-verbatim.
+ * Redesign TEMPLATE 01 (HANDOFF §6.3 + mock). Each row carries a dashed
+ * provisional-style chip (epistemic amber #B45309), the item title, and its
+ * wait time. The header carries the oldest-waiting flag when present. Empty
+ * state is the honest "caught up" copy.
  */
 
 import { use } from "react";
-import { TypesetSection } from "./TypesetSection";
 import type { ReviewItem } from "@/lib/data";
 
 export interface DashboardAwaitingReviewProps {
   promise: Promise<ReviewItem[]>;
 }
 
-const TYPE_TO_CHIP: Record<ReviewItem["type"], { cls: string; label: string }> = {
-  provisional: { cls: "prov", label: "Prov" },
-  integrity: { cls: "intg", label: "Flag" },
-  spotcheck: { cls: "spot", label: "Spot" },
+const TYPE_LABEL: Record<ReviewItem["type"], string> = {
+  provisional: "Provisional",
+  integrity: "Flag",
+  spotcheck: "Spot",
 };
 
 function formatAgo(days: number): string {
@@ -41,96 +33,128 @@ function formatAgo(days: number): string {
   return `${months} mo waiting`;
 }
 
-export function DashboardAwaitingReview({
-  promise,
-}: DashboardAwaitingReviewProps) {
-  // The promise is constructed by getAwaitingReview in src/lib/data.ts
-  // which catches all errors and resolves to []. We cannot wrap use() in
-  // try/catch because it throws a Suspense exception React needs to
-  // bubble. The "Couldn't load review queue · retry" copy is reserved
-  // for an error boundary at the HomeSurface level (future work); for
-  // now the fetcher's try/catch routes failures through the empty-state
-  // copy below, which the user has approved as the safe fallback.
+function oldestLabel(days: number): string {
+  if (days < 30) return `oldest waiting ${days} day${days === 1 ? "" : "s"}`;
+  const months = Math.floor(days / 30);
+  return `oldest waiting ${months} mo`;
+}
+
+const cardStyle = {
+  background: "var(--color-bg-surface)",
+  border: "1px solid var(--color-border)",
+  borderRadius: 8,
+  padding: "16px 18px",
+} as const;
+
+const eyebrowStyle = {
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.13em",
+  textTransform: "uppercase",
+  color: "var(--color-text-muted)",
+  margin: "0 0 2px",
+} as const;
+
+const titleStyle = {
+  fontFamily: "var(--font-display)",
+  fontWeight: 400,
+  fontSize: 19,
+  letterSpacing: "0.02em",
+  textTransform: "uppercase",
+  margin: 0,
+} as const;
+
+export function DashboardAwaitingReview({ promise }: DashboardAwaitingReviewProps) {
   const items = use(promise);
 
   if (items.length === 0) {
     return (
-      <TypesetSection
-        eyebrow="What you should do today"
-        title="Awaiting review"
-      >
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--text-2)",
-            lineHeight: 1.5,
-            margin: "4px 0 0",
-          }}
-        >
+      <div style={cardStyle}>
+        <p style={eyebrowStyle}>What you should do today</p>
+        <h3 style={{ ...titleStyle, margin: "0 0 8px" }}>Awaiting review</h3>
+        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.5, margin: 0 }}>
           Caught up. No items awaiting review.
         </p>
-      </TypesetSection>
+      </div>
     );
   }
 
-  const isStale = items.some((i) => i.daysWaiting > 7);
-  const titleNode = (
-    <>
-      Awaiting review
-      {isStale && <span className="cl-stale-pill">(stale)</span>}
-    </>
-  );
+  const oldest = items.reduce((max, i) => Math.max(max, i.daysWaiting), 0);
 
-  // TypesetSection takes title:string; we render the stale pill via a
-  // post-render trick: pass title="Awaiting review" and inject the pill
-  // through deck slot would mis-position it. Use a sub-section here that
-  // matches the same DOM as TypesetSection.
   return (
-    <section className="cl-typeset">
-      <div className="cl-typeset-eyebrow">What you should do today</div>
-      <h3 className="cl-typeset-h">
-        <span style={{ display: "inline-flex", alignItems: "baseline" }}>
-          {titleNode}
-        </span>
-        <span className="count">
+    <div style={cardStyle}>
+      <p style={eyebrowStyle}>What you should do today</p>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", margin: "0 0 12px" }}>
+        <h3 style={titleStyle}>Awaiting review</h3>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)" }}>
           {items.length} item{items.length === 1 ? "" : "s"}
         </span>
-      </h3>
-      <ul className="cl-typeset-list">
-        {items.map((it) => {
-          // null-safe: an unknown/absent type yields a neutral fallback chip instead of crashing.
-          // Paired obligation: this guard must hold for EVERY type-consumer before the item_type
-          // column-default migration lands (see type-consumer-probe.mjs).
-          const chip = TYPE_TO_CHIP[it.type] ?? { cls: "", label: String(it.type ?? "?") };
-          const itemStale = it.daysWaiting > 7;
-          return (
-            <li
-              key={it.id}
-              className={`cl-rev-item${itemStale ? " high-sev" : ""}`}
-            >
-              <span className={`cl-rev-chip ${chip.cls}`}>{chip.label}</span>
-              <a
-                href={it.href}
-                style={{
-                  color: "inherit",
-                  textDecoration: "none",
-                  display: "block",
-                  minWidth: 0,
-                }}
-              >
-                <div className="t">{it.title}</div>
-                <div className="ago">{formatAgo(it.daysWaiting)}</div>
-              </a>
-              <span className="chev" aria-hidden="true">
-                ›
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="cl-typeset-foot">
-        <a href="/admin">Open admin queue →</a>
+        {oldest > 7 && (
+          <span
+            style={{
+              fontSize: 9.5,
+              fontWeight: 800,
+              letterSpacing: "0.09em",
+              textTransform: "uppercase",
+              color: "var(--epistemic-signal)",
+            }}
+          >
+            {oldestLabel(oldest)}
+          </span>
+        )}
       </div>
-    </section>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {items.map((it, idx) => (
+          <a
+            key={it.id}
+            href={it.href}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "92px 1fr auto",
+              gap: 12,
+              alignItems: "center",
+              padding: "11px 4px",
+              borderTop: "1px solid var(--color-border-subtle)",
+              borderBottom: idx === items.length - 1 ? "1px solid var(--color-border-subtle)" : undefined,
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9.5,
+                fontWeight: 800,
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+                color: "var(--epistemic-signal)",
+                border: "1px dashed rgba(180,83,9,0.45)",
+                borderRadius: 4,
+                padding: "3px 6px",
+                textAlign: "center",
+              }}
+            >
+              {TYPE_LABEL[it.type] ?? String(it.type ?? "?")}
+            </span>
+            <p style={{ fontSize: 12.5, fontWeight: 700, margin: 0, lineHeight: 1.4 }}>{it.title}</p>
+            <span style={{ fontSize: 11, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+              {formatAgo(it.daysWaiting)}
+            </span>
+          </a>
+        ))}
+      </div>
+      <a
+        href="/admin"
+        style={{
+          display: "inline-block",
+          margin: "12px 0 0",
+          fontSize: 11.5,
+          fontWeight: 800,
+          color: "var(--color-primary)",
+          textDecoration: "none",
+        }}
+      >
+        Open admin queue →
+      </a>
+    </div>
   );
 }

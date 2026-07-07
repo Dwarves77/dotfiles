@@ -260,6 +260,10 @@
   /* Brass — pending-frame headers, jurisdiction tags, theme eyebrows (HANDOFF §2). */
   --brass: #8A6A2A;
 
+  /* Destructive-quiet — Ban / Delete text actions + REPLACED supersession
+     chips (HANDOFF §2). Text-only destructive register, never a filled pill. */
+  --destructive-quiet: #9A3412;
+
   /* Severity spectrum — HANDOFF §2 named values. */
   --sev-critical: #DC2626;
   --sev-high: #E8610A;

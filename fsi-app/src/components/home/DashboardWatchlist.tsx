@@ -1,23 +1,17 @@
 "use client";
 
 /**
- * DashboardWatchlist — rail widget (top). Shows the current user's pinned
- * sources, regulations, and market signals ordered by recent activity.
+ * DashboardWatchlist — rail card. The current user's pinned sources,
+ * regulations, and market signals ordered by recent activity.
  *
- * - Reads the watchlist promise via React 19 use() inside a Suspense
- *   boundary set by the caller (HomeSurface).
- * - First item gets `.fresh` styling on the pulse dot (animated,
- *   --critical color).
- * - Empty + error states use spec-verbatim copy; the user has approved
- *   the exact strings, do not paraphrase.
- *
- * CSS in src/app/globals.css under the "Dashboard sidebar widgets" block:
- *   .cl-wl-item, .pulse-dot, .cl-typetag, .cl-typeset-* (via TypesetSection).
+ * Redesign TEMPLATE 01 (HANDOFF §6.3 + mock): a titled card whose empty state
+ * is the honest-state frame (§4) — dashed border, muted copy, a recovery CTA.
+ * Populated state lists up to 3 items with their type + relative time.
  */
 
 import { use } from "react";
 import Link from "next/link";
-import { TypesetSection } from "./TypesetSection";
+import { DashboardRailCard, RailEmptyFrame } from "./DashboardRailCard";
 import type { WatchlistItem } from "@/lib/data";
 
 export interface DashboardWatchlistProps {
@@ -33,16 +27,14 @@ const TYPE_LABEL: Record<WatchlistItem["type"], string> = {
 function relativeTime(iso: string): string {
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return "";
-  const now = Date.now();
-  const diffMs = Math.max(0, now - t);
+  const diffMs = Math.max(0, Date.now() - t);
   const minutes = Math.floor(diffMs / 60000);
   if (minutes < 60) return `${Math.max(1, minutes)} min ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
-  const months = Math.floor(days / 30);
-  return `${months} mo ago`;
+  return `${Math.floor(days / 30)} mo ago`;
 }
 
 function hrefFor(item: WatchlistItem): string {
@@ -53,71 +45,36 @@ function hrefFor(item: WatchlistItem): string {
 
 export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
   const items = use(promise);
-  const total = items.length;
   const visible = items.slice(0, 3);
 
   if (visible.length === 0) {
     return (
-      <TypesetSection eyebrow="Tracked by you" title="Watchlist">
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--text-2)",
-            lineHeight: 1.5,
-            margin: "4px 0 12px",
-          }}
-        >
-          Watch any source, regulation, or market signal to see updates here.
-        </p>
-        <Link
-          href="/regulations"
-          style={{
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--accent)",
-            textDecoration: "none",
-          }}
-        >
-          Browse what to watch →
-        </Link>
-      </TypesetSection>
+      <DashboardRailCard title="Watchlist">
+        <RailEmptyFrame
+          body="Nothing watched yet. Watch any regulation, source, or market signal to see its updates here."
+          cta={{ label: "Browse what to watch →", href: "/regulations" }}
+        />
+      </DashboardRailCard>
     );
   }
 
   return (
-    <TypesetSection
-      eyebrow="Tracked by you"
-      title="Watchlist"
-      count={`${visible.length} of ${total}`}
-      footer={<Link href="/watchlist">View all {total} →</Link>}
-    >
-      <ul className="cl-typeset-list">
-        {visible.map((item, idx) => {
-          const isFresh = idx === 0;
-          return (
-            <li key={item.id} className={`cl-wl-item${isFresh ? " fresh" : ""}`}>
-              <Link
-                href={hrefFor(item)}
-                style={{
-                  display: "block",
-                  textDecoration: "none",
-                  color: "inherit",
-                }}
-              >
-                <div className="src">{item.source}</div>
-                <div className="t">{item.title}</div>
-                <div className="meta">
-                  <span className={`pulse-dot${isFresh ? " fresh" : ""}`} />
-                  <span>{relativeTime(item.lastChangedAt)}</span>
-                  <span className="cl-typetag">{TYPE_LABEL[item.type]}</span>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+    <DashboardRailCard title="Watchlist" count={`${visible.length} of ${items.length}`}>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        {visible.map((item) => (
+          <li key={item.id}>
+            <Link href={hrefFor(item)} prefetch={false} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+              <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--color-text-muted)", margin: 0 }}>{item.source}</p>
+              <p style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-text-primary)", margin: "2px 0 0", lineHeight: 1.35 }}>
+                {item.title}
+              </p>
+              <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
+                {relativeTime(item.lastChangedAt)} · {TYPE_LABEL[item.type]}
+              </p>
+            </Link>
+          </li>
+        ))}
       </ul>
-    </TypesetSection>
+    </DashboardRailCard>
   );
 }

@@ -1,26 +1,16 @@
 "use client";
 
 /**
- * DashboardByOwner — rail widget (bottom). Aggregates resources by their
- * `actionOwner` field (canonical name resolved per Track 1E investigation;
- * see src/types/resource.ts:158). Surfaces who has the heaviest plate plus
- * each owner's most-urgent item.
+ * DashboardByOwner — rail card. Aggregates resources by their `actionOwner`
+ * field and surfaces who has the heaviest plate plus each owner's top item.
  *
- * - No fetcher. Computed in-component from the already-hydrated resources.
- * - Display-layer normalisation: name.trim().toLowerCase() as group key,
- *   display the most-frequent original casing.
- * - Sort by count desc, ties broken by highest priority of the top item.
- * - Slice to top 3.
- *
- * Empty state uses spec-verbatim copy.
- *
- * CSS in src/app/globals.css under the "Dashboard sidebar widgets" block:
- *   .cl-ow-item (.row, .name, .ct, .top, .top.crit/.high/.mod, .dot).
+ * Redesign TEMPLATE 01 (HANDOFF §6.3 + mock): titled card; the empty state is
+ * the honest-state frame (§4). No fetcher — computed from hydrated resources.
  */
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { TypesetSection } from "./TypesetSection";
+import { DashboardRailCard, RailEmptyFrame } from "./DashboardRailCard";
 import type { Resource } from "@/types/resource";
 
 export interface DashboardByOwnerProps {
@@ -34,13 +24,6 @@ const PRIORITY_RANK: Record<Resource["priority"], number> = {
   LOW: 3,
 };
 
-const PRIORITY_TONE: Record<Resource["priority"], "crit" | "high" | "mod"> = {
-  CRITICAL: "crit",
-  HIGH: "high",
-  MODERATE: "mod",
-  LOW: "mod",
-};
-
 interface OwnerGroup {
   key: string;
   displayName: string;
@@ -49,11 +32,7 @@ interface OwnerGroup {
 }
 
 function aggregateOwners(resources: Resource[]): OwnerGroup[] {
-  type Bucket = {
-    key: string;
-    casings: Map<string, number>;
-    items: Resource[];
-  };
+  type Bucket = { key: string; casings: Map<string, number>; items: Resource[] };
   const buckets = new Map<string, Bucket>();
 
   for (const r of resources) {
@@ -90,11 +69,7 @@ function aggregateOwners(resources: Resource[]): OwnerGroup[] {
       key: bucket.key,
       displayName,
       count: bucket.items.length,
-      top: {
-        id: topItem.id,
-        title: topItem.title,
-        priority: topItem.priority,
-      },
+      top: { id: topItem.id, title: topItem.title, priority: topItem.priority },
     });
   }
 
@@ -111,31 +86,12 @@ export function DashboardByOwner({ resources }: DashboardByOwnerProps) {
 
   if (groups.length === 0) {
     return (
-      <TypesetSection eyebrow="On whose plate" title="By Owner">
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--text-2)",
-            lineHeight: 1.5,
-            margin: "4px 0 12px",
-          }}
-        >
-          Assign owners to regulations from any detail page to populate this view.
-        </p>
-        <Link
-          href="/regulations"
-          style={{
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--accent)",
-            textDecoration: "none",
-          }}
-        >
-          Pick a regulation to assign →
-        </Link>
-      </TypesetSection>
+      <DashboardRailCard title="By owner">
+        <RailEmptyFrame
+          body="No owners assigned yet. Assign owners to regulations from any detail page to populate this view."
+          cta={{ label: "Pick a regulation to assign →", href: "/regulations" }}
+        />
+      </DashboardRailCard>
     );
   }
 
@@ -143,42 +99,35 @@ export function DashboardByOwner({ resources }: DashboardByOwnerProps) {
   const topThree = groups.slice(0, 3);
 
   return (
-    <TypesetSection
-      eyebrow="On whose plate"
-      title="By Owner"
-      count={`${totalItems} items · ${groups.length} owner${groups.length === 1 ? "" : "s"}`}
-      footer={<Link href="/profile?tab=owners">View all owners →</Link>}
+    <DashboardRailCard
+      title="By owner"
+      count={`${totalItems} item${totalItems === 1 ? "" : "s"} · ${groups.length} owner${groups.length === 1 ? "" : "s"}`}
     >
-      <ul className="cl-typeset-list">
-        {topThree.map((g) => {
-          const tone = PRIORITY_TONE[g.top.priority];
-          return (
-            <li key={g.key} className="cl-ow-item">
-              <div className="row">
-                <Link
-                  href={`/regulations?owner=${encodeURIComponent(g.displayName)}`}
-                  className="name"
-                  style={{ color: "inherit", textDecoration: "none" }}
-                >
-                  {g.displayName}
-                </Link>
-                <span className="ct">
-                  {g.count}
-                  <sub>items</sub>
-                </span>
-              </div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        {topThree.map((g) => (
+          <li key={g.key}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
               <Link
-                href={`/regulations/${g.top.id}`}
-                className={`top ${tone}`}
-                style={{ color: "inherit", textDecoration: "none", display: "block" }}
+                href={`/regulations?owner=${encodeURIComponent(g.displayName)}`}
+                prefetch={false}
+                style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-text-primary)", textDecoration: "none" }}
               >
-                <span className="dot" />
-                {g.top.title}
+                {g.displayName}
               </Link>
-            </li>
-          );
-        })}
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                {g.count} item{g.count === 1 ? "" : "s"}
+              </span>
+            </div>
+            <Link
+              href={`/regulations/${g.top.id}`}
+              prefetch={false}
+              style={{ display: "block", fontSize: 11.5, color: "var(--color-text-secondary)", textDecoration: "none", marginTop: 2, lineHeight: 1.4 }}
+            >
+              {g.top.title}
+            </Link>
+          </li>
+        ))}
       </ul>
-    </TypesetSection>
+    </DashboardRailCard>
   );
 }
