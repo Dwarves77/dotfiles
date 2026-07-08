@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { ENVIRONMENTAL_POLICY_SKILL_CORE } from "@/lib/llm/skill-loader";
+import { spendStream } from "@/lib/llm/spend-client";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -108,10 +109,7 @@ export async function POST(request: NextRequest) {
     // The LEFT JOIN to sources uses Supabase's foreign-key relationship
     // syntax so we get the canonical source name, tier, and URL alongside
     // each item without a second round-trip.
-    const { data: itemsRaw } = await supabase
-      .from("intelligence_items")
-      .select(
-        `
+    const CITATION_SELECT = `
         id,
         title,
         summary,
@@ -133,12 +131,44 @@ export async function POST(request: NextRequest) {
           base_tier,
           effective_tier
         )
-        `
-      )
-      .eq("is_archived", false)
-      .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
-      .order("priority")
-      .limit(30);
+        `;
+
+    // RETRIEVAL (S1-09, browser wave 2026-07-07). The context was previously the FIRST 30 items
+    // by priority — no relevance to the question at all. Now: FTS retrieval first
+    // (search_intelligence_items RPC, migration 159 — websearch syntax, ts_rank_cd over the
+    // weighted search_tsv, verified+non-archived enforced INSIDE the RPC), falling back to the
+    // old priority-ordered pull only when the question has too little lexical signal (< 3 hits —
+    // e.g. "what's new?"), so generic questions keep working. Retrieved ids are re-fetched with
+    // the citation-grade select and kept in rank order.
+    let itemsRaw: unknown[] | null = null;
+    const { data: ftsHits, error: ftsErr } = await supabase.rpc("search_intelligence_items", {
+      q: question,
+      max_rows: 12,
+    });
+    if (ftsErr) console.warn(`[ask] FTS retrieval failed (falling back to priority pull): ${ftsErr.message}`);
+    const hitIds: string[] = ((ftsHits as Array<{ id: string }> | null) ?? []).map((h) => h.id);
+    if (hitIds.length >= 3) {
+      const { data: hitRows, error: hitErr } = await supabase
+        .from("intelligence_items")
+        .select(CITATION_SELECT)
+        .in("id", hitIds);
+      if (hitErr) console.warn(`[ask] retrieval row fetch failed: ${hitErr.message}`);
+      if (hitRows?.length) {
+        const byId = new Map(hitRows.map((r: { id: string }) => [r.id, r]));
+        itemsRaw = hitIds.map((id) => byId.get(id)).filter(Boolean) as unknown[];
+      }
+    }
+    if (!itemsRaw) {
+      const { data: fallbackRows, error: fallbackErr } = await supabase
+        .from("intelligence_items")
+        .select(CITATION_SELECT)
+        .eq("is_archived", false)
+        .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
+        .order("priority")
+        .limit(30);
+      if (fallbackErr) console.warn(`[ask] priority fallback fetch failed: ${fallbackErr.message}`);
+      itemsRaw = fallbackRows ?? null;
+    }
 
     // Supabase returns the joined `source` as `{...} | {...}[]` in the
     // generated types. Normalize to a single object for downstream use.
@@ -276,31 +306,24 @@ ${itemsContext}
 AVAILABLE SOURCES (top registered sources by tier, for credibility framing):
 ${sourcesContext}`;
 
-    // Call Claude API.
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1500,
-        system: systemPrompt,
-        messages: [{ role: "user", content: question }],
-      }),
-    });
-
-    if (!response.ok) {
+    // Call Claude THROUGH the spend chokepoint (F15). This route was the last raw
+    // api.anthropic.com fetch on a customer path — an ungated, untelemetried spend site.
+    // spendStream ticket-gates, budget-checks against the standing ceiling, and records the
+    // per-call telemetry row that IS the cost ledger.
+    let rawAnswer: string;
+    try {
+      const { text } = await spendStream(
+        { system: systemPrompt, user: question, model: "claude-sonnet-4-6", maxTokens: 1500 },
+        { purpose: "ask-assistant (/api/ask user question)" }
+      );
+      rawAnswer = text || "Unable to generate a response.";
+    } catch (e) {
+      console.warn(`[ask] model call failed: ${(e as Error).message}`);
       return NextResponse.json(
-        { error: `AI service error: ${response.status}` },
+        { error: "AI service error" },
         { status: 502 }
       );
     }
-
-    const data = await response.json();
-    const rawAnswer: string = data.content?.[0]?.text || "Unable to generate a response.";
 
     // Citation post-processing.
     //
@@ -413,7 +436,7 @@ ${sourcesContext}`;
         citations: validatedCitations,
         flagged_citations: flaggedCitations,
         disclaimer: ASSISTANT_DISCLAIMER,
-        model: data.model,
+        model: "claude-sonnet-4-6",
       },
       { headers: rateLimitHeaders(auth.userId) }
     );

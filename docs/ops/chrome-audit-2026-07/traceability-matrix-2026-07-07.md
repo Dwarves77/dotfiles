@@ -184,6 +184,30 @@ committed files until Jason's apply window.
   reg fails floor with `floor_basis=item_type_unconditional`; CRITICAL/HIGH control still valid).
   No items flipped at apply — flips ride future re-validation writes (zero-mints/loop-OFF gated).
 
+## Disposition updates — 2026-07-07 (browser wave, operator "Proceed — do not stop")
+
+- **S2-04 (WATCH)** → **FIXED — PR #245**: NEW /api/watchlist writer (GET/POST/DELETE, requireAuth
+  Bearer + rate limit, onConflict on the mig-060 unique) + ONE shared ui/WatchButton replacing the
+  two byte-identical local-state stubs (state loads on mount; optimistic toggle, revert-on-failure).
+  The dashboard watchlist rail can now honestly fill. Recon note: the audit's "5 components" = the
+  5 pieces (2 buttons + writer + table + widget); only 2 toggle components exist.
+- **S2-10 (admin members)** → **FIXED — PR #246**: the addMember defect (discarded the email,
+  re-inserted the CALLER) removed; MembersPanel wired to /api/orgs/[org_id]/members for
+  role/remove/ban + NEW PUT add-by-email (existing accounts only — honest 404 to the provision
+  flow; org_member_bans blocks re-add). **AUTHORITY RULING FLAGGED for operator review**: the route
+  now accepts owner OR platform admin (profiles.is_platform_admin — the axis /admin gates on).
+  Ban copy corrected to org-scoped (the old copy claimed platform-wide; the backend never was).
+- **S2-09 (community)** → **LARGELY STALE + residuals FIXED — PR #247**: recon found the rebuilt
+  index already had nav, group-create (PR #229), honest presence. Landed: rail-footer links to the
+  two URL-only routes (/community/browse, /community/moderation); dead CommunityView.tsx (0
+  importers) deleted. REMAINING ORPHAN (flagged, decision owed): C9 realtime libs built, mounted
+  nowhere — mount into bell/PostList or remove.
+- **S1-09 (Ask retrieval)** → **FIXED — mig 159 APPLIED + code**: FTS substrate (weighted
+  search_tsv generated column + GIN + ranked RPC with the customer read predicate INSIDE the fn);
+  /api/ask retrieves top-12 by relevance, priority-pull fallback for low-signal questions. ALSO
+  CLOSED (found in recon): /api/ask was the last raw api.anthropic.com fetch on a customer path —
+  now routed through the F15 spend chokepoint (ticketed, budget-checked, telemetried).
+
 ## Standing rule (codified here, going forward)
 
 **Any future page/surface audit lands as a findings register FIRST** (stable IDs + surface + severity
