@@ -53,7 +53,7 @@ committed files until Jason's apply window.
 | S1-07 | canonical-pipeline grounding | S1 | criterion-2 auto-stubs every URL (`:931-938`); ANALYSIS claims need no source | **FIXED (code: cited-host gate) + AUTHORED (mig 158, apply-gated)** — see P3c disposition section |
 | S1-08 | supabase-server override reads | S1 | `workspace_item_overrides` read with anon client → RLS `[]` → dismissals/notes lost on reload | **FIXED — PR #234** |
 | S1-09 | Ask assistant (all 5 surfaces) | S1 | context = `order("priority").limit(30)`, no retrieval/FTS/history | **PHASED** — Phase 1 (P1-6); browser-verification wave |
-| S1-10 | worker/check-sources | S1 | `change_detected:false` hardcoded (`:80`); 0 change rows ever | **PHASED** — Phase 2 (P2-6); loop flip |
+| S1-10 | worker/check-sources | S1 | `change_detected:false` hardcoded (`:80`); 0 change rows ever | **FIXED (signal real; auto-action stays loop-flip-gated)** — see P2-6 disposition |
 | S1-11 | staged-updates materialization | S1 | approval mints a stub, never generates → invisible to customers | **IN-BLOCK — item b** (approve→generate, DORMANT behind loop-flag + intake-gate/mint precondition) |
 | S1-12 | Supabase advisors | S1 | 1 ERROR `security_definer_view` + 13 no-policy + 56 search_path + leaked-pw OFF | **PARTIAL**: definer view **FIXED (authored) PR #233/mig 157** (apply-gated); search_path 165-fn + leaked-pw → **PHASED** (DDL window / dashboard) |
 
@@ -219,6 +219,15 @@ committed files until Jason's apply window.
 - **S1-12 (search_path)** → **AUTHORED — mig 160 (NOT applied, DDL window)**: 56 app-owned fns
   pinned `public, extensions, pg_temp`; census reconciled (165 raw = 56 app + 109 extension-owned,
   excluded by design — resolves advisor-56-vs-165). Header carries re-gen query + verify recipe.
+- **S1-10 (change detection)** → **FIXED — mig 161 APPLIED + worker wired**: the worker
+  fingerprints the SAME render the accessibility check pays for (zero extra Browserless units)
+  via pure `content-change.mjs` (whitespace/case-normalized sha256; 200ch error-page floor so
+  outages never read as change; first observation seeds, never flags) and records honest
+  `monitoring_queue.change_detected` + `sources.last_content_changed_at`. Recall bound stated in
+  code: fingerprint covers the 2000ch render cap — below-fold changes missed, but a TRUE is always
+  real. DORMANCY UNCHANGED: worker-auth + pause gate + scrape-window gate; hashes seed on the first
+  post-flip scrape day. Downstream auto-action (change → re-scan/regenerate) deliberately NOT wired
+  — that is the loop-flip wave, operator's word.
 
 ## Standing rule (codified here, going forward)
 

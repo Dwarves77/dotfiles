@@ -6,9 +6,10 @@ import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { classifyReachability } from "@/lib/sources/reachability.mjs";
 import { decideSourceAssessment } from "@/lib/sources/check-sources-decision.mjs";
+import { contentFingerprint, isContentChange } from "@/lib/sources/content-change.mjs";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 
-type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number }>;
+type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number; text?: string }>;
 type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
 
 // Per-source accessibility assessment + status update. Extracted so the consumer's OWN
@@ -26,15 +27,17 @@ export async function assessAndUpdateSource(
   supabase: any,
   source: any,
   opts?: { render?: RenderFn; classify?: ClassifyFn }
-): Promise<{ status: string; httpStatus: number; outcome: string }> {
+): Promise<{ status: string; httpStatus: number; outcome: string; changeDetected: boolean }> {
   const render = opts?.render ?? (browserlessRender as unknown as RenderFn);
   const classify = opts?.classify ?? (classifyReachability as ClassifyFn);
 
   let outcome: string;
   let httpStatus = 0;
+  let renderedText = "";
   try {
     const r = await render(source.url, { maxTextLength: 2000 });
     httpStatus = r.status;
+    renderedText = r.text ?? "";
     outcome = classify({ status: r.status, errored: false });
   } catch (e: unknown) {
     httpStatus = e instanceof BrowserlessError ? (e.status ?? 0) : 0;
@@ -46,6 +49,16 @@ export async function assessAndUpdateSource(
   const decision = decideSourceAssessment({ outcome, source });
   const isAccessible = decision.isAccessible;
 
+  // CHANGE DETECTION (P2-6 / S1-10): fingerprint the SAME render the accessibility check paid
+  // for (zero extra Browserless units) and compare against sources.last_content_hash (mig 161).
+  // change_detected was previously HARDCODED false — zero change rows ever. A thin/failed
+  // capture never fingerprints (contentFingerprint -> null) so outages don't read as change,
+  // and a first observation only SEEDS the hash. Downstream auto-action on a change is
+  // deliberately NOT wired here — that rides the loop flip (operator's word); this makes the
+  // signal REAL and queryable (monitoring_queue.change_detected + sources.last_content_changed_at).
+  const newHash = isAccessible ? contentFingerprint(renderedText) : null;
+  const changeDetected = isContentChange(source.last_content_hash, newHash);
+
   const updates: Record<string, unknown> = {
     // last_checked stamps "scraped this window" (the batch-coverage marker). next_scheduled_check is
     // NOT written — per-source scheduling is retired under the global cadence.
@@ -53,6 +66,8 @@ export async function assessAndUpdateSource(
     consecutive_accessible: decision.consecutive_accessible,
     total_checks: (source.total_checks ?? 0) + 1,
   };
+  if (newHash) updates.last_content_hash = newHash;
+  if (changeDetected) updates.last_content_changed_at = new Date().toISOString();
   if (isAccessible) {
     updates.last_accessible = new Date().toISOString();
     updates.successful_checks = (source.successful_checks ?? 0) + 1;
@@ -70,19 +85,19 @@ export async function assessAndUpdateSource(
   await supabase.from("source_trust_events").insert({
     source_id: source.id,
     event_type: "accessibility_check",
-    details: { type: "accessibility_check", success: isAccessible, http_status: httpStatus, reachability: outcome },
+    details: { type: "accessibility_check", success: isAccessible, http_status: httpStatus, reachability: outcome, change_detected: changeDetected, content_hash: newHash },
     created_by: "worker",
   });
   await supabase.from("monitoring_queue").insert({
     source_id: source.id,
     scheduled_check: new Date().toISOString(),
     priority: "normal",
-    last_result: isAccessible ? "no_change" : outcome,
-    change_detected: false,
+    last_result: isAccessible ? (changeDetected ? "change_detected" : "no_change") : outcome,
+    change_detected: changeDetected,
     checked_at: new Date().toISOString(),
     error_message: isAccessible ? null : `${outcome} (HTTP ${httpStatus})`,
   });
-  return { status: isAccessible ? "accessible" : outcome, httpStatus, outcome };
+  return { status: isAccessible ? "accessible" : outcome, httpStatus, outcome, changeDetected };
 }
 
 /**
@@ -134,7 +149,7 @@ export async function POST(request: NextRequest) {
     const windowStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate())).toISOString();
     const { data: dueSources, error: queueError } = await supabase
       .from("sources")
-      .select("id, name, url, base_tier, last_checked, access_method, auto_run_enabled, status, consecutive_accessible, successful_checks, total_checks")
+      .select("id, name, url, base_tier, last_checked, access_method, auto_run_enabled, status, consecutive_accessible, successful_checks, total_checks, last_content_hash")
       .eq("status", "active")
       .eq("processing_paused", false)
       .eq("auto_run_enabled", true)
