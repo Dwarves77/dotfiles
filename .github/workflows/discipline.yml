@@ -132,3 +132,11 @@ jobs:
         # Exit 0 = no violations; exit 1 = at least one violation; exit 2 = engine error.
         # Violations print file:line with the function id, message, and source skill section.
         run: node fsi-app/.discipline/fitness/runner.mjs
+
+      - name: App unit tests requiring npm deps (*.npmtest.mjs)
+        # The NAMED exclusion from run-test-suite.sh's no-npm-ci glob (red-merge-class fix,
+        # 2026-07-08): tests importing npm deps (jiti for TS module import) run HERE, after
+        # npm ci — glob-by-construction, so a new *.npmtest.mjs joins automatically.
+        run: |
+          files=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
+          if [ -n "$files" ]; then node --test $files; else echo "no npmtest files"; fi

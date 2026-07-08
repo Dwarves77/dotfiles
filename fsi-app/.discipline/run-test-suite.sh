@@ -14,7 +14,17 @@
 # added with the omitted set NAMED here, per the operator's ruling — not silently.)
 #
 # Runs WITHOUT npm ci (mirrors the CI job): every listed test MUST import only node: builtins + relative .mjs
-# (glob-portability.test.mjs enforces this).
+# (glob-portability.test.mjs enforces this). Node 24 type-stripping makes relative .ts imports portable too.
+#
+# APP TESTS JOIN BY CONSTRUCTION (red-merge-class fix, dispatch 2026-07-08): the src/** entries are
+# DIRECTORY GLOBS, not a hand list — the hand list silently omitted 6+ app test files (prompt-cache,
+# timeline-harvest, cited-host-gate, content-change, portal-links, parse-output-blocklist,
+# host-authority), so their red-then-green coverage ran only on the author's machine and a
+# deliberately-failing src test sailed through CI green. Dropping a *.test.mjs into a covered
+# directory now runs it in pre-push AND CI by construction. NAMED EXCLUSION (per the header rule —
+# omissions are named, never silent): *.npmtest.mjs — tests that import npm deps (jiti) and cannot
+# run in this no-npm-ci job; they run in the CI fitness-check job AFTER `npm ci`
+# (.github/workflows/discipline.yml "App unit tests requiring npm deps").
 set -eu
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/../.." && pwd))"
 cd "$ROOT"
@@ -34,29 +44,9 @@ node --test \
   fsi-app/scripts/lib/db.test.mjs \
   fsi-app/scripts/lib/funded-release-plan.test.mjs \
   fsi-app/scripts/lib/batch1-orchestrate.test.mjs \
+  fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
-  fsi-app/src/lib/sources/primary-fallback.test.mjs \
-  fsi-app/src/lib/sources/officialness.test.mjs \
-  fsi-app/src/lib/sources/pdf-extract.test.mjs \
-  fsi-app/src/lib/sources/fetch-hold.test.mjs \
-  fsi-app/src/lib/sources/entity-gate.test.mjs \
-  fsi-app/src/lib/sources/transport-escalation.test.mjs \
-  fsi-app/src/lib/sources/transport-runtime.test.mjs \
-  fsi-app/src/lib/sources/seek-more.test.mjs \
-  fsi-app/src/lib/entities/entity-resolve.test.mjs \
-  fsi-app/src/lib/entities/source-role.test.mjs \
-  fsi-app/src/lib/agent/anthropic-error.test.mjs \
-  fsi-app/src/lib/agent/anthropic-stream.test.mjs \
-  fsi-app/src/lib/agent/two-pass-generate.test.mjs \
-  fsi-app/src/lib/agent/audit-gate.test.mjs \
-  fsi-app/src/lib/agent/source-blocks.test.mjs \
-  fsi-app/src/lib/agent/floor-attribution.test.mjs \
-  fsi-app/src/lib/agent/null-tier-flag.test.mjs \
-  fsi-app/src/lib/agent/deterministic-lever.test.mjs \
-  fsi-app/src/lib/agent/url-canon.test.mjs \
-  fsi-app/src/lib/agent/slot-forcing.test.mjs \
-  fsi-app/src/lib/agent/thinning-guard.test.mjs \
-  fsi-app/src/lib/agent/relabel-unlabeled.test.mjs \
-  fsi-app/src/lib/agent/section-grounding.test.mjs \
-  fsi-app/src/lib/llm/spend-guard.test.mjs \
-  fsi-app/src/lib/llm/program-total.test.mjs
+  fsi-app/src/lib/sources/*.test.mjs \
+  fsi-app/src/lib/entities/*.test.mjs \
+  fsi-app/src/lib/agent/*.test.mjs \
+  fsi-app/src/lib/llm/*.test.mjs
