@@ -68,7 +68,7 @@ committed files until Jason's apply window.
 | S2-05 | Notes field | S2 | "visible to your workspace" but stored in localStorage; `workspace_item_overrides.notes` backend exists | **IN-BLOCK — item d** (NOTES ships only if fully standalone: backend exists → wire+verify+done) |
 | S2-06 | export/share | S2 | `ExportBuilder`/`ShareMenu`/`BulkSelectBar`/`lib/export/*` mounted nowhere — dead code | **PHASED** — Phase 3 (P3-6); browser-verification wave |
 | S2-07 | admin scan → stage | S2 | stages 3 non-existent columns, discards `jurisdiction_iso`, never resolves `source_id`, parses only first web_search block | **PHASED** — Phase 2 (P2-2/P2-3); intake-gate precondition + loop flip |
-| S2-08 | portal sources | S2 | ~55% sources are root portals; nothing enumerates deep links → discovery = 1 manual path | **PHASED** — Phase 2 (P2-5 / new crawler); loop flip |
+| S2-08 | portal sources | S2 | ~55% sources are root portals; nothing enumerates deep links → discovery = 1 manual path | **FIXED (discovery half; classify→stage stays loop-flip-gated)** — see P2-5 disposition |
 | S2-09 | /community | S2 | ~5,000 lines (groups/threads/moderation/bell/realtime) reachable only by URL; no group-create path; presence reads a column nothing writes | **PHASED** — Phase 4 (P4-1); browser-verification wave |
 | S2-10 | admin add-member | S2 | discards email, re-inserts caller (`AdminDashboard.tsx:209-225`); working `/api/orgs/[id]/members` sits behind an honest-pending panel | **PHASED** — Phase 4 (P4-2); browser-verification wave |
 | S2-11 | notifications | S2 | prefs never read; `mention`/`promote` never fire; no email library; invites copy-a-URL | **PHASED** — Phase 4 (P4-4); email = dashboard/provider decision |
@@ -228,6 +228,14 @@ committed files until Jason's apply window.
   real. DORMANCY UNCHANGED: worker-auth + pause gate + scrape-window gate; hashes seed on the first
   post-flip scrape day. Downstream auto-action (change → re-scan/regenerate) deliberately NOT wired
   — that is the loop-flip wave, operator's word.
+- **S2-08 (portal deep links)** → **FIXED (discovery half) — mig 162 APPLIED + worker wired**:
+  `portal_link_candidates` ledger (url-unique, dispositions never deleted; service-role only) fed
+  by the pure extractor `portal-links.mjs` (7 tests: same-host only, instrument signal required in
+  path OR anchor text, nav/assets/cross-host excluded — cross-host links are new-SOURCE leads, not
+  this portal's instruments; capped 40) running over the SAME uncapped html the accessibility
+  render already returns — zero extra Browserless units. Re-crawls bump last_seen_at, never
+  duplicate, never overwrite status. DISCOVERY not intake: the classify→stage consume step rides
+  the loop flip. Same dormancy gates as P2-6 (worker-auth + pause + window).
 
 ## Standing rule (codified here, going forward)
 

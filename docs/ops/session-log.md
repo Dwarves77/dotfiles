@@ -107,3 +107,15 @@ the operator's DDL window per the standing ruling.
 
 **Held:** loop/cadence flip (operator's explicit word only). **Next:** loop-live dormant builds
 (P2-6 change-detection, P2-2/3 scan-materialize, P2-5 scheduler), double-gated.
+
+## 2026-07-08 — loop-live builds landed DORMANT (P2-6 + P2-5)
+
+- **P2-6 change detection (mig 161 APPLIED + #252 merged):** check-sources fingerprints the SAME
+  render the accessibility check pays for (content-change.mjs, 200ch error-page floor; first
+  observation seeds, outages never read as change); monitoring_queue.change_detected +
+  sources.last_content_changed_at now honest. Zero extra Browserless units.
+- **P2-5 portal deep-link discovery (mig 162 APPLIED + PR):** portal_link_candidates ledger fed by
+  portal-links.mjs from the same uncapped render html (same-host, instrument-signal, capped 40).
+  Discovery not intake — classify→stage rides the loop flip.
+- Both stay behind worker-auth + global pause + scrape-window gates; nothing runs until the
+  operator flips cadence. Consume steps deliberately unwired (the flip is the operator's word).

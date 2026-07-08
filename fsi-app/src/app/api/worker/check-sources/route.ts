@@ -7,9 +7,11 @@ import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { classifyReachability } from "@/lib/sources/reachability.mjs";
 import { decideSourceAssessment } from "@/lib/sources/check-sources-decision.mjs";
 import { contentFingerprint, isContentChange } from "@/lib/sources/content-change.mjs";
+import { extractPortalLinks } from "@/lib/sources/portal-links.mjs";
+import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 
-type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number; text?: string }>;
+type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number; text?: string; html?: string }>;
 type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
 
 // Per-source accessibility assessment + status update. Extracted so the consumer's OWN
@@ -27,17 +29,19 @@ export async function assessAndUpdateSource(
   supabase: any,
   source: any,
   opts?: { render?: RenderFn; classify?: ClassifyFn }
-): Promise<{ status: string; httpStatus: number; outcome: string; changeDetected: boolean }> {
+): Promise<{ status: string; httpStatus: number; outcome: string; changeDetected: boolean; portalCandidates: number }> {
   const render = opts?.render ?? (browserlessRender as unknown as RenderFn);
   const classify = opts?.classify ?? (classifyReachability as ClassifyFn);
 
   let outcome: string;
   let httpStatus = 0;
   let renderedText = "";
+  let renderedHtml = "";
   try {
     const r = await render(source.url, { maxTextLength: 2000 });
     httpStatus = r.status;
     renderedText = r.text ?? "";
+    renderedHtml = r.html ?? "";
     outcome = classify({ status: r.status, errored: false });
   } catch (e: unknown) {
     httpStatus = e instanceof BrowserlessError ? (e.status ?? 0) : 0;
@@ -97,7 +101,31 @@ export async function assessAndUpdateSource(
     checked_at: new Date().toISOString(),
     error_message: isAccessible ? null : `${outcome} (HTTP ${httpStatus})`,
   });
-  return { status: isAccessible ? "accessible" : outcome, httpStatus, outcome, changeDetected };
+  // PORTAL DEEP-LINK DISCOVERY (P2-5 / S2-08): ~55% of sources are root portals whose deep links
+  // (the actual instruments) nothing enumerated. For portal-class sources, extract candidate
+  // instrument links from the SAME uncapped html this render already returned (zero extra units)
+  // into portal_link_candidates (mig 162) — an append-only, deduped DISCOVERY ledger. A candidate
+  // is a lead, not an item: fetch+classify through the intake gate rides the loop flip. Upsert on
+  // url refreshes last_seen_at/anchor_text only; status + first_seen_at are never overwritten.
+  // Non-fatal: a crawl failure never fails the accessibility check.
+  let portalCandidates = 0;
+  if (isAccessible && renderedHtml && urlIsRoot(source.url)) {
+    try {
+      const links = extractPortalLinks(renderedHtml, source.url);
+      for (const l of links) {
+        const { error: plcErr } = await supabase.from("portal_link_candidates").upsert(
+          { source_id: source.id, url: l.url, anchor_text: l.anchorText, last_seen_at: new Date().toISOString() },
+          { onConflict: "url" }
+        );
+        if (plcErr) { console.warn(`[portal-crawl] candidate upsert failed for ${l.url}: ${plcErr.message}`); continue; }
+        portalCandidates++;
+      }
+      if (portalCandidates) console.log(`[portal-crawl] ${source.name}: ${portalCandidates} candidate deep link(s) recorded`);
+    } catch (e) {
+      console.warn(`[portal-crawl] extraction failed for ${source.url}: ${(e as Error).message}`);
+    }
+  }
+  return { status: isAccessible ? "accessible" : outcome, httpStatus, outcome, changeDetected, portalCandidates };
 }
 
 /**
