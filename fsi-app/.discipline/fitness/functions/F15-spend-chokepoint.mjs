@@ -34,7 +34,8 @@ export const LEGACY_ALLOWLIST = [
   { file: 'fsi-app/src/lib/sources/api-fetch.ts', reason: 'shared Anthropic fetch helper — folds into spend-client transport', reviewByPhase: 'chokepoint-transport-consolidation' },
   // ask/route.ts MIGRATED (2026-07-07, PR #248): raw fetch → spendStream with a per-request
   // ticket. Routes through the chokepoint now — OFF the allowlist (11 → 10).
-  { file: 'fsi-app/src/app/api/admin/scan/route.ts', reason: 'admin scan route — migrates to spend-client', reviewByPhase: 'chokepoint-route-migration' },
+  // admin/scan/route.ts MIGRATED (2026-07-07): raw web_search fetch → spendSearch, ticketed.
+  // OFF the allowlist (10 → 9).
   { file: 'fsi-app/src/app/api/admin/spot-check/recurring/route.ts', reason: 'spot-check classifier route — standing-ticket class', reviewByPhase: 'chokepoint-route-migration' },
   { file: 'fsi-app/src/app/api/admin/canonical-sources/recommend-classification/route.ts', reason: 'canonical recommend-classification route — standing-ticket class', reviewByPhase: 'chokepoint-route-migration' },
   { file: 'fsi-app/src/app/api/admin/sources/recommend-classification/route.ts', reason: 'sources recommend-classification route — standing-ticket class', reviewByPhase: 'chokepoint-route-migration' },

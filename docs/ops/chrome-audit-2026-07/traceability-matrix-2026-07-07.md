@@ -207,6 +207,18 @@ committed files until Jason's apply window.
   /api/ask retrieves top-12 by relevance, priority-pull fallback for low-signal questions. ALSO
   CLOSED (found in recon): /api/ask was the last raw api.anthropic.com fetch on a customer path —
   now routed through the F15 spend chokepoint (ticketed, budget-checked, telemetried).
+- **S2-07 (scan→stage)** → **FIXED (staging-correctness; route stays DORMANT behind the Phase-0.1
+  pause gate + 4h cooldown)**: all four defects — (a) the 3 phantom keys
+  (penalty_range/cost_mechanism/authority_level) no longer staged (the facts ride key_data +
+  confidence/reason) AND the materializer strips them defensively so legacy pending rows mint
+  instead of erroring; (b) jurisdiction_iso now staged (prompted-for, was discarded); (c) source_id
+  resolved by canonical URL at stage time (staged row + mint seed → criterion-1); (d) first-block-
+  only parse cured by migrating the route to spendSearch (joins ALL text blocks) — which is ALSO
+  the F15 closure for the last raw admin-path Anthropic callsite (allowlist 10 → 9). BONUS:
+  entry_into_force now precision-honest (non-ISO tokens ride key_data, never a fabricated DATE).
+- **S1-12 (search_path)** → **AUTHORED — mig 160 (NOT applied, DDL window)**: 56 app-owned fns
+  pinned `public, extensions, pg_temp`; census reconciled (165 raw = 56 app + 109 extension-owned,
+  excluded by design — resolves advisor-56-vs-165). Header carries re-gen query + verify recipe.
 
 ## Standing rule (codified here, going forward)
 

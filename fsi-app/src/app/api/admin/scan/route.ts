@@ -20,6 +20,7 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { spendSearch } from "@/lib/llm/spend-client";
 import { asDomain, domainForItemType, type Domain } from "@/lib/domains";
 import { pausedResponse } from "@/lib/api/pause";
 
@@ -137,20 +138,11 @@ export async function POST(request: NextRequest) {
       ...(staged || []).map((s: any) => (s.proposed_changes?.title || "").toLowerCase()).filter(Boolean),
     ]);
 
-    // Call Claude with web_search to find new regulations from live sources
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "web-search-2025-03-05",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 3000,
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }],
-        system: `You are the Sustainability & Climate Policy Intelligence Assistant for Caro's Ledge, a global freight forwarding intelligence platform. Your job is to translate regulatory and policy updates into operational impact, compliance risk, and recommended actions.
+    // Call Claude with web_search THROUGH the spend chokepoint (F15 closure — this was the last
+    // raw api.anthropic.com callsite on an admin path). spendSearch also joins ALL response text
+    // blocks, curing the S2-07 first-web_search-block-only parse defect (interleaved tool-use
+    // blocks previously made content[0].text miss the final JSON). Prompt unchanged.
+    const scanSystem = `You are the Sustainability & Climate Policy Intelligence Assistant for Caro's Ledge, a global freight forwarding intelligence platform. Your job is to translate regulatory and policy updates into operational impact, compliance risk, and recommended actions.
 
 NON-NEGOTIABLES:
 - Ground every claim in sources; include the direct URL to the primary legal text or official publication.
@@ -226,22 +218,23 @@ Return a JSON object with two arrays:
   "new_sources": [{ "name": "...", "url": "...", "jurisdiction": "...", "jurisdiction_iso": ["..."], "publishes": "..." }]
 }
 
-Return ONLY the JSON object, no other text.`,
-        messages: [{
-          role: "user",
-          content: `Search for new freight sustainability regulations${topic ? ` related to "${topic}"` : ""}${jurisdiction ? ` in ${jurisdiction}` : " globally"}. Do NOT return any regulation that matches or is similar to these existing titles:\n${[...existingTitles].join("\n")}`,
-        }],
-      }),
-    });
+Return ONLY the JSON object, no other text.`;
 
-    if (!response.ok) {
-      const errBody = await response.text();
-      console.error("Anthropic API error:", response.status, errBody);
-      return NextResponse.json({ error: `AI search failed: ${response.status} — ${errBody.slice(0, 200)}` }, { status: 502 });
+    let text = "{}";
+    try {
+      text = (await spendSearch(
+        {
+          system: scanSystem,
+          user: `Search for new freight sustainability regulations${topic ? ` related to "${topic}"` : ""}${jurisdiction ? ` in ${jurisdiction}` : " globally"}. Do NOT return any regulation that matches or is similar to these existing titles:\n${[...existingTitles].join("\n")}`,
+          maxUses: 5,
+          maxTokens: 3000,
+        },
+        { purpose: "admin scan (staged regulatory discovery, /api/admin/scan)" }
+      )) || "{}";
+    } catch (e) {
+      console.error("Anthropic API error:", (e as Error).message);
+      return NextResponse.json({ error: `AI search failed: ${(e as Error).message.slice(0, 200)}` }, { status: 502 });
     }
-
-    const data = await response.json();
-    const text = data.content?.[0]?.text || "{}";
 
     // Parse the JSON response — expects { regulations: [...], new_sources: [...] }
     let regulations: any[] = [];
@@ -380,30 +373,57 @@ Return ONLY the JSON object, no other text.`,
         continue;
       }
       const domain: Domain | null = domainForItemType(itemType, null);
+      // S2-07 fixes (browser wave 2026-07-07):
+      // (a) penalty_range / cost_mechanism / authority_level are NOT intelligence_items columns —
+      //     staging them errored the mint at materialization. The FACTS are kept: penalty + cost
+      //     ride key_data; authority_level drives the staged row's confidence + reason.
+      // (b) jurisdiction_iso — the prompt demands it, the staging discarded it. Now staged
+      //     (real column, mig 033), so sub-national routing survives approval.
+      // (c) source_id resolved by canonical URL against the registry at stage time, so the row
+      //     is source-attributed for review AND the minted item clears criterion-1.
+      // (d) entry_into_force is a DATE column — a non-ISO token ("Q3 2026") would fail the mint;
+      //     precision-honest: only a day-precise token is staged as the date, anything else rides
+      //     key_data verbatim (the PPWR-class defense, same rule as timeline-harvest).
+      const keyData: string[] = Array.isArray(item.key_data) ? [...item.key_data] : [];
+      if (item.penalty_range) keyData.push(`Penalty range: ${item.penalty_range}`);
+      if (item.cost_mechanism) keyData.push(`Cost mechanism: ${item.cost_mechanism}`);
+      let entryIntoForce: string | null = null;
+      if (typeof item.effective_date === "string" && item.effective_date.trim()) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(item.effective_date.trim())) entryIntoForce = item.effective_date.trim();
+        else keyData.push(`Effective: ${item.effective_date.trim()}`);
+      }
+      let stagedSourceId: string | null = null;
+      if (item.source_url) {
+        const { data: srcMatch, error: srcErr } = await supabase
+          .from("sources").select("id").eq("url", canonicalizeUrl(item.source_url)).maybeSingle();
+        if (srcErr) console.warn(`[scan] source_id resolve failed for ${item.source_url}: ${srcErr.message}`);
+        stagedSourceId = (srcMatch as { id: string } | null)?.id ?? null;
+      }
+      const authority = typeof item.authority_level === "string" ? item.authority_level : "unconfirmed";
       const { error } = await supabase.from("staged_updates").insert({
         update_type: "new_item",
+        source_id: stagedSourceId,
         proposed_changes: {
           title: item.title,
           summary: item.note || item.summary || "",
           what_is_it: item.what_is_it || "",
           why_matters: item.why_matters || "",
-          key_data: item.key_data || [],
+          key_data: keyData,
           domain: asDomain(domain),
           item_type: itemType,
           jurisdictions: item.jurisdiction ? [item.jurisdiction.toLowerCase()] : ["global"],
+          jurisdiction_iso: Array.isArray(item.jurisdiction_iso) ? item.jurisdiction_iso : [],
           transport_modes: item.transport_modes || [],
           priority: item.priority || "MODERATE",
           status: item.status || "monitoring",
           source_url: item.source_url || "",
           source_name: item.source_name || "",
-          entry_into_force: item.effective_date || null,
-          penalty_range: item.penalty_range || "",
-          cost_mechanism: item.cost_mechanism || "",
-          authority_level: item.authority_level || "unconfirmed",
+          entry_into_force: entryIntoForce,
+          ...(stagedSourceId ? { source_id: stagedSourceId } : {}),
         },
-        reason: `AI scan: ${topic || "general"} ${jurisdiction || "global"}`,
+        reason: `AI scan: ${topic || "general"} ${jurisdiction || "global"} · authority: ${authority}`,
         source_url: item.source_url || "",
-        confidence: "MEDIUM",
+        confidence: authority === "primary_text" || authority === "official_guidance" ? "HIGH" : authority === "unconfirmed" ? "LOW" : "MEDIUM",
       });
 
       if (!error) stagedItems.push(item.title);

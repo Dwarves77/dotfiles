@@ -348,6 +348,12 @@ async function applyUpdate(
         const {
           key_deadlines: _kd,
           source_name: _sn,
+          // S2-07 defense-in-depth: legacy scan rows staged 3 PHANTOM keys (not
+          // intelligence_items columns) — strip them so old pending rows materialize
+          // instead of erroring the mint. New scan rows no longer stage them.
+          penalty_range: _pr,
+          cost_mechanism: _cm,
+          authority_level: _al,
           ...insertData
         } = proposed;
 
