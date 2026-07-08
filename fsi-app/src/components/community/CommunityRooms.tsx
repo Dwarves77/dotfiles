@@ -1700,6 +1700,30 @@ function VerticalGroupsRailPanel({
             ))}
           </div>
         )}
+        {/* Un-orphan (S2-09): the group directory and moderation queue were reachable only by
+            typed URL — no surface linked them. The rail footer is their navigation home. */}
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            marginTop: 12,
+            paddingTop: 10,
+            borderTop: "1px solid var(--color-border-subtle)",
+          }}
+        >
+          <Link
+            href="/community/browse"
+            style={{ fontSize: 11, fontWeight: 800, color: "var(--color-primary)", textDecoration: "none" }}
+          >
+            Browse all groups →
+          </Link>
+          <Link
+            href="/community/moderation"
+            style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-muted)", textDecoration: "none" }}
+          >
+            Moderation queue
+          </Link>
+        </div>
       </div>
     </div>
   );
