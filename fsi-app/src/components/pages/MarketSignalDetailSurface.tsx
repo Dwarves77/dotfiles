@@ -33,6 +33,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import Link from "next/link";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
+import { WatchButton } from "@/components/ui/WatchButton";
 import { ProseSection } from "@/components/regulations/sections/ProseSection";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import {
@@ -361,7 +362,7 @@ export function MarketSignalDetailSurface({
                   </ActionButton>
                 )}
                 <ActionButton onClick={() => shareCurrent(r)}>Share</ActionButton>
-                <WatchButton />
+                <WatchButton itemType="signal" itemId={String(r.id)} palette={{ accent: C.accent, hairStrong: C.hairStrong, tint: C.tint, card: C.card, ink: C.ink }} />
               </div>
             </div>
           </div>
@@ -1046,31 +1047,6 @@ function ActionButton({ children, primary, onClick }: { children: React.ReactNod
       }}
     >
       {children}
-    </button>
-  );
-}
-
-function WatchButton() {
-  const [watched, setWatched] = useState(false);
-  return (
-    <button
-      type="button"
-      aria-pressed={watched}
-      onClick={() => setWatched((v) => !v)}
-      title="Watchlist persistence lands when the watchlist backend ships"
-      style={{
-        fontFamily: "var(--font-sans)",
-        fontSize: 11.5,
-        fontWeight: 700,
-        padding: "8px 16px",
-        borderRadius: 6,
-        border: `1px solid ${watched ? C.accent : C.hairStrong}`,
-        background: watched ? C.tint : C.card,
-        color: watched ? C.accent : C.ink,
-        cursor: "pointer",
-      }}
-    >
-      {watched ? "Watching" : "Watch"}
     </button>
   );
 }
