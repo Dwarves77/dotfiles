@@ -16,6 +16,32 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";
+import { domainForItemType, type Domain } from "@/lib/domains";
+
+// UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
+// (domainForItemType returns the same value regardless of source.category). For these the
+// chokepoint DERIVES the domain so a wrong seed.domain can never mint an item onto the wrong
+// surface — the class fix for "a verified regulation is invisible on /regulations because its
+// domain drifted" (the PPWR-adjacent misroute class). CONDITIONAL types (framework/tool/
+// initiative) depend on source.category, which mint does not load, so their caller-computed
+// seed.domain is left intact.
+const UNCONDITIONAL_DOMAIN_TYPES = new Set([
+  "regulation", "directive", "standard", "guidance", "law",
+  "research_finding", "regional_data", "market_signal", "technology", "innovation",
+]);
+
+/** Pure surface-routing guard (testable in isolation). For an UNCONDITIONAL item type, returns the
+ *  canonical domain when the current one disagrees (or is absent); otherwise null (leave as-is).
+ *  Conditional types (framework/tool/initiative) return null — their domain needs source.category. */
+export function canonicalDomainOverride(
+  itemType: string | null | undefined,
+  currentDomain: unknown
+): Domain | null {
+  if (!itemType || !UNCONDITIONAL_DOMAIN_TYPES.has(itemType)) return null;
+  const canonical = domainForItemType(itemType, null) as Domain | null;
+  if (canonical == null) return null;
+  return currentDomain === canonical ? null : canonical;
+}
 
 // Fork-4 relevance floor (0-100). SURFACE-ONLY: below it we open a data_quality flag and mint ANYWAY.
 // Enforcement (blocking) waits for proven precision against labeled data — this is the observability stub.
@@ -104,6 +130,17 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan): 
   // ── (4) RELEVANCE — Fork-4, SURFACE-ONLY, never blocks ───────────────────────────────────────────
   const lowRelevance = plan.relevance != null && plan.relevance < RELEVANCE_FLOOR;
   if (lowRelevance) flags.push("low-relevance");
+
+  // ── (5) DOMAIN CANONICALIZATION — the surface-routing guard (keyed on the FINAL item_type, so it
+  //   runs after any 1a/dedup retype). Customer surfaces filter by `domain`; a domain that disagrees
+  //   with the item's type hides it from the surface a reader expects (verified but invisible). For
+  //   the UNCONDITIONAL types the correct domain is knowable here — derive it and correct a wrong or
+  //   missing seed.domain so no mint can misroute. Conditional types keep their caller-computed domain.
+  const canonicalDomain = canonicalDomainOverride(seed.item_type as string | undefined, seed.domain);
+  if (canonicalDomain != null) {
+    flags.push(`domain-canonicalized:${seed.domain ?? "null"}->${canonicalDomain}`);
+    seed.domain = canonicalDomain;
+  }
 
   // ── THE SINGLE INSERT (the only intelligence_items INSERT in src/ runtime) ────────────────────────
   const { data: inserted, error } = await sb
