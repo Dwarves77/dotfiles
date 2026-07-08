@@ -4,14 +4,29 @@
 // member. Returns id, user_id, role, joined timestamp, and the joined
 // profile.full_name / avatar_url for display.
 //
-// PATCH — change a member's role. Owner-only. Body: { membership_id,
+// PATCH — change a member's role. Owner-or-platform-admin. Body: { membership_id,
 // role }. Role must be one of the role-CHECK values; cannot demote
 // the only owner (server checks that count(owner) > 1 before allowing
 // an owner -> non-owner change on the only owner).
 //
-// DELETE — revoke a membership. Owner-only. Cannot revoke self
+// PUT — add an EXISTING account to the org by email (S2-10). Owner-or-platform-admin.
+// Body: { email, role? } (role defaults to 'member'; 'owner' is NOT grantable via
+// this path — ownership moves via PATCH on an existing membership). Resolves the
+// account via profiles.email; no matching account → honest 404 pointing at the
+// provision flow (/api/admin/users) — this endpoint never creates auth users.
+// org_member_bans blocks a banned account from being re-added (403), the same
+// policy accept_invitation enforces (migration 156).
+//
+// DELETE — revoke a membership. Owner-or-platform-admin. Cannot revoke self
 // (owner cannot remove their own membership; explicit guard with a
 // 403 to make the operator surface unambiguous).
+//
+// AUTHORITY (S2-10 ruling, flagged in PR for operator review): governed member
+// operations accept TWO authority axes — the WORKSPACE axis (org membership;
+// mutations owner-only) and the PLATFORM axis (profiles.is_platform_admin, the
+// /admin operator identity — the same platform-layer supersession /admin itself
+// gates on, per OBS-17). A platform admin may manage any org's memberships from
+// the admin dashboard without holding a membership row in that org.
 //
 // Service-role writes only via this server route per operator binding
 // rule.
@@ -23,6 +38,7 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isPlatformAdmin } from "@/lib/auth/admin";
 
 function getServiceClient(): SupabaseClient {
   return createClient(
@@ -48,6 +64,27 @@ async function getMembership(
   // future) to handle the DB-error case to reach membership — error -> 500 (DB failure), null -> 403
   // (not a member). The type makes the split mechanical, not a wrap a future caller must remember.
   return { membership: (data as { id: string; role: string } | null) ?? null, error: error ? error.message : null };
+}
+
+/** Owner-or-platform-admin gate (see AUTHORITY note in the header). Returns null when
+ *  authorized, else the 403 response. The platform-admin read runs only when the cheap
+ *  workspace-axis check fails (the common owner path costs no extra query). */
+async function requireOwnerOrPlatformAdmin(
+  service: SupabaseClient,
+  callerMembership: { id: string; role: string } | null,
+  userId: string,
+  action: string
+): Promise<NextResponse | null> {
+  if (callerMembership?.role === "owner") return null;
+  if (await isPlatformAdmin(userId, service)) return null;
+  return NextResponse.json(
+    {
+      error: callerMembership
+        ? `Owner role (or platform admin) required to ${action}`
+        : "Not a member of this organization",
+    },
+    { status: 403, headers: rateLimitHeaders(userId) }
+  );
 }
 
 export async function GET(
@@ -77,7 +114,7 @@ export async function GET(
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }
-  if (!callerMembership) {
+  if (!callerMembership && !(await isPlatformAdmin(auth.userId, service))) {
     return NextResponse.json(
       { error: "Not a member of this organization" },
       { status: 403, headers: rateLimitHeaders(auth.userId) }
@@ -122,8 +159,8 @@ export async function GET(
           r.user?.full_name ?? r.user?.display_name ?? r.user?.email ?? `${String(r.user_id).slice(0, 8)}...`,
         avatar_url: r.user?.avatar_url ?? null,
       })),
-      caller_role: callerMembership.role,
-      caller_membership_id: callerMembership.id,
+      caller_role: callerMembership?.role ?? "platform_admin",
+      caller_membership_id: callerMembership?.id ?? null,
     },
     { headers: rateLimitHeaders(auth.userId) }
   );
@@ -187,18 +224,8 @@ export async function PATCH(
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }
-  if (!callerMembership) {
-    return NextResponse.json(
-      { error: "Not a member of this organization" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
-  if (callerMembership.role !== "owner") {
-    return NextResponse.json(
-      { error: "Owner role required to change member roles" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const patchDenied = await requireOwnerOrPlatformAdmin(service, callerMembership, auth.userId, "change member roles");
+  if (patchDenied) return patchDenied;
 
   // Read the target membership inside the same org for the demotion guard.
   const { data: target, error: targetErr } = await service
@@ -320,18 +347,8 @@ export async function POST(
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }
-  if (!callerMembership) {
-    return NextResponse.json(
-      { error: "Not a member of this organization" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
-  if (callerMembership.role !== "owner") {
-    return NextResponse.json(
-      { error: "Owner role required to ban members" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const banDenied = await requireOwnerOrPlatformAdmin(service, callerMembership, auth.userId, "ban members");
+  if (banDenied) return banDenied;
 
   const { data: target, error: targetErr } = await service
     .from("org_memberships")
@@ -446,18 +463,8 @@ export async function DELETE(
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }
-  if (!callerMembership) {
-    return NextResponse.json(
-      { error: "Not a member of this organization" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
-  if (callerMembership.role !== "owner") {
-    return NextResponse.json(
-      { error: "Owner role required to revoke members" },
-      { status: 403, headers: rateLimitHeaders(auth.userId) }
-    );
-  }
+  const revokeDenied = await requireOwnerOrPlatformAdmin(service, callerMembership, auth.userId, "revoke members");
+  if (revokeDenied) return revokeDenied;
 
   const { data: target, error: targetErr } = await service
     .from("org_memberships")
@@ -527,5 +534,144 @@ export async function DELETE(
   return NextResponse.json(
     { success: true, membership_id: membershipId },
     { headers: rateLimitHeaders(auth.userId) }
+  );
+}
+
+interface PutBody {
+  email?: string;
+  role?: string;
+}
+
+// PUT — add an EXISTING account to the org by email (S2-10; header AUTHORITY note applies).
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ org_id: string }> }
+) {
+  const auth = await requireCommunityAuth(request);
+  if (isCommunityAuthError(auth)) return auth;
+
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const { org_id } = await params;
+  if (!org_id) {
+    return NextResponse.json(
+      { error: "org_id required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  let body: PutBody;
+  try {
+    body = (await request.json()) as PutBody;
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const role = typeof body.role === "string" ? body.role : "member";
+  if (!email || !email.includes("@")) {
+    return NextResponse.json(
+      { error: "A valid email is required" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  // Ownership is never grantable via add-by-email — move it via PATCH on an existing membership.
+  if (!VALID_ROLES.has(role) || role === "owner") {
+    return NextResponse.json(
+      { error: "role must be one of: admin, member, viewer" },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const service = getServiceClient();
+
+  const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
+  if (callerErr) {
+    return NextResponse.json(
+      { error: callerErr },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  const addDenied = await requireOwnerOrPlatformAdmin(service, callerMembership, auth.userId, "add members");
+  if (addDenied) return addDenied;
+
+  // Resolve the EXISTING account by email. This endpoint never creates auth users —
+  // no account is an honest 404 pointing at the provision flow.
+  const { data: profile, error: profileErr } = await service
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (profileErr) {
+    return NextResponse.json(
+      { error: profileErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (!profile) {
+    return NextResponse.json(
+      { error: `No account exists for ${email}. Provision the user first (Admin → Users) or send an invitation.` },
+      { status: 404, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // Org-scoped ban check — same policy accept_invitation enforces (migration 156).
+  const { data: ban, error: banErr } = await service
+    .from("org_member_bans")
+    .select("user_id")
+    .eq("org_id", org_id)
+    .eq("user_id", profile.id)
+    .maybeSingle();
+  if (banErr) {
+    return NextResponse.json(
+      { error: banErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (ban) {
+    return NextResponse.json(
+      { error: "This account is banned from this workspace. Clear the ban before re-adding." },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { data: existing, error: existingErr } = await service
+    .from("org_memberships")
+    .select("id")
+    .eq("org_id", org_id)
+    .eq("user_id", profile.id)
+    .maybeSingle();
+  if (existingErr) {
+    return NextResponse.json(
+      { error: existingErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+  if (existing) {
+    return NextResponse.json(
+      { error: "Already a member of this workspace" },
+      { status: 409, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  const { data: created, error: insertErr } = await service
+    .from("org_memberships")
+    .insert({ org_id, user_id: profile.id, role })
+    .select("id, user_id, role")
+    .single();
+  if (insertErr) {
+    return NextResponse.json(
+      { error: insertErr.message },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  return NextResponse.json(
+    { membership: created },
+    { status: 201, headers: rateLimitHeaders(auth.userId) }
   );
 }

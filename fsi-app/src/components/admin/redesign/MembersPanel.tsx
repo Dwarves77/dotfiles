@@ -5,12 +5,13 @@
  * members" card. Member rows carry a role chip (Owner ▾), a Remove verb, and
  * a rust Ban verb. Destructive actions are WORDS, never icons.
  *
- * Member management (role change / remove / ban with typed confirmation +
- * last-owner guard) is KNOWN NEW BACKEND (HANDOFF §7): a committed migration
- * file + honest-pending only. This component ships the full UI affordances and
- * the client-side guards, but the mutations are HONEST-PENDING — the endpoints
- * are not wired yet, so each action surfaces an honest "lands when member
- * management ships" message rather than faking a write.
+ * Member management is WIRED (S2-10, browser wave 2026-07-07): add-by-email (PUT),
+ * role change (PATCH), remove (DELETE), and ban (POST — ORG-SCOPED block-rejoin per the
+ * 2026-07-07 operator ruling + migration 156, never platform-wide) all call
+ * /api/orgs/[org_id]/members with cookie auth. The route authorizes the workspace
+ * owner OR a platform admin (profiles.is_platform_admin — the /admin operator axis).
+ * Server-side guards (last-owner, not-self, ban-then-delete) remain authoritative;
+ * the client guards below are UX affordances only.
  *
  * Guards that ARE live client-side:
  *   - Last owner is immovable: Remove + Ban disabled on the sole remaining
@@ -42,17 +43,15 @@ type MemberRow = {
 
 export interface MembersPanelProps {
   members: MemberRow[];
-  /** Add a teammate by email — reuses the parent's existing add flow. */
-  onAddMember: (email: string) => void;
-  /** Surface an honest toast (add/role/remove/ban all route here). */
+  /** The workspace whose memberships this panel manages (caller's org on /admin). */
+  orgId: string | null;
+  /** Surface a toast (success + failure messages all route here). */
   onToast: (msg: string) => void;
+  /** Called after any successful mutation so the parent re-fetches members. */
+  onChanged: () => void;
 }
 
 const ROLES = ["Owner", "Member", "Viewer"] as const;
-
-// HONEST-PENDING copy — one string, reused across the three governed
-// mutations so the surface never implies a write happened.
-const PENDING_MSG = "Member management lands when the member role / remove / ban backend ships.";
 
 /** Display-name chain: full_name ?? display_name ?? email ?? uuid-slice. */
 function memberDisplayName(m: MemberRow): string {
@@ -67,9 +66,10 @@ function memberDisplayName(m: MemberRow): string {
   return "(no profile)";
 }
 
-export function MembersPanel({ members, onAddMember, onToast }: MembersPanelProps) {
+export function MembersPanel({ members, orgId, onToast, onChanged }: MembersPanelProps) {
   const [email, setEmail] = useState("");
   const [banTarget, setBanTarget] = useState<MemberRow | null>(null);
+  const [busy, setBusy] = useState(false);
   const banTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const ownerCount = members.filter(
@@ -79,10 +79,34 @@ export function MembersPanel({ members, onAddMember, onToast }: MembersPanelProp
   const isLastOwner = (m: MemberRow) =>
     (m.role || "").toLowerCase() === "owner" && ownerCount <= 1;
 
+  // Cookie-authed call to the members route (requireCommunityAuth reads the ssr session).
+  // Server errors surface verbatim in the toast — never a fake success.
+  const memberApi = async (
+    method: "PUT" | "PATCH" | "POST" | "DELETE",
+    opts: { body?: object; query?: string; success: string }
+  ) => {
+    if (!orgId) { onToast("No workspace resolved — sign in to manage members."); return; }
+    if (busy) return;
+    setBusy(true);
+    try {
+      const resp = await fetch(`/api/orgs/${orgId}/members${opts.query || ""}`, {
+        method,
+        headers: opts.body ? { "Content-Type": "application/json" } : undefined,
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const j = (await resp.json().catch(() => ({}))) as { error?: string };
+      if (resp.ok) { onToast(opts.success); onChanged(); }
+      else onToast(`Error: ${j.error || `${resp.status}`}`);
+    } catch (e) {
+      onToast(`Error: ${(e as Error).message}`);
+    }
+    setBusy(false);
+  };
+
   const submitAdd = () => {
     const trimmed = email.trim();
     if (!trimmed) return;
-    onAddMember(trimmed);
+    void memberApi("PUT", { body: { email: trimmed }, success: `Added ${trimmed} to the workspace.` });
     setEmail("");
   };
 
@@ -185,10 +209,19 @@ export function MembersPanel({ members, onAddMember, onToast }: MembersPanelProp
                 member={m}
                 displayName={memberDisplayName(m)}
                 lastOwner={lastOwner}
-                onRole={() => onToast(PENDING_MSG)}
+                onRole={(role) => {
+                  if ((m.role || "").toLowerCase() === role.toLowerCase()) return;
+                  void memberApi("PATCH", {
+                    body: { membership_id: m.id, role: role.toLowerCase() },
+                    success: `${memberDisplayName(m)} is now ${role.toLowerCase()}.`,
+                  });
+                }}
                 onRemove={() => {
                   if (lastOwner) return;
-                  onToast(PENDING_MSG);
+                  void memberApi("DELETE", {
+                    query: `?membership_id=${encodeURIComponent(m.id)}`,
+                    success: `${memberDisplayName(m)} removed from the workspace.`,
+                  });
                 }}
                 onBan={(triggerEl) => {
                   if (lastOwner) return;
@@ -211,10 +244,10 @@ export function MembersPanel({ members, onAddMember, onToast }: MembersPanelProp
           }}
         >
           Role chip changes role in place (Owner / Member / Viewer).{" "}
-          <b>Remove</b> detaches from this workspace; <b>Ban</b> blocks the account
-          platform-wide and requires a typed confirmation — destructive actions are
-          words, never icons. The last owner cannot be removed. These mutations land
-          when the member-management backend ships.
+          <b>Remove</b> detaches from this workspace; <b>Ban</b> removes the member and
+          blocks the account from rejoining <i>this workspace</i> (org-scoped, never
+          platform-wide) and requires a typed confirmation — destructive actions are
+          words, never icons. The last owner cannot be removed.
         </p>
       </div>
 
@@ -223,9 +256,10 @@ export function MembersPanel({ members, onAddMember, onToast }: MembersPanelProp
           title="Ban this account"
           body={
             <>
-              Banning <b>{memberDisplayName(banTarget)}</b> blocks the account
-              platform-wide, not just from this workspace. This is destructive and
-              cannot be undone from here.
+              Banning <b>{memberDisplayName(banTarget)}</b> removes them from this
+              workspace and blocks the account from rejoining it — org-scoped, not
+              platform-wide. Reversal requires the operator (the ban row must be
+              cleared before a new invitation works).
             </>
           }
           phrase={memberDisplayName(banTarget)}
@@ -235,9 +269,15 @@ export function MembersPanel({ members, onAddMember, onToast }: MembersPanelProp
             banTriggerRef.current?.focus();
           }}
           onConfirm={() => {
+            const target = banTarget;
             setBanTarget(null);
             banTriggerRef.current?.focus();
-            onToast(PENDING_MSG);
+            if (target) {
+              void memberApi("POST", {
+                body: { membership_id: target.id },
+                success: `${memberDisplayName(target)} banned from this workspace.`,
+              });
+            }
           }}
         />
       )}
@@ -256,7 +296,7 @@ function MemberRowView({
   member: MemberRow;
   displayName: string;
   lastOwner: boolean;
-  onRole: () => void;
+  onRole: (role: string) => void;
   onRemove: () => void;
   onBan: (triggerEl: HTMLButtonElement) => void;
 }) {
@@ -333,7 +373,7 @@ function MemberRowView({
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  onRole();
+                  onRole(r);
                 }}
                 style={{
                   display: "block",
