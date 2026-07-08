@@ -32,7 +32,8 @@ export const LEGACY_ALLOWLIST = [
   { file: 'fsi-app/src/lib/sources/recommend-source-tier.ts', reason: 'recommend-classification Haiku — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
   { file: 'fsi-app/src/lib/sources/discovery.ts', reason: 'source-discovery web_search — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
   { file: 'fsi-app/src/lib/sources/api-fetch.ts', reason: 'shared Anthropic fetch helper — folds into spend-client transport', reviewByPhase: 'chokepoint-transport-consolidation' },
-  { file: 'fsi-app/src/app/api/ask/route.ts', reason: 'user Q&A route — migrates to spend-client with a per-request ticket', reviewByPhase: 'chokepoint-route-migration' },
+  // ask/route.ts MIGRATED (2026-07-07, PR #248): raw fetch → spendStream with a per-request
+  // ticket. Routes through the chokepoint now — OFF the allowlist (11 → 10).
   { file: 'fsi-app/src/app/api/admin/scan/route.ts', reason: 'admin scan route — migrates to spend-client', reviewByPhase: 'chokepoint-route-migration' },
   { file: 'fsi-app/src/app/api/admin/spot-check/recurring/route.ts', reason: 'spot-check classifier route — standing-ticket class', reviewByPhase: 'chokepoint-route-migration' },
   { file: 'fsi-app/src/app/api/admin/canonical-sources/recommend-classification/route.ts', reason: 'canonical recommend-classification route — standing-ticket class', reviewByPhase: 'chokepoint-route-migration' },
