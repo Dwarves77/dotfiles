@@ -46,7 +46,11 @@ const MODULE_RES = [
   /\bimport\s+["']([^"']+)["']/g,                  // side-effect import "x"
   /\b(?:import|require)\s*\(\s*["']([^"']+)["']/g,  // import("x") / require("x")
 ];
-/** A specifier is portable (no node_modules needed) iff it is a node: builtin or a relative non-.ts path. */
+/** A specifier is portable (no node_modules needed) iff it is a node: builtin or a relative path.
+ *  Relative .ts is portable since Node >=23.6 native type-stripping (CI pins node '24' — see
+ *  discipline.yml setup-node); erasable-syntax-only TS imports run loaderless. A .ts file using
+ *  NON-erasable syntax (enum/namespace/parameter properties) would still fail at CI runtime —
+ *  the suite run itself is the check for that. */
 function nonPortableSpecifiers(src) {
   const noComments = src.replace(/\/\/[^\n]*/g, ""); // drop line comments so "// ...from 'x'..." can't false-trip
   const bad = [];
@@ -54,10 +58,7 @@ function nonPortableSpecifiers(src) {
     for (const m of noComments.matchAll(re)) {
       const s = m[1];
       if (s.startsWith("node:")) continue;
-      if (s.startsWith("./") || s.startsWith("../")) {
-        if (/\.ts$/.test(s)) bad.push(`${s} (relative .ts needs a loader — extract a .mjs core)`);
-        continue;
-      }
+      if (s.startsWith("./") || s.startsWith("../")) continue;
       bad.push(`${s} (bare package — unavailable without npm ci)`);
     }
   }
