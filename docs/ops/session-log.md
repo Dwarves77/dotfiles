@@ -79,3 +79,31 @@ Browserless, zero Sonnet. Batch-1 spend ($13.44) persists in `agent_runs.cost_us
   `canonical:cited-*` stub rows to close the cross-run self-licensing seam (matrix, P3c section).
 
 **Next:** browser wave (operator per-PR review), loop-live dormant builds, 165-fn search_path companion.
+
+## 2026-07-07/08 — operator "Proceed — do not stop": 158/159 applied, browser wave landed, 160 authored
+
+**Applied to prod (delegated, verified):**
+- **Mig 158** (moat gate): read-back + 3 behavioral probes green; no flips at apply (ride re-validation).
+- **Mig 159** (Ask FTS substrate): weighted search_tsv + GIN + ranked RPC (read predicate inside);
+  probes 12/12/0. Ledger rows 158/159 recorded same-transaction.
+
+**Merged (all CI-green):** #244 cross-run seam + 158 record · #245 WATCH end-to-end (writer route +
+one shared button; prod route answers 401 already) · #246 admin members (caller-re-insert defect
+killed; PUT add-by-email; AUTHORITY WIDENED owner→owner-or-platform-admin — flagged for review; ban
+copy corrected to org-scoped) · #247 community un-orphan (rail links to browse/moderation; dead
+CommunityView deleted; C9 realtime mount-or-remove decision flagged) · #248 Ask FTS retrieval +
+**F15 closure** (last raw api.anthropic.com fetch on a customer path → spendStream, ticketed) ·
+#249 hotfix: F15 allowlist shrink (A2 stale-entry audit correctly turned master RED for one commit
+after #248; local pre-push proxy missed it — gap noted).
+
+**Runtime probes:** overrides route fail-closed on prod (401 no-auth + bad-token); watchlist route
+deployed (401); overrides POST handler already runtime-exercised (4 dismissal rows). Residual
+browser-only item: NotesField happy path needs a real session.
+
+**Authored, NOT applied:** **mig 160** — the reviewed search_path companion. Census reconciled:
+165 unpinned = 56 app-owned (this migration; 26 SECURITY DEFINER) + 109 extension-owned (excluded
+by design). Header carries re-generation query + post-apply verification recipe. Applies ONLY in
+the operator's DDL window per the standing ruling.
+
+**Held:** loop/cadence flip (operator's explicit word only). **Next:** loop-live dormant builds
+(P2-6 change-detection, P2-2/3 scan-materialize, P2-5 scheduler), double-gated.
