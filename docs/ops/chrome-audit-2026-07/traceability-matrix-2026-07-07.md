@@ -196,12 +196,15 @@ committed files until Jason's apply window.
   role/remove/ban + NEW PUT add-by-email (existing accounts only — honest 404 to the provision
   flow; org_member_bans blocks re-add). **AUTHORITY RULING FLAGGED for operator review**: the route
   now accepts owner OR platform admin (profiles.is_platform_admin — the axis /admin gates on).
+  **APPROVED by operator (dispatch 2026-07-08)** — matches the staged-updates platform-admin pattern.
   Ban copy corrected to org-scoped (the old copy claimed platform-wide; the backend never was).
 - **S2-09 (community)** → **LARGELY STALE + residuals FIXED — PR #247**: recon found the rebuilt
   index already had nav, group-create (PR #229), honest presence. Landed: rail-footer links to the
   two URL-only routes (/community/browse, /community/moderation); dead CommunityView.tsx (0
-  importers) deleted. REMAINING ORPHAN (flagged, decision owed): C9 realtime libs built, mounted
-  nowhere — mount into bell/PostList or remove.
+  importers) deleted. C9 realtime → **REMOVED (dispatch 2026-07-08, no-half-built doctrine)**:
+  evidence — realtime.ts + both hooks imported by NOTHING; the bell POLLS (60s visibility-gated)
+  and PostList fetches, so the working consumers never needed the channel layer. Three orphan
+  files deleted; realtime returns as a deliberate build if Community usage warrants it.
 - **S1-09 (Ask retrieval)** → **FIXED — mig 159 APPLIED + code**: FTS substrate (weighted
   search_tsv generated column + GIN + ranked RPC with the customer read predicate INSIDE the fn);
   /api/ask retrieves top-12 by relevance, priority-pull fallback for low-signal questions. ALSO

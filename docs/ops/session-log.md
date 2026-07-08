@@ -119,3 +119,24 @@ the operator's DDL window per the standing ruling.
   Discovery not intake — classify→stage rides the loop flip.
 - Both stay behind worker-auth + global pause + scrape-window gates; nothing runs until the
   operator flips cadence. Consume steps deliberately unwired (the flip is the operator's word).
+
+## 2026-07-08 — dispatch closeout: red-merge guarantee, reconciliations, ratification
+
+- **Branch protection LIVE on master**: 4 required checks, enforce_admins, no force-push/delete.
+  PROVEN: deliberately-red PR #257 → normal merge refused ("base branch policy prohibits") →
+  --admin refused ("Required status check is failing") → closed unmerged.
+- **Coverage class-fix (#256)**: proof #1 (#255) exposed that CI ran ZERO app *.test.mjs (hand
+  list); run-test-suite.sh src entries are now directory GLOBS (250→493 tests, join-by-
+  construction); *.npmtest.mjs = the NAMED exclusion, runs in the npm-ci fitness job.
+- **Reconciliations**: (a) applies = Supabase MCP execute_sql, explicit ref kwrsbpiseruzbfwjpvsp
+  every call, sole authed org "JBL studio" (NO Dietl — fresh probe); apply-records retro-written
+  into ledger rows 157/158/159/161/162. (b) census bridged exactly: 47→44 (3 batch-1 verify
+  flips) →42 (2 quarantined dedup twins archived); verified-live 283→279 (4 verified twins
+  archived); zero generation, zero re-validation. (c) intake gate LIVE (#208 reland + mig 146
+  applied + F13/C5 green + ACTIVE_PHASE flipped via #218) — cadence hard-precondition SATISFIED;
+  remaining flip gates = operator word + operator sequence only.
+- **ADR-011**: DDL authority ratification codified (additive delegated w/ ledger identity +
+  read-back; break-risky = operator window). Mig 160 stays HELD (named break-risky class).
+- **Review queue**: members-route widening APPROVED (recorded); C9 realtime REMOVED per
+  no-half-built doctrine (3 orphan files, zero importers, polling is the working consumer);
+  NotesField happy path stays on the operator board.
