@@ -203,26 +203,9 @@ export function AdminDashboard({
 
   const orgIdFromAuth = useWorkspaceStore((s) => s.orgId);
 
-  // Add a teammate to the caller's current workspace. The full invite-by-email
-  // + provision flow lives at /api/admin/users; this direct insert is the
-  // dev-mode shortcut that attaches the current account under a new role.
-  const addMember = async (email: string) => {
-    if (!email) return;
-    if (!orgIdFromAuth) {
-      showToast("No workspace resolved — sign in to add members.");
-      return;
-    }
-    const { error } = await supabase.from("org_memberships").insert({
-      org_id: orgIdFromAuth,
-      user_id: userId,
-      role: "member",
-    });
-    if (error) showToast("Error: " + error.message);
-    else {
-      showToast("Member added");
-      loadData();
-    }
-  };
+  // Member management (add / role / remove / ban) is owned by MembersPanel, which calls
+  // /api/orgs/[org_id]/members directly (S2-10 fix). The previous inline addMember here was
+  // BROKEN — it discarded the entered email and re-inserted the caller's own user_id.
 
   // Approve / reject a staged update.
   const handleUpdate = async (id: string, action: "approve" | "reject") => {
@@ -588,7 +571,7 @@ export function AdminDashboard({
             <OrganizationsTable orgs={orgs} members={members} />
           </PlateCard>
           <div className="admin-t08-usage" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <MembersPanel members={members} onAddMember={addMember} onToast={showToast} />
+            <MembersPanel members={members} orgId={orgIdFromAuth} onToast={showToast} onChanged={loadData} />
             {orgIdFromAuth ? (
               <InvitationsPanel orgId={orgIdFromAuth} />
             ) : (
