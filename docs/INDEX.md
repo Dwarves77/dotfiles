@@ -14,7 +14,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[ADR-008-urgency-score-default]] — urgency_score default behavior for intelligence_items inserts (accepted)
 - [[ADR-009-adr-system-architecture]] — ADR system architecture (meta) (deprecated)
 - [[ADR-010-docs-taxonomy-and-brain-conventions]] — Docs taxonomy, INDEX discipline, and two-repo memory architecture (accepted)
-- [[ADR-011-ddl-authority-delegation]] — DDL apply authority: additive/low-risk delegated with ledger-recorded identity + read-back; break-risky classes (RLS, drops, customer-read-path, mig-160 batch) stay operator-window (accepted)
+- [[ADR-011-ddl-authority-delegation]] — DDL apply authority: additive/low-risk delegated with ledger-recorded identity + read-back; break-risky classes (RLS, drops, customer-read-path) stay operator-window; + DELEGATED-WITH-PROOF amendment (mig-160 applied 2026-07-08 under it, 56→0 pinned, customer path unchanged) (accepted)
 
 ## inventories
 

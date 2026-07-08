@@ -1,8 +1,13 @@
 -- Migration 160: pin search_path on all 56 APP-OWNED public functions (S1-12 residual).
 --
--- THE REVIEWED COMPANION MIGRATION (operator standing ruling: "stays a REVIEWED companion
--- migration authored for a future DDL window, break-risky, never a live-prod sweep").
--- AUTHOR-ONLY — DO NOT APPLY outside the operator's DDL window.
+-- APPLIED 2026-07-08 — DELEGATED-WITH-PROOF per dispatch (reclassifies THIS migration's
+-- operator-window status; see ADR-011). Prior status was "reviewed companion, break-risky, never a
+-- live-prod sweep"; the dispatch delegated it with a mandatory before/after proof, which passed:
+--   app-owned unpinned functions 56 -> 0; customer read path UNCHANGED (listings 251->251, market
+--   78->78, research 43->43, _workspace_active_items 251->251, via a simulated authed member);
+--   non-gated search_intelligence_items 30/30, validate_item_provenance valid, detect_intersections
+--   50 all unchanged; advisor function_search_path_mutable 168 mentions -> 0. Ledger row 160 carries
+--   the identity apply-record. Reversible per function: ALTER FUNCTION ... RESET search_path.
 --
 -- CENSUS RECONCILED (2026-07-07, live pg_proc): 165 public functions lack a pinned search_path,
 -- but 109 of them are EXTENSION-OWNED (pg_depend deptype='e' — pg_trgm etc. living in public).
