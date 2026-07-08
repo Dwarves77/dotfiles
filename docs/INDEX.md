@@ -124,6 +124,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[deletion-reclassification-log]] — Deletion / reclassification log
 - [[flip-readiness-2026-07-08]] — Cadence/loop flip readiness; the three standing switches (cadence/batch-1/budget)
 - [[browser-verification-pending]] — The one accumulating browser-check list for Jason's end-of-program session
+- [[program-closeout-2026-07-08]] — Build-to-completion close-out: DONE checklist (7/7), census, + the 18-flag operator decision table
 - [[multi-tenant-foundation-followups-2026-05-15]] — Multi-Tenant Foundation Follow-Ups, 2026-05-15
 
 ## design
