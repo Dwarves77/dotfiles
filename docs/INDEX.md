@@ -159,3 +159,4 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 ## top-level living docs
 
 - [[tech-debt-log]] — living technical debt register
+- [[blind-ci-window-audit-2026-07-08]] — Blind-CI-window audit: 8 dark suites (≤46d), all green isolated, guarded modules 0 in-window changes across 81 merges → zero regressions; class-fix #256 + branch protection
