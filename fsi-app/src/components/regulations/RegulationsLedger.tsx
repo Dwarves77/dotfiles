@@ -48,6 +48,7 @@ import {
 } from "@/lib/constants";
 import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { DismissedStash } from "./DismissedStash";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 
@@ -176,7 +177,7 @@ export function RegulationsLedger({
   initialPriorityFilter = null,
   initialRegionFilter = null,
 }: RegulationsLedgerProps) {
-  const { resources: platformResources, setResources, setArchived, overrides, setOverrides } =
+  const { resources: platformResources, setResources, setArchived, overrides, setOverrides, restoreDismissed } =
     useResourceStore();
 
   // ── Filter state ────────────────────────────────────────────────────
@@ -211,9 +212,18 @@ export function RegulationsLedger({
 
   const effectiveResources =
     platformResources.length > 0 ? platformResources : initialResources;
-  const { active } = useMemo(
+  const { active, dismissed } = useMemo(
     () => mergeWithOverrides(effectiveResources, overrides),
     [effectiveResources, overrides]
+  );
+  // Dismissed regulations surface in the DismissedStash drawer at the bottom (restore path).
+  // The Template-02 rebuild dropped this drawer; without it a dismissed item — e.g. a CRITICAL
+  // regulation dismissed by accident from the detail-page priority dropdown — vanished from
+  // /regulations with NO recovery. The stash + restoreDismissed both already existed (the old
+  // kanban surface mounted them); this re-mounts the recovery path.
+  const dismissedRegulations = useMemo(
+    () => dismissed.filter((r) => r.domain === REGULATIONS_DOMAIN),
+    [dismissed]
   );
   const regulatory = useMemo(
     () => active.filter((r) => r.domain === REGULATIONS_DOMAIN),
@@ -964,6 +974,9 @@ export function RegulationsLedger({
         Rows show jurisdiction, title, next date, and source tier where classified. Deadlines in red
         fall within 90 days. Open any regulation for the full brief, sources, and connected intelligence.
       </p>
+
+      {/* Dismissed-regulations recovery drawer (restore path). Renders nothing when empty. */}
+      <DismissedStash dismissed={dismissedRegulations} onRestore={(id) => restoreDismissed(id)} />
 
       <style>{`
         .cl-reg-row:hover { background: var(--color-bg-base); }
