@@ -122,6 +122,8 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[session-log]] — Dated session-close log (accomplished / decisions / blockers / next steps)
 - [[traceability-matrix-2026-07-07]] — Live-pages audit findings register + disposition matrix (41 findings, DEEP-AUDIT + date/dedup)
 - [[deletion-reclassification-log]] — Deletion / reclassification log
+- [[flip-readiness-2026-07-08]] — Cadence/loop flip readiness; the three standing switches (cadence/batch-1/budget)
+- [[browser-verification-pending]] — The one accumulating browser-check list for Jason's end-of-program session
 - [[multi-tenant-foundation-followups-2026-05-15]] — Multi-Tenant Foundation Follow-Ups, 2026-05-15
 
 ## design
@@ -160,3 +162,4 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 
 - [[tech-debt-log]] — living technical debt register
 - [[blind-ci-window-audit-2026-07-08]] — Blind-CI-window audit: 8 dark suites (≤46d), all green isolated, guarded modules 0 in-window changes across 81 merges → zero regressions; class-fix #256 + branch protection
+- [[redesign-completeness-2026-07-08]] — Recon: all 11 redesign templates rebuilt + live on master (dispatch's "2 of 11" was stale); T03 detail archetype reached master via integration path
