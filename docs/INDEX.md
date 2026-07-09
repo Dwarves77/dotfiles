@@ -125,6 +125,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[flip-readiness-2026-07-08]] — Cadence/loop flip readiness; the three standing switches (cadence/batch-1/budget)
 - [[browser-verification-pending]] — The one accumulating browser-check list for Jason's end-of-program session
 - [[program-closeout-2026-07-08]] — Build-to-completion close-out: DONE checklist (7/7), census, + the 18-flag operator decision table
+- [[root-cause-why-the-queue-2026-07-08]] — ROOT CAUSE: why /admin reads 1,280 with 0 agent runs — built as a human-supervised DETECTION engine; the autonomous DRAIN half (1 of 17 flag classes) was never wired. Corrects the "DONE 7/7" claim.
 - [[multi-tenant-foundation-followups-2026-05-15]] — Multi-Tenant Foundation Follow-Ups, 2026-05-15
 
 ## design
