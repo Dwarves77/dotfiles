@@ -7,6 +7,7 @@
  */
 
 import type { ActionListItem, Severity } from "@/lib/agent/extract-regulation-sections";
+import { isPlaceholderText } from "@/lib/agent/source-entry-filter.mjs";
 
 const SEVERITY_LABEL: Record<Severity, string> = {
   action_required: "Action required",
@@ -25,7 +26,10 @@ const SEVERITY_TONE: Record<Severity, { fg: string; bg: string; bd: string }> = 
 };
 
 export function ActionList({ items }: { items: ActionListItem[] }) {
-  if (items.length === 0) return null;
+  // F-1 class guard: drop an action row only when it has NO backed content at all
+  // (both label and body empty/header-echo) — a body-only or label-only action is real.
+  const shown = items.filter((it) => it && !(isPlaceholderText(it.label) && isPlaceholderText(it.body)));
+  if (shown.length === 0) return null;
   return (
     <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 14 }}>
       {items.map((it, i) => {

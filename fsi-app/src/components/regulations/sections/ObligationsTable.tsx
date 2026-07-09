@@ -7,9 +7,12 @@
  */
 
 import type { ObligationRow } from "@/lib/agent/extract-regulation-sections";
+import { dropUnbackedRows } from "@/lib/agent/source-entry-filter.mjs";
 
 export function ObligationsTable({ rows }: { rows: ObligationRow[] }) {
-  if (rows.length === 0) return null;
+  // F-1 class guard: never render a row whose Obligation cell is empty/header-echo.
+  const shown = dropUnbackedRows(rows, "obligation") as ObligationRow[];
+  if (shown.length === 0) return null;
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
@@ -22,7 +25,7 @@ export function ObligationsTable({ rows }: { rows: ObligationRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
+          {shown.map((r, i) => (
             <tr key={i} style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
               <td style={td}>{r.obligation}</td>
               <td style={td}>{r.deadline}</td>
