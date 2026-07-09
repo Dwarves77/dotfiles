@@ -26,6 +26,28 @@ Every value-ruled or dedup delete + every reclassify-to-source, appended at exec
 
 Companion (NOT deletes/reclassifies — logged for completeness): 5 genuine market_signals re-routed Regulations(d1)→Market Intel(d4), briefs untouched: 237b3cc1 Maritime Singapore Blueprint; 64e9d38d + 44906e93 Singapore Green Finance (the operator keep-both MAS/MPA pair — routing only, pairing preserved); b0cf862e California CSFAP; 7aa19423 California RPS CP4. Same snapshot; 5 flags resolved. 18 flags remain OPEN — genuine type-ambiguity (technology-vs-research_finding tech items), off-vertical, and borderline — escalated to operator, not disposed.
 
+### 2026-07-08 (later) · the-18 enactment (never-a-human-layer re-adjudication)
+
+**Supersedes the "18 flags remain OPEN" line above.** The 18 in_review flags were re-adjudicated under
+the operator's never-a-human-layer doctrine: escalation-to-Jason is correct only for genuine
+legal-interpretation calls; everything else the classifier/entity-layer resolves and ENACTS. **Residue = 0**
+(none was a legal call). Guarded + read-back (4 technology / 9 domain / 5 archived confirmed; 18 flags
+resolved). Snapshot + reversal SQL: `scripts/_snapshots/2026-07-08_the-18-enactment.jsonl`.
+
+- **ARCHIVE (off_domain)** — off the freight-sustainability vertical (relevance-layer disposition):
+  99de93a3 "MDEQ Water Contact Advisories" (Gulf-coast beach bacterial advisories); 0ff5f197 "Rhode
+  Island Fish Passage / River Herring Migration". Reversible (un-archive).
+- **RECLASSIFY→source** — institution/agency/programme overview mis-minted as item; active source
+  verified before archive, source retained: d012bc20 "NC DEQ Air Quality Division"; 2943632e "Port of
+  Los Angeles Environmental Management Framework"; 319f785d "UNCTAD Transport Infrastructure & Services
+  Programme". Reversible.
+- Companion (NOT deletes — logged for completeness): **4 re-typed** research_finding→technology (stay
+  Market Intel d2, brief format already Technology Profile for 2 of them): 85525e8f Battery&EV, 7169c9ac
+  Autonomous freight, f6774c49 Hydrogen&Ammonia, afc851b1 Marine Fuel. **9 domain-fixed** (re-routed to
+  their type's surface, briefs untouched): ENERGY STAR + LADBS→Regulations(1); Joint Office EV + ASEAN
+  Plan + UNCTAD Six-Step→Market Intel(4); Nashville Building Energy→Regulations(1); Solar-BESS + 48th
+  ASEAN Summit→Operations(3); Warehouse-BESS-ROI→Research(7).
+
 ## Related
 
 - [[migrations]] — RECLASSIFY→source entries run through the migration-135 source-registration guard and migration-019 mistyped-tool reclassification — the DB…
