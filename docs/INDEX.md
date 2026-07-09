@@ -127,6 +127,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[program-closeout-2026-07-08]] — Build-to-completion close-out: DONE checklist (7/7), census, + the 18-flag operator decision table
 - [[root-cause-why-the-queue-2026-07-08]] — ROOT CAUSE: why /admin reads 1,280 with 0 agent runs — built as a human-supervised DETECTION engine; the autonomous DRAIN half (1 of 17 flag classes) was never wired. Corrects the "DONE 7/7" claim.
 - [[site-gap-register-2026-07-09]] — CANONICAL BASELINE (supersedes the traceability matrix): Chrome wiring-audit U-01..U-11 + D/F/Q fix-forward rows + U-11 ledger truth + phase-0-5 baseline mapping. F-1 fabricated-source class kill recorded.
+- [[conservation-audit-2026-07-09]] — Full-pipeline conservation audit: stage-loss table, 4 axes, defect-class table w/ mechanisms. Headline: 56% archived is cleanup (conserved); 63/240 verified fail the CURRENT moat gate (all pool-recoverable, pre-mig-158 residue); 88 dup claim rows deleted; provisional(489)/quarantine(48) drains = BUILD GAPS; credential guard blocks MCP provenance writes (working).
 - [[multi-tenant-foundation-followups-2026-05-15]] — Multi-Tenant Foundation Follow-Ups, 2026-05-15
 
 ## design
