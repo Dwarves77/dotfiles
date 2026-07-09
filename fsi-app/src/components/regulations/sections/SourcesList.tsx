@@ -15,6 +15,7 @@
  */
 
 import type { SourceEntry } from "@/lib/agent/extract-regulation-sections";
+import { renderableSourceEntries } from "@/lib/agent/source-entry-filter.mjs";
 
 const TIER_STYLE: Record<number, { fg: string; bg: string }> = {
   1: { fg: "#fff", bg: "var(--color-critical)" },
@@ -25,10 +26,13 @@ const TIER_STYLE: Record<number, { fg: string; bg: string }> = {
 };
 
 export function SourcesList({ entries }: { entries: SourceEntry[] }) {
-  if (entries.length === 0) return null;
+  // F-1 forbidden-class guard: never emit a row for a null/placeholder-name entry
+  // (empty name, or a table-header artifact like "Source Name"). No fabricated copy.
+  const visible = renderableSourceEntries(entries) as SourceEntry[];
+  if (visible.length === 0) return null;
   return (
     <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-      {entries.map((e, i) => {
+      {visible.map((e, i) => {
         const tone = e.tier ? TIER_STYLE[e.tier] : null;
         return (
           <li
@@ -38,7 +42,7 @@ export function SourcesList({ entries }: { entries: SourceEntry[] }) {
               gridTemplateColumns: "auto 1fr",
               gap: 10,
               padding: "8px 0",
-              borderBottom: i < entries.length - 1 ? "1px solid var(--color-border-subtle)" : "none",
+              borderBottom: i < visible.length - 1 ? "1px solid var(--color-border-subtle)" : "none",
               alignItems: "baseline",
             }}
           >

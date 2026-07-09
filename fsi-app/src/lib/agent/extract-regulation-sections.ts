@@ -37,6 +37,7 @@
  */
 
 import { extractSectionByHeading } from "./extract-sections";
+import { isPlaceholderSourceName } from "./source-entry-filter.mjs";
 
 // ── Section-key vocabulary ─────────────────────────────────────────
 
@@ -478,20 +479,18 @@ function parseSourcesList(markdown: string): SourceEntry[] {
   const hasSeparator = tableLines.some(isSeparatorLine);
 
   if (tableLines.length >= 2 && hasSeparator) {
-    let sawSeparator = false;
-    let headerSkipped = false;
-    for (const line of tableLines) {
-      if (isSeparatorLine(line)) {
-        sawSeparator = true;
-        continue;
-      }
-      // First non-separator table line is the header row.
-      if (!headerSkipped) {
-        headerSkipped = true;
-        continue;
-      }
-      // Data rows come after the separator.
-      if (!sawSeparator) continue;
+    // Header rows = any table line immediately followed by a separator line. This
+    // handles MULTIPLE tables in one §15 section (e.g. a trailing "New Sources
+    // Identified" table): the previous single-header skip parsed the second table's
+    // header ("| Source Name | URL | … |") as a DATA row, fabricating a source
+    // literally named "Source Name" (the F-1 defect).
+    const headerIdx = new Set<number>();
+    for (let h = 0; h < tableLines.length - 1; h++) {
+      if (!isSeparatorLine(tableLines[h]) && isSeparatorLine(tableLines[h + 1])) headerIdx.add(h);
+    }
+    for (let t = 0; t < tableLines.length; t++) {
+      const line = tableLines[t];
+      if (isSeparatorLine(line) || headerIdx.has(t)) continue;
 
       // Split on "|", trim, drop the empty leading/trailing cells.
       const cells = line
@@ -503,7 +502,8 @@ function parseSourcesList(markdown: string): SourceEntry[] {
       // Skip a leading "row number" cell when present.
       const titleIdx = /^\d+$/.test(cells[0]) && cells.length > 1 ? 1 : 0;
       const name = cells[titleIdx] || "";
-      if (!name) continue;
+      // Drop empty + header-artifact names — never fabricate a placeholder source (F-1).
+      if (isPlaceholderSourceName(name)) continue;
 
       // URL is the last cell containing a URL token.
       let url: string | null = null;

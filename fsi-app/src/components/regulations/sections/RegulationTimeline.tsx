@@ -7,12 +7,15 @@
  */
 
 import type { TimelineEntry } from "@/lib/agent/extract-regulation-sections";
+import { dropUnbackedRows } from "@/lib/agent/source-entry-filter.mjs";
 
 export function RegulationTimeline({ entries }: { entries: TimelineEntry[] }) {
-  if (entries.length === 0) return null;
+  // F-1 class guard: never render a timeline row whose event label is empty/header-echo.
+  const shown = dropUnbackedRows(entries, "label") as TimelineEntry[];
+  if (shown.length === 0) return null;
   return (
     <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-      {entries.map((e, i) => (
+      {shown.map((e, i) => (
         <li
           key={i}
           style={{
@@ -20,7 +23,7 @@ export function RegulationTimeline({ entries }: { entries: TimelineEntry[] }) {
             gridTemplateColumns: "120px 1fr",
             gap: 16,
             paddingBottom: 10,
-            borderBottom: i < entries.length - 1 ? "1px solid var(--color-border-subtle)" : "none",
+            borderBottom: i < shown.length - 1 ? "1px solid var(--color-border-subtle)" : "none",
           }}
         >
           <span
