@@ -173,4 +173,27 @@ forum_sections 'vendor-reviews' seed row (forum-layer, DB-4 F6); the word "vendo
 vertical-fit.ts / classify-source-role.ts (about SOURCE roles, not the directory — keep);
 privacy/page.tsx copy mention (text only).
 
+## e6 — user_profiles mirror retirement (mig-075 Phase 3) — 2 MIGRATIONS AUTHORED (NOT APPLIED)
+
+Two ordered migrations (182 MUST apply before 183):
+- **182** `182_repoint_policies_off_user_profiles.sql` — repoints the 3 RLS policy arms that read
+  `user_profiles.is_platform_admin` onto `profiles.is_platform_admin`
+  (moderation_reports_select, moderation_reports_update_admin, post_promotions_select). Non-admin arms
+  reproduced verbatim from live defs; the admin EXISTS subquery changes `user_profiles up WHERE
+  up.user_id = auth.uid()` → `profiles up WHERE up.id = auth.uid()`. No rollback file (a superseding
+  policy definition; 183's rollback recreates the table, and reverting 182 is optional — see 183 down).
+- **183** `183_drop_user_profiles_mirror.sql` — drops table user_profiles (CASCADE) + trigger
+  `profiles_mirror_to_user_profiles` ON profiles + both mirror fns (`_mirror_profiles_to_user_profiles`,
+  `_mirror_user_profiles_to_profiles`). Shared `update_updated_at()` KEPT.
+  Rollback `183_drop_user_profiles_mirror.down.sql` recreates table + indexes + constraints + 4 RLS
+  policies + both mirror fns + 3 triggers, then re-seeds user_profiles from profiles.
+
+Fresh live confirmation (2026-07-11): the ONLY remaining references to user_profiles were exactly the
+3 policy arms (DB-4 F3); zero code readers/writers; no inbound FK. profiles holds the authoritative
+is_platform_admin (identical value via the live mirror). Discharges DB-4 F3 (+ F3a asymmetry, gone by
+construction); master P3.
+
+DEPENDENCY NOTE for the orchestrator: 182 → 183 order is HARD. Apply 182, verify the 3 policies point
+at profiles, then apply 183. Applying 183 first breaks the moderation/promotions read+update gates.
+
 <!-- Sections below appended per wave -->
