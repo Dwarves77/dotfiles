@@ -64,7 +64,8 @@ test('RED: a transport module WITHOUT assertFetchAllowed is flagged', () => {
 });
 
 test('GREEN: a transport module WITH assertFetchAllowed is clean', () => {
-  const withGate = 'import { assertFetchAllowed } from "@/lib/sources/fetch-hold.mjs";\nexport async function rssFetch(s) {\n  assertFetchAllowed(s.url);\n  return fetch(s.url);\n}';
+  // relative-.mjs fixture path (keeps glob-portability happy — the F16 check only needs the gate call present)
+  const withGate = 'import { assertFetchAllowed } from "./fetch-hold.mjs";\nexport async function rssFetch(s) {\n  assertFetchAllowed(s.url);\n  return fetch(s.url);\n}';
   assert.deepEqual(fitnessFunction.check(TRANSPORT_MODULES[0], withGate), []);
 });
 

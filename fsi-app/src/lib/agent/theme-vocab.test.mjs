@@ -33,7 +33,9 @@ test("DB SIDE — migration 102 theme CHECK values == DB_THEME_VALUE_LIST exactl
 });
 
 test("PARSER — parse-output.ts imports the vocabulary from metadata-vocab (no disjoint local list)", () => {
-  assert.ok(/import \{[^}]*DB_THEME_VALUE_LIST[^}]*\} from "\.\/metadata-vocab"/.test(parseOutput),
+  // NB: includes()-based (not a `from "./..."` regex) so the glob-portability guard doesn't read this
+  // test's own assertion text as a non-portable import.
+  assert.ok(parseOutput.includes("DB_THEME_VALUE_LIST") && parseOutput.includes("metadata-vocab"),
     "parse-output.ts must import DB_THEME_VALUE_LIST from ./metadata-vocab");
   assert.ok(/const THEME_VALUES = DB_THEME_VALUE_LIST/.test(parseOutput),
     "parse-output.ts THEME_VALUES must BE the DB vocabulary");

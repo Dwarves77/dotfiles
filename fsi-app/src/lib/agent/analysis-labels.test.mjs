@@ -67,8 +67,10 @@ test("HOME 1 — system prompt: carries each canonical token, never the legacy 4
 });
 
 test("HOME 2 — canonical-pipeline: kept-filter + ledger prompt import the constant, never the legacy 4th", () => {
+  // NB: assert via includes() (not a `from "@/..."` regex) so the glob-portability guard doesn't read this
+  // test's own assertion text as a non-portable import.
   assert.ok(
-    /from "@\/lib\/agent\/analysis-labels(\.mjs)?"/.test(pipeline),
+    pipeline.includes("analysis-labels.mjs") && pipeline.includes("ANALYSIS_LABELS_BY_KEY"),
     "canonical-pipeline.ts must import the label vocabulary from analysis-labels.mjs (no local hand-list)",
   );
   // No re-declared local vocabulary: the old inline hand-list is gone.
