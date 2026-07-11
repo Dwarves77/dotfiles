@@ -20,12 +20,15 @@ export const GOVERNED = [
   {
     skill: 'environmental-policy-and-innovation',
     classes: ['G', 'M'],
-    why: 'item taxonomy (item_type→format), grounding/integrity rule, source≠item',
+    why: 'item taxonomy (item_type→format), grounding/integrity rule, source≠item, mint chokepoint (EP-9)',
     // generation + grounding logic files
     files: [
       'fsi-app/src/lib/agent/canonical-pipeline.ts',
       'fsi-app/src/lib/agent/system-prompt.ts',
       'fsi-app/src/lib/agent/parse-output.ts',
+      // the ONE intelligence_items mint chokepoint (EP-9 single-mint-chokepoint / F13) — an edit here
+      // changes source↔claim-type congruence + subject-existence dedup for the whole corpus.
+      'fsi-app/src/lib/intake/mint-item.ts',
     ],
     // row mutations on the intelligence taxonomy (item_type / provenance / classification)
     ops: [/intelligence_items/i, /\bitem_type\b/i, /\bprovenance_status\b/i],
@@ -65,8 +68,14 @@ export const GOVERNED = [
   {
     skill: 'remediation-discipline',
     classes: ['M'],
-    why: 'classify-before-delete; verify-before-discard; no archive over an undiagnosed bucket',
-    files: [],
+    why: 'classify-before-delete; verify-before-discard; no archive over an undiagnosed bucket; spend/transport chokepoints (RD-10/RD-11)',
+    // the spend + transport chokepoint modules — an edit here changes the single-home guarantees
+    // (RD-10 spend chokepoint / F15; RD-11 transport-hold gate / F16) the whole pipeline funnels through.
+    files: [
+      'fsi-app/src/lib/llm/spend-client.ts',
+      'fsi-app/src/lib/sources/fetch-hold.mjs',
+      'fsi-app/src/lib/sources/canonical-fetch.mjs',
+    ],
     // delete / archive operations on existing rows
     ops: [/is_archived\b/i, /archive_reason\b/i, /\.delete\s*\(/, /\bDELETE\s+FROM\b/i],
   },

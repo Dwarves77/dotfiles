@@ -2,6 +2,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   commitMessageLines,
   filesMatching,
@@ -182,7 +184,15 @@ test('getRepoRoot: ignores empty env override and falls through to git', () => {
   process.env.DISCIPLINE_REPO_ROOT = '   ';
   try {
     const root = getRepoRoot();
-    assert.ok(root.includes('dotfiles'), `expected git fallback to return dotfiles path, got: ${root}`);
+    // Robust across worktrees NOT under a "dotfiles" path (R0.2 + A2 both hit the old
+    // hardcoded-substring assertion). The contract is: getRepoRoot returns an existing
+    // directory that carries a repo marker (.git file/dir OR the fsi-app product dir) —
+    // not a specific path substring.
+    assert.ok(existsSync(root), `getRepoRoot must return an existing directory, got: ${root}`);
+    assert.ok(
+      existsSync(join(root, '.git')) || existsSync(join(root, 'fsi-app')),
+      `getRepoRoot must return a repo root (contains .git or fsi-app), got: ${root}`,
+    );
   } finally {
     if (savedEnv === undefined) delete process.env.DISCIPLINE_REPO_ROOT;
     else process.env.DISCIPLINE_REPO_ROOT = savedEnv;
