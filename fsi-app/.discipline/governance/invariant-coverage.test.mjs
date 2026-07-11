@@ -3,7 +3,7 @@
 // a silent no-op and everything underneath would look "wired" falsely — the turtle-at-the-top.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runInvariantCoverage, auditInvariants } from './invariant-coverage.mjs';
+import { runInvariantCoverage, auditInvariants, auditDoctrines } from './invariant-coverage.mjs';
 
 // ── POSITIVE: the real registry is fully wired ──
 test('real registry: every invariant enforced-or-exempt, enforcements resolve, anchors + baselines hold', () => {
@@ -51,6 +51,41 @@ test('NEGATIVE: empty exemption reason is flagged EMPTY-EXEMPTION', () => {
 });
 
 // ── POSITIVE control: a correctly-wired invariant yields NO problems (gate isn't trigger-happy) ──
+// ── NEGATIVE: doctrine-register gate (unenforced doctrine = FAIL) must catch each bad shape ──
+const docEnv = {
+  allInvariantIds: new Set(['RD-4-quarantine-disposition', 'EP-6-cause-effect']),
+  enforcedInvariantIds: new Set(['RD-4-quarantine-disposition']), // EP-6 is EXEMPT → not here
+  doctrineIds: new Set(['real-doctrine']),
+};
+
+test('NEGATIVE(doctrine): a doctrine with no enforcedBy and no exempt is flagged UNENFORCED', () => {
+  const { problems } = auditDoctrines([{ id: 'd1' }], docEnv);
+  assert.ok(problems.some((p) => p.includes('UNENFORCED DOCTRINE')), problems.join('\n'));
+});
+
+test('NEGATIVE(doctrine): a doctrine mapped to an EXEMPT invariant is flagged (no live mechanism)', () => {
+  const { problems } = auditDoctrines([{ id: 'd2', enforcedBy: ['EP-6-cause-effect'] }], docEnv);
+  assert.ok(problems.some((p) => p.includes('ENFORCED BY EXEMPT INVARIANT')), problems.join('\n'));
+});
+
+test('NEGATIVE(doctrine): a doctrine mapped to an unknown invariant id is flagged', () => {
+  const { problems } = auditDoctrines([{ id: 'd3', enforcedBy: ['NOPE-999'] }], docEnv);
+  assert.ok(problems.some((p) => p.includes('UNKNOWN INVARIANT')), problems.join('\n'));
+});
+
+test('NEGATIVE(doctrine): a dangling conflict reference is flagged', () => {
+  const { problems } = auditDoctrines([{ id: 'd4', exempt: { reason: 'x' }, conflicts: ['ghost'] }], docEnv);
+  assert.ok(problems.some((p) => p.includes('DANGLING CONFLICT')), problems.join('\n'));
+});
+
+test('CONTROL(doctrine): enforced-by-a-live-invariant yields zero problems', () => {
+  const { problems } = auditDoctrines(
+    [{ id: 'real-doctrine', enforcedBy: ['RD-4-quarantine-disposition'], conflicts: ['real-doctrine'] }],
+    docEnv
+  );
+  assert.equal(problems.length, 0, problems.join('\n'));
+});
+
 test('CONTROL: a correctly enforced invariant with a present anchor yields zero problems', () => {
   const { problems } = auditInvariants([{ id: 'G', skill: 's', anchor: 'anchor-text', enforcedBy: ['rule:REAL'] }], env);
   assert.equal(problems.length, 0, `expected no problems, got: ${problems.join(' | ')}`);
