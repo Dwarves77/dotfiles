@@ -35,7 +35,7 @@ check-off" section); the roll-up lives in `master-gap-register.md`.
 
 ## B. DB manifest
 
-**86 tables · 1,157 columns · 172 functions (≈60 app-owned; ~112 ltree/pg_trgm extension internals —
+**85 tables (CORRECTION 2026-07-11: header originally said 86 — orchestrator transcription error; pg_tables census = 85, all 85 scanned — see master-gap-register.md) · 1,157 columns · 172 functions (≈60 app-owned; ~112 ltree/pg_trgm extension internals —
 inventoried, not audited) · 34 triggers · 183 RLS policies · 5 views · 1 enum (`provenance_status`) ·
 333 indexes · 132 FK constraints · 647 CHECK constraints.**
 
