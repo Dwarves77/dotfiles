@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
+import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
 
 function getServiceClient() {
@@ -34,7 +35,7 @@ async function resolveItemUuid(
 // Body: { itemId: string, priorityOverride?: string|null, isArchived?: boolean,
 //         archiveReason?: string|null, archiveNote?: string|null, notes?: string }
 // Upserts (org_id, item_id) into workspace_item_overrides.
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
 
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/workspace/overrides
 // Body: { itemId: string }
 // Removes the (org_id, item_id) row entirely.
-export async function DELETE(request: NextRequest) {
+async function handleDELETE(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
 
@@ -178,3 +179,9 @@ export async function DELETE(request: NextRequest) {
     { headers: rateLimitHeaders(auth.userId) }
   );
 }
+
+// R0.2 first-party error tracking on a customer data route: capture thrown
+// failures as error_events groups (mig 195), then rethrow — semantics
+// unchanged.
+export const POST = withErrorCapture("/api/workspace/overrides", handlePOST);
+export const DELETE = withErrorCapture("/api/workspace/overrides", handleDELETE);

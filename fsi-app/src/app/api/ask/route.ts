@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 import { ENVIRONMENTAL_POLICY_SKILL_CORE } from "@/lib/llm/skill-loader";
 import { spendStream } from "@/lib/llm/spend-client";
 
@@ -71,7 +72,7 @@ type Citation = {
 
 // POST /api/ask — Intelligence Assistant (research helper, not decision engine).
 // Tier 3 closes OBS-27 (skill loading) and OBS-28 (citation surfacing).
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
 
@@ -441,6 +442,14 @@ ${sourcesContext}`;
       { headers: rateLimitHeaders(auth.userId) }
     );
   } catch (e: any) {
+    // R0.2: this catch converts the failure to a 500 for the caller, so the
+    // withErrorCapture wrapper below never sees it — record it here before
+    // responding. captureError is fail-open (never throws).
+    await captureError({ side: "server", route: "/api/ask", error: e });
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
+// R0.2 first-party error tracking: also captures anything thrown OUTSIDE the
+// main try/catch above (body parse, auth plumbing), then rethrows.
+export const POST = withErrorCapture("/api/ask", handlePOST);

@@ -10,6 +10,7 @@ const anton = Anton({
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppShell } from "@/components/AppShell";
+import { GlobalErrorReporter } from "@/components/telemetry/GlobalErrorReporter";
 import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
 import "./theme.css";
 import "./globals.css";
@@ -69,6 +70,9 @@ export default async function RootLayout({
           initialSectors={bootstrap.sectors}
         >
           <ThemeInitializer />
+          {/* R0.2 first-party error tracking: window.onerror + unhandled-
+              rejection reporter (renders nothing; per-session rate-limited). */}
+          <GlobalErrorReporter />
           <AppShell>{children}</AppShell>
         </AuthProvider>
       </body>
