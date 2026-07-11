@@ -15,12 +15,30 @@
 import { canonicalizeCitationUrl } from "../agent/url-canon.mjs";
 
 export class FetchHoldError extends Error {
-  /** @param {string} url */
-  constructor(url) {
-    super(`FETCH_HOLD_ENGAGED: the scrape hold is engaged (SCRAPE_HOLD) — refusing to fetch ${url}. Lift the hold (set SCRAPE_HOLD=off) only when the scrape cadence is set.`);
+  /** @param {string} url @param {string|null} [caller] */
+  constructor(url, caller = null) {
+    super(`FETCH_HOLD_ENGAGED: the scrape hold is engaged (SCRAPE_HOLD)${caller ? ` and caller '${caller}' is not a signed authorized caller` : ""} — refusing to fetch ${url}. The hold gates AUTONOMOUS/scheduled fetching; a manual operator-fired run or Unit-3 remediation passes ONLY as an authorized signed caller (see AUTHORIZED_HOLD_CALLERS).`);
     this.name = "FetchHoldError";
     this.url = url;
+    this.caller = caller;
   }
+}
+
+// F16 TWO-CALLER SIGNED-EXCEPTION (ADR-012 / Disposition Unit 0b, 2026-07-11). The hold gates
+// AUTONOMOUS/scheduled fetching; the SAME manifest-bound mechanism admits exactly TWO signed callers —
+// no third door. This is a MANIFEST (a frozen allow-list), not an arbitrary bypass: any caller not in
+// this set (incl. the scheduled worker, which passes NO caller) is blocked while the hold is engaged.
+// The "signature" is the deliberate, code-reviewable, telemetered act of naming an authorized caller —
+// it exists to stop ACCIDENTAL autonomous fetches, not malicious code. Extending this set is a governed
+// change (conflict-1-autonomy-beats-batch1-gate in the doctrine register).
+export const AUTHORIZED_HOLD_CALLERS = Object.freeze(
+  new Set(["unit3-remediation", "manual-intake-run"])
+);
+
+/** Is `caller` one of the exactly-two signed callers allowed through an engaged hold?
+ * @param {unknown} caller @returns {boolean} */
+export function isAuthorizedHoldCaller(caller) {
+  return typeof caller === "string" && AUTHORIZED_HOLD_CALLERS.has(caller);
 }
 
 const ENGAGED = new Set(["1", "on", "true", "engaged", "yes"]);
@@ -35,10 +53,16 @@ export function holdEngaged(env = process.env) {
   return false; // unknown value → default lifted (do not silently block prod on a typo)
 }
 
-/** Throw FetchHoldError if the hold is engaged. Called at the TOP of the canonical fetch primitive.
- * @param {string} url @param {Record<string,string|undefined>} [env] */
-export function assertFetchAllowed(url, env = process.env) {
-  if (holdEngaged(env)) throw new FetchHoldError(url);
+/** Throw FetchHoldError if the hold is engaged AND the caller is not a signed authorized caller.
+ * Called at the TOP of the canonical fetch primitive. `caller` defaults to null (the scheduled/pipeline
+ * path), which is BLOCKED while engaged — only an authorized signed caller (manual-intake-run /
+ * unit3-remediation) passes an engaged hold. Backward-compatible: existing assertFetchAllowed(url[,env])
+ * callers stay gated exactly as before.
+ * @param {string} url @param {Record<string,string|undefined>} [env] @param {string|null} [caller] */
+export function assertFetchAllowed(url, env = process.env, caller = null) {
+  if (!holdEngaged(env)) return;                  // hold lifted → everyone passes (prod-preserving)
+  if (isAuthorizedHoldCaller(caller)) return;     // engaged, but a signed authorized caller → exception
+  throw new FetchHoldError(url, caller);          // engaged + unsigned/unauthorized → blocked
 }
 
 /** Canonical cache key for a URL — the url-canon SINGLE HOME (mirrors migration 150). Two URLs that differ only
@@ -108,14 +132,20 @@ export function makeFetchTelemetry() {
  * engaged (recording a hold-blocked telemetry row first).
  * @param {string} url @param {object} opts
  * @param {{ fetchImpl:(url:string,opts:object)=>Promise<any>, store?:Map<string,any>, now:()=>number,
- *   env?:Record<string,string|undefined>, ttlTable?:Record<string,number>, telemetry?:ReturnType<typeof makeFetchTelemetry> }} deps
+ *   env?:Record<string,string|undefined>, ttlTable?:Record<string,number>, telemetry?:ReturnType<typeof makeFetchTelemetry>,
+ *   caller?:string|null }} deps
  */
 export async function transportFetch(url, opts, deps) {
-  const { fetchImpl, store, now, env = process.env, ttlTable = HOST_TTL_MS, telemetry } = deps;
+  const { fetchImpl, store, now, env = process.env, ttlTable = HOST_TTL_MS, telemetry, caller = null } = deps;
   const nowMs = now();
-  if (holdEngaged(env)) {
+  if (holdEngaged(env) && !isAuthorizedHoldCaller(caller)) {
     telemetry?.record({ url, key: fetchCacheKey(url), outcome: "hold-blocked", bytes: 0, atMs: nowMs });
-    throw new FetchHoldError(url);
+    throw new FetchHoldError(url, caller);
+  }
+  // An authorized signed caller passing an ENGAGED hold is recorded as an explicit exception (auditable),
+  // not a silent pass — so "who fetched while the hold was up" is always answerable from telemetry.
+  if (holdEngaged(env)) {
+    telemetry?.record({ url, key: fetchCacheKey(url), outcome: "hold-exception", bytes: 0, atMs: nowMs });
   }
   const hit = cacheGet(store, url, nowMs, ttlTable);
   if (hit) {
