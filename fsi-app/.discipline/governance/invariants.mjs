@@ -62,7 +62,10 @@ export const SKILL_MARKER_BASELINE = {
   // label" to Section 3. TRIAGE: not a new rule — an instance of the existing labeling discipline
   // already enforced by the provenance gate's criterion 4 (validate_item_provenance quarantines an
   // unlabeled ANALYSIS assertion); covered by the per-claim grounding invariants, no new invariant.
-  'environmental-policy-and-innovation': 18,
+  // 18→19 (2026-07-11, Wave-α C8): added "Canonical instrument key (dedup-before-grounding identity)"
+  // normative line ("Two VERIFIED, non-archived items MUST NOT share a canonical instrument key").
+  // TRIAGE: new invariant EP-11 (enforcedBy audit canonical-key-uniqueness.mjs + migration 200).
+  'environmental-policy-and-innovation': 19,
   // 10→11 (2026-07-03): added the "Floor-qualifying source reaches grounding COMPLETE (the truncation
   // moat)" normative line. TRIAGE: new invariant SC-10 (enforcedBy selftest source-blocks.test.mjs).
   // 11→12 (2026-07-03): added the "Floor-first span re-attribution (the attribution half of the moat)"
@@ -188,6 +191,15 @@ export const INVARIANTS = [
     anchor: 'controlled vocabulary for `intelligence_items.topic_tags`',
     enforcedBy: ['audit:fsi-app/scripts/verify/vocab-sync-audit.mjs'],
     residual: 'vocab-sync-audit.mjs (CI-with-secrets lane) reads pg_get_constraintdef from the catalog and compares each column\'s CHECK value set to the matching metadata-vocab Set — the standing truth-teller for a code-vs-DB vocab drift. It was an unwired lane audit before this registration (the meta-gate blind spot). The meta-gate proves wiring (file tracked + skill-cited) in the secret-less pre-push. topic_tags/compliance_object_tags closed-vocab enforcement at emission time is the generation-side half (system-prompt + parser), reference-layer not mechanized here.',
+  },
+  {
+    id: 'EP-11-canonical-instrument-key',
+    skill: 'environmental-policy-and-innovation',
+    section: 'Output Formats / Canonical instrument key (dedup-before-grounding identity)',
+    text: 'Every reg-family EU-instrument item carries a canonical instrument key (bare CELEX, derived from instrument_identifier or source_url; NULL when not confidently derivable — a bare YYYY/N is never guessed). Two VERIFIED, non-archived items MUST NOT share a canonical instrument key (that is two live customer-visible copies of one regulation — the PPWR-both-verified twin defect); the key is the join the dedup-before-grounding gate needs.',
+    anchor: 'Two VERIFIED, non-archived items MUST NOT share a canonical instrument key',
+    enforcedBy: ['audit:fsi-app/scripts/verify/canonical-key-uniqueness.mjs', 'migration:200'],
+    residual: 'Two independent guards: migration 200 = the partial UNIQUE index uq_intelligence_items_canonical_key_verified_live (canonical_instrument_key WHERE verified AND NOT archived) — a DB-level structural bar against a NEW verified twin, plus the BEFORE INSERT/UPDATE normalizing trigger that derives the key; canonical-key-uniqueness.mjs = the live-data lane audit (CI-with-secrets) that mirrors the index AND derives on-the-fly (so it catches a would-be verified twin even before backfill), reaching 0 collisions after the C7.3 merge archives b7736a1a (the one live verified/quarantined 2019/1242 twin lever). The meta-gate proves wiring (file tracked + skill-cited) in the secret-less pre-push. Archived tombstones (verified BUT is_archived — 5cc10a6d PPWR, 6b0939a5 AFIR) are excluded from the guard by construction (WHERE is_archived IS NOT TRUE). Whether two DIFFERENT-format rows are truly one instrument vs item-vs-amendment is a DB-1 item-domain call, not mechanized here (the both-quarantined FuelEU/2024-1610 pairs are the ruling residual).',
   },
 
   // ───────────────────────────── source-credibility-model ─────────────────────────────
