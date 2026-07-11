@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { fetchSourceData } from "@/lib/supabase-server";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
+import type { ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
 
 export default async function AdminPage() {
   const t0 = Date.now();
@@ -45,12 +46,30 @@ export default async function AdminPage() {
     }
   };
 
+  // R0.2 first-party error tracking: recent error groups for the Runtime →
+  // Errors admin surface. Soft-fail (empty) when migration 195 (error_events)
+  // has not been applied — the panel renders an honest empty state.
+  const fetchErrorGroups = async (): Promise<ErrorGroupRow[]> => {
+    try {
+      const { data, error } = await supabase
+        .from("error_events")
+        .select("id, message, count, release, side, route, env, last_seen_at, occurred_at")
+        .order("last_seen_at", { ascending: false })
+        .limit(50);
+      if (error || !data) return [];
+      return data as ErrorGroupRow[];
+    } catch {
+      return [];
+    }
+  };
+
   const [
     sourceData,
     orgsRes,
     membersRes,
     stagedRes,
     mtdSpend,
+    errorGroups,
   ] = await Promise.all([
     fetchSourceData(true),
     supabase
@@ -81,6 +100,7 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(100),
     fetchMtdSpend(),
+    fetchErrorGroups(),
   ]);
 
   console.log(`[perf] /admin data ${Date.now() - t0}ms`);
@@ -98,6 +118,7 @@ export default async function AdminPage() {
       initialMtdSpendUsd={mtdSpend.usd}
       initialMtdRuns={mtdSpend.runs}
       initialMtdErrors={mtdSpend.errors}
+      initialErrorGroups={errorGroups}
     />
   );
 }

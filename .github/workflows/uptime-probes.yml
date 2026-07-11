@@ -1,0 +1,205 @@
+name: Uptime and honesty probes
+
+# Wave-β R0.2 (Runtime Observability). Two independent watches against the
+# deployed app:
+#
+#   1. surfaces  — every 30 min + on demand. Curls /api/health/surfaces and
+#                  asserts every must-have customer surface reports ok=true
+#                  (backing data present). Customer surfaces are auth-walled,
+#                  so this server-side probe is the only external way to catch
+#                  a surface that has silently gone empty.
+#   2. spend     — daily at 09:00 UTC + on demand. Curls /api/health/spend and
+#                  fails if month-to-date agent spend has reached 80% of the
+#                  $75 monthly ceiling, so the budget alarm fires with head-
+#                  room to react.
+#
+# ALERTING: this workflow has no external alert integration by design (no
+# Sentry/PagerDuty/Slack account — first-party only). The alert channel is
+# GitHub's built-in failed-workflow notification: when a run fails, GitHub
+# emails the repository owner (and anyone watching Actions). Ensure the repo
+# owner's GitHub notification settings have "Actions: workflow runs" email
+# enabled. A nonzero exit here == an email to the owner.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   APP_URL       — Production base URL. Value: https://carosledge.com
+#                   (the live production domain; no trailing slash).
+#   PROBE_SECRET  — MUST be set to the SAME value as the app's WORKER_SECRET
+#                   env var. The health endpoints authenticate the
+#                   x-worker-secret header against WORKER_SECRET; this workflow
+#                   presents PROBE_SECRET as that header. The secret VALUE is
+#                   never written into this file or any log — only referenced
+#                   via ${{ secrets.PROBE_SECRET }}.
+#
+# Output discipline (public repo): logs print HTTP status codes, ok booleans,
+# and numeric counts only — never row content.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # surfaces probe, every 30 minutes
+    - cron: '0 9 * * *'      # spend watch, daily at 09:00 UTC
+  workflow_dispatch:
+
+jobs:
+  surfaces:
+    name: Surface honesty probe
+    # Runs on the 30-min cron and on manual dispatch; skipped on the daily
+    # spend-only cron.
+    if: github.event.schedule != '0 9 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required secrets
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+        run: |
+          missing=0
+          if [ -z "$APP_URL" ]; then
+            echo "::error::APP_URL secret is not set."
+            missing=1
+          fi
+          if [ -z "$PROBE_SECRET" ]; then
+            echo "::error::PROBE_SECRET secret is not set (must equal the app's WORKER_SECRET)."
+            missing=1
+          fi
+          [ "$missing" -eq 0 ]
+
+      - name: Probe /api/health/surfaces
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+        run: |
+          set -u
+          base="${APP_URL%/}"
+          target="$base/api/health/surfaces"
+          echo "Probing $target"
+
+          tmp_body=$(mktemp)
+          status=$(curl -sS -o "$tmp_body" -w "%{http_code}" \
+            --max-time 60 \
+            --retry 2 --retry-delay 5 --retry-connrefused \
+            -H "x-worker-secret: $PROBE_SECRET" \
+            "$target") || curl_exit=$?
+
+          echo "HTTP status: $status"
+
+          if [ "${curl_exit:-0}" -ne 0 ]; then
+            echo "::error::curl failed with exit code $curl_exit"
+            exit "$curl_exit"
+          fi
+
+          # Numeric/boolean summary only — never dump full body (no row content).
+          overall_ok=$(jq -r '.ok' "$tmp_body" 2>/dev/null || echo "parse_error")
+          seed_leak=$(jq -r '.seed_leak' "$tmp_body" 2>/dev/null || echo "parse_error")
+          echo "overall ok: $overall_ok"
+          echo "seed_leak: $seed_leak"
+
+          echo "Per-surface ok / backing_rows:"
+          jq -r '.surfaces | to_entries[] | "  \(.key): ok=\(.value.ok) rows=\(.value.backing_rows)"' \
+            "$tmp_body" 2>/dev/null || echo "  (could not parse surfaces)"
+          echo "Per-RPC ok:"
+          jq -r '.rpcs | to_entries[] | "  \(.key): ok=\(.value.ok)"' \
+            "$tmp_body" 2>/dev/null || echo "  (could not parse rpcs)"
+
+          if [ "$status" -ne 200 ]; then
+            echo "::error::Surfaces probe returned HTTP $status (expected 200; 503 == a surface is down)."
+            exit 1
+          fi
+
+          # Assert every MUST-HAVE surface reports ok=true. The endpoint already
+          # encodes zero-legal semantics (community/map/*-config may be zero);
+          # we re-assert the must-haves here so the workflow fails loudly and
+          # names the offender even if the endpoint's own gate ever regresses.
+          fail=0
+          for s in dashboard regulations market research operations; do
+            ok=$(jq -r --arg s "$s" '.surfaces[$s].ok' "$tmp_body" 2>/dev/null)
+            if [ "$ok" != "true" ]; then
+              echo "::error::Must-have surface '$s' is not ok (ok=$ok)."
+              fail=1
+            fi
+          done
+
+          if [ "$overall_ok" != "true" ]; then
+            echo "::error::Overall surfaces health is not ok."
+            fail=1
+          fi
+          if [ "$seed_leak" = "true" ]; then
+            echo "::error::seed_leak=true — dashboard is not backed by real rows."
+            fail=1
+          fi
+
+          [ "$fail" -eq 0 ] && echo "✓ All must-have surfaces ok."
+          exit "$fail"
+
+  spend:
+    name: Spend watch
+    # Runs on the daily 09:00 cron and on manual dispatch; skipped on the
+    # 30-min surfaces cron.
+    if: github.event.schedule != '*/30 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required secrets
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+        run: |
+          missing=0
+          if [ -z "$APP_URL" ]; then
+            echo "::error::APP_URL secret is not set."
+            missing=1
+          fi
+          if [ -z "$PROBE_SECRET" ]; then
+            echo "::error::PROBE_SECRET secret is not set (must equal the app's WORKER_SECRET)."
+            missing=1
+          fi
+          [ "$missing" -eq 0 ]
+
+      - name: Probe /api/health/spend
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+        run: |
+          set -u
+          base="${APP_URL%/}"
+          target="$base/api/health/spend"
+          echo "Probing $target"
+
+          tmp_body=$(mktemp)
+          status=$(curl -sS -o "$tmp_body" -w "%{http_code}" \
+            --max-time 60 \
+            --retry 2 --retry-delay 5 --retry-connrefused \
+            -H "x-worker-secret: $PROBE_SECRET" \
+            "$target") || curl_exit=$?
+
+          echo "HTTP status: $status"
+
+          if [ "${curl_exit:-0}" -ne 0 ]; then
+            echo "::error::curl failed with exit code $curl_exit"
+            exit "$curl_exit"
+          fi
+          if [ "$status" -ne 200 ]; then
+            echo "::error::Spend probe returned HTTP $status."
+            exit 1
+          fi
+
+          pct=$(jq -r '.pct' "$tmp_body" 2>/dev/null || echo "parse_error")
+          ceiling=$(jq -r '.monthly_ceiling_usd' "$tmp_body" 2>/dev/null || echo "?")
+          # mtd_usd is a small operational figure (aggregate spend, not row
+          # content) — safe to print, and useful in the alert email.
+          mtd=$(jq -r '.mtd_usd' "$tmp_body" 2>/dev/null || echo "?")
+          echo "Month-to-date spend: \$$mtd of \$$ceiling ceiling (pct=$pct%)"
+
+          if [ "$pct" = "parse_error" ]; then
+            echo "::error::Could not parse pct from spend response."
+            exit 1
+          fi
+
+          # Fail (→ owner email) at >= 80% of the ceiling.
+          over=$(awk -v p="$pct" 'BEGIN { print (p+0 >= 80) ? 1 : 0 }')
+          if [ "$over" -eq 1 ]; then
+            echo "::error::Agent spend at ${pct}% of the monthly ceiling (>= 80% threshold)."
+            exit 1
+          fi
+
+          echo "✓ Spend under threshold (${pct}%)."

@@ -41,6 +41,7 @@ import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
 import { ResearchPipelineQueueView } from "@/components/admin/ResearchPipelineQueueView";
 import { CommunityPickupsQueueView } from "@/components/admin/CommunityPickupsQueueView";
+import { ErrorGroupsView, type ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
 import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdictionReviewView";
 import { AdminIssuesRail, type IssueNavTarget } from "@/components/admin/redesign/AdminIssuesRail";
 import { WorkspacesUsageRow } from "@/components/admin/redesign/WorkspacesUsageRow";
@@ -58,6 +59,7 @@ interface AdminDashboardProps {
   initialStagedUpdates?: any[];
   initialMtdSpendUsd?: number;
   initialMtdRuns?: number;
+  initialErrorGroups?: ErrorGroupRow[];
   initialMtdErrors?: number;
 }
 
@@ -71,7 +73,8 @@ type SectionName =
   | "Ingest"
   | "Coverage"
   | "Research pipeline"
-  | "Community pickups";
+  | "Community pickups"
+  | "Runtime";
 
 interface SectionDef {
   name: SectionName;
@@ -116,6 +119,11 @@ const SECTIONS: SectionDef[] = [
     sub: "High-engagement community posts pending promotion to platform intelligence.",
     tabs: ["Pending pickups"],
   },
+  {
+    name: "Runtime",
+    sub: "First-party error tracking (server + client) and platform observability.",
+    tabs: ["Errors"],
+  },
 ];
 
 export function AdminDashboard({
@@ -130,6 +138,7 @@ export function AdminDashboard({
   initialMtdSpendUsd = 0,
   initialMtdRuns = 0,
   initialMtdErrors = 0,
+  initialErrorGroups = [],
 }: AdminDashboardProps) {
   // Hydrate the source store with the admin-context unfiltered list (mirror of
   // the Dashboard pattern) so SourceHealthDashboard sees every source even on
@@ -634,6 +643,9 @@ export function AdminDashboard({
 
     // Community pickups
     if (sec === "Community pickups") return <CommunityPickupsQueueView />;
+
+    // Runtime (R0.2 first-party error tracking)
+    if (sec === "Runtime") return <ErrorGroupsView groups={initialErrorGroups} />;
 
     return null;
   }

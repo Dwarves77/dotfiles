@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
+import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { start } from "workflow/api";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
 
@@ -21,7 +22,7 @@ import { generateBriefWorkflow } from "@/workflows/generate-brief";
 // verified), and grow source credibility (register cited sources, record
 // citations, compound trust). Callers poll via the workflow inspect/run APIs or the
 // agent_runs cost ledger the steps write.
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
 
@@ -137,3 +138,8 @@ export async function POST(request: NextRequest) {
   const run = await start(generateBriefWorkflow, [itemId, refresh]);
   return NextResponse.json({ runId: run.runId, item_id: itemId, refresh }, { status: 202 });
 }
+
+// R0.2 first-party error tracking: capture any thrown failure on the
+// highest-value route as an error_events group (mig 195), then rethrow —
+// response semantics unchanged.
+export const POST = withErrorCapture("/api/agent/run", handlePOST);
