@@ -213,6 +213,10 @@ This is the only named binding rule that survived the 2026-05-21 slim refactor (
 
 **Implementation.** Rule code at `fsi-app/.discipline/rules/014-inventory-consistency.mjs`. The rule invokes the consistency runner (`fsi-app/.discipline/consistency/runner.mjs`) and asserts exit 0 OR documented overrides for each failing check.
 
+### Secrets-topology consistency (the credential-surface sibling, SF-11)
+
+The inventory-consistency class extends to the CREDENTIAL surface: **a referenced credential must be a registered credential.** Every GitHub Actions secret a workflow references (`secrets.X` in `.github/workflows/*`) MUST be registered in the secrets registry (`.discipline/governance/secrets-registry.mjs` `WORKFLOW_SECRETS`), which is kept equal to the live GitHub store. An unregistered/invented workflow secret reference is a build failure — this is the mechanical form of `no-new-secrets-without-need` and `credential-surface-visibility` (doctrine register). The scar it kills: the R0.2 probe referenced `secrets.PROBE_SECRET`, a name that was never a real secret entry, so it resolved to empty and the probe died. Enforced by `secrets-reference-audit.mjs` (filesystem-pure, red-then-green tested, and called inside the meta-gate so an unregistered reference literally fails it). Secret VALUES never appear in the registry or docs — names + topology only.
+
 **The 2 remaining C-checks**:
 - C3 migrations.md reality (caught migration 067 untracked on 2026-05-21)
 - C4 worktrees.md reality (caught remediation-discipline worktree orphan on 2026-05-21)
