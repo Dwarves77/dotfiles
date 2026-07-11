@@ -114,8 +114,8 @@ function htmlToText(html: string): string {
 }
 // DIRECT-HTTP transport. Pulls the full document (no Browserless) for an eligible host; reports truncation
 // against `max` exactly as the Browserless path does. Throws on a non-OK status so the caller's fallback fires.
-async function directFetchClean(url: string, max: number): Promise<FetchResult> {
-  assertFetchAllowed(url); // TRANSPORT HOLD GATE (C5) — direct-HTTP transport; throws FetchHoldError while the hold is engaged
+async function directFetchClean(url: string, max: number, caller: string | null = null): Promise<FetchResult> {
+  assertFetchAllowed(url, process.env, caller); // TRANSPORT HOLD GATE (C5) — direct-HTTP transport; F16 caller thread (Unit 0c), default null = blocked
   const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" }, redirect: "follow", signal: AbortSignal.timeout(25000) });
   if (!res.ok) throw new Error(`direct fetch ${res.status}`);
   const u8 = new Uint8Array(await res.arrayBuffer());
@@ -137,10 +137,10 @@ async function directFetchClean(url: string, max: number): Promise<FetchResult> 
 // APIs are open, not bot-walled — same category as directFetchClean, no Browserless unit). Returns null when no
 // document-specific endpoint can be derived from the URL, so the ladder falls through to the HTML transports
 // (which for these hosts hold — the honest exhaustion path, not a silent success on a wall).
-async function apiFetchForHost(url: string, max: number): Promise<{ status: number; text: string; truncated: boolean; fullLength: number; cap: number } | null> {
+async function apiFetchForHost(url: string, max: number, caller: string | null = null): Promise<{ status: number; text: string; truncated: boolean; fullLength: number; cap: number } | null> {
   const apiBase = apiEndpointFor(url);
   if (!apiBase) return null;
-  assertFetchAllowed(url); // TRANSPORT HOLD GATE (C5) — API transport (ladder); throws FetchHoldError while the hold is engaged
+  assertFetchAllowed(url, process.env, caller); // TRANSPORT HOLD GATE (C5) — API transport (ladder); F16 caller thread (Unit 0c), default null = blocked
   const ua = { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" };
   const clip = (full: string) => { const t = (cleanCtl(full) || "").replace(/\s+/g, " ").trim().slice(0, max); return { status: 200, text: t.length > 200 ? t : "", truncated: full.length > max, fullLength: full.length, cap: max }; };
   try {
@@ -205,24 +205,27 @@ async function apiFetchForHost(url: string, max: number): Promise<{ status: numb
 // for a second fetch — the F-03 "cache built, never injected" gap closed. Only REAL content is cached
 // (>200ch, the same usability floor the pool uses) so an error/empty result never poisons a later real fetch.
 const FETCH_CACHE = new Map<string, { url: string; payload: unknown; fetchedAtMs: number }>();
-export function buildLiveTransports(max: number) {
+export function buildLiveTransports(max: number, caller: string | null = null) {
+  // F16 CALLER CONVERGENCE (Unit 0c): the caller captured HERE flows into all three transport closures →
+  // the three assertFetchAllowed gate sites (direct / browserless / api). Default null = fail-closed, so
+  // the batch-1 seek-more runner (which injects buildLiveTransports(max) with no caller) stays blocked.
   const cachePutIfContent = (u: string, payload: { text?: string }) => {
     if (payload && typeof payload.text === "string" && payload.text.length > 200) fetchCachePut(FETCH_CACHE, u, payload, Date.now());
   };
   const directFetch = async (u: string) => {
-    try { const d = await directFetchClean(u, max); const p = { status: 200, text: d.text, truncated: d.truncated, fullLength: d.fullLength, cap: d.cap }; cachePutIfContent(u, p); return p; }
+    try { const d = await directFetchClean(u, max, caller); const p = { status: 200, text: d.text, truncated: d.truncated, fullLength: d.fullLength, cap: d.cap }; cachePutIfContent(u, p); return p; }
     catch (e) { const m = String((e as Error)?.message || "").match(/direct fetch (\d+)/); return { status: m ? Number(m[1]) : 0, text: "" }; }
   };
   const browserlessRender = async (u: string) => {
     try {
-      const r = await browserlessFetch(u, { maxTextLength: max });
+      const r = await browserlessFetch(u, { maxTextLength: max, caller });
       const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
       const p = { status: 200, text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max };
       cachePutIfContent(u, p);
       return p;
     } catch { return { status: 0, text: "" }; }
   };
-  const apiFetch = async (u: string) => { const r = await apiFetchForHost(u, max); if (r) cachePutIfContent(u, r); return r; };
+  const apiFetch = async (u: string) => { const r = await apiFetchForHost(u, max, caller); if (r) cachePutIfContent(u, r); return r; };
   return {
     // CACHE-FIRST (RD-11 seam): escalateFetch tries cacheGet before any transport — a fresh hit prevents
     // the duplicate fetch. Returns the stored RICH payload (truncation metadata preserved) or null.
@@ -237,11 +240,11 @@ export function buildLiveTransports(max: number) {
 /** Test-only: clear the process fetch cache between cases (never used in prod). */
 export function __clearFetchCacheForTest() { FETCH_CACHE.clear(); }
 
-async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
+async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}, caller: string | null = null): Promise<FetchResult> {
   if (looksLikePdfUrl(url)) {
-    try { const d = await directFetchClean(url, max); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* not a usable PDF — fall through to the ladder */ }
+    try { const d = await directFetchClean(url, max, caller); if (d.text.length > 200 && !detectRoadblock(d.text).roadblocked) return d; } catch { /* not a usable PDF — fall through to the ladder */ }
   }
-  const v = await escalateToFetchResult(url, max, buildLiveTransports(max));
+  const v = await escalateToFetchResult(url, max, buildLiveTransports(max, caller));
   if (v.outcome === "content") {
     return { text: v.text, truncated: v.truncated, fullLength: v.fullLength, cap: v.cap, transport: v.transport };
   }
@@ -253,11 +256,11 @@ async function fetchWithTransport(url: string, max: number, { dropIfBlocked = fa
 }
 // Corroborator / ground fetcher: drop a still-blocked result (a failed corroborator is dropped, not fatal,
 // and a block page must never enter the pool).
-async function fetchMeta(url: string, max: number): Promise<FetchResult> {
-  return fetchWithTransport(url, max, { dropIfBlocked: true });
+async function fetchMeta(url: string, max: number, caller: string | null = null): Promise<FetchResult> {
+  return fetchWithTransport(url, max, { dropIfBlocked: true }, caller);
 }
-async function fetchText(url: string, max = 40000): Promise<string> {
-  return (await fetchMeta(url, max)).text;
+async function fetchText(url: string, max = 40000, caller: string | null = null): Promise<string> {
+  return (await fetchMeta(url, max, caller)).text;
 }
 
 // NO SILENT TRUNCATION (the must): when a fetch/read hit its cap and did NOT collect the whole document,
@@ -566,14 +569,17 @@ export async function webSearchCandidatesForQuery(query: string): Promise<string
 // (direct-eligible-first -> Browserless -> try-both plain fallback). KEEPS a still-blocked result (does NOT
 // drop) so fetchPrimaryWithFallback's detectRoadblock sees the reason (cdn_block / soft_404 / ...) and runs
 // the official-alternative web search. Reports truncation up via the FetchResult.
-const blFetchClean = async (url: string): Promise<FetchResult> => fetchWithTransport(url, PRIMARY_MAX_CHARS);
+// F16 CALLER THREAD (Unit 0c): built per-call as a closure over `caller` (see fetchPrimaryDeep) so the
+// signed caller reaches the transport; fetchPrimaryWithFallback stays UNTOUCHED (it calls the injected
+// closure, which already carries the caller — no threading through primary-fallback.mjs).
+const blFetchCleanFor = (caller: string | null) => async (url: string): Promise<FetchResult> => fetchWithTransport(url, PRIMARY_MAX_CHARS, {}, caller);
 
 /** Canonical primary fetch with the roadblock→bounded-alternative-search capability bound to the real
  *  deps (Browserless + official-alternative web_search). BOTH generateBrief and phase2-reground call this
  *  so they inherit the fallback uniformly. Returns usable content + the full audit trail (discovery only —
  *  tier/floor qualification is unchanged downstream). */
-export async function fetchPrimaryDeep(item: { title: string; primaryUrl: string; itemType: string }) {
-  return fetchPrimaryWithFallback(item, { browserlessFetch: blFetchClean, webSearchAlternatives, perFetchMs: 20000, maxAlts: 3 });
+export async function fetchPrimaryDeep(item: { title: string; primaryUrl: string; itemType: string }, caller: string | null = null) {
+  return fetchPrimaryWithFallback(item, { browserlessFetch: blFetchCleanFor(caller), webSearchAlternatives, perFetchMs: 20000, maxAlts: 3 });
 }
 
 // item 5b (unreadable-source flag): map the transport's primary-fetch outcome to a sources.fetch_status
@@ -770,7 +776,7 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
  *  corroborating/expanding sources, fetch that multi-source pool, then synthesise the format-selected
  *  brief ACROSS the pool (system prompt selects by item_type; Forward-Intelligence + No-Vacuum apply).
  *  A thin primary source is the TRIGGER to research wider, never a reason to emit a thin brief. */
-export async function generateBrief(itemId: string): Promise<StepResult> {
+export async function generateBrief(itemId: string, caller: string | null = null): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
@@ -779,7 +785,7 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   //    wrong-language declared primary is replaced by an OFFICIAL alternative (discovery only — the
   //    resolver + per-type floor still qualify whatever it returns). A thin REAL primary is kept as-is;
   //    discovery below carries the weight. Fetched ONCE here (never re-fetched in the pool below).
-  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type });
+  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type }, caller);
   await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
   const primaryUrl = pf.url, primary = pf.text;
   // NO SILENT TRUNCATION: collect a truncation event if the primary (or, below, any corroborator) hit its cap.
@@ -789,7 +795,7 @@ export async function generateBrief(itemId: string): Promise<StepResult> {
   const corroborators = await discoverCorroborators(it.title, primaryUrl, primary);
   // 3. multi-source fetch (the discovered corroborators), then prepend the already-fetched primary
   const poolUrls = ([...new Set(corroborators.map((c) => c.url).filter(Boolean))] as string[]).filter((u) => u !== primaryUrl);
-  const fetchedCorrMeta = await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, ...(await fetchMeta(u, CORROBORATOR_MAX_CHARS)) }));
+  const fetchedCorrMeta = await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, ...(await fetchMeta(u, CORROBORATOR_MAX_CHARS, caller)) }));
   for (const m of fetchedCorrMeta) if (m.truncated) truncEvents.push({ url: m.url, collected: m.text.length, fullLength: m.fullLength, cap: m.cap, transport: m.transport });
   const fetchedCorr = fetchedCorrMeta.filter((b) => b.text.length > 200).map((b) => ({ url: b.url, text: b.text }));
   const fetchedRaw = [...(primary.length > 200 ? [{ url: primaryUrl, text: primary }] : []), ...fetchedCorr];
@@ -893,15 +899,15 @@ async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> 
  *  the pool — and `generateBriefFromStored` can only re-ground what the pool holds, so required-slot facts
  *  ground to commentary. This refreshes the primary to full text WITHOUT re-running discoverCorroborators
  *  (the web_search demoted across this work). = generateBrief minus discovery. */
-export async function generateBriefRefreshPrimary(itemId: string): Promise<StepResult> {
-  return withTelemetry(() => generateBriefRefreshPrimaryImpl(itemId));
+export async function generateBriefRefreshPrimary(itemId: string, caller: string | null = null): Promise<StepResult> {
+  return withTelemetry(() => generateBriefRefreshPrimaryImpl(itemId, caller));
 }
-async function generateBriefRefreshPrimaryImpl(itemId: string): Promise<StepResult> {
+async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | null = null): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // 1. full primary via the #155 direct-first transport (free for eligible legal hosts; no truncation).
-  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type });
+  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type }, caller);
   await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
   const primaryUrl = pf.url, primary = pf.text;
   if (primary.length < 200) return { ok: false, detail: `refresh-primary: primary too thin (${primary.length}ch${pf.fellBack ? ` via fallback after ${pf.primaryReason}` : ""})` };
@@ -1029,10 +1035,10 @@ async function judgeSlotSpan(slotKey: string, description: string, nom: { span: 
 
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
-export async function groundBrief(itemId: string): Promise<StepResult> {
-  return withTelemetry(() => groundBriefImpl(itemId));
+export async function groundBrief(itemId: string, caller: string | null = null): Promise<StepResult> {
+  return withTelemetry(() => groundBriefImpl(itemId, caller));
 }
-async function groundBriefImpl(itemId: string): Promise<StepResult> {
+async function groundBriefImpl(itemId: string, caller: string | null = null): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
@@ -1167,7 +1173,7 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
     searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
   } else {
     const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
-    const groundFetchedRaw = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, CORROBORATOR_MAX_CHARS) }))).filter((b) => b.text.length > 200);
+    const groundFetchedRaw = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, CORROBORATOR_MAX_CHARS, caller) }))).filter((b) => b.text.length > 200);
     // WRITE-SIDE ERROR-BODY GATE (RD-14): the fallback path FETCHES fresh URLs and stores them — gate before
     // the INSERT so a failed-fetch capture never enters agent_run_searches here either (mirrors the read gate above).
     const gcap = captureForStorage(groundFetchedRaw);

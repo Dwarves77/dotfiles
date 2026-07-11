@@ -34,7 +34,9 @@ export class BrowserlessError extends Error {
 // stealth. Verified: McKinsey sustainability page fails plain (HTTP2) and renders 207k chars
 // under stealth.
 export async function browserlessFetch(url, options = {}) {
-  assertFetchAllowed(url); // TRANSPORT HOLD GATE — throws FetchHoldError while the scrape hold is engaged (item 6)
+  // F16 CALLER THREAD (Unit 0c): options.caller (default null = fail-closed) is the SIGNED caller that may
+  // pass an engaged hold (manual-intake-run / unit3-remediation). An untouched caller passes null → blocked.
+  assertFetchAllowed(url, process.env, options.caller ?? null); // TRANSPORT HOLD GATE — throws FetchHoldError while the scrape hold is engaged (item 6)
   const key = process.env.BROWSERLESS_API_KEY;
   if (!key) throw new BrowserlessError("BROWSERLESS_API_KEY not configured");
 
