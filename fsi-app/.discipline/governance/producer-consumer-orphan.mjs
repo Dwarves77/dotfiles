@@ -45,10 +45,11 @@ const REPO = resolve(HERE, '..', '..', '..'); // dotfiles repo root
 // live value is catching any NEW orphan beyond this triaged set. The allowlist is itself audited: a
 // stale entry (table gone, or no longer an orphan) is reported, so it cannot rot.
 export const TERMINAL_SINK_ALLOWLIST = {
-  notification_deliveries: {
-    reason: 'FIRST RUN 2026-07-03. Written by /api/notifications/trigger; no reader (the delivery/digest consumer of the notifications half-slice is unbuilt — paired with the notification_subscriptions read-orphan). DISPOSITION PENDING Phase 7 (wire the delivery reader vs ratify as an event log) — grandfathered, not ratified.',
-    reviewByPhase: 'Phase 7 (zero-reader verification) — Community-notifications half-slice.',
-  },
+  // notification_deliveries entry REMOVED 2026-07-11 (Wave-α Track E e5): its only writer,
+  // /api/notifications/trigger, was deleted as a dead endpoint (zero callers; the notification-v1
+  // subsystem is dead end-to-end — DB-4 F5). With no code writer it is no longer a write-orphan, so
+  // the detector correctly flagged the allowlist entry as STALE. The table itself rides the
+  // notification-v1 trio drop (correction-plan E4), out of e5 scope.
   bulk_imports: {
     reason: 'FIRST RUN 2026-07-03. Written by /api/admin/sources/bulk-import as a job record; no reader (no admin import-history surface consumes it). DISPOSITION PENDING Phase 7 (build the history reader vs ratify as write-only job audit) — grandfathered, not ratified.',
     reviewByPhase: 'Phase 7 (zero-reader verification) — admin bulk-import history.',
