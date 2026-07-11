@@ -4,7 +4,7 @@
 // canonical-URL cache (url-canon single home) + TTL-per-source + per-run telemetry.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { holdEngaged, assertFetchAllowed, FetchHoldError, fetchCacheKey, isFresh, ttlForUrl, cacheGet, cachePut, makeFetchTelemetry, transportFetch, DEFAULT_TTL_MS } from "./fetch-hold.mjs";
+import { holdEngaged, assertFetchAllowed, FetchHoldError, isAuthorizedHoldCaller, AUTHORIZED_HOLD_CALLERS, fetchCacheKey, isFresh, ttlForUrl, cacheGet, cachePut, makeFetchTelemetry, transportFetch, DEFAULT_TTL_MS } from "./fetch-hold.mjs";
 
 // ── THE HOLD ──
 test("RED: hold ENGAGED → assertFetchAllowed THROWS FetchHoldError (no fetch runs)", () => {
@@ -18,6 +18,54 @@ test("GREEN: hold LIFTED (off / unset) → assertFetchAllowed passes (prod-prese
   assert.equal(holdEngaged({}), false);                 // unset default = lifted
   assert.equal(holdEngaged({ SCRAPE_HOLD: "garbage" }), false); // unknown → lifted, do not block prod on a typo
   assert.doesNotThrow(() => assertFetchAllowed("https://x", { SCRAPE_HOLD: "off" }));
+});
+
+// ── F16 TWO-CALLER SIGNED-EXCEPTION (ADR-012 / Unit 0b): one mechanism, exactly two signed callers, no third door ──
+test("MANIFEST: exactly two authorized callers (manual-intake-run, unit3-remediation), nothing else", () => {
+  assert.equal(AUTHORIZED_HOLD_CALLERS.size, 2);
+  assert.ok(isAuthorizedHoldCaller("manual-intake-run"));
+  assert.ok(isAuthorizedHoldCaller("unit3-remediation"));
+  // NO THIRD DOOR: arbitrary strings, the scheduled worker's name, empty, and non-strings all fail.
+  for (const bad of ["scheduled-worker", "loop", "seek-more", "", "MANUAL-INTAKE-RUN", null, undefined, 0, {}]) {
+    assert.equal(isAuthorizedHoldCaller(bad), false, `must reject ${JSON.stringify(bad)}`);
+  }
+});
+
+test("GREEN(exception): an ENGAGED hold PASSES for a signed authorized caller", () => {
+  const env = { SCRAPE_HOLD: "engaged" };
+  assert.doesNotThrow(() => assertFetchAllowed("https://x", env, "manual-intake-run"));
+  assert.doesNotThrow(() => assertFetchAllowed("https://x", env, "unit3-remediation"));
+});
+
+test("RED(no bypass): an ENGAGED hold BLOCKS no-caller (scheduled path) and any unauthorized caller", () => {
+  const env = { SCRAPE_HOLD: "engaged" };
+  assert.throws(() => assertFetchAllowed("https://x", env), FetchHoldError);                 // scheduled/pipeline (no caller)
+  assert.throws(() => assertFetchAllowed("https://x", env, null), FetchHoldError);
+  assert.throws(() => assertFetchAllowed("https://x", env, "scheduled-worker"), FetchHoldError);
+  assert.throws(() => assertFetchAllowed("https://x", env, "loop"), FetchHoldError);
+});
+
+test("transportFetch: ENGAGED + authorized caller → fetch runs + a 'hold-exception' telemetry row (auditable)", async () => {
+  const tel = makeFetchTelemetry();
+  let called = 0;
+  const payload = await transportFetch("https://x", {}, {
+    fetchImpl: async () => { called++; return { text: "ok" }; },
+    now: () => 1000, env: { SCRAPE_HOLD: "engaged" }, telemetry: tel, caller: "manual-intake-run",
+  });
+  assert.equal(called, 1);
+  assert.equal(payload.text, "ok");
+  assert.equal(tel.records.some((r) => r.outcome === "hold-exception"), true);
+});
+
+test("transportFetch: ENGAGED + no caller → hold-blocked, fetchImpl NEVER called (scheduled path stays gated)", async () => {
+  const tel = makeFetchTelemetry();
+  let called = 0;
+  await assert.rejects(() => transportFetch("https://x", {}, {
+    fetchImpl: async () => { called++; return { text: "no" }; },
+    now: () => 1000, env: { SCRAPE_HOLD: "engaged" }, telemetry: tel,
+  }), FetchHoldError);
+  assert.equal(called, 0);
+  assert.equal(tel.records.some((r) => r.outcome === "hold-blocked"), true);
 });
 
 // ── canonical cache key (url-canon single home) ──
