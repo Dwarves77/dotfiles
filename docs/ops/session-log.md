@@ -140,3 +140,13 @@ the operator's DDL window per the standing ruling.
 - **Review queue**: members-route widening APPROVED (recorded); C9 realtime REMOVED per
   no-half-built doctrine (3 orphan files, zero importers, polling is the working consumer);
   NotesField happy path stays on the operator board.
+
+## 2026-07-11 — Reconciliation remediation (full sequence)
+
+- Executed the 2026-07-10 RECONCILIATION REMEDIATION dispatch end-to-end on branch `remediation/reconciliation-2026-07-10`. **Lane GREEN (8/8 hard, block-state GREEN)**; spend **$3.3523 / $10**; 0 fetches, 0 mints.
+- 65-item backlog dispositioned: 7 recovered to verified (1 label $0, 6 slot-forcing/label), 62 honest-quarantined with valid RD-6 deferrals (event-bound to batch-1/hold-lift). **verified-live 240→179** (fail-closed, mig-158 precedent; snapshots recorded).
+- Mechanism verdicts (proof-driven): ground-only cannot fix floor-class (4b verbatim rule); resynth clears floors on enacted-text pools but has a label/slot contract gap (pipeline REFERENCE fix owed). Conservation audit's "$9.50 ground-only" plan corrected.
+- **Reconciler credential is broken post-mig-157** (can't read validator inputs; WITH CHECK refusals even on same-value writes) — operator DDL window owed; mig-163 ledgered idempotently (was applied out-of-band) with proof.
+- Phase 2: undispositioned 0 (94 valid deferred); 4 technology retypes all KEPT (slot-forcing + label fixes). Phase 3: 0 attribution conflicts (closed), 4 near-dup rulings (xref + 2 merge flags), URL-dedup ratified (0 live dups; 8 REGISTRY dups = new backlog), 9 CELEX/ELI identifiers backfilled deterministically, 2 residual dup rows deleted.
+- Phase 4: D-1 (join selectors), D-2 (one source-count selector), Q-1 (ONE tier vocabulary + drift-guard test; 4 private vocabs collapsed), Q-2 (gap labels), Q-3 (casino DELETED via gate; 2 housing-lottery siblings archived off_domain). Doc drifts fixed (F15 count → live pointer; U-11 $0-MTD → query).
+- Closeout: `docs/ops/reconciliation-remediation-closeout-2026-07-11.md` (traceability matrix + open-units register).

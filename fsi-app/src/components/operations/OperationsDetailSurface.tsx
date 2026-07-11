@@ -38,6 +38,7 @@ import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import { ProseSection } from "@/components/regulations/sections/ProseSection";
+import { TIER_LABELS } from "@/lib/tier-labels";
 
 // ── Related item shape ──────────────────────────────────────────────────────
 
@@ -449,12 +450,14 @@ function formatDate(iso: string | null | undefined): string {
 
 // ── Source-tier vocabulary (local copy matching RegulationDetailSurface) ──
 
+// Q-1 fix (2026-07-11): labels come from the ONE tier vocabulary (src/lib/tier-labels.ts);
+// only the color ramp stays local. The prior private copy carried a fourth vocabulary.
 const TIER_DEFINITIONS: Array<{ tier: number; label: string; color: string }> = [
-  { tier: 1, label: "Primary law", color: "var(--color-critical)" },
-  { tier: 2, label: "Regulator guidance", color: "var(--color-high)" },
-  { tier: 3, label: "Intergovernmental", color: "var(--color-accent, var(--color-primary))" },
-  { tier: 4, label: "Industry body", color: "var(--color-text-primary)" },
-  { tier: 5, label: "Trade press", color: "var(--color-text-secondary)" },
+  { tier: 1, label: TIER_LABELS[1], color: "var(--color-critical)" },
+  { tier: 2, label: TIER_LABELS[2], color: "var(--color-high)" },
+  { tier: 3, label: TIER_LABELS[3], color: "var(--color-accent, var(--color-primary))" },
+  { tier: 4, label: TIER_LABELS[4], color: "var(--color-text-primary)" },
+  { tier: 5, label: TIER_LABELS[5], color: "var(--color-text-secondary)" },
 ];
 
 function SourceTierBadge({ tier }: { tier: number }) {
@@ -519,7 +522,7 @@ function SourceTierLegend() {
           </li>
         ))}
         <li style={{ color: "var(--color-text-muted)", fontStyle: "italic", marginTop: 4 }}>
-          T6 (aggregator) and T7 (unverified) are admin-reviewed and rarely surface here.
+          T6 (commercial intelligence) and T7 (news & commentary) are admin-reviewed and rarely surface here.
         </li>
       </ul>
     </div>

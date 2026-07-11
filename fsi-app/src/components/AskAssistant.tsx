@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Send, X, Loader2, Bot, ChevronDown, ChevronRight } from "lucide-react";
+import { tierLabelOf } from "@/lib/tier-labels";
 
 // Q8/OBS-28 (Sprint 2 Tier 3 Build 5): Citation rendering on the
 // Intelligence Assistant. Backend assembles validated Citation[] per
@@ -43,21 +44,9 @@ interface Message {
   flaggedCitations?: FlaggedCitation[];
 }
 
-// Tier label per environmental-policy-and-innovation source hierarchy.
-// Numeric tier → short label rendered on the badge alongside the T-token.
-function tierLabel(tier: number | null): string {
-  if (tier == null) return "Unrated";
-  switch (tier) {
-    case 1: return "Binding regulator";
-    case 2: return "Regulator guidance";
-    case 3: return "Standards body";
-    case 4: return "Trade association";
-    case 5: return "Analytical press";
-    case 6: return "Industry press";
-    case 7: return "Other";
-    default: return `Tier ${tier}`;
-  }
-}
+// Q-1 fix (2026-07-11): this file carried a THIRD ad-hoc tier vocabulary. Tier labels
+// live in the ONE exported constant (src/lib/tier-labels.ts, drift-guarded).
+const tierLabel = tierLabelOf;
 
 function formatRecency(recency: string | null): string {
   if (!recency) return "";

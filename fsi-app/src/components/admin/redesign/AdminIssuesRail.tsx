@@ -108,7 +108,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
     },
     {
       key: "coverage",
-      title: "Coverage gaps critical",
+      title: "Coverage gaps (critical)",
       sub: "Jurisdictions with insufficient source coverage",
       count: c.coverage_gaps_critical,
       target: { section: "Coverage", tab: "Jurisdiction review" },

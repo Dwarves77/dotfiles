@@ -1063,24 +1063,28 @@ function FragmentRow({ o, last }: { o: TimelineEntry; last: boolean }) {
 
 // ── SOURCES TAB — structured rows, never a raw dump (#172) ──────────────
 
-function SourcesTab({ resource: r }: { resource: Resource }) {
-  const parsed = useMemo<SourceEntry[]>(() => {
-    if (!r.fullBrief) return [];
+/** D-2 fix — the ONE selector over the per-regulation source set. Both homes (Sources tab
+ *  header and the At-a-glance rail) derive from THIS; the rail previously hardcoded "1"
+ *  (a primary-only literal), disagreeing with the tab's parsed count. */
+function sourceEntriesOf(r: Resource): SourceEntry[] {
+  let parsed: SourceEntry[] = [];
+  if (r.fullBrief) {
     const map = extractRegulationSections(r.fullBrief);
     for (const section of Object.values(map)) {
-      if (section && section.kind === "sources_list") return section.entries;
+      if (section && section.kind === "sources_list") { parsed = section.entries; break; }
     }
-    return [];
-  }, [r.fullBrief]);
-
+  }
   // Fallback single-source row from the Resource when the brief has no
   // parseable Sources section — still a STRUCTURED row, never a raw dump.
-  const rows: SourceEntry[] =
-    parsed.length > 0
-      ? parsed
-      : r.url
-      ? [{ tier: typeof r.sourceTier === "number" ? r.sourceTier : null, name: r.sourceName || r.url, meta: r.enforcementBody || "", url: r.url }]
-      : [];
+  return parsed.length > 0
+    ? parsed
+    : r.url
+    ? [{ tier: typeof r.sourceTier === "number" ? r.sourceTier : null, name: r.sourceName || r.url, meta: r.enforcementBody || "", url: r.url }]
+    : [];
+}
+
+function SourcesTab({ resource: r }: { resource: Resource }) {
+  const rows = useMemo<SourceEntry[]>(() => sourceEntriesOf(r), [r]);
 
   return (
     <Card style={{ overflow: "hidden" }}>
@@ -1147,8 +1151,11 @@ function AtAGlanceCard({
     ["Modes", modes.length ? modes.map((m) => m.toUpperCase()).join(" · ") : "—"],
   ];
   if (r.topic) rows.push(["Topic", r.topic]);
-  if (typeof r.sourceTier === "number") {
-    rows.push(["Sources", <span key="sources">1 · <span style={{ color: C.blue }}>T{clampTier(r.sourceTier)} primary</span></span>]);
+  // D-2 fix: same selector as the Sources tab (sourceEntriesOf) — the hardcoded "1" was the
+  // wrong home (primary-only literal, disagreed with the tab's parsed count).
+  const sourceCount = sourceEntriesOf(r).length;
+  if (sourceCount > 0 && typeof r.sourceTier === "number") {
+    rows.push(["Sources", <span key="sources">{sourceCount} · <span style={{ color: C.blue }}>T{clampTier(r.sourceTier)} primary</span></span>]);
   }
   return (
     <Card style={{ padding: "14px 16px" }}>

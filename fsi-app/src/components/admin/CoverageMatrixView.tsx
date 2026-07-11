@@ -336,7 +336,7 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
           tone="warning"
         />
         <StatCell
-          label="Gaps"
+          label="Total gaps"
           value={loading ? "…" : String(stats.gap)}
           tone="error"
           critical={stats.gap > 0}

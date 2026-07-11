@@ -135,7 +135,7 @@ export function IssuesQueue({ onNavigate }: IssuesQueueProps) {
     },
     {
       key: "coverage",
-      label: "Coverage gaps critical",
+      label: "Coverage gaps (critical)",
       description: "Domains / jurisdictions with insufficient source coverage.",
       icon: MapPinned,
       count: c.coverage_gaps_critical,

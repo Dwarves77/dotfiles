@@ -24,6 +24,10 @@
  */
 
 import type { CSSProperties } from "react";
+// Q-1 fix (2026-07-11): tier labels live in the ONE exported constant. The prior inline
+// map labeled T7 "Provisional" — a STATUS word conflated with a TIER — and disagreed with
+// the ruled Source Health legend (T5 industry / T6 commercial-intel / T7 news-commentary).
+import { TIER_LABELS as TIER_LABEL } from "@/lib/tier-labels";
 
 export interface CredibilityBadgeProps {
   /** Source tier 1-7. Null / undefined renders a neutral "n/a" placeholder. */
@@ -46,18 +50,6 @@ const TIER_ACCENT: Record<number, string> = {
   5: "#64748B", // slate-light, industry and standards / news
   6: "#94A3B8", // slate-muted, analysis and commentary
   7: "#94A3B8", // slate-muted, overflow / provisional
-};
-
-// Canonical labels per Q9 + Section 3 of the source-credibility-model skill.
-// Kept short enough to sit inline next to the T-pill without wrapping.
-const TIER_LABEL: Record<number, string> = {
-  1: "Binding Law",
-  2: "Regulator Guidance",
-  3: "Intergovernmental",
-  4: "Expert Analysis",
-  5: "Industry / Standards",
-  6: "News / Commentary",
-  7: "Provisional",
 };
 
 interface SizeTokens {

@@ -65,7 +65,9 @@ export default async function AdminPage() {
     supabase
       .from("org_memberships")
       .select(
-        "id, org_id, user_id, role, created_at, user:profiles!user_id(full_name, avatar_url)"
+        // D-1 fix: also carry display_name + email so the panel's display chain
+        // (full_name ?? display_name ?? email ?? uuid-slice) never falls to UUIDs on first paint.
+        "id, org_id, user_id, role, created_at, user:profiles!user_id(full_name, display_name, email, avatar_url)"
       ),
     // Slim staged_updates select — drop full_brief (~17KB/row) and the
     // proposed_changes JSONB envelope columns the admin panel doesn't
