@@ -66,3 +66,23 @@ Every defect confirmed present pre-apply.
 **Total DDL this dispatch: 22 migrations applied + proven** (099, 164–171 Track B; 180–185 Track E; 190–192 Track D; 195 R0.2). All ledgered with numeric versions; every migration has a committed rollback; baseline dump drill-proven before any applied.
 
 **Rollback readiness:** every migration has `fsi-app/supabase/rollbacks/<n>_*_rollback.sql` (182 is a policy-repoint with no standalone rollback — 183's rollback recreates user_profiles + re-seeds). Baseline pre-DDL dump drill-proven in the private repo.
+
+## C8 canonical key (mig 200) + guarded merges — applied 2026-07-11
+
+| Item | Applied | Proof |
+|---|---|---|
+| 200 canonical_instrument_key + deriver + trigger + partial UNIQUE (verified+live) | ✅ | 4 derive proofs pass (CELEX/ELI/url→key, bare→NULL); column/trigger/index live |
+| backfill-canonical-keys --apply | ✅ 20/21 | 1 skipped (5ea46db2 unverified — touching it tripped guard_provenance_flip; key immaterial for unverified); verified-live unchanged 175 |
+| canonical-key-uniqueness (EP-11) | ✅ PASS | 175 verified+live, 0 collisions |
+| guarded-merge --apply --include-ecovadis | ✅ | auto item twin HDV CO2 2019/1242 (b7736a1a archived duplicate_instrument); 8 registry URL-dups suspended + edges re-pointed; 4 EcoVadis suspended (keeper 4a956756) |
+| FuelEU 2023/1805 twin (operator ruling) | ✅ | 3 xrefs re-pointed to keeper 7a0ead55; e4d84c60 archived duplicate_instrument |
+
+**Guard-blocked residue (contained, → disposition-engine Unit 1):** 8 non-customer-visible items (5 quarantined city-council + 3 unverified EcoVadis) still cite a now-suspended source — the guard correctly refused a service_role `source_id` re-point (it would flip an unverified item). Reconciled when Unit 1 processes them. verified-live unchanged (175).
+
+**Disposition-engine hand-offs (operator rulings, deferred to that dispatch):**
+- HDV amend 2024/1610: 3ae89ce6 → Unit 3 reground-onto-keeper (8c186db2) THEN archive duplicate_instrument (NOT archived now — honors "reground THEN archive").
+- FuelEU keeper 7a0ead55 → Unit 3 ride-to-verified (reground/remediation-fetch; flagship, no delete without ladder exhaustion).
+- 12 provisional-vs-active deep-path near-dups → Unit 1 (provisional dedup scope).
+- EcoVadis pause posture (Sprint-3) = separate source-credibility ruling; suspension here is registry hygiene, not a credibility re-rating.
+
+**Total DDL: 23 migrations applied+proven** (099, 164–171, 180–185, 190–192, 195, 200). Ledgered numeric; every migration has a committed rollback; baseline drill-proven first.

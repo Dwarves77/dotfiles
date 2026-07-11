@@ -59,3 +59,20 @@ resolved). Snapshot + reversal SQL: `scripts/_snapshots/2026-07-08_the-18-enactm
 
 - 2026-07-11 · (no key) · 646dda2d-f039-4a55-90e2-900dbca4b185 · "Online Casino Free Spin Promotions and No-Deposit Bonus Offerings - 2026" · DELETE · pre-intake-gate off-domain junk live in the monitoring band (casino promotions wearing a mintransporte.gov.co source URL) · Q-3 operator ruling, reconciliation remediation dispatch 2026-07-10 (Kansas precedent) · scripts/_snapshots/2026-07-11T05-27-36-946Z_intelligence_items.jsonl
 - Sibling sweep over the live signal band (junk-pattern titles, 288 live): 2 hits, both investigated then ARCHIVED (off_domain, reversible — MDEQ-beaches precedent): daaa7e3a "Matrix Hudson 2BR/1BA Affordable Rental Unit - Lottery" + fb86ee11 "Matrix Hudson Unit Lottery Opening" — income-restricted housing listings; the fb86ee11 brief itself declares the freight-workspace mismatch. Zero further junk-pattern titles remain live.
+
+### 2026-07-11 · Wave-α C7.3 guarded duplicate/twin merges
+
+- 2026-07-11T20:12:09.872Z · item-twin · KEEP ab922a18 <- ARCHIVE b7736a1a · HDV CO2 2019/1242 (CELEX 32019R1242) · archive_reason=duplicate_instrument · Wave-α C7.3
+- 2026-07-11T20:12:16.812Z · source-dup · KEEP ef347aa7 <- ARCHIVE(suspend) dcb667a7 · breeam.com · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:12:23.274Z · source-dup · KEEP 7d939fc1 <- ARCHIVE(suspend) 410466f8 · climate-laws.org · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:12:28.978Z · source-dup · KEEP 622d0e55 <- ARCHIVE(suspend) addc7d05 · climatemachine.mit.edu · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:12:34.769Z · source-dup · KEEP 071dff9e <- ARCHIVE(suspend) c096820c · csrf.ac.uk · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:12:39.785Z · source-dup · KEEP 071dff9e <- ARCHIVE(suspend) 70de33a1 · csrf.ac.uk · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:12:44.898Z · source-dup · KEEP 5f12cb79 <- ARCHIVE(suspend) b2c71c2c · doee.dc.gov · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:12:51.782Z · source-dup · KEEP dae165c8 <- ARCHIVE(suspend) b4b04ad0 · flk.npc.gov.cn · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:12:56.599Z · source-dup · KEEP 111c637d <- ARCHIVE(suspend) de15227a · freightwaves.com · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:13:01.386Z · source-dup · KEEP b2588399 <- ARCHIVE(suspend) 295fba96 · splash247.com · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:13:07.867Z · source-dup · KEEP 4a956756 <- ARCHIVE(suspend) 4fdb662c · ecovadis.com (institution-level) · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:13:14.345Z · source-dup · KEEP 4a956756 <- ARCHIVE(suspend) a6b20a8a · ecovadis.com (institution-level) · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:13:20.086Z · source-dup · KEEP 4a956756 <- ARCHIVE(suspend) a2d25d50 · ecovadis.com (institution-level) · edges re-pointed to keeper · Wave-α C7.3
+- 2026-07-11T20:13:26.382Z · source-dup · KEEP 4a956756 <- ARCHIVE(suspend) 6f698bf0 · ecovadis.com (institution-level) · edges re-pointed to keeper · Wave-α C7.3
