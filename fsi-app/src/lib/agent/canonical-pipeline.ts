@@ -1020,9 +1020,14 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   // THINNING GUARD (ruling 2026-07-04): snapshot the prior grounding BEFORE the delete so a re-extract that
   // drastically thins the ledger (batch-1: 782878c0 24->1) can be caught and the prior grounding RESTORED,
   // rather than silently replacing rich grounding with thin grounding. The columns mirror the insert below.
-  const { data: priorClaims } = await sb.from("section_claim_provenance")
+  // FAIL-CLOSED (C4, 2026-07-11): a READ ERROR on this snapshot means priorClaimCount=0, which SILENTLY
+  // DISABLES the thinning guard for this run (a rich prior ledger reads as "nothing to protect") AND makes
+  // the prior grounding unrecoverable — so on a snapshot read error we ABORT before the destructive delete
+  // (ok:false is retryable), never proceeding to delete-then-thin under a blind guard (CODE-1 F-09).
+  const { data: priorClaims, error: priorClaimsErr } = await sb.from("section_claim_provenance")
     .select("section_row_id, intelligence_item_id, claim_text, claim_kind, source_span, source_id, search_result_id, source_tier_at_grounding")
     .eq("intelligence_item_id", itemId);
+  if (priorClaimsErr) return { ok: false, detail: `grounding aborted: thinning-guard prior-claim snapshot read failed (${priorClaimsErr.message}); refusing to delete-then-re-ground under a blind guard (fail-closed)` };
   const priorClaimCount = priorClaims?.length ?? 0;
   await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
   const { data: secs, error: secsErr } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
