@@ -179,3 +179,34 @@ jobs:
         run: |
           files=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
           if [ -n "$files" ]; then node --test $files; else echo "no npmtest files"; fi
+
+  rendering-guard:
+    name: Rendering guard (overflow / placeholder / hydration — real-browser layout)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # WHY its own job (RENDER-1, 2026-07-11): the overflow leg needs a REAL layout engine
+    # (scrollWidth/clientWidth are all-zero in jsdom), so this job installs Playwright chromium and
+    # renders the extreme-data fixtures at every app breakpoint tier. Kept OFF the hot no-npm
+    # `node --test` suite (it needs a browser) but a REQUIRED signal here — it makes the L-1/L-4/L-6
+    # overflow, F-1 placeholder, and V-07 hydration classes build-catchable (invariant
+    # SF-10-customer-surface-rendering). The pure detector core is ALSO unit-proven red-then-green in
+    # the no-npm suite (fsi-app/.discipline/rendering/assertions.test.mjs), so this job cannot silently
+    # pass a broken detector.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Install Playwright + chromium (scoped, not added to package.json)
+        working-directory: fsi-app
+        run: |
+          npm install --no-save playwright@1.61.1 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Run rendering guard (fixtures × breakpoint tiers, real layout measurement)
+        working-directory: fsi-app
+        run: node .discipline/rendering/run-rendering-guard.mjs
