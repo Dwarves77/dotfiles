@@ -214,4 +214,39 @@ Fresh confirmation: zero src consumers (live pause reads system_state + sources.
 auto-run on sources.auto_run_enabled); no inbound FK; no triggers. Discharges DB-3 F5 / DB-4 F4c;
 master P3. ORCHESTRATOR PRECONDITION: export + relocate BEFORE apply.
 
+## e9 — Dead columns — DROP MIGRATION AUTHORED (NOT APPLIED)
+
+Migration **185** `185_drop_dead_columns.sql` (author-only) + rollback `185_drop_dead_columns.down.sql`.
+Conservative per e9: dropped ONLY the 7 columns that cleared ALL THREE checks — X-register "dead"
+verdict + fresh precise code grep (0 readers in src/+scripts/) + live catalog probe (0 fn/view/trigger
+refs AND all-NULL data). Grouped by table.
+
+DROPPED (7):
+| Column | Evidence |
+|---|---|
+| intelligence_item_versions.created_by_run_id | NULL×all; src 0; no fn/view ref [X.1(a), DB-1 VER-1] |
+| regions.operations_decisions | '{}'×5; src 0 (regions selects explicit, exclude it); no fn/view ref [DB-1 RGN-1] |
+| region_dimension_coverage.last_reviewed_at | NULL×all; src 0; no fn/view ref [DB-1 RDC-1] |
+| sources.classification_observed_distribution | NULL×all; src 0; no fn/view ref [DB-2 F6] |
+| sources.last_observed_at | NULL×all; src 0; no fn/view ref [DB-2 F6] |
+| sources.spotchecked_at | NULL×all; src 0 (only `spotchecked` bool read); no fn/view ref [DB-2 F6] |
+| sources.spotchecked_by | NULL×all; src 0; no fn/view ref [DB-2 F6] |
+
+### e9 HELD (ambiguous or live reader — NOT dropped)
+| Column(s) | Reason held |
+|---|---|
+| region_dimension_coverage.notes | READ live: supabase-server.ts:1984 selects it |
+| sources.cited_by | READ live: supabase-server.ts:259,320 |
+| intelligence_items.{replaced_by, version_history, linked_forum_thread_ids, linked_vendor_ids, linked_case_study_ids, linked_regulation_ids, region_tags} | Coupled to the active_intelligence_items view (dropped by mig 180) AND referenced by legacy mappers in the still-present src/types/intelligence.ts. Droppable only AFTER 180 applies + those mappers are removed — a sequenced follow-up, not a clean dead-weight erase. |
+| intelligence_items.{compliance_deadline, next_review_date, last_verified, operational_impact, open_questions, reasoning} | Returned by live RPC payloads (X.1(a) read-via-RPC) — dropping needs RPC signature edits |
+| intelligence_items.{theme, trajectory_points} | theme = Emergence-Capture follow-on owns it; trajectory_points = read-no-writer by TrajectoryBars + market RPC (live readers) |
+| intelligence_item_sections.source_ids | READ live: SourcesList.tsx (per its A5.3 comment) |
+| section_claim_provenance.verified_by / verified_at | Ambiguous grep (name collisions with *_by_source_id); X says reserve-or-drop — not clean-proven |
+| agent_runs.intelligence_item_version_id / duration_ms | Hot table; ambiguous grep; X "dead" but not clean-proven this pass |
+| agent_run_searches.agent_run_id | Referenced by the insert site (X: src=1); dropping risks the writer |
+| provisional_sources.{domain, promoted_to_source_id, accessibility_verified, publishes_structured_content, entity_identified} | domain READ (supabase-server:356); others tied to promote-flow half-completion |
+| source_citations.context, monitoring_queue.item_id, taxonomy_nodes.* | Constant/telemetry/whole-table — separate rulings, out of clean-erase scope |
+
+Discharges the clean-provable slice of X.1(a); the rest explicitly held for sequenced follow-ups.
+
 <!-- Sections below appended per wave -->
