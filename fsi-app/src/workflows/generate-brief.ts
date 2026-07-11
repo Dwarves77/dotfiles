@@ -147,7 +147,7 @@ export async function preflightStep(itemId: string): Promise<{ spentUsd: number;
 // item. The stored-first path NEVER deletes (GUARD 2). Fall back to a fresh fetch ONLY on the explicit
 // no-pool sentinel — a synthesis failure on the cached path stays retryable FROM CACHE (re-scraping it
 // would defeat the protection).
-export async function generateStep(itemId: string, refresh = false): Promise<StepResult> {
+export async function generateStep(itemId: string, refresh = false, caller: string | null = null): Promise<StepResult> {
   "use step";
   const sb = svc();
   if (!refresh) {
@@ -162,7 +162,7 @@ export async function generateStep(itemId: string, refresh = false): Promise<Ste
     }
     // else: no usable stored pool → fall through to a fresh fetch + persist.
   }
-  const r = await generateBrief(itemId); // fresh fetch (GUARD 2: this path + --refresh are the only deleters)
+  const r = await generateBrief(itemId, caller); // fresh fetch (GUARD 2: this path + --refresh are the only deleters); F16 caller thread (Unit 0c)
   await recordRun(sb, itemId, "generate", r.ok ? EST_GENERATE_USD : 0, r.ok, r.detail).catch(() => {});
   return r;
 }
@@ -182,10 +182,10 @@ export async function sectionStep(itemId: string): Promise<StepResult> {
 
 // Active-sourcing claim ledger + verbatim span-check + validate_item_provenance
 // (Sonnet). The set_provenance_status trigger flips a valid item to verified.
-export async function groundStep(itemId: string): Promise<StepResult> {
+export async function groundStep(itemId: string, caller: string | null = null): Promise<StepResult> {
   "use step";
   const sb = svc();
-  const r = await groundBrief(itemId);
+  const r = await groundBrief(itemId, caller); // F16 caller thread (Unit 0c)
   await recordRun(sb, itemId, "ground", r.ok ? EST_GROUND_USD : 0, r.ok, r.detail).catch(() => {});
   return r;
 }
@@ -261,7 +261,7 @@ export async function recordAuditGateFailureStep(itemId: string, detail: string)
 // research-or-erase: ONE re-research retry on ground failure. Regenerate (discoverCorroborators
 // widens the source pool via web_search) -> re-section -> re-ground, as a DISTINCT step so it is not
 // memoized against the first generate/ground. Spends ~one generate + ground (Browserless + Sonnet).
-export async function reresearchStep(itemId: string): Promise<StepResult> {
+export async function reresearchStep(itemId: string, caller: string | null = null): Promise<StepResult> {
   "use step";
   const sb = svc();
   // research-or-erase WIDENS the pool via a fresh web_search, so the FIRST attempt MUST re-fetch —
@@ -274,14 +274,14 @@ export async function reresearchStep(itemId: string): Promise<StepResult> {
   let g: StepResult;
   if (attempt > 1) {
     g = await generateBriefFromStored(itemId);
-    if (!g.ok && g.detail === NO_STORED_POOL) g = await generateBrief(itemId);
+    if (!g.ok && g.detail === NO_STORED_POOL) g = await generateBrief(itemId, caller);
   } else {
-    g = await generateBrief(itemId); // fresh widen
+    g = await generateBrief(itemId, caller); // fresh widen (F16 caller thread, Unit 0c)
   }
   if (!g.ok) { await recordRun(sb, itemId, "reresearch", EST_GENERATE_USD, false, `regen: ${g.detail}`).catch(() => {}); return g; }
   const s = await sectionBrief(itemId);
   if (!s.ok) { await recordRun(sb, itemId, "reresearch", EST_GENERATE_USD, false, `re-section: ${s.detail}`).catch(() => {}); return s; }
-  const r = await groundBrief(itemId);
+  const r = await groundBrief(itemId, caller);
   await recordRun(sb, itemId, "reresearch", r.ok ? EST_GENERATE_USD + EST_GROUND_USD : EST_GENERATE_USD, r.ok, `re-ground: ${r.detail}`).catch(() => {});
   return r;
 }
@@ -372,8 +372,12 @@ function isDeterministicGroundFailure(detail: string | undefined): boolean {
   return DETERMINISTIC_GROUND_FAILURES.some((r) => d.includes(r));
 }
 
-export async function generateBriefWorkflow(itemId: string, refresh = false): Promise<GenerateBriefResult> {
+export async function generateBriefWorkflow(itemId: string, refresh = false, caller: string | null = null): Promise<GenerateBriefResult> {
   "use workflow";
+  // F16 CALLER THREAD (Unit 0c): `caller` (default null = fail-closed) is the SIGNED intake caller
+  // (manual-intake-run) that lets the fetch steps pass an engaged scrape hold. /api/agent/run passes no
+  // caller → null → the pipeline stays blocked under the hold exactly as before; only runIntakeCycle
+  // deliberately passes "manual-intake-run". It flows to generate/ground/reresearch (the fetch steps).
 
   // Preflight first — halts (FatalError) before any Sonnet spend if paused, over budget, or if the
   // data-audit lane is RED with no current disposition (Layer C block-next-run).
@@ -385,7 +389,7 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
 
   // refresh=true is the deliberate force-rescrape lever (GUARD 4): freshness-over-cost. Default false =
   // reuse stored content when a usable pool exists (resumable, cheap). Change-detection is NOT built here.
-  const generate = await generateStep(itemId, refresh);
+  const generate = await generateStep(itemId, refresh, caller);
   if (!generate.ok) return { itemId, status: "generate_failed", steps: { budget, auditBaseline, generate } };
 
   // Register corroborator sources BEFORE grounding so their hosts resolve to a real institutional tier
@@ -395,7 +399,7 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
   const section = await sectionStep(itemId);
   if (!section.ok) return { itemId, status: "section_failed", steps: { budget, auditBaseline, generate, register, section } };
 
-  let ground = await groundStep(itemId);
+  let ground = await groundStep(itemId, caller);
   if (!ground.ok) {
     // B3 TIERED RETRY, REASON-AWARE (cost fix 2026-06-21). The cheap re-ground re-rolls the stochastic
     // ledger extraction and recovers an item whose FIRST roll slipped a label or cited an off-pool URL
@@ -404,12 +408,12 @@ export async function generateBriefWorkflow(itemId: string, refresh = false): Pr
     // waste (it fired on essentially every item, every time). Re-roll ONLY when the failure is not a known
     // content class; otherwise skip straight to reresearch (regenerate the brief). groundBrief clears the
     // prior non-verified ledger at its start, so a re-roll still starts clean.
-    const reground = isDeterministicGroundFailure(ground.detail) ? null : await groundStep(itemId);
+    const reground = isDeterministicGroundFailure(ground.detail) ? null : await groundStep(itemId, caller);
     if (reground?.ok) {
       ground = reground;
     } else {
       // research-or-erase: one re-research retry (widen the pool via web_search, re-section, re-ground).
-      const reresearch = await reresearchStep(itemId);
+      const reresearch = await reresearchStep(itemId, caller);
       if (!reresearch.ok) {
         const erase = await eraseStep(itemId);
         return { itemId, status: "reresearch_failed_erased", steps: { budget, auditBaseline, generate, register, section, ground, ...(reground ? { reground } : {}), reresearch, erase } };

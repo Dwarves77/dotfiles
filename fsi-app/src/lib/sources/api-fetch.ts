@@ -39,6 +39,10 @@ export interface ApiFetchOptions {
   maxTextLength?: number;
   /** Network timeout in ms. Default: 20000. */
   timeoutMs?: number;
+  /** F16 signed caller (Unit 0c). Default null = fail-closed (blocked under an engaged hold). Only a
+   *  signed caller (manual-intake-run / unit3-remediation) passes the hold. drain-first-fetch (the sole
+   *  caller today) passes none → null → blocked, preserving existing behavior. */
+  caller?: string | null;
 }
 
 const DEFAULT_TIMEOUT_MS = 20_000;
@@ -91,7 +95,7 @@ export async function apiFetch(
   if (!endpoint) {
     throw new ApiFetchError("api_endpoint_url and url both empty");
   }
-  assertFetchAllowed(endpoint); // TRANSPORT HOLD GATE (C5) — throws FetchHoldError while the scrape hold is engaged
+  assertFetchAllowed(endpoint, process.env, options.caller ?? null); // TRANSPORT HOLD GATE (C5) — throws FetchHoldError while the scrape hold is engaged (F16 caller thread, Unit 0c)
 
   const { maxTextLength = DEFAULT_MAX_TEXT, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
 
