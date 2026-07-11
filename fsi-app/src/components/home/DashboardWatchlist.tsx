@@ -12,6 +12,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { DashboardRailCard, RailEmptyFrame } from "./DashboardRailCard";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import type { WatchlistItem } from "@/lib/data";
 
 export interface DashboardWatchlistProps {
@@ -23,19 +24,6 @@ const TYPE_LABEL: Record<WatchlistItem["type"], string> = {
   reg: "Reg",
   signal: "Signal",
 };
-
-function relativeTime(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "";
-  const diffMs = Math.max(0, Date.now() - t);
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 60) return `${Math.max(1, minutes)} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
-  return `${Math.floor(days / 30)} mo ago`;
-}
 
 function hrefFor(item: WatchlistItem): string {
   if (item.type === "reg") return `/regulations/${item.id}`;
@@ -69,7 +57,7 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
                 {item.title}
               </p>
               <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
-                {relativeTime(item.lastChangedAt)} · {TYPE_LABEL[item.type]}
+                <RelativeTime iso={item.lastChangedAt} /> · {TYPE_LABEL[item.type]}
               </p>
             </Link>
           </li>

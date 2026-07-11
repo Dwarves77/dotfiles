@@ -60,24 +60,29 @@ function jurTag(r: Resource): string {
   return "GLOBAL";
 }
 
-/** Nearest future deadline label + whether one exists. */
+/** Nearest future deadline label + whether one exists.
+ *  V-07 (2026-07-11): compute "today" and parse date-only deadlines in UTC so the SSR render and
+ *  the client hydration agree on the day-count (local-midnight math varied by the viewer's
+ *  timezone → React #418). UTC is deterministic across server and client; the only residual
+ *  divergence is a sub-second render straddling UTC midnight, which is negligible. */
 function deadlineLabel(r: Resource): string | null {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const candidates: string[] = [];
   if (r.complianceDeadline) candidates.push(r.complianceDeadline);
   if (r.timeline) for (const t of r.timeline) if (t.date) candidates.push(t.date);
-  let best: Date | null = null;
+  let best: number | null = null;
   for (const raw of candidates) {
-    const d = new Date(raw + (raw.length === 10 ? "T00:00:00" : ""));
-    if (Number.isNaN(d.getTime())) continue;
-    if (d.getTime() < today.getTime()) continue;
-    if (best === null || d.getTime() < best.getTime()) best = d;
+    const d = new Date(raw + (raw.length === 10 ? "T00:00:00Z" : ""));
+    const ms = d.getTime();
+    if (Number.isNaN(ms)) continue;
+    if (ms < today) continue;
+    if (best === null || ms < best) best = ms;
   }
-  if (!best) return null;
-  const diff = Math.round((best.getTime() - today.getTime()) / 86400000);
+  if (best === null) return null;
+  const diff = Math.round((best - today) / 86400000);
   if (diff <= 365) return `${diff} day${diff === 1 ? "" : "s"}`;
-  return best.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(best);
 }
 
 export function DashboardTopPriority({

@@ -307,6 +307,8 @@ The agent never writes to chat about a category-fitting concern it can't resolve
 
 All routes under `src/app/api/` call `requireAuth()` except `/api/auth/callback` (Supabase OAuth callback) and `/api/worker/*` which use worker-secret auth. Admin-only routes additionally check role via the admin role gate (`requirePlatformAdmin` or equivalent).
 
+**Public route exception — `/api/version`** (operator-approved 2026-07-11): returns the deployed build metadata (`VERCEL_GIT_COMMIT_SHA` / ref / repo / env) so audits anchor to a git ref. Reason: non-sensitive build metadata already present in the shipped client bundle; F2 scopes only `/api/admin/**`, so this route is outside the admin gate by design. Scope: read-only, no query params, no DB access. (Migrates to the doctrine register as Unit 0's exemption-format example: exception + reason + scope, machine-checkable.)
+
 The route inventory drifts per commit; query it directly with `find src/app/api -name route.ts | sed 's|src/app/api||;s|/route.ts||'`. Listing routes here would always be stale.
 
 ---

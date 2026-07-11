@@ -164,7 +164,13 @@ export function HomeSurface({
   // approval (HANDOFF §9). Until then the setter is unused by design.
   const [, setBandFilter] = useState<string | null>(null);
 
-  const briefingDate = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  // V-07 (2026-07-11): "today" is now-based and locale/timezone-dependent, so computing it during
+  // render mismatches between SSR and hydration (React #418). Render it client-only after mount —
+  // the server and first client render both omit it, so the two agree.
+  const [briefingDate, setBriefingDate] = useState("");
+  useEffect(() => {
+    setBriefingDate(new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+  }, []);
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 80px" }}>
@@ -175,7 +181,7 @@ export function HomeSurface({
       <DashboardAskBar />
 
       {/* THIS WEEK */}
-      <SectionHeading title="This week" aside={`Weekly briefing · ${briefingDate}`} style={{ margin: "0 0 18px" }} />
+      <SectionHeading title="This week" aside={briefingDate ? `Weekly briefing · ${briefingDate}` : "Weekly briefing"} style={{ margin: "0 0 18px" }} />
       <div
         className="cl-dash-thisweek"
         style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}

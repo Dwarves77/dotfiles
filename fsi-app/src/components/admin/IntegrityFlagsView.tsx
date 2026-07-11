@@ -234,9 +234,13 @@ export function IntegrityFlagsView() {
 
       {!loading && data && data.items.length > 0 && (
         <div
-          className="rounded-lg overflow-hidden"
+          className="rounded-lg overflow-x-auto"
           style={{ border: "1px solid var(--color-border)" }}
         >
+          {/* L-5 (2026-07-11): overflow-x-auto is the safety hatch so any residual wide row
+              scrolls INSIDE the panel instead of overflowing the page body. With the URL cell
+              wrapping (L-4) the table should already fit; this guarantees the body never
+              scrolls horizontally. */}
           <table className="w-full text-[12.5px] border-collapse">
             <thead style={{ background: "var(--color-surface-raised)" }}>
               <tr>
@@ -280,7 +284,11 @@ export function IntegrityFlagsView() {
                       </div>
                     </Td>
                     <Td>
-                      <div className="flex flex-col gap-0.5 max-w-[260px]">
+                      {/* L-4 (2026-07-11): URL-cell class. A long unbroken URL (EcoVadis,
+                          EU-climate, …) must WRAP within the capped column, not stretch it.
+                          `truncate` on an inline-flex anchor never engaged; use a block flex
+                          anchor with break-all on the URL text so ANY long URL wraps. */}
+                      <div className="flex flex-col gap-0.5 max-w-[260px] min-w-0">
                         <span style={{ color: "var(--color-text-primary)" }}>
                           {row.sourceName || "(no registry source)"}
                         </span>
@@ -289,11 +297,11 @@ export function IntegrityFlagsView() {
                             href={row.sourceUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[11px] truncate hover:underline inline-flex items-center gap-1"
+                            className="text-[11px] hover:underline flex items-start gap-1 break-all"
                             style={{ color: "var(--color-primary)" }}
                           >
-                            <ExternalLink size={10} />
-                            {row.sourceUrl}
+                            <ExternalLink size={10} className="shrink-0 mt-0.5" />
+                            <span className="break-all min-w-0">{row.sourceUrl}</span>
                           </a>
                         )}
                       </div>

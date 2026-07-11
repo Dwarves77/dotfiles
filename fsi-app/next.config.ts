@@ -63,6 +63,9 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/events", destination: "/community", permanent: true },
+      // V-09 (2026-07-11): /account has no page (latent 404, zero inbound links). Account
+      // settings live at /profile; a permanent redirect closes the 404 for any bookmark/crawler.
+      { source: "/account", destination: "/profile", permanent: true },
     ];
   },
   async headers() {

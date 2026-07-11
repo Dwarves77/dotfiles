@@ -134,7 +134,7 @@ export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {
         border: "1px solid var(--border)",
         borderRadius: "var(--r-md)",
         background: "var(--surface)",
-        overflow: "hidden",
+        overflowX: "auto",
       }}
     >
       {/* Header row — keeps column intent visible without sorting UI;
@@ -142,8 +142,12 @@ export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {
       <div
         style={{
           display: "grid",
+          // L-6 (2026-07-11): fluid-width fix. The fr columns had 160/120/180px floors, a
+          // ~830px hard minimum that overflowed (and was clipped by the panel's overflow) in
+          // the narrow admin left column. Floors are now 0 so the grid shrinks to fit and text
+          // wraps; at full width the fr ratios render identically to before.
           gridTemplateColumns:
-            "minmax(160px,1.6fr) minmax(120px,1fr) 90px 80px minmax(180px,1.4fr) 140px",
+            "minmax(0,1.6fr) minmax(0,1fr) 90px 80px minmax(0,1.4fr) 140px",
           gap: 12,
           padding: "10px 14px",
           fontSize: 11,
