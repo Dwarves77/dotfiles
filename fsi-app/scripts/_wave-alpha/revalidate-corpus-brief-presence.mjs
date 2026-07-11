@@ -35,8 +35,8 @@ const OWNER = "operator (Jason)";
 const EVENT = "C7 brief regeneration / batch-1 re-collection go-line (scrape-hold lift)";
 const BRIEF_REASON =
   "missing_full_brief: item is verified but full_brief is NULL/empty, so the customer detail surface " +
-  "renders an empty page. Awaiting C7 brief regeneration (resynth through the canonical pipeline) or " +
-  "batch-1 re-collection at scrape-hold lift.";
+  "renders an empty page. Awaiting C7 brief re-synthesis (re-generate the brief through the canonical " +
+  "pipeline) or batch-1 re-collection at scrape-hold lift.";
 
 function failures(v) {
   const r = Array.isArray(v) ? v[0] : v;
