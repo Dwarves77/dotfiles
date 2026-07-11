@@ -93,7 +93,7 @@ export function B2ProgressBanner() {
 
   return (
     <div
-      className="rounded-lg border p-4"
+      className="rounded-lg border p-4 min-w-0"
       style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -131,11 +131,13 @@ export function B2ProgressBanner() {
         </div>
       </div>
 
-      {/* Breakdowns */}
+      {/* Breakdowns. min-w-0 on every grid child so minmax(0,1fr) columns actually shrink
+          inside the narrow admin left column (L-1..L-6 fluid-width fix) instead of flooring
+          at content min-width and overflowing the Issues Queue rail. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-[11px]">
         <Group label="By format" entries={Object.entries(data.by_format)} />
         <Group label="By priority" entries={Object.entries(data.by_priority)} />
-        <div>
+        <div className="min-w-0">
           <div className="font-semibold mb-1" style={{ color: "var(--color-text-secondary)" }}>Tag coverage (of {data.at_current})</div>
           <div className="space-y-0.5">
             <Coverage label="op_scenario_tags" value={data.tag_coverage.has_op_scenario_tags} total={data.at_current} />
@@ -144,7 +146,7 @@ export function B2ProgressBanner() {
             <Coverage label="related_items" value={data.tag_coverage.has_related_items} total={data.at_current} />
           </div>
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="font-semibold mb-1" style={{ color: "var(--color-text-secondary)" }}>Recent (last 10)</div>
           <div className="space-y-0.5" style={{ color: "var(--color-text-muted)" }}>
             {data.recent_regenerations.slice(0, 5).map((r) => (
@@ -161,15 +163,15 @@ export function B2ProgressBanner() {
 
 function Group({ label, entries }: { label: string; entries: Array<[string, number]> }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="font-semibold mb-1" style={{ color: "var(--color-text-secondary)" }}>{label}</div>
       <div className="space-y-0.5">
         {entries
           .sort((a, b) => b[1] - a[1])
           .map(([k, v]) => (
-            <div key={k} className="flex justify-between" style={{ color: "var(--color-text-muted)" }}>
-              <span className="truncate">{k}</span>
-              <span className="tabular-nums">{v}</span>
+            <div key={k} className="flex justify-between gap-2" style={{ color: "var(--color-text-muted)" }}>
+              <span className="truncate min-w-0">{k}</span>
+              <span className="tabular-nums shrink-0">{v}</span>
             </div>
           ))}
       </div>
@@ -180,9 +182,9 @@ function Group({ label, entries }: { label: string; entries: Array<[string, numb
 function Coverage({ label, value, total }: { label: string; value: number; total: number }) {
   const pct = total === 0 ? 0 : Math.round((value / total) * 100);
   return (
-    <div className="flex justify-between" style={{ color: "var(--color-text-muted)" }}>
-      <span className="truncate">{label}</span>
-      <span className="tabular-nums">{value} ({pct}%)</span>
+    <div className="flex justify-between gap-2" style={{ color: "var(--color-text-muted)" }}>
+      <span className="truncate min-w-0">{label}</span>
+      <span className="tabular-nums shrink-0">{value} ({pct}%)</span>
     </div>
   );
 }

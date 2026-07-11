@@ -42,7 +42,7 @@ export function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer"
+        className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer min-w-0 max-w-full"
         style={{
           color: "var(--color-text-secondary)",
           backgroundColor: open ? "var(--color-surface-raised)" : "transparent",
@@ -55,9 +55,11 @@ export function UserMenu() {
             : "Open user menu"
         }
       >
-        <User size={14} />
-        <span className="hidden sm:inline">{displayName}</span>
-        <ChevronDown size={12} />
+        <User size={14} className="shrink-0" />
+        {/* V-08 (2026-07-11): truncate long email-prefix display names so the chip never
+            overflows the sidebar footer's min-w-0 column. */}
+        <span className="hidden sm:block truncate min-w-0 flex-1 text-left">{displayName}</span>
+        <ChevronDown size={12} className="shrink-0" />
         {showAdminDot && (
           <span
             aria-hidden="true"

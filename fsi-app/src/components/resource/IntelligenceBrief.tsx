@@ -5,6 +5,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import { ChevronDown, ChevronRight } from "lucide-react";
+// stripSourcesSection lives in the pure, zero-dep module brief-section-strip.mjs so it is
+// unit-testable via `node --test` and is the single home for "which brief sections are
+// sources-lead pipeline artifacts". It strips the Sources section AND every trailing artifact
+// (New Sources Identified, Corroborating Sources, …) FAIL-CLOSED — see that module's header for
+// the F-1 escape rationale (the raw-markdown accordion was rendering "## New Sources Identified").
+import { stripSourcesSection } from "@/lib/agent/brief-section-strip.mjs";
 
 interface IntelligenceBriefProps {
   markdown: string;
@@ -14,32 +20,8 @@ interface IntelligenceBriefProps {
   stripSources?: boolean;
 }
 
-/** Remove a "Sources" section from brief markdown: from a `#`/`##` heading whose text is "Sources"
- *  (optionally numbered) through to the next heading at the same-or-higher level (or EOF). Line-based so
- *  it can't over-match across sibling sections. Used only when a structured Sources card renders separately. */
-export function stripSourcesSection(md: string): string {
-  const lines = md.split(/\r?\n/);
-  const out: string[] = [];
-  let skipping = false;
-  let skipLevel = 0;
-  for (const line of lines) {
-    const h = line.match(/^(#{1,6})\s+(.*)$/);
-    if (h) {
-      const level = h[1].length;
-      const title = h[2].replace(/^\s*\d+[.)]\s*/, "").replace(/\*\*/g, "").trim().toLowerCase();
-      if (!skipping && level <= 2 && /^sources\b/.test(title)) {
-        skipping = true;
-        skipLevel = level;
-        continue;
-      }
-      if (skipping && level <= skipLevel) {
-        skipping = false; // next same-or-higher heading ends the skip; keep this line
-      }
-    }
-    if (!skipping) out.push(line);
-  }
-  return out.join("\n").trimEnd();
-}
+// Re-exported for API stability with existing consumers.
+export { stripSourcesSection };
 
 /** Strip the leading numeric prefix some agent outputs emit on their
  * section headings (the ACF outlier per BRIEF-STRUCTURE-AUDIT.md uses

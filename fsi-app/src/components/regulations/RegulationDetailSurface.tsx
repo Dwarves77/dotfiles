@@ -833,6 +833,10 @@ function ConnectedIntelligence({ r }: { r: Resource }) {
 
 // ── Interactive milestone timeline ─────────────────────────────────────
 
+// Hard cap on nodes the inline strip renders (L-1). The full ordered list lives in the
+// "All N milestones →" detail view. Chosen so the fixed-pitch strip cannot overflow the card.
+const MAX_STRIP_NODES = 8;
+
 function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
   const [pick, setPick] = useState(0);
 
@@ -844,6 +848,38 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
     });
   }, [items]);
 
+  // L-1 (2026-07-11): cap the inline strip to a bounded KEY set. The strip uses a fixed
+  // per-node pitch with year-only labels; above ~low-20s milestones the nodes + labels
+  // overflow the card (g2/EU-PPWR at 40 nodes overflowed ~390px and rendered labels as an
+  // unreadable "202520252025" run). We render at most MAX_STRIP_NODES: always the first, the
+  // last, and the in-force/current anchor, with the remaining slots evenly sampled. The FULL
+  // ordered list stays in the "All N milestones →" detail view (its designed home; untouched).
+  // NOTE: computed before the empty-early-return so this hook is unconditional (rules-of-hooks).
+  const shown = useMemo(() => {
+    const total = milestones.length;
+    if (total <= MAX_STRIP_NODES) return milestones;
+    let anchor = milestones.findIndex((m) => m.status === "current");
+    if (anchor < 0) {
+      for (let i = 0; i < total; i++) if (milestones[i].status === "past") anchor = i;
+    }
+    const idx: number[] = [];
+    for (let k = 0; k < MAX_STRIP_NODES; k++) {
+      idx.push(Math.round((k * (total - 1)) / (MAX_STRIP_NODES - 1)));
+    }
+    const uniq = Array.from(new Set(idx));
+    if (anchor >= 0 && !uniq.includes(anchor) && uniq.length > 2) {
+      let best = 1;
+      let bd = Infinity;
+      for (let j = 1; j < uniq.length - 1; j++) {
+        const d = Math.abs(uniq[j] - anchor);
+        if (d < bd) { bd = d; best = j; }
+      }
+      uniq[best] = anchor;
+      uniq.sort((a, b) => a - b);
+    }
+    return uniq.map((i) => milestones[i]);
+  }, [milestones]);
+
   if (milestones.length === 0) {
     return (
       <PendingFrame header="No milestones recorded yet">
@@ -852,16 +888,17 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
     );
   }
 
-  const n = milestones.length;
-  const pastCount = milestones.filter((m) => m.done).length;
+  const capped = shown.length < milestones.length;
+  const n = shown.length;
+  const pastCount = shown.filter((m) => m.done).length;
   const progress = n > 1 ? `${(pastCount / n) * 100}%` : pastCount ? "100%" : "0%";
-  const active = milestones[Math.min(pick, n - 1)];
+  const active = shown[Math.min(pick, n - 1)];
 
   return (
     <div>
       <div style={{ position: "relative", height: 4, background: "rgba(0,0,0,0.08)", borderRadius: 2, margin: "12px 40px 0" }}>
         <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: progress, background: `linear-gradient(90deg,${C.sevLow},#CFA000)`, borderRadius: 2 }} />
-        {milestones.map((m, i) => {
+        {shown.map((m, i) => {
           const left = n > 1 ? `${(i / (n - 1)) * 100}%` : "0%";
           const sel = i === pick;
           return (
@@ -889,15 +926,22 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
         })}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", margin: "10px 40px 0" }}>
-        {milestones.map((m, i) => (
-          <button
-            key={i}
-            onClick={() => setPick(i)}
-            style={{ fontFamily: "var(--font-sans)", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, fontWeight: i === pick ? 800 : 600, color: i === pick ? C.ink : C.muted }}
-          >
-            {shortDate(m.date)}
-          </button>
-        ))}
+        {shown.map((m, i) => {
+          // Year-only labels repeat within a year; blank a label that equals the previous
+          // rendered one so capped strips never show a "202520252025" run.
+          const yr = shortDate(m.date);
+          const label = i > 0 && shortDate(shown[i - 1].date) === yr ? "" : yr;
+          return (
+            <button
+              key={i}
+              onClick={() => setPick(i)}
+              aria-label={shortDate(m.date)}
+              style={{ fontFamily: "var(--font-sans)", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, fontWeight: i === pick ? 800 : 600, color: i === pick ? C.ink : C.muted }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
       <div style={{ border: `1px solid rgba(0,0,0,0.1)`, borderLeft: `3px solid ${active.hue}`, borderRadius: 6, background: C.page, padding: "12px 16px", margin: "16px 0 0", display: "flex", justifyContent: "space-between", gap: 16, alignItems: "baseline" }}>
         <div>
@@ -908,6 +952,11 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
           {active.status === "past" ? "In force" : active.status === "current" ? "In progress" : "Upcoming"}
         </span>
       </div>
+      {capped && (
+        <p style={{ fontSize: 11, color: C.muted, margin: "8px 0 0" }}>
+          Showing {n} key milestones of {milestones.length}. Use “All {milestones.length} milestones →” above for the full sequence.
+        </p>
+      )}
     </div>
   );
 }
