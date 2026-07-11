@@ -169,6 +169,16 @@ export const DOCTRINES = [
       'SF-10 (assertions.test + the real-browser leg) proves the F-1 strip + placeholder-literal gate red-then-green over the render surface; the "allowlist over broaden-the-regex" design principle is carried in the fix + this entry. The browser leg is non-blocking until 3 green on master (see rendering-guard followups).',
   },
   {
+    id: 'soft-fail-merge-routine-when-classified',
+    statement:
+      'Merging a PR whose only red is a NON-BLOCKING (soft / continue-on-error) check is a ROUTINE decision — decided by decision rule, operator gets visibility, no ack needed — WHEN the soft-fail is classified (mechanism named, real-finding-vs-infra decided) and its follow-ups are registered with IDs. It is gated to the operator ONLY when the soft-fail is UNDIAGNOSED (mechanism unnamed). Required checks must be green either way.',
+    source: 'operator ruling 2026-07-11 (rendering-guard SF-10 soft-fail merge)',
+    exempt: {
+      reason:
+        'An orchestration decision-rule about WHEN a soft-fail merge needs operator eyes (unnamed mechanism) vs proceeds routinely (classified + registered); not a checkable property of a committed file. Same process-class as guards-win-fights and sub-agent-untrusted. Enforced by practice + the closeout audit: a soft-fail merged without a recorded classification is the violation.',
+    },
+  },
+  {
     id: 'worktree-isolation',
     statement:
       'Agent branch/checkout/merge operations occur ONLY in that agent\'s assigned worktree; the main checkout is the orchestrator\'s exclusive surface. An agent that finds itself in the main checkout stops and reports, it does not operate there.',

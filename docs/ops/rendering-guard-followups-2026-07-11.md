@@ -35,18 +35,28 @@ supplementary real-browser layer is non-blocking while it stabilizes.
 
 ## Next actions (owned, not parked)
 
-- [ ] **NA-1 — deterministic fixture font.** Bundle a fixed font (or a metric-locked stack that is
-  identical on Windows + Linux CI) into the fixtures so `scrollWidth` is reproducible cross-OS. Removes
-  the font-fallback variance that made the gate non-deterministic.
-- [ ] **NA-2 — fidelity: reproduce the real timeline layout.** Rebuild the `timeline-labels` fixture to
-  the real absolute-positioned-on-%-track mechanism (labels absolute, don't flow-overflow the card), so
-  it measures what production actually renders; the RED case overflows via the uncapped node run, matching
-  the actual L-1 defect it protects against.
-- [ ] **NA-3 — real-strip verification @380px.** Confirm the live `InteractiveTimeline` at 380px under the
-  **production** Plus Jakarta Sans (not a fallback) does not visually overflow the card — route to the
-  named live-data mobile E2E extension the guard already flagged as not-yet-built.
-- [ ] **NA-4 — earn required status.** After NA-1/NA-2 land and the job is green, watch for 3 consecutive
-  green runs on master, then add `rendering-guard` to branch-protection required checks.
+Operator fix-direction (2026-07-11): **a guard that tests a facsimile certifies the facsimile.** So the
+direction is not "tolerate the +11px" — it is **bundle the real font and render the real component**, and
+make the HARD assertions structural (pixels informational).
+
+- [ ] **NA-0 — hard assertions are STRUCTURAL, pixel deltas informational.** Cross-OS text measurement
+  always carries a small tolerance band, so the guard's pass/fail must key on structural truths
+  (`scrollWidth <= clientWidth`, no placeholder literal rendered, no hydration error) — NOT on absolute
+  pixel widths. Report pixel deltas as information. This makes 3-consecutive-greens achievable WITHOUT
+  loosening what actually matters (the RED cases still overflow structurally by 600–1200px). Landed as the
+  SF-10 assertion-class residual.
+- [ ] **NA-1 — bundle the real font.** Embed Plus Jakarta Sans (the production font) into the fixture
+  environment (base64 `@font-face`) so text metrics are the PRODUCTION metrics on every OS — not a
+  fallback. Removes the font-fallback variance at its root rather than papering it with a tolerance.
+- [ ] **NA-2 — render the REAL component, not an approximation.** Replace the flex `timeline-labels`
+  facsimile with the actual absolute-positioned-on-%-track `InteractiveTimeline` layout (ideally by
+  rendering the real `.tsx` in the browser fixture), so the guard measures what production renders. A
+  facsimile-based guard certifies the facsimile, not the product.
+- [ ] **NA-3 — real-strip verification @380px** under the bundled production font — folds into NA-1/NA-2
+  once the real component + real font render together; the full-page E2E under auth+live-data remains the
+  named not-yet-built extension.
+- [ ] **NA-4 — earn required status.** After NA-0/NA-1/NA-2 land and the job is green, watch for 3
+  consecutive green runs on master, then add `rendering-guard` to branch-protection required checks.
 
 Owner: orchestrator (folds into the layout/chrome lane, after the disposition engine per the standing
 sequence). Related: [[ADR-012-intake-cadence-and-launch-exit-test]] (the launch exit test's
