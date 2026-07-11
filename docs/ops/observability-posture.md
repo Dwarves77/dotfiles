@@ -61,7 +61,10 @@ design — a designed-empty frame is not a dishonesty breach.
   `secrets-registry.mjs`) + SF-11 (`secrets-reference-audit`, run in the discipline suite AND the
   meta-gate) — an unregistered workflow secret reference now fails the build, so the invented-label class
   cannot recur.
-- **Probe status:** [recorded from the workflow_dispatch run in the dispatch PR — both legs (Surface
-  honesty probe + Spend watch) fired against the existing `WORKER_SECRET`].
+- **Probe status: BOTH LEGS GREEN** (workflow_dispatch run 29171203056, 2026-07-12): Surface honesty
+  probe ✓ (7s — passed secret-verify + `/api/health/surfaces` returned 200, all must-have surfaces ok)
+  and Spend watch ✓. The **existing `WORKER_SECRET` authenticates against prod** — confirming no
+  secret-set was ever needed; the entire failure was the invented `PROBE_SECRET` reference. R0.2 is
+  green.
 
 Related: [[backup-posture]] (R0.1 sibling), [[secrets-topology]], [[ADR-012-intake-cadence-and-launch-exit-test]] ($75 ceiling).
