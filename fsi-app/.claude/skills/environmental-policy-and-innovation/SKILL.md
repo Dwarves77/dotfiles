@@ -195,6 +195,10 @@ The skill produces four format families plus the regulatory fact document. Each 
 
 Section counts above are maximums. Sections without grounded content are omitted with an explanatory note, never filled with speculation.
 
+### Canonical instrument key (dedup-before-grounding identity)
+
+Every reg-family item derived from an EU legal instrument carries a CANONICAL INSTRUMENT KEY — the bare CELEX number (e.g. `32019R1242`), derived from its `instrument_identifier` or `source_url` (a full CELEX token, or an ELI `eli/{reg|dir|dec}/YYYY/N/oj` path), left NULL when not confidently derivable (a bare `YYYY/N` alone is ambiguous between regulation and directive and is never guessed). Two VERIFIED, non-archived items MUST NOT share a canonical instrument key — that is two live customer-visible copies of one regulation (the PPWR-both-verified twin defect), and the key is the join the "dedup before grounding — entity identity, not title" gate needs. Enforced by the normalizing trigger + partial unique index (migration 200) and the `canonical-key-uniqueness` lane audit (invariant EP-11).
+
 ---
 
 ## Regulatory Fact Document (15 sections, conditional)
