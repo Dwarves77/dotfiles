@@ -53,6 +53,11 @@ import { stripUrlMarkers } from "@/lib/agent/url-canon.mjs";
 // import the SAME closed set — the 4-vs-3 fracture (system prompt authorized a 4th label the filter
 // dropped silently) is structurally closed. Ruling + corpus counts recorded in analysis-labels.mjs.
 import { ANALYSIS_LABELS, ANALYSIS_LABELS_BY_KEY } from "@/lib/agent/analysis-labels.mjs";
+// SLOT ENFORCEMENT AT SYNTHESIS (C1, 2026-07-11): the synthesis prompt now injects the item_type's
+// REQUIRED SLOTS for ALL 12 types (was: reg-family only in the static SYSTEM_PROMPT — the 7 non-reg
+// types got zero slot language, so missing_required_slot was deterministic). Post-synthesis the brief
+// is checked against the SAME slots (one corrective retry, then honest failure — never silent pass).
+import { buildSlotDirective, uncoveredSlots, buildSlotRetryFeedback, slotCacheGet, slotCachePut } from "@/lib/agent/slot-prompt.mjs";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
@@ -65,6 +70,25 @@ import {
 } from "@/lib/agent/metadata-vocab";
 const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 const urlsIn = (md: string) => [...new Set((String(md || "").match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
+
+// SLOT-TABLE reader with an in-process cache (C1). item_type_required_slots is 48 rows and changes only
+// by an operator spec decision, so a per-generation table read is wasteful — cache per item_type with a
+// TTL so a spec change still lands without a process restart. The read FAILS CLOSED: a slot-table read
+// error returns null (the caller treats null as "enforce nothing this run" rather than fabricating an
+// empty slot set — an empty [] would silently claim the item HAS no required slots, misrepresenting the
+// contract; null keeps the reg-family SYSTEM_PROMPT slots as the standing floor and the DB gate as the
+// backstop). GROUNDing already reads the same table independently (:1053); this is the synthesis-side read.
+type SlotRow = { slot_key: string; description: string | null };
+const SLOT_CACHE = new Map<string, { slots: SlotRow[]; fetchedAtMs: number }>();
+async function requiredSlotsFor(sb: SupabaseClient, itemType: string): Promise<SlotRow[] | null> {
+  const cached = slotCacheGet(SLOT_CACHE, itemType, Date.now());
+  if (cached) return cached as SlotRow[];
+  const { data, error } = await sb.from("item_type_required_slots").select("slot_key, description").eq("item_type", itemType);
+  if (error) { console.warn(`[canonical] slot-table read failed for item_type ${itemType} (synthesis enforces reg-family SYSTEM_PROMPT slots + DB gate only this run): ${error.message}`); return null; }
+  const slots = (data ?? []) as SlotRow[];
+  slotCachePut(SLOT_CACHE, itemType, slots, Date.now());
+  return slots;
+}
 
 function svc(): SupabaseClient {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
@@ -576,6 +600,11 @@ async function synthesiseAndWriteBrief(
   fetched: { url: string; text: string }[],
   corroborators: Corroborator[],
 ): Promise<StepResult> {
+  // SLOT ENFORCEMENT (C1): read the item_type's required slots (cached) so the SYNTHESIS prompt names them
+  // for ALL 12 types — not just the reg family the static SYSTEM_PROMPT covers. null = read failed → keep
+  // the standing SYSTEM_PROMPT reg-family floor + the DB gate as backstop (fail-closed, never fabricate []).
+  const slotRows = await requiredSlotsFor(sb, it.item_type);
+  const slotDirective = slotRows ? buildSlotDirective(slotRows) : "";
   // Part C: build synthesis blocks TIER-ORDERED under the input budget — the floor-qualifying source(s)
   // for this item_type reach the model in FULL (the moat), corroborators share the remainder lowest-tier-
   // first, and every trim/ceiling-wall is ANNOUNCED (no silent truncation). The SAME builder + tiers + budget
@@ -615,7 +644,7 @@ LEGAL LINE — state what the text REQUIRES and whom it falls on AS DEFINED. Do 
   // first system block (cachedSystemBlocks via generateBriefText's third arg), so grounding / re-ground /
   // the two-pass split re-read it at 0.1× instead of re-paying the full input rate. The wording below says
   // "reference corpus" instead of "blocks below" because the pool now precedes these instructions.
-  const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}
+  const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}${slotDirective}
 Synthesise ACROSS ALL the SOURCE blocks in your reference corpus (the SOURCE CONTENT in your system context) — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack. The corpus carries ${fetched.length} sources.
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
 Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.
@@ -624,8 +653,27 @@ VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back 
 - LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
 - URL discipline: every URL anywhere in the brief body MUST be EITHER (a) copied exactly from a SOURCE block url, OR (b) listed in your "## New Sources Identified" table. A URL that appears in prose but is in NEITHER place WILL REJECT the brief — grounding only recognises SOURCE-block urls and New-Sources-table urls. To reference a source you did not fetch, put it in the New Sources table; never drop a bare/known URL into prose, never invent a path, no markdown emphasis around URLs.
 Follow your output contract exactly: brief body, then a "## New Sources Identified" table of the corroborating sources you used (if any), then the YAML frontmatter as the FINAL block. Do NOT emit a Claim Provenance Ledger — provenance is carried inline in the prose (labels + GAP statements); grounding extracts it downstream.`;
-  const parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
-  const body = stripUrlMarkers((parsed.body || "").trim()) as string;
+  // GENERATE + POST-SYNTHESIS SLOT CHECK + ONE CORRECTIVE RETRY (C1). The brief is checked against the
+  // SAME required slots that were injected (uncoveredSlots = the grounding pre-gate heuristic, so synthesis
+  // and grounding agree on "the prose speaks to this slot"). A brief that leaves a required slot completely
+  // unaddressed is regenerated ONCE with explicit slot feedback appended; a second miss FAILS HONESTLY with
+  // a named detail (missing_required_slot(synthesis)) — never a silent pass-through of a slot-blind brief.
+  // A slot-table read failure (slotRows == null) skips the check this run (the DB gate remains the backstop).
+  let parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
+  let body = stripUrlMarkers((parsed.body || "").trim()) as string;
+  if (slotRows && slotRows.length && body.length >= 600) {
+    const missing = uncoveredSlots(body, slotRows);
+    if (missing.length) {
+      console.warn(`[canonical] item ${it.id}: synthesis left ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) — one corrective retry`);
+      const retryUser = `${user}${buildSlotRetryFeedback(missing)}`;
+      parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, retryUser, blocks));
+      body = stripUrlMarkers((parsed.body || "").trim()) as string;
+      const stillMissing = body.length >= 600 ? uncoveredSlots(body, slotRows) : missing;
+      if (stillMissing.length) {
+        return { ok: false, detail: `missing_required_slot(synthesis): after one corrective retry the brief still leaves ${stillMissing.length} required slot(s) unaddressed (${stillMissing.map((s) => s.slot_key).join(", ")})` };
+      }
+    }
+  }
   if (body.length < 600) return { ok: false, detail: `parsed body too short (${body.length})` };
   // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
   const cc = checkBriefContent(body);
