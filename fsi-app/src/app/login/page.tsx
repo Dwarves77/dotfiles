@@ -143,8 +143,16 @@ export default function LoginPage() {
           style={{ color: "var(--color-text-muted)" }}
         >
           Don&apos;t have an account?{" "}
+          {/* Carry the redirect target into signup so an invited, not-yet-
+              registered user returns to /invitations/[token] after email
+              verification instead of being dropped at /onboarding (Wave-α
+              Track D d3 accept-path fix). */}
           <a
-            href="/signup"
+            href={
+              redirect !== "/"
+                ? `/signup?redirect=${encodeURIComponent(redirect)}`
+                : "/signup"
+            }
             className="underline"
             style={{ color: "var(--color-text-secondary)" }}
           >

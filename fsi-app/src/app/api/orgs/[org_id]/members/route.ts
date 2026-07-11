@@ -38,6 +38,7 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { checkOrgBan } from "@/lib/orgs/ban-check.mjs";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 
 function getServiceClient(): SupabaseClient {
@@ -619,20 +620,17 @@ export async function PUT(
     );
   }
 
-  // Org-scoped ban check — same policy accept_invitation enforces (migration 156).
-  const { data: ban, error: banErr } = await service
-    .from("org_member_bans")
-    .select("user_id")
-    .eq("org_id", org_id)
-    .eq("user_id", profile.id)
-    .maybeSingle();
-  if (banErr) {
+  // Org-scoped ban check — shared helper (Wave-α Track D d2); same policy
+  // accept_invitation (migration 156) + the migration-191 trigger enforce.
+  const banResult = await checkOrgBan(service, org_id, profile.id);
+  if (banResult.status === "error") {
+    // Fail-closed: an unverifiable ban lookup must not let an add through.
     return NextResponse.json(
-      { error: banErr.message },
+      { error: banResult.message },
       { status: 500, headers: rateLimitHeaders(auth.userId) }
     );
   }
-  if (ban) {
+  if (banResult.status === "banned") {
     return NextResponse.json(
       { error: "This account is banned from this workspace. Clear the ban before re-adding." },
       { status: 403, headers: rateLimitHeaders(auth.userId) }

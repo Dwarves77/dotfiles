@@ -3,19 +3,24 @@
 // POST   /api/orgs/[org_id]/invitations — admin creates a new invitation.
 // GET    /api/orgs/[org_id]/invitations — admin lists all invitations for the org.
 //
-// Email-stub model (per dispatch decision I.4): we do NOT send email.
-// We INSERT the row, the token, and log the URL to console + return it
-// in the response so the admin chrome can render a copy button.
+// Email delivery goes through the single seam sendInvitationEmail()
+// (src/lib/email/send-invitation-email.ts — Wave-α Track D d3). No provider is
+// configured today, so the seam returns an honest not-configured result; the
+// response carries `email_delivery` so the admin chrome shows the real state
+// (copy-link path) — delivery outcome is NEVER silent, success or failure.
+// We also INSERT the row, the token, and return the URL so the admin chrome
+// can render a copy button.
 //
 // Authorization is enforced by the org_invitations RLS policies; the
 // admin must be owner/admin of the org (the policy's USING/WITH CHECK
 // clause runs on the RLS-aware client).
 //
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
+// Workstream B (Multi-Tenant Foundation) — 2026-05-15; d3 seam 2026-07-11.
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireCommunityAuth, isCommunityAuthError } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { sendInvitationEmail } from "@/lib/email/send-invitation-email";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -94,8 +99,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     );
   }
 
-  // Email stub: log the URL so an admin running the dev server sees it.
-  // Real email delivery is out of scope per dispatch I.4.
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     request.headers.get("origin") ||
@@ -105,6 +108,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
   console.log(
     `[invitation] org=${org_id} email=${email} role=${role} url=${inviteUrl}`
   );
+
+  // Email delivery through the single seam. The result is returned to the
+  // inviter verbatim — a failed or unconfigured send is a visible state the
+  // admin acts on (copy the link), never a silent drop.
+  const emailDelivery = await sendInvitationEmail({
+    to: email,
+    inviteUrl,
+    proposedRole: role,
+  });
 
   return NextResponse.json(
     {
@@ -117,6 +129,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         created_at: data.created_at,
         invite_url: inviteUrl,
       },
+      email_delivery: emailDelivery,
     },
     { status: 201, headers: rateLimitHeaders(auth.userId) }
   );
