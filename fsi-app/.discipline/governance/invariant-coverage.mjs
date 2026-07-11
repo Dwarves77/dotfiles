@@ -36,6 +36,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { INVARIANTS, SKILL_FILES, SKILL_MARKER_BASELINE, MARKER_SOURCE } from './invariants.mjs';
 import { DOCTRINES } from './doctrine-register.mjs';
+import { runSecretsReferenceAudit } from './secrets-reference-audit.mjs';
 import { rules } from '../manifest.mjs';
 import { fitnessFunctions } from '../fitness/manifest.mjs';
 import { consistencyChecks } from '../consistency/manifest.mjs';
@@ -252,6 +253,12 @@ export function runInvariantCoverage() {
   const doctrineIds = new Set(DOCTRINES.map((d) => d.id));
   const { problems: docProblems } = auditDoctrines(DOCTRINES, { enforcedInvariantIds, allInvariantIds, doctrineIds });
   problems.push(...docProblems);
+
+  // SECRETS-REFERENCE (credential-surface-visibility / no-new-secrets-without-need): an UNREGISTERED
+  // workflow secret reference (the invented-label class — the R0.2/PROBE_SECRET scar) FAILS the meta-gate.
+  // Filesystem-pure (reads .github/workflows/* + the registry; no secrets/DB), so safe in the meta-gate.
+  const { problems: secretProblems } = runSecretsReferenceAudit();
+  problems.push(...secretProblems);
 
   const enforced = INVARIANTS.filter((i) => Array.isArray(i.enforcedBy) && i.enforcedBy.length).length;
   const exempt = INVARIANTS.filter((i) => i.exempt && i.exempt.reason).length;

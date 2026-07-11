@@ -99,7 +99,11 @@ export const SKILL_MARKER_BASELINE = {
   // flag resolver, never parks (P1#5 defense). TRIAGE: new invariant RD-20 (enforcedBy staged-transit-audit);
   // flips the no-human-finish-of-intake doctrine to enforced.
   'remediation-discipline': 26,
-  'sprint-followups-discipline': 17,
+  // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
+  // credential must be a registered credential)" normative line to the Inventory-consistency section.
+  // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
+  // the meta-gate runs the audit). Mechanizes no-new-secrets-without-need + credential-surface-visibility.
+  'sprint-followups-discipline': 18,
 };
 
 export const INVARIANTS = [
@@ -709,5 +713,15 @@ export const INVARIANTS = [
       'selftest:fsi-app/.discipline/rendering/run-rendering-guard.mjs',
     ],
     residual: 'The portable selftest (in the no-npm `node --test` discipline glob) proves the THREE detectors red-then-green over the REAL app modules: the overflow detector (fitting-vs-overflowing measurement), the F-1 placeholder detector reusing isPlaceholderText + HEADER_LITERALS over the pre-fix vs current stripSourcesSection output, and the V-07 hydration detector reusing the real stableDateLabel (now-independent, green) vs relativeTimeLabel (now-dependent, red). run-rendering-guard.mjs renders the extreme-data fixtures at every app breakpoint tier (380/420/480/560/640/767/768/900/960/1100/1200/1440) in Playwright chromium and measures REAL layout (scrollWidth/clientWidth — impossible in jsdom), feeding the SAME detectors; it runs in the dedicated CI "Rendering guard" job, which is NON-BLOCKING (continue-on-error, the SOFT/data-audit-lane pattern) and does NOT enter the required-check set until 3 consecutive green runs on master (operator policy 2026-07-11 — a flaky required check is a merge embargo). The portable selftest above IS a required gate, so the detection logic gates today; only the real-browser leg is non-blocking while it stabilizes. Anchor is a stable SF section marker; the invariant is owned by this guard mechanism. ASSERTION-CLASS RESIDUAL (day-one catch, 2026-07-11): the guard\'s HARD assertions must prefer STRUCTURAL truths (scrollWidth <= clientWidth, no placeholder literal, no hydration error) over ABSOLUTE pixel widths — cross-OS text measurement always carries a small tolerance band (Linux fallback digits render ~11px wider than Windows), so pixel deltas are INFORMATIONAL, not pass/fail. FIDELITY RESIDUAL: the browser fixtures currently reproduce each fix\'s LAYOUT CONTRACT as a facsimile (e.g. the timeline label row as a flex approximation of the real absolute-positioned InteractiveTimeline) and declare Plus Jakarta Sans without bundling it — a guard that tests a facsimile certifies the facsimile. The fix direction (NA-1/NA-2, docs/ops/rendering-guard-followups-2026-07-11.md): BUNDLE the real font into the fixture environment and RENDER THE REAL COMPONENT, not an approximation; a full-page E2E under auth+live-data is the named not-yet-built extension.',
+  },
+
+  {
+    id: 'SF-11-secrets-registered',
+    skill: 'sprint-followups-discipline',
+    section: 'Secrets-topology consistency (a referenced credential must be a registered credential)',
+    text: 'Every GitHub Actions secret a workflow references (secrets.X in .github/workflows/*) MUST be a REGISTERED secret in the secrets registry (WORKFLOW_SECRETS). An unregistered/invented workflow secret reference — the R0.2 defect where secrets.PROBE_SECRET named a secret that never existed and resolved to empty — is a build failure. This is the inventory-consistency class (SF-1 sibling) applied to the credential surface: referenced == registered.',
+    anchor: 'a referenced credential must be a registered credential',
+    enforcedBy: ['selftest:fsi-app/.discipline/governance/secrets-reference-audit.test.mjs'],
+    residual: 'secrets-reference-audit.mjs is FILESYSTEM-PURE (scans workflow YAML + the registry; no secrets/DB), so it runs in BOTH the required discipline suite (via the red-then-green .test.mjs, auto-globbed governance/*.test.mjs) AND the meta-gate itself (runSecretsReferenceAudit is called in runInvariantCoverage → an unregistered reference literally fails the meta-gate). The registry (secrets-registry.mjs WORKFLOW_SECRETS) is kept EQUAL to the live GitHub store (verified 2026-07-12 via gh secret list). SCOPE (honest): it enforces the GitHub-Actions vault only (the vault this repo\'s workflows read); Vercel-runtime + local-.env credentials are DOCUMENTED in the TOPOLOGY + docs/ops/secrets-topology.md but not diffed (no in-repo manifest to diff Vercel env against — that would need the Vercel API). VALUES never appear anywhere — names + wiring only.',
   },
 ];

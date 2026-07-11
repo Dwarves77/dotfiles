@@ -23,12 +23,15 @@ name: Uptime and honesty probes
 # Required repo secrets (Settings → Secrets and variables → Actions):
 #   APP_URL       — Production base URL. Value: https://carosledge.com
 #                   (the live production domain; no trailing slash).
-#   PROBE_SECRET  — MUST be set to the SAME value as the app's WORKER_SECRET
-#                   env var. The health endpoints authenticate the
+#   WORKER_SECRET — the app's existing worker secret (the SAME repo secret the
+#                   worker routes use). The health endpoints authenticate the
 #                   x-worker-secret header against WORKER_SECRET; this workflow
-#                   presents PROBE_SECRET as that header. The secret VALUE is
-#                   never written into this file or any log — only referenced
-#                   via ${{ secrets.PROBE_SECRET }}.
+#                   presents that same secret as the header — one value, one
+#                   name, no separate probe label. The secret VALUE is never
+#                   written into this file or any log — only referenced via
+#                   ${{ secrets.WORKER_SECRET }}. (2026-07-12: retired the
+#                   invented PROBE_SECRET reference, which named a secret that
+#                   was never created — see docs/ops/secrets-topology.md.)
 #
 # Output discipline (public repo): logs print HTTP status codes, ok booleans,
 # and numeric counts only — never row content.
@@ -51,15 +54,15 @@ jobs:
       - name: Verify required secrets
         env:
           APP_URL: ${{ secrets.APP_URL }}
-          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
         run: |
           missing=0
           if [ -z "$APP_URL" ]; then
             echo "::error::APP_URL secret is not set."
             missing=1
           fi
-          if [ -z "$PROBE_SECRET" ]; then
-            echo "::error::PROBE_SECRET secret is not set (must equal the app's WORKER_SECRET)."
+          if [ -z "$WORKER_SECRET" ]; then
+            echo "::error::WORKER_SECRET secret is not set (must equal the app's WORKER_SECRET)."
             missing=1
           fi
           [ "$missing" -eq 0 ]
@@ -67,7 +70,7 @@ jobs:
       - name: Probe /api/health/surfaces
         env:
           APP_URL: ${{ secrets.APP_URL }}
-          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
         run: |
           set -u
           base="${APP_URL%/}"
@@ -78,7 +81,7 @@ jobs:
           status=$(curl -sS -o "$tmp_body" -w "%{http_code}" \
             --max-time 60 \
             --retry 2 --retry-delay 5 --retry-connrefused \
-            -H "x-worker-secret: $PROBE_SECRET" \
+            -H "x-worker-secret: $WORKER_SECRET" \
             "$target") || curl_exit=$?
 
           echo "HTTP status: $status"
@@ -142,15 +145,15 @@ jobs:
       - name: Verify required secrets
         env:
           APP_URL: ${{ secrets.APP_URL }}
-          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
         run: |
           missing=0
           if [ -z "$APP_URL" ]; then
             echo "::error::APP_URL secret is not set."
             missing=1
           fi
-          if [ -z "$PROBE_SECRET" ]; then
-            echo "::error::PROBE_SECRET secret is not set (must equal the app's WORKER_SECRET)."
+          if [ -z "$WORKER_SECRET" ]; then
+            echo "::error::WORKER_SECRET secret is not set (must equal the app's WORKER_SECRET)."
             missing=1
           fi
           [ "$missing" -eq 0 ]
@@ -158,7 +161,7 @@ jobs:
       - name: Probe /api/health/spend
         env:
           APP_URL: ${{ secrets.APP_URL }}
-          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
         run: |
           set -u
           base="${APP_URL%/}"
@@ -169,7 +172,7 @@ jobs:
           status=$(curl -sS -o "$tmp_body" -w "%{http_code}" \
             --max-time 60 \
             --retry 2 --retry-delay 5 --retry-connrefused \
-            -H "x-worker-secret: $PROBE_SECRET" \
+            -H "x-worker-secret: $WORKER_SECRET" \
             "$target") || curl_exit=$?
 
           echo "HTTP status: $status"

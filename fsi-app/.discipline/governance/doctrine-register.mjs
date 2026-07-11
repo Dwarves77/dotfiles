@@ -179,6 +179,34 @@ export const DOCTRINES = [
     },
   },
   {
+    id: 'credential-surface-visibility',
+    statement:
+      'Any change to the credential surface — a new secret entry, a new consumer of an existing secret, a scope change, a new vault — is surfaced to the operator IN THE PR DESCRIPTION as a named security-surface change, the same standard as new public routes and RLS changes.',
+    source: 'operator dispatch 2026-07-12 (secrets topology, Unit 3.1)',
+    enforcedBy: ['SF-11-secrets-registered'],
+    residual:
+      'SF-11 (secrets-reference-audit, run in the discipline suite AND the meta-gate) mechanically fails an UNREGISTERED workflow secret reference, so a new GitHub-Actions secret cannot ship without being registered (and registration + the PR surfacing go together). The PR-description SURFACING convention itself (naming the security-surface change) is audited at closeout, same as the public-route / RLS-change standard — the mechanical half is the registry gate, the prose-surfacing half is convention.',
+  },
+  {
+    id: 'no-new-secrets-without-need',
+    statement:
+      'New secrets are created ONLY when absolutely needed to fix an existing problem. Adding a consumer of an EXISTING credential is routine plumbing (existing name, registered in topology, named in the PR). Creating a NEW credential value or label requires: the problem stated in the PR, confirmation no existing credential can serve, operator visibility at creation.',
+    source: 'operator dispatch 2026-07-12 (secrets topology, Unit 3.2) — verbatim intent',
+    enforcedBy: ['SF-11-secrets-registered'],
+    residual:
+      'SF-11 fails an unregistered NAME — so an invented new label (the PROBE_SECRET class: a new name that named a secret that never existed, when the existing WORKER_SECRET served) cannot silently ship; registering a genuinely-new secret is a deliberate, PR-visible act. The judgement "no existing credential can serve" is dispatch-time reasoning audited at closeout (the WORKER_SECRET-already-existed finding is the worked example: the fix was to reuse it, not invent PROBE_SECRET). Not every no-new-secret judgement is mechanizable; the registry gate catches the ship-time symptom.',
+  },
+  {
+    id: 'credential-capability-verified-by-test',
+    statement:
+      'Claims about what an agent CAN or CANNOT do with a credential store are verified by ATTEMPT before any action is parked on the operator. A parked credential action must cite the failed attempt (the exact permission error), not an assumption.',
+    source: 'operator dispatch 2026-07-12 (secrets topology, Unit 3.3)',
+    exempt: {
+      reason:
+        'Process/orchestration-time discipline (test-before-you-park), not a checkable property of a committed file — no practical mechanical check (it governs how the agent reasons at action time, same class as sub-agent-untrusted and diagnose-before-fix). Enforced by the closeout audit: a parked credential action WITHOUT a cited failed-attempt is the violation. Worked example (this dispatch): the R0.2 report said "can\'t/won\'t set the secret" conflating CAN\'T with WON\'T; Unit 1.1 verified by test that the agent CAN write GitHub secrets (throwaway set/delete succeeded) — the claim was corrected by attempt.',
+    },
+  },
+  {
     id: 'worktree-isolation',
     statement:
       'Agent branch/checkout/merge operations occur ONLY in that agent\'s assigned worktree; the main checkout is the orchestrator\'s exclusive surface. An agent that finds itself in the main checkout stops and reports, it does not operate there.',

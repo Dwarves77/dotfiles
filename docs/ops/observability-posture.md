@@ -45,4 +45,26 @@ design — a designed-empty frame is not a dishonesty breach.
 - **Alert path: WORKING** — the failure correctly emailed the owner (a nonzero exit = the alert). The
   observability alerting is functioning; it alerted on the missing config, which is the point.
 
-Related: [[backup-posture]] (R0.1 sibling), [[ADR-012-intake-cadence-and-launch-exit-test]] ($75 ceiling).
+### 2026-07-12 — RESOLUTION (secrets-topology dispatch).
+- **Root cause was NOT a missing secret to set** — investigation found `PROBE_SECRET` was **never a real
+  secret entry** (not in `gh secret list`; the workflow referenced an invented label that resolved to
+  empty), while the app's `WORKER_SECRET` GitHub secret **already existed** (2026-04-28). One value, one
+  name: the workflow now references the existing `WORKER_SECRET` (`.github/workflows/uptime-probes.yml`,
+  `secrets.PROBE_SECRET → secrets.WORKER_SECRET`). Nothing to delete (PROBE_SECRET never existed).
+- **Correction to the 2026-07-11 report ("can't/won't set it"):** that conflated CAN'T with WON'T.
+  Unit 1.1 **verified by test** that the agent CAN write GitHub secrets (throwaway `CLAUDE_CAP_TEST`
+  set → confirmed → deleted, all succeeded, `gh` has `repo` scope). The correct action turned out to need
+  no secret-set at all — just the workflow reference fix. This is the worked example for the new doctrine
+  `credential-capability-verified-by-test` (test-before-you-park; a parked credential action must cite the
+  failed attempt, not an assumption).
+- **Class fix:** the secrets-topology register (`docs/ops/secrets-topology.md` + machine SoT
+  `secrets-registry.mjs`) + SF-11 (`secrets-reference-audit`, run in the discipline suite AND the
+  meta-gate) — an unregistered workflow secret reference now fails the build, so the invented-label class
+  cannot recur.
+- **Probe status: BOTH LEGS GREEN** (workflow_dispatch run 29171203056, 2026-07-12): Surface honesty
+  probe ✓ (7s — passed secret-verify + `/api/health/surfaces` returned 200, all must-have surfaces ok)
+  and Spend watch ✓. The **existing `WORKER_SECRET` authenticates against prod** — confirming no
+  secret-set was ever needed; the entire failure was the invented `PROBE_SECRET` reference. R0.2 is
+  green.
+
+Related: [[backup-posture]] (R0.1 sibling), [[secrets-topology]], [[ADR-012-intake-cadence-and-launch-exit-test]] ($75 ceiling).
