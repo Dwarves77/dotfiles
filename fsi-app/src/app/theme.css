@@ -260,15 +260,10 @@
   /* Brass — pending-frame headers, jurisdiction tags, theme eyebrows (HANDOFF §2). */
   --brass: #8A6A2A;
 
-  /* Destructive-quiet — Ban / Delete text actions + REPLACED supersession
-     chips (HANDOFF §2). Text-only destructive register, never a filled pill. */
-  /* Destructive-quiet — Ban/Delete text actions + the "does not resolve" rust
-     rule on Research findings (HANDOFF §2). */
-  /* Destructive-quiet — Ban / Delete text actions (HANDOFF §2). Destructive
-     actions are WORDS, never icons; this ink names the "Ban" verb in the
-     Admin member rows. Distinct from --sev-critical (used for alarm counts). */
-  /* Destructive-quiet — Ban / Delete text actions (HANDOFF §2). Words, not icons. */
-  --destructive-quiet: #9A3412;
+  /* Destructive-quiet — Ban / Delete text actions + REPLACED supersession chips (HANDOFF §2).
+     Text-only destructive register (WORDS, never a filled pill or icon). Distinct from
+     --sev-critical. Single light-theme definition lives below in the T11 additive block
+     (deduped 2026-07-11, Wave-α e10, audit CODE-4b F7). */
 
   /* Severity spectrum — HANDOFF §2 named values. */
   --sev-critical: #DC2626;
@@ -528,7 +523,9 @@
 
   /* T02/T10 editorial tokens — dark tonal variants. */
   --brass: #C2A15A;
-  --destructive-quiet: #E0774A;
+  /* --destructive-quiet removed 2026-07-11 (Wave-α e10, audit CODE-4b F7): this second dark
+     definition (#E0774A) overrode the deliberate AA-contrast value at :510 (#F0855A). Keeping the
+     single AA-contrast definition above so the Ban verb keeps AA contrast on the dark surface. */
   --accent-blue: #60A5FA;
   --sev-critical: #EF4444;
   --sev-high: #F97316;

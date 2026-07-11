@@ -249,4 +249,35 @@ DROPPED (7):
 
 Discharges the clean-provable slice of X.1(a); the rest explicitly held for sequenced follow-ups.
 
+## e10 — Cosmetics + doc drift — DONE (edits, no deletions)
+
+Code:
+- `src/app/theme.css` — removed the duplicate dark `--destructive-quiet` (#E0774A at :531) that
+  overrode the deliberate AA-contrast value (#F0855A at :510); collapsed the 4 stacked light-theme
+  comment blocks + duplicate declaration into one (kept the T11 definition). [CODE-4b F7]
+- `src/components/sources/SourceHealthDashboard.tsx` — the inline T1–T7 tier legend now sources each
+  authority name from `TIER_LABELS` (src/lib/tier-labels.ts, the drift-guarded SoT); dashboard-specific
+  example glosses kept in a local map. [CODE-4a F-06]
+- `src/components/ui/EditorialMasthead.tsx` — hoisted the "Vol IV" literal to a documented
+  `EDITORIAL_VOLUME` constant (deliberate editorial design constant, not stale data). [CODE-4a F-07]
+
+Doc drift (fsi-app/.claude/CLAUDE.md):
+- browserless.ts corrected: it is LIVE (typed Browserless wrapper, ~7 importers), NOT retired — the
+  master gap register's named fix. source-pool.ts + source-mapping.ts moved to a "removed 2026-07-11"
+  line (both deleted this wave). [master P3; CODE-1 F-04]
+- Key Files: removed the deleted `src/data/source-mapping.ts` line. [CODE-4b F8]
+- Sector Activation: corrected the "Both surfaces use the shared SectorSelector" claim — the component
+  was never mounted and was deleted (e2); surfaces build sector UI inline. [CODE-4a F-08]
+- "2,325 intelligence_summaries" hardcoded count (×3 occurrences) → pointed at a live
+  `count(*)` query per doctrine-not-state. [CODE-5b/DB-1 stale-count]
+- Kept: SectorSynopsisView "DO NOT remove" doctrine (SectorSynopsis.tsx is HELD, still present);
+  IntelligenceMetadataStrip Key-Files line (HELD file).
+
+Discipline docs: added a concise STALE-CONTENT notice pointing at the live SoT
+(rules/fitness/consistency dirs + invariants.mjs/skill-map.mjs) to the 4 READMEs
+(.discipline/README.md, fitness/README.md, consistency/README.md, INSTALL.md) rather than a full
+rewrite (avoids introducing new drift). [CODE-2 F-9]
+
+tsc clean after all e10 code edits.
+
 <!-- Sections below appended per wave -->

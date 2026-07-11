@@ -22,6 +22,14 @@
 import type { ReactNode } from "react";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 
+/**
+ * Editorial volume — a DELIBERATE fixed design constant per the 2026-04 handoff (masthead reads as a
+ * periodical; the volume does not tick with the calendar). Named here (was an inline "IV" literal;
+ * hoisted 2026-07-11, Wave-α e10, audit CODE-4a F-07) so it is unambiguously a design constant, not
+ * stale data. Change only on an explicit editorial-volume design decision.
+ */
+const EDITORIAL_VOLUME = "IV";
+
 interface EditorialMastheadProps {
   /** Override the auto-computed "Vol IV · No. {weekNo} · {Day}" eyebrow. */
   eyebrow?: string;
@@ -59,7 +67,7 @@ function defaultEyebrow(now: Date = new Date()): string {
     weekday: "long",
     timeZone: "UTC",
   }).format(now);
-  return `VOL IV · NO. ${weekNo} · ${dayName.toUpperCase()}`;
+  return `VOL ${EDITORIAL_VOLUME} · NO. ${weekNo} · ${dayName.toUpperCase()}`;
 }
 
 export function EditorialMasthead({

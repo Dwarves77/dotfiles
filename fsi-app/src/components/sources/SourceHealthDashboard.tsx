@@ -6,6 +6,18 @@ import { useSourceStore, filterSources } from "@/stores/sourceStore";
 import { SOURCE_TIER_DEFINITIONS } from "@/types/source";
 import type { Source, SourceTier } from "@/types/source";
 import { DOMAIN_LABELS, type Domain } from "@/lib/domains";
+import { TIER_LABELS } from "@/lib/tier-labels";
+
+// Dashboard-specific example gloss per tier (the authority NAME comes from TIER_LABELS, the SoT).
+const TIER_LEGEND_EXAMPLES: Record<number, string> = {
+  1: "Official legal text (gazettes, Federal Register)",
+  2: "Regulator guidance (FAQs, portals)",
+  3: "Intergovernmental (IGO datasets, trackers)",
+  4: "Expert analysis (think tanks, NGOs)",
+  5: "Industry standards (ISO, IATA)",
+  6: "Commercial intelligence (law firms, consultancies)",
+  7: "News & commentary (trade press)",
+};
 import {
   Database, AlertTriangle, CheckCircle, XCircle,
   Clock, Eye, Search, ChevronDown, ExternalLink,
@@ -358,13 +370,12 @@ export function SourceHealthDashboard() {
           Source Tiers — How we rank authority
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-          <span><strong>T1</strong> — Official legal text (gazettes, Federal Register)</span>
-          <span><strong>T2</strong> — Regulator guidance (FAQs, portals)</span>
-          <span><strong>T3</strong> — Intergovernmental (IGO datasets, trackers)</span>
-          <span><strong>T4</strong> — Expert analysis (think tanks, NGOs)</span>
-          <span><strong>T5</strong> — Industry standards (ISO, IATA)</span>
-          <span><strong>T6</strong> — Commercial intelligence (law firms, consultancies)</span>
-          <span><strong>T7</strong> — News & commentary (trade press)</span>
+          {/* Authority label sourced from the single tier-vocabulary SoT (src/lib/tier-labels.ts)
+              so this legend stays under the tier-labels drift guard (audit CODE-4a F-06). The
+              parenthetical example is dashboard-specific detail. */}
+          {([1, 2, 3, 4, 5, 6, 7] as const).map((n) => (
+            <span key={n}><strong>T{n} · {TIER_LABELS[n]}</strong> — {TIER_LEGEND_EXAMPLES[n]}</span>
+          ))}
         </div>
         <p className="text-[11px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>
           <strong>Score</strong> measures reliability: freshness of last check, historical accuracy, and whether we can verify the source independently.
