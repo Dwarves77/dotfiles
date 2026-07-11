@@ -37,13 +37,13 @@ export const DOCTRINES = [
     statement:
       'The intake path has NO human-approval gate. The machine gates ARE the approval: source↔claim-type congruence, high-precision subject-existence dedup, the single mint chokepoint, the per-item-type authority floors, and the grounding judge. staged_updates is transit-only (a max-age invariant like provisional); admin gets visibility (staged / minted / rejected+why), not a gate. A materialization FAILURE routes to the flag resolver, never a human queue.',
     source: 'ADR-012 rider (operator 2026-07-11)',
-    // ENFORCEMENT-TO-BUILD in Unit 0b (manual-intake wiring): the staged-transit max-age invariant +
-    // the F16 two-caller signed-exception. Until 0b lands this doctrine is EXEMPT (process/design), NOT
-    // falsely marked enforced — flipped to enforcedBy the transit-max-age invariant when 0b ships.
-    exempt: {
-      reason:
-        'ENFORCEMENT-TO-BUILD, Unit 0b (manual-intake wiring). The mechanical form is the staged_updates transit-only max-age invariant + the F16 signed-exception second-caller; those land in 0b, at which point this flips to enforcedBy that invariant. Interim: the design is fixed (ADR-012 rider) and the current human-approval path is being retired, not relied on. NAMED-RESIDUAL, REVISIT at 0b — not a permanent exemption.',
-    },
+    // FLIPPED to enforced 2026-07-11 (Unit 0b pt2): the staged_updates transit-only max-age invariant
+    // (RD-20) is the mechanical form — a staged row must resolve (materialized / rejected-with-reason /
+    // routed-to-flag) and MUST NOT park past its max-age; the machine gates are the approval. The F16
+    // two-caller signed-exception (Unit 0b pt1, conflict-1) admits the manual run through the hold.
+    enforcedBy: ['RD-20-staged-transit-disposition'],
+    residual:
+      'RD-20 (staged-transit-audit) enforces the intake-side no-resting-state — staged rows resolve or age into the flag resolver, never park. The REMOVAL of the human-approval step from the RUNTIME path (the run-one-cycle orchestration that mints without a human) is Unit 0c; RD-20 is the standing invariant that keeps the transit queue honest once 0c removes the approval gate, and that surfaces the current human-approval backlog until it does (flag-rate is not defect-rate).',
     conflicts: ['conflict-1-autonomy-beats-batch1-gate'],
   },
   {
@@ -195,9 +195,9 @@ export const DOCTRINES = [
     // Quarantine + deferral dwell bounds EXIST (RD-4/RD-6). Provisional 72h + staged-transit max-age are
     // BUILT in Units 1 and 0b; this doctrine grows its enforcedBy as those land. For now it rides the
     // existing quarantine/deferral dwell enforcement (the transitional states that HAVE a resolver today).
-    enforcedBy: ['RD-4-quarantine-disposition', 'RD-6-deferral-vs-undispositioned'],
+    enforcedBy: ['RD-4-quarantine-disposition', 'RD-6-deferral-vs-undispositioned', 'RD-20-staged-transit-disposition'],
     residual:
-      'RD-4 enforces the quarantine dwell bound and RD-6 the deferral bound TODAY. The provisional-72h and staged-transit max-age invariants land with Units 1 and 0b and are ADDED to this enforcedBy when they exist (they are NOT claimed here before they are built — that would violate the unenforced-doctrine bar). D-2 is fully satisfied only when every transitional state has a live dwell audit.',
+      'RD-4 enforces the quarantine dwell bound, RD-6 the deferral bound, and RD-20 (added 2026-07-11, Unit 0b pt2) the staged-transit max-age. The provisional-72h dwell invariant lands with Unit 1 and is ADDED to this enforcedBy when it exists (not claimed before it is built — the unenforced-doctrine bar). D-2 is fully satisfied only when EVERY transitional state (quarantine ✓, deferral ✓, staged-transit ✓, provisional — pending U1) has a live dwell audit.',
   },
   {
     id: 'deferral-ceiling-30d-non-renewable-without-state-change',
