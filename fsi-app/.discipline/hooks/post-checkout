@@ -1,0 +1,28 @@
+#!/bin/sh
+# Installed from fsi-app/.discipline/hooks/post-checkout
+# WORKTREE-ISOLATION guard (RD-19), git-hook leg (SUSPENDERS to the PreToolUse skill-gate belt).
+#
+# Fires AFTER a checkout/branch move. Git hooks run in the process that invoked git, so this leg fires
+# REGARDLESS of session type — it is what actually catches a SUB-AGENT's stray `git checkout -b` in the
+# main checkout, which the session-scoped PreToolUse gate provably does not see (verified 2026-06-07).
+#
+# It CANNOT undo the move (git already switched HEAD by the time post-checkout runs) — this is
+# detection + a LOUD alarm naming the doctrine, which is better than silence: the agent is told to STOP
+# and report instead of committing on the wrong label.
+#
+# git passes: $1 = ref of previous HEAD, $2 = ref of new HEAD, $3 = flag (1 = branch checkout, 0 = file).
+# Only branch checkouts (flag=1) are branch moves we care about.
+
+FLAG="$3"
+[ "$FLAG" = "1" ] || exit 0
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || exit 0
+
+RUNNER="$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"
+[ -f "$RUNNER" ] || exit 0
+
+# No node → skip (do not wedge checkouts on a broken env; the pre-commit leg + skill-gate remain).
+command -v node >/dev/null 2>&1 || exit 0
+
+exec node "$RUNNER" --mode=post-checkout

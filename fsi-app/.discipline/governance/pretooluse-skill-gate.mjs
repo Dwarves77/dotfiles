@@ -28,6 +28,7 @@ import { readFileSync, appendFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { missingFromTranscript } from "./skill-token.mjs";
+import { isBranchingGitCommand, DOCTRINE } from "./worktree-isolation.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AUDIT = resolve(HERE, ".gate-audit.log");
@@ -93,6 +94,20 @@ function gateWrite(skills, denyTag, contextMsg, onLoaded) {
 // inherently-destructive ops + named runners. Read-only / dry-run pass. ──
 if (tool === "Bash") {
   const cmd = input.command || "";
+  // ── WORKTREE-ISOLATION belt (RD-19), the BELT to the git post-checkout hook's SUSPENDERS. ──
+  // A branch/checkout/merge/rebase/worktree op must happen in the agent's assigned worktree, never in the
+  // main checkout. This PreToolUse leg is session-scoped and does NOT fire inside subagents (verified
+  // 2026-06-07), so it catches the ORCHESTRATOR's OWN stray branch ops in the main session; the git
+  // post-checkout hook (fires regardless of session type) is what catches a sub-agent's. We ASK (cannot
+  // read the eventual cwd from the payload) so the op is consciously confirmed against the doctrine.
+  if (isBranchingGitCommand(cmd)) {
+    out("ask",
+      `GIT BRANCH/CHECKOUT/MERGE/REBASE op. WORKTREE-ISOLATION doctrine (RD-19): ${DOCTRINE} ` +
+      `Confirm this runs in the assigned worktree (under .claude/worktrees/), NOT the main checkout. ` +
+      `(Belt: this session-scoped gate catches the orchestrator's own ops; the git post-checkout + ` +
+      `pre-commit hooks catch a sub-agent's — approve only if this honors worktree isolation.)`,
+      "worktree-isolation");
+  }
   const DANGER = new RegExp([
     "--apply\\b", "--execute\\b", "--write\\b",
     "b2-runner", "git\\s+push", "rm\\s+-rf", "drop\\s+(table|column)", "truncate", "delete\\s+from",

@@ -25,6 +25,10 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[out-of-band-objects]] — Out-of-band DB objects (live-not-in-migrations) ledger
 - [[worktrees]] — Git Worktrees Inventory
 
+## doctrine
+
+- [[worktree-isolation]] — Doctrine seed: agent branch/checkout/merge ONLY in the assigned worktree (RD-19; Unit-0 register seed)
+
 ## runbooks
 
 - [[INTEGRITY-TRIAGE-PROCEDURE]] — Integrity-flag triage procedure
