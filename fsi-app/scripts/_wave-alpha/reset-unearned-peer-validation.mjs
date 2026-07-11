@@ -34,7 +34,7 @@ const claimed = await readAll(
   "id, title, validation_status, peer_validation_count",
   { match: (q) => q.eq("validation_status", "peer_validated") }
 );
-const endorsements = await readAll("case_study_endorsements", "case_study_id, endorser_id");
+const endorsements = await readAll("case_study_endorsements", "case_study_id, endorser_id", { orderBy: "case_study_id" });
 const endorseCounts = new Map();
 for (const e of endorsements) endorseCounts.set(e.case_study_id, (endorseCounts.get(e.case_study_id) ?? 0) + 1);
 

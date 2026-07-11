@@ -41,5 +41,28 @@ Every defect confirmed present pre-apply.
 - `revalidate-corpus-brief-presence.mjs --apply`: 5 null-brief verified items (TCEQ, MEPC.377(80), C376, EPA Fast Facts, NC Register) → quarantined=5, RD-6 deferrals inserted=5 (valid payloads, deferred_until 2026-10-31, event = C7 re-synthesis / batch-1). verified+non-archived 179→174. Snapshot committed to `scripts/_snapshots`. (Fixed B's deferral reason to contain a valid disposition-path keyword — `re-synthes`/`generate` — the guard had rejected "resynth"/"regeneration".)
 - `b4-disposition-stuck-staged-update.mjs --apply`: stuck approved-unmaterialized staged row `b631762e` → materialized_item_id reconciled to pre-existing verified `ccee10a4` (w4_ca_acf, CA ACF Rule); NOT re-materialized (dup-safe, URLs differ by `-rule`).
 
-**Rollback readiness:** every migration has `fsi-app/supabase/rollbacks/<n>_*_rollback.sql`; baseline pre-DDL dump drill-proven in the private repo.
-NOTE: `NOTIFY pgrst, 'reload schema'` owed post-164 (PostgREST schema cache) — issued at deploy.
+`NOTIFY pgrst, 'reload schema'` issued post-164.
+
+## Track D / E / R0.2 migrations (applied 2026-07-11, same protocol; pre-snapshot @ 15:15:02Z)
+
+| Mig | Applied | Post-apply proof (PASS) |
+|---|---|---|
+| 195 (R0.2) | ✅ | error_events table created |
+| 190 (A4) | ✅ | 3 counter fns now SECURITY DEFINER (were INVOKER); weekly_post_count writer added |
+| 191 (A4) | ✅ | org_memberships ban-guard trigger present (1) |
+| 192 (A4) | ✅ | forum_sections/threads/replies dropped (were 17/0/0; 17 seed rows archived in git history) |
+| 180 (A5) | ✅ | get_workspace_members + related_items_derived dropped; 5 zero-consumer views dropped |
+| 181 (A5) | ✅ | vendor family (4 tables, all 0 rows) dropped |
+| 182→183 (A5) | ✅ | 3 RLS arms repointed to profiles.is_platform_admin (moderation_reports policy intact), user_profiles + mirror triggers dropped |
+| 184 (A5) | ✅ | ingestion_state(774)+ingestion_control_log(709) exported to private repo `archives/ingestion-pair-2026-07-11/` FIRST, then dropped |
+| 185 (A5) | ✅ | 7 all-NULL dead columns dropped (versions.created_by_run_id, sources.{classification_observed_distribution,last_observed_at,spotchecked_at,spotchecked_by}, regions.operations_decisions, region_dimension_coverage.last_reviewed_at) |
+
+**Guard:** core customer tables (intelligence_items, community_groups, community_posts, profiles) intact post-drops.
+
+## Community post-apply scripts (A4)
+- `recount-community-counters.mjs --apply`: 1 group weekly_post_count drift repaired (0→1). (Fixed A4's readAll call — junction tables community_group_members / case_study_endorsements have composite keys, no `id`; added `orderBy` param to the shared `readAll` helper, backward-compatible default "id".)
+- `reset-unearned-peer-validation.mjs --apply`: 4 case studies with peer_validated + 0 endorsements reset to 'submitted' (Hauser & Wirth, Massive Attack, MIT ClimateMachine, Coldplay).
+
+**Total DDL this dispatch: 22 migrations applied + proven** (099, 164–171 Track B; 180–185 Track E; 190–192 Track D; 195 R0.2). All ledgered with numeric versions; every migration has a committed rollback; baseline dump drill-proven before any applied.
+
+**Rollback readiness:** every migration has `fsi-app/supabase/rollbacks/<n>_*_rollback.sql` (182 is a policy-repoint with no standalone rollback — 183's rollback recreates user_profiles + re-seeds). Baseline pre-DDL dump drill-proven in the private repo.

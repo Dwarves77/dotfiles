@@ -52,7 +52,7 @@ async function repair(label, table, rows, expectedFor, patchFor) {
 
 // ── community_groups: member_count + weekly_post_count ──────────────────────
 const groups = await readAll("community_groups", "id, name, member_count, weekly_post_count");
-const members = await readAll("community_group_members", "group_id, user_id");
+const members = await readAll("community_group_members", "group_id, user_id", { orderBy: "group_id" });
 const posts = await readAll("community_posts", "id, group_id, parent_post_id, created_at");
 
 const memberCounts = new Map();
@@ -93,7 +93,7 @@ const postDrift = await repair(
 
 // ── case_studies: peer_validation_count ─────────────────────────────────────
 const caseStudies = await readAll("case_studies", "id, title, peer_validation_count");
-const endorsements = await readAll("case_study_endorsements", "case_study_id, endorser_id");
+const endorsements = await readAll("case_study_endorsements", "case_study_id, endorser_id", { orderBy: "case_study_id" });
 const endorseCounts = new Map();
 for (const e of endorsements) endorseCounts.set(e.case_study_id, (endorseCounts.get(e.case_study_id) ?? 0) + 1);
 const csDrift = await repair(

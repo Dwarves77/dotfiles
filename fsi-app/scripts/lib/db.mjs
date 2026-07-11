@@ -66,12 +66,12 @@ export function readClient() {
  * orphan-audit under-count active sources and made registerSource's dedup blind (it created 27
  * duplicates before this was caught, 2026-06-06). Always page tables that can exceed 1000 rows.
  */
-export async function readAll(table, columns = "*", { match } = {}) {
+export async function readAll(table, columns = "*", { match, orderBy = "id" } = {}) {
   const sb = readClient();
   const rows = [];
   let from = 0;
   for (;;) {
-    let q = sb.from(table).select(columns).order("id").range(from, from + 999);
+    let q = sb.from(table).select(columns).order(orderBy).range(from, from + 999);
     if (match) q = match(q);
     const { data, error } = await q;
     if (error) throw new Error(`readAll(${table}) failed: ${error.message}`);
