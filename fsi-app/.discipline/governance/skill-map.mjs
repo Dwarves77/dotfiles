@@ -57,7 +57,7 @@ export const GOVERNED = [
     why: 'trust scoring, citation-network, convergence-count, tier derivation',
     files: [
       'fsi-app/src/lib/trust.ts',
-      'fsi-app/src/lib/agent/source-pool.ts',
+      // source-pool.ts entry removed 2026-07-11: file deleted (retired module, zero importers — audit CODE-1 F-04)
       'fsi-app/src/types/source.ts',
     ],
     ops: [/trust_score|base_tier|effective_tier|convergence/i],

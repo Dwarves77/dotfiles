@@ -28,10 +28,16 @@ const HARDCODED_PATH_RE = /C:[\\/]Users[\\/]|\/c\/Users\/|\/home\/jason\/|\/User
 const CODE_EXTENSIONS = ['.mjs', '.ts', '.tsx', '.js', '.json', '.yml', '.yaml', '.sh', '.sql'];
 
 // Path fragments that exempt a file from the check. Conservative list:
-// - node_modules/    third-party code, not maintained here
-// - .git/            internal git state
-// - scripts/tmp/     operator scratch space (per existing convention; many historical hardcoded paths)
-const SKIP_PATH_FRAGMENTS = ['node_modules/', '.git/', 'fsi-app/scripts/tmp/'];
+// - node_modules/          third-party code, not maintained here
+// - .git/                  internal git state
+// - scripts/tmp/           operator scratch space (per existing convention; many historical hardcoded paths)
+// - .claude/settings.local.json  Claude Code PERMISSION ALLOWLIST — by design it holds absolute
+//                          user-home Read()/Bash() grant globs (a permission scope literally naming a
+//                          home-dir path). These are permission scopes, not repo-root/module paths the rule targets;
+//                          they cannot be runtime-resolved. Exempted 2026-07-11 (Wave-α Track E) so
+//                          editing the file — e.g. removing dead grants — doesn't trip on pre-existing
+//                          legitimate grants. settings.json (shared, checked-in) is NOT exempt.
+const SKIP_PATH_FRAGMENTS = ['node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json'];
 
 function isCodeFile(path) {
   const lower = path.toLowerCase();

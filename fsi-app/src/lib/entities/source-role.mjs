@@ -18,15 +18,8 @@ export function sourceRole(url) {
   return "other";
 }
 
-// Congruence: primary-artifact TYPE + news SOURCE → market_signal. Returns the congruent type + whether it
-// changed. ('other'-role sources are left as-is — only a NEWS source is a definite mismatch for a primary
-// artifact; an unknown host stays the classifier's call.)
-export function congruentType(itemType, url) {
-  if (PRIMARY_ARTIFACT_TYPES.has(String(itemType)) && sourceRole(url) === "news") {
-    return { itemType: "market_signal", changed: true, reason: "primary-artifact type on a news/secondary source → market_signal (news is the signal's correct primary)" };
-  }
-  return { itemType, changed: false };
-}
+// (congruentType, the 1a-only predecessor of congruence(), was removed 2026-07-11 — superseded;
+// only its own test called it. Restore from git history if ever needed. Audit CODE-1 F-11.)
 
 // UNIFIED congruence verdict covering BOTH incongruence shapes (contract v2.2 — used by the mint chokepoint):
 //  - 1a TYPE-incongruence: primary-artifact type on a news source → retype to market_signal (`changed:true`).

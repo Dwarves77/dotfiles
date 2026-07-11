@@ -98,4 +98,57 @@ now lists two deleted files; regenerate on next governance scan run — stale ro
 Kept: /api/admin/q7-daily-recompute route (the LIVE manual full-corpus recompute, imports trust.ts —
 not the superseded script). scripts/_diag/_phase1-cycle-proof.mjs untouched (dated diag record, unwired).
 
+## e5 — Dead src modules, dead endpoints, settings.local grants (code half) — DELETED
+
+Fresh proofs run this session (batch reverse-import prover + targeted git grep).
+
+| Path / item | Lines | Proof | Register row |
+|---|---|---|---|
+| fsi-app/src/lib/agent/source-pool.ts | 178 | prover: importers were only 2 governance registries (skill-map.mjs, rule 017), both corrected in this commit — zero code importers | CODE-1 F-04 |
+| fsi-app/src/lib/agent/section-validator.ts | 209 | prover ZERO-EXTERNAL | CODE-1 F-11 |
+| fsi-app/src/lib/briefing/systemPrompt.ts | 40 | prover ZERO-EXTERNAL ("ready for Phase 3", never wired) | CODE-1 F-11 |
+| src/app/api/admin/sources/verify/route.ts | (route) | CODE-3 F-19 dead endpoint; discovery lib imports verifyCandidate directly; grep: no `/verify` fetch caller | CODE-3 F-19 |
+| src/app/api/admin/sources/recently-auto-approved/route.ts | (route) | CODE-3 F-19; W2.E queue UI never wired; grep: no caller. Also removes CODE-3 F-06 (the only remaining read of legacy `sources.tier`) | CODE-3 F-19/F-06 |
+| src/app/api/notifications/trigger/route.ts | (route) | CODE-3 F-13/F-19 + DB-4 F4a/F5; zero callers, subscriber table has zero writers (unreachable). Drops the notification-v1 subsystem's only writer | CODE-3 F-13; DB-4 F5 |
+
+Function-level dead exports removed in place (module stays, dead export excised, restore-note left):
+- `congruentType` (src/lib/entities/source-role.mjs) — superseded by `congruence()`; only its own test called it. Test migrated to `congruence`. CODE-1 F-11.
+- `openSourceConflict` (src/lib/sources/reconcile.ts) — zero callers; source_conflicts stays writer-less. Module header corrected. CODE-1 F-11.
+- `checkFetchQuality` + FetchQualityInput + BLOCK/NOT_FOUND/MAINTENANCE pattern sets (src/lib/sources/fetch-quality.ts) — zero src callers (scripts carry their own `scripts/lib/fetch-quality.mjs`; capture-time junk detection now lives in entity-gate/transport-escalation). `checkBriefContent` (the live export) retained. CODE-1 F-11.
+
+settings.local.json dead grants removed (CODE-5b F13): `node supabase/seed/run-migration.mjs` and
+`node supabase/seed/rewrite-critical-resources.mjs` — both target files confirmed absent from disk.
+
+### e5 HELD (not deleted)
+- `VERIFICATION_HAIKU_SYSTEM_PROMPT` duplicate (verification.ts:212) — audit calls it a dead export,
+  BUT the LIVE spot-check route imports a symbol of that exact name from verification.ts
+  (src/app/api/admin/spot-check/recurring/route.ts:46,147). The audit's "reaches it via
+  haikuVerifyCandidate" note is contradicted by a direct import in the tree. Removing it would break
+  the spot-check route. HELD pending the CODE-1 F-11 two-home reconciliation (needs a code edit, not
+  an erase). Fresh grep evidence recorded.
+- `extract-research-sections.ts` — importer is scripts/restore-jolt.mjs (a live one-shot record). Not
+  zero-importer; retirement is a script-refactor, not an erase. HELD (CODE-1 F-11).
+- Legacy `sources.tier` compat column — NOT dropped here. Deleting the recently-auto-approved route
+  removed its last SRC reader, but the mig-094 shim + sync trigger + seed-sources.sql still reference
+  it; dropping the column is a Track-B/seed-coordinated change, out of dead-weight scope.
+
+## e5 (DB half) — 2 orphan RPCs + 5 zero-consumer views — DROP MIGRATION AUTHORED (NOT APPLIED)
+
+Migration **180** `fsi-app/supabase/migrations/180_drop_orphan_rpcs_and_dead_views.sql` (author-only).
+Rollback: `fsi-app/supabase/rollbacks/180_drop_orphan_rpcs_and_dead_views.down.sql`.
+
+Fresh zero-consumer confirmation (this session):
+- Code: git grep over src/scripts/.discipline — every one of the 7 objects has zero CODE consumer
+  (the lone `open_conflicts` hit reads the base table `source_conflicts`; the two
+  `*related_items_derived` hits are prose comments in canonical-pipeline.ts:677-678).
+- Live catalog (SELECT-only, project kwrsbpiseruzbfwjpvsp): a single pg_catalog dependency probe
+  (policy quals + function bodies + view definitions + trigger bodies) referencing any of the 7 names
+  = **0 across all four channels**. `active_intelligence_items` in particular is referenced by no
+  policy/fn/view/trigger — it gates nothing (X.2(c) confirmed fresh).
+
+Objects dropped by migration 180: views open_conflicts, provisional_sources_review,
+source_health_summary, active_intelligence_items, item_related_items_derived; functions
+get_workspace_members(uuid), related_items_derived(uuid). Discharges X.2(a) orphan RPCs + X.2(c)
+5-view decision row; master P3.
+
 <!-- Sections below appended per wave -->

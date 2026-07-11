@@ -37,7 +37,7 @@ const GEN_FILES = [
   'fsi-app/src/lib/agent/parse-output.ts',
   'fsi-app/src/lib/agent/format-spec.ts',
   'fsi-app/src/lib/agent/extract-registry.ts',
-  'fsi-app/src/lib/agent/source-pool.ts',
+  // source-pool.ts entry removed 2026-07-11: file deleted (retired module, zero importers — audit CODE-1 F-04)
 ];
 const GEN_DIRS = ['fsi-app/src/lib/agent/formats/'];
 const CONFIG_FILE = 'fsi-app/src/lib/agent/generation-config.ts';
