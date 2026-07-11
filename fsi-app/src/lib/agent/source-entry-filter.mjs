@@ -12,7 +12,9 @@
 // (source name, title, url, tier, …). Placeholder-named entries are suppressed;
 // a real name with a null URL is NOT a placeholder (renders as honest plain text).
 
-const HEADER_LITERALS = new Set([
+// Exported so the overflow-hydration rendering guard reuses this exact literal set for its
+// placeholder-literal DOM scan (no hand-duplicated copy that could drift from this SoT).
+export const HEADER_LITERALS = new Set([
   // §15 sources table headers
   "source name", "source", "name", "title", "#", "no", "url", "link",
   "tier", "tier estimate", "type", "issuing body", "body", "date",

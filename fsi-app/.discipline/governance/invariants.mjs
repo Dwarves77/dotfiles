@@ -684,4 +684,16 @@ export const INVARIANTS = [
     enforcedBy: ['rule:017'],
     residual: 'Anchor is a stable skill-section marker; the no-raw-env invariant is owned by the agent-architecture contract and enforced by rule 017.',
   },
+  {
+    id: 'SF-10-customer-surface-rendering',
+    skill: 'sprint-followups-discipline',
+    section: 'Customer-surface rendering fidelity (overflow / placeholder-literal / hydration are build-catchable)',
+    text: 'A customer-facing surface must render its data extremes without a horizontal-overflow escape (scrollWidth <= clientWidth on the audited containers + body, excluding the internally-panning .leaflet-container), without an F-1 placeholder-literal ("Source Name"/"Tier estimate"/"URL"/… rendered as data), and without a V-07 hydration mismatch (the server + first-client render use a now-independent label so React #418/#423 cannot fire). These three defect classes are caught by a fixture-based rendering guard, not left to a browser-floor manual audit — the L-1/L-4/L-6 overflow, F-1 placeholder, and V-07 hydration fixes are its red-then-green proof.',
+    anchor: 'Handling New OBS Surfaced During Execution',
+    enforcedBy: [
+      'selftest:fsi-app/.discipline/rendering/assertions.test.mjs',
+      'selftest:fsi-app/.discipline/rendering/run-rendering-guard.mjs',
+    ],
+    residual: 'The portable selftest (in the no-npm `node --test` discipline glob) proves the THREE detectors red-then-green over the REAL app modules: the overflow detector (fitting-vs-overflowing measurement), the F-1 placeholder detector reusing isPlaceholderText + HEADER_LITERALS over the pre-fix vs current stripSourcesSection output, and the V-07 hydration detector reusing the real stableDateLabel (now-independent, green) vs relativeTimeLabel (now-dependent, red). run-rendering-guard.mjs renders the extreme-data fixtures at every app breakpoint tier (380/420/480/560/640/767/768/900/960/1100/1200/1440) in Playwright chromium and measures REAL layout (scrollWidth/clientWidth — impossible in jsdom), feeding the SAME detectors; it runs in the dedicated CI "Rendering guard" job (needs the browser), so it is a required signal, not dead. Anchor is a stable SF section marker; the invariant is owned by this guard mechanism. Fidelity residual: the browser fixtures reproduce each fix\'s LAYOUT CONTRACT (timeline strip verbatim inline styles; Tailwind break-all/min-w-0/overflow-x-auto by equivalent raw CSS) rather than bundling the auth-walled .tsx surface — a full-page E2E under auth+live-data is the named not-yet-built extension.',
+  },
 ];
