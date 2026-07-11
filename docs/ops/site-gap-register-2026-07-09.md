@@ -18,7 +18,7 @@ with the owner-mechanism/gate) · **DESIGN-DEVIATION** (routes to DESIGN-DEVIATI
 
 | ID | Unit | Owner-mechanism (which built unit / switch resolves it) | Status |
 |----|------|--------------------------------------------------------|--------|
-| U-01 | ⏳ AWAITING DETAIL | — | pending row |
+| U-01 | ⏳ AWAITING DETAIL (source rows never arrived — cut in transmission; cannot be reconstructed without Jason's Chrome-audit notes) | — | BLOCKED on source data |
 | U-02 | ⏳ AWAITING DETAIL | — | pending row |
 | U-03 | ⏳ AWAITING DETAIL | — | pending row |
 | U-04 | ⏳ AWAITING DETAIL | — | pending row |
@@ -33,7 +33,7 @@ with the owner-mechanism/gate) · **DESIGN-DEVIATION** (routes to DESIGN-DEVIATI
 ### U-11 — spend-ledger truth (read-only, 2026-07-09)
 The register frames U-11 as "mid-flight spend-bearing work." **Verified state contradicts that:**
 `agent_runs` = **0 in the last 24h**; last run **2026-07-07 16:40:26 UTC**; `global_processing_paused=true`,
-`scrape_cadence='off'`; month-to-date spend **$0** (per /admin). The "88/293" is a **static historical
+`scrape_cadence='off'`; month-to-date spend = read it live (`SELECT sum(cost_usd_estimated) FROM agent_runs WHERE started_at > date_trunc('month', now())` — a cached number here drifted once already: the 2026-07-10 board reconciliation read $39.39 MTD while this line said $0; docs reference the query, not the value). The "88/293" is a **static historical
 progress count** from the batch that ran through 2026-07-07 — it is **not live and not spending now.**
 - **Correction:** U-11 *was* mid-flight (≤ 2026-07-07); it is now **HALTED** by the standing loop-off / scrape-hold.
 - **Ledger:** nothing to post — active in-flight spend = **$0**. (Historical: 1,628 runs all-time, 615 in 30d, all ≤ 2026-07-07.)
@@ -49,16 +49,16 @@ CountEmissions, IMO Net-Zero). That is the no-silent-truncation / no-fabrication
 
 ## Defects / fabrication / quality — D-1, D-2, F-1, Q-1..Q-3
 
-Fix-forward priority as ruled: **F-1 FIRST (✅ DONE)**, then D-1, D-2, Q-class (in the wave). Merge on green.
+Fix-forward priority as ruled: **F-1 FIRST (✅ DONE)**, then D-1, D-2, Q-class — **ALL ENACTED 2026-07-11** (reconciliation remediation dispatch; see board-reconciliation closeout).
 
 | ID | Class | Disposition | Status |
 |----|-------|-------------|--------|
 | F-1 | Customer surface renders unbacked content, nothing detects it (fabricated source row) | CLASS KILL — narrative ↓ | ✅ FIXED |
-| D-1 | Admin member UUID chain — `display_name` never wired to the admin members view (API returns it; /profile + /community render it) | Wire `display_name` at the members component (+ the org-row `a0000000` slug if same omission); add the admin view to the member-display do-not-revert check | ⏳ in wave |
-| D-2 | Sources count two-homes — Sources tab header vs At-a-glance rail read different selectors | One selector, one home over the per-regulation source set; name which was wrong (primary-only / stale field) in the PR | ⏳ in wave |
-| Q-1 | Tier vocabulary two-homes — cards conflate tier with status ("T7 Provisional/Unverified") | Legend is correct (T5 industry / T6 commercial-intel / T7 news-commentary); fix the cards; move tier labels to ONE exported constant + drift-guard test (surface_of pattern) | ⏳ in wave |
-| Q-2 | Two unlabeled gap numbers | Label both — "critical gaps" (queue row) / "total gaps" (matrix); no logic change | ⏳ in wave |
-| Q-3 | Casino signal — pre-intake-gate off-domain junk live in the monitoring band | Value-delete via the gate + deletion log (Kansas precedent); read-only sibling relevance sweep over live signal-band (report before dispose); Fork-4 stays surface-only (remediation of pre-gate rows, not gate-to-blocking) | ⏳ in wave |
+| D-1 | Admin member UUID chain | ROOT CAUSE: the panel + API both carried the display chain; the two `org_memberships` SELECTs feeding the panel (AdminDashboard.loadData + admin/page.tsx initial fetch) omitted `display_name, email` from the profiles join, so the chain fell to uuid-slice. Selector fixed at both homes (2026-07-11). | ✅ FIXED |
+| D-2 | Sources count two-homes | WRONG HOME NAMED: the At-a-glance rail hardcoded `1` (a primary-only literal); the tab parsed the source list. One selector now (`sourceEntriesOf`, RegulationDetailSurface), both homes derive from it (2026-07-11). | ✅ FIXED |
+| Q-1 | Tier vocabulary two-homes (FOUR private vocabularies found: CredibilityBadge, AskAssistant, Operations+Research TIER_DEFINITIONS) | Legend ruled correct; ONE exported constant `src/lib/tier-labels.ts` now feeds all card homes; drift-guard test `tier-labels.test.mjs` (surface_of pattern) REDs stray vocab. RESIDUAL: `types/source.ts` promotion-ladder commentary still narrates the old naming (tier-MODEL doc, not display) (2026-07-11). | ✅ FIXED |
+| Q-2 | Two unlabeled gap numbers | Labeled both: matrix stat = "Total gaps" (CoverageMatrixView), queue rows = "Coverage gaps (critical)" (IssuesQueue + AdminIssuesRail). No logic change (2026-07-11). | ✅ FIXED |
+| Q-3 | Casino signal + siblings | Casino row 646dda2d value-DELETED via the gate (guardedDelete + read-back + log). Sibling sweep over 288 live: 2 hits (Matrix Hudson housing-lottery listings), investigated, ARCHIVED off_domain (reversible, MDEQ precedent). 0 junk-pattern titles remain live (2026-07-11). | ✅ FIXED |
 
 ### F-1 root-cause narrative (recorded per ruling)
 - **Data layer: CLEAN.** 0 null-field `sources` rows corpus-wide; PPWR's 74 claims have 0 null / 0 dangling source FKs. No junk DB row — nothing to delete.
