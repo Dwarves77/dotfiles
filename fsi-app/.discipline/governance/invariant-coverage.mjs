@@ -35,6 +35,7 @@ import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { INVARIANTS, SKILL_FILES, SKILL_MARKER_BASELINE, MARKER_SOURCE } from './invariants.mjs';
+import { DOCTRINES } from './doctrine-register.mjs';
 import { rules } from '../manifest.mjs';
 import { fitnessFunctions } from '../fitness/manifest.mjs';
 import { consistencyChecks } from '../consistency/manifest.mjs';
@@ -154,6 +155,47 @@ export function auditInvariants(invariants, env) {
   return { problems, referenced };
 }
 
+// PURE doctrine-register audit (the "UNENFORCED DOCTRINE = FAIL" core), injectable + negative-testable.
+// A doctrine is legitimate iff EITHER it is enforced by ≥1 invariant that EXISTS and is ITSELF enforced
+// (not exempt — a doctrine cannot inherit enforcement from an exempt invariant), XOR it is exempt with a
+// non-empty reason. A doctrine mapping to a missing invariant, to an exempt invariant, or to nothing —
+// the doctrine-register bugs this unit exists to surface — FAILS. `conflicts` IDs must resolve to a real
+// doctrine (the conflict-ledger integrity check). env.enforcedInvariantIds / env.allInvariantIds /
+// env.doctrineIds are Sets.
+export function auditDoctrines(doctrines, env) {
+  const problems = [];
+  for (const d of doctrines) {
+    const where = `doctrine ${d.id}`;
+    const hasEnforced = Array.isArray(d.enforcedBy) && d.enforcedBy.length > 0;
+    const hasExempt = d.exempt && typeof d.exempt.reason === 'string' && d.exempt.reason.trim().length > 0;
+
+    if (!hasEnforced && !hasExempt) {
+      problems.push(`UNENFORCED DOCTRINE: ${where} maps to no invariant and is not exempt-with-reason — this is the silent-listing the register forbids (wire it or exempt-with-reason).`);
+    }
+    if (hasEnforced && hasExempt) {
+      problems.push(`CONTRADICTORY DOCTRINE: ${where} is both enforced and exempt — pick one.`);
+    }
+    if (d.exempt && !hasExempt) {
+      problems.push(`EMPTY-EXEMPTION: ${where} has exempt without a non-empty reason.`);
+    }
+    if (hasEnforced) {
+      for (const invId of d.enforcedBy) {
+        if (!env.allInvariantIds.has(invId)) {
+          problems.push(`UNKNOWN INVARIANT: ${where} → ${invId} is not a registered invariant id.`);
+        } else if (!env.enforcedInvariantIds.has(invId)) {
+          problems.push(`DOCTRINE ENFORCED BY EXEMPT INVARIANT: ${where} → ${invId} is itself EXEMPT (not mechanically enforced) — the doctrine has no live mechanism through it.`);
+        }
+      }
+    }
+    if (Array.isArray(d.conflicts)) {
+      for (const cid of d.conflicts) {
+        if (!env.doctrineIds.has(cid)) problems.push(`DANGLING CONFLICT: ${where} references conflict '${cid}' that is not a registered doctrine id.`);
+      }
+    }
+  }
+  return { problems };
+}
+
 export function runInvariantCoverage() {
   // Pre-read skill files once.
   const skillContent = {};
@@ -201,12 +243,27 @@ export function runInvariantCoverage() {
     }
   } catch { problems.push('RULE TEST SCAN FAILED: cannot read rules dir.'); }
 
+  // DOCTRINE REGISTER (Disposition Engine Unit 0): unenforced doctrine = FAIL. A doctrine's enforcedBy
+  // must point at an invariant that EXISTS and is itself ENFORCED (not exempt).
+  const enforcedInvariantIds = new Set(
+    INVARIANTS.filter((i) => Array.isArray(i.enforcedBy) && i.enforcedBy.length && !i.exempt).map((i) => i.id)
+  );
+  const allInvariantIds = new Set(INVARIANTS.map((i) => i.id));
+  const doctrineIds = new Set(DOCTRINES.map((d) => d.id));
+  const { problems: docProblems } = auditDoctrines(DOCTRINES, { enforcedInvariantIds, allInvariantIds, doctrineIds });
+  problems.push(...docProblems);
+
   const enforced = INVARIANTS.filter((i) => Array.isArray(i.enforcedBy) && i.enforcedBy.length).length;
   const exempt = INVARIANTS.filter((i) => i.exempt && i.exempt.reason).length;
+  const docEnforced = DOCTRINES.filter((d) => Array.isArray(d.enforcedBy) && d.enforcedBy.length).length;
+  const docExempt = DOCTRINES.filter((d) => d.exempt && d.exempt.reason).length;
   return {
     ok: problems.length === 0,
     problems,
-    summary: { invariants: INVARIANTS.length, enforced, exempt, skills: Object.keys(SKILL_FILES).length },
+    summary: {
+      invariants: INVARIANTS.length, enforced, exempt, skills: Object.keys(SKILL_FILES).length,
+      doctrines: DOCTRINES.length, docEnforced, docExempt,
+    },
   };
 }
 
@@ -215,8 +272,9 @@ if (process.argv[1] && process.argv[1].endsWith('invariant-coverage.mjs')) {
   const { ok, problems, summary } = runInvariantCoverage();
   console.log(`\n===== INVARIANT COVERAGE (meta-gate) =====`);
   console.log(`skills: ${summary.skills}  invariants: ${summary.invariants}  |  ENFORCED ${summary.enforced}  EXEMPT ${summary.exempt}`);
+  console.log(`doctrine register: ${summary.doctrines}  |  ENFORCED ${summary.docEnforced}  EXEMPT ${summary.docExempt}  (unenforced doctrine = FAIL)`);
   if (ok) {
-    console.log(`\nALL ${summary.invariants} invariants are wired: each is enforced by a resolving mechanism OR exempt-with-reason; every enforcement exists; every anchor present; marker baselines hold; no orphan mechanisms.`);
+    console.log(`\nALL ${summary.invariants} invariants + ${summary.doctrines} doctrines are wired: each is enforced by a resolving mechanism OR exempt-with-reason; every enforcement exists; every anchor present; marker baselines hold; no orphan mechanisms.`);
     console.log(`=== meta-gate PASS ===`);
     process.exit(0);
   }
