@@ -21,6 +21,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[components]] — Shared Components Inventory
 - [[discipline]] — Discipline Engine Inventory
 - [[migrations]] — Migrations Inventory
+- [[out-of-band-objects]] — Out-of-band DB objects (live-not-in-migrations) ledger
 - [[worktrees]] — Git Worktrees Inventory
 
 ## runbooks
