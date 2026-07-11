@@ -342,12 +342,26 @@ async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
 }
 
 async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
-  const supabase = getSupabase();
-  const { data: rows } = await supabase
+  // Wave-a Track B3: provisional_sources is an admin-only working set. Migration 157 dropped its
+  // permissive read policy, leaving NO SELECT policy — so the prior anon-client read returned 0 rows
+  // (deny-by-default) AND dropped `error`, silently rendering the review queue empty since 2026-07-07.
+  // Read with the service client (the correct credential for an admin working set; bypasses RLS) and
+  // ALWAYS capture `error` (kills the silent-swallow class — see the agent/run error-swallow post-mortem).
+  const supabase = getServiceSupabase();
+  const { data: rows, error } = await supabase
     .from("provisional_sources")
     .select("*")
     .in("status", ["pending_review", "needs_more_data"])
     .order("independent_citers", { ascending: false });
+
+  if (error) {
+    // Do NOT swallow: log so a genuine failure is visible instead of masquerading as an empty queue.
+    console.error(
+      "[fetchProvisionalSources] provisional_sources read failed:",
+      error.message
+    );
+    return [];
+  }
 
   return (rows || []).map((row: any) => ({
     id: row.id,

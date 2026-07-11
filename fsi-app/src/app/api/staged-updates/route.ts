@@ -141,7 +141,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (update.status === "approved" && update.materialized_at) {
+    // Wave-a Track B4 idempotency hardening: a second approve of an already-materialized row must be a
+    // no-op, never a duplicate mint. Key on EITHER materialized_at OR materialized_item_id — the phantom
+    // reviewer_notes 500 (P1 #5) could leave a row whose item was minted but whose materialized_at write
+    // failed; keying on materialized_item_id too closes that retry-re-mint hole even before the column
+    // fix lands.
+    if (
+      update.status === "approved" &&
+      (update.materialized_at || update.materialized_item_id)
+    ) {
       return NextResponse.json(
         {
           success: true,
@@ -221,9 +229,24 @@ export async function POST(request: NextRequest) {
 
       if (persistError) {
         // The intel item exists but we couldn't record success on the
-        // staged_update. Surface the failure so the caller can investigate.
-        // Do NOT swallow this — the staged_update is now in an inconsistent
-        // state (materialization happened, status flag missing).
+        // staged_update. Do NOT swallow — but first make a best-effort minimal
+        // record of the materialization (status + the two materialized_* pointers,
+        // WITHOUT the optional reviewer_notes that may be the very cause of the
+        // failure). This guarantees a retry sees materialized_at/materialized_item_id
+        // and no-ops via the idempotency guard above instead of re-minting a
+        // duplicate (Wave-a Track B4).
+        await supabase
+          .from("staged_updates")
+          .update({
+            status: "approved",
+            reviewed_by: auth.userId,
+            reviewed_at: reviewedAt,
+            materialized_at: reviewedAt,
+            materialized_item_id: materializeResult.itemId ?? null,
+            materialization_error: `notes-write failed, pointer backfilled: ${persistError.message}`,
+          })
+          .eq("id", id);
+
         return NextResponse.json(
           {
             error: `Materialization succeeded but staged_updates row failed to update: ${persistError.message}`,
