@@ -18,6 +18,16 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { LIVENESS, assessLiveness, latestRunAtMs, consumerView } from "./liveness.mjs";
 
+// --live gate (F-5a-4): this re-runnable acceptance test inserts/updates/deletes a SENTINEL integrity_flags
+// row in the SHARED prod DB (owner creds) on bare invocation. Refuse unless --live is explicit.
+if (!process.argv.includes("--live")) {
+  console.error(
+    "[acceptance-test] liveness-reconstruction writes a SENTINEL integrity_flags row to the SHARED prod DB.\n" +
+    "  Refusing to run without --live. Deliberate run: node scripts/lib/liveness-reconstruction.mjs --live"
+  );
+  process.exit(0);
+}
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const REF = readFileSync(resolve(ROOT, "supabase/.temp/project-ref"), "utf8").trim();

@@ -28,6 +28,16 @@
 
 set -u
 
+# Capture git's pre-push ref-update lines (`<local ref> <local sha> <remote ref> <remote sha>`) from
+# stdin BEFORE anything else consumes it — the consistency step (2) uses them to scan the commits being
+# pushed for Consistency-Override trailers. Guard against a manual TTY invocation, where reading stdin
+# would block: only read when stdin is a pipe (git always provides one; a terminal is a TTY).
+if [ ! -t 0 ]; then
+  PREPUSH_REFS="$(cat)"
+else
+  PREPUSH_REFS=""
+fi
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then
   echo "[discipline pre-push] cannot resolve repo root; blocking push for safety." >&2
@@ -70,17 +80,24 @@ fi
 echo "[discipline pre-push] step 1 (untracked critical files): OK"
 
 # ---------------------------------------------------------------------------
-# Step 2: Layer 4 consistency runner
+# Step 2: Layer 4 consistency runner — OVERRIDE-AWARE (g1b)
 # ---------------------------------------------------------------------------
-if ! node fsi-app/.discipline/consistency/runner.mjs --quiet >/tmp/discipline-prepush-c.log 2>&1; then
-  echo "[discipline pre-push] STEP 2 FAIL: consistency runner reported drift:" >&2
+# Runs the consistency runner AND honors `Consistency-Override:` trailers on the commits being pushed
+# (the escape hatch this hook advertised but never parsed before g1b). override-check.mjs --prepush reads
+# the ref-update lines on stdin, collects the pushed commits' messages, and treats a C-check as overridden
+# only when a VALID trailer is present (non-empty rationale + today-or-future remediation-deadline). Same
+# primitive rule 014 + the CI backstop use, so the three surfaces cannot drift.
+if ! printf '%s' "$PREPUSH_REFS" | node fsi-app/.discipline/consistency/override-check.mjs --prepush >/tmp/discipline-prepush-c.log 2>&1; then
+  echo "[discipline pre-push] STEP 2 FAIL: consistency runner reported drift with no valid override:" >&2
   cat /tmp/discipline-prepush-c.log >&2
-  echo "[discipline pre-push] fix the drift listed above (or add a Consistency-Override on a future commit), then re-push." >&2
+  echo "[discipline pre-push] fix the drift above, OR add on a commit being pushed:" >&2
+  echo "[discipline pre-push]   Consistency-Override: C<N> (rationale: <non-empty>; remediation-deadline: YYYY-MM-DD[future])" >&2
   rm -f /tmp/discipline-prepush-c.log
   exit 1
 fi
+cat /tmp/discipline-prepush-c.log
 rm -f /tmp/discipline-prepush-c.log
-echo "[discipline pre-push] step 2 (consistency runner): OK"
+echo "[discipline pre-push] step 2 (consistency runner, override-aware): OK"
 
 # ---------------------------------------------------------------------------
 # Step 3: discipline + fitness tests — the SAME canonical suite CI runs

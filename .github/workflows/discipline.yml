@@ -103,6 +103,45 @@ jobs:
         # nor exempt-with-reason, or if any anchor/baseline drifted. Makes "wired" non-optional.
         run: node fsi-app/.discipline/governance/invariant-coverage.mjs
 
+  consistency-backstop:
+    name: Consistency layer (C3/C4/C5 reality — always-on backstop)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # WHY a standalone job (g1): rule 014 only fires the consistency runner when a commit TOUCHES
+    # docs/inventories/*.md, so for the vast majority of commits the C3/C4/C5 reality checks never ran in
+    # CI — a structurally vacuous CI leg (a migration added without its inventory row would sail through).
+    # This job runs the runner UNCONDITIONALLY on every push/PR and asserts exit 0 OR a valid documented
+    # Consistency-Override, via the SAME override-aware primitive rule 014 + the pre-push hook use.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          # full history so --commit reads the pushed commit and origin/<base>..HEAD resolves for PRs
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Consistency runner (push to master) — override-aware
+        if: github.event_name == 'push'
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -u
+          node fsi-app/.discipline/consistency/override-check.mjs --commit="$COMMIT_SHA"
+
+      - name: Consistency runner (pull request) — override-aware
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -u
+          git fetch --no-tags origin "$BASE_REF" || true
+          node fsi-app/.discipline/consistency/override-check.mjs --range="origin/${BASE_REF}..${HEAD_SHA}"
+
   fitness-check:
     name: Fitness functions (application-layer enforcement)
     runs-on: ubuntu-latest
