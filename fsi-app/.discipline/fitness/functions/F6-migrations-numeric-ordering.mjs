@@ -14,6 +14,7 @@
 
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
+import { isOverridden } from '../lib/file-content.mjs';
 
 const MIGRATION_NAME_RE = /^(\d{3})_([a-z0-9_]+)\.sql$/;
 
@@ -108,10 +109,15 @@ export const fitnessFunction = {
       const max = Math.max(...numbers);
       const expectedCount = max - min + 1;
       const gapCount = expectedCount - numbers.length;
-      if (gapCount > 10) {
+      // The gap check advertises a silence marker; honor it on the lowest-numbered
+      // migration's first line (the line the violation is reported on). The marker
+      // requires a non-empty parenthetical reason, so a silenced gap is documented,
+      // not hidden. Duplicate-number violations above are NOT silenceable.
+      const firstLine = content.split('\n', 1)[0] || '';
+      if (gapCount > 10 && !isOverridden(firstLine, 'F6')) {
         violations.push(violation(
           1,
-          `Migration sequence has ${gapCount} numbering gaps between ${String(min).padStart(3, '0')} and ${String(max).padStart(3, '0')}. Gaps are tolerated but may indicate dropped migrations worth investigating. Use \`// fitness-allow: F6 (intentional gaps after squash)\` on this filename's first line to silence.`,
+          `Migration sequence has ${gapCount} numbering gaps between ${String(min).padStart(3, '0')} and ${String(max).padStart(3, '0')}. Gaps are tolerated but may indicate dropped migrations worth investigating. Use \`/* fitness-allow: F6 (reason) */\` on this filename's first line to silence.`,
         ));
       }
     }
