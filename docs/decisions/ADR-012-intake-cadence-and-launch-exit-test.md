@@ -62,13 +62,35 @@ the hold gates the SCHEDULED worker; the manual operator-fired path passes as a 
 manifest-bound exception (second authorized caller), NOT by lifting the hold globally.
 
 **So the actual work is small:** (1) a single "run ONE full discovery→triage→mint→ground→validate
-cycle and STOP, zero human touch mid-pipeline" orchestration over the existing routes (the current
-scan→`staged_updates`→admin-approve→mint flow has a human in the loop; the dry-proof needs a
-no-human-touch chain); (2) let the manual caller through the hold via the signed exception while the
-worker still obeys it; (3) surface the "Run intake now" control on the admin surface (the schedule
-control UI already exists in `SourceAdminControls`/`AdminDashboard`). Do NOT re-implement the
-cadence model, the schedule store, the admin schedule control, discovery, or the mint chokepoint —
-they exist.
+cycle and STOP" orchestration over the existing routes; (2) let the manual caller through the hold
+via the signed exception while the worker still obeys it; (3) surface the "Run intake now" control on
+the admin surface (the schedule control UI already exists in `SourceAdminControls`/`AdminDashboard`).
+Do NOT re-implement the cadence model, the schedule store, the admin schedule control, discovery, or
+the mint chokepoint — they exist.
+
+#### RIDER CLARIFICATION (operator, 2026-07-11) — the human-approval step is REMOVED, not bypassed
+
+The `staged_updates` **human-approval gate is removed from the intake path entirely** — NOT bypassed
+"just for the dry-proof." The **machine gates ARE the approval**: source↔claim-type congruence, the
+high-precision subject-existence dedup, the single mint chokepoint (`mintIntelligenceItem`), the
+per-item-type authority floors, and the grounding judge. There is no second, human, approval.
+
+- `staged_updates` becomes **transit-only** — a pass-through with a **max-age invariant like
+  `provisional`** (an item may not sit in staged transit past the bound). It is no longer a resting
+  review queue.
+- **Admin gets visibility, not a gate**: what was staged, what minted, and what was rejected and why
+  — observability over the machine decisions, with no human approval step in the path.
+- **Governing doctrine entry**: this is `no-human-finish-of-intake` (Unit-0 register seed item). The
+  manual-intake wiring cites THAT entry as its authority; it is the same doctrine as
+  no-quarantine-as-resting-state applied to the intake queue.
+- **The materialization-failure path (P1 #5 class) STAYS and is unchanged**: a failed materialization
+  routes to the **flag resolver** (Disposition Engine Unit 2 / `integrity_flags`), NOT to a human
+  queue. Machine-gate REJECT and materialization FAILURE are both machine-routed, never human-parked.
+
+This supersedes the standing `fsi-app/.claude/CLAUDE.md` lines "Staged updates require human approval"
+and "DO NOT ... `/api/admin/scan` stages new items in `staged_updates` for admin review" **for the
+intake path** — those doctrine lines are updated WHEN the wiring lands (disposition dispatch), not
+before. Human approval is retired from intake; machine gates carry it.
 
 ### 2. LAUNCH EXIT TEST — the build-complete definition
 
