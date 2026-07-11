@@ -300,7 +300,21 @@ export async function eraseStep(itemId: string): Promise<{ erased: boolean }> {
   // Orphan claims after a brief erase are wrong on their own (they reference deleted sections); deleting them
   // serves both callers (research-or-erase AND the cross-item audit gate).
   await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
-  try { await sb.from("integrity_flags").update({ recommended_actions: [{ action: "erased_full_brief", rationale: "re-research failed grounding twice; ungroundable/fabricated content removed" }] }).eq("subject_ref", itemId).eq("status", "open"); } catch { /* best-effort note */ }
+  // C6 (F-07): sectionBrief harvests §14 into item_timelines; erasing the brief must ALSO drop those
+  // harvested milestones, else an erased ("ungroundable/fabricated") item leaves customer-facing structured
+  // timeline rows with no backing brief. Best-effort (a timeline-delete failure must not fail the erase).
+  await sb.from("item_timelines").delete().eq("item_id", itemId).then(() => {}, (e: unknown) => console.warn(`[eraseStep] item_timelines delete failed for ${itemId}: ${e instanceof Error ? e.message : String(e)}`));
+  // C6 (F-08): DO NOT clobber recommended_actions on ALL of the item's open flags — the prior blanket UPDATE
+  // overwrote the re-fetch/register action payloads written by cited-host-gate / error-body-gate / null-tier /
+  // truncation-guard flags (destroying the operator queue's real next-actions). Instead INSERT ONE distinct
+  // erase-owned flag; the other producers' flags keep their payloads intact.
+  try {
+    await sb.from("integrity_flags").insert({
+      category: "data_quality", subject_type: "item", subject_ref: itemId, status: "open", created_by: "research-or-erase",
+      description: `Full brief erased: re-research failed grounding twice; ungroundable/fabricated content removed. Item stays quarantined pending re-source at hold-lift.`,
+      recommended_actions: [{ action: "erased_full_brief", rationale: "re-research failed grounding twice; ungroundable/fabricated content removed" }],
+    });
+  } catch { /* best-effort note; the erase itself is the hard effect */ }
   await recordRun(sb, itemId, "erase", 0, true, "research-or-erase: nulled ungroundable brief").catch(() => {});
   return { erased: true };
 }

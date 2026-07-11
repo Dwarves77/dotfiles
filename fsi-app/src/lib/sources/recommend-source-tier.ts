@@ -11,6 +11,11 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { browserlessRender } from "@/lib/sources/browserless";
+// SPEND CHOKEPOINT (C6, 2026-07-11): the Haiku tier-recommendation routes through spendStream — a
+// standing-ticket-class ("recommend-classification", Rule-016 sanctioned) call, budget-checked AND ledgered.
+// The prior raw fetch had no ticket and wrote NO agent_runs row (CODE-1 F-05: unledgered spend). Off the
+// F15 legacy allowlist now that it routes.
+import { spendStream } from "@/lib/llm/spend-client";
 
 export interface SourceTierRecommendation {
   recommended_tier: number;
@@ -110,26 +115,13 @@ ${excerpt}
 
 Recommend the tier.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY as string,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 500,
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Haiku ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const data = await res.json();
-  const text = (data.content || [])
-    .filter((b: { type: string }) => b.type === "text")
-    .map((b: { text: string }) => b.text)
-    .join("");
+  // C6: route through the spend chokepoint (ticket-gated, budget-enforced, ledgered). standingClass
+  // "recommend-classification" is the Rule-016 sanctioned class; it bypasses the necessity gate but is
+  // budget-checked and writes an agent_runs row (the missing ledger, F-05).
+  const { text } = await spendStream(
+    { system, user, model: "claude-haiku-4-5-20251001", maxTokens: 500 },
+    { purpose: "recommend-source-tier (Haiku tier audit)", standingClass: "recommend-classification" }
+  );
   const m = /\{[\s\S]*\}/.exec(text);
   if (!m) throw new Error("no JSON object in Haiku response");
   const parsed = JSON.parse(m[0]);
