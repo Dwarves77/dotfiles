@@ -27,6 +27,7 @@
 import { readFileSync, appendFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { missingFromTranscript } from "./skill-token.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AUDIT = resolve(HERE, ".gate-audit.log");
@@ -63,13 +64,16 @@ try {
 } catch { /* skill-map unavailable — fail closed below */ }
 
 // "Looked at" == a DELIBERATE Skill invocation this session. The transcript serializes it as
-// `"name":"Skill","input":{"skill":"<slug>"` (both with and without args). Passive mentions / injected
-// content do NOT contain this exact tool_use shape, so they correctly don't count.
+// `"name":"Skill","input":{"skill":"<value>"` where <value> is the bare slug OR a directory/worktree-SCOPED
+// name (e.g. "dotfiles/fsi-app:<slug>"). skillLoadedInTranscript (skill-token.mjs) matches BOTH forms as a
+// suffix after an optional ':'-terminated scope prefix, so a legitimately-loaded scoped skill is detected
+// (the bare-slug substring match wrongly DENIED it before). Passive prose mentions still don't count — the
+// full tool_use shape is required.
 function readTranscript() { try { return transcriptPath ? readFileSync(transcriptPath, "utf8") : ""; } catch { return ""; } }
 function missingSkills(skills) {
   const t = readTranscript();
   if (!t) return { skills, noTranscript: true };
-  return { skills: skills.filter((s) => !t.includes(`"name":"Skill","input":{"skill":"${s}"`)), noTranscript: false };
+  return { skills: missingFromTranscript(t, skills), noTranscript: false };
 }
 // Gate a WRITE path on skill-load. onLoaded() is called (to emit allow/ask) only when all skills present.
 function gateWrite(skills, denyTag, contextMsg, onLoaded) {

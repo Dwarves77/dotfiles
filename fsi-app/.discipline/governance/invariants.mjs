@@ -62,7 +62,10 @@ export const SKILL_MARKER_BASELINE = {
   // label" to Section 3. TRIAGE: not a new rule — an instance of the existing labeling discipline
   // already enforced by the provenance gate's criterion 4 (validate_item_provenance quarantines an
   // unlabeled ANALYSIS assertion); covered by the per-claim grounding invariants, no new invariant.
-  'environmental-policy-and-innovation': 18,
+  // 18→19 (2026-07-11, Wave-α C8): added "Canonical instrument key (dedup-before-grounding identity)"
+  // normative line ("Two VERIFIED, non-archived items MUST NOT share a canonical instrument key").
+  // TRIAGE: new invariant EP-11 (enforcedBy audit canonical-key-uniqueness.mjs + migration 200).
+  'environmental-policy-and-innovation': 19,
   // 10→11 (2026-07-03): added the "Floor-qualifying source reaches grounding COMPLETE (the truncation
   // moat)" normative line. TRIAGE: new invariant SC-10 (enforcedBy selftest source-blocks.test.mjs).
   // 11→12 (2026-07-03): added the "Floor-first span re-attribution (the attribution half of the moat)"
@@ -180,6 +183,25 @@ export const INVARIANTS = [
     residual: 'F13 is a STATIC scan (flags any `from("intelligence_items")…insert(` outside src/lib/intake/mint-item.ts across src/**, excl tests/scripts) — it enforces the STRUCTURAL single-chokepoint invariant, with a demonstrated red-then-green failing mode. The congruence/dedup DECISION QUALITY inside the chokepoint is unit-proven separately: source-role.test.mjs (1a/1b) + entity-resolve.test.mjs (dedup high-precision + moat failing-mode). Migration 146 (origin/derive) is NOT YET APPLIED, so the link-on-dedup edge write degrades silently until it lands.',
   },
 
+  {
+    id: 'EP-10-vocab-sync',
+    skill: 'environmental-policy-and-innovation',
+    section: 'Database Field Emission / controlled vocabularies',
+    text: 'The in-code metadata vocabularies (metadata-vocab.ts DB_*_VALUES) MUST equal the DB CHECK-constraint value sets on intelligence_items (severity/priority/urgency_tier/format_type/signal_band/theme); a drift silently rejects whole-row writes (the severity 3-way fracture), so an emitted value outside the live constraint fails the write.',
+    anchor: 'controlled vocabulary for `intelligence_items.topic_tags`',
+    enforcedBy: ['audit:fsi-app/scripts/verify/vocab-sync-audit.mjs'],
+    residual: 'vocab-sync-audit.mjs (CI-with-secrets lane) reads pg_get_constraintdef from the catalog and compares each column\'s CHECK value set to the matching metadata-vocab Set — the standing truth-teller for a code-vs-DB vocab drift. It was an unwired lane audit before this registration (the meta-gate blind spot). The meta-gate proves wiring (file tracked + skill-cited) in the secret-less pre-push. topic_tags/compliance_object_tags closed-vocab enforcement at emission time is the generation-side half (system-prompt + parser), reference-layer not mechanized here.',
+  },
+  {
+    id: 'EP-11-canonical-instrument-key',
+    skill: 'environmental-policy-and-innovation',
+    section: 'Output Formats / Canonical instrument key (dedup-before-grounding identity)',
+    text: 'Every reg-family EU-instrument item carries a canonical instrument key (bare CELEX, derived from instrument_identifier or source_url; NULL when not confidently derivable — a bare YYYY/N is never guessed). Two VERIFIED, non-archived items MUST NOT share a canonical instrument key (that is two live customer-visible copies of one regulation — the PPWR-both-verified twin defect); the key is the join the dedup-before-grounding gate needs.',
+    anchor: 'Two VERIFIED, non-archived items MUST NOT share a canonical instrument key',
+    enforcedBy: ['audit:fsi-app/scripts/verify/canonical-key-uniqueness.mjs', 'migration:200'],
+    residual: 'Two independent guards: migration 200 = the partial UNIQUE index uq_intelligence_items_canonical_key_verified_live (canonical_instrument_key WHERE verified AND NOT archived) — a DB-level structural bar against a NEW verified twin, plus the BEFORE INSERT/UPDATE normalizing trigger that derives the key; canonical-key-uniqueness.mjs = the live-data lane audit (CI-with-secrets) that mirrors the index AND derives on-the-fly (so it catches a would-be verified twin even before backfill), reaching 0 collisions after the C7.3 merge archives b7736a1a (the one live verified/quarantined 2019/1242 twin lever). The meta-gate proves wiring (file tracked + skill-cited) in the secret-less pre-push. Archived tombstones (verified BUT is_archived — 5cc10a6d PPWR, 6b0939a5 AFIR) are excluded from the guard by construction (WHERE is_archived IS NOT TRUE). Whether two DIFFERENT-format rows are truly one instrument vs item-vs-amendment is a DB-1 item-domain call, not mechanized here (the both-quarantined FuelEU/2024-1610 pairs are the ruling residual).',
+  },
+
   // ───────────────────────────── source-credibility-model ─────────────────────────────
   {
     id: 'SC-1-syndication-math',
@@ -246,8 +268,8 @@ export const INVARIANTS = [
     section: 'Canonical Institutional Tier (Phase 0\')',
     text: 'A FACT claim\'s grounding tier stamp equals the canonical institutional tier of the source containing its span (flagged-override row tier where present; NULL when the span host is unregistered); no constant stamps.',
     anchor: 'the stamp equals the canonical institutional tier of the source containing the span',
-    enforcedBy: ['audit:fsi-app/scripts/verify/claims-tier-audit.mjs'],
-    residual: 'The audit (claims-tier-audit.mjs) verifies DERIVATION-CONSISTENCY (D1, migration 145): the stored stamp equals the tier derived from the claim\'s source_id -> COALESCE(tier_override, base_tier) (base_tier-only, moat-pure); it deliberately does NOT re-resolve the span URL NOW — registry growth after grounding is Phase-3 GROWTH (move the claim positive from baseline), not drift the audit polices. GREEN as of 2026-06-29 (0 mismatches). The meta-gate proves wiring (file exists + skill-cited). Whether a registered institutional tier is itself CORRECT is operator-ratification judgment, not mechanized here.',
+    enforcedBy: ['audit:fsi-app/scripts/verify/claims-tier-audit.mjs', 'audit:fsi-app/scripts/verify/ledger-onepass-audit.mjs'],
+    residual: 'Two independent live-data guards: claims-tier-audit.mjs verifies DERIVATION-CONSISTENCY (D1, migration 145): the stored stamp equals the tier derived from the claim\'s source_id -> COALESCE(tier_override, base_tier) (base_tier-only, moat-pure); it deliberately does NOT re-resolve the span URL NOW — registry growth after grounding is Phase-3 GROWTH, not drift the audit polices. ledger-onepass-audit.mjs is the composed one-pass cross-check that ALSO re-derives the per-type floor in JS (buildResolver + migration 141), catching an SQL-gate-vs-JS-primitive drift. Both were unwired lane audits before this registration. GREEN as of 2026-06-29 (0 mismatches). The meta-gate proves wiring (file exists + skill-cited). Whether a registered institutional tier is itself CORRECT is operator-ratification judgment, not mechanized here.',
   },
   {
     id: 'SC-8-authority-floor',
@@ -285,7 +307,7 @@ export const INVARIANTS = [
     section: 'Canonical Institutional Tier — floor-first span re-attribution (the attribution half of the moat)',
     text: 'When a FACT\'s verbatim span sits in BOTH a floor-qualifying source and a sub-floor corroborator, grounding attributes it to the floor-qualifying source (best-tier-first) so it grounds AT the floor, not the echo; NEVER forced — a span absent from every floor source keeps its honest attribution (walls/relabels/GAP) and is never stamped to a floor source it is not in; a FACT still resolving to an unregistered host is surfaced as one host-aggregated integrity_flag.',
     anchor: 'Floor-first span re-attribution (the attribution half of the moat)',
-    enforcedBy: ['selftest:fsi-app/src/lib/agent/floor-attribution.test.mjs', 'selftest:fsi-app/src/lib/agent/null-tier-flag.test.mjs'],
+    enforcedBy: ['selftest:fsi-app/src/lib/agent/floor-attribution.test.mjs', 'selftest:fsi-app/src/lib/agent/null-tier-flag.test.mjs', 'audit:fsi-app/scripts/verify/unregistered-span-host-audit.mjs'],
     residual: 'The selftests prove the PURE decisions red-then-green: floor-attribution.test.mjs shows a span present in BOTH a floor source and a sub-floor corroborator re-homes to the floor source (RED under the legacy single-URL attribution → fact_below_authority_floor; GREEN under reattributeToFloor) and 4c never-forced (span absent from every floor source → null, no floor stamp); null-tier-flag.test.mjs proves the host-aggregate merge is idempotent per item (re-ground overwrites, never double-counts). The WIRING (groundBrief calls reattributeToFloor at the resolveSpan site over the SAME paginated fail-closed resolver it stamps with; surfaceNullTierHosts upserts the per-host flag) lives in canonical-pipeline.ts — integration residual, not separately unit-asserted. The 4a/4d PROMPT disciplines (synthesis floor-source-span preference; grounding original-language span) ride system-prompt.ts + the grounding extractor prompt (reference-layer, not mechanized). Span-attribution unit, Lane-#4 residual, 2026-07-03.',
   },
 
@@ -306,8 +328,8 @@ export const INVARIANTS = [
     section: '1. The construction method',
     text: 'Each format is constructed to its declared per-section spec (the section set per format); sections without grounded content are omitted-with-note, never invented to fill.',
     anchor: 'The construction method',
-    enforcedBy: ['audit:fsi-app/scripts/verify/format-structure.mjs'],
-    residual: 'Proves section presence/structure vs the spec; cannot prove each section\'s INGEST/TRANSFORM/OUTPUT quality (semantic).',
+    enforcedBy: ['audit:fsi-app/scripts/verify/format-structure.mjs', 'audit:fsi-app/scripts/audit-skill-conformance.mjs'],
+    residual: 'format-structure.mjs proves section presence/structure vs the spec; cannot prove each section\'s INGEST/TRANSFORM/OUTPUT quality (semantic). audit-skill-conformance.mjs is the broader code-checkable conformance sweep over ALL items (format_type↔item_type, min-section count, topic/severity vocab) — the SOFT/informational lane audit, evidence-basing the regen scope; it was an unwired lane audit before this registration (default invocation reads only; --apply persists to integrity_flags via the guarded path).',
   },
   {
     id: 'AC-2-grounding-models',
@@ -435,8 +457,8 @@ export const INVARIANTS = [
     section: 'Section 2.2: Deferred vs Undispositioned (a deferral is dispositioning-as-blocked, never silencing)',
     text: 'A past-bound quarantined item (>14d) is either disposed (recovered/archived/registered) OR carries a VALID time-bounded deferral (reason names the blocker + the awaited disposition path, a named future resolution event, an owner); expired deferrals re-open as undispositioned. Deferral is dispositioning-as-blocked, never silencing — the undispositioned count is the hard tripwire.',
     anchor: 'Deferred vs Undispositioned (a deferral is dispositioning-as-blocked, never silencing)',
-    enforcedBy: ['audit:fsi-app/scripts/verify/quarantine-disposition-audit.mjs'],
-    residual: 'The audit (CI-with-secrets / ops lane, DB creds) is the live-data guard: it splits past-bound into undispositioned (HARD tripwire, fails the lane) vs deferred (standing, reported only), applying isValidDeferral on the read side AND re-checking deferred_until is in the future. The write-time guard scripts/lib/deferral.mjs prevents vague deferrals from ever being written (reason must name blocker + disposition path, named future resolution_event, real owner). The meta-gate proves wiring (audit file git-tracked + skill-cited) in the secret-less pre-push. Self-resurrection on expiry is the anti-silence property — a deferral cannot quietly outlive its own clock. NOT mechanized: whether the named blocker is genuinely the real blocker (vs a plausible-sounding one) is remediation judgment (RD-1), not a checkable property.',
+    enforcedBy: ['audit:fsi-app/scripts/verify/quarantine-disposition-audit.mjs', 'audit:fsi-app/scripts/verify/deferral-hygiene-audit.mjs'],
+    residual: 'The audit (CI-with-secrets / ops lane, DB creds) is the live-data guard: it splits past-bound into undispositioned (HARD tripwire, fails the lane) vs deferred (standing, reported only), applying isValidDeferral on the read side AND re-checking deferred_until is in the future. The write-time guard scripts/lib/deferral.mjs prevents vague deferrals from ever being written (reason must name blocker + disposition path, named future resolution_event, real owner). The meta-gate proves wiring (audit file git-tracked + skill-cited) in the secret-less pre-push. Self-resurrection on expiry is the anti-silence property — a deferral cannot quietly outlive its own clock. The FLAG side is now guarded too: deferral-hygiene-audit.mjs (read-only, report-only) names the integrity_flags disposition_deferred rows that rotted — expired-open (deferred_until passed while status=open) and deleted-subject (subject item hard-deleted) — the register cited 47 expired-open + 62 deleted-subject; it reports, never writes (resolution is a later disposition dispatch). NOT mechanized: whether the named blocker is genuinely the real blocker (vs a plausible-sounding one) is remediation judgment (RD-1), not a checkable property.',
   },
   {
     id: 'RD-7-roadblock-alternative-search',
@@ -541,6 +563,36 @@ export const INVARIANTS = [
   // is not turned on before the persistence path it polices is live end-to-end. Until then this comment is the
   // registered residual (same pattern as a deferred-for-cost named residual), and the seek-more selftest
   // (src/lib/sources/seek-more.test.mjs) proves the record shape + interim persistence red-then-green.
+
+  {
+    id: 'RD-16-transport-hold-all-four',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 10: The transport hold gate (all four transports)',
+    text: 'The scrape hold MUST gate ALL FOUR transports — direct-HTTP, API, RSS, Browserless — at their canonical entry points, not only the Browserless primitive: assertFetchAllowed(url) throws FetchHoldError while SCRAPE_HOLD is engaged, so "hold LIVE, zero fetches" is airtight across every transport (CODE-1 F-02). A transport module that makes a network fetch without the hold check FAILS the discipline gate (widened fitness F16 over TRANSPORT_MODULES). Paired with the hold: the url-canon-keyed, per-source-TTL fetch cache is INJECTED into buildLiveTransports (the cacheGet seam escalateFetch checks first) so a re-ground / retry / refresh of the same url does not re-fetch (CODE-1 F-03).',
+    anchor: 'The transport hold gate (fetch-primitive scrape-hold gate)',
+    enforcedBy: ['fitness:F16', 'selftest:fsi-app/src/lib/sources/fetch-hold.test.mjs'],
+    residual: 'F16 widened (C5, 2026-07-11): beyond the primitive-carries-the-gate + no-raw-Browserless checks, F16 now enumerates TRANSPORT_MODULES (rss-fetch.ts, api-fetch.ts, canonical-pipeline.ts — the direct-HTTP + API-ladder home) and REDs any that lack assertFetchAllowed. Gated inline: directFetchClean (direct-HTTP), apiFetchForHost (API-ladder), apiFetch (api-fetch.ts), rssFetch (rss-fetch.ts); browserlessFetch was already gated (RD-11). The fetch cache (fetch-hold.mjs cacheGet/cachePut) is now injected into buildLiveTransports keyed on the canonical URL with the per-host TTL table, so escalateFetch reads a fresh hit before any transport fires. fetch-hold.test.mjs proves the pure core (engaged→throws / lifted→passes / cache HIT on url-canon-equivalent URLs / TTL freshness) red-then-green; F16-transport-hold-gate.test.mjs proves the widened gate REDs a transport module missing the call. NAMED RESIDUAL: the cache store is PROCESS-scoped in-memory (correct for the batch runners, a cold no-op per serverless invocation); a durable/DB-backed cache stays a future extension. The hold still DEFAULTS to LIFTED (prod-preserving); engaging it is the operator cadence control.',
+  },
+
+  {
+    id: 'RD-17-rls-credential-parity',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — Configuration drift (credential hygiene) / the reconciler class',
+    text: 'On an RLS-enabled table a GRANT is inert unless a matching RLS POLICY also permits the (role, command) — Postgres RLS denies by default. A non-bypass role granted SELECT/INSERT/UPDATE/DELETE with NO covering permissive policy is a grant-without-policy defect (the reconciler credential that was granted but had no USING/WITH CHECK policy — the exact gap migration 169 fixed). Per (table, command, grantee), grants and policies must agree.',
+    anchor: 'credential hygiene',
+    enforcedBy: ['audit:fsi-app/scripts/verify/rls-credential-parity.mjs'],
+    residual: 'rls-credential-parity.mjs (CI-with-secrets lane, pg_catalog + information_schema, read-only) is LOW-FALSE-POSITIVE by scope: it flags grant-without-policy ONLY for CUSTOM application roles (e.g. reconciler), NOT anon/authenticated — those are the RLS-gated public roles whose missing-policy is the intended default-deny (flagging them would fire on every stock Supabase project; live confirmed 52+ such benign anon/authenticated defaults). The meta-gate proves wiring (file tracked + skill-cited) in the secret-less pre-push. LIVE READ-ONLY RUN 2026-07-11 (project kwrsbpiseruzbfwjpvsp): the two custom roles (reconciler, supabase_privileged_role) have ZERO grant-without-policy — mig-169\'s reconciler-cred gap is confirmed CLOSED. NAMED RESIDUAL: it does NOT judge whether an EXISTING policy\'s USING/WITH CHECK predicate is semantically correct (a covering policy clears the flag) — that is the reconcile-revalidate end-to-end proof (RD-6/reconciler dispatch), not a catalog check. Restrictive policies are excluded (they never grant). Highest-value governance rider: it makes a future re-introduction of the class (a new custom write-role granted without a policy) build-catchable.',
+  },
+
+  {
+    id: 'RD-18-column-existence-parity',
+    skill: 'remediation-discipline',
+    section: 'Section 4 category 3 — Type-system drift (schema-vs-code)',
+    text: 'A code write-site that names a column the schema does not have is a PostgREST silent whole-row reject (error swallowed) — the reviewer_notes / dismissed_* phantom-column class. Every literal .from("T").insert|update|upsert({...}) column key MUST exist in the live schema; a code-referenced phantom column is a drift caught before it reaches prod.',
+    anchor: 'schema-vs-code compatibility breaks',
+    enforcedBy: ['audit:fsi-app/scripts/verify/column-existence-parity.mjs'],
+    residual: 'column-existence-parity.mjs (CI-with-secrets lane) greps literal object-literal write-sites, extracts top-level column keys, and asserts each exists in information_schema.columns for that table. HONEST SCOPE (the achievable targeted version, NOT a full typed contract): it sees LITERAL keys only — spread writes ({...payload}), dynamically-built rows, computed keys, and a variable passed to .insert(row) are reported UNRESOLVED (informational), never flagged as phantom; select-column strings are not parsed (write-side is the higher-severity class). The durable form is a committed `supabase gen types` snapshot + a tsc gate (REVISIT); this catalog-vs-grep audit is the zero-DDL interim that catches the reviewer_notes class today. The meta-gate proves wiring (file tracked + skill-cited).',
+  },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
   {

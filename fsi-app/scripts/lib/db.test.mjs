@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, readAll, guardedDelete, __setWriteClientForTest } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, guardedDelete, readClient, __setWriteClientForTest } = await import('./db.mjs');
 
 // Minimal chainable Supabase mock. handler({table, verb, ops}) -> { data, error }. Records calls.
 function makeClient(handler, calls) {
@@ -121,6 +121,41 @@ test('guardedDelete: snapshots then deletes by id; requires cite', async () => {
   assert.ok(calls.some((c) => c.verb === 'select'), 'must snapshot (select) before delete');
   assert.ok(calls.some((c) => c.verb === 'delete'), 'must delete');
   await assert.rejects(() => guardedDelete('sources', ['d1'], {}), /requires \{ cite/);
+});
+
+// ---------------------------------------------------------------------------
+// readClient() hardening (g3): the read client refuses writes (rule-015 bypass closed),
+// while every select/read caller still works.
+// ---------------------------------------------------------------------------
+
+test('readClient: SELECT still works (readAll pages, filters chain)', async () => {
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [{ id: 'x1' }], error: null };
+    return { data: null, error: null };
+  }, []));
+  const sb = readClient();
+  const res = await sb.from('sources').select('id').eq('status', 'active').limit(1);
+  assert.deepEqual(res.data, [{ id: 'x1' }], 'a select through readClient must return data unchanged');
+});
+
+test('readClient: .insert / .update / .delete / .upsert THROW with a guarded-path message', async () => {
+  __setWriteClientForTest(() => makeClient(() => ({ data: null, error: null }), []));
+  const sb = readClient();
+  for (const m of ['insert', 'update', 'delete', 'upsert']) {
+    assert.throws(
+      () => sb.from('intelligence_items')[m]({ x: 1 }),
+      /READ-ONLY|guarded/,
+      `readClient().from(t).${m}() must throw (rule-015 bypass)`,
+    );
+  }
+});
+
+test('readClient: does NOT mutate when a write is attempted (throw happens before any settle)', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => { calls.push(s.verb); return { data: null, error: null }; }, []));
+  const sb = readClient();
+  assert.throws(() => sb.from('sources').update({ status: 'active' }));
+  assert.ok(!calls.includes('update'), 'no update verb should reach the client — the proxy throws first');
 });
 
 test.after(() => __setWriteClientForTest(null)); // restore real client factory

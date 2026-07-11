@@ -7,7 +7,7 @@
  * Backed by:
  *   GET  /api/admin/integrity-flags                 — list + stats
  *   POST /api/admin/integrity-flags/[id]/resolve    — replace_url / mark_resolved
- *   POST /api/admin/integrity-flags/[id]/regenerate — re-run agent + auto-resolve
+ *   POST /api/admin/integrity-flags/[id]/regenerate — queue durable regen workflow (flag preserved; resolution manual)
  *
  * Renders:
  *   1. Stat strip — total flagged (all-time), unresolved, oldest age in days
@@ -125,14 +125,17 @@ export function IntegrityFlagsView() {
       }
 
       if (action === "regenerate") {
-        if (payload.autoResolved) {
-          showToast("Brief regenerated — flag auto-resolved.");
-        } else if (payload.stillFlagged) {
+        // Async contract (Wave-α A4): regeneration is queued as a durable
+        // workflow; the flag stays open until the operator resolves it
+        // after inspecting the fresh brief. No auto-resolve.
+        if (payload.queued) {
           showToast(
-            "Brief regenerated, but the new content still trips the integrity rule."
+            `Regeneration queued (run ${payload.runId ?? "unknown"}). Flag stays open — re-check after the run completes.`
           );
+        } else if (payload.skipped === "already_verified") {
+          showToast("Item already verified — nothing regenerated. Flag preserved.");
         } else {
-          showToast("Brief regenerated.");
+          showToast(payload.message || "Regeneration request accepted.");
         }
       } else if (action === "replace_url") {
         showToast("Source URL replaced — flag resolved.");

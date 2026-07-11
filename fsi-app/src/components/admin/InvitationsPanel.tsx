@@ -13,8 +13,10 @@ import { Mail, Plus, Loader2, AlertCircle, X, Copy, Check } from "lucide-react";
 //   * List pending + recent invitations for the active org
 //   * Create a new invitation (email + role)
 //   * Revoke a pending invitation
-//   * Copy invite URL to clipboard (real email sending is out of scope per
-//     dispatch I.4)
+//   * Copy invite URL to clipboard — the delivery mechanism while no email
+//     provider is configured. The create response carries `email_delivery`
+//     (sendInvitationEmail seam, Wave-α Track D d3); this panel renders that
+//     state honestly instead of assuming.
 
 interface Props {
   orgId: string;
@@ -34,6 +36,12 @@ interface Invitation {
   invite_url?: string; // present only on freshly-created invitations
 }
 
+interface EmailDelivery {
+  delivered: boolean;
+  configured: boolean;
+  reason?: string;
+}
+
 const ROLES = ["member", "admin", "viewer"] as const;
 
 export function InvitationsPanel({ orgId }: Props) {
@@ -46,6 +54,7 @@ export function InvitationsPanel({ orgId }: Props) {
   const [newRole, setNewRole] = useState<"member" | "admin" | "viewer">("member");
   const [creating, setCreating] = useState(false);
   const [recentInvite, setRecentInvite] = useState<Invitation | null>(null);
+  const [recentDelivery, setRecentDelivery] = useState<EmailDelivery | null>(null);
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
@@ -72,6 +81,7 @@ export function InvitationsPanel({ orgId }: Props) {
     setCreating(true);
     setError(null);
     setRecentInvite(null);
+    setRecentDelivery(null);
     setCopied(false);
     const res = await fetch(`/api/orgs/${orgId}/invitations`, {
       method: "POST",
@@ -85,6 +95,7 @@ export function InvitationsPanel({ orgId }: Props) {
       return;
     }
     setRecentInvite(json.invitation);
+    setRecentDelivery(json.email_delivery ?? null);
     setNewEmail("");
     load();
   };
@@ -203,8 +214,21 @@ export function InvitationsPanel({ orgId }: Props) {
           }}
         >
           <p className="mb-2">
-            <b>Invitation created.</b> Email delivery is not yet wired —
-            copy this URL and send it to the invitee:
+            <b>Invitation created.</b>{" "}
+            {recentDelivery?.delivered ? (
+              <>An email was sent to the invitee. The link below is the same invitation if you also want to share it directly:</>
+            ) : recentDelivery && recentDelivery.configured ? (
+              <>
+                <b>Email delivery failed</b>
+                {recentDelivery.reason ? <> — {recentDelivery.reason}</> : null}.
+                {" "}Copy this URL and send it to the invitee:
+              </>
+            ) : (
+              <>
+                <b>Email delivery is not configured</b> on this deployment —
+                copy this URL and send it to the invitee:
+              </>
+            )}
           </p>
           <div className="flex items-center gap-2">
             <code

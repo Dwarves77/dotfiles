@@ -21,6 +21,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[components]] — Shared Components Inventory
 - [[discipline]] — Discipline Engine Inventory
 - [[migrations]] — Migrations Inventory
+- [[out-of-band-objects]] — Out-of-band DB objects (live-not-in-migrations) ledger
 - [[worktrees]] — Git Worktrees Inventory
 
 ## runbooks
@@ -130,6 +131,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[conservation-audit-2026-07-09]] — Full-pipeline conservation audit: stage-loss table, 4 axes, defect-class table w/ mechanisms. Headline: 56% archived is cleanup (conserved); 63/240 verified fail the CURRENT moat gate (all pool-recoverable, pre-mig-158 residue); 88 dup claim rows deleted; provisional(489)/quarantine(48) drains = BUILD GAPS; credential guard blocks MCP provenance writes (working).
 - [[board-reconciliation-2026-07-09]] — Full-board status reconciliation (run 2026-07-10): worktree sweep, 2a–2k ledger, money+safety verified, 5-claim DB spot-check, collisions/anomalies + next actions
 - [[reconciliation-remediation-closeout-2026-07-11]] — Full-sequence remediation closeout: lane GREEN (8/8 hard), 65-item backlog dispositioned (7 recovered / 62 deferred-quarantined, verified-live 240→179 fail-closed), 4 tech retypes KEPT, Q-1..Q-3+D-1/D-2 enacted, $3.35 of $10. OPEN: reconciler RLS repair (operator window), resynth label/slot contract gap.
+- [[master-gap-register]] — FULL-SYSTEM AUDIT 2026-07-11 (13 agents, coverage PROVEN: 1,348 code files / 85 tables / 63 fns / 183 policies): 12 P1s (org-gate loss, silent-empty provisional queue, profiles no-op writes, seed-on-timeout...), P2/P3/P4 registers, intent verdicts (9× PARTIAL), 62-item pool table (45/8/9), invariant backlog. Plan: [[correction-plan]] (Tracks A–E, build-first lens).
 - [[multi-tenant-foundation-followups-2026-05-15]] — Multi-Tenant Foundation Follow-Ups, 2026-05-15
 
 ## design

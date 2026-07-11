@@ -1,5 +1,10 @@
 # Fitness Functions (Application-Layer Enforcement)
 
+> **STALE-CONTENT NOTICE (2026-07-11, audit CODE-2 F-9).** The F1–F8 list below lags the live set.
+> Source of truth = `fsi-app/.discipline/fitness/functions/*.mjs` + `governance/invariants.mjs`. Read
+> the directory to know which fitness functions actually run.
+
+
 Mechanical checks of architectural invariants by scanning code. Complements the 12-rule attestation engine at `fsi-app/.discipline/rules/`. After Sprint Architecture lands, every commit traverses two enforcement layers:
 
 | Layer | What it checks | Engine | Speed |

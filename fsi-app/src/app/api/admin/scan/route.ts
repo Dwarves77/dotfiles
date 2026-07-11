@@ -322,21 +322,36 @@ Return ONLY the JSON object, no other text.`;
       // case drift between the AI-emitted URL and the registered form do not
       // produce silent duplicates.
       const canonUrl = src.url ? canonicalizeUrl(src.url) : src.url;
-      // Check if source URL already exists
-      const { data: existingSource } = await supabase
+      // Check if source URL already exists. Wave-α A4 (write-consequence
+      // swallow class): the prior `.single()` dropped `error`, so a real
+      // read failure looked identical to "no row" and the upsert below ran
+      // against a registry we couldn't see — possible duplicate provisional.
+      // maybeSingle() distinguishes no-row (data null, no error) from
+      // failure; on failure we SKIP staging this source (fail closed).
+      const { data: existingSource, error: dupCheckErr } = await supabase
         .from("sources")
         .select("id")
         .eq("url", canonUrl)
-        .single();
+        .maybeSingle();
+      if (dupCheckErr) {
+        console.warn(
+          `[scan] source dedup check failed for ${canonUrl}; skipping provisional stage: ${dupCheckErr.message}`
+        );
+        continue;
+      }
 
       if (!existingSource && src.url) {
-        await supabase.from("provisional_sources").upsert({
+        const { error: provErr } = await supabase.from("provisional_sources").upsert({
           name: src.name,
           url: canonUrl,
           description: src.publishes || "",
           discovered_via: "worker_search",
           status: "pending_review",
         }, { onConflict: "url" });
+        if (provErr) {
+          console.warn(`[scan] provisional upsert failed for ${canonUrl}: ${provErr.message}`);
+          continue; // do not overreport — sourcesAdded only records real writes
+        }
         sourcesAdded.push(src.name);
       }
     }

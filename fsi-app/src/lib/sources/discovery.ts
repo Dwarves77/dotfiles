@@ -40,6 +40,11 @@ import {
   type VerificationCandidate,
   type VerificationResult,
 } from "@/lib/sources/verification";
+// SPEND CHOKEPOINT (C6, 2026-07-11): the discovery web_search call routes through spendSearch — a
+// standing-ticket-class ("source-discovery", Rule-016 sanctioned) call that is budget-checked AND writes
+// its agent_runs ledger row. The prior raw fetch bypassed the ledger entirely (CODE-1 F-05: unledgered
+// spend). Off the F15 legacy allowlist now that it routes.
+import { spendSearch } from "@/lib/llm/spend-client";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -166,9 +171,8 @@ const DEPTH_CONFIG: Readonly<Record<DiscoveryDepth, DepthConfig>> = {
 // by /api/admin/scan.
 
 const SONNET_MODEL = "claude-sonnet-4-6";
-const ANTHROPIC_VERSION = "2023-06-01";
-const WEB_SEARCH_BETA = "web-search-2025-03-05";
-const WEB_SEARCH_TOOL_NAME = "web_search_20250305";
+// (ANTHROPIC_VERSION / WEB_SEARCH_BETA / WEB_SEARCH_TOOL_NAME retired — the web_search wiring now lives in
+// spend-client.spendSearch, the single chokepoint the discovery call routes through. C6, 2026-07-11.)
 
 // ────────────────────────────────────────────────────────────────────────────
 // System prompt (the contract — see W2B-discovery-agent-spec.md)
@@ -359,8 +363,7 @@ async function callSonnetForDiscovery(
   jurisdictionIso: string,
   jurisdictionLabel: string,
   depth: DiscoveryDepth,
-  fallbackLanguage: string,
-  apiKey: string
+  fallbackLanguage: string
 ): Promise<SonnetCallResult> {
   const cfg = DEPTH_CONFIG[depth];
 
@@ -373,47 +376,22 @@ Depth guidance: ${cfg.guidance}
 
 Identify the canonical regulatory publishers for this jurisdiction relevant to freight sustainability. Output JSON only (no prose, no markdown, no code fences). The "jurisdiction_label" field must echo the human-readable label. The "candidates" array must conform to the schema in the system prompt.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": ANTHROPIC_VERSION,
-      "anthropic-beta": WEB_SEARCH_BETA,
-    },
-    body: JSON.stringify({
-      model: SONNET_MODEL,
-      max_tokens: 6000,
-      tools: [
-        {
-          type: WEB_SEARCH_TOOL_NAME,
-          name: "web_search",
-          max_uses: cfg.webSearchMaxUses,
-        },
-      ],
-      system: DISCOVERY_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
+  // C6: route through the spend chokepoint (ticket-gated, budget-enforced, ledgered). standingClass
+  // "source-discovery" is the Rule-016 sanctioned class (STANDING_TICKET_CLASSES); it bypasses the
+  // necessity gate but is budget-checked and writes an agent_runs row (the missing ledger, F-05).
+  let rawAssistantText: string;
+  try {
+    rawAssistantText = await spendSearch(
+      { system: DISCOVERY_SYSTEM_PROMPT, user: userMessage, maxUses: cfg.webSearchMaxUses, model: SONNET_MODEL, maxTokens: 6000 },
+      { purpose: "source-discovery (canonical regulatory publishers)", standingClass: "source-discovery" }
+    );
+  } catch (err) {
     throw new DiscoveryError(
       "sonnet_api_error",
-      `Sonnet API ${response.status}: ${body.slice(0, 300)}`,
-      { upstreamStatus: response.status, upstreamBody: body.slice(0, 1000) }
+      `Sonnet discovery call failed: ${err instanceof Error ? err.message : String(err)}`,
+      { upstreamBody: err instanceof Error ? err.message.slice(0, 1000) : String(err) }
     );
   }
-
-  const data = (await response.json()) as {
-    content?: Array<{ type: string; text?: string }>;
-  };
-
-  const rawAssistantText =
-    (data.content || [])
-      .filter((b) => b.type === "text" && typeof b.text === "string")
-      .map((b) => b.text as string)
-      .join("") || "";
 
   const attempts = tryParseJson(rawAssistantText);
   const winning = attempts.find((a) => a.ok);
@@ -571,8 +549,9 @@ export async function discoverForJurisdiction(
     );
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  // ANTHROPIC_API_KEY presence is still a hard precondition — spendSearch reads it from the env. Fail
+  // early with the descriptive DiscoveryError rather than letting the chokepoint send an empty key.
+  if (!process.env.ANTHROPIC_API_KEY) {
     throw new DiscoveryError(
       "missing_api_key",
       "ANTHROPIC_API_KEY is not configured in the environment."
@@ -593,8 +572,7 @@ export async function discoverForJurisdiction(
     code,
     jurisdictionLabel,
     depth,
-    fallbackLanguage,
-    apiKey
+    fallbackLanguage
   );
 
   // Step 4-5 — verification per candidate. Always run sequentially: parallel

@@ -23,6 +23,16 @@ import { evalPredicate, DRIFT } from "./drift-check.mjs";
 import { classifyPath } from "./surface-registry.mjs";
 import { crossProduct } from "./exclusion-audit.mjs";
 
+// --live gate (F-5a-4): this re-runnable acceptance test seeds + deletes SENTINEL rows in the SHARED
+// prod DB via owner creds on bare invocation. Refuse unless --live is explicit (before any env/DB touch).
+if (!process.argv.includes("--live")) {
+  console.error(
+    "[acceptance-test] block1-reaudit writes SENTINEL rows to the SHARED prod DB (pooler-owner creds).\n" +
+    "  Refusing to run without --live. Deliberate run: node scripts/lib/block1-reaudit.mjs --live"
+  );
+  process.exit(0);
+}
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const REF = readFileSync(resolve(ROOT, "supabase/.temp/project-ref"), "utf8").trim();

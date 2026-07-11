@@ -1,8 +1,9 @@
 // src/lib/sources/reconcile.ts
 //
-// Reconcile-loop CONSUMER. Closes the verified gap from the wired-state census: intelligence_
-// changes + source_conflicts had read sites but NO writer (0 rows, 0 functions, 0 triggers).
-// This module is that writer.
+// Reconcile-loop CONSUMER. Writer for intelligence_changes (recordItemChange /
+// recordSourceChangeTrigger, wired via /api/worker/reconcile). source_conflicts remains
+// writer-less: the openSourceConflict helper authored here was never called and was removed
+// 2026-07-11 (see note at end of file).
 //
 // SCOPE / honesty: the DETECTION input (did a source's content change? the old vs new content
 // to diff) is produced by content fetch+hash, which goes through Browserless (the HARD RULE) and
@@ -104,31 +105,7 @@ export async function recordSourceChangeTrigger(
   return { ok: !error, changeId: data?.id, error: error?.message };
 }
 
-/** Open a source_conflicts row when two sources make incompatible claims about the same item
- *  field (content-derived; called by the reconcile pass once grounded claims are available). */
-export async function openSourceConflict(
-  supabase: SupabaseClient,
-  args: {
-    itemId: string;
-    sourceA: { id: string; tier: number; claim: string };
-    sourceB: { id: string; tier: number; claim: string };
-    field: string;
-  }
-): Promise<{ ok: boolean; conflictId?: string; error?: string }> {
-  const { data, error } = await supabase
-    .from("source_conflicts")
-    .insert({
-      item_id: args.itemId,
-      source_a_id: args.sourceA.id,
-      source_b_id: args.sourceB.id,
-      source_a_tier: args.sourceA.tier,
-      source_b_tier: args.sourceB.tier,
-      source_a_claim: args.sourceA.claim,
-      source_b_claim: args.sourceB.claim,
-      field_in_dispute: args.field,
-      status: "open",
-    })
-    .select("id")
-    .single();
-  return { ok: !error, conflictId: data?.id, error: error?.message };
-}
+// (openSourceConflict was removed 2026-07-11: zero callers were ever wired, so source_conflicts
+// remains writer-less in practice (0 rows) — the header's "this module is that writer" claim held
+// only for intelligence_changes. Restore from git history if the reconcile pass gains a
+// grounded-claims comparison step. Audit CODE-1 F-11.)

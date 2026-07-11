@@ -31,42 +31,48 @@ const ok = (label, cond, detail = "") => {
 
 console.log("=== (b) L3 — real-artifact reconstruction (root: fsi-app) ===\n");
 
-// ── OBLIGATION 1 — findRawSourceFetch catches the real ~10 drift files ─────────
-console.log("OBLIGATION 1 — findRawSourceFetch vs the real drift files (findings S1):");
-const DRIFT_FILES = [
-  "src/app/api/worker/check-sources/route.ts",            // #1 cron near-miss
-  "src/lib/sources/verification.ts",                      // #2 production classification/discovery
-  "src/lib/sources/recommend-source-tier.ts",             // #3 Phase 1.5 (plain-first->fallback)
-  "src/app/api/admin/spot-check/recurring/route.ts",      // #4 second divergent fetchContent
-  "src/app/api/admin/sources/bulk-import/route.ts",       // #5 import validation
-  "supabase/seed/tier1-population-runner.mjs",            // #6 build runner
-  "supabase/seed/canonical-source-discover.mjs",          // #7 discovery build runner
-  "supabase/seed/california-pilot.mjs",                   // #8 build runner
-  "scripts/wave1-api-discovery.mjs",                      // #9a script
-  "scripts/audit-optionc-reachability.mjs",               // #9b script
-  "supabase/seed/generate-eu-missing-briefs.mjs",         // #10 inlined duplicate browserlessRender
+// ── OBLIGATION 1 — findRawSourceFetch detector fitness (revised 2026-07-11) ─────
+// The original 2026-06 known-answer list (the "~10 real drift files", findings S1) has
+// been REMEDIATED in the tree — those files migrated to the canonical browserless.ts
+// wrapper, so the detector now correctly returns 0 hits on them and asserting "caught"
+// against cured files failed the fixture on every re-run (audit F-5a-5: stale L3
+// expectation). Also removed: scripts/wave1-api-discovery.mjs (gitignored, absent on a
+// fresh checkout — F-5a-14). The list below is retained as a dated audit RECORD and
+// REPORTED, not asserted; detector fitness is asserted via live controls instead:
+// a positive control (fetch-now's access-method fetch lines still flag) and the
+// negative control (trust.ts clean).
+console.log("OBLIGATION 1 — findRawSourceFetch detector fitness (2026-06 drift list = remediated record):");
+const DRIFT_FILES_2026_06_RECORD = [
+  "src/app/api/worker/check-sources/route.ts",            // #1 cron near-miss (cured)
+  "src/lib/sources/verification.ts",                      // #2 production classification/discovery (cured)
+  "src/lib/sources/recommend-source-tier.ts",             // #3 Phase 1.5 (cured)
+  "src/app/api/admin/spot-check/recurring/route.ts",      // #4 second divergent fetchContent (cured)
+  "src/app/api/admin/sources/bulk-import/route.ts",       // #5 import validation (cured)
+  "supabase/seed/tier1-population-runner.mjs",            // #6 build runner (cured)
+  "supabase/seed/canonical-source-discover.mjs",          // #7 discovery build runner (cured)
+  "supabase/seed/california-pilot.mjs",                   // #8 build runner (cured)
+  "scripts/audit-optionc-reachability.mjs",               // #9b script (cured)
+  "supabase/seed/generate-eu-missing-briefs.mjs",         // #10 inlined duplicate (cured)
 ];
-let caught = 0;
-for (const rel of DRIFT_FILES) {
-  let text; try { text = readFileSync(resolve(ROOT, rel), "utf8"); } catch { ok(`read ${rel}`, false, "unreadable"); continue; }
+let residualDrift = 0;
+for (const rel of DRIFT_FILES_2026_06_RECORD) {
+  let text; try { text = readFileSync(resolve(ROOT, rel), "utf8"); } catch { console.log(`  [--] ${rel} — absent`); continue; }
   const hits = findRawSourceFetch(text, { canonicalToken: "browserlessRender" });
-  const got = hits.length > 0;
-  if (got) caught++;
-  ok(`catch ${rel}`, got, got ? `${hits.length} raw-fetch line(s) e.g. L${hits[0].line}` : "MISSED");
+  if (hits.length > 0) residualDrift++;
+  console.log(`  [${hits.length > 0 ? "DRIFT" : "clean"}] ${rel}${hits.length > 0 ? ` — ${hits.length} raw-fetch line(s) e.g. L${hits[0].line}` : ""}`);
 }
-ok(`ALL ${DRIFT_FILES.length} drift files caught`, caught === DRIFT_FILES.length, `${caught}/${DRIFT_FILES.length}`);
+console.log(`  2026-06 drift set residual: ${residualDrift}/${DRIFT_FILES_2026_06_RECORD.length} still drifting (0 = fully remediated)`);
+
+// positive control — fetch-now's access-method fetch lines are a REAL raw-fetch shape the
+// detector must still flag (proves the detector fires on this tree; not a cured no-op)
+const posHits = findRawSourceFetch(
+  readFileSync(resolve(ROOT, "src/app/api/admin/sources/[id]/fetch-now/route.ts"), "utf8"),
+  { canonicalToken: "browserlessRender" });
+ok("positive control: fetch-now access-method fetch lines flag (detector non-vacuous)", posHits.length > 0, `${posHits.length} hits`);
 
 // negative control — a real production file with zero source fetch must be clean
 const cleanHits = findRawSourceFetch(readFileSync(resolve(ROOT, "src/lib/trust.ts"), "utf8"), { canonicalToken: "browserlessRender" });
 ok("negative control: src/lib/trust.ts is clean (non-vacuous)", cleanHits.length === 0, `${cleanHits.length} hits`);
-
-// honest false-DRIFT disclosure — the canonical sites ALSO flag (api/rss access-method
-// fetch alongside their correct browserlessRender scrape path). Accepted, safe direction.
-console.log("\n  false-DRIFT disclosure (accepted per gap #2 — clears on human review):");
-for (const rel of ["src/app/api/admin/sources/[id]/fetch-now/route.ts", "src/app/api/worker/drain-first-fetch/route.ts"]) {
-  const hits = findRawSourceFetch(readFileSync(resolve(ROOT, rel), "utf8"), { canonicalToken: "browserlessRender" });
-  console.log(`    ${rel}: ${hits.length} flag(s) — has browserlessRender scrape path; ${hits.length} access-method fetch(es) false-DRIFT (never false-IMPLEMENT)`);
-}
 
 // ── OBLIGATION 2 — surface enumeration catches the real cron + build-runners ────
 console.log("\nOBLIGATION 2 — surface enumeration vs the real cron/worker/build-runner miss:");
@@ -90,21 +96,27 @@ ok("coverage WALKED: crons", walkedClasses.has("crons"));
 ok("coverage NOT_WALKED (declared, with reason): migrations-sql", notWalkedClasses.has("migrations-sql") && !!coverage.not_walked.find((w) => w.class === "migrations-sql").reason);
 ok("coverage NOT_WALKED (declared, with reason): test-fixtures", notWalkedClasses.has("test-fixtures") && !!coverage.not_walked.find((w) => w.class === "test-fixtures").reason);
 
+// vercel.json declares NO crons since the 2026-06-28 Phase-1 retirement (the q7 nightly
+// recompute moved into growSourcesFromBrief; the manual scripts/cron/q7-daily-recompute.mjs
+// one-shot was deleted 2026-07-11, Wave-α Track E). The truthful L3 assertion is that the
+// crons class is WALKED and the walk reports the cronless state — not that a q7 cron exists.
 const cronWalk = coverage.walked.find((w) => w.class === "crons");
 const schedulesQ7 = (cronWalk.scheduled || []).some((s) => /q7-daily-recompute/.test(s.surface || ""));
-ok("crons walk surfaces the scheduled q7-daily-recompute (vercel.json)", schedulesQ7,
+ok("crons walk reflects cronless vercel.json (q7 nightly retired 2026-06-28; no phantom schedule)", !schedulesQ7,
    JSON.stringify(cronWalk.scheduled));
 
 const cov = validateCoverage(coverage);
 ok("coverage is COMPLETE — every surface class accounted (no silent omission)", cov.complete, cov.complete ? `${SURFACE_CLASSES.length}/${SURFACE_CLASSES.length} classes` : `missing: ${cov.missing.join(", ")}`);
 
-// the content-fetch audit must also FLAG the raw-fetch sites it walked
+// the content-fetch audit must still FLAG at least one real raw-fetch site it walked
+// (2026-07-11: the original 3 named sites are cured — see OBLIGATION 1 note; the audit's
+// flag channel is proven live via the fetch-now positive control's file)
 const flaggedFiles = new Set(auditContentFetch(ROOT).flagged.map((f) => f.file));
-for (const rel of ["src/app/api/worker/check-sources/route.ts", "src/lib/sources/verification.ts", "supabase/seed/tier1-population-runner.mjs"])
-  ok(`audit flagged walked drift site ${rel.split("/").pop()}`, flaggedFiles.has(rel));
+ok("audit flag channel fires on a walked raw-fetch site (fetch-now)",
+   flaggedFiles.has("src/app/api/admin/sources/[id]/fetch-now/route.ts"), `${flaggedFiles.size} flagged total`);
 
 console.log(`\n  surface census: ${SURFACE_CLASSES.map((c) => `${c.id}=${surfaces[c.id].length}`).join("  ")}`);
 console.log(`\n${fails === 0
-  ? "(b) L3 PASS — findRawSourceFetch caught all 11 real drift files (clean control = 0); surface enumeration WALKED workers/crons/build-runners (the real miss now covered) and DECLARED migrations/test-fixtures not_walked; coverage COMPLETE."
+  ? "(b) L3 PASS — detector controls hold (positive fires, clean control = 0; 2026-06 drift set reported as remediated record); surface enumeration WALKED workers/crons/build-runners and DECLARED migrations/test-fixtures not_walked; coverage COMPLETE; vercel.json truthfully cronless."
   : fails + " (b) L3 FAILURE(S)"}`);
 process.exitCode = fails === 0 ? 0 : 1;

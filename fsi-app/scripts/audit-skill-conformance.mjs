@@ -2,7 +2,9 @@
  *  code-verifiable dims over ALL items; semantic dims sampled later. Encodes the CODE-CHECKABLE
  *  properties of a skill-conformant brief from environmental-policy-and-innovation +
  *  analysis-construction-spec + source-credibility-model. Output: per-item pass/fail + which checks fail,
- *  so the redo scope is evidence-based, not "redo all blindly". No writes. */
+ *  so the redo scope is evidence-based, not "redo all blindly".
+ *  GOVERNING SKILLS: environmental-policy-and-innovation + analysis-construction-spec + source-credibility-model.
+ *  Reads only (the default lane invocation is dry-run; --apply persists results via integrity_flags). */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync } from "node:fs";

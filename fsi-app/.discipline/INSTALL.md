@@ -1,5 +1,10 @@
 # Installing the Discipline Hooks
 
+> **STALE-CONTENT NOTICE (2026-07-11, audit CODE-2 F-9).** "All 11 binding rules" / attestation-line
+> references below lag the live rule set. Source of truth = `fsi-app/.discipline/rules/*.mjs` +
+> `governance/invariants.mjs`. The install mechanics (copy the tracked hook into `.git/hooks/`) are current.
+
+
 The Rules-as-Code discipline engine is wired to git via a local `commit-msg` hook. The hook lives as a tracked file in `fsi-app/.discipline/hooks/` and must be copied into `.git/hooks/` (which git does not track) to activate.
 
 ## Install (one command)

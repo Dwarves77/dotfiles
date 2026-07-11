@@ -47,14 +47,31 @@ export const DB_FORMAT_TYPE_VALUES = new Set<string>([
   "regulatory_fact_document", "technology_profile", "operations_profile", "market_signal_brief", "research_summary",
 ]);
 export const DB_SIGNAL_BAND_VALUES = new Set<string>(["price", "corporate", "corridor"]);
-// NOTE: the live theme CHECK uses the /research grouping vocabulary, which is DIFFERENT from the
-// topic-tag set the agent/parser emit (no clean 1:1 map). Per the Emergence-Capture design decision
-// (2026-06-07) theme is an OPEN-WORLD field heading for a reference table + governed promotion; until that
-// follow-on lands, toDbTheme() writes null for an unmatched value rather than force-fitting it.
-export const DB_THEME_VALUES = new Set<string>([
+// THEME — the SINGLE vocabulary home (Wave-α C3, 2026-07-11). The live DB CHECK
+// (intelligence_items_theme_check, migration 102; re-confirmed against pg_constraint 2026-07-11) is the
+// authoritative set, listed here in canonical order. The parser (parse-output.ts THEME_VALUES) and the
+// synthesis prompt's theme guidance IMPORT/mirror THIS list — the prior state had the parser validating
+// theme against the 7 topic-tag values (a disjoint vocabulary), so toDbTheme() nulled EVERY agent-emitted
+// theme and /research theme routing never received pipeline data by construction (CODE-1 F-10).
+// theme_candidate capture (INV-1, migration 136) still banks any out-of-vocab residual.
+export const DB_THEME_VALUE_LIST = [
   "emissions_accounting", "fuels_saf", "packaging_circular", "carbon_markets",
   "cold_chain_art", "last_mile_electrification", "disclosure_regimes",
-]);
+] as const;
+export type DbTheme = (typeof DB_THEME_VALUE_LIST)[number];
+export const DB_THEME_VALUES = new Set<string>(DB_THEME_VALUE_LIST);
+
+// Deterministic legacy-candidate map (Wave-α C3 backfill; consumed by
+// scripts/_wave-alpha/backfill-themes.mjs). ONLY name-level 1:1 mappings from the RETIRED parser
+// vocabulary (the 7 topic tags the agent emitted pre-C3, banked in theme_candidate) to the DB theme
+// vocabulary. Ambiguous candidates are deliberately ABSENT: "emissions" could be emissions_accounting
+// OR carbon_markets; "reporting" could be disclosure_regimes OR emissions_accounting; "transport" /
+// "corridors" / "research" have no DB counterpart. Those stay banked in theme_candidate for the
+// Emergence-Capture follow-on — a guessed backfill on a customer-routing column is worse than null.
+export const THEME_CANDIDATE_DETERMINISTIC_MAP: Readonly<Record<string, DbTheme>> = Object.freeze({
+  fuels: "fuels_saf",
+  packaging: "packaging_circular",
+});
 
 /** Map the agent's DISPLAY severity to the DB form. Already-db-form values pass through (defensive).
  *  Throws on an unmappable value — that is a contract break (the agent emitted a non-vocabulary severity),

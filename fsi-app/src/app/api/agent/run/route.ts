@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
+import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { isPlatformAdmin } from "@/lib/auth/admin";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 import { start } from "workflow/api";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
 
@@ -21,9 +24,32 @@ import { generateBriefWorkflow } from "@/workflows/generate-brief";
 // verified), and grow source credibility (register cited sources, record
 // citations, compound trust). Callers poll via the workflow inspect/run APIs or the
 // agent_runs cost ledger the steps write.
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
+
+  // Wave-α A3 (2026-07-11, P1 finding 8 / CODE-3 F-03): this is the only
+  // spend-triggering route; requireAuth alone let ANY authenticated user
+  // (incl. viewer-role members) start paid generation workflows. Every
+  // legitimate caller is a platform admin: the two admin routes forward an
+  // admin Bearer token, drain-first-fetch mints an admin-user session, and
+  // staged-updates approve runs under an admin session. Gate accordingly,
+  // plus the standard per-user limiter (the per-item 1h cooldown below is
+  // per-ITEM and did not stop cross-corpus iteration).
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const gateClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  const admin = await isPlatformAdmin(auth.userId, gateClient);
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Platform admin access required" },
+      { status: 403 }
+    );
+  }
 
   let itemId: string | undefined;
   let sourceUrl: string | undefined;
@@ -137,3 +163,8 @@ export async function POST(request: NextRequest) {
   const run = await start(generateBriefWorkflow, [itemId, refresh]);
   return NextResponse.json({ runId: run.runId, item_id: itemId, refresh }, { status: 202 });
 }
+
+// R0.2 first-party error tracking: capture any thrown failure on the
+// highest-value route as an error_events group (mig 195), then rethrow —
+// response semantics unchanged.
+export const POST = withErrorCapture("/api/agent/run", handlePOST);

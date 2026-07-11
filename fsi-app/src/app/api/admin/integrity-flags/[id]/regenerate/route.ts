@@ -1,24 +1,25 @@
 // POST /api/admin/integrity-flags/[id]/regenerate
 //
-// Regenerate the brief for a flagged intelligence_items row by calling
-// /api/agent/run for its source_url. On success, automatically resolves
-// the flag (sets agent_integrity_resolved_at + agent_integrity_resolved_by).
-// On failure, leaves the flag in place and surfaces the agent error so
-// the operator can decide whether to replace_url or mark_resolved.
+// Queue a brief regeneration for a flagged intelligence_items row by
+// calling /api/agent/run for its source_url.
+//
+// Wave-α A4 (2026-07-11, CODE-3 F-02 + F-04): /api/agent/run is ASYNC —
+// it start()s the durable workflow and returns 202 {runId} immediately.
+// The previous implementation treated the 202 as "agent finished",
+// immediately re-read the flag (still true — the workflow hadn't run) and
+// reported regenerated:true/stillFlagged:true on every call; worse, the
+// re-read dropped `error`, so a transient read failure made
+// stillFlagged=false and AUTO-RESOLVED a flag whose brief may still be
+// flagged (the error-swallow-with-write class, F-04). The auto-resolve
+// path is REMOVED: this route now defers honestly — it queues the
+// workflow and returns the runId with the flag explicitly preserved.
+// Resolution stays with the operator (mark_resolved / replace_url on the
+// /resolve endpoint) after the regenerated brief is inspected; the
+// migration-035 trigger only ever flips the flag TRUE, never resolves it.
 //
 // Note: each regenerate is one explicit admin action — there's no batch
 // auto-regenerate, by spec. The /admin/integrity-flags sub-tab calls this
 // endpoint per-row.
-//
-// Re-flagging behavior: the agent /run handler updates intelligence_items.
-// full_brief, which fires the BEFORE trigger from migration 035. If the
-// fresh brief still contains an integrity phrase, agent_integrity_flag
-// flips back to TRUE, agent_integrity_phrase is updated, and
-// agent_integrity_flagged_at is overwritten with the new detection time
-// (only on the FALSE→TRUE edge — see the trigger function). Auto-resolve
-// then writes resolved_at, but the flag is TRUE, so the row is paradoxically
-// "resolved but flagged". To prevent that, we re-read the row after agent
-// completion and skip resolve when the flag is still true.
 //
 // Auth: requireAuth + admin role check. Rate-limited.
 
@@ -98,7 +99,6 @@ export async function POST(
   // pattern used by /api/admin/sources/[id]/regenerate-brief.
   const baseUrl = process.env.APP_URL || new URL(request.url).origin;
   const authHeader = request.headers.get("authorization") || "";
-  const startedAt = Date.now();
 
   let agentResp: Response;
   try {
@@ -108,7 +108,7 @@ export async function POST(
         "Content-Type": "application/json",
         Authorization: authHeader,
       },
-      body: JSON.stringify({ sourceUrl: item.source_url, bypassPause: true }),
+      body: JSON.stringify({ sourceUrl: item.source_url }),
     });
   } catch (e: any) {
     return NextResponse.json(
@@ -122,6 +122,21 @@ export async function POST(
   }
 
   const agentPayload = await agentResp.json().catch(() => ({}));
+
+  // Per-item cooldown from the agent route — pass through honestly.
+  if (agentResp.status === 429) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          agentPayload?.hint ||
+          "An agent run for this item ran within the last hour.",
+        flagPreserved: true,
+      },
+      { status: 429, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
   if (!agentResp.ok) {
     return NextResponse.json(
       {
@@ -134,76 +149,40 @@ export async function POST(
     );
   }
 
-  // Agent succeeded — re-read the row to see whether the new brief tripped
-  // the integrity trigger again. If it did, we leave the flag in place and
-  // hand back a partial-success payload so the operator can intervene.
-  const { data: refreshed } = await supabase
-    .from("intelligence_items")
-    .select("agent_integrity_flag, agent_integrity_phrase")
-    .eq("id", id)
-    .maybeSingle();
-
-  const stillFlagged = !!refreshed?.agent_integrity_flag;
-
-  if (stillFlagged) {
-    console.log(
-      `[integrity-flag/regenerate] item=${id} regen=ok still_flagged=true ` +
-        `phrase="${refreshed?.agent_integrity_phrase || ""}" admin=${auth.userId}`
-    );
+  // 200 {skipped: "already_verified"} — the agent route refuses to
+  // regenerate a verified item without an explicit refresh. Nothing was
+  // regenerated; the flag stays for operator triage.
+  if (agentPayload?.skipped === "already_verified") {
     return NextResponse.json(
       {
         success: true,
-        regenerated: true,
-        autoResolved: false,
-        stillFlagged: true,
-        phrase: refreshed?.agent_integrity_phrase || null,
-        durationMs: Date.now() - startedAt,
+        queued: false,
+        skipped: "already_verified",
+        flagPreserved: true,
+        message:
+          "Item is already verified — nothing regenerated. Resolve or replace_url via the resolve endpoint.",
       },
       { headers: rateLimitHeaders(auth.userId) }
     );
   }
 
-  // Brief no longer contains an integrity phrase — auto-resolve.
-  const now = new Date().toISOString();
-  const { error: resolveErr } = await supabase
-    .from("intelligence_items")
-    .update({
-      agent_integrity_resolved_at: now,
-      agent_integrity_resolved_by: auth.userId,
-    })
-    .eq("id", id);
-
-  if (resolveErr) {
-    // Brief was rewritten cleanly but resolution write failed. Surface so
-    // the operator can mark_resolved manually.
-    console.warn(
-      `[integrity-flag/regenerate] item=${id} regen=ok resolve_failed: ${resolveErr.message}`
-    );
-    return NextResponse.json(
-      {
-        success: true,
-        regenerated: true,
-        autoResolved: false,
-        stillFlagged: false,
-        resolveError: resolveErr.message,
-        durationMs: Date.now() - startedAt,
-      },
-      { headers: rateLimitHeaders(auth.userId) }
-    );
-  }
-
+  // 202 {runId} — regeneration queued as a durable workflow. The flag is
+  // deliberately PRESERVED: whether the fresh brief clears the migration-035
+  // trigger is unknowable until the workflow completes, and resolving now
+  // would fabricate an outcome. The operator re-checks the queue (or the
+  // item) after completion and resolves via the /resolve endpoint.
   console.log(
-    `[integrity-flag/regenerate] item=${id} regen=ok auto_resolved=true admin=${auth.userId}`
+    `[integrity-flag/regenerate] item=${id} queued run=${agentPayload?.runId ?? "?"} admin=${auth.userId}`
   );
-
   return NextResponse.json(
     {
       success: true,
-      regenerated: true,
-      autoResolved: true,
-      resolvedAt: now,
-      durationMs: Date.now() - startedAt,
+      queued: true,
+      runId: agentPayload?.runId ?? null,
+      flagPreserved: true,
+      message:
+        "Regeneration queued as a durable workflow. Re-check this flag after the run completes; resolution stays manual.",
     },
-    { headers: rateLimitHeaders(auth.userId) }
+    { status: 202, headers: rateLimitHeaders(auth.userId) }
   );
 }

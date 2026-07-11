@@ -26,6 +26,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { d3GuardAdmission } from "@/lib/d3/hooks.mjs";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import {
@@ -636,9 +637,16 @@ async function executeAction(
       name: candidate.name || candidate.url,
       url: candidate.url,
       description: ai?.rationale ?? "",
-      tier: numericTier,
+      // C6 (2026-07-11): write base_tier — the moat resolver (institution.ts tierOfSource) reads
+      // base_tier ONLY, so the prior legacy `tier` write left an auto-approved source tier-NULL to
+      // grounding/floor/audits unless the sync trigger happened to be present (CODE-1 F-06). Aligns
+      // with the sibling registerCitedSources insert (source-growth.ts), which also writes base_tier.
+      base_tier: numericTier,
       tier_at_creation: numericTier,
-      domains: [1], // Regulatory & Legislative — refined later by spot-check
+      // domains = the REAL surface domain: W2.F candidates come from canonical regulatory-publisher
+      // discovery (DISCOVERY_SYSTEM_PROMPT), so REGULATIONS is the honest domain — named from the
+      // domains.ts SoT, not a magic `[1]` stand-in "refined later by spot-check".
+      domains: [REGULATIONS_DOMAIN],
       jurisdictions: candidate.jurisdiction_iso ?? [],
       transport_modes: [],
       access_method: "scrape",

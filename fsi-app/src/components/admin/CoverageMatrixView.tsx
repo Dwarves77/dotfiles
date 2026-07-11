@@ -37,7 +37,6 @@ import {
   AlertTriangle,
   CheckCircle,
   RefreshCw,
-  Search,
   PlusCircle,
 } from "lucide-react";
 
@@ -85,13 +84,20 @@ interface CoverageResponse {
 
 // ── Component props ─────────────────────────────────────────────────────────
 
-export type CoverageMatrixAction =
-  | { kind: "discover"; jurisdictionIso: string; label: string }
-  | { kind: "bulk-add"; jurisdictionIso: string; label: string };
+// Wave-α A5 (2026-07-11): the "discover" action kind is REMOVED. The
+// AdminDashboard handler only ever wired "bulk-add"; the discover button
+// emitted an action nothing consumed — an enabled dead affordance. If
+// per-jurisdiction discovery gets wired later (spend route — needs its own
+// dispatch), re-add the kind AND the mount-site handler in the same change.
+export type CoverageMatrixAction = {
+  kind: "bulk-add";
+  jurisdictionIso: string;
+  label: string;
+};
 
 interface CoverageMatrixViewProps {
-  /** Orchestrator wires this. Receives a tagged action; W2.A and W2.B wire the
-   *  actual discovery API + BulkImportView dialog when integrated. */
+  /** Orchestrator wires this. Receives a tagged action; the mount site routes
+   *  bulk-add to the BulkImportView dialog. */
   onAction?: (action: CoverageMatrixAction) => void;
 }
 
@@ -608,21 +614,6 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
             </span>
           </div>
           <div className="ml-auto flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={!onAction}
-              onClick={() =>
-                onAction?.({
-                  kind: "discover",
-                  jurisdictionIso: selectedJurisdiction.jurisdiction_iso,
-                  label: selectedJurisdiction.label,
-                })
-              }
-            >
-              <Search size={12} />
-              Run discovery on {selectedJurisdiction.label}
-            </Button>
             <Button
               variant="primary"
               size="sm"

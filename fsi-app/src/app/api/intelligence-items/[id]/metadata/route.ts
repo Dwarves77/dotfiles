@@ -36,10 +36,14 @@ export async function GET(
 
   const supabase = getServiceClient();
 
+  // Customer read gate: this strip mounts on customer detail surfaces, which
+  // only render verified items — the route must not hand quarantined-item
+  // metadata to an authenticated caller probing raw UUIDs (CODE-3 F-10).
   const { data: item, error } = await supabase
     .from("intelligence_items")
     .select("id, legacy_id, title, item_type, severity, priority, urgency_tier, format_type, topic_tags, operational_scenario_tags, compliance_object_tags, related_items, intersection_summary, sources_used, last_regenerated_at, regeneration_skill_version")
     .eq("id", id)
+    .eq("provenance_status", "verified")
     .single();
 
   if (error || !item) {
@@ -50,10 +54,12 @@ export async function GET(
   const relatedIds: string[] = item.related_items || [];
   let relatedResolved: Array<{ id: string; title: string; legacy_id: string | null }> = [];
   if (relatedIds.length > 0) {
-    const { data: rels } = await supabase
+    const { data: rels, error: relErr } = await supabase
       .from("intelligence_items")
       .select("id, title, legacy_id")
+      .eq("provenance_status", "verified") // customer read gate — do not resolve quarantined titles
       .in("id", relatedIds);
+    if (relErr) console.warn(`[metadata] related resolve failed: ${relErr.message}`);
     relatedResolved = rels || [];
   }
 

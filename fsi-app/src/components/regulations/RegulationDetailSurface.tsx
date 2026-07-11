@@ -560,8 +560,28 @@ function SummaryTab({
   const shortText = r.whatIsIt || r.note || "";
   const impact = r.impactScores ?? scoreResource(r);
 
+  // Wave-α A8 (2026-07-11): honest empty-brief state. A verified item can
+  // carry a NULL full_brief (the 5 NULL-brief verified items, P1 finding 9) —
+  // with no brief, no short text, and no sections the Summary tab would show
+  // only the impact/timeline scaffold and read as a blank brief. Say so
+  // explicitly instead.
+  const hasAnyBriefContent =
+    !!shortText || hasFull || sections.length > 0 || !!r.fullBrief;
+
   return (
     <>
+      {!hasAnyBriefContent && (
+        <Card style={{ borderLeft: `3px solid ${C.muted}`, padding: "16px 20px", marginBottom: 14 }}>
+          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.13em", textTransform: "uppercase", color: C.muted }}>
+            Brief not yet available
+          </span>
+          <p style={{ fontSize: 14, lineHeight: 1.7, margin: "8px 0 0", maxWidth: "86ch", color: C.ink2 }}>
+            The full analysis for this regulation has not been generated yet. The metadata below is
+            accurate; the narrative brief is pending generation.
+          </p>
+        </Card>
+      )}
+
       {/* Short/Full toggle */}
       <div style={{ display: "flex", gap: 2, margin: "0 0 14px", alignItems: "center" }}>
         <Segment active={mode === "short"} side="left" onClick={() => setMode("short")}>

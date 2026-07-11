@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { fitnessFunction, rawBrowserlessLines, PRIMITIVE, HOLD_GATE_CORE, SANCTIONED } from './F16-transport-hold-gate.mjs';
+import { fitnessFunction, rawBrowserlessLines, PRIMITIVE, HOLD_GATE_CORE, SANCTIONED, TRANSPORT_MODULES } from './F16-transport-hold-gate.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
 
@@ -53,4 +53,25 @@ test('override: a trailing `// fitness-allow: F16 (reason)` suppresses the line'
 test('LIVE: the real canonical fetch primitive carries the hold gate', () => {
   const content = readFileSync(resolve(REPO_ROOT, PRIMITIVE), 'utf8');
   assert.deepEqual(fitnessFunction.check(PRIMITIVE, content), [], 'the shipped primitive must contain assertFetchAllowed(');
+});
+
+// ── C5 widening: transport-module hold gate (all four transports) ──
+test('RED: a transport module WITHOUT assertFetchAllowed is flagged', () => {
+  const noGate = 'export async function rssFetch(source) {\n  return fetch(source.url);\n}';
+  const v = fitnessFunction.check(TRANSPORT_MODULES[0], noGate);
+  assert.ok(v.length >= 1);
+  assert.match(v[0].message, /missing the scrape-hold gate/);
+});
+
+test('GREEN: a transport module WITH assertFetchAllowed is clean', () => {
+  // relative-.mjs fixture path (keeps glob-portability happy — the F16 check only needs the gate call present)
+  const withGate = 'import { assertFetchAllowed } from "./fetch-hold.mjs";\nexport async function rssFetch(s) {\n  assertFetchAllowed(s.url);\n  return fetch(s.url);\n}';
+  assert.deepEqual(fitnessFunction.check(TRANSPORT_MODULES[0], withGate), []);
+});
+
+test('LIVE: every real transport module carries the hold gate', () => {
+  for (const rel of TRANSPORT_MODULES) {
+    const content = readFileSync(resolve(REPO_ROOT, rel), 'utf8');
+    assert.deepEqual(fitnessFunction.check(rel, content), [], `${rel} must contain assertFetchAllowed(`);
+  }
 });

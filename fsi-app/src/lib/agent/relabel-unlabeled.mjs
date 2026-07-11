@@ -17,11 +17,10 @@
 
 // Analysis labels — MUST match the validator's c_label_re (case-tolerant per migration 143). The label is
 // prepended at the START of the binding sentence (label home), where criterion-4 scans the section content_md.
-export const ANALYSIS_LABELS = Object.freeze({
-  inference: "Analytical inference:",
-  industry: "Industry interpretation:",
-  operational: "Operational implication:",
-});
+// C2 (2026-07-11): the vocabulary is imported from analysis-labels.mjs (the ONE home) and re-exported under
+// this module's historical name so its consumers/tests are unchanged — never hand-list the labels here.
+import { ANALYSIS_LABELS_BY_KEY } from "./analysis-labels.mjs";
+export const ANALYSIS_LABELS = ANALYSIS_LABELS_BY_KEY;
 const ALL_LABELS_RE = new RegExp(`(${Object.values(ANALYSIS_LABELS).map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "i");
 
 // The criterion-4 binding-verb trigger (kept in sync with migration 145's regex).

@@ -92,10 +92,19 @@ export async function POST(request: NextRequest) {
   // `existingSources.get(cand.candidate_url)` would silently miss matching
   // rows and cause a duplicate INSERT.
   const urls = [...new Set(cands.map((c) => canonicalizeUrl(c.candidate_url)))];
-  const { data: srcRows } = await supabase
+  const { data: srcRows, error: srcLookupErr } = await supabase
     .from("sources")
     .select("id, url")
     .in("url", urls);
+  // Wave-α A4 (write-consequence swallow class): if this dedup read errors,
+  // an empty map would route EVERY candidate down the new-source INSERT path
+  // and mint duplicates of already-registered sources. Fail closed instead.
+  if (srcLookupErr) {
+    return NextResponse.json(
+      { error: `Source registry lookup failed — aborting to avoid duplicate inserts: ${srcLookupErr.message}` },
+      { status: 500 }
+    );
+  }
   const existingSources = new Map<string, string>((srcRows || []).map((s: any) => [canonicalizeUrl(s.url), s.id]));
 
   const results: any[] = [];

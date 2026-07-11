@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { reportClientError } from "@/components/telemetry/GlobalErrorReporter";
 
 export default function Error({
   error,
@@ -9,6 +11,16 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // R0.2 error-boundary integration: route render/server-component errors
+  // reach this boundary (window.onerror does NOT see them), so report here.
+  // The digest ties the client report back to the Vercel server log line.
+  useEffect(() => {
+    void reportClientError(
+      `${error.message}${error.digest ? ` [digest:${error.digest}]` : ""}`,
+      error.stack
+    );
+  }, [error]);
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6">
       <div className="mb-4">

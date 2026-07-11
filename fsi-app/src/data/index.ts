@@ -7,7 +7,6 @@ import { SEED_DISPUTES } from "./seed-disputes";
 import { XREF_PAIRS } from "./seed-xrefs";
 import { SUPERSESSIONS } from "./seed-supersessions";
 import { SEED_ARC } from "./seed-archive";
-import { CLUSTERS } from "./seed-clusters";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 
 // Convert changelog format: Record<string, ChangeEntry[]> → Record<string, ChangeLogEntry[]>
@@ -78,4 +77,4 @@ export const archived: Resource[] = SEED_ARC.map((a) => ({
   replacedBy: a.replacement || undefined,
 }));
 
-export { AUDIT_DATE, CLUSTERS };
+export { AUDIT_DATE };

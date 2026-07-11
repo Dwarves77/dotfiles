@@ -35,6 +35,7 @@ node --test \
   fsi-app/.discipline/vocab-drift-guard.test.mjs \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
+  fsi-app/.discipline/consistency/*.test.mjs \
   fsi-app/.discipline/governance/*.test.mjs \
   fsi-app/.discipline/runner.test.mjs \
   fsi-app/.discipline/install-hooks.test.mjs \
@@ -49,4 +50,6 @@ node --test \
   fsi-app/src/lib/sources/*.test.mjs \
   fsi-app/src/lib/entities/*.test.mjs \
   fsi-app/src/lib/agent/*.test.mjs \
-  fsi-app/src/lib/llm/*.test.mjs
+  fsi-app/src/lib/auth/*.test.mjs \
+  fsi-app/src/lib/llm/*.test.mjs \
+  fsi-app/src/lib/telemetry/*.test.mjs

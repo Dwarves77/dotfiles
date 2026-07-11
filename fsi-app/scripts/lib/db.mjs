@@ -55,9 +55,47 @@ let _writeClientImpl = realWriteClient;
 function writeClient() { return _writeClientImpl(); }
 export function __setWriteClientForTest(fn) { _writeClientImpl = fn || realWriteClient; }
 
-/** Read-only client for diagnostics/selects. Reads are unguarded (routine). */
+// The mutating query-builder methods a read client must refuse. `.select()` (+ filters/modifiers)
+// stay open; a caller reaching for a row mutation gets a THROW that names the guarded path — closing
+// the rule-015 bypass where `readClient().from(t).update(...)` mutated prod through the "read" client.
+const READ_CLIENT_WRITE_METHODS = new Set(["insert", "update", "delete", "upsert"]);
+
+function readOnlyBuilder(builder) {
+  return new Proxy(builder, {
+    get(target, prop, receiver) {
+      if (typeof prop === "string" && READ_CLIENT_WRITE_METHODS.has(prop)) {
+        return () => {
+          throw new Error(
+            `db.mjs readClient() is READ-ONLY: '.${prop}()' is a write. This is the rule-015 bypass ` +
+            `(mutating through the read client). Use the guarded write path — guardedUpdate / guardedInsert / ` +
+            `guardedDelete / archiveRows / reclassifyToSource (snapshot + cite + reversibility).`
+          );
+        };
+      }
+      const val = Reflect.get(target, prop, target);
+      return typeof val === "function" ? val.bind(target) : val;
+    },
+  });
+}
+
+/**
+ * Read-only client for diagnostics/selects. Reads are unguarded (routine), but WRITES are refused:
+ * the returned client proxies `.from(table)` so `.insert/.update/.delete/.upsert` THROW (rule-015 —
+ * the "read" client is no longer a service-role write handle by property access). `.rpc` and other
+ * methods pass through unchanged (read RPCs must keep working); a write RPC remains the caller's
+ * responsibility to route through a sanctioned path. Every readAll/select caller is unaffected.
+ */
 export function readClient() {
-  return writeClient();
+  const real = writeClient();
+  return new Proxy(real, {
+    get(target, prop, receiver) {
+      if (prop === "from") {
+        return (table) => readOnlyBuilder(target.from(table));
+      }
+      const val = Reflect.get(target, prop, target);
+      return typeof val === "function" ? val.bind(target) : val;
+    },
+  });
 }
 
 /**
@@ -66,12 +104,12 @@ export function readClient() {
  * orphan-audit under-count active sources and made registerSource's dedup blind (it created 27
  * duplicates before this was caught, 2026-06-06). Always page tables that can exceed 1000 rows.
  */
-export async function readAll(table, columns = "*", { match } = {}) {
+export async function readAll(table, columns = "*", { match, orderBy = "id" } = {}) {
   const sb = readClient();
   const rows = [];
   let from = 0;
   for (;;) {
-    let q = sb.from(table).select(columns).order("id").range(from, from + 999);
+    let q = sb.from(table).select(columns).order(orderBy).range(from, from + 999);
     if (match) q = match(q);
     const { data, error } = await q;
     if (error) throw new Error(`readAll(${table}) failed: ${error.message}`);

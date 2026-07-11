@@ -78,12 +78,18 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan): 
   const itemType = (seed.item_type as string | undefined) ?? undefined;
 
   // ── Idempotency short-circuits: return an existing row, never an INSERT ──────────────────────────
+  // FAIL-CLOSED (C4, 2026-07-11): a READ ERROR during a duplicate-probe must NEVER proceed to mint —
+  // a transient read failure returns null-ish `data`, and the prior dropped-`error` code then took the
+  // null as "no existing row" and ran the single INSERT, minting a DUPLICATE on a DB hiccup (CODE-1
+  // F-09). The probe now captures `error` and REFUSES the mint (ok:false) rather than gambling.
   if (sourceUrl) {
-    const { data: bySrc } = await sb.from("intelligence_items").select("id").eq("source_url", sourceUrl).maybeSingle();
+    const { data: bySrc, error: bySrcErr } = await sb.from("intelligence_items").select("id").eq("source_url", sourceUrl).maybeSingle();
+    if (bySrcErr) return { ok: false, action: "duplicate", flags, error: `mint refused (fail-closed): source_url idempotency probe read failed — ${bySrcErr.message}` };
     if (bySrc?.id) return { ok: true, itemId: bySrc.id as string, action: "exists", flags };
   }
   if (plan.legacyId) {
-    const { data: byLegacy } = await sb.from("intelligence_items").select("id").eq("legacy_id", plan.legacyId).maybeSingle();
+    const { data: byLegacy, error: byLegacyErr } = await sb.from("intelligence_items").select("id").eq("legacy_id", plan.legacyId).maybeSingle();
+    if (byLegacyErr) return { ok: false, action: "duplicate", flags, error: `mint refused (fail-closed): legacy_id idempotency probe read failed — ${byLegacyErr.message}` };
     if (byLegacy?.id) return { ok: true, itemId: byLegacy.id as string, action: "exists", flags };
   }
 
@@ -100,10 +106,13 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan): 
   }
 
   // ── (2) SUBJECT-EXISTENCE DEDUP — high-precision (instrument / normalized url / shared reg-#) ──────
-  const { data: corpus } = await sb
+  // FAIL-CLOSED (C4): a read error on the dedup corpus scan means an empty `corpus`, so matchExistingSubject
+  // would find NO duplicate and the INSERT would run — the same duplicate-on-hiccup class as the probes above.
+  const { data: corpus, error: corpusErr } = await sb
     .from("intelligence_items")
     .select("id,title,instrument_identifier,source_url")
     .eq("is_archived", false);
+  if (corpusErr) return { ok: false, action: "duplicate", flags, error: `mint refused (fail-closed): dedup corpus read failed — ${corpusErr.message}` };
   const dups = matchExistingSubject(seed, corpus ?? []) as SubjectMatch[];
   let linkTargetId: string | null = null;
   if (dups.length) {

@@ -216,7 +216,6 @@ Foundation:
 - `src/types/intelligence.ts` — Intelligence item types
 - `src/lib/trust.ts` — Trust scoring engine
 - `src/lib/constants.ts` — Domains, modes, jurisdictions, verticals
-- `src/data/source-mapping.ts` — Legacy resource → source linkage
 - `src/stores/sourceStore.ts` — Source state management
 - `src/components/sources/SourceHealthDashboard.tsx` — Source health UI
 - `supabase/migrations/004_source_trust_framework.sql` — Trust framework schema
@@ -230,7 +229,11 @@ Agent runtime — the CANONICAL generation pipeline (do not modify without readi
 - `src/lib/agent/metadata-vocab.ts` — live DB vocabularies (the CHECK-constraint SoT the write maps each field to).
 - `src/lib/sources/institution.ts` — canonical institution → tier resolver (single module, consumed by the stamp AND the claims-tier audit).
 - `src/lib/sources/canonical-fetch.mjs` — Browserless content-fetch helper.
-(Retired: `source-pool.ts`, `browserless.ts`, `supabase/seed/b2-runner.mjs` — superseded by the above.)
+- `src/lib/sources/browserless.ts` — LIVE typed Browserless wrapper (used by verification.ts,
+  recommend-source-tier.ts, and the fetch-now / bulk-import / spot-check / check-sources /
+  drain-first-fetch routes). NOT retired.
+(Removed 2026-07-11 (Wave-α Track E): `src/data/source-mapping.ts`, `src/lib/agent/source-pool.ts` —
+superseded, zero importers. `supabase/seed/b2-runner.mjs` remains superseded.)
 
 Phase B.2.5 surfaces:
 - `src/components/sources/IntersectionDetectionView.tsx` — Intersections sub-tab
@@ -329,7 +332,7 @@ Cost: ~$0.15 per item generation (Browserless + Sonnet). The eligible-item count
 
 ### Archived (pre Phase B.2.5)
 
-**Multi-sector synopsis model.** The agent previously identified all items in a source URL, ran delta detection, and generated 15 sector synopses for all signal items in a single response. `sector_contexts` records were injected into the user message at runtime; `synopsis_prompt` per sector made each synopsis sector-specific. This model was retired when the SectorSynopsisView UI surface was deprecated. The 2,325 `intelligence_summaries` rows generated under that model are stale and pending decision (retire view + delete rows OR regenerate under new contract — see `docs/intelligence_summaries_proposal.md`).
+**Multi-sector synopsis model.** The agent previously identified all items in a source URL, ran delta detection, and generated 15 sector synopses for all signal items in a single response. `sector_contexts` records were injected into the user message at runtime; `synopsis_prompt` per sector made each synopsis sector-specific. This model was retired when the SectorSynopsisView UI surface was deprecated. The shelved `intelligence_summaries` rows generated under that model are stale and pending decision (retire view + delete rows OR regenerate under new contract — see `docs/intelligence_summaries_proposal.md`). Row count is STATE — query `select count(*) from intelligence_summaries`, not a doc literal (an earlier "2,325" figure had already drifted from live).
 
 **Anthropic Console Managed Agent.** Earlier CLAUDE.md revisions referenced a Console-side managed agent (`agent_011CZwC8PTbAfM355bVK8w7G`). Current code does not invoke the Managed Agent — `/api/agent/run` calls `api.anthropic.com/v1/messages` directly with `model: claude-sonnet-4-6`. The Managed Agent ID may still exist in the Anthropic Console but is not part of the running architecture.
 
@@ -339,8 +342,8 @@ All other routes read from the `intelligence_items` table. No live Claude API ca
 
 | Route | Model | Purpose | Rate limit / cooldown |
 |---|---|---|---|
-| `/api/agent/run` | claude-sonnet-4-6 | Per-item brief regeneration, format-selected | 1h cooldown per source |
-| `/api/ask` | claude-sonnet-4-6 | User natural-language questions | 10/workspace/hour |
+| `/api/agent/run` | claude-sonnet-4-6 | Per-item brief regeneration, format-selected | Platform-admin only (Wave-α A3); 60/min/user limiter + 1h cooldown per ITEM (agent_runs read) |
+| `/api/ask` | claude-sonnet-4-6 | User natural-language questions | 60/min/user (the generic in-memory limiter — no per-workspace quota exists) |
 | `/api/admin/scan` | claude-sonnet-4-6 + web_search | Admin-triggered regulatory scan; stages results in `staged_updates` for review | 4h cooldown |
 | `/api/admin/sources/recommend-classification` | claude-haiku-4-5 | Provisional-source AI classification (cached on row) | per-call |
 | `/api/admin/canonical-sources/recommend-classification` | claude-haiku-4-5 | Canonical-source candidate AI classification (cached) | per-call |
@@ -376,11 +379,11 @@ Future-agent rule: when reviewing or writing Supabase calls, look for `const { d
 
 ## Sector Activation (future feature, placeholder live)
 
-**Status: SHELVED with placeholder UX.** Per-sector reporting is on the platform roadmap but not active. See `docs/intelligence-summaries-proposal.md` for the cost decision (2026-04-30) — the 2,325 `intelligence_summaries` rows stay, the `SectorSynopsisView` component stays, and per-sector synopsis regeneration is deferred until multi-workspace onboarding ships.
+**Status: SHELVED with placeholder UX.** Per-sector reporting is on the platform roadmap but not active. See `docs/intelligence-summaries-proposal.md` for the cost decision (2026-04-30) — the shelved `intelligence_summaries` rows stay (count is STATE — query live, not the stale "2,325" literal), the `SectorSynopsisView` component stays, and per-sector synopsis regeneration is deferred until multi-workspace onboarding ships.
 
 ### What ships now (placeholder)
 
-- Sector profile selection at `/onboarding` (first-time flow) and `/profile` (revisit/edit). Both surfaces use the shared `SectorSelector` component (`src/components/profile/SectorSelector.tsx`).
+- Sector profile selection at `/onboarding` (first-time flow) and `/profile` (revisit/edit). Each surface builds its own sector UI inline (OnboardingWizard, UserProfilePage). NOTE (2026-07-11): the previously-doctrined shared `SectorSelector` component was never actually mounted by either surface and has been deleted (Wave-α Track E, audit CODE-4a F-08); if a shared selector is wanted later, build it fresh.
 - "Notify me when per-sector reporting activates" toggle on both surfaces. Writes:
   - `workspace_settings.notify_on_sector_activation` (boolean)
   - `workspace_settings.sectors_activation_signup_at` (timestamp; stamped on first opt-in only, never overwritten on subsequent toggles)
@@ -398,7 +401,7 @@ When per-sector reporting is approved for activation:
 ### What NOT to do until activation is approved
 
 - DO NOT regenerate `intelligence_summaries`. Cost is not justified at current single-workspace usage.
-- DO NOT delete the 2,325 existing rows. Decision was SHELVE not RETIRE.
+- DO NOT delete the existing `intelligence_summaries` rows (count is STATE — query live). Decision was SHELVE not RETIRE.
 - DO NOT remove `SectorSynopsisView`. The UI surface stays — the data path stays the same as today (reads `full_brief`).
 - DO NOT auto-mount `/onboarding` on first login until the activation feature ships. The route exists for explicit linking from invite/announce flows; first-login auto-mount is a separate feature decision.
 

@@ -1,5 +1,10 @@
 # Consistency Checks (Reality Scanner / Layer 4)
 
+> **STALE-CONTENT NOTICE (2026-07-11, audit CODE-2 F-9).** The C1–C10 list + ".test.mjs per check"
+> claim below lag the live set (checks are runner-level). Source of truth =
+> `fsi-app/.discipline/consistency/checks/*.mjs` + `governance/invariants.mjs`.
+
+
 Whole-repo reality scanner that verifies inventories and cross-references match actual codebase state. Layer 4 of the discipline enforcement architecture per ADR-005.
 
 After this layer lands, inventories aren't just generated; they're asserted truth that the system mechanically verifies.

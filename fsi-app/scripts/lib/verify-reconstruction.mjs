@@ -14,6 +14,16 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { assertReadBack, fetchOk, VERDICT } from "./verify.mjs";
 
+// --live gate (F-5a-4): this re-runnable acceptance test inserts + reverts + deletes a SENTINEL item in
+// the SHARED prod DB (owner creds) and fires a real REST call on bare invocation. Refuse unless --live.
+if (!process.argv.includes("--live")) {
+  console.error(
+    "[acceptance-test] verify-reconstruction writes a SENTINEL item to the SHARED prod DB and fires a live REST call.\n" +
+    "  Refusing to run without --live. Deliberate run: node scripts/lib/verify-reconstruction.mjs --live"
+  );
+  process.exit(0);
+}
+
 const { Client } = pg;
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));

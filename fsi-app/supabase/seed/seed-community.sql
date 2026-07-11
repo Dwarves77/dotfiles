@@ -1,33 +1,13 @@
 -- ══════════════════════════════════════════════════════════════
--- Seed: Community Layer — Forum Sections + Taxonomy + Case Studies
+-- Seed: Community Layer — Taxonomy + Case Studies
 -- ══════════════════════════════════════════════════════════════
-
-
--- ── Forum Sections: 8 Regional ──
-
-INSERT INTO forum_sections (name, slug, description, section_type, primary_region_tag, features_enabled, sort_order) VALUES
-('EU / Europe', 'eu-europe', 'European regulatory developments, EU ETS, CSRD, packaging, and green corridors.', 'regional', 'EU', ARRAY['posts', 'questions', 'intelligence_feed'], 1),
-('United States', 'united-states', 'US federal and state regulations, EPA, CARB, IRA, and infrastructure.', 'regional', 'US', ARRAY['posts', 'questions', 'intelligence_feed'], 2),
-('United Kingdom', 'united-kingdom', 'UK-specific regulations, ZEV mandate, UK ETS, SAF mandate, EPR.', 'regional', 'UK', ARRAY['posts', 'questions', 'intelligence_feed'], 3),
-('Latin America', 'latin-america', 'LATAM regulatory landscape, Brazil PNRS, Chile, Colombia, Mexico.', 'regional', 'LATAM', ARRAY['posts', 'questions', 'intelligence_feed'], 4),
-('Asia Pacific', 'asia-pacific', 'China, Japan, Korea, ASEAN, India, Australia — regional regulations and operations.', 'regional', 'APAC', ARRAY['posts', 'questions', 'intelligence_feed'], 5),
-('Hong Kong', 'hong-kong', 'Hong Kong-specific regulations, EV policy, BEAM Plus, cross-border logistics.', 'regional', 'HONG_KONG', ARRAY['posts', 'questions', 'intelligence_feed'], 6),
-('Middle East & Africa', 'middle-east-africa', 'DEWA, GCC regulations, African logistics, shore power, solar permitting.', 'regional', 'MEA', ARRAY['posts', 'questions', 'intelligence_feed'], 7),
-('Global', 'global', 'IMO, ICAO, WTO, UNFCCC, and cross-jurisdictional regulatory topics.', 'regional', 'GLOBAL', ARRAY['posts', 'questions', 'intelligence_feed'], 8);
-
-
--- ── Forum Sections: 9 Topical ──
-
-INSERT INTO forum_sections (name, slug, description, section_type, primary_topic_tag, features_enabled, sort_order) VALUES
-('Sustainable Packaging & Crating', 'packaging-crating', 'EU PPWR, recyclability, reusable crating, honeycomb alternatives, ISPM 15.', 'topical', 'packaging', ARRAY['posts', 'questions', 'intelligence_feed'], 10),
-('SAF & Air Freight Decarbonization', 'saf-air-freight', 'ReFuelEU Aviation, CORSIA, SAF mandates, air cargo fuel surcharges.', 'topical', 'saf', ARRAY['posts', 'questions', 'intelligence_feed'], 11),
-('EV & Alternative Fuel Vehicles', 'ev-alternative-fuels', 'Battery technology, hydrogen, charging infrastructure, fleet electrification.', 'topical', 'ev', ARRAY['posts', 'questions', 'intelligence_feed'], 12),
-('Carbon Reporting & Compliance', 'carbon-reporting', 'ISO 14083, GLEC Framework, CSRD, Scope 3, GHG Protocol, CBAM.', 'topical', 'carbon_pricing', ARRAY['posts', 'questions', 'intelligence_feed'], 13),
-('Warehouse & Facility Optimization', 'warehouse-facilities', 'Rooftop solar, BESS, energy tariffs, green building certification.', 'topical', 'warehouse', ARRAY['posts', 'questions', 'intelligence_feed'], 14),
-('Regulatory Watch', 'regulatory-watch', 'New rules, implementation questions, compliance deadlines, enforcement updates.', 'topical', 'regulation', ARRAY['posts', 'questions', 'intelligence_feed', 'announcements'], 15),
-('Vendor Recommendations & Reviews', 'vendor-reviews', 'Peer recommendations for sustainable suppliers, operators, and products.', 'topical', 'innovation', ARRAY['posts', 'questions'], 16),
-('University & Research Partnerships', 'research-partnerships', 'MIT ClimateMachine, Tyndall Centre, academic collaborations, research findings.', 'topical', 'research', ARRAY['posts', 'questions', 'intelligence_feed'], 17),
-('Live Events Sustainability', 'live-events', 'Touring logistics, festival operations, venue decarbonization, modal shift.', 'topical', 'live_events', ARRAY['posts', 'questions', 'intelligence_feed'], 18);
+--
+-- The forum_sections INSERT blocks (8 regional + 9 topical, mig-007 layer) were
+-- REMOVED 2026-07-11 (Wave-α Track D d4): the forum_* layer is a dead parallel
+-- implementation with zero code paths — superseded by the community_groups
+-- conversation layer — and migration 192 drops the tables. Re-adding the seed
+-- would re-seed a table that no longer exists. Prior revision in git history
+-- (docs/ops/wave-alpha-closeout-2026-07-11/deletions-log.md records the snapshot).
 
 
 -- ── Taxonomy Nodes: Top-level categories ──
@@ -100,7 +80,8 @@ INSERT INTO case_studies (title, organization, industry_segment, challenge, solu
  ARRAY['sustainable_materials', 'packaging', 'crating'],
  ARRAY['road', 'air'],
  ARRAY['fine_art'],
- 'peer_validated'),
+ -- d5 (2026-07-11): reset from hand-set 'peer_validated' (0 endorsements — unearned; DB-4 F7)
+ 'submitted'),
 
 ('White Cube Cardboard Honeycomb Crating Test',
  'White Cube',
@@ -132,7 +113,8 @@ INSERT INTO case_studies (title, organization, industry_segment, challenge, solu
  ARRAY['live_events', 'saf', 'ev', 'solar'],
  ARRAY['air', 'road'],
  ARRAY['live_events'],
- 'peer_validated'),
+ -- d5 (2026-07-11): reset from hand-set 'peer_validated' (0 endorsements — unearned; DB-4 F7)
+ 'submitted'),
 
 ('Massive Attack ACT 1.5 Low-Carbon Concert',
  'Massive Attack / Tyndall Centre',
@@ -148,7 +130,8 @@ INSERT INTO case_studies (title, organization, industry_segment, challenge, solu
  ARRAY['live_events', 'research'],
  ARRAY['road'],
  ARRAY['live_events'],
- 'peer_validated'),
+ -- d5 (2026-07-11): reset from hand-set 'peer_validated' (0 endorsements — unearned; DB-4 F7)
+ 'submitted'),
 
 ('Christie''s DNA Fine Art EV Sprinter Courier',
  'Christie''s / DNA Fine Art',
@@ -180,4 +163,5 @@ INSERT INTO case_studies (title, organization, industry_segment, challenge, solu
  ARRAY['research', 'aviation', 'maritime'],
  ARRAY['air', 'ocean'],
  ARRAY['live_events'],
- 'peer_validated');
+ -- d5 (2026-07-11): reset from hand-set 'peer_validated' (0 endorsements — unearned; DB-4 F7)
+ 'submitted');
