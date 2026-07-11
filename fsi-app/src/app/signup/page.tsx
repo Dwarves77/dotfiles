@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { APP_NAME } from "@/lib/constants";
 import { UserPlus, AlertCircle, MailCheck, ArrowRight } from "lucide-react";
 
@@ -13,14 +13,29 @@ import { UserPlus, AlertCircle, MailCheck, ArrowRight } from "lucide-react";
 // - LinkedIn import shown as a "Coming soon" stub on the onboarding wizard,
 //   not here.
 // - On submit, calls Supabase auth.signUp with emailRedirectTo pointing at
-//   /auth/callback?next=/onboarding so the verified user lands in the wizard.
+//   /auth/callback?next=<redirect || /onboarding> so the verified user lands
+//   where the flow started. The `redirect` search param (threaded from /login,
+//   which the proxy stamps with the originally-requested path) makes the
+//   invited-user flow work end-to-end: /invitations/[token] → login → signup
+//   → verification email → /auth/callback → back to /invitations/[token]
+//   (Wave-α Track D d3). Only same-origin path-style values are honored —
+//   anything not starting with a single "/" falls back to /onboarding.
 // - "Check your email" state replaces the form after a successful signUp.
 // - Mid-session: if user is already authenticated, redirect to /login (which
 //   in turn will redirect signed-in users on through to /).
 // ───────────────────────────────────────────────────────────────────────────
 
+/** Internal app paths only: must start with "/" and not "//" (protocol-relative). */
+function safeInternalPath(value: string | null): string | null {
+  if (!value) return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+  return value;
+}
+
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = safeInternalPath(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -71,7 +86,9 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(
+          redirect ?? "/onboarding"
+        )}`,
       },
     });
 
