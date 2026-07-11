@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useRouter, useSearchParams } from "next/navigation";
 import { APP_NAME } from "@/lib/constants";
+import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
 import { LogIn, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
@@ -13,7 +14,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/";
+  // Wave-α A6: same-origin allowlist — `?redirect=https://evil.com` was
+  // previously pushed raw into the router post-login (phishing vector).
+  const redirect = sanitizeReturnPath(searchParams.get("redirect"));
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

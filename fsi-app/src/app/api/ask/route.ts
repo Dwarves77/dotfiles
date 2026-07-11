@@ -148,9 +148,15 @@ export async function POST(request: NextRequest) {
     if (ftsErr) console.warn(`[ask] FTS retrieval failed (falling back to priority pull): ${ftsErr.message}`);
     const hitIds: string[] = ((ftsHits as Array<{ id: string }> | null) ?? []).map((h) => h.id);
     if (hitIds.length >= 3) {
+      // Belt for the RPC's internal gate (mig 159): re-apply the customer
+      // read gate on the re-fetch so a future drift inside
+      // search_intelligence_items can never leak quarantined/archived
+      // content into the assistant context via service-role.
       const { data: hitRows, error: hitErr } = await supabase
         .from("intelligence_items")
         .select(CITATION_SELECT)
+        .eq("is_archived", false)
+        .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
         .in("id", hitIds);
       if (hitErr) console.warn(`[ask] retrieval row fetch failed: ${hitErr.message}`);
       if (hitRows?.length) {

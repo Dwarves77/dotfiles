@@ -51,7 +51,16 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   // RegulationsLedger pattern).
   const [cutoff] = useState(() => new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
   const newResources = resources.filter((r) => r.added && r.added >= cutoff);
-  const changedIds = new Set(Object.keys(changelog));
+  // Wave-α A2 (2026-07-11): the "Updated" half is date-gated to the same
+  // 7-day window as the "New" half. Previously ANY changelog entry ever
+  // recorded put the item under "This week" — the 9 March-2026 demo-era
+  // item_changelog rows rendered as fresh updates months later. Stale
+  // entries now render nothing (honest zero state).
+  const changedIds = new Set(
+    Object.entries(changelog)
+      .filter(([, entries]) => entries.some((e) => e.date && e.date >= cutoff))
+      .map(([id]) => id)
+  );
   const changed = resources.filter((r) => changedIds.has(r.id));
 
   const newRows: ItemRow[] = newResources.map((r) => ({

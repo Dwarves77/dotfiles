@@ -288,10 +288,11 @@ function InvitationRow({ invitation }: { invitation: CommunityInvitation }) {
         { method: "POST" }
       );
       if (!res.ok) {
-        // C4 ships these endpoints; until then they 404.
+        // The invitations API is live (C4 shipped); a 404 here means the
+        // invitation row is gone (revoked or already answered).
         throw new Error(
           res.status === 404
-            ? "Invitations API not live yet — wiring up in C4."
+            ? "Invitation not found — it may have been revoked or already answered."
             : `Request failed (${res.status}).`
         );
       }

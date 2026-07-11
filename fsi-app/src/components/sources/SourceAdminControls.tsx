@@ -264,8 +264,17 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
         body: JSON.stringify({}),
       });
       const payload = await res.json();
+      // Async contract (Wave-α A4): the route queues a durable workflow and
+      // returns 202 {runId} — there is no brief length/section count to show
+      // yet. Report queued/skipped honestly.
       if (res.ok && payload.success) {
-        flash("ok", `Brief: ${payload.briefLength}c, ${payload.sectionsPopulated} sections, ${payload.citationsExtracted} citations`);
+        if (payload.queued) {
+          flash("ok", `Regeneration queued (run ${payload.runId ?? "unknown"}). Reload after the workflow completes.`);
+        } else if (payload.skipped === "already_verified") {
+          flash("ok", "Item already verified — regeneration skipped.");
+        } else {
+          flash("ok", payload.message || "Request accepted.");
+        }
       } else {
         flash("err", payload.error || `HTTP ${res.status}`);
       }

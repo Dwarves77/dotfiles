@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ensurePersonalWorkspace } from "@/lib/auth/provision-personal-workspace";
+import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
 
 // Supabase auth callback. Handles:
 //   - Email-confirmation links from /signup (next=/onboarding by default)
@@ -20,7 +21,10 @@ import { ensurePersonalWorkspace } from "@/lib/auth/provision-personal-workspace
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  // Wave-α A6: same-origin allowlist — a crafted `next` (`//evil.com`,
+  // `@evil.com`, `/\evil.com`) could previously escape the origin in the
+  // redirect concatenation below. Off-allowlist values fall back to "/".
+  const next = sanitizeReturnPath(searchParams.get("next"));
 
   if (code) {
     const cookieStore = await cookies();

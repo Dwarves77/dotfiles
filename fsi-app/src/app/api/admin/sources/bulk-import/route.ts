@@ -446,10 +446,19 @@ export async function POST(request: NextRequest) {
 
   const existingByUrl = new Map<string, string>();
   if (wellFormedUrls.size > 0) {
-    const { data: srcRows } = await supabase
+    const { data: srcRows, error: srcLookupErr } = await supabase
       .from("sources")
       .select("id, url")
       .in("url", [...wellFormedUrls]);
+    // Wave-α A4 (write-consequence swallow class): an errored dedup read
+    // previously left the map empty, defeating duplicate detection — every
+    // imported row would insert as if new. Fail closed.
+    if (srcLookupErr) {
+      return NextResponse.json(
+        { error: `Source registry lookup failed — aborting import to avoid duplicates: ${srcLookupErr.message}` },
+        { status: 500 }
+      );
+    }
     for (const r of srcRows || []) {
       existingByUrl.set(canonicalizeUrl((r as { url: string }).url), (r as { id: string }).id);
     }
