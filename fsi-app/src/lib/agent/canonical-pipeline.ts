@@ -49,6 +49,10 @@ import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/
 // 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
 // (*https://x/*, `https://x/`); criterion-2's URL match would otherwise capture the trailing marker.
 import { stripUrlMarkers } from "@/lib/agent/url-canon.mjs";
+// ANALYSIS-LABEL VOCABULARY (C2 single home, 2026-07-11): the ledger prompt AND the kept-claims filter
+// import the SAME closed set — the 4-vs-3 fracture (system prompt authorized a 4th label the filter
+// dropped silently) is structurally closed. Ruling + corpus counts recorded in analysis-labels.mjs.
+import { ANALYSIS_LABELS, ANALYSIS_LABELS_BY_KEY } from "@/lib/agent/analysis-labels.mjs";
 import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
@@ -1106,7 +1110,7 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
 - FACT: source_span MUST be VERBATIM copied char-for-char from a SOURCE block. (source_id is resolved automatically from the SOURCE block that contains the span — do not hardcode it.)
 - FACT SOURCE PREFERENCE: when the SAME binding requirement appears in MORE THAN ONE SOURCE block, copy the span from the block that is the PRIMARY ENACTED TEXT / highest-authority source (the official law or regulator), NOT from a commentary/analysis/news block that merely echoes it. Grounding the fact at the primary is the goal; a corroborator echo is a fallback only.
 - WRONG-LANGUAGE PRIMARY (4d): if the brief states a binding FACT in English but the ONLY primary/enacted SOURCE block carrying it is in another language (e.g. a national law in its original language), copy source_span VERBATIM in the ORIGINAL LANGUAGE from that primary block and set source_url to it. The original-language span is the checkable provenance; the surface labels it "translated from [language] original". Do NOT invent an English span that is not present in any source, and do NOT downgrade the fact to a lower-tier English commentary source when the primary carries it in its own language.
-- ANALYSIS: a statement the brief text EXPLICITLY labels with "Analytical inference:", "Industry interpretation:", "Operational implication:" or "Per the workspace's reading:". Set claim_text to that labeled sentence (so it appears verbatim in the section). TWO kinds: (a) GROUNDED ANALYSIS — a credible-but-NOT-binding or forthcoming claim that cites a non-primary source (an intergovernmental / research / analysis body or factual news, NOT the binding legal text): set source_span to its VERBATIM supporting span and source_url to that source, EXACTLY like a FACT, so it carries that source's provenance and tier; (b) PURE INFERENCE — the workspace's own reasoning across the brief's facts, citing no single source: leave source_span and source_url null. A sourced-but-NON-BINDING claim is GROUNDED ANALYSIS, NOT FACT — do not force sourced content to FACT. A present-tense BINDING regulatory requirement (the enacted law "requires/must/mandates/prohibits/applies to") is FACT (primary span) or a LEGAL callout, NEVER ANALYSIS.
+- ANALYSIS: a statement the brief text EXPLICITLY labels with ${Object.values(ANALYSIS_LABELS_BY_KEY).map((l) => `"${l}"`).join(", ")}. Set claim_text to that labeled sentence (so it appears verbatim in the section). TWO kinds: (a) GROUNDED ANALYSIS — a credible-but-NOT-binding or forthcoming claim that cites a non-primary source (an intergovernmental / research / analysis body or factual news, NOT the binding legal text): set source_span to its VERBATIM supporting span and source_url to that source, EXACTLY like a FACT, so it carries that source's provenance and tier; (b) PURE INFERENCE — the workspace's own reasoning across the brief's facts, citing no single source: leave source_span and source_url null. A sourced-but-NON-BINDING claim is GROUNDED ANALYSIS, NOT FACT — do not force sourced content to FACT. A present-tense BINDING regulatory requirement (the enacted law "requires/must/mandates/prohibits/applies to") is FACT (primary span) or a LEGAL callout, NEVER ANALYSIS.
 - Cover EACH required slot with >=1 FACT or GAP claim (set slot_key):\n${(slots ?? []).map((s) => `- ${s.slot_key}: ${s.description}`).join("\n")}
 - For EVERY section (${secs.map((s) => s.section_key).join(", ")}) with must/requires/shall/applies/mandates/prohibits/obligates, emit >=1 FACT claim with "section" set + a verbatim span.
 - No verbatim span for a slot -> claim_kind "GAP", source_span null. Never invent spans. CLOSE with CLAIM_PROVENANCE_LEDGER>>>.`;
@@ -1177,7 +1181,7 @@ async function groundBriefImpl(itemId: string): Promise<StepResult> {
   //  - FACT: source_span must be a verbatim substring of fetched content (criterion 3).
   //  - ANALYSIS: claim_text must appear verbatim in a section that ALSO carries an analysis label
   //    (criterion 4) — drop a paraphrased/unlabeled ANALYSIS claim rather than fail the whole item.
-  const ANALYSIS_LABELS = ["analytical inference", "industry interpretation", "operational implication"];
+  //    Label vocabulary imported from analysis-labels.mjs (C2 single home — never hand-list it here).
   const sectionTextsLc = secs.map((s) => (s.content_md || "").toLowerCase());
   const analysisGrounded = (claimText: string | null | undefined) => {
     const ct = String(claimText || "").toLowerCase().trim();
