@@ -280,4 +280,36 @@ rewrite (avoids introducing new drift). [CODE-2 F-9]
 
 tsc clean after all e10 code edits.
 
+## e8 — _snapshots classification (F-5a-15 ruling, enacted per PUBLIC-repo scope correction)
+
+Scope: the 1,144 files under `fsi-app/scripts/_snapshots/` tracked in THIS worktree at baseline
+(the operator's live machine additionally holds newer untracked ones; those aren't in this checkout).
+Full per-file manifest: `docs/ops/wave-alpha-closeout-2026-07-11/e8-snapshots-classification.tsv`
+(class · bytes · path). Total 10,461,870 bytes; largest single file 2.84 MB (redo-prior-...jsonl) —
+**under the 5 MB hold threshold, nothing held for size.**
+
+Classification counts:
+| Class | Files | Bytes |
+|---|---|---|
+| **reversal_record** (non-regenerable prod-write pre-state dumps) | 1,142 | 10,434,427 |
+| **regenerable_diagnostic** (run logs) | 2 | 27,443 |
+
+- reversal_record = 1,133 `*.jsonl` (db.mjs guarded-write prior-value snapshots, each carrying
+  `{"_cite":{skill,reason},"table","prior":{…}}`) + 9 `*.json` prior/reversal dumps (ws1-prove-*-prior,
+  backlog-dispose reversal_deferral_flag_ids, e2-defer, e44a5408-prior-archive). These are the ONLY undo
+  record for past prod mutations — NON-REGENERABLE.
+- regenerable_diagnostic = `lane-28jun.log`, `ws1-restore3.log`.
+
+Enacted:
+- The 2 regenerable diagnostics were **git-untracked** (`git rm --cached`) so they honor the existing
+  `.gitignore:64` rule going forward; files remain on the operator's disk. ("Regenerable diagnostics
+  stay ignored.")
+- The 1,142 reversal records are **NOT moved into docs/archive** — dotfiles is a PUBLIC repo (scope
+  correction 2026-07-11), so corpus-content reversal dumps must not be relocated within it. They stay
+  where they are (already in public git history) pending the **orchestrator's relocation to the PRIVATE
+  repo Dwarves77/caros-ledge-backups under archives/prod-write-reversals/**, after which they can be
+  untracked from the public repo. NOT unilaterally deleted here (removing before the private copy exists
+  would risk the only reversal records). This closes F-5a-15's "durable home vs untrack" as: durable
+  home = the private backups repo; the split-brain ends once the orchestrator completes the copy.
+
 <!-- Sections below appended per wave -->
