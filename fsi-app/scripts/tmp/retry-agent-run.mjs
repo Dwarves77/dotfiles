@@ -49,7 +49,7 @@ const start = Date.now();
 const resp = await fetch(`${APP_URL}/api/agent/run`, {
   method: "POST",
   headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  body: JSON.stringify({ sourceUrl, bypassPause: true }),
+  body: JSON.stringify({ sourceUrl }), // bypassPause removed — dead param the agent route never read (Wave-α A4)
 });
 const text = await resp.text();
 console.log(`-> ${resp.status} in ${Date.now() - start}ms`);

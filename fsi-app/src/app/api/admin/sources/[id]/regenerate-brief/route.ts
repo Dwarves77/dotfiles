@@ -1,10 +1,17 @@
 // POST /api/admin/sources/[id]/regenerate-brief
 //
-// Manual on-demand brief regeneration for a single source. Bypasses
-// pause state (sets bypassPause: true on the agent route) and uses the
-// existing /api/agent/run pipeline so brief content, citation
-// extraction, and intelligence_summaries all populate the same way as
-// scheduled runs would.
+// Manual on-demand brief regeneration for a single source, delegated to
+// the durable generate-brief workflow via /api/agent/run.
+//
+// Wave-α A4 (2026-07-11, CODE-3 F-02): /api/agent/run is ASYNC — it
+// start()s the workflow and returns 202 {runId} immediately. This caller
+// previously assumed the pre-Sprint-4 synchronous contract: it read
+// items_found/citations_written/etc. off the 202 body (always zeros) and
+// read full_brief BEFORE the workflow ran, reporting the pre-regeneration
+// length as the result. It also sent a dead `bypassPause` parameter the
+// agent route never read. Now it defers honestly: it returns the runId
+// and the operator polls agent_runs (or re-opens the source) after the
+// workflow completes.
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -60,7 +67,6 @@ export async function POST(
   const baseUrl = process.env.APP_URL || new URL(request.url).origin;
   const authHeader = request.headers.get("authorization") || "";
 
-  const startTime = Date.now();
   let agentResp: Response;
   try {
     agentResp = await fetch(`${baseUrl}/api/agent/run`, {
@@ -69,7 +75,7 @@ export async function POST(
         "Content-Type": "application/json",
         Authorization: authHeader,
       },
-      body: JSON.stringify({ sourceUrl: source.url, bypassPause: true }),
+      body: JSON.stringify({ sourceUrl: source.url }),
     });
   } catch (e: any) {
     return NextResponse.json(
@@ -79,6 +85,18 @@ export async function POST(
   }
 
   const payload = await agentResp.json().catch(() => ({}));
+
+  // Per-item cooldown from the agent route — pass through honestly.
+  if (agentResp.status === 429) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: payload?.hint || "An agent run for this item ran within the last hour.",
+      },
+      { status: 429, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
   if (!agentResp.ok) {
     return NextResponse.json(
       {
@@ -91,34 +109,39 @@ export async function POST(
     );
   }
 
-  // Pull the most recent intelligence_items row for this source so we can
-  // surface a brief length / section count to the operator.
-  const { data: latestItem } = await supabase
-    .from("intelligence_items")
-    .select("id, full_brief, updated_at")
-    .eq("source_url", source.url)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // 200 {skipped: "already_verified"} — the item is certified; the agent
+  // route refuses to regenerate without an explicit refresh. Report that,
+  // don't claim a regeneration happened.
+  if (payload?.skipped === "already_verified") {
+    return NextResponse.json(
+      {
+        success: true,
+        queued: false,
+        skipped: "already_verified",
+        source: source.name,
+        url: source.url,
+        itemId: payload.item_id ?? null,
+        message:
+          "Item is already verified — regeneration skipped. Force a re-pull via the agent route's refresh flag.",
+      },
+      { headers: rateLimitHeaders(auth.userId) }
+    );
+  }
 
-  const briefLength = latestItem?.full_brief?.length ?? 0;
-  const sectionsPopulated = (latestItem?.full_brief?.match(/^#{1,3}\s/gm) || []).length;
-
+  // 202 {runId} — the durable workflow is queued. Defer honestly: the new
+  // brief does not exist yet, so no length/section/citation counts are
+  // reported here.
   return NextResponse.json(
     {
       success: true,
+      queued: true,
+      runId: payload?.runId ?? null,
+      itemId: payload?.item_id ?? null,
       source: source.name,
       url: source.url,
-      itemsFound: payload.items_found ?? 0,
-      itemsSignal: payload.items_signal ?? 0,
-      synopsesWritten: payload.synopses_written ?? 0,
-      citationsExtracted: payload.citations_extracted ?? 0,
-      citationsWritten: payload.citations_written ?? 0,
-      provisionalsCreated: payload.provisionals_created ?? 0,
-      briefLength,
-      sectionsPopulated,
-      durationMs: Date.now() - startTime,
+      message:
+        "Regeneration queued as a durable workflow. Poll agent_runs (or reload this source) after it completes.",
     },
-    { headers: rateLimitHeaders(auth.userId) }
+    { status: 202, headers: rateLimitHeaders(auth.userId) }
   );
 }

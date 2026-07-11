@@ -215,6 +215,7 @@ export default async function OperationsDetailPage({
             .contains("jurisdictions", selfJurisdictions)
             .eq("item_type", "regional_data")
             .eq("is_archived", false)
+            .eq("provenance_status", "verified") // customer read gate — related rail must not leak quarantined items
             .neq("id", self.id)
             .order("added_date", { ascending: false })
             .limit(RELATED_LIMIT);
@@ -234,6 +235,7 @@ export default async function OperationsDetailPage({
             .eq("source_id", self.source_id)
             .eq("item_type", "regional_data")
             .eq("is_archived", false)
+            .eq("provenance_status", "verified") // customer read gate — related rail must not leak quarantined items
             .neq("id", self.id)
             .order("added_date", { ascending: false })
             .limit(RELATED_LIMIT);

@@ -135,11 +135,16 @@ export default async function RegulationDetailPage({
       const legacyIds = relatedIds.filter((rid) => !uuidRe.test(rid));
 
       const queries = [];
+      // Customer read gate: only verified items may surface titles in the
+      // related-items list. A quarantined xref/supersession target falls
+      // back to its raw id (the surface tolerates a missing lookup entry)
+      // rather than leaking its title.
       if (legacyIds.length > 0) {
         queries.push(
           supabase
             .from("intelligence_items")
             .select("id, legacy_id, title, priority")
+            .eq("provenance_status", "verified")
             .in("legacy_id", legacyIds)
         );
       }
@@ -148,6 +153,7 @@ export default async function RegulationDetailPage({
           supabase
             .from("intelligence_items")
             .select("id, legacy_id, title, priority")
+            .eq("provenance_status", "verified")
             .in("id", uuidIds)
         );
       }

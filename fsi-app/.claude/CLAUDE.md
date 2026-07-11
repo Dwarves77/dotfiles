@@ -342,8 +342,8 @@ All other routes read from the `intelligence_items` table. No live Claude API ca
 
 | Route | Model | Purpose | Rate limit / cooldown |
 |---|---|---|---|
-| `/api/agent/run` | claude-sonnet-4-6 | Per-item brief regeneration, format-selected | 1h cooldown per source |
-| `/api/ask` | claude-sonnet-4-6 | User natural-language questions | 10/workspace/hour |
+| `/api/agent/run` | claude-sonnet-4-6 | Per-item brief regeneration, format-selected | Platform-admin only (Wave-α A3); 60/min/user limiter + 1h cooldown per ITEM (agent_runs read) |
+| `/api/ask` | claude-sonnet-4-6 | User natural-language questions | 60/min/user (the generic in-memory limiter — no per-workspace quota exists) |
 | `/api/admin/scan` | claude-sonnet-4-6 + web_search | Admin-triggered regulatory scan; stages results in `staged_updates` for review | 4h cooldown |
 | `/api/admin/sources/recommend-classification` | claude-haiku-4-5 | Provisional-source AI classification (cached on row) | per-call |
 | `/api/admin/canonical-sources/recommend-classification` | claude-haiku-4-5 | Canonical-source candidate AI classification (cached) | per-call |

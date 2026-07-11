@@ -1,8 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Routes that don't require authentication
-const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback"];
+// Routes that don't require authentication.
+// /privacy is public by design (Wave-α A7, CODE-4b F2): the page declares
+// robots index:true and a privacy policy must be readable before signup
+// (GDPR/CCPA notice-at-collection). It was previously 307'd to /login.
+const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/privacy"];
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });

@@ -1292,7 +1292,7 @@ export function CommunityRooms({
                   >
                     Presence comes from profile home jurisdictions. The network is {networkMemberCount}{" "}
                     {networkMemberCount === 1 ? "member" : "members"} and grows by{" "}
-                    <Link href="/account" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
+                    <Link href="/profile" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
                       workspace invitation
                     </Link>
                     .
@@ -1469,7 +1469,7 @@ function SignoffRailPanel({
         ) : (
           <>
             You are{" "}
-            <Link href="/account" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
+            <Link href="/profile" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
               not a verifier
             </Link>
             .

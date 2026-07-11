@@ -4,16 +4,10 @@ import type { Source, ProvisionalSource, SourceConflict, TrustMetrics, TrustScor
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 
-// Static seed data fallback
-import {
-  resources as seedResources,
-  archived as seedArchived,
-  changelog as seedChangelog,
-  disputes as seedDisputes,
-  xrefPairs as seedXrefPairs,
-  supersessions as seedSupersessions,
-  AUDIT_DATE as seedAuditDate,
-} from "@/data";
+// Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
+// fallback path in this module now returns empty + `_error` sentinel
+// (SF-2 pattern) — seed content carried no source attribution and must
+// never render as live intelligence (integrity rule).
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -1404,16 +1398,14 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     disputes: {},
     xrefPairs: [],
     supersessions: [],
-    auditDate: seedAuditDate,
+    // Honest empty: no detection pass backs this payload. WhatChanged
+    // renders "no detection pass on record" for a falsy auditDate.
+    auditDate: "",
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],
     overrides: [],
   };
-  // Static seed names retained as a defensive read for grep'ability;
-  // mark the unused imports so the type-checker stays clean.
-  void seedResources; void seedArchived; void seedChangelog;
-  void seedDisputes; void seedXrefPairs; void seedSupersessions;
 
   if (!isSupabaseConfigured()) {
     return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
@@ -1450,18 +1442,18 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         fetchSupersessions(),
       ]),
       8000, // 8 second timeout
+      // Wave-α A2 (2026-07-11): the timeout fallback previously served the
+      // STATIC SEED tuple — non-empty seedResources skipped the
+      // `!resources.length` sentinel branch below and the dashboard rendered
+      // March seed content as live (P1 finding 7, CODE-3 F-01). Now the
+      // timeout lands in the same empty + `_error` path as every sibling
+      // fetcher (fetchMapData, fetchListingsMapData, fetchSettingsData).
       [
-        { active: seedResources, archived: seedArchived, uuidToUiId: new Map<string, string>() },
-        seedChangelog,
-        seedDisputes,
-        seedXrefPairs,
-        seedSupersessions,
-      ] as [
-        { active: typeof seedResources; archived: typeof seedArchived; uuidToUiId: Map<string, string> },
-        typeof seedChangelog,
-        typeof seedDisputes,
-        typeof seedXrefPairs,
-        typeof seedSupersessions,
+        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
+        {} as Record<string, ChangeLogEntry[]>,
+        {} as Record<string, Dispute>,
+        [] as [string, string][],
+        [] as Supersession[],
       ]
     );
 
@@ -2174,8 +2166,9 @@ export async function fetchIntelligenceItemSections(
  * Returns a Resource shaped object plus changelog/disputes/timeline for that
  * item — everything needed to render the regulation-detail page server-side.
  *
- * Falls back to seed data if Supabase is not configured or the id is not
- * found in Supabase. Returns null when nothing matches in either source.
+ * Returns null (→ 404) when Supabase is not configured or nothing matches.
+ * Wave-α A2 (2026-07-11): the seed-data fallback is GONE — unattributed
+ * seed content must never render as a live detail page (integrity rule).
  */
 export async function fetchIntelligenceItem(
   itemUiId: string
@@ -2187,26 +2180,7 @@ export async function fetchIntelligenceItem(
   xrefIds: string[];
   refByIds: string[];
 } | null> {
-  // Seed-only path
-  function fromSeed() {
-    const r = [...seedResources, ...seedArchived].find((x) => x.id === itemUiId);
-    if (!r) return null;
-    const refs = seedXrefPairs.filter(([a]) => a === itemUiId).map(([, b]) => b);
-    const refBy = seedXrefPairs.filter(([, b]) => b === itemUiId).map(([a]) => a);
-    const sups = seedSupersessions.filter(
-      (s) => s.old === itemUiId || s.new === itemUiId
-    );
-    return {
-      resource: r,
-      changelog: seedChangelog[itemUiId] || [],
-      dispute: seedDisputes[itemUiId] || null,
-      supersessions: sups,
-      xrefIds: refs,
-      refByIds: refBy,
-    };
-  }
-
-  if (!isSupabaseConfigured()) return fromSeed();
+  if (!isSupabaseConfigured()) return null;
 
   try {
     // Single-item detail page reads by id OR legacy_id. RLS doesn't grant
@@ -2231,11 +2205,8 @@ export async function fetchIntelligenceItem(
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .maybeSingle();
 
-    // Sprint 4 task 1.10 gate: a gated-out (unverified) or missing item must NOT
-    // fall back to ungated legacy SEED content — that would leak around the
-    // provenance gate. Fail CLOSED: return not-found. (The seed-only path above,
-    // guarded by !isSupabaseConfigured(), still serves SEED in offline/dev mode
-    // where no DB and therefore no gate applies.)
+    // Sprint 4 task 1.10 gate: a gated-out (unverified) or missing item is
+    // not-found. Fail CLOSED — no fallback content of any kind.
     if (error || !row) return null;
 
     const resourceId: string = row.legacy_id || row.id;
