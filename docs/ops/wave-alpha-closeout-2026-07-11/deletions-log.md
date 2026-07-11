@@ -151,4 +151,26 @@ source_health_summary, active_intelligence_items, item_related_items_derived; fu
 get_workspace_members(uuid), related_items_derived(uuid). Discharges X.2(a) orphan RPCs + X.2(c)
 5-view decision row; master P3.
 
+## e3 — Vendor family — DROP MIGRATION AUTHORED (NOT APPLIED) + code residue
+
+Migration **181** `fsi-app/supabase/migrations/181_drop_vendor_family.sql` (author-only).
+Rollback: `fsi-app/supabase/rollbacks/181_drop_vendor_family.down.sql` (recreates 4 tables + 7 indexes
++ endorsement-count fn + 2 triggers + RLS + 9 policies from mig-007 DDL + live policy defs).
+
+Objects dropped: tables vendors, vendor_endorsements, vendor_regulations, vendor_technologies (all 0
+rows); function update_vendor_endorsement_count(); their triggers (vendors_updated_at,
+vendor_endorsement_count_trigger) fall via CASCADE. Shared update_updated_at() KEPT.
+
+Fresh confirmation (this session): all 4 tables 0 rows; NO inbound FK from outside the family
+(pg_constraint probe = null; case_studies/forum_threads linked_vendor_ids are uuid[] arrays, not FKs);
+ZERO code writers/readers (`.from('vendor*')` grep over src+scripts .ts/.tsx/.mjs = 0 outside
+_snapshots/_diag data). The type-union residue (src/types/community.ts) was already deleted in e2.
+Discharges DB-4 F11 / §2(c); master P3.
+
+NOT touched (deliberately out of e3 scope, ride other decisions): notification_events CHECK
+'vendor_endorsed' + notification_subscriptions CHECK 'vendor' (notification-v1 trio, DB-4 F5);
+forum_sections 'vendor-reviews' seed row (forum-layer, DB-4 F6); the word "vendor" in
+vertical-fit.ts / classify-source-role.ts (about SOURCE roles, not the directory — keep);
+privacy/page.tsx copy mention (text only).
+
 <!-- Sections below appended per wave -->
