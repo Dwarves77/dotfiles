@@ -100,9 +100,9 @@ zero mints · batch-1 worktree untouched · all deletes via eligibility gate + l
 ### C7 — Paid recovery + C8/merges
 | Item | Status | Evidence |
 |---|---|---|
-| C7 zero-fetch resynth (45 COVERED) | ⚠️ 1/9 verified, HALTED per ruling | floor-wall pool-insufficiency (NOT C1 gap); rest→batch-1; see c7-outcome.md |
-| C8 canonical key + uniqueness invariant | ⏳ (authoring) | — |
-| C7.3 guarded merges (PPWR twins, pairs, dups, EcoVadis) | ⏳ (authoring) | — |
+| C7 zero-fetch resynth (45 COVERED) | ⚠️ 1/9 verified, HALTED per ruling | floor-wall pool-insufficiency (NOT C1 gap); rest→disposition-engine Unit 3; see c7-outcome.md |
+| C8 canonical key + uniqueness invariant (mig 200, EP-11) | ✅ APPLIED+PROVEN | deriver+trigger+partial-UNIQUE(verified-live); backfill 20/21; EP-11 uniqueness PASS 0 collisions |
+| C7.3 guarded merges | ✅ APPLIED | 2 item twins (HDV CO2 2019/1242, FuelEU 2023/1805) + 8 registry URL-dups + 4 EcoVadis suspended; 3 register twins found already-merged 2026-07-07 (stale register); 3ae89ce6 + keepers → disposition-engine (operator rulings) |
 
 ## Deviations log
 1. **C7 mechanism divergence** — dispatch premised "resynth 45 → recover"; reality = ~11% yield, pool-insufficiency (COVERED measured text volume, not fact-coverage). Halted paid batch per ruling; rest→batch-1. NOT a contract bug (C1 works).
@@ -120,4 +120,8 @@ zero mints · batch-1 worktree untouched · all deletes via eligibility gate + l
 - **Switches (untouched)**: loop/cadence flip, batch-1 execution, triage throughput, Research repositioning, community peer acquisition.
 
 ## Exit test (dispatch-binding)
-- data-audit lane GREEN ✅ · required checks (run on the master PR) — pending PR · 6+ new/widened invariants GREEN ✅ (RD-16/17/18, EP-10, deferral-hygiene, F6) · zero open P1 (all 12 fixed+applied) ✅ · P2 items each fixed/deviated/blocked-with-owner ✅.
+- data-audit lane GREEN ✅ · required checks (run on the master PR) — at PR · 6+ new/widened invariants GREEN ✅ (RD-16/17/18, EP-10, EP-11, deferral-hygiene, F6) · meta-gate 58 invariants wired ✅ · zero open P1 (all 12 fixed+applied) ✅ · P2 items each fixed/deviated/blocked-with-owner ✅ · **23 migrations applied+proven** · spend $6.68 / $32.
+
+## Queued follow-ons (operator-dispatched, sequence after this PR merges)
+1. **Chrome layout + F-1 escape** (`fix/chrome-layout-f1-2026-07-11`, running): L-1..L-6 + V-07/08/09 + F-1 fail-closed allowlist. Own PR. Then the **overflow+hydration GUARD** (Playwright fixtures wired as invariant).
+2. **Autonomous Disposition Engine** (Units 0–5 + Doctrine rider): Unit 0 = doctrine register (15-seed, verbatim + enforcing-invariant/exemption, meta-gate FAILs unenforced doctrine, dispatches cite by ID); Unit 1 = 489-provisional triage resolver; Unit 2 = flag resolver (859+); Unit 3 = the 62 quarantine → recover-or-delete zero-survivors (scoped remediation-fetch exception, manifest-bound, $25 ceiling w/ month-pacing); Unit 4 = queue honesty; Unit 5 = standing cron autonomy. Absorbs the C7 batch-1 set + the 3ae89ce6/FuelEU-keeper hand-offs. Depends on this PR + the fetch-exception F16 extension.
