@@ -90,7 +90,11 @@ export const SKILL_MARKER_BASELINE = {
   // 23→24 (2026-07-06): added Section 4 category 13 "The transport escalation ladder + write-side error-body
   // gate (transport failure is never terminal, never stored)". TRIAGE: new invariant RD-14 (enforcedBy
   // selftests transport-escalation.test.mjs + entity-gate.test.mjs).
-  'remediation-discipline': 24,
+  // 24→25 (2026-07-11): added Section 4 category 14 "Worktree isolation (agent branch/checkout/merge ONLY in
+  // the assigned worktree)" — the dual (belt: PreToolUse skill-gate; suspenders: git post-checkout +
+  // pre-commit hooks) fail-closed guard for the sub-agent-in-main-checkout incident. TRIAGE: new invariant
+  // RD-19 (enforcedBy selftest worktree-isolation.test.mjs).
+  'remediation-discipline': 25,
   'sprint-followups-discipline': 17,
 };
 
@@ -592,6 +596,16 @@ export const INVARIANTS = [
     anchor: 'schema-vs-code compatibility breaks',
     enforcedBy: ['audit:fsi-app/scripts/verify/column-existence-parity.mjs'],
     residual: 'column-existence-parity.mjs (CI-with-secrets lane) greps literal object-literal write-sites, extracts top-level column keys, and asserts each exists in information_schema.columns for that table. HONEST SCOPE (the achievable targeted version, NOT a full typed contract): it sees LITERAL keys only — spread writes ({...payload}), dynamically-built rows, computed keys, and a variable passed to .insert(row) are reported UNRESOLVED (informational), never flagged as phantom; select-column strings are not parsed (write-side is the higher-severity class). The durable form is a committed `supabase gen types` snapshot + a tsc gate (REVISIT); this catalog-vs-grep audit is the zero-DDL interim that catches the reviewer_notes class today. The meta-gate proves wiring (file tracked + skill-cited).',
+  },
+
+  {
+    id: 'RD-19-worktree-isolation',
+    skill: 'remediation-discipline',
+    section: 'Section 4 category 14 — Worktree isolation (agent branch/checkout/merge ONLY in the assigned worktree)',
+    text: 'Agent branch/checkout/merge operations occur ONLY in that agent\'s assigned worktree; the main checkout is the orchestrator\'s exclusive surface. Enforced fail-closed + dual: a git post-checkout hook HARD-FAILS (detection+alarm; it cannot undo the move) and a git pre-commit hook BLOCKS when an AGENT context (CLAUDE_CODE_CHILD_SESSION) operates in the MAIN checkout (git-dir == git-common-dir) OR the main checkout sits on an agent-owned branch (worktree-agent-<hex>/agent-<hex>); the PreToolUse skill-gate belt surfaces every branch/checkout/merge/rebase op in the main session (the leg the session-scoped gate CAN reach). Git hooks fire regardless of session type, so the suspenders catch a sub-agent\'s op the belt cannot.',
+    anchor: 'Worktree isolation (agent branch/checkout/merge ONLY in the assigned worktree)',
+    enforcedBy: ['selftest:fsi-app/.discipline/governance/worktree-isolation.test.mjs'],
+    residual: 'worktree-isolation.test.mjs proves the PURE verdict red-then-green: main+agent checkout/commit BLOCKS with the verbatim doctrine; worktree+agent and orchestrator-in-main PASS; the agent-owned-branch commit BLOCKS even without the env marker; and a WIRING assertion reads the post-checkout/pre-commit hook scripts + the runner + the skill-gate to prove they consume the single-home module (so the gate cannot be silently unwired). The two runtime legs (git hooks + PreToolUse) are the belt+suspenders MECHANISMS; the selftest is the proof-of-logic the meta-gate resolves. NAMED RESIDUALS: (1) the WHO signal rests on the harness naming CLAUDE_CODE_CHILD_SESSION for sub-agents and NOT the orchestrator (AI_AGENT is present in both, non-discriminating) — if a future harness ran the orchestrator as a child session, or an agent WITHOUT the marker, the WHO gate would misfire; the pre-commit branch-name belt is the env-independent backstop for the missing-marker case, and the WHERE signal (git-dir vs common-dir) is zero-false-positive. (2) post-checkout is DETECTION+ALARM only — git already moved HEAD by the time it runs; the pre-commit leg is the real block that stops the wrong-label commit. (3) OUT-OF-REPO INSTALL: the hooks only fire once install-hooks.mjs copies them into the shared .git/hooks (git-common-dir); like the pre-push/commit-msg hooks this install is operator-run and lives outside the repo, so the meta-gate proves the SOURCE + logic are wired, not that the operator installed them (same boundary as the skill-gate settings.json in step 3c). (4) the skill-gate belt is main-session-only (PreToolUse does not fire in subagents, verified 2026-06-07) — it ASKs (cannot read the eventual cwd from the payload); the git hooks are what actually gate a sub-agent.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
