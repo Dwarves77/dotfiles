@@ -63,6 +63,12 @@ import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
 import { captureForStorage, apiEndpointFor } from "@/lib/sources/transport-escalation.mjs";
 import { escalateToFetchResult } from "@/lib/sources/transport-runtime.mjs";
+// TRANSPORT HOLD GATE + FETCH CACHE (C5, 2026-07-11). assertFetchAllowed gates the direct-HTTP + API-ladder
+// transports (the two raw-fetch entry points that live here, not in a sources/ module) so "hold LIVE, zero
+// fetches" is airtight across ALL FOUR transports (CODE-1 F-02). The url-canon-keyed, per-source-TTL cache
+// (built in fetch-hold.mjs but never injected — CODE-1 F-03) is wired into buildLiveTransports so a
+// re-ground / retry / refresh of the SAME url reads the cache instead of re-fetching (stops double-paying).
+import { assertFetchAllowed, cacheGet as fetchCacheGet, cachePut as fetchCachePut } from "@/lib/sources/fetch-hold.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -109,6 +115,7 @@ function htmlToText(html: string): string {
 // DIRECT-HTTP transport. Pulls the full document (no Browserless) for an eligible host; reports truncation
 // against `max` exactly as the Browserless path does. Throws on a non-OK status so the caller's fallback fires.
 async function directFetchClean(url: string, max: number): Promise<FetchResult> {
+  assertFetchAllowed(url); // TRANSPORT HOLD GATE (C5) — direct-HTTP transport; throws FetchHoldError while the hold is engaged
   const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" }, redirect: "follow", signal: AbortSignal.timeout(25000) });
   if (!res.ok) throw new Error(`direct fetch ${res.status}`);
   const u8 = new Uint8Array(await res.arrayBuffer());
@@ -133,6 +140,7 @@ async function directFetchClean(url: string, max: number): Promise<FetchResult> 
 async function apiFetchForHost(url: string, max: number): Promise<{ status: number; text: string; truncated: boolean; fullLength: number; cap: number } | null> {
   const apiBase = apiEndpointFor(url);
   if (!apiBase) return null;
+  assertFetchAllowed(url); // TRANSPORT HOLD GATE (C5) — API transport (ladder); throws FetchHoldError while the hold is engaged
   const ua = { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" };
   const clip = (full: string) => { const t = (cleanCtl(full) || "").replace(/\s+/g, " ").trim().slice(0, max); return { status: 200, text: t.length > 200 ? t : "", truncated: full.length > max, fullLength: full.length, cap: max }; };
   try {
@@ -190,25 +198,44 @@ async function apiFetchForHost(url: string, max: number): Promise<{ status: numb
 // exact same live ladder the pipeline uses — the transports cannot diverge into aligned copies (the D1/D3
 // class the codebase kills). Every render goes through browserlessFetch (the hold-gated single fetch home), so
 // the batch-1 runner inherits the scrape-hold gate for free. Pure factory; `max` is the char cap.
+// PROCESS-SCOPED FETCH CACHE (C5). A module-scoped Map keyed on canonical URL (fetch-hold.mjs owns the
+// key + per-source TTL). Process-scoped is correct for the batch runners (one process per pass) and
+// harmless on the serverless route path (a cold Map per invocation = a no-op, never a stale cross-request
+// read). A ground/retry/refresh-primary of the SAME url within its host TTL reads this instead of paying
+// for a second fetch — the F-03 "cache built, never injected" gap closed. Only REAL content is cached
+// (>200ch, the same usability floor the pool uses) so an error/empty result never poisons a later real fetch.
+const FETCH_CACHE = new Map<string, { url: string; payload: unknown; fetchedAtMs: number }>();
 export function buildLiveTransports(max: number) {
+  const cachePutIfContent = (u: string, payload: { text?: string }) => {
+    if (payload && typeof payload.text === "string" && payload.text.length > 200) fetchCachePut(FETCH_CACHE, u, payload, Date.now());
+  };
   const directFetch = async (u: string) => {
-    try { const d = await directFetchClean(u, max); return { status: 200, text: d.text, truncated: d.truncated, fullLength: d.fullLength, cap: d.cap }; }
+    try { const d = await directFetchClean(u, max); const p = { status: 200, text: d.text, truncated: d.truncated, fullLength: d.fullLength, cap: d.cap }; cachePutIfContent(u, p); return p; }
     catch (e) { const m = String((e as Error)?.message || "").match(/direct fetch (\d+)/); return { status: m ? Number(m[1]) : 0, text: "" }; }
   };
   const browserlessRender = async (u: string) => {
     try {
       const r = await browserlessFetch(u, { maxTextLength: max });
       const text = (cleanCtl(r.text) || "").replace(/\s+/g, " ").trim();
-      return { status: 200, text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max };
+      const p = { status: 200, text, truncated: !!r.truncated, fullLength: r.fullTextLength ?? text.length, cap: max };
+      cachePutIfContent(u, p);
+      return p;
     } catch { return { status: 0, text: "" }; }
   };
+  const apiFetch = async (u: string) => { const r = await apiFetchForHost(u, max); if (r) cachePutIfContent(u, r); return r; };
   return {
-    apiFetch: (u: string) => apiFetchForHost(u, max),
+    // CACHE-FIRST (RD-11 seam): escalateFetch tries cacheGet before any transport — a fresh hit prevents
+    // the duplicate fetch. Returns the stored RICH payload (truncation metadata preserved) or null.
+    cacheGet: (u: string) => { const e = fetchCacheGet(FETCH_CACHE, u, Date.now()); return e ? (e.payload as { text?: string }) : null; },
+    apiFetch,
     directFetch,
     browserlessRender,
     seekMore: async (u: string) => ({ kind: "seek_more_alternate_url", url: u }),
   };
 }
+
+/** Test-only: clear the process fetch cache between cases (never used in prod). */
+export function __clearFetchCacheForTest() { FETCH_CACHE.clear(); }
 
 async function fetchWithTransport(url: string, max: number, { dropIfBlocked = false }: { dropIfBlocked?: boolean } = {}): Promise<FetchResult> {
   if (looksLikePdfUrl(url)) {

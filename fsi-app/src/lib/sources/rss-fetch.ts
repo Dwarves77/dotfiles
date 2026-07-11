@@ -11,6 +11,10 @@
 // individual feed entries become first-class intelligence_items.
 
 import type { BrowserlessResult } from "@/lib/sources/browserless";
+// TRANSPORT HOLD GATE (C5, 2026-07-11): the RSS transport is a canonical fetch entry point — gate it with
+// the scrape hold so "hold LIVE, zero fetches" is airtight across ALL FOUR transports, not only Browserless
+// (CODE-1 F-02). Widened fitness F16 fails a transport module missing this call.
+import { assertFetchAllowed } from "@/lib/sources/fetch-hold.mjs";
 
 export class RssFetchError extends Error {
   constructor(
@@ -120,6 +124,7 @@ export async function rssFetch(
   if (!url) {
     throw new RssFetchError("rss_feed_url and url both empty");
   }
+  assertFetchAllowed(url); // TRANSPORT HOLD GATE (C5) — throws FetchHoldError while the scrape hold is engaged
   const {
     maxTextLength = DEFAULT_MAX_TEXT,
     timeoutMs = DEFAULT_TIMEOUT_MS,

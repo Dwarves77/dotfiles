@@ -11,6 +11,10 @@
 // the raw_fetches storage row preserves the bytes exactly as received.
 
 import type { BrowserlessResult } from "@/lib/sources/browserless";
+// TRANSPORT HOLD GATE (C5, 2026-07-11): the API transport is a canonical fetch entry point — gate it with
+// the scrape hold so "hold LIVE, zero fetches" is airtight across ALL FOUR transports (CODE-1 F-02).
+// Widened fitness F16 fails a transport module missing this call.
+import { assertFetchAllowed } from "@/lib/sources/fetch-hold.mjs";
 
 export class ApiFetchError extends Error {
   constructor(
@@ -87,6 +91,7 @@ export async function apiFetch(
   if (!endpoint) {
     throw new ApiFetchError("api_endpoint_url and url both empty");
   }
+  assertFetchAllowed(endpoint); // TRANSPORT HOLD GATE (C5) — throws FetchHoldError while the scrape hold is engaged
 
   const { maxTextLength = DEFAULT_MAX_TEXT, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
 
