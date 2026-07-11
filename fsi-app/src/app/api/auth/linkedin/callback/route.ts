@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
     return redirectWithError(origin, "profile-fetch-failed", "/onboarding");
   }
 
-  // Map LinkedIn fields onto the CommunityProfile shape (see src/types/community.ts).
+  // Map LinkedIn fields onto the profiles row shape.
   const firstName = profile.localizedFirstName?.trim() ?? "";
   const lastName = profile.localizedLastName?.trim() ?? "";
   const fullName = `${firstName} ${lastName}`.trim();

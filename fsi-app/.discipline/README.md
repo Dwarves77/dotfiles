@@ -1,6 +1,13 @@
 # Discipline Engine (RaC: Rules as Code)
 
-Executable specifications for the 11 binding rules from `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`. Built per Sprint Foundation dispatch 2026-05-20.
+> **STALE-CONTENT NOTICE (2026-07-11, audit CODE-2 F-9).** The rule roster below describes the
+> pre-slim engine (11 rules 001–011, retired predicates). The LIVE source of truth is the code, not
+> this prose: `fsi-app/.discipline/rules/*.mjs` (rules), `fitness/functions/*.mjs` (fitness),
+> `consistency/checks/*.mjs` (consistency), and the manifests `governance/invariants.mjs` +
+> `governance/skill-map.mjs`. Read those to know what actually runs; treat the counts/lists here as
+> historical narrative pending a full doc sweep.
+
+Executable specifications for the binding rules from `fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md`. Built per Sprint Foundation dispatch 2026-05-20.
 
 ## Layout
 
