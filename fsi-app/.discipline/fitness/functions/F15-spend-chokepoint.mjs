@@ -29,8 +29,10 @@ export const LEGACY_ALLOWLIST = [
   // callSonnetSearch → spendSearch. It routes through the chokepoint now — OFF the allowlist (12 → 11).
   { file: 'fsi-app/src/lib/llm/haiku-classify.ts', reason: 'Haiku classifier — standing-ticket class, migrates to spend-client with standingClass', reviewByPhase: 'chokepoint-classifier-migration' },
   { file: 'fsi-app/src/lib/llm/first-fetch-classify.ts', reason: 'first-fetch classify — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
-  { file: 'fsi-app/src/lib/sources/recommend-source-tier.ts', reason: 'recommend-classification Haiku — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
-  { file: 'fsi-app/src/lib/sources/discovery.ts', reason: 'source-discovery web_search — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
+  // recommend-source-tier.ts MIGRATED (C6, 2026-07-11): raw Haiku fetch → spendStream with a
+  // standingClass "recommend-classification" ticket. Routes through the chokepoint now (ledgered) — OFF.
+  // discovery.ts MIGRATED (C6, 2026-07-11): raw web_search fetch → spendSearch with a standingClass
+  // "source-discovery" ticket. Routes through the chokepoint now (ledgered) — OFF.
   { file: 'fsi-app/src/lib/sources/api-fetch.ts', reason: 'shared Anthropic fetch helper — folds into spend-client transport', reviewByPhase: 'chokepoint-transport-consolidation' },
   // ask/route.ts MIGRATED (2026-07-07, PR #248): raw fetch → spendStream with a per-request
   // ticket. Routes through the chokepoint now — OFF the allowlist (11 → 10).

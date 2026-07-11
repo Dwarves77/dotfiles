@@ -542,6 +542,16 @@ export const INVARIANTS = [
   // registered residual (same pattern as a deferred-for-cost named residual), and the seek-more selftest
   // (src/lib/sources/seek-more.test.mjs) proves the record shape + interim persistence red-then-green.
 
+  {
+    id: 'RD-16-transport-hold-all-four',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 10: The transport hold gate (all four transports)',
+    text: 'The scrape hold MUST gate ALL FOUR transports — direct-HTTP, API, RSS, Browserless — at their canonical entry points, not only the Browserless primitive: assertFetchAllowed(url) throws FetchHoldError while SCRAPE_HOLD is engaged, so "hold LIVE, zero fetches" is airtight across every transport (CODE-1 F-02). A transport module that makes a network fetch without the hold check FAILS the discipline gate (widened fitness F16 over TRANSPORT_MODULES). Paired with the hold: the url-canon-keyed, per-source-TTL fetch cache is INJECTED into buildLiveTransports (the cacheGet seam escalateFetch checks first) so a re-ground / retry / refresh of the same url does not re-fetch (CODE-1 F-03).',
+    anchor: 'The transport hold gate (fetch-primitive scrape-hold gate)',
+    enforcedBy: ['fitness:F16', 'selftest:fsi-app/src/lib/sources/fetch-hold.test.mjs'],
+    residual: 'F16 widened (C5, 2026-07-11): beyond the primitive-carries-the-gate + no-raw-Browserless checks, F16 now enumerates TRANSPORT_MODULES (rss-fetch.ts, api-fetch.ts, canonical-pipeline.ts — the direct-HTTP + API-ladder home) and REDs any that lack assertFetchAllowed. Gated inline: directFetchClean (direct-HTTP), apiFetchForHost (API-ladder), apiFetch (api-fetch.ts), rssFetch (rss-fetch.ts); browserlessFetch was already gated (RD-11). The fetch cache (fetch-hold.mjs cacheGet/cachePut) is now injected into buildLiveTransports keyed on the canonical URL with the per-host TTL table, so escalateFetch reads a fresh hit before any transport fires. fetch-hold.test.mjs proves the pure core (engaged→throws / lifted→passes / cache HIT on url-canon-equivalent URLs / TTL freshness) red-then-green; F16-transport-hold-gate.test.mjs proves the widened gate REDs a transport module missing the call. NAMED RESIDUAL: the cache store is PROCESS-scoped in-memory (correct for the batch runners, a cold no-op per serverless invocation); a durable/DB-backed cache stays a future extension. The hold still DEFAULTS to LIFTED (prod-preserving); engaging it is the operator cadence control.',
+  },
+
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
   {
     id: 'SF-1-inventory-consistency',

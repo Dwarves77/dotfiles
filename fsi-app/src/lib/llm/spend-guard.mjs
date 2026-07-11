@@ -33,6 +33,26 @@ export class SpendError extends Error {
   constructor(msg) { super(msg); this.name = "SpendError"; }
 }
 
+// MONTHLY CEILING (operator-set 2026-07-11) — the pure guard. The dollar VALUE lives in spend-client.ts as a
+// code-only constant (never env); THIS module stays env-free (rule-017) and just enforces the comparison so it
+// is red-then-green node-testable. THROWS a NAMED MonthlyCeilingError when this calendar month's ledgered
+// spend is at/over the ceiling — a hard stop, distinct from the per-process SPEND_CEILING and the per-item breaker.
+export class MonthlyCeilingError extends Error {
+  /** @param {number} monthSpentUsd @param {number} ceilingUsd */
+  constructor(monthSpentUsd, ceilingUsd) {
+    super(`SPEND_MONTHLY_CEILING: this calendar month's ledgered spend $${Number(monthSpentUsd).toFixed(2)} has reached the hard monthly ceiling $${Number(ceilingUsd).toFixed(2)} — no further paid calls this month. Raise it ONLY by editing MONTHLY_SPEND_CEILING_USD in spend-client.ts (deliberately not env-overridable).`);
+    this.name = "MonthlyCeilingError";
+    this.monthSpentUsd = Number(monthSpentUsd);
+    this.ceilingUsd = Number(ceilingUsd);
+  }
+}
+
+/** Pure monthly-ceiling guard. THROWS MonthlyCeilingError when the month's ledgered spend is at/over the
+ *  ceiling. @param {number} monthSpentUsd @param {number} ceilingUsd */
+export function assertMonthlyCeiling(monthSpentUsd, ceilingUsd) {
+  if (Number(monthSpentUsd) >= Number(ceilingUsd)) throw new MonthlyCeilingError(monthSpentUsd, ceilingUsd);
+}
+
 // ── budget state (per process) ──
 let runningSpentUsd = 0;                                    // standing-ceiling accumulator (never reset)
 let itemLedger = { inputTokens: 0, outputTokens: 0, calls: 0, costUsd: 0 };

@@ -5,7 +5,10 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertTicket, assertBudget, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD, account, markCallLogged, unloggedCallCount, assertLedgerDrained } from "./spend-guard.mjs";
+import { assertTicket, assertBudget, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD, account, markCallLogged, unloggedCallCount, assertLedgerDrained, assertMonthlyCeiling, MonthlyCeilingError } from "./spend-guard.mjs";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 
 const CEIL = 10;
 
@@ -105,4 +108,28 @@ test("PER-ITEM CIRCUIT BREAKER trips on a single item's spend at $3.00 (ceiling-
   assert.equal(trip.tripped, true);
   assert.match(trip.reason, /PER_ITEM_CIRCUIT_BREAKER/);
   assert.equal(itemBreakerTripped(4.25).tripped, true);
+});
+
+// ── MONTHLY CEILING (Wave-α, operator-set 2026-07-11) ──
+test("MONTHLY CEILING: at/over the ceiling THROWS a named MonthlyCeilingError; under passes", () => {
+  // under → no throw
+  assert.doesNotThrow(() => assertMonthlyCeiling(74.99, 75));
+  assert.doesNotThrow(() => assertMonthlyCeiling(0, 75));
+  // exactly at the ceiling → THROW (>=)
+  assert.throws(() => assertMonthlyCeiling(75, 75), (e) => e instanceof MonthlyCeilingError && /SPEND_MONTHLY_CEILING/.test(e.message));
+  // over → THROW, carrying the amounts
+  const err = (() => { try { assertMonthlyCeiling(120.5, 75); return null; } catch (e) { return e; } })();
+  assert.ok(err instanceof MonthlyCeilingError);
+  assert.equal(err.name, "MonthlyCeilingError");
+  assert.equal(err.ceilingUsd, 75);
+  assert.equal(err.monthSpentUsd, 120.5);
+});
+
+test("MONTHLY CEILING: the $75 constant is code-only (a literal, never env-driven)", () => {
+  const HERE = dirname(fileURLToPath(import.meta.url));
+  const client = readFileSync(resolve(HERE, "spend-client.ts"), "utf8");
+  assert.match(client, /export const MONTHLY_SPEND_CEILING_USD = 75(\.0+)?;/, "the ceiling must be a hardcoded 75.00 literal");
+  // the constant must NOT be derived from process.env on its declaration line (env would defeat 'code-only')
+  const line = client.split(/\r?\n/).find((l) => /MONTHLY_SPEND_CEILING_USD =/.test(l)) || "";
+  assert.doesNotMatch(line, /process\.env/, "MONTHLY_SPEND_CEILING_USD must not read process.env (overridable ONLY by editing code)");
 });

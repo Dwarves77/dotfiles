@@ -10,6 +10,8 @@
 // one array). A custom parser avoids adding a new runtime dependency for
 // what is a deterministic, documented payload.
 
+import { DB_THEME_VALUE_LIST } from "./metadata-vocab";
+
 const SEVERITY_VALUES = [
   "ACTION REQUIRED",
   "COST ALERT",
@@ -43,12 +45,13 @@ const TOPIC_TAG_VALUES = [
 // Sprint 3 A2 (2026-05-25): signal_band and theme columns.
 // signal_band — closed 3-value vocab, only valid when format_type is
 //   market_signal_brief; null on all other formats.
-// theme — mirrors TOPIC_TAG_VALUES (7 values), only valid when
-//   format_type is research_summary; null on all other formats.
-//   Distinct from topic_tags (multi-value): theme is the single most
-//   central theme of the research finding.
+// theme — the LIVE DB CHECK vocabulary (metadata-vocab.ts DB_THEME_VALUE_LIST, the ONE home —
+//   Wave-α C3, 2026-07-11). Only valid when format_type is research_summary; null on all other
+//   formats. Distinct from topic_tags (multi-value): theme is the single most central theme of
+//   the research finding. The prior `THEME_VALUES = TOPIC_TAG_VALUES` was a DISJOINT vocabulary —
+//   every accepted theme was then nulled at the DB boundary, so themes never persisted (CODE-1 F-10).
 const SIGNAL_BAND_VALUES = ["price", "corporate", "corridor"] as const;
-const THEME_VALUES = TOPIC_TAG_VALUES;
+const THEME_VALUES = DB_THEME_VALUE_LIST;
 
 // Closed vocabulary for compliance_object_tags (SKILL.md 18 values). Tags
 // outside this list fail the regeneration. Drives intersection detection.

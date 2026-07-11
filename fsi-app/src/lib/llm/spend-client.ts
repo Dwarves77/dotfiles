@@ -20,11 +20,34 @@ import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 import { anthropicError } from "@/lib/agent/anthropic-error.mjs";
 import { costUsdForModel, inputUsdPerMtokForModel, SPEND_CEILING_USD } from "@/lib/agent/generation-config";
 import { cacheSavingsUsd } from "@/lib/agent/prompt-cache.mjs";
-import { assertTicket, assertBudget, account, markCallLogged, takeItemLedger, resetItemLedger, spentUsd, assertLedgerDrained, unloggedCallCount } from "@/lib/llm/spend-guard.mjs";
+import { assertTicket, assertBudget, account, markCallLogged, takeItemLedger, resetItemLedger, spentUsd, assertLedgerDrained, unloggedCallCount, assertMonthlyCeiling, MonthlyCeilingError } from "@/lib/llm/spend-guard.mjs";
 
 export type SpendTicket = NonNullable<Parameters<typeof assertTicket>[0]>;
 export { STANDING_TICKET_CLASSES } from "@/lib/llm/spend-guard.mjs";
 export { resetItemLedger, takeItemLedger, spentUsd, assertLedgerDrained, unloggedCallCount };
+export { MonthlyCeilingError } from "@/lib/llm/spend-guard.mjs";
+
+// ── FIRST HARD MONTHLY SPEND CEILING (operator-set 2026-07-11) ──────────────────────────────────────────
+// A code-level cap on TOTAL ledgered Anthropic spend per CALENDAR MONTH (UTC), across every ticket + every
+// caller. Enforced before EVERY paid call (including sanctioned classifiers — a classifier call is still
+// paid). This is P1-adjacent belt-and-suspenders over the per-process SPEND_CEILING + the daily preflight
+// cap: those are per-process / per-day and reset; this bounds the MONTH. Deliberately NOT env-driven —
+// overridable ONLY by editing this constant, so no deploy-env tweak (or a leaked env) can silently lift it.
+export const MONTHLY_SPEND_CEILING_USD = 75.00;
+
+/** Sum this calendar month's ledgered spend from agent_runs.cost_usd_estimated (the SAME ledger the daily
+ *  preflight cap + the MTD tile read), then enforce the monthly ceiling. FAIL-CLOSED: if the ledger cannot
+ *  be read we cannot prove we are under the cap, so we THROW rather than let a paid call proceed blind. */
+async function guardMonthlyCeiling(): Promise<void> {
+  const now = new Date();
+  const monthStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const { data, error } = await svc().from("agent_runs").select("cost_usd_estimated").gte("started_at", monthStartIso);
+  if (error) {
+    throw new MonthlyCeilingError(Number.POSITIVE_INFINITY, MONTHLY_SPEND_CEILING_USD);
+  }
+  const monthSpent = (data ?? []).reduce((s, r) => s + Number(r.cost_usd_estimated || 0), 0);
+  assertMonthlyCeiling(monthSpent, MONTHLY_SPEND_CEILING_USD);
+}
 
 // CONTEXT TICKET. The runner sets ONE ticket per item (setSpendTicket) before invoking the pipeline; the
 // pipeline's internal call sites (callSonnet / generateBriefText / callSonnetSearch) spend under it without
@@ -46,6 +69,7 @@ export async function spendStreamRaw(
 ): Promise<{ text: string; stopReason: string | null; usage: { input_tokens: number; output_tokens: number; cache_creation_input_tokens: number; cache_read_input_tokens: number } }> {
   assertTicket(currentTicket);
   assertBudget(currentTicket, SPEND_CEILING_USD);
+  await guardMonthlyCeiling(); // hard monthly ceiling (before the paid call)
   const r = await streamMessagesText(streamOpts);
   const model = String(((streamOpts?.body ?? {}) as { model?: string }).model ?? "claude-sonnet-4-6");
   // PROMPT-CACHE (Phase-3a): cache tokens are billed at 1.25× (write) / 0.1× (read) of the input rate;
@@ -65,6 +89,7 @@ export async function spendStream(
 ): Promise<{ text: string; stopReason: string | null; usage: { input_tokens: number; output_tokens: number }; cost: number }> {
   assertTicket(ticket);
   assertBudget(ticket, SPEND_CEILING_USD);
+  await guardMonthlyCeiling(); // hard monthly ceiling (before the paid call)
   const model = opts.model ?? "claude-sonnet-4-6";
   const { text, stopReason, usage } = await streamMessagesText({
     apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -87,6 +112,7 @@ export async function spendSearch(
 ): Promise<string> {
   assertTicket(ticket);
   assertBudget(ticket, SPEND_CEILING_USD);
+  await guardMonthlyCeiling(); // hard monthly ceiling (before the paid call)
   const model = opts.model ?? "claude-sonnet-4-6";
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",

@@ -269,7 +269,7 @@ Fields:
 - format_type — the format used for this brief, derived from item_type per the mapping below.
 - topic_tags — array of 0-3 tags from the topic_tags controlled vocabulary below. Tags outside the vocabulary fail the regeneration.
 - signal_band — one of \`price | corporate | corridor\` when format_type is \`market_signal_brief\`; null otherwise. Drives /market band routing column-first.
-- theme — one of the 7 topic_tags values (\`emissions | fuels | transport | reporting | packaging | corridors | research\`) when format_type is \`research_summary\`; null otherwise. Drives /research theme routing column-first. The single most central theme; distinct from topic_tags which is multi-value.
+- theme — one of the 7 research-theme values (\`emissions_accounting | fuels_saf | packaging_circular | carbon_markets | cold_chain_art | last_mile_electrification | disclosure_regimes\`) when format_type is \`research_summary\`; null otherwise. Drives /research theme routing column-first. The single most central theme; distinct from topic_tags which is multi-value and uses a DIFFERENT vocabulary.
 - operational_scenario_tags — array of 0-5 tags describing operational scenarios this item touches. Open vocabulary; prefer the core glossary below; new values allowed when the core doesn't fit. Lower-case kebab-case. Drives intersection detection.
 - compliance_object_tags — array of 0-4 tags from the closed compliance-object vocabulary below. Tags outside the vocabulary fail the regeneration. Drives intersection detection.
 - related_items — UUID array of intelligence_items the agent recognised as related during composition. UUIDs MUST come from the source pool input. No invented UUIDs. Empty array when no relations identified.
@@ -318,9 +318,10 @@ signal_band vocabulary (locked, closed, exactly 3 values for market_signal_brief
 
 Emit null when format_type is anything other than market_signal_brief. Tags outside this list fail the regeneration when format_type IS market_signal_brief.
 
-theme vocabulary (locked, closed; same 7 values as topic_tags; for research_summary only, null otherwise):
+theme vocabulary (locked, closed; the /research grouping vocabulary — the live DB CHECK set, single home src/lib/agent/metadata-vocab.ts; for research_summary only, null otherwise):
 
-- Mirror values from topic_tags: emissions, fuels, transport, reporting, packaging, corridors, research
+- The 7 research themes: emissions_accounting, fuels_saf, packaging_circular, carbon_markets, cold_chain_art, last_mile_electrification, disclosure_regimes
+- This is NOT the topic_tags vocabulary — do not emit a topic tag (emissions, fuels, transport, …) as theme; a theme outside the 7 values above fails the regeneration.
 - Emit null when format_type is anything other than research_summary.
 - When format_type IS research_summary, theme is the SINGLE most central theme for the finding (not a multi-value tag list). Distinct from topic_tags which is multi-value and applies to all formats.
 
@@ -429,9 +430,8 @@ This contract makes provenance a hard, write-time invariant. Every brief is vali
 A *substantive claim* is any assertion about a regulation, deadline, cost, obligation, threshold, market movement, or operational consequence. Three kinds:
 
 - **FACT** — a specific, checkable assertion (date, deadline, penalty, threshold, article number, jurisdictional scope, named obligated entity, sourced cost figure). Written as normal prose with an inline *Source: [Title], [Issuing Body], [Date]. [URL].* citation. Every FACT must be span-grounded (see part 2).
-- **ANALYSIS** — your reading, inference, or interpretation. Permitted and valuable, but it MUST open with EXACTLY ONE of these four CLOSED-SET label tokens, used character-for-character (the validator exact-matches them):
+- **ANALYSIS** — your reading, inference, or interpretation. Permitted and valuable, but it MUST open with EXACTLY ONE of these three CLOSED-SET label tokens, used character-for-character (the validator exact-matches them; the ONE vocabulary home is src/lib/agent/analysis-labels.mjs — the former 4th token was retired by the C2 stop-emitting ruling, 2026-07-11):
 
-    *Per the workspace's reading:*
     *Analytical inference:*
     *Industry interpretation:*
     *Operational implication:*
