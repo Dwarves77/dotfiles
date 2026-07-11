@@ -196,4 +196,22 @@ construction); master P3.
 DEPENDENCY NOTE for the orchestrator: 182 → 183 order is HARD. Apply 182, verify the 3 policies point
 at profiles, then apply 183. Applying 183 first breaks the moderation/promotions read+update gates.
 
+## e7 — ingestion_state + ingestion_control_log — EXPORT SCRIPT + DROP MIGRATION AUTHORED (NOT APPLIED)
+
+Frozen contradictory zero-consumer pair (1,483 rows: ingestion_state 774, ingestion_control_log 709).
+- Export script: `fsi-app/scripts/_wave-alpha/export-ingestion-pair.mjs` — READ-ONLY, service-role
+  SELECT + local JSONL write. Per the PUBLIC-repo scope correction it writes to a LOCAL out-dir
+  (`--out`, or `$WAVE_ALPHA_OUT`, default gitignored `scripts/tmp/_wave-alpha-ingestion-pair-2026-07-11`),
+  NOT docs/archive. Emits ingestion_state.jsonl + ingestion_control_log.jsonl + manifest.json
+  (rows + columns + byte size per file). **Orchestrator runs it BEFORE applying 184, then relocates the
+  output to the PRIVATE repo Dwarves77/caros-ledge-backups under archives/ingestion-pair-2026-07-11/.**
+  Syntax-checked (node --check); no hardcoded home paths.
+- Drop migration: **184** `184_drop_ingestion_pair.sql` (author-only) drops both tables.
+  Rollback `184_drop_ingestion_pair.down.sql` recreates the schema (tables/indexes/RLS/policies from
+  mig 058/059 live defs); DATA restore = re-import the archived JSONL from the private snapshot.
+
+Fresh confirmation: zero src consumers (live pause reads system_state + sources.processing_paused;
+auto-run on sources.auto_run_enabled); no inbound FK; no triggers. Discharges DB-3 F5 / DB-4 F4c;
+master P3. ORCHESTRATOR PRECONDITION: export + relocate BEFORE apply.
+
 <!-- Sections below appended per wave -->
