@@ -38,6 +38,9 @@ import { fitnessFunction as F17 } from './functions/F17-size-cap-doctrine.mjs';
 // normalizer class (bare scheme-strip / whole query-drop = the deleted intake `_normUrl` that produced the
 // D1 EUR-Lex false-dedup). URL identity lives ONLY in canonicalizeUrl. Maps to invariant RD-13.
 import { fitnessFunction as F18 } from './functions/F18-one-url-canonicalizer.mjs';
+// No service→anon downgrade (2026-07-12, dead-code Ruling 2 C1): F19 forbids the `SUPABASE_SERVICE_ROLE_KEY ||
+// …ANON_KEY` fail-open pattern anywhere in src (the coverage-gaps.ts live defect). Maps to invariant RD-15.
+import { fitnessFunction as F19 } from './functions/F19-no-service-anon-downgrade.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -53,6 +56,7 @@ export const fitnessFunctions = [
   F16,
   F17,
   F18,
+  F19,
 ];
 
 export function getFunctionById(id) {

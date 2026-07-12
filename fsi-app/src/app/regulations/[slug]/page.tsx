@@ -30,7 +30,8 @@ const UUID_RE =
 
 // Note: previous `export const revalidate = 60` was a no-op —
 // fetchIntelligenceItem doesn't read cookies, but the lookup query path
-// below uses createClient with anon key. Keeping the page dynamic for
+// below uses createClient with the SERVICE-ROLE key (fail-closed, C1 —
+// never the anon key). Keeping the page dynamic for
 // honesty; ISR refactor tracked in docs/PERF-WAVE-2.md.
 
 export default async function RegulationDetailPage({
@@ -61,14 +62,12 @@ export default async function RegulationDetailPage({
   if (
     UUID_RE.test(id) &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    (process.env.SUPABASE_SERVICE_ROLE_KEY)
   ) {
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY ||
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { persistSession: false } }
       );
       const { data: byId } = await supabase
@@ -116,8 +115,7 @@ export default async function RegulationDetailPage({
   if (
     relatedIds.length > 0 &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    (process.env.SUPABASE_SERVICE_ROLE_KEY)
   ) {
     try {
       // Service-role for the related-items lookup — same RLS reasoning as
@@ -125,8 +123,7 @@ export default async function RegulationDetailPage({
       // returns title + priority, no sensitive fields.
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY ||
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { persistSession: false } }
       );
       const uuidRe =
