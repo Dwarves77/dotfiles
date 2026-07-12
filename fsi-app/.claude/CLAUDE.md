@@ -163,7 +163,7 @@ This applies to every accordion in the app: regulations grouped by topic, operat
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
 - Supabase (PostgreSQL) — live. Applied-migration count is STATE — see `docs/inventories/migrations.md` and `supabase/migrations/`.
 - Zustand stores (resourceStore, navigationStore, settingsStore, exportStore, sourceStore)
-- lucide-react icons, GSAP available
+- lucide-react icons (GSAP removed 2026-07-12 — 0 imports; re-add if an animation need appears)
 
 ## Perf Work Discipline (in force from 2026-05-06)
 
