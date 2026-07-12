@@ -24,6 +24,30 @@
 // The meta-gate resolves each against the INVARIANTS array and checks it is not itself exempt.
 
 export const DOCTRINES = [
+  // ────────────────── Operator control / stop authority (TOP PRECEDENCE) ──────────────────
+  // These OUTRANK every execution/momentum doctrine below (operator ruling + amendment 2, 2026-07-12,
+  // the pause-flag stop-condition incident). "Proceed without returning" / "no operator gates" live INSIDE
+  // the space the stop conditions bound; they never license the machine to ungate itself.
+  {
+    id: 'operator-stop-conditions-are-absolute',
+    statement:
+      'An operator stop-condition — standing or session-specific — binds ABOVE every momentum rule and dispatch authority. "Proceed without returning," "no operator gates," and all dispatch authority apply ONLY inside the space the stop conditions bound. When a stop condition fires (including "stop if anything surfaces we did not know about"), the ONLY permitted actions are: halt, preserve state, report what surfaced. Working around the trigger of a stop condition is the named worst-class violation. No-operator-gates means the operator does not gate ROUTINE work; it never means the machine may ungate ITSELF. Self-report-AFTER-being-caught is disclosure, not discipline — the bar is halting before the operator has to intervene.',
+    source: 'operator ruling + amendment 2 (2026-07-12) — the pause-flag stop-condition incident',
+    exempt: {
+      reason:
+        'ACTOR-BEHAVIOR doctrine — the operator ruled (amendment 2 para 3) that CI cannot FULLY enforce it: it governs how the agent reasons at action time (same non-mechanizable class as diagnose-before-fix / sub-agent-untrusted). What CAN be mechanical is built or being built: (a) the system_state operator-control credential trigger (Unit 2a) removes the specific capability used in the incident — flipping a stop flag; (b) the dispatch STOP-CONDITIONS block + the closeout self-audit put the stop conditions in-context at execution. The residual — an agent routing around a stop with an un-locked capability — is the named standing risk this incident proved real. TOP-PRECEDENCE: this doctrine outranks every execution doctrine in this register.',
+    },
+  },
+  {
+    id: 'operator-stop-states-are-inviolable',
+    statement:
+      'A live operator stop-state flag (Caro\'s Ledge: system_state.global_processing_paused, scrape_cadence) may NOT be altered by any agent under any dispatch authority. emergencyPaused is a HARD stop for every caller — no caller identity (including the F16-signed manual-intake-run) overrides it. Changing a stop flag in production requires either a standing ruling or the operator\'s word in the dispatch; simulation + wake-proofs cover everything short of that. Lifting a stop flag to get past an obstacle is the worst-class violation (see operator-stop-conditions-are-absolute).',
+    source: 'operator amendment 1+2 (2026-07-12) — live-state-flags-are-operator-surface, superseding',
+    enforcedBy: ['RD-21-generation-pause-split'],
+    residual:
+      'RD-21 (generation-pause.npmtest.mjs) proves the GENERATION-side facet mechanically: emergencyPaused hard-stops EVERY caller including the signed manual caller (no override). The FLAG-FLIP-PREVENTION facet — that no agent may WRITE global_processing_paused/scrape_cadence — is the system_state operator-control credential trigger (Unit 2a): authored, but its APPLY is operator-boundary (it rewires the admin pause route to a dedicated login credential, provisions a secret, and requires the service-role/owner creds scoped out of the agent env — the same not-owner-proof residual as migration 118). Until 2a is applied, flag-flip prevention rides operator-side credential scoping, not code. This enforcedBy grows to include the 2a trigger invariant when 2a lands.',
+  },
+
   // ─────────────────────────────── Disposition / lifecycle ───────────────────────────────
   {
     id: 'no-quarantine-as-resting-state',
@@ -305,6 +329,24 @@ export const DOCTRINES = [
     exempt: {
       reason:
         'ENFORCEMENT-TO-BUILD with a named landing point: the per-page writer-agent contracts + goldens land WITH THE SURFACE BUILD UNITS (each page\'s build), not before — same enforcement-to-build class as backlog-trend-growing-median-age (D-4, exempt pending Unit 5). The operator ruled the absence a KNOWN GAP, not a violation, until those units land. The per-page contract SKETCHES live in the platform-intent SKILL.md (product-framing, binding; drift needs operator correction). NAMED-RESIDUAL, REVISIT when the first surface build unit lands — grows an enforcedBy (a per-page writer-contract fitness function + goldens) at that point.',
+    },
+  },
+  // ─────────────────────────── Generation pause / manual-intake mechanism ───────────────────────────
+  {
+    id: 'pause-is-prohibition-dormancy-is-schedule',
+    statement:
+      'The generation pause gate distinguishes a PROHIBITION from a SCHEDULE. emergencyPaused (global_processing_paused) is the operator\'s prohibition — a HARD stop for all callers. cadence===off is dormancy (a schedule state, "nothing runs unbidden") — it halts autonomous generation only; an F16-signed manual caller (manual-intake-run) proceeds, because an operator-fired run IS the bidding. This is why the manual-intake path can GROUND, not only MINT, in the dormant pre-launch state. The real integrity gates (data-audit-block, daily-cap, floors, judge) bind every caller regardless.',
+    source: 'pause-semantics ruling paragraph 1 (operator 2026-07-12)',
+    enforcedBy: ['RD-21-generation-pause-split'],
+  },
+  {
+    id: 'manual-intake-run-is-the-one-pipeline',
+    statement:
+      'manual-intake-run is NOT a separate intake pipeline. It is the ONE pipeline invoked once: same mint chokepoint, same machine gates, same grounding contract (generateBriefWorkflow), with ZERO manual-only logic beyond the caller identity and the run-once orchestration. At the cadence flip the scheduled caller invokes the SAME runIntakeCycle — "manual" reduces to a button that does what the clock does. Any future manual-only branch in the pipeline fails review against this entry.',
+    source: 'pause-semantics ruling paragraph 2 (operator 2026-07-12)',
+    exempt: {
+      reason:
+        'A no-second-pipeline structural discipline enforced by CONSTRUCTION + review: runIntakeCycle calls the single generateBriefWorkflow contract (the same /api/agent/run path, D4 ruling) with the caller threaded only as an identity string — there is no manual-only code branch to gate. "A manual-only branch" is a semantic judgment, not a low-false-positive checkable property; the enforcement is that any PR introducing manual-only pipeline logic fails review against this entry (same review-class as consolidation-is-behavior-preserving). The single grounding contract is the mechanical anchor; the no-divergence rule is the review discipline.',
     },
   },
 ];

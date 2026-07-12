@@ -660,6 +660,15 @@ export const INVARIANTS = [
     enforcedBy: ['audit:fsi-app/scripts/verify/staged-transit-audit.mjs'],
     residual: 'staged-transit-audit.mjs (CI-with-secrets / ops lane, DB creds) is the live-data truth-teller: it classifies every staged row against the REPAIRED lifecycle (migration 034 materialization_error/materialized_at + Wave-α approve-idempotency + reviewer_notes) into resolved (materialized / rejected-with-reason / routed-to-flag) vs transit (pending / approved-unmaterialized), and fails the lane on any transit row past the 72h max-age not routed to a flag. The meta-gate proves the file is git-tracked + skill-cited in the secret-less pre-push. SEQUENCING (honest): while the human-approval materialization path is still live (until the run-one-cycle orchestration removes it, Unit 0c), the live run can show a real transit backlog — the audit surfacing what the transit-only model eliminates (flag-rate is not defect-rate), driven to zero by U0c/U1; it never blocks the required pre-push. Whether a rejected row\'s reason is genuinely adequate is remediation judgment (RD-1), not mechanized (a reasonless rejected row is a reported soft finding).',
   },
+  {
+    id: 'RD-21-generation-pause-split',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 15: The generation pause split (pause is prohibition, dormancy is schedule)',
+    text: 'Generation pause is SPLIT by a single pure primitive evaluateGenerationPause(scrape, caller): emergencyPaused (global_processing_paused) is a HARD stop for EVERY caller (the operator stop is inviolable, no caller identity overrides it); cadence===off is DORMANT and halts AUTONOMOUS generation only — an F16-signed manual caller (manual-intake-run) proceeds. The fetch gate isGloballyPaused is unchanged; downstream integrity gates (data-audit-block, daily-cap, floors, judge) bind every caller. This is why the manual-intake path can GROUND (not only MINT) in the dormant pre-launch state.',
+    anchor: 'The generation pause split (pause is prohibition, dormancy is schedule)',
+    enforcedBy: ['selftest:fsi-app/src/lib/api/generation-pause.npmtest.mjs'],
+    residual: 'generation-pause.npmtest.mjs proves the split red-then-green (7/7): the signed manual caller PASSES cadence-off (dormancy is a schedule), and is BLOCKED under emergencyPaused (the operator stop is inviolable — no caller identity overrides it); autonomous/unsigned callers stay gated by cadence-off; everyone runs when a cadence is set and no emergency. The STOP-FLAG-INVIOLABILITY half — that no agent may ALTER global_processing_paused/scrape_cadence — is a SEPARATE mechanical leg: the system_state operator-control credential trigger (Unit 2a, authored; apply is operator-boundary because it rewires the admin pause route to a dedicated credential and provisions a login secret, and is not owner-proof — the same residual shape as migration 118 provenance binding). Until 2a is applied, flag-flip prevention rides operator-side credential scoping, not code.',
+  },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
   {
