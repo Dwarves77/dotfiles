@@ -16,6 +16,19 @@ const pooler = readFileSync(resolve(ROOT, "supabase/.temp/pooler-url"), "utf8").
 const CONN = pooler.replace(`postgres.${ref}@`, `postgres.${ref}:${encodeURIComponent(process.env.SUPABASE_DB_PASSWORD)}@`);
 const EXECUTE = process.argv.includes("--execute") && process.argv.includes("--confirm");
 
+// ⛔ SUPERSEDED / DIVERGENT (C4, 2026-07-12). The SLD algorithm below MIS-GROUPS super-domain subdomains
+// (europa.eu collapsed 17-way incl. eur-lex T1; ca.gov/ny.gov/wa.gov/nc.gov/ct.gov state-gov) versus the
+// canonical hostInstitution (src/lib/sources/institution.ts, TWO_LEVEL set). Its live output was CORRECTED
+// in-place (snapshot institution_regroup_snapshot_20260712; docs/audits/institution-etld1-retro-check-2026-07-12.md).
+// Re-running would RE-CORRUPT. Hard-gated until registrableDomain() is pointed at the canonical hostInstitution.
+if (EXECUTE) {
+  throw new Error(
+    "source-institution-backfill.mjs is DIVERGENT (C4): its SLD grouping mis-merges super-domain subdomains " +
+      "(europa.eu/ca.gov/...). Point registrableDomain() at the canonical hostInstitution before --execute. " +
+      "See docs/audits/institution-etld1-retro-check-2026-07-12.md"
+  );
+}
+
 // registrable domain (eTLD+1) with a curated multi-part ccTLD second-level set so e.g.
 // mpa.gov.sg -> mpa.gov.sg (MPA), meti.go.jp -> meti.go.jp (METI), *.unctad.org -> unctad.org.
 const SLD = new Set(["gov","ac","co","com","org","net","edu","go","ne","or","re","nic","govt","gob","gc","asn","id","res","lg","nhs","mil","sch","parliament"]);

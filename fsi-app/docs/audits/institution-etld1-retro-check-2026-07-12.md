@@ -49,3 +49,27 @@ any future consumer and is corrected before one is built.
    into its 17, canada.ca into 2; null the CDN-host institutions). Guarded data-op: dry-run → per-row read-back
    → execute; reversible (institution_id nullable). Zero-spend (no fetch/Sonnet).
 4. Gate + log; runs before Unit 1 (T10) wires anything that could read institution grouping.
+
+## CORRECTION EXECUTED — 2026-07-12 (guarded, verified)
+
+Data-layer change (durable on execution, not PR merge — per code-vs-data separation). Ran in one transaction
+against `kwrsbpiseruzbfwjpvsp`:
+
+1. **Snapshot** `institution_regroup_snapshot_20260712` = **66 rows** (source_id, old_institution_id, old_rd) —
+   the reversibility record for every re-pointed source.
+2. **Re-grouped** the 6 corrupted groups' 66 members to their canonical per-subdomain institution
+   (correct_rd = last-3-labels = `hostInstitution` for these TWO_LEVEL suffixes; dry-run verified the flip):
+   europa.eu → eur-lex.europa.eu / ec.europa.eu / eea.europa.eu / esma.europa.eu / emsa.europa.eu / … (17
+   distinct); ca.gov → calepa.ca.gov / arb.ca.gov / legislature.ca.gov / …; likewise ny/wa/nc/ct.gov.
+3. **Deleted** the 6 now-orphaned corrupted institutions (europa.eu, ca.gov, ny.gov, wa.gov, nc.gov, ct.gov).
+4. **Verified:** `multi_tier_institutions_after = 0`; eur-lex.europa.eu resolves to its own institution.
+
+**Reversal:** `UPDATE sources s SET institution_id = k.old_institution_id FROM institution_regroup_snapshot_20260712 k WHERE s.id = k.source_id;` then restore the 6 institutions from the audit.
+
+**Residual (not in the 6, single-tier — separate defect):** the CDN-host institutions `amazonaws.com`→"Smart
+Freight Centre", `windows.net`→"International Energy Agency" are a SOURCE-URL issue (the source points at the
+cloud host, not the org's canonical domain). Tracked for the source-URL correction pass, not this grouping fix.
+
+**Tool fix (residual):** `scripts/source-institution-backfill.mjs` still carries the divergent SLD algorithm —
+must be pointed at the canonical `hostInstitution` (or retired) before any re-run, else it re-corrupts. Marked
+in-file; consolidation rides the C3/C4 hygiene pass.
