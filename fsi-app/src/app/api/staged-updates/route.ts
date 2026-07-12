@@ -4,8 +4,7 @@ import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { APP_DATA_TAG } from "@/lib/data";
-import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
-import { mintIntelligenceItem } from "@/lib/intake/mint-item";
+import { applyStagedUpdate } from "@/lib/intake/apply-staged-update";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { start } from "workflow/api";
@@ -206,7 +205,7 @@ export async function POST(request: NextRequest) {
     // intel item, no error column, no recovery path. That bug produced
     // the 24 orphans this migration is unblocking.
 
-    const materializeResult = await applyUpdate(supabase, update);
+    const materializeResult = await applyStagedUpdate(supabase, update);
 
     const reviewedAt = new Date().toISOString();
     const baseFields: Record<string, unknown> = {
@@ -341,145 +340,5 @@ export async function POST(request: NextRequest) {
     );
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
-  }
-}
-
-/**
- * applyUpdate — perform the side-effect implied by an approved staged_update.
- *
- * Returns { success: true, itemId? } on success. itemId is populated only for
- * `new_item` (the new intelligence_items.id). On failure returns
- * { success: false, error } with a string reason.
- *
- * IMPORTANT: this must NEVER throw. All error paths return structured failure
- * so the caller can record materialization_error.
- */
-async function applyUpdate(
-  supabase: any,
-  update: any
-): Promise<{ success: boolean; error?: string; itemId?: string }> {
-  try {
-    switch (update.update_type) {
-      case "new_item": {
-        // Strip fields that don't exist on intelligence_items table.
-        // (key_deadlines, source_name lived on legacy resources — they
-        // are noise on intel items and would error the insert.)
-        const proposed = update.proposed_changes ?? {};
-        if (typeof proposed !== "object") {
-          return { success: false, error: "proposed_changes is not an object" };
-        }
-        const {
-          key_deadlines: _kd,
-          source_name: _sn,
-          // S2-07 defense-in-depth: legacy scan rows staged 3 PHANTOM keys (not
-          // intelligence_items columns) — strip them so old pending rows materialize
-          // instead of erroring the mint. New scan rows no longer stage them.
-          penalty_range: _pr,
-          cost_mechanism: _cm,
-          authority_level: _al,
-          ...insertData
-        } = proposed;
-
-        // ENTITY GATE (source != item): a root / landing source_url is the portal homepage —
-        // a SOURCE, not an item. Do NOT materialize it as an intelligence_item even on approve.
-        if (typeof insertData.source_url === "string" && urlIsRoot(insertData.source_url)) {
-          return {
-            success: false,
-            error: `entity-gate: ${insertData.source_url} is a portal root URL — a source, not an item; not materialized`,
-          };
-        }
-
-        // Leakage fix defense-in-depth 2026-05-23 (B4 per
-        // caros-ledge-platform-intent REC-OBS-G): warn (do not reject)
-        // when the proposed item_type / domain pair matches the old
-        // hardcoded-domain bug pattern (item_type is unambiguously
-        // non-regulation but domain=1). Catches future routes that bypass
-        // the classifier and re-introduce the leakage class. Warn-only
-        // because some legitimate edge cases may exist; do not throw.
-        const _itemType = (insertData as { item_type?: unknown }).item_type;
-        const _domain = (insertData as { domain?: unknown }).domain;
-        const NON_REG_TYPES = new Set([
-          "market_signal",
-          "research_finding",
-          "regional_data",
-          "technology",
-          "innovation",
-        ]);
-        if (
-          _domain === 1 &&
-          typeof _itemType === "string" &&
-          NON_REG_TYPES.has(_itemType)
-        ) {
-          console.warn(
-            `[staged-updates] suspicious insert: item_type=${_itemType} but domain=1; possible bypass of classifier (staged_update_id=${update.id})`
-          );
-        }
-
-        // ── phase-intake-gate — the mint chokepoint owns congruence (1a/1b) + subject-existence dedup +
-        //    the Fork-4 relevance surface + legacy_id/source_url idempotency + the single INSERT. Path B no
-        //    longer performs its own INSERT (mirrors Path A / drain-first-fetch). See src/lib/intake/mint-item.ts.
-        const res = await mintIntelligenceItem(supabase, {
-          seed: insertData,
-          legacyId: (insertData as { legacy_id?: string | null }).legacy_id ?? null,
-          relevance: (insertData as { relevance?: number | null }).relevance ?? null,
-          origin: "staged_materialization",
-        });
-        if (!res.ok) return { success: false, error: res.error };
-        return { success: true, itemId: res.itemId };
-      }
-      case "update_item": {
-        if (!update.item_id)
-          return { success: false, error: "No item_id for update" };
-        const { error } = await supabase
-          .from("intelligence_items")
-          .update(update.proposed_changes ?? {})
-          .eq("id", update.item_id);
-        if (error) return { success: false, error: error.message };
-        return { success: true, itemId: update.item_id };
-      }
-      case "status_change": {
-        if (!update.item_id)
-          return { success: false, error: "No item_id for status change" };
-        const newStatus = update.proposed_changes?.status;
-        if (!newStatus)
-          return { success: false, error: "proposed_changes.status missing" };
-        const { error } = await supabase
-          .from("intelligence_items")
-          .update({ status: newStatus })
-          .eq("id", update.item_id);
-        if (error) return { success: false, error: error.message };
-        return { success: true, itemId: update.item_id };
-      }
-      case "new_source": {
-        const { error } = await supabase
-          .from("sources")
-          .insert(update.proposed_changes ?? {});
-        if (error) return { success: false, error: error.message };
-        return { success: true };
-      }
-      case "archive_item": {
-        if (!update.item_id)
-          return { success: false, error: "No item_id for archive" };
-        const proposed = update.proposed_changes ?? {};
-        const { error } = await supabase
-          .from("intelligence_items")
-          .update({
-            is_archived: true,
-            archive_reason: proposed.archive_reason || "Manual",
-            archive_note: proposed.archive_note || "",
-            archived_date: new Date().toISOString().slice(0, 10),
-          })
-          .eq("id", update.item_id);
-        if (error) return { success: false, error: error.message };
-        return { success: true, itemId: update.item_id };
-      }
-      default:
-        return {
-          success: false,
-          error: `Unknown update type: ${update.update_type}`,
-        };
-    }
-  } catch (e: any) {
-    return { success: false, error: e?.message || String(e) };
   }
 }

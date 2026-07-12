@@ -140,13 +140,12 @@ test("ALL_DOMAINS is the 1-7 set", () => {
 // ─────────────────────────────────────────────────────────────────────
 // 4. Drain seedRow contract simulation
 //
-// Inline mirrors the seedRow shape from
-// fsi-app/src/app/api/worker/drain-first-fetch/route.ts lines 273-302.
-// The mirror lives here so the test runs without bundling Next.js
-// (the real route imports @supabase/supabase-js + Next request types
-// which cannot be loaded under node:test directly). Any drift between
-// the route's seedRow assembly and this mirror is caught by
-// the F9 tsc gate AND by manual code-review on changes to either file.
+// HISTORICAL (route RETIRED 2026-07-12): this inline mirrored the seedRow shape from the drain-first-fetch
+// worker (seedStubIntelligenceItem), Path A of intake. That path was retired (Option-A-with-migration ruling)
+// and seed-parity DISSOLVED — the live seed is now assembled once at applyStagedUpdate → mintIntelligenceItem.
+// The section is KEPT because it still proves the classifier LEAKAGE-FIX contract (item_type/domain congruence
+// at seed assembly) the mint chokepoint enforces; it no longer tracks a live file, so treat it as a
+// contract-shape test, not a drift mirror.
 // ─────────────────────────────────────────────────────────────────────
 
 function buildSeedRow({ source, enrichment }) {
