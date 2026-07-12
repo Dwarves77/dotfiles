@@ -669,6 +669,20 @@ export const INVARIANTS = [
     enforcedBy: ['selftest:fsi-app/src/lib/api/generation-pause.npmtest.mjs'],
     residual: 'generation-pause.npmtest.mjs proves the split red-then-green (7/7): the signed manual caller PASSES cadence-off (dormancy is a schedule), and is BLOCKED under emergencyPaused (the operator stop is inviolable — no caller identity overrides it); autonomous/unsigned callers stay gated by cadence-off; everyone runs when a cadence is set and no emergency. The STOP-FLAG-INVIOLABILITY half — that no agent may ALTER global_processing_paused/scrape_cadence — is a SEPARATE mechanical leg: the system_state operator-control credential trigger (Unit 2a, authored; apply is operator-boundary because it rewires the admin pause route to a dedicated credential and provisions a login secret, and is not owner-proof — the same residual shape as migration 118 provenance binding). Until 2a is applied, flag-flip prevention rides operator-side credential scoping, not code.',
   },
+  {
+    id: 'RD-22-mint-source-link',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 16: The source-link mint invariant (a mint cannot produce a source-less LIVE item)',
+    text: 'A mint cannot produce a source-less LIVE intelligence_items row: grounding grounds a brief against the item source, so a source_id=NULL item can never verify. Enforced at the ONE mint home (mint-item.ts sourceLinkDecision): a preset source_id is trusted, an unresolved source_url is REJECTED-with-reason (register first, no silent orphan, no auto-registration), a registry read error fails closed. Companion (Fix B): a STRUCTURAL ground-failure class (no source_id) routes STRAIGHT to held-for-re-source, skipping the futile re-ground/re-research passes, and the erase step is relabeled honestly (brief-nulled-held, never archived).',
+    anchor: 'The source-link mint invariant (a mint cannot produce a source-less LIVE item)',
+    enforcedBy: [
+      'audit:fsi-app/scripts/verify/source-link-audit.mjs',
+      'selftest:fsi-app/src/lib/intake/mint-source-link.npmtest.mjs',
+      'selftest:fsi-app/src/lib/intake/source-link-invariant.test.mjs',
+      'selftest:fsi-app/src/lib/agent/ground-failure-class.test.mjs',
+    ],
+    residual: 'The CHOKEPOINT gate is proven red-then-green in mint-source-link.npmtest.mjs (a registered source LINKS + inserts; an unregistered url REJECTS action=unsourced, no insert) — it forecloses new source-less LIVE mints for ALL callers of the single mint home. source-link-audit.mjs (live-data, CI-with-secrets lane) is the belt: it fails on any source-less LIVE row NOT in the documented pre-cutover grandfather (source-link-invariant.mjs GRANDFATHERED_SOURCELESS = the two 2026-07-12 T9 orphans, whose re-sourcing is Unit 3; the list should only ever shrink). The Fix-B structural routing is proven in ground-failure-class.test.mjs (no source_id -> structural_hold = zero re-research). NAMED RESIDUAL: the scan path only attaches a source_id when the url ALREADY matches a registered sources row, so an unregistered-url candidate now REJECTS on both paths (register the source first) — the intended tightening. Auto-registration of the institution as a source at mint is deliberately NOT built under this unit.',
+  },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
   {

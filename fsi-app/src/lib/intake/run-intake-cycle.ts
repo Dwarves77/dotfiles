@@ -156,7 +156,8 @@ export async function runIntakeCycle(
       items.push({ ...base, disposition: "verified", itemId, provenance, evidence });
     } else {
       // research-or-erase: a non-verified item stays quarantined with the workflow's terminal status
-      // (generate_failed / section_failed / reresearch_failed_erased / audit_gate_failed_quarantined), NOT parked.
+      // (generate_failed / section_failed / reresearch_failed_held / structural_held_for_resource /
+      // audit_gate_failed_quarantined), NOT parked.
       groundFailed++;
       items.push({ ...base, disposition: "ground_failed", itemId, provenance, reason: `${wf.status}: ${step("ground") || step("section") || step("generate")}`, evidence });
     }

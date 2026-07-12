@@ -32,6 +32,7 @@ function safeStepMetadata(): { attempt?: number } | null {
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 import { getScrapeState, evaluateGenerationPause } from "../lib/api/pause";
+import { groundRetryPlan } from "../lib/agent/ground-failure-class.mjs";
 import {
   generateBrief,
   generateBriefFromStored,
@@ -293,10 +294,17 @@ export async function reresearchStep(itemId: string, caller: string | null = nul
   return r;
 }
 
-// research-or-erase: re-research ALSO failed grounding -> content is ungroundable/fabricated. Erase it
-// (null full_brief + drop sections) so no failure content persists as customer-facing; the item stays
-// quarantined with an erase note. Never leaves a fabricated brief sitting as content.
-export async function eraseStep(itemId: string): Promise<{ erased: boolean }> {
+// BRIEF-NULLED-HELD (Fix B erase-honesty relabel, 2026-07-12). The prior name "erase" LIED: this step
+// nulls the ungroundable brief body (+ drops its sections/claims/timelines) and HOLDS the item quarantined
+// for re-source — it NEVER archives or removes the row (no is_archived / provenance_status / archive_reason
+// write). "success" here means "the brief was nulled and the item held", not "the item was erased". It runs in
+// two cases, distinguished by `kind`: a generic re-research-failed grounding, or a STRUCTURAL wall (no source
+// link) that skipped the retries. The kind selects the honest integrity flag. Returns the ACTUAL disposition
+// so no caller can infer removal from a success status.
+export async function eraseStep(
+  itemId: string,
+  kind: "reresearch_failed" | "structural_no_source" = "reresearch_failed"
+): Promise<{ briefNulled: boolean; held: true; kind: string }> {
   "use step";
   const sb = svc();
   await sb.from("intelligence_items").update({ full_brief: null, updated_at: new Date().toISOString() }).eq("id", itemId);
@@ -315,15 +323,22 @@ export async function eraseStep(itemId: string): Promise<{ erased: boolean }> {
   // overwrote the re-fetch/register action payloads written by cited-host-gate / error-body-gate / null-tier /
   // truncation-guard flags (destroying the operator queue's real next-actions). Instead INSERT ONE distinct
   // erase-owned flag; the other producers' flags keep their payloads intact.
+  const flag = kind === "structural_no_source"
+    ? {
+        category: "source_issue", created_by: "source-link-repair",
+        description: `Brief nulled, item HELD quarantined for re-source: grounding hit a STRUCTURAL wall (no linked source — the item cannot ground until a source is registered/linked). Not re-researched (widening the pool cannot conjure a source link).`,
+        recommended_actions: [{ action: "register_and_link_source", rationale: "the item has no source_id; register the source_url in the sources registry and link it, then re-ground (source-link repair)" }],
+      }
+    : {
+        category: "data_quality", created_by: "research-or-erase",
+        description: `Brief nulled, item HELD quarantined for re-source: re-research failed grounding twice; ungroundable/fabricated content removed. Item stays quarantined pending re-source at hold-lift.`,
+        recommended_actions: [{ action: "brief_nulled_held", rationale: "re-research failed grounding twice; ungroundable/fabricated content removed; item held for re-source" }],
+      };
   try {
-    await sb.from("integrity_flags").insert({
-      category: "data_quality", subject_type: "item", subject_ref: itemId, status: "open", created_by: "research-or-erase",
-      description: `Full brief erased: re-research failed grounding twice; ungroundable/fabricated content removed. Item stays quarantined pending re-source at hold-lift.`,
-      recommended_actions: [{ action: "erased_full_brief", rationale: "re-research failed grounding twice; ungroundable/fabricated content removed" }],
-    });
-  } catch { /* best-effort note; the erase itself is the hard effect */ }
-  await recordRun(sb, itemId, "erase", 0, true, "research-or-erase: nulled ungroundable brief").catch(() => {});
-  return { erased: true };
+    await sb.from("integrity_flags").insert({ subject_type: "item", subject_ref: itemId, status: "open", ...flag });
+  } catch { /* best-effort note; the brief-null + hold is the hard effect */ }
+  await recordRun(sb, itemId, "brief-nulled-held", 0, true, `brief-nulled-held (${kind}): nulled ungroundable brief, item held quarantined for re-source`).catch(() => {});
+  return { briefNulled: true, held: true, kind };
 }
 
 // Task 1.14: span-check fetch step (Component 7) — RESERVED tested utility, not in
@@ -365,19 +380,10 @@ export interface GenerateBriefResult {
   steps: Partial<Record<"budget" | "auditBaseline" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "auditGate" | "reresearch" | "erase", unknown>>;
 }
 
-// A DETERMINISTIC ground failure lives in the BRIEF CONTENT (a stray/off-pool URL, a missing required
-// slot, an unlabeled/mislabeled assertion, a below-authority-floor source) — re-grounding the SAME brief
-// re-extracts and hits the IDENTICAL failure, so the cheap re-ground is guaranteed waste (one Sonnet
-// call + minutes, every such item). Only a failure NOT in this set could be a stochastic ledger-extraction
-// slip a re-roll recovers. Reason text comes from groundBrief's detail ("validation failed: [{reason:…}]").
-const DETERMINISTIC_GROUND_FAILURES = [
-  "ungrounded_url", "missing_required_slot", "fact_below_authority_floor",
-  "analysis_missing_label_syntax", "unlabeled_assertion", "legal_not_routed_to_callout",
-];
-function isDeterministicGroundFailure(detail: string | undefined): boolean {
-  const d = detail || "";
-  return DETERMINISTIC_GROUND_FAILURES.some((r) => d.includes(r));
-}
+// Ground-failure classification (deterministic / structural) + the retry plan live in the PURE, depless
+// module ground-failure-class.mjs (Fix B, RD-22) so the golden proves them without the WDK import chain.
+// The ladder below consumes groundRetryPlan: "structural_hold" (skip re-ground AND re-research — a source-less
+// wall) | "reresearch_only" (deterministic brief-content flaw) | "reground" (transient — try the cheap re-roll).
 
 export async function generateBriefWorkflow(itemId: string, refresh = false, caller: string | null = null): Promise<GenerateBriefResult> {
   "use workflow";
@@ -408,22 +414,28 @@ export async function generateBriefWorkflow(itemId: string, refresh = false, cal
 
   let ground = await groundStep(itemId, caller);
   if (!ground.ok) {
-    // B3 TIERED RETRY, REASON-AWARE (cost fix 2026-06-21). The cheap re-ground re-rolls the stochastic
-    // ledger extraction and recovers an item whose FIRST roll slipped a label or cited an off-pool URL
-    // (proven: g7 verified on its 2nd ground). BUT a DETERMINISTIC brief-content failure (the flaw is in
-    // the brief, not the extraction) re-fails IDENTICALLY on a re-ground — so that middle call is pure
-    // waste (it fired on essentially every item, every time). Re-roll ONLY when the failure is not a known
-    // content class; otherwise skip straight to reresearch (regenerate the brief). groundBrief clears the
-    // prior non-verified ledger at its start, so a re-roll still starts clean.
-    const reground = isDeterministicGroundFailure(ground.detail) ? null : await groundStep(itemId, caller);
+    const plan = groundRetryPlan(ground.detail);
+    if (plan === "structural_hold") {
+      // STRUCTURAL wall (Fix B) — e.g. `no source_id`: re-ground AND re-research are guaranteed waste (they
+      // cannot conjure a source link). Route STRAIGHT to held-for-re-source — null the ungroundable brief,
+      // hold the item quarantined, raise a source-link repair flag. ZERO re-research calls, honest disposition.
+      const erase = await eraseStep(itemId, "structural_no_source");
+      return { itemId, status: "structural_held_for_resource", steps: { budget, auditBaseline, generate, register, section, ground, erase } };
+    }
+    // B3 TIERED RETRY, REASON-AWARE (cost fix 2026-06-21). The cheap re-ground re-rolls the stochastic ledger
+    // extraction and recovers an item whose FIRST roll slipped a label or cited an off-pool URL (proven: g7
+    // verified on its 2nd ground). A DETERMINISTIC brief-content failure re-fails IDENTICALLY, so skip straight
+    // to reresearch. groundRetryPlan encodes both (structural handled above); groundBrief clears the prior
+    // non-verified ledger at its start, so a re-roll still starts clean.
+    const reground = plan === "reground" ? await groundStep(itemId, caller) : null;
     if (reground?.ok) {
       ground = reground;
     } else {
       // research-or-erase: one re-research retry (widen the pool via web_search, re-section, re-ground).
       const reresearch = await reresearchStep(itemId, caller);
       if (!reresearch.ok) {
-        const erase = await eraseStep(itemId);
-        return { itemId, status: "reresearch_failed_erased", steps: { budget, auditBaseline, generate, register, section, ground, ...(reground ? { reground } : {}), reresearch, erase } };
+        const erase = await eraseStep(itemId, "reresearch_failed");
+        return { itemId, status: "reresearch_failed_held", steps: { budget, auditBaseline, generate, register, section, ground, ...(reground ? { reground } : {}), reresearch, erase } };
       }
       ground = reresearch; // re-research grounded successfully
     }
