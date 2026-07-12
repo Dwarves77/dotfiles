@@ -543,6 +543,26 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-13-one-url-canonicalizer',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 4: API contract gaps (URL canonicalization) — one home for URL identity',
+    text: 'URL-identity normalization (the transform that makes two URLs meaning the same resource compare equal) lives in ONE sanctioned home — canonicalizeUrl (src/lib/sources/url-canonicalize.ts). No module may re-implement it with an ad-hoc regex chain. The forbidden shapes are the two the deleted intake _normUrl used: bare scheme-strip (.replace(/^https?:\\/\\/…)) and whole query/fragment drop (.replace(/[#?]…)). The second was the D1 defect — dropping the whole query collapsed every eur-lex …?uri=CELEX:… URL to one key and false-deduped distinct EUR-Lex regs at the mint chokepoint. canonicalizeUrl PRESERVES query content (the CELEX is the identity) while folding scheme-case/www/default-port/trailing-slash/query-order/fragment.',
+    anchor: 'API contract gaps',
+    enforcedBy: ['fitness:F18', 'selftest:fsi-app/src/lib/entities/entity-resolve.test.mjs'],
+    residual: 'F18 (grep-class, red-then-green: a bare scheme-strip or a query/fragment-drop character class of {#,?} anywhere in fsi-app/src/** outside the sanctioned home is RED with file:line) gates the STRUCTURAL guarantee — the _normUrl class cannot be reintroduced. entity-resolve.test.mjs proves the BEHAVIOR red-then-green: two eur-lex legal-content URLs naming DIFFERENT CELEX do NOT dedup (query is identity), noise variants (scheme-case/www/trailing-slash/fragment) DO dedup, and the reg-number matcher does not false-positive across the pair. NAMED NON-TARGETS (deliberately not flagged, each a DIFFERENT operation): host extraction (new URL(x).host.replace(/^www./)) for registrable-domain/tier/portal resolution; canonicalizeCitationUrl (src/lib/agent/url-canon.mjs) — the SQL mig-150 mirror with its own drift guard, which also PRESERVES the query; verification.ts checkDuplicate — new URL()-structural SOURCE-registry dedup (deliberately query-dropping for portals, a distinct table + concern). The switch to canonicalizeUrl is STRICTER than _normUrl on http-vs-https (scheme kept, only case normalized) and path case (preserved); the reg_number + instrument_identifier matchers remain the PRIMARY identity signals, so the tightening removes false positives without adding false negatives of substance.',
+  },
+
+  {
+    id: 'RD-14-line-read-is-not-verification',
+    skill: 'remediation-discipline',
+    section: 'Section 3.5 — investigation discipline: a deterministic gate ships with a table-driven contract test; an audit line-read is not behavioral verification',
+    text: 'A deterministic intake gate (sourceRole/congruence, urlIsRoot, matchExistingSubject, and the mint idempotency short-circuits: source_url / legacy_id / the fail-closed read-error refusal) ships with a COMMITTED table-driven behavioral contract test over a golden URL corpus, proven red-then-green — a line-read of the gate does NOT count as verification. The named gates are enforced by their committed tests running; new deterministic gates are closeout-audited for the same coverage.',
+    anchor: 'Investigation discipline',
+    enforcedBy: ['selftest:fsi-app/src/lib/intake/intake-gates-golden.test.mjs', 'selftest:fsi-app/src/lib/intake/mint-idempotency.npmtest.mjs'],
+    residual: 'intake-gates-golden.test.mjs (depless suite) proves sourceRole/congruence (1a retype + 1b seek-study), urlIsRoot (portal roots incl. language-prefix + landing-file variants vs deep docs), and matchExistingSubject (CELEX discrimination + noise-variant equivalence + reg-# cross-match + title-sim rejection) table-driven over the committed intake-url-corpus.mjs. mint-idempotency.npmtest.mjs (jiti) proves the source_url + legacy_id short-circuits return the existing item with NO INSERT; mint-failclosed.npmtest.mjs proves the fail-closed probe/corpus read-error refusals. The meta-gate keys on these committed contract-test files existing (deleting one is RED). The "every NEW deterministic gate carries such a test" growth case is closeout-audited authoring discipline — the mechanical anchor is the named-gate committed corpus + tests.',
+  },
+
+  {
     id: 'RD-13-error-body-groundability-gate',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 12: The error-body groundability gate (never ground a FACT to a failed fetch)',

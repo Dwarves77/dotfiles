@@ -1,14 +1,16 @@
 // mintIntelligenceItem — THE shared mint chokepoint (phase-intake-gate, contract v2.2).
 //
-// Both mint paths call this and NEITHER performs its own INSERT:
-//   Path A — drain-first-fetch worker  (seedStubIntelligenceItem)   — the source-monitoring intake
-//   Path B — staged_updates materialize (applyUpdate:new_item)      — scan + community-promote
+// The mint callers go through applyStagedUpdate (new_item) and NEITHER performs its own INSERT:
+//   staged_updates materialize (human/legacy approve → applyStagedUpdate)  — scan + community-promote
+//   runIntakeCycle             (machine cycle → applyStagedUpdate)          — no-human-finish-of-intake
 //
-// The prior build placed congruence + dedup on Path B only; Path A minted directly and had neither
-// (it produced all 38 pre-gate polluters). Placement constraint (dispatch §1, binding): gate DECISIONS
-// run HERE, not in first-fetch-classify — congruence there would mirror the defect onto Path B, which
-// never touches that file. Classify layers only PRECOMPUTE the inputs (verdict, item_type, source-role,
-// relevance).
+// SEED-PARITY (D5) DISSOLVED 2026-07-12: the old Path A (the drain-first-fetch worker +
+// seedStubIntelligenceItem — the source-monitoring intake that minted directly and had neither congruence
+// nor dedup, producing all 38 pre-gate polluters) was RETIRED (Option-A-with-migration ruling). Its
+// pending_first_fetch population is re-homed to the cadence-flip wiring unit (check-sources → runIntakeCycle),
+// so ONE seed constructor remains — the seed assembled at applyStagedUpdate → mint. Placement constraint
+// (dispatch §1, binding): gate DECISIONS run HERE, not in first-fetch-classify; classify layers only
+// PRECOMPUTE the inputs (verdict, item_type, source-role, relevance).
 //
 // MOAT BOUNDARY: this writes intelligence_items (the mint — the ONE sanctioned INSERT site, enforced by
 // the single-mint-chokepoint fitness function), item_cross_references (link edges), and integrity_flags
@@ -187,14 +189,22 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan): 
       .then(() => {}, () => {});
   }
   if (lowRelevance) {
+    // D3 (ruling 2026-07-12): relevance is FAIL-OPEN by design — blocking a legitimate item on a fallible
+    // score is worse than minting + flagging. The flag is machine-routable to the disposition FLAG RESOLVER
+    // (Unit 2) under the off-domain decision rule (casino precedent: a CONFIRMED off-vertical item archives
+    // with archive_reason='off_domain' via the eligibility gate; an on-vertical item keeps). It cannot rest:
+    // the open-flag dwell invariant forbids it parking past its max-age.
     await sb
       .from("integrity_flags")
       .insert({
         category: "data_quality",
         subject_type: "item",
         subject_ref: itemId,
-        description: `Low freight-sustainability relevance (${plan.relevance}) at intake for ${sourceUrl}. Minted anyway (surface-only gate, Fork-4). Review topical fit.`,
-        recommended_actions: [{ action: "Confirm topical relevance or archive as off-vertical", rationale: "intake has no blocking relevance gate; this is the observability stub" }],
+        description: `Low freight-sustainability relevance (${plan.relevance}) at intake for ${sourceUrl}. Minted anyway (surface-only gate, Fork-4). Resolver (Unit 2): confirm on-vertical → keep; confirm off-vertical → archive off_domain via gate.`,
+        recommended_actions: [
+          { action: "keep", rationale: "confirmed on-vertical despite low score — relevance is fail-open by design" },
+          { action: "archive_off_domain", archive_reason: "off_domain", rationale: "confirmed off-vertical — archive via the eligibility gate (reversible, snapshot + cite), the casino precedent" },
+        ],
         status: "open",
         created_by: "intake-relevance",
       })

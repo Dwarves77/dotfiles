@@ -34,6 +34,10 @@ import { fitnessFunction as F16 } from './functions/F16-transport-hold-gate.mjs'
 // registered + classified (surfaced or never-binds); a new unregistered/silent cap is RED. Kills the silent-
 // slice class (the GROUND_SECTION_MAX_CHARS=12000 category-2 defect). Maps to RD-12.
 import { fitnessFunction as F17 } from './functions/F17-size-cap-doctrine.mjs';
+// One-url-canonicalizer (2026-07-12, intake-correctness Step 1.3): F18 forbids the ad-hoc URL-identity
+// normalizer class (bare scheme-strip / whole query-drop = the deleted intake `_normUrl` that produced the
+// D1 EUR-Lex false-dedup). URL identity lives ONLY in canonicalizeUrl. Maps to invariant RD-13.
+import { fitnessFunction as F18 } from './functions/F18-one-url-canonicalizer.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -48,6 +52,7 @@ export const fitnessFunctions = [
   F15,
   F16,
   F17,
+  F18,
 ];
 
 export function getFunctionById(id) {
