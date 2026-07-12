@@ -19,6 +19,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
@@ -232,12 +233,3 @@ export default async function RegulationDetailPage({
   );
 }
 
-function formatDate(d: string): string {
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
