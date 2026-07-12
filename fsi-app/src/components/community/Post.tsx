@@ -16,6 +16,7 @@
  */
 
 import { useState } from "react";
+import { formatRelativeCompact } from "@/lib/relative-time";
 import { MessageSquare, Trash2 } from "lucide-react";
 import type { CommunityPost } from "./PostComposer";
 import { ReplyComposer } from "./ReplyComposer";
@@ -205,7 +206,7 @@ export function Post({
                 color: "var(--color-text-muted, var(--color-text-secondary))",
               }}
             >
-              {formatRelative(post.created_at)}
+              {formatRelativeCompact(post.created_at)}
             </time>
           </div>
           {post.title && (
@@ -466,7 +467,7 @@ function ReplyRow({ reply }: { reply: CommunityPost }) {
               color: "var(--color-text-muted, var(--color-text-secondary))",
             }}
           >
-            {formatRelative(reply.created_at)}
+            {formatRelativeCompact(reply.created_at)}
           </time>
         </div>
         <p
@@ -547,20 +548,6 @@ function makeInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (!Number.isFinite(then)) return "";
-  const diffMs = Date.now() - then;
-  const sec = Math.round(diffMs / 1000);
-  if (sec < 60) return "just now";
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 async function safeJson<T>(res: Response): Promise<T | null> {
   try {
