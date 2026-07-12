@@ -82,12 +82,51 @@ test("DEDUP matchExistingSubject: high-precision only (instrument / url / reg-#)
   assert.deepEqual(matchExistingSubject({ instrument_identifier: "2023/1805", title: "Anything" }, CORPUS).map((m) => m.id), ["fueleu_num"]);
   // same reg-# in title → dup even without instrument set
   assert.ok(matchExistingSubject({ title: "New take on Regulation (EU) 2023/1805" }, CORPUS).some((m) => m.id === "fueleu_num"));
-  // same normalized URL → dup
-  assert.deepEqual(matchExistingSubject({ source_url: "https://x.org/doc" }, [{ id: "a", title: "A", source_url: "http://www.x.org/doc/" }]).map((m) => m.id), ["a"]);
+  // same CANONICAL URL (scheme-CASE + www + trailing-slash folded by canonicalizeUrl) → dup. NB the
+  // one-canonicalizer switch keeps http vs https DISTINCT (scheme is preserved, only its case normalized),
+  // so this variant is same-scheme; instrument_identifier + reg_number remain the primary identity signals.
+  assert.deepEqual(matchExistingSubject({ source_url: "https://x.org/doc" }, [{ id: "a", title: "A", source_url: "HTTPS://www.x.org/doc/" }]).map((m) => m.id), ["a"]);
   // TITLE-SIMILARITY ALONE is NOT a dup (the false-match the whole exercise fights)
   assert.deepEqual(matchExistingSubject({ title: "GLEC Framework air freight edition" }, CORPUS), []);
   // never self
   assert.deepEqual(matchExistingSubject({ id: "fueleu_num", instrument_identifier: "2023/1805" }, CORPUS), []);
+});
+
+// ── D1/D2 GOLDEN: one-canonicalizer dedup discrimination (intake dry-proof, 2026-07-12) ─────────────────────
+// The D1 regression: an ad-hoc _normUrl stripped the ENTIRE query ([#?].*$), collapsing every
+// eur-lex …/legal-content/EN/TXT?uri=CELEX:… URL to one key, so any new EUR-Lex reg false-deduped against the
+// first corpus item of that path shape. The class fix routes URL identity through the ONE sanctioned
+// canonicalizer (canonicalizeUrl), which PRESERVES query CONTENT (the CELEX is the identity) while folding the
+// noise variants (scheme-case / www / default-port / trailing-slash / query-ORDER / fragment). These pin the
+// discrimination red-then-green (RED under the query-stripping _normUrl; GREEN under canonicalizeUrl).
+const EURLEX_A = "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:32020R1056"; // eFTI, Regulation (EU) 2020/1056
+const EURLEX_B = "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=CELEX:52023PC0445"; // a DIFFERENT instrument, same path shape
+const CELEX_CORPUS = [
+  { id: "efti", title: "electronic Freight Transport Information (eFTI) Regulation (EU) 2020/1056", instrument_identifier: "2020/1056", source_url: EURLEX_A },
+];
+
+test("D1 GOLDEN: two EUR-Lex URLs sharing the legal-content path but naming DIFFERENT CELEX do NOT dedup (query is identity)", () => {
+  const m = matchExistingSubject({ title: "A separate 2023 instrument (COM 2023/0445-shaped)", source_url: EURLEX_B }, CELEX_CORPUS);
+  assert.deepEqual(m, [], `EURLEX_B must NOT dedup against eFTI — the CELEX in ?uri= is the identity, not the shared path. Got ${JSON.stringify(m)}`);
+});
+
+test("D1 GOLDEN: reg-number matcher does NOT false-positive across the CELEX pair (distinct numbers)", () => {
+  // eFTI is 2020/1056; the probe carries a distinct number 2023/0445 in its title. Neither source_url (different
+  // CELEX) nor reg_number (different number) may match — the whole point is high-precision identity.
+  const m = matchExistingSubject({ title: "Regulation (EU) 2023/0445 — unrelated instrument", source_url: EURLEX_B }, CELEX_CORPUS);
+  assert.deepEqual(m, [], `no source_url and no reg_number false-positive across the pair; got ${JSON.stringify(m)}`);
+});
+
+test("D1 GOLDEN: the SAME EUR-Lex instrument (identical uri=CELEX) DOES dedup on source_url", () => {
+  const m = matchExistingSubject({ title: "eFTI re-discovered (no number in title)", source_url: EURLEX_A }, CELEX_CORPUS);
+  assert.deepEqual(m.map((x) => x.id), ["efti"], "same CELEX → same canonical URL → dedup");
+  assert.equal(m[0].how, "source_url", "matched via the canonical source_url, not the reg number");
+});
+
+test("D1 GOLDEN: noise variants the canonicalizer folds (scheme-CASE, www, trailing slash, fragment, query-order) DO dedup", () => {
+  const variant = "HTTPS://WWW.eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020R1056#anchor";
+  const m = matchExistingSubject({ title: "eFTI (noisy url variant)", source_url: variant }, CELEX_CORPUS);
+  assert.deepEqual(m.map((x) => x.id), ["efti"], "scheme-case + www + trailing-slash + fragment all canonicalize equal → dedup");
 });
 
 test("bucket is mechanical: identifier/named→1 item = wire; >1 or shaped = surface", () => {

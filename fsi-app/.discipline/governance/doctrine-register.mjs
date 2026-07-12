@@ -119,6 +119,13 @@ export const DOCTRINES = [
     enforcedBy: ['RD-1-classify-before-discard'],
   },
   {
+    id: 'one-url-canonicalizer',
+    statement:
+      'URL-identity normalization lives in ONE sanctioned home — canonicalizeUrl (src/lib/sources/url-canonicalize.ts); no module re-implements it with an ad-hoc regex chain. The forbidden shapes are bare scheme-strip (.replace(/^https?://…)) and whole query/fragment drop (.replace(/[#?]…)) — the deleted intake _normUrl, whose query-drop collapsed distinct eur-lex …?uri=CELEX:… URLs to one key and false-deduped distinct regs at the mint chokepoint (D1). canonicalizeUrl PRESERVES query content while folding the noise variants; host extraction and the SQL-mirror canonicalizeCitationUrl are distinct operations, not this class.',
+    source: 'intake-correctness dispatch Step 1.3 (operator 2026-07-12) — remediation-discipline §4 cat 4 (API contract gaps: URL canonicalization)',
+    enforcedBy: ['RD-13-one-url-canonicalizer'],
+  },
+  {
     id: 'no-inference-as-fact-on-regulatory-content',
     statement:
       'No invented facts; when facts run out, stop. Analysis in a workspace-ACTION section MUST open with a recognized label; matching an entity to a regulation\'s defined role or deciding an obligation attaches is a legal determination routed to counsel, never asserted as fact.',

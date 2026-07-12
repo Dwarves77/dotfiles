@@ -4,6 +4,9 @@
 // so they can never be wired (the "same batteries?" moat, enforced by construction). Pure + dep-injected
 // (corpus passed in) — unit-tested in the depless discipline CI.
 import { RE_REGNUM, RE_CELEX, RE_STD_SHAPED, NAMED_ENTITIES } from "./canonical-entities.mjs";
+// One-url-canonicalizer doctrine (F18): URL identity for dedup routes through the SINGLE sanctioned
+// canonicalizer (../sources/url-canonicalize.ts) — no bespoke normalizer lives here.
+import { canonicalizeUrl } from "../sources/url-canonicalize.ts";
 
 const uniqBy = (arr, key) => { const m = new Map(); for (const x of arr) if (!m.has(key(x))) m.set(key(x), x); return [...m.values()]; };
 const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -70,18 +73,29 @@ export function planLinks(content, corpus, selfId) {
 
 // SUBJECT-EXISTENCE dedup (phase-intake-gate piece 2) at the mint chokepoint. HIGH-PRECISION only — a new
 // item is a duplicate of an existing one iff they share a specific IDENTITY: same instrument_identifier, same
-// normalized source_url, or the same EU reg-number in title/instrument. Title-similarity is NOT used here
+// CANONICAL source_url, or the same EU reg-number in title/instrument. Title-similarity is NOT used here
 // (it produces the false matches the whole exercise fights). Returns [{id, how}] — empty means mint.
-const _normUrl = (u) => !u ? "" : String(u).toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[#?].*$/, "").replace(/\/+$/, "");
+//
+// URL identity routes through the ONE sanctioned canonicalizer (canonicalizeUrl) — NO bespoke _normUrl
+// (one-url-canonicalizer doctrine, F18). canonicalizeUrl folds the noise variants (scheme-CASE / www /
+// default-port / trailing-slash / query-ORDER / fragment) but PRESERVES query CONTENT, because for API-style
+// legal hosts the query IS the instrument identity (eur-lex …?uri=CELEX:32020R1056 vs …?uri=CELEX:52023PC0445
+// are DIFFERENT regulations). The prior ad-hoc _normUrl stripped the WHOLE query ([#?].*$), collapsing every
+// eur-lex …/legal-content/EN/TXT?uri=… URL to one key → false-dedup of distinct EUR-Lex regs against the first
+// corpus item of that path (D1, surfaced by the Unit-0c intake dry-proof 2026-07-12). canonicalizeUrl is also
+// STRICTER than _normUrl on two axes the old normalizer folded — http vs https (the scheme is KEPT; only its
+// case is normalized) and path CASE (preserved) — which REMOVES false positives without adding false negatives
+// of substance: instrument_identifier + reg_number remain the PRIMARY identity signals; this URL matcher only
+// supplements them.
 export function matchExistingSubject(item, corpus) {
   const instr = norm(item.instrument_identifier);
-  const url = _normUrl(item.source_url);
+  const url = item.source_url ? canonicalizeUrl(String(item.source_url)) : "";
   const regs = new Set([...String(`${item.title || ""} ${item.instrument_identifier || ""}`).matchAll(RE_REGNUM)].map((m) => m[0]));
   const out = [];
   for (const c of corpus || []) {
     if (item.id && c.id === item.id) continue;
     if (instr && norm(c.instrument_identifier) === instr) { out.push({ id: c.id, how: "instrument_identifier" }); continue; }
-    if (url && _normUrl(c.source_url) === url) { out.push({ id: c.id, how: "source_url" }); continue; }
+    if (url && c.source_url && canonicalizeUrl(String(c.source_url)) === url) { out.push({ id: c.id, how: "source_url" }); continue; }
     if (regs.size) { const cregs = new Set([...String(`${c.title || ""} ${c.instrument_identifier || ""}`).matchAll(RE_REGNUM)].map((m) => m[0])); if ([...regs].some((r) => cregs.has(r))) out.push({ id: c.id, how: "reg_number" }); }
   }
   return out;
