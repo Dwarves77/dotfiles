@@ -103,7 +103,10 @@ export const SKILL_MARKER_BASELINE = {
   // (RD-20) — a staged row resolves (materialized / rejected-with-reason / routed-to-flag) or ages into the
   // flag resolver, never parks (P1#5 defense). TRIAGE: new invariant RD-20 (enforcedBy staged-transit-audit);
   // flips the no-human-finish-of-intake doctrine to enforced.
-  'remediation-discipline': 26,
+  // 26→27 (2026-07-12): §4 category 17 "The pause-flag one-writer (structural enforcement, no credential…)".
+  // TRIAGE: not a new bare rule — the doctrine-register entry pause-flag-has-one-writer (enforcedBy RD-23:
+  // F20 fitness + migration-201 guard + audit). Re-baseline to 27.
+  'remediation-discipline': 27,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -667,7 +670,7 @@ export const INVARIANTS = [
     text: 'Generation pause is SPLIT by a single pure primitive evaluateGenerationPause(scrape, caller): emergencyPaused (global_processing_paused) is a HARD stop for EVERY caller (the operator stop is inviolable, no caller identity overrides it); cadence===off is DORMANT and halts AUTONOMOUS generation only — an F16-signed manual caller (manual-intake-run) proceeds. The fetch gate isGloballyPaused is unchanged; downstream integrity gates (data-audit-block, daily-cap, floors, judge) bind every caller. This is why the manual-intake path can GROUND (not only MINT) in the dormant pre-launch state.',
     anchor: 'The generation pause split (pause is prohibition, dormancy is schedule)',
     enforcedBy: ['selftest:fsi-app/src/lib/api/generation-pause.npmtest.mjs'],
-    residual: 'generation-pause.npmtest.mjs proves the split red-then-green (7/7): the signed manual caller PASSES cadence-off (dormancy is a schedule), and is BLOCKED under emergencyPaused (the operator stop is inviolable — no caller identity overrides it); autonomous/unsigned callers stay gated by cadence-off; everyone runs when a cadence is set and no emergency. The STOP-FLAG-INVIOLABILITY half — that no agent may ALTER global_processing_paused/scrape_cadence — is a SEPARATE mechanical leg: the system_state operator-control credential trigger (Unit 2a, authored; apply is operator-boundary because it rewires the admin pause route to a dedicated credential and provisions a login secret, and is not owner-proof — the same residual shape as migration 118 provenance binding). Until 2a is applied, flag-flip prevention rides operator-side credential scoping, not code.',
+    residual: 'generation-pause.npmtest.mjs proves the split red-then-green (7/7): the signed manual caller PASSES cadence-off (dormancy is a schedule), and is BLOCKED under emergencyPaused (the operator stop is inviolable — no caller identity overrides it); autonomous/unsigned callers stay gated by cadence-off; everyone runs when a cadence is set and no emergency. The STOP-FLAG-WRITE half — that no agent may ALTER global_processing_paused/scrape_cadence by a direct write — is a SEPARATE mechanical leg, now RD-23 (pause-flag-has-one-writer): the F20 fitness function (static one-writer) + the migration-201 guard trigger + admin_set_pause_state RPC (runtime bounce of any unmarked write) + the audit table. This REPLACES the DEAD 2a operator-credential design (which required a manual operator step to provision a login role/secret — human intervention as a fix, ruled dead 2026-07-12).',
   },
   {
     id: 'RD-22-mint-source-link',
@@ -682,6 +685,20 @@ export const INVARIANTS = [
       'selftest:fsi-app/src/lib/agent/ground-failure-class.test.mjs',
     ],
     residual: 'The CHOKEPOINT gate is proven red-then-green in mint-source-link.npmtest.mjs (a registered source LINKS + inserts; an unregistered url REJECTS action=unsourced, no insert) — it forecloses new source-less LIVE mints for ALL callers of the single mint home. source-link-audit.mjs (live-data, CI-with-secrets lane) is the belt: it fails on any source-less LIVE row NOT in the documented pre-cutover grandfather (source-link-invariant.mjs GRANDFATHERED_SOURCELESS = the two 2026-07-12 T9 orphans, whose re-sourcing is Unit 3; the list should only ever shrink). The Fix-B structural routing is proven in ground-failure-class.test.mjs (no source_id -> structural_hold = zero re-research). NAMED RESIDUAL: the scan path only attaches a source_id when the url ALREADY matches a registered sources row, so an unregistered-url candidate now REJECTS on both paths (register the source first) — the intended tightening. Auto-registration of the institution as a source at mint is deliberately NOT built under this unit.',
+  },
+  {
+    id: 'RD-23-pause-flag-one-writer',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 17: The pause-flag one-writer (structural enforcement, no credential, no manual step)',
+    text: 'system_state.global_processing_paused / scrape_cadence have EXACTLY ONE writer, enforced structurally with no credential and no manual step: (static) the F20 fitness function fails CI on any direct write to those columns in src outside the sanctioned admin route; (runtime) migration 201 — the SECURITY DEFINER RPC admin_set_pause_state declares a transaction-local marker app.pause_flag_writer, and the guard_pause_flag_writer trigger BOUNCES any flag change lacking the marker (a generic service-role UPDATE is rejected); (detection) system_state_flag_audit logs every authorized write. This REPLACES the DEAD 2a operator-credential design (which required a manual operator step).',
+    anchor: 'The pause-flag one-writer (structural enforcement, no credential, no manual step)',
+    enforcedBy: [
+      'fitness:F20',
+      'selftest:fsi-app/.discipline/fitness/functions/F20-pause-flag-one-writer.test.mjs',
+      'migration:201',
+      'audit:fsi-app/scripts/verify/pause-flag-guard-proof.mjs',
+    ],
+    residual: 'F20 (grep-class, red-then-green in F20-...test.mjs: a direct .update/assignment/SQL-SET on the flags outside the sanctioned route is RED; reads + type annotations + the RPC caller are GREEN; a LIVE census proves the whole src tree passes — the RPC is the only writer) gates the STATIC one-writer. Migration 201 (the guard trigger + the admin_set_pause_state RPC) is the RUNTIME bounce: the bounce is proven red-then-green by pause-flag-guard-proof.mjs on a SYNTHETIC temp table in a rolled-back transaction (unmarked UPDATE raises; a marked UPDATE succeeds) — the live flag is NEVER written, including by the test. RESIDUAL (honest, same class as any GUC marker): a determined caller with raw SQL access could set the marker itself in the same transaction and bypass the trigger — but no COMMITTED code can (F20), the casual agent flip (a plain UPDATE) bounces, and every write is audited. This is structural defense-in-layers, not a cryptographic vault; it needs no human-held secret, which was the whole point.',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────

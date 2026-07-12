@@ -1,0 +1,454 @@
+# Dead Exports Audit — Caro's Ledge (fsi-app)
+
+Date: 2026-07-11 (dir `dead-code-audit-2026-07-12`)
+Scope: `src/**` and `scripts/**` — `.ts`, `.tsx`, `.mjs` (excludes `node_modules`, `.next`)
+Method: READ-ONLY static analysis. Enumerated every `export function` / `export const` / `export class` / `export default` / named + re-export / `export type|interface|enum`. For each symbol, scanned every OTHER file in the two trees for a word-boundary occurrence of the identifier. A symbol with **zero occurrences outside its own file** is reported here. Framework entrypoints excluded (Next `app/**` route handlers GET/POST/…, `page/layout/loading/error/not-found/…` default + `generateMetadata`/`generateStaticParams`/`metadata`/`viewport`/`dynamic`/`revalidate`/`runtime`/`config`).
+
+## Method notes / confidence
+- Token-based reference detection is CONSERVATIVE against false positives: if a symbol were imported or JSX-used anywhere, its exact name would appear in that file. Zero occurrence elsewhere = genuinely not referenced by name.
+- Dynamic imports checked: all `await import(...)` and `jiti.import(...)` call sites in `src/**` use **named destructuring** (e.g. `const { foldYamlBlockLists } = await jiti.import(...)`) or a single `mod.verifyCandidate` property access — so the referenced names DO appear as tokens and are already counted. No hidden namespace-only access was found that would mask a listed symbol. (The one namespace import, `@/lib/sources/verification`, only touches `verifyCandidate`.)
+- Two sub-classes are distinguished for value exports:
+  - **Fully unreferenced (dead code):** not used in ANY file, including its own module. Strongest dead-code signal.
+  - **Internal-only (export unnecessary):** used only inside its own module — the code is live but the `export` keyword is dead (could be de-exported).
+- `export default` anonymous expressions were not usage-tracked (no stable name); none are in scope here.
+
+## Totals
+- Exports enumerated (approx): **1353** across 1,130 files
+- Zero-reference exports (excl. own file + framework entrypoints): **304**
+  - `src/**` VALUE exports (function/const/class/named): **113**  → fully unreferenced **50**, internal-only **63**
+  - `src/**` TYPE/interface/enum exports: **183**
+  - `scripts/**` exports: **8**
+- Test-only exports (referenced ONLY by *.test/*.selftest/*.npmtest/__tests__): **84**
+  - of which never used in production even internally (test-of-otherwise-dead-code): **19**
+  - of which live internal code merely unit-tested (NOT dead — export intentional for tests): **65**
+
+---
+
+## A. src/** VALUE exports — FULLY UNREFERENCED (highest-confidence dead code) — 50
+These functions/components/consts are not referenced anywhere, including their own file.
+
+- `src/components/credibility/CredibilityBadge.tsx:164` **getTierLabel** [function]
+- `src/components/credibility/SignalStrength.tsx:120` **getStrengthLabel** [function]
+- `src/components/ExportBuilder.tsx:20` **ExportBuilder** [function]
+- `src/components/map/jurisdictionCentroids.ts:54` **SUB_JURISDICTION_CENTROIDS** [const]
+- `src/components/map/jurisdictionCentroids.ts:91` **JURISDICTION_PIN_CODES** [const]
+- `src/components/map/jurisdictionCentroids.ts:156` **SUB_JURISDICTION_LABELS** [const]
+- `src/components/regulations/BulkSelectBar.tsx:180` **loadWatchlist** [function]
+- `src/components/regulations/BulkSelectBar.tsx:192` **saveWatchlist** [function]
+- `src/components/regulations/ConfidenceFacet.tsx:130` **CONFIDENCE_UNCLASSIFIED_ID** [named-export]
+- `src/components/regulations/SortRow.tsx:84` **authorityRank** [function]
+- `src/components/ui/AcronymText.tsx:11` **AcronymText** [function]
+- `src/components/ui/ModeBadge.tsx:36` **ModeBadge** [function]
+- `src/components/ui/PriorityBadge.tsx:18` **PriorityBadge** [function]
+- `src/lib/agent/extract-sections.ts:319` **headingSlug** [function]
+- `src/lib/agent/metadata-vocab.ts:88` **toDisplaySeverity** [function]
+- `src/lib/community/rooms.ts:91` **ROOM_ORDER** [const]
+- `src/lib/community/rooms.ts:98` **roomByKey** [function]
+- `src/lib/constants.ts:282` **BRIEFING_SECTIONS** [const]
+- `src/lib/constants.ts:293` **DEEP_DIVE_SECTIONS** [const]
+- `src/lib/constants.ts:309` **CONFIDENCE_LEVELS** [const]
+- `src/lib/constants.ts:356` **INFO_TYPE_COLORS** [const]
+- `src/lib/constants.ts:362` **INFO_TYPE_LABELS** [const]
+- `src/lib/constants.ts:369` **getInfoType** [function]
+- `src/lib/constants.ts:377` **URGENCY_LABELS** [const]
+- `src/lib/constants.ts:427` **IMPACT_COLORS** [const]
+- `src/lib/constants.ts:442` **DOMAIN_COLORS** [const]
+- `src/lib/constants.ts:498` **PROVENANCE_LEVELS** [const]
+- `src/lib/constants.ts:507` **ARCHIVE_REASONS** [const]
+- `src/lib/export/htmlReport.ts:99` **toBriefingEmail** [function]
+- `src/lib/export/shareBuilder.ts:24` **buildShareHTML** [function]
+- `src/lib/export/shareBuilder.ts:114` **buildShareSlack** [function]
+- `src/lib/export/slackFormat.ts:66` **toBriefingSlack** [function]
+- `src/lib/format.ts:20` **formatTimelineDate** [function]
+- `src/lib/format.ts:25` **getQuarter** [function]
+- `src/lib/lineage.ts:15` **getLineage** [function]
+- `src/lib/llm/skill-loader.ts:271` **ENVIRONMENTAL_POLICY_SKILL_CORE_APPROX_TOKENS** [const]
+- `src/lib/llm/spend-client.ts:62` **currentSpendTicket** [function]
+- `src/lib/scoring.ts:92` **buildSectorContext** [function]
+- `src/lib/scoring.ts:118` **isInActiveSectors** [function]
+- `src/lib/scoring.ts:201` **sortResources** [function]
+- `src/lib/scoring.ts:223` **filterResources** [function]
+- `src/lib/tier1-priority-jurisdictions.ts:269` **regionForIso** [function]
+- `src/lib/trust.ts:361` **evaluatePromotion** [function]
+- `src/lib/trust.ts:521` **evaluateProvisionalSource** [function]
+- `src/lib/trust.ts:592` **computeConflictResolutionImpact** [function]
+- `src/lib/verification.ts:14` **getVerification** [function]
+- `src/stores/workspaceStore.ts:57` **getActiveSectors** [function]
+- `src/types/intelligence.ts:143` **resourceToIntelligenceItem** [function]
+- `src/types/source.ts:457` **SOURCE_STATUS_DEFINITIONS** [const]
+- `src/types/source.ts:507` **DOMAIN_DEFINITIONS** [const]
+
+---
+
+## B. src/** VALUE exports — INTERNAL-ONLY (live code, but export is unused externally) — 63
+Used only inside their own module. Not dead code, but the `export` is dead (safe to de-export unless kept for API surface).
+
+- `src/app/api/auth/linkedin/start/route.ts:28` **STATE_COOKIE_MAX_AGE_SECONDS** [const] — ownFileRefs=1
+- `src/components/credibility/JurisdictionChip.tsx:39` **JURISDICTION_LABELS** [const] — ownFileRefs=2
+- `src/components/credibility/JurisdictionChip.tsx:79` **JurisdictionChip** [function] — ownFileRefs=1
+- `src/components/credibility/SignalStrength.tsx:85` **SignalStrength** [function] — ownFileRefs=1
+- `src/components/regulations/BulkSelectBar.tsx:31` **BulkSelectBar** [function] — ownFileRefs=1
+- `src/components/regulations/ConfidenceFacet.tsx:51` **ConfidenceFacet** [function] — ownFileRefs=1
+- `src/components/regulations/SectorChipFilter.tsx:27` **REGULATIONS_SECTOR_CHIPS** [const] — ownFileRefs=2
+- `src/components/regulations/SectorChipFilter.tsx:73` **SectorChipFilter** [function] — ownFileRefs=2
+- `src/components/regulations/SortRow.tsx:30` **SortRow** [function] — ownFileRefs=1
+- `src/components/regulations/ViewToggles.tsx:27` **ViewToggles** [function] — ownFileRefs=1
+- `src/components/ui/RowCard.tsx:43` **RowCard** [function] — ownFileRefs=1
+- `src/lib/agent/extract-registry.ts:14` **FORMAT_SPECS** [const] — ownFileRefs=1
+- `src/lib/agent/extract-sections.ts:281` **SEVERITY_LABELS** [const] — ownFileRefs=2
+- `src/lib/agent/formats/operations-matrix.ts:41` **ALL_OPERATIONS_DIMENSIONS** [const] — ownFileRefs=2
+- `src/lib/agent/generation-config.ts:54` **SONNET_INPUT_USD_PER_MTOK** [const] — ownFileRefs=3
+- `src/lib/agent/generation-config.ts:55` **SONNET_OUTPUT_USD_PER_MTOK** [const] — ownFileRefs=2
+- `src/lib/agent/generation-config.ts:63` **HAIKU_INPUT_USD_PER_MTOK** [const] — ownFileRefs=2
+- `src/lib/agent/generation-config.ts:64` **HAIKU_OUTPUT_USD_PER_MTOK** [const] — ownFileRefs=1
+- `src/lib/agent/metadata-vocab.ts:22` **SEVERITY_DISPLAY_TO_DB** [const] — ownFileRefs=4
+- `src/lib/agent/metadata-vocab.ts:32` **SEVERITY_DB_TO_DISPLAY** [const] — ownFileRefs=1
+- `src/lib/agent/parse-output.ts:171` **AgentOutputParseError** [class] — ownFileRefs=42
+- `src/lib/agent/slot-forcing.mjs:22` **MAX_NOMINATION_SPAN** [const] — ownFileRefs=1
+- `src/lib/agent/slot-prompt.mjs:40` **slotCovered** [function] — ownFileRefs=1
+- `src/lib/agent/slot-prompt.mjs:63` **DEFAULT_SLOT_TTL_MS** [const] — ownFileRefs=1
+- `src/lib/agent/source-entry-filter.mjs:17` **HEADER_LITERALS** [const] — ownFileRefs=1
+- `src/lib/agent/two-pass-generate.mjs:13` **GEN_MAX_TOKENS** [const] — ownFileRefs=1
+- `src/lib/agent/two-pass-generate.mjs:14` **YAML_MAX_TOKENS** [const] — ownFileRefs=1
+- `src/lib/api/pause.ts:50` **isSourcePaused** [function] — ownFileRefs=1
+- `src/lib/constants.ts:330` **PRIORITY_DISPLAY_LABEL** [const] — ownFileRefs=1
+- `src/lib/constants.ts:492` **LIFECYCLE_STAGES** [const] — ownFileRefs=1
+- `src/lib/constants.ts:512` **SHARE_LEVELS** [const] — ownFileRefs=1
+- `src/lib/dashboard/credibility.ts:155` **getDashboardCredibility** [function] — ownFileRefs=1
+- `src/lib/dashboard/critical-items.ts:262` **getCriticalItemsSnapshot** [function] — ownFileRefs=1
+- `src/lib/data.ts:250` **getMapData** [function] — ownFileRefs=3
+- `src/lib/data.ts:783` **getTechnologyItems** [function] — ownFileRefs=1
+- `src/lib/data.ts:820` **getSourceCitationStats** [function] — ownFileRefs=1
+- `src/lib/intake/run-intake-cycle.ts:30` **MANUAL_INTAKE_CALLER** [const] — ownFileRefs=3
+- `src/lib/jurisdictions/iso.ts:78` **legacyToIso** [function] — ownFileRefs=1
+- `src/lib/llm/spend-guard.mjs:31` **SpendError** [class] — ownFileRefs=10
+- `src/lib/sources/fetch-hold.mjs:76` **HOST_TTL_MS** [const] — ownFileRefs=3
+- `src/lib/sources/instrument-identity.ts:28` **INSTRUMENT_BEARING_ITEM_TYPES** [const] — ownFileRefs=1
+- `src/lib/sources/officialness.mjs:49` **LINK_DENSITY_MAX** [const] — ownFileRefs=1
+- `src/lib/sources/primary-fallback.mjs:30` **MIN_LANG_RATIO** [const] — ownFileRefs=1
+- `src/lib/sources/primary-fallback.mjs:31` **CHALLENGE_MAX_CHARS** [const] — ownFileRefs=2
+- `src/lib/sources/seek-more.mjs:66` **GAZETTE_RESOLVERS** [const] — ownFileRefs=1
+- `src/lib/sources/transport-escalation.mjs:94` **NOT_FOUND_CLASSES** [const] — ownFileRefs=1
+- `src/lib/sources/transport-escalation.mjs:96` **BLOCK_CLASSES** [const] — ownFileRefs=1
+- `src/lib/sources/transport-escalation.mjs:100` **isOk** [const] — ownFileRefs=5
+- `src/lib/sources/transport-escalation.mjs:106` **isCaptureFailure** [const] — ownFileRefs=1
+- `src/lib/sources/transport-escalation.mjs:119` **hasApiTransport** [const] — ownFileRefs=1
+- `src/lib/surface-of.mjs:32` **DEFAULT_SURFACE** [const] — ownFileRefs=2
+- `src/lib/surface-of.mjs:72` **renderSurfaceOfSql** [function] — ownFileRefs=2
+- `src/lib/telemetry/capture-error.ts:38` **releaseTag** [function] — ownFileRefs=1
+- `src/lib/trust.ts:61` **computeEarnedScore** [function] — ownFileRefs=1
+- `src/lib/trust.ts:85` **tierPrior** [function] — ownFileRefs=1
+- `src/lib/trust.ts:419` **evaluateDemotion** [function] — ownFileRefs=1
+- `src/lib/trust.ts:749` **Q7_CONFIG** [const] — ownFileRefs=6
+- `src/lib/trust.ts:808` **evaluateCandidatePromotion** [function] — ownFileRefs=5
+- `src/lib/verification.ts:4` **getXrefs** [function] — ownFileRefs=1
+- `src/workflows/generate-brief.ts:172` **registerStep** [function] — ownFileRefs=1
+- `src/workflows/generate-brief.ts:218` **auditBaselineStep** [function] — ownFileRefs=1
+- `src/workflows/generate-brief.ts:241` **recordAuditGateFailureStep** [function] — ownFileRefs=2
+- `src/workflows/generate-brief.ts:264` **reresearchStep** [function] — ownFileRefs=1
+
+---
+
+## C. scripts/** exports — zero external reference — 8
+NOTE: `scripts/**` are largely standalone ops scripts run via `node script.mjs`; `scripts/lib/*` are shared helpers. `ownFileRefs>0` = used within its own module (export unnecessary); `=0` = fully unreferenced.
+
+- `scripts/lib/batch-primitives.mjs:195` **createPgPool** [function] — ownFileRefs=3
+- `scripts/lib/block1-reaudit.mjs:181` **injectedDefectPanel** [function] — ownFileRefs=1
+- `scripts/lib/deferral.mjs:32` **DISPOSITION_PATH_KEYWORDS** [const] — ownFileRefs=2
+- `scripts/lib/error-drop-probe.mjs:95` **auditErrorDrops** [function] — ownFileRefs=1
+- `scripts/lib/exclusion-audit.mjs:61` **unreliableIds** [function] — ownFileRefs=1
+- `scripts/lib/fetch-negative-probe.mjs:100` **auditFetchNegative** [function] — ownFileRefs=1
+- `scripts/lib/surface-registry.mjs:131` **FETCH_AUDIT_METHOD** [const] — ownFileRefs=1
+- `scripts/lib/type-consumer-probe.mjs:89` **auditTypeConsumers** [function] — ownFileRefs=1
+
+---
+
+## D. TEST-ONLY exports — never used in production even internally (test-of-dead-code) — 19
+Exported, referenced ONLY by test files, AND never used inside their own module. Either dead code with a lingering test, or deliberate test-only fixtures/legacy comparators. Review individually.
+
+- `scripts/lib/batch1-orchestrate.mjs:40` **isBatch1Item** [function] — testRefs=1 (batch1-orchestrate.test.mjs)
+- `scripts/lib/db.mjs:56` **__setWriteClientForTest** [function] — testRefs=1 (db.test.mjs)
+- `src/lib/agent/brief-section-strip.mjs:52` **isSourcesLeadTitle** [function] — testRefs=1 (brief-section-strip.test.mjs)
+- `src/lib/agent/canonical-pipeline.ts:241` **__clearFetchCacheForTest** [function] — testRefs=1 (transport-hold-wiring.npmtest.mjs)
+- `src/lib/agent/deterministic-lever.mjs:28` **DETERMINISTIC_LEVER_CLASSES** [const] — testRefs=1 (deterministic-lever.test.mjs)
+- `src/lib/agent/deterministic-lever.mjs:34` **GENERATION_ONLY_CLASSES** [const] — testRefs=1 (deterministic-lever.test.mjs)
+- `src/lib/agent/prompt-cache.mjs:51` **systemTextContent** [function] — testRefs=1 (prompt-cache.test.mjs)
+- `src/lib/agent/url-canon.mjs:39` **POLLUTION_FIXTURES** [const] — testRefs=1 (url-canon.test.mjs)
+- `src/lib/entities/canonical-entities.mjs:44` **NAMED_ENTITIES_COUNT** [const] — testRefs=1 (entity-resolve.test.mjs)
+- `src/lib/intake/intake-url-corpus.mjs:11` **URL_CASES** [const] — testRefs=1 (intake-gates-golden.test.mjs)
+- `src/lib/intake/intake-url-corpus.mjs:41` **CONGRUENCE_CASES** [const] — testRefs=1 (intake-gates-golden.test.mjs)
+- `src/lib/intake/intake-url-corpus.mjs:52` **DEDUP_CORPUS** [const] — testRefs=1 (intake-gates-golden.test.mjs)
+- `src/lib/intake/intake-url-corpus.mjs:56` **DEDUP_CASES** [const] — testRefs=1 (intake-gates-golden.test.mjs)
+- `src/lib/llm/spend-guard.mjs:84` **__resetSpendForTest** [function] — testRefs=2 (program-total.test.mjs, spend-guard.test.mjs)
+- `src/lib/llm/spend-guard.mjs:86` **__addSpendForTest** [function] — testRefs=1 (spend-guard.test.mjs)
+- `src/lib/sources/entity-gate.mjs:43` **shouldMintItem** [function] — testRefs=1 (entity-gate.selftest.mjs)
+- `src/lib/sources/instrument-identity.ts:70` **classifyIdentity** [function] — testRefs=1 (instrument-identity.selftest.mjs)
+- `src/lib/sources/reachability.mjs:32` **classifyReachability_LEGACY_BUGGY** [function] — testRefs=1 (reachability.selftest.mjs)
+- `src/lib/sources/seek-more.mjs:147` **persistExhaustionRecord** [function] — testRefs=1 (seek-more.test.mjs)
+
+---
+
+## E. TEST-ONLY exports — LIVE internal code, exported for unit tests (NOT dead) — 65
+Used inside their own module (production path) and additionally referenced by a test file. Listed for completeness; the export exists to enable unit testing. Includes intentional `__*ForTest` seams.
+
+- `scripts/lib/batch-primitives.mjs:127` **withRateLimit** [function] — testRefs=1 (batch-primitives.test.mjs)
+- `scripts/lib/batch-primitives.mjs:170` **withIdempotency** [function] — testRefs=1 (batch-primitives.test.mjs)
+- `scripts/lib/batch1-orchestrate.mjs:56` **classifyOutcome** [function] — testRefs=1 (batch1-orchestrate.test.mjs)
+- `scripts/lib/error-drop-probe.mjs:48` **findErrorDrops** [function] — testRefs=1 (error-drop-probe.selftest.mjs)
+- `scripts/lib/exclusion-audit.mjs:29` **EXCLUSION_SURFACES** [const] — testRefs=1 (exclusion-audit.selftest.mjs)
+- `scripts/lib/exclusion-audit.mjs:66` **mapMethod** [function] — testRefs=1 (exclusion-audit.selftest.mjs)
+- `scripts/lib/funded-release-plan.mjs:33` **instrumentIdentityBucket** [function] — testRefs=1 (funded-release-plan.test.mjs)
+- `scripts/lib/inconclusive-probe.mjs:56` **findClassifyDefaults** [function] — testRefs=1 (inconclusive-probe.selftest.mjs)
+- `scripts/lib/inconclusive-probe.mjs:86` **findErrorBodyContent** [function] — testRefs=1 (inconclusive-probe.selftest.mjs)
+- `scripts/lib/inconclusive-probe.mjs:114` **findOrchestrationMishandling** [function] — testRefs=1 (inconclusive-probe.selftest.mjs)
+- `scripts/lib/surface-registry.mjs:62` **matchesGlob** [function] — testRefs=1 (surface-registry.selftest.mjs)
+- `scripts/lib/type-consumer-probe.mjs:27` **findUnguardedTypeConsumers** [function] — testRefs=1 (type-consumer-probe.selftest.mjs)
+- `src/lib/agent/analysis-labels.mjs:25` **ANALYSIS_LABEL_TOKENS** [const] — testRefs=1 (analysis-labels.test.mjs)
+- `src/lib/agent/analysis-labels.mjs:47` **LEGACY_ANALYSIS_LABEL** [const] — testRefs=1 (analysis-labels.test.mjs)
+- `src/lib/agent/anthropic-error.mjs:14` **classifyAnthropic** [function] — testRefs=1 (anthropic-error.test.mjs)
+- `src/lib/agent/anthropic-stream.mjs:36` **createSSEAccumulator** [function] — testRefs=1 (anthropic-stream.test.mjs)
+- `src/lib/agent/deterministic-lever.mjs:57` **unexercisedLevers** [function] — testRefs=1 (deterministic-lever.test.mjs)
+- `src/lib/agent/parse-output.ts:289` **foldYamlBlockLists** [function] — testRefs=1 (parse-output-blocklist.npmtest.mjs)
+- `src/lib/agent/prompt-cache.mjs:30` **POOL_HEADER** [const] — testRefs=1 (prompt-cache.test.mjs)
+- `src/lib/agent/relabel-unlabeled.mjs:27` **BINDING_VERB_RE** [const] — testRefs=1 (relabel-unlabeled.test.mjs)
+- `src/lib/agent/slot-forcing.mjs:19` **MIN_NOMINATION_SPAN** [const] — testRefs=1 (slot-forcing.test.mjs)
+- `src/lib/agent/slot-forcing.mjs:50` **nominateForSlot** [function] — testRefs=1 (slot-forcing.test.mjs)
+- `src/lib/agent/slot-forcing.mjs:75` **decideSlotClaim** [function] — testRefs=1 (slot-forcing.test.mjs)
+- `src/lib/agent/thinning-guard.mjs:14` **THINNING_FLOOR** [const] — testRefs=1 (thinning-guard.test.mjs)
+- `src/lib/agent/timeline-harvest.mjs:47` **toIsoDate** [function] — testRefs=1 (timeline-harvest.test.mjs)
+- `src/lib/domains.ts:66` **OPERATIONS_FACILITY_DOMAIN** [const] — testRefs=1 (leakage-fix-classifier.test.mjs)
+- `src/lib/entities/entity-resolve.mjs:17` **detectMentions** [function] — testRefs=1 (entity-resolve.test.mjs)
+- `src/lib/entities/entity-resolve.mjs:55` **classifyBucket** [function] — testRefs=1 (entity-resolve.test.mjs)
+- `src/lib/entities/entity-resolve.mjs:109` **LINK_ALLOWED_TABLES** [const] — testRefs=1 (entity-resolve.test.mjs)
+- `src/lib/entities/source-role.mjs:8` **PRIMARY_ARTIFACT_TYPES** [const] — testRefs=1 (source-role.test.mjs)
+- `src/lib/entities/source-role.mjs:12` **STUDY_BACKED_TYPES** [const] — testRefs=1 (source-role.test.mjs)
+- `src/lib/llm/program-total.mjs:14` **sumCostRows** [function] — testRefs=1 (program-total.test.mjs)
+- `src/lib/sources/content-change.mjs:24` **normalizeForFingerprint** [function] — testRefs=1 (content-change.test.mjs)
+- `src/lib/sources/fetch-hold.mjs:40` **isAuthorizedHoldCaller** [function] — testRefs=1 (fetch-hold.test.mjs)
+- `src/lib/sources/fetch-hold.mjs:70` **fetchCacheKey** [function] — testRefs=1 (fetch-hold.test.mjs)
+- `src/lib/sources/fetch-hold.mjs:75` **DEFAULT_TTL_MS** [const] — testRefs=1 (fetch-hold.test.mjs)
+- `src/lib/sources/fetch-hold.mjs:85` **ttlForUrl** [function] — testRefs=1 (fetch-hold.test.mjs)
+- `src/lib/sources/fetch-hold.mjs:93` **isFresh** [function] — testRefs=1 (fetch-hold.test.mjs)
+- `src/lib/sources/fetch-hold.mjs:114` **makeFetchTelemetry** [function] — testRefs=1 (fetch-hold.test.mjs)
+- `src/lib/sources/fetch-hold.mjs:138` **transportFetch** [function] — testRefs=1 (fetch-hold.test.mjs)
+- `src/lib/sources/host-authority.ts:25` **PROVISIONAL_DEFAULT_TIER** [const] — testRefs=1 (host-authority.npmtest.mjs)
+- `src/lib/sources/officialness.mjs:133` **hasInstrumentMarkers** [function] — testRefs=1 (officialness.test.mjs)
+- `src/lib/sources/pdf-extract.mjs:21` **isPdfBytes** [const] — testRefs=1 (pdf-extract.test.mjs)
+- `src/lib/sources/primary-fallback.mjs:50` **targetLangRatio** [function] — testRefs=1 (primary-fallback.test.mjs)
+- `src/lib/sources/primary-fallback.mjs:110` **renderingUrlForPrimary** [function] — testRefs=1 (primary-fallback.test.mjs)
+- `src/lib/sources/reconcile.ts:33` **computeDiff** [function] — testRefs=1 (reconcile.selftest.mjs)
+- `src/lib/sources/reconcile.ts:44` **classifyChange** [function] — testRefs=1 (reconcile.selftest.mjs)
+- `src/lib/sources/seek-more.mjs:28` **eurlexCandidates** [function] — testRefs=1 (seek-more.test.mjs)
+- `src/lib/sources/seek-more.mjs:45` **ukCandidates** [function] — testRefs=1 (seek-more.test.mjs)
+- `src/lib/sources/seek-more.mjs:55` **lovdataCandidates** [function] — testRefs=1 (seek-more.test.mjs)
+- `src/lib/sources/seek-more.mjs:78` **gazetteCandidates** [function] — testRefs=1 (seek-more.test.mjs)
+- `src/lib/sources/seek-more.mjs:87` **apiCandidates** [function] — testRefs=1 (seek-more.test.mjs)
+- `src/lib/sources/source-growth.ts:61` **citationScore** [function] — testRefs=1 (source-growth.selftest.mjs)
+- `src/lib/sources/transport-escalation.mjs:101` **isNotFound** [const] — testRefs=1 (transport-escalation.test.mjs)
+- `src/lib/sources/transport-escalation.mjs:102` **isJsShell** [const] — testRefs=1 (transport-escalation.test.mjs)
+- `src/lib/sources/transport-escalation.mjs:103` **isBlock** [const] — testRefs=1 (transport-escalation.test.mjs)
+- `src/lib/telemetry/stack-hash.mjs:31` **normalizeMessage** [function] — testRefs=1 (stack-hash.test.mjs)
+- `src/lib/telemetry/stack-hash.mjs:47` **normalizeStack** [function] — testRefs=1 (stack-hash.test.mjs)
+- `src/lib/telemetry/surface-health.mjs:16` **MUST_HAVE_SURFACES** [const] — testRefs=1 (surface-health.test.mjs)
+- `src/lib/telemetry/surface-health.mjs:24` **ZERO_LEGAL_SURFACES** [const] — testRefs=1 (surface-health.test.mjs)
+- `src/lib/trust.ts:226` **TIER_WEIGHTS** [const] — testRefs=1 (trust.selftest.mjs)
+- `src/lib/trust.ts:236` **HALF_LIFE_MONTHS** [const] — testRefs=1 (trust.selftest.mjs)
+- `src/lib/trust.ts:250` **applyRecencyDecay** [function] — testRefs=1 (trust.selftest.mjs)
+- `src/lib/trust.ts:311` **computeCitationComponentFromRows** [function] — testRefs=1 (trust.selftest.mjs)
+- `src/workflows/generate-brief.ts:292` **eraseStep** [function] — testRefs=1 (erase-step-hygiene.npmtest.mjs)
+
+---
+
+## F. src/** TYPE / interface / enum exports — zero external reference — 183
+Lower priority (type-only, erased at build). Many are shared type vocab that may be intentionally exported for future/API use. Listed for completeness.
+
+- `src/components/admin/CoverageMatrixView.tsx:92` **CoverageMatrixAction** [type] — ownFileRefs=1
+- `src/components/admin/OrganizationsTable.tsx:55` **OrganizationsTableProps** [type] — ownFileRefs=1
+- `src/components/admin/ProvenanceFailures.tsx:24` **ProvenanceFailure** [type] — ownFileRefs=5
+- `src/components/admin/redesign/WorkspacesUsageRow.tsx:33` **WorkspacesUsageRowProps** [type] — ownFileRefs=1
+- `src/components/community/CommunityRooms.tsx:38` **LiveItemVM** [type] — ownFileRefs=2
+- `src/components/community/CommunityRooms.tsx:97` **VerticalGroupVM** [type] — ownFileRefs=3
+- `src/components/community/PromotePostButton.tsx:44` **PromotePostButtonUser** [type] — ownFileRefs=1
+- `src/components/community/types.ts:11` **CommunityRegionCode** [type] — ownFileRefs=1
+- `src/components/credibility/BiasBadge.tsx:33` **BiasDimension** [type] — ownFileRefs=4
+- `src/components/credibility/BiasBadge.tsx:43` **BiasBadgeProps** [type] — ownFileRefs=1
+- `src/components/credibility/CitationCountChip.tsx:26` **CitationCountChipProps** [type] — ownFileRefs=1
+- `src/components/credibility/CredibilityBadge.tsx:32` **CredibilityBadgeProps** [type] — ownFileRefs=2
+- `src/components/credibility/JurisdictionChip.tsx:24` **JurisdictionChipProps** [type] — ownFileRefs=1
+- `src/components/credibility/ProvenancePanel.tsx:35` **ProvenanceSource** [type] — ownFileRefs=1
+- `src/components/credibility/ProvenancePanel.tsx:49` **ProvenancePanelProps** [type] — ownFileRefs=1
+- `src/components/credibility/RecencyChip.tsx:19` **RecencyChipProps** [type] — ownFileRefs=1
+- `src/components/credibility/SignalStrength.tsx:25` **SignalStrengthValue** [type] — ownFileRefs=3
+- `src/components/credibility/SignalStrength.tsx:32` **SignalStrengthProps** [type] — ownFileRefs=1
+- `src/components/home/DashboardAwaitingReview.tsx:18` **DashboardAwaitingReviewProps** [type] — ownFileRefs=1
+- `src/components/home/DashboardByOwner.tsx:16` **DashboardByOwnerProps** [type] — ownFileRefs=1
+- `src/components/home/DashboardCoverageGaps.tsx:18` **DashboardCoverageGapsProps** [type] — ownFileRefs=1
+- `src/components/home/DashboardHero.tsx:40` **PriorityBand** [type] — ownFileRefs=6
+- `src/components/home/DashboardSurfaceCoverage.tsx:20` **DashboardSurfaceCoverageProps** [type] — ownFileRefs=1
+- `src/components/home/DashboardWatchlist.tsx:18` **DashboardWatchlistProps** [type] — ownFileRefs=1
+- `src/components/map/jurisdictionCentroids.ts:4` **JurisdictionCoord** [type]
+- `src/components/operations/OperationsLedger.tsx:179` **StateCostFactVM** [type] — ownFileRefs=4
+- `src/components/profile/NotificationPreferences.tsx:28` **NotificationPrefs** [type] — ownFileRefs=5
+- `src/components/regulations/BulkSelectBar.tsx:22` **BulkSelectBarProps** [type] — ownFileRefs=1
+- `src/components/regulations/ConfidenceFacet.tsx:17` **ConfidenceFacetProps** [type] — ownFileRefs=1
+- `src/components/regulations/PriorityDropdown.tsx:40` **PriorityValue** [type] — ownFileRefs=5
+- `src/components/regulations/SectorChipFilter.tsx:58` **SectorChipFilterProps** [type] — ownFileRefs=1
+- `src/components/regulations/SortRow.tsx:25` **SortRowProps** [type] — ownFileRefs=1
+- `src/components/regulations/ViewToggles.tsx:22` **ViewTogglesProps** [type] — ownFileRefs=1
+- `src/components/research/ResearchLedger.tsx:70` **ResearchSourceCoverageCellProp** [type] — ownFileRefs=1
+- `src/data/seed-archive.ts:6` **ArchivedResource** [type] — ownFileRefs=1
+- `src/data/seed-changelog.ts:13` **ChangeLog** [type] — ownFileRefs=1
+- `src/data/seed-disputes.ts:12` **DisputeMap** [type] — ownFileRefs=1
+- `src/data/seed-subjurisdictions.ts:4` **SubJurisdictionTag** [type] — ownFileRefs=1
+- `src/data/seed-subjurisdictions.ts:9` **JurisdictionOverride** [type] — ownFileRefs=1
+- `src/data/seed-subjurisdictions.ts:13` **RegulatoryConflictTag** [type] — ownFileRefs=1
+- `src/data/seed-supersessions.ts:6` **TimelineMilestone** [type] — ownFileRefs=1
+- `src/data/seed-xrefs.ts:7` **XrefPair** [type] — ownFileRefs=1
+- `src/lib/agent/audit-gate.ts:31` **ClaimRow** [type] — ownFileRefs=3
+- `src/lib/agent/audit-gate.ts:38` **ItemCrossItemMetrics** [type] — ownFileRefs=3
+- `src/lib/agent/audit-gate.ts:62` **WaiverAction** [type]
+- `src/lib/agent/audit-gate.ts:66` **BlockRow** [type] — ownFileRefs=3
+- `src/lib/agent/audit-gate.ts:119` **CrossItemAuditResult** [type] — ownFileRefs=1
+- `src/lib/agent/canonical-pipeline.ts:617` **SlotForcingResult** [type] — ownFileRefs=2
+- `src/lib/agent/extract-regulation-sections.ts:140` **RegulationSection** [type] — ownFileRefs=4
+- `src/lib/agent/extract-regulation-sections.ts:148` **ExtractedRegulationSections** [type] — ownFileRefs=2
+- `src/lib/agent/extract-research-sections.ts:16` **ResearchSectionRow** [type] — ownFileRefs=2
+- `src/lib/agent/extract-sections.ts:45` **OperationalBriefing** [type] — ownFileRefs=1
+- `src/lib/agent/formats/operations-matrix.ts:33` **OperationsDimension** [type] — ownFileRefs=4
+- `src/lib/agent/formats/operations-matrix.ts:79` **DimensionEligibility** [type] — ownFileRefs=3
+- `src/lib/agent/formats/operations-matrix.ts:105` **OperationsItemForGate** [type] — ownFileRefs=2
+- `src/lib/agent/metadata-vocab.ts:29` **SeverityDisplay** [type] — ownFileRefs=2
+- `src/lib/agent/metadata-vocab.ts:30` **SeverityDb** [type]
+- `src/lib/agent/metadata-vocab.ts:61` **DbTheme** [type] — ownFileRefs=1
+- `src/lib/agent/parse-output.ts:91` **TrajectoryPointsJSON** [type] — ownFileRefs=3
+- `src/lib/agent/parse-output.ts:144` **ClaimKind** [type] — ownFileRefs=5
+- `src/lib/agent/parse-output.ts:146` **ClaimProvenanceRecord** [type] — ownFileRefs=9
+- `src/lib/agent/parse-output.ts:166` **AgentRunSearchLink** [type] — ownFileRefs=1
+- `src/lib/api/community-auth.ts:25` **CommunityAuthResult** [type] — ownFileRefs=2
+- `src/lib/api/pause.ts:15` **ScrapeState** [type] — ownFileRefs=1
+- `src/lib/api/server-bootstrap.ts:30` **ServerBootstrap** [type] — ownFileRefs=3
+- `src/lib/community/rooms.ts:18` **RoomDef** [type] — ownFileRefs=4
+- `src/lib/constants.ts:278` **AuthorityLevel** [type]
+- `src/lib/constants.ts:354` **InfoType** [type] — ownFileRefs=4
+- `src/lib/constants.ts:519` **ModeId** [type]
+- `src/lib/constants.ts:520` **TopicId** [type]
+- `src/lib/constants.ts:521` **JurisdictionId** [type]
+- `src/lib/constants.ts:524` **LifecycleStage** [type]
+- `src/lib/constants.ts:525` **ShareLevel** [type]
+- `src/lib/dashboard/credibility.ts:30` **BiasDim** [type] — ownFileRefs=2
+- `src/lib/dashboard/credibility.ts:32` **SourceCredibilityProfile** [type] — ownFileRefs=2
+- `src/lib/dashboard/credibility.ts:53` **SourceCredibilityMap** [type] — ownFileRefs=4
+- `src/lib/dashboard/critical-items.ts:37` **CriticalItem** [type] — ownFileRefs=2
+- `src/lib/dashboard/critical-items.ts:49` **CriticalItemsSnapshot** [type] — ownFileRefs=4
+- `src/lib/dashboard/surface-coverage.ts:41` **IntelligenceSurfaceCounts** [type] — ownFileRefs=7
+- `src/lib/dashboard/surface-coverage.ts:55` **CommunitySurfaceCounts** [type] — ownFileRefs=3
+- `src/lib/data.ts:564` **ResearchPipelineResult** [type] — ownFileRefs=2
+- `src/lib/data.ts:805` **SourceCitationStatsMap** [type] — ownFileRefs=3
+- `src/lib/email/send-invitation-email.ts:21` **InvitationEmailParams** [type] — ownFileRefs=1
+- `src/lib/email/send-invitation-email.ts:28` **InvitationEmailResult** [type] — ownFileRefs=1
+- `src/lib/entities/link-items.ts:12` **LinkResult** [type] — ownFileRefs=1
+- `src/lib/hooks/useAdminAttention.ts:8` **AdminAttentionCounts** [type] — ownFileRefs=4
+- `src/lib/hooks/useAdminAttention.ts:21` **UseAdminAttention** [type] — ownFileRefs=1
+- `src/lib/intake/apply-staged-update.ts:17` **ApplyUpdateResult** [type] — ownFileRefs=1
+- `src/lib/intake/mint-item.ts:52` **MintPlan** [type] — ownFileRefs=1
+- `src/lib/intake/mint-item.ts:63` **MintAction** [type] — ownFileRefs=2
+- `src/lib/intake/mint-item.ts:65` **MintResult** [type] — ownFileRefs=1
+- `src/lib/intake/run-intake-cycle.ts:42` **CycleItemOutcome** [type] — ownFileRefs=3
+- `src/lib/intake/run-intake-cycle.ts:57` **IntakeCycleResult** [type] — ownFileRefs=1
+- `src/lib/jurisdictions/iso.ts:29` **KnownFreeTextJurisdiction** [type] — ownFileRefs=2
+- `src/lib/lineage.ts:6` **LineageNode** [type] — ownFileRefs=2
+- `src/lib/llm/first-fetch-classify.ts:69` **FirstFetchClassifyInput** [type] — ownFileRefs=1
+- `src/lib/llm/first-fetch-classify.ts:82` **FirstFetchClassifyOutput** [type] — ownFileRefs=1
+- `src/lib/llm/first-fetch-classify.ts:107` **FirstFetchClassifyResult** [type] — ownFileRefs=1
+- `src/lib/llm/haiku-classify.ts:129` **HaikuVerifyCandidateInput** [type] — ownFileRefs=1
+- `src/lib/llm/haiku-classify.ts:135` **HaikuVerifyClassification** [type] — ownFileRefs=1
+- `src/lib/llm/haiku-classify.ts:142` **HaikuVerifyResult** [type] — ownFileRefs=1
+- `src/lib/llm/haiku-classify.ts:150` **ClassifyInput** [type]
+- `src/lib/llm/haiku-classify.ts:173` **ClassifyResult** [type]
+- `src/lib/notifications/dispatch.ts:26` **DispatchArgs** [type] — ownFileRefs=1
+- `src/lib/scoring.ts:84` **SectorContext** [type] — ownFileRefs=2
+- `src/lib/sources/api-fetch.ts:30` **ApiFetchSource** [type] — ownFileRefs=1
+- `src/lib/sources/api-fetch.ts:37` **ApiFetchOptions** [type] — ownFileRefs=1
+- `src/lib/sources/browserless.ts:19` **BrowserlessOptions** [type] — ownFileRefs=2
+- `src/lib/sources/discovery.ts:55` **DiscoveryCandidate** [type] — ownFileRefs=9
+- `src/lib/sources/discovery.ts:78` **DiscoveryAppliedCounts** [type] — ownFileRefs=1
+- `src/lib/sources/discovery.ts:84` **DiscoveryCandidateOutcome** [type] — ownFileRefs=3
+- `src/lib/sources/discovery.ts:91` **DiscoveryResult** [type] — ownFileRefs=1
+- `src/lib/sources/discovery.ts:106` **DiscoveryErrorCode** [type] — ownFileRefs=2
+- `src/lib/sources/fetch-quality.ts:45` **BriefContentCheck** [type] — ownFileRefs=1
+- `src/lib/sources/institution.ts:68` **SpanResolution** [type] — ownFileRefs=2
+- `src/lib/sources/instrument-identity.ts:15` **InstrumentType** [type] — ownFileRefs=3
+- `src/lib/sources/instrument-identity.ts:17` **IdentityStatus** [type] — ownFileRefs=1
+- `src/lib/sources/instrument-identity.ts:19` **ParsedIdentity** [type] — ownFileRefs=2
+- `src/lib/sources/recommend-source-tier.ts:20` **SourceTierRecommendation** [type] — ownFileRefs=1
+- `src/lib/sources/reconcile.ts:25` **ChangeType** [type] — ownFileRefs=3
+- `src/lib/sources/reconcile.ts:28` **ChangeSeverity** [type] — ownFileRefs=2
+- `src/lib/sources/reconcile.ts:30` **FieldDiff** [type] — ownFileRefs=3
+- `src/lib/sources/rss-fetch.ts:30` **RssFetchSource** [type] — ownFileRefs=1
+- `src/lib/sources/rss-fetch.ts:35` **RssFetchOptions** [type] — ownFileRefs=1
+- `src/lib/sources/source-growth.ts:24` **CitationEdge** [type] — ownFileRefs=2
+- `src/lib/sources/source-growth.ts:32` **ConvergenceMetrics** [type] — ownFileRefs=3
+- `src/lib/sources/source-growth.ts:75` **CitedSourceInput** [type] — ownFileRefs=4
+- `src/lib/sources/verification.ts:50` **VerificationTier** [type] — ownFileRefs=5
+- `src/lib/sources/verification.ts:51` **VerificationAction** [type] — ownFileRefs=5
+- `src/lib/sources/verification.ts:67` **VerificationLog** [type] — ownFileRefs=3
+- `src/lib/sources/vertical-fit-gate.ts:20` **VerticalFitGateResult** [type] — ownFileRefs=1
+- `src/lib/sources/vertical-fit.ts:58` **InstitutionalType** [type] — ownFileRefs=3
+- `src/lib/supabase-server.ts:413` **SourceData** [type] — ownFileRefs=2
+- `src/lib/supabase-server.ts:1319` **SectorSynopsis** [type] — ownFileRefs=2
+- `src/lib/supabase-server.ts:1326` **IntelligenceChange** [type] — ownFileRefs=2
+- `src/lib/supabase-server.ts:1333` **SectorDisplayName** [type] — ownFileRefs=2
+- `src/lib/supabase-server.ts:1351` **DashboardData** [type] — ownFileRefs=2
+- `src/lib/supabase-server.ts:1944` **OperationsRegion** [type] — ownFileRefs=2
+- `src/lib/supabase-server.ts:1952` **OperationsCoverageRow** [type] — ownFileRefs=3
+- `src/lib/supabase-server.ts:2042` **StateCostFactRow** [type] — ownFileRefs=1
+- `src/lib/telemetry/capture-error.ts:25` **CaptureErrorInput** [type] — ownFileRefs=1
+- `src/lib/tier1-priority-jurisdictions.ts:34` **PriorityJurisdiction** [type] — ownFileRefs=10
+- `src/lib/trust.ts:306` **CitationRow** [type] — ownFileRefs=3
+- `src/lib/trust.ts:342` **PromotionEvaluation** [type] — ownFileRefs=1
+- `src/lib/trust.ts:350` **DemotionEvaluation** [type] — ownFileRefs=2
+- `src/lib/trust.ts:514` **ProvisionalEvaluation** [type] — ownFileRefs=1
+- `src/lib/trust.ts:585` **ConflictResolutionImpact** [type] — ownFileRefs=1
+- `src/lib/trust.ts:776` **SupabaseLikeClient** [type] — ownFileRefs=2
+- `src/lib/trust.ts:786` **CitationEdgeRow** [type] — ownFileRefs=2
+- `src/lib/trust.ts:792` **PromotionEvaluationResult** [type] — ownFileRefs=1
+- `src/lib/trust.ts:881` **EffectiveTierRecomputeResult** [type] — ownFileRefs=1
+- `src/lib/urgency.ts:16` **IntelligenceItemPriority** [type] — ownFileRefs=2
+- `src/lib/urgency.ts:20` **UrgencyTierLabel** [type] — ownFileRefs=2
+- `src/stores/resourceStore.ts:64` **WorkspaceOverride** [type] — ownFileRefs=4
+- `src/types/intelligence.ts:36` **ItemStatus** [type] — ownFileRefs=1
+- `src/types/intelligence.ts:47` **ConfidenceLevel** [type] — ownFileRefs=1
+- `src/types/intelligence.ts:52` **IntelligenceItem** [type] — ownFileRefs=2
+- `src/types/intelligence.ts:132` **VersionEntry** [type] — ownFileRefs=1
+- `src/types/intelligence.ts:264` **LegacySourceMapping** [type]
+- `src/types/resource.ts:64` **OperationalImpact** [type] — ownFileRefs=1
+- `src/types/resource.ts:71` **RiskRegisterEntry** [type] — ownFileRefs=1
+- `src/types/resource.ts:85` **SourceReference** [type] — ownFileRefs=1
+- `src/types/resource.ts:252` **SharePackage** [type]
+- `src/types/source.ts:126` **TrustEventType** [type] — ownFileRefs=1
+- `src/types/source.ts:140` **TrustEvent** [type]
+- `src/types/source.ts:153` **TrustEventDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:166` **ConfirmationDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:173` **ConflictOpenedDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:182` **ConflictResolvedDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:190` **AccessibilityCheckDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:198` **CitationReceivedDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:206` **TierChangeDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:215` **ManualReviewDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:222` **StaleFlagDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:229` **PaywallChangeDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:235` **SelfCitationDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:241` **DiscoveryDetails** [type] — ownFileRefs=1
+- `src/types/source.ts:253` **ConflictStatus** [type] — ownFileRefs=1
+- `src/types/source.ts:254` **ConflictResolution** [type] — ownFileRefs=1
+- `src/types/source.ts:455` **SourceStatus** [type] — ownFileRefs=2
+- `src/types/source.ts:492` **IntelligenceType** [type] — ownFileRefs=1
+- `src/types/source.ts:585` **TierHistoryEntry** [type] — ownFileRefs=1
+- `src/workflows/generate-brief.ts:355` **GenerateBriefResult** [type] — ownFileRefs=1
+
+---
+
+## UNCERTAIN / caveats
+- Symbols in this report are dead **by static name-reference analysis of `src/**` + `scripts/**` only.** Not scanned: `supabase/` SQL/edge functions, `.claude/` skills, config files, JSON, or any runtime string-built identifier. A symbol referenced only from those would be a false positive — none were observed, but treat any single-purpose "config-like" const with mild caution.
+- Barrel/index re-exports: if a symbol is re-exported by an index file but nothing imports the barrel, this analysis counts the barrel as a reference and would NOT flag it (false negative, i.e. under-reporting). So the true dead set may be slightly larger than section A.
+- `scripts/**` dead exports are expected and low-value (one-off ops scripts); do not treat section C with the same weight as A.

@@ -41,6 +41,10 @@ import { fitnessFunction as F18 } from './functions/F18-one-url-canonicalizer.mj
 // No service→anon downgrade (2026-07-12, dead-code Ruling 2 C1): F19 forbids the `SUPABASE_SERVICE_ROLE_KEY ||
 // …ANON_KEY` fail-open pattern anywhere in src (the coverage-gaps.ts live defect). Maps to invariant RD-15.
 import { fitnessFunction as F19 } from './functions/F19-no-service-anon-downgrade.mjs';
+// Pause-flag one-writer (2026-07-12, pause-flag structural enforcement): F20 forbids any direct write to
+// system_state.global_processing_paused / scrape_cadence outside the sanctioned admin route (the RPC caller).
+// Replaces the DEAD 2a operator-credential design — no manual step, no secret. Maps to invariant RD-23.
+import { fitnessFunction as F20 } from './functions/F20-pause-flag-one-writer.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -57,6 +61,7 @@ export const fitnessFunctions = [
   F17,
   F18,
   F19,
+  F20,
 ];
 
 export function getFunctionById(id) {

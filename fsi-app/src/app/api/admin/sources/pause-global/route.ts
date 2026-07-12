@@ -12,7 +12,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { operatorControlConfigured, withOperatorControl } from "@/lib/db/operator-control";
 
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -63,19 +62,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
-
-  if (hasPaused) update.global_processing_paused = body.paused;
-
+  // The route NEVER writes global_processing_paused / scrape_cadence directly. The ONE sanctioned writer is
+  // the admin_set_pause_state RPC (migration 201, pause-flag-has-one-writer): it declares the
+  // app.pause_flag_writer marker the guard trigger requires, then updates. A generic UPDATE carries no marker
+  // and BOUNCES — so an agent's ad-hoc flip cannot land. Structural: no credential, no secret, no manual step.
+  let pCadence: ScrapeCadence | null = null;
+  let pStartDate: string | null = null;
+  let pClearStart = false;
   if (hasCadence) {
     const cadence = body.cadence as ScrapeCadence;
     if (!CADENCES.includes(cadence)) {
       return NextResponse.json({ error: "cadence must be one of: off, weekly, monthly" }, { status: 400 });
     }
-    update.scrape_cadence = cadence;
+    pCadence = cadence;
     if (cadence === "off") {
-      // Preserve the saved anchor unless the caller explicitly clears it (so toggling off→on keeps the plan).
-      if (body.start_date === null) update.scrape_start_date = null;
+      if (body.start_date === null) pClearStart = true; // explicit clear; else preserve the saved anchor
     } else {
       // weekly/monthly need an anchor. Use the provided start_date, else default to today (UTC).
       let start = typeof body.start_date === "string" ? body.start_date.slice(0, 10) : null;
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "start_date must be YYYY-MM-DD" }, { status: 400 });
       }
       if (!start) start = new Date().toISOString().slice(0, 10);
-      update.scrape_start_date = start;
+      pStartDate = start;
     }
   }
 
@@ -97,36 +98,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // STOP-FLAG binding (Unit 2a, migration 201): global_processing_paused / scrape_cadence are operator
-  // stop-state flags. After 201 applies, a service-role write to those columns is trigger-REJECTED, so the
-  // write MUST go through the bound operator_control credential — the credential agents do not hold. When
-  // it is configured (post-apply), route the write there; before apply (cred unset), fall back to
-  // service-role so the button keeps working during the transition (doctrine operator-stop-states-are-inviolable).
-  if (operatorControlConfigured()) {
-    const ALLOWED = new Set(["global_processing_paused", "scrape_cadence", "scrape_start_date", "updated_at"]);
-    const cols = Object.keys(update).filter((c) => ALLOWED.has(c));
-    const sets = cols.map((c, i) => `${c} = $${i + 1}`).join(", ");
-    const vals = cols.map((c) => update[c]);
-    try {
-      await withOperatorControl((client) => client.query(`UPDATE system_state SET ${sets} WHERE id = true`, vals));
-    } catch (e) {
-      return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
-    }
-  } else {
-    const { error } = await supabase.from("system_state").update(update).eq("id", true);
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+  const { data, error } = await supabase.rpc("admin_set_pause_state", {
+    p_actor: `admin:${auth.userId}`,
+    p_paused: hasPaused ? (body.paused as boolean) : null,
+    p_cadence: pCadence,
+    p_start_date: pStartDate,
+    p_clear_start: pClearStart,
+  });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Read back so the client reflects the persisted truth + the freshly-computed next scrape.
-  const { data } = await supabase
-    .from("system_state")
-    .select("scrape_cadence, scrape_start_date, global_processing_paused, updated_at")
-    .eq("id", true)
-    .maybeSingle();
-
-  return NextResponse.json(stateResponse(data, { success: true }), { headers: rateLimitHeaders(auth.userId) });
+  // admin_set_pause_state RETURNS the updated system_state row (marker-declared write + read-back in one call).
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { scrape_cadence?: string | null; scrape_start_date?: string | null; global_processing_paused?: boolean | null; updated_at?: string | null }
+    | null;
+  return NextResponse.json(stateResponse(row, { success: true }), { headers: rateLimitHeaders(auth.userId) });
 }
 
 export async function GET(request: NextRequest) {
