@@ -35,11 +35,15 @@ async function handlePOST(request: NextRequest) {
   }
 
   let candidates: IntakeCandidate[];
+  let mode: "plan" | "apply";
   try {
     const body = await request.json();
     candidates = Array.isArray(body?.candidates) ? body.candidates : [];
+    // PLAN is the DEFAULT (Step 5): read-only + free — full gate evaluation, no stage/mint/fetch/spend.
+    // APPLY fires the cycle (paid generation) and is the deliberate, explicit choice.
+    mode = body?.mode === "apply" ? "apply" : "plan";
   } catch {
-    return NextResponse.json({ error: "body must be { candidates: [{ title, source_url, item_type, … }] }" }, { status: 400 });
+    return NextResponse.json({ error: "body must be { candidates: [{ title, source_url, item_type, … }], mode?: 'plan'|'apply' }" }, { status: 400 });
   }
 
   // Machine-validate the input shape (title + source_url + item_type). No human approval — a malformed
@@ -53,10 +57,12 @@ async function handlePOST(request: NextRequest) {
   }
 
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const trail = await runIntakeCycle(sb, candidates); // caller defaults to "manual-intake-run"
+  const result = await runIntakeCycle(sb, candidates, { mode }); // apply caller defaults to "manual-intake-run"
 
+  // VISIBILITY-first (RD-20): plan returns the read-only verdict table; apply returns the disposition trail.
+  // There are NO approve affordances in either — the machine gates ARE the approval.
   return NextResponse.json(
-    { ok: true, control: "run-intake-now", cycle_stopped: true, trail },
+    { ok: true, control: "run-intake-now", mode, cycle_stopped: true, result },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }

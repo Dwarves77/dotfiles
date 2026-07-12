@@ -25,6 +25,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyStagedUpdate } from "./apply-staged-update";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
+import { planIntakeCycle, type CycleMode, type PlanResult } from "./plan-intake";
+export type { CycleMode, PlanResult, PlanVerdict } from "./plan-intake";
 
 /** The exactly-one F16 signed caller this cycle enters the hold through (see fetch-hold.mjs AUTHORIZED_HOLD_CALLERS). */
 export const MANUAL_INTAKE_CALLER = "manual-intake-run";
@@ -37,7 +39,7 @@ export interface IntakeCandidate {
   [k: string]: unknown;
 }
 
-export type Disposition = "verified" | "rejected" | "ground_failed" | "stage_failed";
+export type Disposition = "verified" | "rejected" | "ground_failed" | "stage_failed" | "would_mint" | "would_reject";
 
 export interface CycleItemOutcome {
   title: string;
@@ -67,8 +69,10 @@ export interface IntakeCycleResult {
 export async function runIntakeCycle(
   sb: SupabaseClient,
   candidates: IntakeCandidate[],
-  opts: { caller?: string } = {}
-): Promise<IntakeCycleResult> {
+  opts: { caller?: string; mode?: CycleMode } = {}
+): Promise<IntakeCycleResult | PlanResult> {
+  // PLAN is read-only + free (Step 5): evaluate the gates and STOP, no stage/mint/fetch/spend. APPLY fires.
+  if ((opts.mode ?? "apply") === "plan") return planIntakeCycle(sb, candidates);
   const caller = opts.caller ?? MANUAL_INTAKE_CALLER;
   const items: CycleItemOutcome[] = [];
   let staged = 0, minted = 0, rejected = 0, verified = 0, groundFailed = 0;
