@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
+import { operatorControlConfigured, withOperatorControl } from "@/lib/db/operator-control";
 
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -96,9 +97,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { error } = await supabase.from("system_state").update(update).eq("id", true);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // STOP-FLAG binding (Unit 2a, migration 201): global_processing_paused / scrape_cadence are operator
+  // stop-state flags. After 201 applies, a service-role write to those columns is trigger-REJECTED, so the
+  // write MUST go through the bound operator_control credential — the credential agents do not hold. When
+  // it is configured (post-apply), route the write there; before apply (cred unset), fall back to
+  // service-role so the button keeps working during the transition (doctrine operator-stop-states-are-inviolable).
+  if (operatorControlConfigured()) {
+    const ALLOWED = new Set(["global_processing_paused", "scrape_cadence", "scrape_start_date", "updated_at"]);
+    const cols = Object.keys(update).filter((c) => ALLOWED.has(c));
+    const sets = cols.map((c, i) => `${c} = $${i + 1}`).join(", ");
+    const vals = cols.map((c) => update[c]);
+    try {
+      await withOperatorControl((client) => client.query(`UPDATE system_state SET ${sets} WHERE id = true`, vals));
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    }
+  } else {
+    const { error } = await supabase.from("system_state").update(update).eq("id", true);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   // Read back so the client reflects the persisted truth + the freshly-computed next scrape.
