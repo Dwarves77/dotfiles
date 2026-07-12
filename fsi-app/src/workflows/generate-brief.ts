@@ -59,8 +59,10 @@ import { linkItems } from "../lib/entities/link-items";
 // status/audit trail; their cost is 0. The spend-call rows are the single cost ledger.
 const EST_GENERATE_USD = 0;
 const EST_GROUND_USD = 0;
-// Daily estimated-spend ceiling. Override with GENERATION_DAILY_CAP_USD.
-const DAILY_CAP_USD = Number(process.env.GENERATION_DAILY_CAP_USD ?? 5);
+// Daily estimated-spend ceiling. Override with GENERATION_DAILY_CAP_USD. Raised $5→$25 (operator ruling
+// 2026-07-12, Unit 3): the $5 default sat below unit budgets and false-halted remediation; unit ceilings +
+// per-item breakers are the operative controls, this is the platform-wide daily backstop.
+const DAILY_CAP_USD = Number(process.env.GENERATION_DAILY_CAP_USD ?? 25);
 
 function svc(): SupabaseClient {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
