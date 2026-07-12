@@ -331,6 +331,16 @@ export const DOCTRINES = [
         'ENFORCEMENT-TO-BUILD with a named landing point: the per-page writer-agent contracts + goldens land WITH THE SURFACE BUILD UNITS (each page\'s build), not before — same enforcement-to-build class as backlog-trend-growing-median-age (D-4, exempt pending Unit 5). The operator ruled the absence a KNOWN GAP, not a violation, until those units land. The per-page contract SKETCHES live in the platform-intent SKILL.md (product-framing, binding; drift needs operator correction). NAMED-RESIDUAL, REVISIT when the first surface build unit lands — grows an enforcedBy (a per-page writer-contract fitness function + goldens) at that point.',
     },
   },
+  {
+    id: 'community-is-human-space',
+    statement:
+      'Community (posts, pickups, promotion, verifier sign-off, moderation) is HUMAN-OPERATED BY DESIGN. It is NOT intake and is NOT subject to no-human-finish-of-intake / machine-gates-are-approval — those doctrines govern the machine INTAKE path only. Human approval / curation / promotion affordances on Community surfaces are legitimate by design, not gates to remove and not retained exceptions. THE ONE DOCTRINAL EDGE (boundary requirement): content promoted from Community INTO the intelligence corpus carries its OWN provenance class — community-originated, human-promoted — and NEVER renders as machine-grounded / verified. Enforcement of that provenance labeling lands with whichever unit touches the promotion path; known gap until then.',
+    source: 'census disposition Ruling 1 (operator 2026-07-12)',
+    exempt: {
+      reason:
+        'DESIGN-CLASS boundary doctrine: its primary content SCOPES the Community surface OUT of the intake human-gate doctrines — "these rules do not apply here" needs no mechanical check. The one mechanizable half is the boundary requirement (Community-promoted corpus content carries a community-originated / human-promoted provenance class and never renders as machine-grounded/verified); that is a KNOWN GAP with a named landing point — the unit that touches the promotion path — same enforcement-to-build class as analysis-follows-page-intent. It grows an enforcedBy (a provenance-label check on the promotion path) when that unit lands; until then the absence is a registered gap, not a violation.',
+    },
+  },
   // ─────────────────────────── Generation pause / manual-intake mechanism ───────────────────────────
   {
     id: 'pause-is-prohibition-dormancy-is-schedule',
