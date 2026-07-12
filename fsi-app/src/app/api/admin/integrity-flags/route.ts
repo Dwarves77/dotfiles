@@ -18,23 +18,18 @@
 // Auth: requireAuth + admin role gate. Rate-limited.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // Platform-admin gate via profiles.is_platform_admin (OBS-17, Sprint 2 Build 6).
 // Was: inline org_memberships.role check — wrong layer per the three-layer
 // tenant model. /admin/integrity-flags is a platform-layer surface.
 async function requireAdminRole(
-  supabase: ReturnType<typeof getServiceClient>,
+  supabase: ReturnType<typeof getServiceSupabase>,
   userId: string
 ): Promise<NextResponse | null> {
   const admin = await isPlatformAdmin(userId, supabase);
@@ -52,7 +47,7 @@ async function requireAdminRole(
 // ─────────────────────────────────────────────────────────────────────────
 
 async function getPerBriefFlags(
-  supabase: ReturnType<typeof getServiceClient>,
+  supabase: ReturnType<typeof getServiceSupabase>,
   userId: string
 ): Promise<NextResponse> {
   const { data: flagged, error } = await supabase
@@ -145,7 +140,7 @@ const PLATFORM_STATUSES = [
 type PlatformStatus = (typeof PLATFORM_STATUSES)[number];
 
 async function getPlatformFlags(
-  supabase: ReturnType<typeof getServiceClient>,
+  supabase: ReturnType<typeof getServiceSupabase>,
   url: URL,
   userId: string
 ): Promise<NextResponse> {
@@ -245,7 +240,7 @@ async function getPlatformFlags(
 
 async function patchPlatformFlag(
   request: NextRequest,
-  supabase: ReturnType<typeof getServiceClient>,
+  supabase: ReturnType<typeof getServiceSupabase>,
   userId: string
 ): Promise<NextResponse> {
   let body: any;
@@ -334,7 +329,7 @@ export async function GET(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const denied = await requireAdminRole(supabase, auth.userId);
   if (denied) return denied;
 
@@ -354,7 +349,7 @@ export async function PATCH(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const denied = await requireAdminRole(supabase, auth.userId);
   if (denied) return denied;
 

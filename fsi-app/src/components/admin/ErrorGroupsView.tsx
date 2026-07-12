@@ -1,5 +1,7 @@
 "use client";
 
+import { formatRelativeCompact } from "@/lib/relative-time";
+
 // ErrorGroupsView — admin Runtime → Errors surface (Wave-β R0.2).
 //
 // Presentational read-only list of the most-recently-seen error GROUPS from
@@ -34,17 +36,6 @@ function shortRelease(release: string): string {
   return release.slice(0, 7);
 }
 
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "";
-  const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.round(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
-}
 
 export function ErrorGroupsView({ groups }: ErrorGroupsViewProps) {
   const totalOccurrences = groups.reduce((n, g) => n + (g.count || 0), 0);
@@ -158,7 +149,7 @@ export function ErrorGroupsView({ groups }: ErrorGroupsViewProps) {
                   <td style={{ ...tdStyle, color: "var(--text-2)", fontFamily: "var(--font-mono, monospace)" }}>
                     {shortRelease(g.release)}
                   </td>
-                  <td style={{ ...tdStyle, color: "var(--text-2)" }}>{relativeTime(g.last_seen_at)}</td>
+                  <td style={{ ...tdStyle, color: "var(--text-2)" }}>{formatRelativeCompact(g.last_seen_at)}</td>
                 </tr>
               ))}
             </tbody>

@@ -22,7 +22,8 @@
 //             failed: [{candidateId, error}] }
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import Anthropic from "@anthropic-ai/sdk";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -31,12 +32,6 @@ import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 export const maxDuration = 60;
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 const CLASSIFICATION_SYSTEM_PROMPT = `You classify candidate canonical sources for a freight sustainability intelligence platform. Your output is a single JSON object — no prose, no markdown, no code fences.
 
@@ -154,7 +149,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {

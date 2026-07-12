@@ -32,6 +32,7 @@ import {
   type SeedFallbackTrigger,
 } from "@/lib/notifications/seed-fallback-flag";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
+import { AUDIT_DATE } from "@/data/audit-date";
 import type {
   WorkspaceOverrideRow,
   WatchlistItem,
@@ -107,16 +108,18 @@ const cachedAppData = unstable_cache(
 // SF-2 Phase 1 (2026-05-27): retained as an empty-shape factory rather
 // than a seed-data fallback. Old name preserved to minimize diff
 // breadth; behavior changed: no seed resources returned.
-async function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
-  const seed = await import("@/data");
+function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
+  // T7 (2026-07-12): was `await import("@/data")`, which bundled the 1.23 MB seed-resources.json into an async
+  // chunk to read ONE constant (AUDIT_DATE) while returning all-empty arrays. Now a static AUDIT_DATE + the
+  // real types; the src/data barrel (its only importer was here) drops out of the client bundle entirely.
   return {
-    resources: [] as typeof seed.resources,
-    archived: [] as typeof seed.archived,
-    changelog: {} as typeof seed.changelog,
-    disputes: {} as typeof seed.disputes,
-    xrefPairs: [] as typeof seed.xrefPairs,
-    supersessions: [] as typeof seed.supersessions,
-    auditDate: seed.AUDIT_DATE,
+    resources: [] as Resource[],
+    archived: [] as Resource[],
+    changelog: {} as Record<string, ChangeLogEntry[]>,
+    disputes: {} as Record<string, Dispute>,
+    xrefPairs: [] as [string, string][],
+    supersessions: [] as Supersession[],
+    auditDate: AUDIT_DATE,
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],

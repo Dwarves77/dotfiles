@@ -32,7 +32,8 @@
 // This module never reads or writes secrets directly — ANTHROPIC_API_KEY
 // and Supabase credentials are pulled from process.env at call time.
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { type SupabaseClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { isIsoCode, isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import {
@@ -529,12 +530,6 @@ async function verifyOrFallback(
 // Public API
 // ────────────────────────────────────────────────────────────────────────────
 
-function getServiceClient(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function discoverForJurisdiction(
   req: DiscoveryRequest,
@@ -561,7 +556,7 @@ export async function discoverForJurisdiction(
   const depth: DiscoveryDepth = req.depth ?? "normal";
   const fallbackLanguage = (req.language || "en").trim().toLowerCase();
   const dryRun = !!req.dryRun;
-  const supabase = opts?.supabase ?? getServiceClient();
+  const supabase = opts?.supabase ?? getServiceSupabase();
 
   // Step 2 — render label
   const renderedLabel = isoToDisplayLabel(code);

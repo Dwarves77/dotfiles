@@ -33,7 +33,7 @@
 // ══════════════════════════════════════════════════════════════
 
 import { unstable_cache } from "next/cache";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "./supabase-service";
 import { APP_DATA_TAG } from "@/lib/data";
 import {
   TIER1_PRIORITY_REGIONS,
@@ -164,18 +164,12 @@ interface SourceRow {
 // platform-wide and not tenant-partitioned. Using a stateless service
 // client keeps the cache key free of orgId.
 
-function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key);
-}
-
 async function fetchActiveSourceRows(): Promise<SourceRow[]> {
-  const supabase = getServiceClient();
-  if (!supabase) return [];
+  // C1 fail-closed (2026-07-12): route through the canonical service client. On missing SERVICE_ROLE it THROWS
+  // (never the old silent anon-key downgrade, which would compute coverage gaps from RLS-limited reads); we
+  // catch → empty, so a misconfigured service key yields NO coverage data, never WRONG coverage data.
+  let supabase;
+  try { supabase = getServiceSupabase(); } catch { return []; }
 
   const { data, error } = await supabase
     .from("sources")

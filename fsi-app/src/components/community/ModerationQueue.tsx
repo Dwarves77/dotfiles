@@ -20,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatRelativeCompact } from "@/lib/relative-time";
 import {
   ChevronDown,
   ChevronRight,
@@ -327,7 +328,7 @@ export function ModerationQueue({
                   flexShrink: 0,
                 }}
               >
-                {formatRelative(r.created_at)}
+                {formatRelativeCompact(r.created_at)}
               </time>
             </button>
 
@@ -360,7 +361,7 @@ export function ModerationQueue({
                   >
                     This report is {r.status}
                     {r.resolved_at
-                      ? ` — closed ${formatRelative(r.resolved_at)}.`
+                      ? ` — closed ${formatRelativeCompact(r.resolved_at)}.`
                       : "."}
                   </div>
                 )}
@@ -395,7 +396,7 @@ function ReportDetails({ report }: { report: ModerationReportRow }) {
       {report.body && <DetailRow label="Reporter notes" value={report.body} />}
       <DetailRow
         label="Filed"
-        value={`${formatRelative(report.created_at)} · ${new Date(
+        value={`${formatRelativeCompact(report.created_at)} · ${new Date(
           report.created_at
         ).toLocaleString()}`}
       />
@@ -619,16 +620,6 @@ function EmptyState({
 // helpers
 // ───────────────────────────────────────────────────────────────────
 
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const diff = now - then;
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} h ago`;
-  if (diff < 2_592_000_000) return `${Math.floor(diff / 86_400_000)} d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 async function safeJson(res: Response): Promise<{ error?: string } | null> {
   try {

@@ -133,6 +133,23 @@ export const DOCTRINES = [
     enforcedBy: ['RD-14-line-read-is-not-verification'],
   },
   {
+    id: 'no-uncited-operator-gate-in-doctrine',
+    statement:
+      'no-human-finish-of-intake extends across the whole doctrine surface: a clause asserting a HUMAN GATE (human must approve/review/confirm before the machine proceeds) in intake/triage/promotion/demotion/disposition MUST NOT sit UNCITED — it is rewritten to machine-gates-are-approval + operator-visibility, or annotated [RETAINED: reason; register:<id>] for a legitimately human-gated destructive/irreversible action. Visibility (DP-1 single-pane review, surface-to-queue, shown-on-the-trail) is PRESERVED, not a gate. The self-inflicted variant is forbidden: a thread whose closer is "operator re-confirms a ruling already given" is a self-inflicted gate — a ruled decision does not return to the board as blocked; it executes, and if conditions changed the executor names the changed condition, never silently re-parks.',
+    source: 'doctrine-contradiction-sweep rider + board self-gate ruling (operator 2026-07-12)',
+    enforcedBy: ['SF-12-doctrine-no-uncited-gate'],
+  },
+  {
+    id: 'consolidation-is-behavior-preserving',
+    statement:
+      'A deduplication / consolidation pass ADOPTS the majority/live behavior of the copies it merges — it does not smuggle a behavior change into a dedup. A deliberate behavior change (a different date format, a different default, a bug fix that alters output) ships as its OWN unit, named, so review sees it. When the canonical home diverges from what the live surfaces render, the home is set to the live behavior (C6: format.ts::formatDate was a dead day-first export; the 7 live surfaces rendered US month-first, so the home adopted US — zero customer-visible change; the two variant copies with a different intent were LEFT, not silently unified).',
+    source: 'C6/C7 date-format fork ruling (operator 2026-07-12)',
+    exempt: {
+      reason:
+        'A process/orchestration-time discipline about HOW a consolidation is scoped (adopt-live-behavior, ship-deliberate-changes-separately); not a checkable property of a committed file. Same process-class as diagnose-before-fix / guards-win-fights. Enforced by review of each consolidation PR — a dedup that changes rendered output without saying so is the violation.',
+    },
+  },
+  {
     id: 'no-inference-as-fact-on-regulatory-content',
     statement:
       'No invented facts; when facts run out, stop. Analysis in a workspace-ACTION section MUST open with a recognized label; matching an entity to a regulation\'s defined role or deciding an obligation attaches is a legal determination routed to counsel, never asserted as fact.',

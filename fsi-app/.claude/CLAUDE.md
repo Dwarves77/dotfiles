@@ -17,7 +17,7 @@ Research, Operations, Community; the ratified model — owned by `caros-ledge-pl
 - **Layer 2: Intelligence Items** — Specific regulations/findings that live INSIDE sources
 - The system monitors sources. Sources produce intelligence items. Manual entry is not the model.
 - Source trust: 7-tier hierarchy, trust scoring (accuracy 40% / timeliness 20% / reliability 20% / citation 20%)
-- Promotion requires ALL criteria met + human review. Demotion triggered by ANY single condition.
+- Promotion requires ALL criteria met, evaluated autonomously by `evaluatePromotion` (the machine gates ARE the approval — RD-20 / no-human-finish-of-intake); the operator gets visibility via the disposition trail, not a gate. Demotion is triggered by ANY single condition, evaluated autonomously by `evaluateDemotion`, same visibility form. (`evaluateDemotion.critical_conflict` is a named stub — it needs the conflict-detail feed Unit 1 wires; tracked, not silent.)
 
 ## Dispatch Discipline: Verification Before Authorization (in force from 2026-05-06)
 
@@ -163,7 +163,7 @@ This applies to every accordion in the app: regulations grouped by topic, operat
 - Next.js 16 / React 19 / TypeScript / Tailwind v4
 - Supabase (PostgreSQL) — live. Applied-migration count is STATE — see `docs/inventories/migrations.md` and `supabase/migrations/`.
 - Zustand stores (resourceStore, navigationStore, settingsStore, exportStore, sourceStore)
-- lucide-react icons, GSAP available
+- lucide-react icons (GSAP removed 2026-07-12 — 0 imports; re-add if an animation need appears)
 
 ## Perf Work Discipline (in force from 2026-05-06)
 

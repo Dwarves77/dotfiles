@@ -13,18 +13,13 @@
 // any intelligence_items provenance_status. Not run in Block 1.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -33,7 +28,7 @@ export async function POST(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {
     return NextResponse.json({ error: "Platform admin access required" }, { status: 403 });

@@ -563,6 +563,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-15-no-service-anon-downgrade',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 4: API contract gaps — a service-role client is fail-closed, never anon-downgraded',
+    text: 'A service-role Supabase client MUST be fail-closed: a missing SUPABASE_SERVICE_ROLE_KEY THROWS (or yields no data) — it NEVER silently downgrades to NEXT_PUBLIC_SUPABASE_ANON_KEY. The downgrade masks service-role misconfiguration in production as RLS-limited reads (empty/wrong data downstream). The canonical getServiceSupabase (src/lib/supabase-service.ts) is the fail-closed home; the `SUPABASE_SERVICE_ROLE_KEY || …ANON_KEY` pattern anywhere in src is forbidden.',
+    anchor: 'API contract gaps',
+    enforcedBy: ['fitness:F19', 'selftest:fsi-app/.discipline/fitness/functions/F19-no-service-anon-downgrade.test.mjs'],
+    residual: 'F19 (grep-class, red-then-green: the `SERVICE_ROLE || …ANON_KEY` downgrade in either order, tolerant of the line break it is written across, is RED with file:line) gates the STRUCTURAL guarantee — the anon-downgrade class (SF-1 fixed in the canonical, then re-appeared ad-hoc in coverage-gaps.ts — Ruling 2 C1) cannot recur. coverage-gaps.ts now routes through getServiceSupabase (fail-closed → caught → empty coverage, never WRONG coverage from anon reads). NAMED RESIDUAL: the broad 52-file getServiceClient→getServiceSupabase CONSOLIDATION (hygiene, correctness-neutral where those factories are already service-only) rides the hygiene pass; F19 makes the SAFETY property (no anon downgrade) hold across all of them by gate regardless of the literal consolidation.',
+  },
+
+  {
     id: 'RD-13-error-body-groundability-gate',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 12: The error-body groundability gate (never ground a FACT to a failed fetch)',
@@ -743,5 +753,15 @@ export const INVARIANTS = [
     anchor: 'a referenced credential must be a registered credential',
     enforcedBy: ['selftest:fsi-app/.discipline/governance/secrets-reference-audit.test.mjs'],
     residual: 'secrets-reference-audit.mjs is FILESYSTEM-PURE (scans workflow YAML + the registry; no secrets/DB), so it runs in BOTH the required discipline suite (via the red-then-green .test.mjs, auto-globbed governance/*.test.mjs) AND the meta-gate itself (runSecretsReferenceAudit is called in runInvariantCoverage → an unregistered reference literally fails the meta-gate). The registry (secrets-registry.mjs WORKFLOW_SECRETS) is kept EQUAL to the live GitHub store (verified 2026-07-12 via gh secret list). SCOPE (honest): it enforces the GitHub-Actions vault only (the vault this repo\'s workflows read); Vercel-runtime + local-.env credentials are DOCUMENTED in the TOPOLOGY + docs/ops/secrets-topology.md but not diffed (no in-repo manifest to diff Vercel env against — that would need the Vercel API). VALUES never appear anywhere — names + wiring only.',
+  },
+
+  {
+    id: 'SF-12-doctrine-no-uncited-gate',
+    skill: 'sprint-followups-discipline',
+    section: 'Inventory consistency (a gate-asserting doctrine clause must be a cited doctrine clause)',
+    text: 'no-human-finish-of-intake (RD-20) extends across the whole doctrine surface: a doctrine clause asserting a HUMAN GATE (a human must approve/review/confirm before the machine proceeds) in intake/triage/promotion/demotion/disposition MUST NOT sit UNCITED — it is either rewritten to the machine-gates-are-approval + operator-visibility form, or annotated [RETAINED: reason; register:<id>] for a legitimately-human-gated destructive/irreversible action. The self-inflicted variant is also forbidden: a thread/closer of the form "operator re-confirms a ruling already given" is a self-inflicted gate — a ruled decision does not return to the board as blocked; it executes, and if conditions changed the executor names the changed condition, never silently re-parks. This is the inventory-consistency class (referenced == cited) applied to the human-gate contradiction.',
+    anchor: 'Inventory consistency',
+    enforcedBy: ['selftest:fsi-app/.discipline/governance/doctrine-contradiction.test.mjs'],
+    residual: 'doctrine-contradiction.mjs is FILESYSTEM-PURE (scans the committed doctrine surface: root + fsi-app CLAUDE.md, the 6 skills, the doctrine-register), so it runs in BOTH the discipline suite (red-then-green doctrine-contradiction.test.mjs, auto-globbed governance/*.test.mjs) AND the meta-gate itself (scanDoctrineContradictions is called in runInvariantCoverage → an uncited human-gate clause literally fails the meta-gate). LOW-FALSE-POSITIVE BY CONSTRUCTION (the RLS-parity discipline, operator sharpening 2026-07-12): the patterns distinguish GATE VERBS (requires review / approval / pending human / awaits operator) from VISIBILITY VERBS (surfaces to / visible in / shown on the trail / single-pane operator review), so a DP-1 single-pane-review line and a "surface to the queue" line are never flagged — visibility is preserved by no-human-finish. Negated anti-pattern statements ("no human-approval gate") and register-cited clauses are exempt. NAMED RESIDUAL: the mechanical scan scopes to the committed binding-doctrine files (transient docs/ops session logs are swept by hand to stay low-FP); the self-inflicted-gate board rule is enforced in the pattern list + carried as authoring discipline.',
   },
 ];

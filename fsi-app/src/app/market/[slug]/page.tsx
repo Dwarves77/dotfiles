@@ -16,6 +16,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { getMarketIntelItems } from "@/lib/data";
@@ -45,14 +46,12 @@ export default async function MarketSignalDetailPage({
   if (
     UUID_RE.test(id) &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    (process.env.SUPABASE_SERVICE_ROLE_KEY)
   ) {
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY ||
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { persistSession: false } }
       );
       const { data: byId } = await supabase
@@ -93,12 +92,12 @@ export default async function MarketSignalDetailPage({
   if (
     r.sourceId &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    (process.env.SUPABASE_SERVICE_ROLE_KEY)
   ) {
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { persistSession: false } }
       );
       const { data: srcRow } = await supabase
@@ -129,12 +128,12 @@ export default async function MarketSignalDetailPage({
   let priceBoard: PriceStat[] = [];
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    (process.env.SUPABASE_SERVICE_ROLE_KEY)
   ) {
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { persistSession: false } }
       );
       const { data: priceRows } = await supabase
@@ -236,12 +235,3 @@ export default async function MarketSignalDetailPage({
   );
 }
 
-function formatDate(d: string): string {
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}

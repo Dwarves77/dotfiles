@@ -42,18 +42,13 @@
 // the cron-platform decision is a separate small dispatch.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { recomputeEffectiveTier } from "@/lib/trust";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 
 const Q7_CONFIG_VERSION = "q7-2026-05-20";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(request: NextRequest) {
   // Accept either x-worker-secret (external cron / manual curl) or
@@ -75,7 +70,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const startedAt = new Date().toISOString();
 
   // Page through every source so the endpoint scales past Supabase's

@@ -56,3 +56,21 @@ export function toDate(input: string | Date | null | undefined): Date | null {
   const d = new Date(input);
   return Number.isNaN(d.getTime()) ? null : d;
 }
+
+// COMPACT relative time ("5m ago", "3h ago", "2d ago") — the dense-list style used by community feeds,
+// notifications, and admin error timing. The second canonical home (C7b, 2026-07-12): five components had
+// re-inlined this compact style with minor drift ("5 min ago" spaced, "5s ago" seconds, floor vs round). This
+// is the majority form: floor-based, no space, "just now" under a minute. The VERBOSE formatRelative above is
+// the credibility/masthead style; both are intentional — surfaces pick by density, not by accident.
+export function formatRelativeCompact(input: string | Date | null | undefined): string {
+  const d = toDate(input);
+  if (!d) return "";
+  const diff = Date.now() - d.getTime();
+  if (diff < MIN) return "just now";
+  if (diff < HOUR) return `${Math.floor(diff / MIN)}m ago`;
+  if (diff < DAY) return `${Math.floor(diff / HOUR)}h ago`;
+  if (diff < WEEK) return `${Math.floor(diff / DAY)}d ago`;
+  if (diff < MONTH) return `${Math.floor(diff / WEEK)}w ago`;
+  if (diff < YEAR) return `${Math.floor(diff / MONTH)}mo ago`;
+  return `${Math.floor(diff / YEAR)}y ago`;
+}

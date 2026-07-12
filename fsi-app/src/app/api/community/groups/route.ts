@@ -26,7 +26,8 @@
 // Auth: cookie session via requireCommunityAuth. Rate limit: standard 60/min.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import {
   requireCommunityAuth,
   isCommunityAuthError,
@@ -42,12 +43,6 @@ const SECTOR_IDS = new Set(ALL_SECTORS.map((s) => s.id));
 const SELECT_COLS =
   "id, name, slug, region, privacy, owner_user_id, description, vertical, member_count, weekly_post_count, last_active_at, created_at";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 /** kebab-case a display name into a slug fragment (ascii, hyphen-joined). */
 function slugifyName(name: string): string {
@@ -145,7 +140,7 @@ export async function POST(request: NextRequest) {
 
   // Bootstrap the owner's admin membership row via service-role (members INSERT
   // is admin-only; no admin exists yet). On failure, remove the orphan group.
-  const service = getServiceClient();
+  const service = getServiceSupabase();
   const { error: memberErr } = await service
     .from("community_group_members")
     .insert({

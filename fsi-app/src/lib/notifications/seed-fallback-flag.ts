@@ -19,7 +19,8 @@
  * console.warn so Vercel function logs catch the double-failure case.
  */
 
-import { createClient } from "@supabase/supabase-js";
+
+import { getServiceSupabase } from "@/lib/supabase-service";
 
 export type SeedFallbackTrigger =
   | "null_orgId"
@@ -52,13 +53,6 @@ const RECOMMENDED_ACTIONS: RecommendedAction[] = [
   },
 ];
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 /**
  * Record a seed-fallback activation as a platform integrity_flag.
@@ -87,7 +81,7 @@ export async function recordSeedFallbackFlag(
   }
 
   try {
-    const supabase = getServiceClient();
+    const supabase = getServiceSupabase();
 
     // Dedupe: skip if an open flag for this surface exists in the last hour.
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();

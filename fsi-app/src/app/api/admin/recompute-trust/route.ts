@@ -10,7 +10,8 @@
 // /api/worker/check-sources). NOT user-facing.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import {
   computeTrustScore,
   computeOverallScore,
@@ -19,18 +20,12 @@ import type { TrustMetrics, SourceTier } from "@/types/source";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(request: NextRequest) {
   const denied = workerAuthGuard(request);
   if (denied) return denied;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   // Global pause gate — skip the recompute entirely.
   if (await isGloballyPaused(supabase)) {

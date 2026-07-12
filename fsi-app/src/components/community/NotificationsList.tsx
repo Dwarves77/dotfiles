@@ -21,6 +21,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
+import { formatRelativeCompact } from "@/lib/relative-time";
 import {
   AtSign,
   MessageSquare,
@@ -87,16 +88,6 @@ function KindIcon({ kind }: { kind: Kind }) {
   }
 }
 
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "";
-  const diffSec = Math.max(0, (Date.now() - then) / 1000);
-  if (diffSec < 60) return "just now";
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  if (diffSec < 86400 * 7) return `${Math.floor(diffSec / 86400)}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
 
 function deriveTitle(n: Notification): string {
   if (n.payload?.title && typeof n.payload.title === "string") {
@@ -433,7 +424,7 @@ export function NotificationsList({
                       letterSpacing: "0.03em",
                     }}
                   >
-                    {KIND_LABEL[n.kind]} · {relativeTime(n.created_at)}
+                    {KIND_LABEL[n.kind]} · {formatRelativeCompact(n.created_at)}
                   </span>
                 </span>
                 {unread && (
